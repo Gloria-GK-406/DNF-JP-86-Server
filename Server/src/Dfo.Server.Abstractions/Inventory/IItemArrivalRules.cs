@@ -1,9 +1,10 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
 /// <summary>What one slot already holds of the item that is arriving.</summary>
-public sealed record ItemPile(int SlotIndex, int Count);
+public sealed record ItemPile(BusinessSlot Slot, int Count);
 
 /// <summary>Where an arriving pile of items ends up.</summary>
 /// <remarks>
@@ -19,10 +20,10 @@ public abstract record ItemArrival
 
     /// <summary>Added to a pile the character already had.</summary>
     /// <param name="Total">What that pile holds afterwards.</param>
-    public sealed record OntoExistingPile(int SlotIndex, int Added, int Total) : ItemArrival;
+    public sealed record OntoExistingPile(BusinessSlot Slot, int Added, int Total) : ItemArrival;
 
     /// <summary>Put in a slot of its own band that was empty.</summary>
-    public sealed record IntoEmptySlot(int SlotIndex, int Count) : ItemArrival;
+    public sealed record IntoEmptySlot(BusinessSlot Slot, int Count) : ItemArrival;
 
     /// <summary>The band this item belongs to has nothing free.</summary>
     public sealed record NoRoom : ItemArrival;
@@ -51,16 +52,15 @@ public interface IItemArrivalRuleService
     ItemArrival ForDailyRefill(
         IReadOnlyList<ItemPile> present,
         int grant,
-        int slotStart,
-        int slotEnd,
-        IReadOnlySet<int> occupiedSlots);
+        BusinessSlotRange destination,
+        IReadOnlySet<BusinessSlot> occupiedSlots);
 
     /// <summary>Where an item the game hands the character goes.</summary>
     ItemArrival ForGrant(
         IReadOnlyList<ItemPile> present,
         int count,
         ItemPlacement placement,
-        IReadOnlySet<int> occupiedSlots);
+        IReadOnlySet<BusinessSlot> occupiedSlots);
 }
 
 /// <summary>

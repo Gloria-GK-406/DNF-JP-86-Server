@@ -348,6 +348,7 @@ public sealed class AcceptQuestCommandHandlerTests
     private sealed class Placements(bool known) : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(known ? new ItemPlacement(2, 100, 65, 120) : null);
+            ValueTask.FromResult(known ? new ItemPlacement(2, 100,
+                new(BusinessInventorySpace.Consumable, 0, 55)) : null);
     }
 }

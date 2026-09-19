@@ -2,12 +2,18 @@ using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider)
+internal sealed class PvfEntryLifecycleContentSource(
+    PvfArchiveProvider provider,
+    IInventorySlotMappingRuleService? slotMappings = null)
     : IEntryLifecycleContentSource
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
     private const string RefillPath = "etc/chn_server_limititemusageinfo.etc";
     private const string StackableListPath = "stackable/stackable.lst";
     private const string EquipmentListPath = "equipment/equipment.lst";
@@ -55,7 +61,7 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
         var stackables = PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
         var equipment = ReadEquipmentPaths(archive);
         var parsed = Parse(values, preparedAt,
-            id => ResolveItemMetadata(archive, id, stackables, equipment));
+            id => ResolveItemMetadata(archive, id, stackables, equipment), slotMappings);
         return ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(parsed);
     }
 
@@ -85,8 +91,10 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
     internal static IReadOnlyList<DailyRefillRule> Parse(
         IReadOnlyList<string> values,
         DateTimeOffset preparedAt,
-        Func<int, RefillItemMetadata> metadata)
+        Func<int, RefillItemMetadata> metadata,
+        IInventorySlotMappingRuleService? slotMappings = null)
     {
+        slotMappings ??= new InventorySlotMappingRuleService();
         if (values.Count % 4 != 0)
             throw new FormatException($"PVF [{RefillPath}] [refill item] token count {values.Count} is not divisible by 4.");
 
@@ -106,9 +114,19 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
                     or > (int)DailyRefillMode.AddUpToStackLimit)
                 continue;
             var item = metadata(itemId);
+            if (item.SlotEnd < item.SlotStart)
+                continue;
+            var first = slotMappings.ToBusinessSlot(
+                new GameSlot(InventoryContainerType.Main, item.SlotStart));
+            var last = slotMappings.ToBusinessSlot(
+                new GameSlot(InventoryContainerType.Main, item.SlotEnd));
+            if (first.Space != last.Space)
+                throw new InvalidDataException(
+                    $"PVF daily refill Main/{item.SlotStart}..{item.SlotEnd} crosses business spaces.");
             result.Add(new DailyRefillRule(
                 itemId, quantity, expiresAt, (DailyRefillMode)modeValue,
-                item.StackLimit, item.ItemKind, item.SlotStart, item.SlotEnd));
+                item.StackLimit, item.ItemKind,
+                new BusinessSlotRange(first.Space, first.Index, last.Index)));
         }
         return result;
     }

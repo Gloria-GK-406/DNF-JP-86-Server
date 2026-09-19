@@ -14,8 +14,7 @@ public enum ItemDiscardRejection
 
 public sealed record ItemDiscardReceipt(
     SelectedSessionIdentity Session,
-    InventoryContainerType Container,
-    int SlotIndex,
+    BusinessSlot Slot,
     int ItemId,
     int AppliedCount,
     InventoryItemCoreState? RemainingCore,

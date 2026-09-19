@@ -40,8 +40,10 @@ public sealed class ItemPathFrameTests
     public async Task AMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
         await using var storage = await Storage.CreateAsync((65, PotionId, 1));
+        var mappings = new InventorySlotMappingRuleService();
+        var containers = storage.Containers();
         var handler = new MoveItemSpaceCommandHandler(
-            storage.Containers(),
+            new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                 new ItemSlotRuleService()));
@@ -51,7 +53,12 @@ public sealed class ItemPathFrameTests
         // failure -- but it also means a test that skips the boundary is not testing the real path.
         await using var boundary = storage.Scope.Begin();
         var result = await handler.HandleAsync(
-            Context, new MoveItemSpaceCommand(Character, 0, 3, 0, 0, 65), CancellationToken.None);
+            Context,
+            new MoveItemSpaceCommand(
+                Character,
+                new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
+                new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
+            CancellationToken.None);
         await boundary.CommitAsync(CancellationToken.None);
 
         Assert.Equal(ItemMoveStatus.Moved, result.Status);
@@ -59,7 +66,11 @@ public sealed class ItemPathFrameTests
         Assert.Equal(
             [0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x41, 0x00],
             MoveItemSpacePayloadCodec.Encode(
-                new MoveItemSpaceResponse(null, 0, 3, result.MoveValue, 0, 65)));
+                new MoveItemSpaceResponse(
+                    null,
+                    new GameSlot(InventoryContainerType.Main, 3),
+                    result.MoveValue,
+                    new GameSlot(InventoryContainerType.Main, 65))));
         Assert.Equal([(3, PotionId, 1)], await storage.ReadAsync());
     }
 
@@ -71,15 +82,22 @@ public sealed class ItemPathFrameTests
     public async Task ARefusedMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
         await using var storage = await Storage.CreateAsync();
+        var mappings = new InventorySlotMappingRuleService();
+        var containers = storage.Containers();
         var handler = new MoveItemSpaceCommandHandler(
-            storage.Containers(),
+            new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                 new ItemSlotRuleService()));
 
         await using var boundary = storage.Scope.Begin();
         var result = await handler.HandleAsync(
-            Context, new MoveItemSpaceCommand(Character, 0, 3, 0, 0, 65), CancellationToken.None);
+            Context,
+            new MoveItemSpaceCommand(
+                Character,
+                new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 0,
+                new BusinessSlot(BusinessInventorySpace.Consumable, 0)),
+            CancellationToken.None);
         await boundary.CommitAsync(CancellationToken.None);
 
         Assert.Equal(ItemMoveStatus.BothSlotsEmpty, result.Status);
@@ -105,8 +123,10 @@ public sealed class ItemPathFrameTests
     {
         var body = MoveItemSpacePayloadCodec.Encode(
             new MoveItemSpaceResponse(
-                ErrorCode: null, SourceListType: 0, SourceSlotIndex: 9, MoveValue: 1,
-                DestinationListType: 3, DestinationSlotIndex: 15));
+                ErrorCode: null,
+                SourceSlot: new GameSlot(InventoryContainerType.Main, 9),
+                MoveValue: 1,
+                DestinationSlot: new GameSlot(InventoryContainerType.Equipment, 15)));
 
         Assert.Equal(
             [0x01, 0x00, 0x09, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x0F, 0x00], body);
@@ -122,7 +142,8 @@ public sealed class ItemPathFrameTests
     private sealed class ConsumableBand : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100,
+                new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     private sealed class Storage : IAsyncDisposable

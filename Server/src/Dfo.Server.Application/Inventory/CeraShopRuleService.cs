@@ -8,8 +8,11 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
-    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals) : ICeraShopRuleService
+    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
+    IInventorySlotMappingRuleService? slotMappings = null) : ICeraShopRuleService
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
@@ -75,7 +78,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         foreach (var grant in quote.Grants)
         {
             var placement = grant.Placement;
-            var container = ContainerFor(placement.ItemKind);
+            var container = this.ContainerFor(placement.Destination);
             if (!standing.TryGetValue(container, out var slots))
                 return new(CeraShopRejection.NoSession, null, $"Container {container} is not bound.");
             var baseline = StackableItemCore.Create(placement.ItemKind, grant.Item.ItemId, 0) with
@@ -88,22 +91,30 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
             var outstanding = grant.Count;
             while (outstanding > 0)
             {
-                var piles = slots.Values.Where(item => item.IsPile && item.ItemId == grant.Item.ItemId
+                var candidates = CandidateSlots(placement).ToArray();
+                var businessPiles = candidates
+                    .Select(slot => (Slot: slot, Index: this.StorageIndex(container, slot)))
+                    .Where(candidate => slots.TryGetValue(candidate.Index, out var item)
+                        && item.IsPile
+                        && item.ItemId == grant.Item.ItemId
                         && item.Core with { Value = 0 } == baseline)
-                    .Select(item => new ItemPile(item.SlotIndex, item.Count)).ToArray();
-                var arrival = arrivals.ForGrant(piles, outstanding, placement, slots.Keys.ToHashSet());
+                    .Select(candidate => new ItemPile(
+                        candidate.Slot, slots[candidate.Index].Count)).ToArray();
+                var arrival = arrivals.ForGrant(businessPiles, outstanding, placement,
+                    candidates.Where(slot => slots.ContainsKey(this.StorageIndex(container, slot)))
+                        .ToHashSet());
                 int slot, added;
                 InventoryItemCoreState core;
                 InventoryItemCreationFacts? facts = null;
                 if (arrival is ItemArrival.OntoExistingPile pile)
                 {
-                    slot = pile.SlotIndex;
+                    slot = this.StorageIndex(container, pile.Slot);
                     added = pile.Added;
                     core = slots[slot].Core with { Value = pile.Total };
                 }
                 else if (arrival is ItemArrival.IntoEmptySlot empty)
                 {
-                    slot = empty.SlotIndex;
+                    slot = this.StorageIndex(container, empty.Slot);
                     added = empty.Count;
                     var value = placement.WorldClass == ItemWorldClass.Interchangeable ? added
                         : (int)(((long)(uint)identitySeed + serial++) % (int.MaxValue - 1)) + 1;
@@ -171,22 +182,26 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 ability = packageChoice ? choices.Ability(item.ItemId) : directAbility;
                 if (item.Avatar.SelectableAbilities.IsEmpty ? ability != 0 : !item.Avatar.SelectableAbilities.Contains(ability))
                     throw Refuse(CeraShopRejection.InvalidChoice, $"Item {item.ItemId} has no ability {ability}.");
-                placement = placement with { ItemKind = 8, StackLimit = 1, SlotStart = 0, SlotEnd = 209 };
+                placement = placement with { ItemKind = 8, StackLimit = 1,
+                    Destination = new(BusinessInventorySpace.Avatar, 0, 209) };
             }
             else if (item.Kind == CeraShopItemKind.Creature)
             {
                 if (item.Creature is null || placement.WorldClass != ItemWorldClass.Creature || expiration != 0)
                     throw Refuse(CeraShopRejection.UnsupportedProduct, "Missing creature declaration or unsupported creature duration.");
-                placement = placement with { ItemKind = 5, StackLimit = 1, SlotStart = 0, SlotEnd = 139 };
+                placement = placement with { ItemKind = 5, StackLimit = 1,
+                    Destination = new(BusinessInventorySpace.CreatureInventory, 0, 139) };
             }
             else if (item.Kind == CeraShopItemKind.CreatureEquipment)
             {
                 if (placement.WorldClass != ItemWorldClass.Equipment)
                     throw Refuse(CeraShopRejection.UnsupportedProduct, "Creature equipment is not an equipment instance.");
-                placement = placement with { ItemKind = 6, StackLimit = 1, SlotStart = 140, SlotEnd = 188 };
+                placement = placement with { ItemKind = 6, StackLimit = 1,
+                    Destination = new(BusinessInventorySpace.CreatureEquipment, 0, 48) };
             }
             else if (placement.ItemKind == 7)
-                placement = placement with { SlotStart = 189, SlotEnd = 239 };
+                placement = placement with {
+                    Destination = new(BusinessInventorySpace.CreatureConsumable, 0, 50) };
             if (placement.ItemKind == 0 || item.Kind == CeraShopItemKind.Stackable && placement.WorldClass != ItemWorldClass.Interchangeable
                 || item.Kind == CeraShopItemKind.Equipment && placement.WorldClass != ItemWorldClass.Equipment)
                 throw Refuse(CeraShopRejection.UnsupportedProduct, "Item declaration and placement disagree.");
@@ -195,12 +210,29 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         ancestors.Remove(item.ItemId);
     }
 
-    internal static InventoryContainerType ContainerFor(byte kind) => kind switch
+    private InventoryContainerType ContainerFor(BusinessSlotRange destination) =>
+        slotMappings.ToGameSlot(new BusinessSlot(destination.Space, destination.FirstIndex)).Space;
+
+    private int StorageIndex(InventoryContainerType container, BusinessSlot slot)
     {
-        8 => InventoryContainerType.Avatar,
-        5 or 6 or 7 => InventoryContainerType.Pet,
-        _ => InventoryContainerType.Main,
-    };
+        var game = slotMappings.ToGameSlot(slot);
+        if (game.Space != container)
+            throw new InvalidDataException(
+                $"CERA placement {slot.Space}/{slot.Index} does not belong to {container}.");
+        return game.Index;
+    }
+
+    private static IEnumerable<BusinessSlot> CandidateSlots(ItemPlacement placement)
+    {
+        var own = Enumerable.Range(
+                placement.Destination.FirstIndex,
+                placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
+            .Select(index => new BusinessSlot(placement.Destination.Space, index));
+        return ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+            ? own.Concat(Enumerable.Range(0, 6)
+                .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)))
+            : own;
+    }
 
     private static bool TryPay(AccountCeraBalances before, int cost, CeraShopPaymentMode mode, out AccountCeraBalances after)
     {

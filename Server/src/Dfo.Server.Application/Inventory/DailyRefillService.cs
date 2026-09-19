@@ -127,7 +127,7 @@ internal sealed class DailyRefillService(
         CancellationToken cancellationToken)
     {
         var outcome = await bag.RefillAsync(
-            new ItemRefill(rule.ItemId, rule.ItemKind, grant, rule.SlotStart, rule.SlotEnd),
+            new ItemRefill(rule.ItemId, rule.ItemKind, grant, rule.Destination),
             cancellationToken).ConfigureAwait(false);
         switch (outcome)
         {
@@ -145,7 +145,8 @@ internal sealed class DailyRefillService(
 
             case ItemPlacementOutcome.NoRoom:
                 throw new InvalidDataException(
-                    $"Daily refill inventory range {rule.SlotStart}-{rule.SlotEnd} is full.");
+                    $"Daily refill inventory range {rule.Destination.Space}/"
+                        + $"{rule.Destination.FirstIndex}-{rule.Destination.LastIndex} is full.");
 
             default:
                 // A refill names its own item, so the bag cannot answer that it does not know it;

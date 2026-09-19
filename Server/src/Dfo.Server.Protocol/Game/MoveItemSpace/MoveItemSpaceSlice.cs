@@ -28,12 +28,10 @@ namespace Dfo.Server.Protocol.Game.MoveItemSpace;
 /// </remarks>
 public sealed record MoveItemSpaceRequest(
     GameMessageMetadata Metadata,
-    byte SourceListType,
-    short SourceSlotIndex,
+    GameSlot SourceSlot,
     int SourceInstanceValue,
     int MoveCount,
-    byte DestinationListType,
-    short DestinationSlotIndex,
+    GameSlot DestinationSlot,
     int DestinationInstanceValue) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameMoveItemSpace;
@@ -45,11 +43,9 @@ public sealed record MoveItemSpaceRequest(
 /// </summary>
 public sealed record MoveItemSpaceResponse(
     byte? ErrorCode,
-    byte SourceListType,
-    short SourceSlotIndex,
+    GameSlot SourceSlot,
     int MoveValue,
-    byte DestinationListType,
-    short DestinationSlotIndex) : IGameCmdMessage
+    GameSlot DestinationSlot) : IGameCmdMessage
 {
     /// <summary>
     /// The client's own word for each refusal, read out of its string table rather than guessed.
@@ -92,13 +88,12 @@ public sealed record MoveItemSpaceResponse(
     public ServerMessageType MessageType => ServerMessageType.GameMoveItemSpace;
 
     public static MoveItemSpaceResponse Success(
-        MoveItemSpaceRequest request, int moveValue, short destinationSlotIndex) =>
-        new(null, request.SourceListType, request.SourceSlotIndex, moveValue,
-            request.DestinationListType, destinationSlotIndex);
+        GameSlot source, int moveValue, GameSlot destination) =>
+        new(null, source, moveValue, destination);
 
-    public static MoveItemSpaceResponse Failure(MoveItemSpaceRequest request, byte errorCode) =>
-        new(errorCode, request.SourceListType, request.SourceSlotIndex, 0,
-            request.DestinationListType, request.DestinationSlotIndex);
+    public static MoveItemSpaceResponse Failure(
+        GameSlot source, GameSlot destination, byte errorCode) =>
+        new(errorCode, source, 0, destination);
 }
 
 internal static class MoveItemSpacePayloadCodec
@@ -113,15 +108,18 @@ internal static class MoveItemSpacePayloadCodec
     public static byte[] Encode(MoveItemSpaceResponse message)
     {
         if (message.ErrorCode is { } errorCode)
-            return [0x00, errorCode, message.SourceListType, message.DestinationListType];
+            return [0x00, errorCode, (byte)message.SourceSlot.Space,
+                (byte)message.DestinationSlot.Space];
 
         var body = new byte[11];
         body[0] = 0x01;
-        body[1] = message.SourceListType;
-        BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(2, 2), message.SourceSlotIndex);
+        body[1] = (byte)message.SourceSlot.Space;
+        BinaryPrimitives.WriteInt16LittleEndian(
+            body.AsSpan(2, 2), checked((short)message.SourceSlot.Index));
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4, 4), message.MoveValue);
-        body[8] = message.DestinationListType;
-        BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(9, 2), message.DestinationSlotIndex);
+        body[8] = (byte)message.DestinationSlot.Space;
+        BinaryPrimitives.WriteInt16LittleEndian(
+            body.AsSpan(9, 2), checked((short)message.DestinationSlot.Index));
         return body;
     }
 }
@@ -139,12 +137,14 @@ internal sealed class MoveItemSpaceDecoder : IGameMessageDecoder
 
         return new MoveItemSpaceRequest(
             metadata,
-            body[0],
-            BinaryPrimitives.ReadInt16LittleEndian(body[1..]),
+            new GameSlot(
+                (InventoryContainerType)body[0],
+                BinaryPrimitives.ReadInt16LittleEndian(body[1..])),
             BinaryPrimitives.ReadInt32LittleEndian(body[3..]),
             BinaryPrimitives.ReadInt32LittleEndian(body[7..]),
-            body[11],
-            BinaryPrimitives.ReadInt16LittleEndian(body[12..]),
+            new GameSlot(
+                (InventoryContainerType)body[11],
+                BinaryPrimitives.ReadInt16LittleEndian(body[12..])),
             body.Length >= 18 ? BinaryPrimitives.ReadInt32LittleEndian(body[14..]) : 0);
     }
 }
@@ -257,11 +257,9 @@ public sealed record ItemMoveResult(ItemMoveStatus Status, int MoveValue, int It
 /// </remarks>
 public sealed record MoveItemSpaceCommand(
     CharacterId CharacterId,
-    byte SourceListType,
-    short SourceSlotIndex,
+    BusinessSlot SourceSlot,
     int MoveCount,
-    byte DestinationListType,
-    short DestinationSlotIndex,
+    BusinessSlot DestinationSlot,
     int SourceInstanceValue = 0,
     int DestinationInstanceValue = 0) : ICommand<ItemMoveResult>;
 
@@ -287,16 +285,10 @@ public sealed record MoveItemSpaceCommand(
 /// leaving the bag and never leaves the bag without being worn.
 /// </remarks>
 public sealed class MoveItemSpaceCommandHandler(
-    ICharacterContainerDomainService containers,
+    IBusinessInventorySlotDomainService inventory,
     IItemMovementDomainService moves)
     : ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>
 {
-    private const byte MainListType = (byte)InventoryContainerType.Main;
-
-    private const byte AvatarListType = (byte)InventoryContainerType.Avatar;
-
-    private const byte EquipmentListType = (byte)InventoryContainerType.Equipment;
-
     /// <summary>A piece of equipment does not stack, so exactly one of it ever moves.</summary>
     private const int OnePiece = 1;
 
@@ -306,12 +298,15 @@ public sealed class MoveItemSpaceCommandHandler(
     /// between them, is the same operation with different ends. Naming them once is what keeps the
     /// four served combinations from being four branches that could drift apart.
     /// </remarks>
-    private static InventoryContainerType? CarriedListFor(byte listType) => listType switch
-    {
-        MainListType => InventoryContainerType.Main,
-        AvatarListType => InventoryContainerType.Avatar,
-        _ => null,
-    };
+    private static bool IsCarried(BusinessInventorySpace space) =>
+        space.IsCarriedItemSpace() || space is BusinessInventorySpace.Avatar;
+
+    private static bool IsWorn(BusinessInventorySpace space) => space is
+        BusinessInventorySpace.WornAvatar
+        or BusinessInventorySpace.WornEquipment
+        or BusinessInventorySpace.WornCreature
+        or BusinessInventorySpace.WornCreatureEquipment
+        or BusinessInventorySpace.WornEquipmentExtension;
 
     /// <summary>The same move, said from the end that turned out to be holding the item.</summary>
     /// <remarks>
@@ -335,10 +330,8 @@ public sealed class MoveItemSpaceCommandHandler(
     /// </remarks>
     private static MoveItemSpaceCommand Reversed(MoveItemSpaceCommand command) => command with
     {
-        SourceListType = command.DestinationListType,
-        SourceSlotIndex = command.DestinationSlotIndex,
-        DestinationListType = command.SourceListType,
-        DestinationSlotIndex = command.SourceSlotIndex,
+        SourceSlot = command.DestinationSlot,
+        DestinationSlot = command.SourceSlot,
         SourceInstanceValue = 0,
         DestinationInstanceValue = 0,
     };
@@ -386,48 +379,57 @@ public sealed class MoveItemSpaceCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var source = CarriedListFor(command.SourceListType);
-        var destination = CarriedListFor(command.DestinationListType);
+        var sourceIsCarried = IsCarried(command.SourceSlot.Space);
+        var destinationIsCarried = IsCarried(command.DestinationSlot.Space);
+        var sourceIsWorn = IsWorn(command.SourceSlot.Space);
+        var destinationIsWorn = IsWorn(command.DestinationSlot.Space);
 
-        if (source is { } putOnFrom && command.DestinationListType == EquipmentListType)
+        if (sourceIsCarried && destinationIsWorn)
         {
-            var from = containers.FindContainer(command.CharacterId, putOnFrom);
+            var from = inventory.Find(command.CharacterId, command.SourceSlot);
+            var into = inventory.Find(command.CharacterId, command.DestinationSlot);
             return from is null
                 ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
-                : await this.PutOnAsync(command, from, cancellationToken).ConfigureAwait(false);
+                : into is null
+                    ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
+                    : await this.PutOnAsync(command, from, into, cancellationToken)
+                        .ConfigureAwait(false);
         }
 
-        if (command.SourceListType == EquipmentListType && destination is { } takeOffTo)
+        if (sourceIsWorn && destinationIsCarried)
         {
-            var into = containers.FindContainer(command.CharacterId, takeOffTo);
+            var from = inventory.Find(command.CharacterId, command.SourceSlot);
+            var into = inventory.Find(command.CharacterId, command.DestinationSlot);
             return into is null
                 ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
-                : await this.TakeOffAsync(command, into, cancellationToken).ConfigureAwait(false);
+                : from is null
+                    ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
+                    : await this.TakeOffAsync(command, from, into, cancellationToken)
+                        .ConfigureAwait(false);
         }
 
-        if (source is null || destination is null)
+        if (!sourceIsCarried || !destinationIsCarried)
             return ItemMoveResult.Refused(ItemMoveStatus.ListNotServed);
 
-        var bag = containers.FindContainer(command.CharacterId, source.Value);
-        if (bag is null)
+        var source = inventory.Find(command.CharacterId, command.SourceSlot);
+        var destination = inventory.Find(command.CharacterId, command.DestinationSlot);
+        if (source is null || destination is null)
             return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
 
-        if (source != destination)
+        if (!ReferenceEquals(source.Container, destination.Container))
         {
-            var into = containers.FindContainer(command.CharacterId, destination.Value);
-            return into is null
-                ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
-                : await this.CarryAcrossAsync(
-                    command, bag, into, destination.Value, cancellationToken).ConfigureAwait(false);
+            return await this.CarryAcrossAsync(
+                command, source, destination, cancellationToken).ConfigureAwait(false);
         }
 
         // The fourth path the rule reaches. Moving inside one list is the container's own business
         // and it decides by the same reading -- whichever end holds something is the end that moves
         // -- so a restatement undoes itself here exactly as it did across lists. The container is
         // never told what the client named, so the judgement is made before handing over.
-        var atSource = await bag.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
+        var atSource = await source.Container.ReadSlotAsync(source.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
-        var atDestination = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+        var atDestination = await destination.Container
+            .ReadSlotAsync(destination.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
         if (AlreadyCarriedOut(command.SourceInstanceValue, atSource, atDestination))
             return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, atDestination!.ItemId);
@@ -437,9 +439,9 @@ public sealed class MoveItemSpaceCommandHandler(
         // The move is carried out inside the bag as the clears and writes it is made of. Everything
         // they touch settles together, because the command is transactional and the boundary around
         // it is what makes four writes one change.
-        var outcome = await bag.MoveToAsync(
-            command.SourceSlotIndex,
-            command.DestinationSlotIndex,
+        var outcome = await source.Container.MoveToAsync(
+            source.StorageIndex,
+            destination.StorageIndex,
             command.MoveCount,
             cancellationToken).ConfigureAwait(false);
 
@@ -503,15 +505,14 @@ public sealed class MoveItemSpaceCommandHandler(
     /// </para>
     /// </remarks>
     private async ValueTask<ItemMoveResult> PutOnAsync(
-        MoveItemSpaceCommand command, IItemContainer bag, CancellationToken cancellationToken)
+        MoveItemSpaceCommand command,
+        BoundInventorySlot bag,
+        BoundInventorySlot worn,
+        CancellationToken cancellationToken)
     {
-        var worn = containers.FindContainer(command.CharacterId, InventoryContainerType.Equipment);
-        if (worn is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
-
-        var piece = await bag.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
+        var piece = await bag.Container.ReadSlotAsync(bag.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
-        var displaced = await worn.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+        var displaced = await worn.Container.ReadSlotAsync(worn.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
 
         if (AlreadyCarriedOut(command.SourceInstanceValue, piece, displaced))
@@ -524,7 +525,7 @@ public sealed class MoveItemSpaceCommandHandler(
             if (displaced is null)
                 return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
 
-            return await this.TakeOffAsync(Reversed(command), bag, cancellationToken)
+            return await this.TakeOffAsync(Reversed(command), worn, bag, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -532,18 +533,18 @@ public sealed class MoveItemSpaceCommandHandler(
             .ConfigureAwait(false);
         if (slot is null)
             return ItemMoveResult.Refused(ItemMoveStatus.NotWearable, piece.ItemId);
-        if (slot.Value != command.DestinationSlotIndex)
+        if (slot.Value != command.DestinationSlot)
             return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
-        await worn.PutAsync(command.DestinationSlotIndex, piece.Core, cancellationToken)
+        await worn.Container.PutAsync(worn.StorageIndex, piece.Core, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is null)
         {
-            await bag.ClearAsync(command.SourceSlotIndex, cancellationToken).ConfigureAwait(false);
+            await bag.Container.ClearAsync(bag.StorageIndex, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            await bag.PutAsync(command.SourceSlotIndex, displaced.Core, cancellationToken)
+            await bag.Container.PutAsync(bag.StorageIndex, displaced.Core, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -571,14 +572,13 @@ public sealed class MoveItemSpaceCommandHandler(
     /// </remarks>
     private async ValueTask<ItemMoveResult> CarryAcrossAsync(
         MoveItemSpaceCommand command,
-        IItemContainer from,
-        IItemContainer into,
-        InventoryContainerType destination,
+        BoundInventorySlot from,
+        BoundInventorySlot into,
         CancellationToken cancellationToken)
     {
-        var moving = await from.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
+        var moving = await from.Container.ReadSlotAsync(from.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
-        var displaced = await into.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+        var displaced = await into.Container.ReadSlotAsync(into.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
 
         if (AlreadyCarriedOut(command.SourceInstanceValue, moving, displaced))
@@ -591,12 +591,12 @@ public sealed class MoveItemSpaceCommandHandler(
             return displaced is null
                 ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
                 : await this.CarryAcrossAsync(
-                    Reversed(command), into, from, from.Type, cancellationToken)
+                    Reversed(command), into, from, cancellationToken)
                     .ConfigureAwait(false);
         }
 
         switch (await moves.MayOccupySlotAsync(
-            destination, moving.ItemId, command.DestinationSlotIndex, cancellationToken)
+            command.DestinationSlot, moving.ItemId, cancellationToken)
             .ConfigureAwait(false))
         {
             case SlotAdmission.ItemUnknown:
@@ -612,22 +612,23 @@ public sealed class MoveItemSpaceCommandHandler(
         if (displaced is not null)
         {
             var back = await moves.MayOccupySlotAsync(
-                from.Type, displaced.ItemId, command.SourceSlotIndex, cancellationToken)
+                command.SourceSlot, displaced.ItemId, cancellationToken)
                 .ConfigureAwait(false);
             if (back != SlotAdmission.Allowed)
                 return ItemMoveResult.Refused(
                     ItemMoveStatus.DisplacedCannotOccupySlot, moving.ItemId);
         }
 
-        await into.PutAsync(command.DestinationSlotIndex, moving.Core, cancellationToken)
+        await into.Container.PutAsync(into.StorageIndex, moving.Core, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is null)
         {
-            await from.ClearAsync(command.SourceSlotIndex, cancellationToken).ConfigureAwait(false);
+            await from.Container.ClearAsync(from.StorageIndex, cancellationToken)
+                .ConfigureAwait(false);
         }
         else
         {
-            await from.PutAsync(command.SourceSlotIndex, displaced.Core, cancellationToken)
+            await from.Container.PutAsync(from.StorageIndex, displaced.Core, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -648,15 +649,14 @@ public sealed class MoveItemSpaceCommandHandler(
     /// </para>
     /// </remarks>
     private async ValueTask<ItemMoveResult> TakeOffAsync(
-        MoveItemSpaceCommand command, IItemContainer bag, CancellationToken cancellationToken)
+        MoveItemSpaceCommand command,
+        BoundInventorySlot worn,
+        BoundInventorySlot bag,
+        CancellationToken cancellationToken)
     {
-        var worn = containers.FindContainer(command.CharacterId, InventoryContainerType.Equipment);
-        if (worn is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
-
-        var piece = await worn.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
+        var piece = await worn.Container.ReadSlotAsync(worn.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
-        var displaced = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+        var displaced = await bag.Container.ReadSlotAsync(bag.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
 
         if (AlreadyCarriedOut(command.SourceInstanceValue, piece, displaced))
@@ -668,12 +668,12 @@ public sealed class MoveItemSpaceCommandHandler(
         {
             return displaced is null
                 ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
-                : await this.PutOnAsync(Reversed(command), bag, cancellationToken)
+                : await this.PutOnAsync(Reversed(command), bag, worn, cancellationToken)
                     .ConfigureAwait(false);
         }
 
         switch (await moves.MayOccupySlotAsync(
-            bag.Type, piece.ItemId, command.DestinationSlotIndex, cancellationToken)
+            command.DestinationSlot, piece.ItemId, cancellationToken)
             .ConfigureAwait(false))
         {
             case SlotAdmission.ItemUnknown:
@@ -691,20 +691,21 @@ public sealed class MoveItemSpaceCommandHandler(
             var displacedSlot = await moves
                 .WornSlotForAsync(displaced.ItemId, cancellationToken)
                 .ConfigureAwait(false);
-            if (displacedSlot != command.SourceSlotIndex)
+            if (displacedSlot != command.SourceSlot)
                 return ItemMoveResult.Refused(
                     ItemMoveStatus.DisplacedCannotOccupySlot, piece.ItemId);
         }
 
-        await bag.PutAsync(command.DestinationSlotIndex, piece.Core, cancellationToken)
+        await bag.Container.PutAsync(bag.StorageIndex, piece.Core, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is null)
         {
-            await worn.ClearAsync(command.SourceSlotIndex, cancellationToken).ConfigureAwait(false);
+            await worn.Container.ClearAsync(worn.StorageIndex, cancellationToken)
+                .ConfigureAwait(false);
         }
         else
         {
-            await worn.PutAsync(command.SourceSlotIndex, displaced.Core, cancellationToken)
+            await worn.Container.PutAsync(worn.StorageIndex, displaced.Core, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -740,12 +741,11 @@ public sealed class MoveItemSpaceCommandHandler(
 public sealed class MoveItemSpaceHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
+    IInventorySlotMappingRuleService slotMappings,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<MoveItemSpaceHandler> logger) : ClientMessageHandler<MoveItemSpaceRequest>
 {
-    private const byte EquipmentListType = (byte)InventoryContainerType.Equipment;
-
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         MoveItemSpaceRequest message,
@@ -765,7 +765,10 @@ public sealed class MoveItemSpaceHandler(
             try
             {
                 if (await this.RefreshSessionAsync(
-                        context, ChangesWhatTheCharacterLooksLike(message), cancellationToken)
+                        context,
+                        ChangesWhatTheCharacterLooksLike(
+                            response.SourceSlot, response.DestinationSlot),
+                        cancellationToken)
                         .ConfigureAwait(false)
                     is { } appearance)
                 {
@@ -801,12 +804,13 @@ public sealed class MoveItemSpaceHandler(
     /// rather than restated. A slot number belonging to the bag or the avatar page is not put to it.
     /// </para>
     /// </remarks>
-    private static bool ChangesWhatTheCharacterLooksLike(MoveItemSpaceRequest message) =>
-        (message.SourceListType == EquipmentListType
-            && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(message.SourceSlotIndex))
-        || (message.DestinationListType == EquipmentListType
+    private static bool ChangesWhatTheCharacterLooksLike(
+        GameSlot source, GameSlot destination) =>
+        (source.Space == InventoryContainerType.Equipment
+            && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(source.Index))
+        || (destination.Space == InventoryContainerType.Equipment
             && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(
-                message.DestinationSlotIndex));
+                destination.Index));
 
     /// <summary>Reads the post-move equipment from its owner for the optional appearance frame.</summary>
     private async ValueTask<IGameServerMessage?> RefreshSessionAsync(
@@ -838,23 +842,26 @@ public sealed class MoveItemSpaceHandler(
         MoveItemSpaceRequest message,
         CancellationToken cancellationToken)
     {
+        var source = slotMappings.ToBusinessSlot(message.SourceSlot);
+        var destination = slotMappings.ToBusinessSlot(message.DestinationSlot);
+        var responseSource = slotMappings.ToGameSlot(source);
+        var responseDestination = slotMappings.ToGameSlot(destination);
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
             logger.LogWarning(
                 "Move item space {ConnectionId}: no published session",
                 context.Connection.ConnectionId);
-            return (MoveItemSpaceResponse.Failure(message, MoveItemSpaceResponse.Silent), null);
+            return (MoveItemSpaceResponse.Failure(
+                responseSource, responseDestination, MoveItemSpaceResponse.Silent), null);
         }
 
         var result = await commandBus.SendAsync(
             new MoveItemSpaceCommand(
                 session.CharacterId,
-                message.SourceListType,
-                message.SourceSlotIndex,
+                source,
                 message.MoveCount,
-                message.DestinationListType,
-                message.DestinationSlotIndex,
+                destination,
                 message.SourceInstanceValue,
                 message.DestinationInstanceValue),
             cancellationToken).ConfigureAwait(false);
@@ -867,14 +874,14 @@ public sealed class MoveItemSpaceHandler(
                 context.Connection.ConnectionId,
                 session.CharacterId.Value,
                 result.ItemId,
-                message.SourceListType,
-                message.SourceSlotIndex,
-                message.DestinationListType,
-                message.DestinationSlotIndex,
+                (byte)responseSource.Space,
+                responseSource.Index,
+                (byte)responseDestination.Space,
+                responseDestination.Index,
                 result.MoveValue);
             return (
                 MoveItemSpaceResponse.Success(
-                    message, result.MoveValue, message.DestinationSlotIndex),
+                    responseSource, result.MoveValue, responseDestination),
                 result);
         }
 
@@ -896,12 +903,13 @@ public sealed class MoveItemSpaceHandler(
             context.Connection.ConnectionId,
             session.CharacterId.Value,
             result.ItemId,
-            message.SourceListType,
-            message.SourceSlotIndex,
-            message.DestinationListType,
-            message.DestinationSlotIndex,
+            (byte)responseSource.Space,
+            responseSource.Index,
+            (byte)responseDestination.Space,
+            responseDestination.Index,
             result.Status);
-        return (MoveItemSpaceResponse.Failure(message, ErrorCodeFor(result.Status)), result);
+        return (MoveItemSpaceResponse.Failure(
+            responseSource, responseDestination, ErrorCodeFor(result.Status)), result);
     }
 
     /// <summary>

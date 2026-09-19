@@ -110,11 +110,13 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
     public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>
         ValueTask.FromResult<ItemPlacement?>(itemId switch
         {
-            1000 => new(3, 1000, 121, 122),
-            3000 => new(1, 1, 9, 10) { WorldClass = ItemWorldClass.Equipment },
-            100310669 => new(1, 1, 9, 56) { WorldClass = ItemWorldClass.Equipment },
-            4000 => new(2, 1, 65, 66),
-            _ => new(2, 10, 65, 66),
+            1000 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
+            3000 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 1))
+                { WorldClass = ItemWorldClass.Equipment },
+            100310669 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+                { WorldClass = ItemWorldClass.Equipment },
+            4000 => new(2, 1, new(BusinessInventorySpace.Consumable, 0, 1)),
+            _ => new(2, 10, new(BusinessInventorySpace.Consumable, 0, 1)),
         });
 
     private sealed class NoWearables : IEquipmentSlotDefinitionSource

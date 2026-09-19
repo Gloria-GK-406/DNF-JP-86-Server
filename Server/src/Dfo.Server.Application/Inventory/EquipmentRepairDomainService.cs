@@ -11,52 +11,58 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentRepairDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICharacterDomainService characters, ICharacterContainerDomainService containers,
+    ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
     IEquipmentRepairDefinitionSource definitions) : IEquipmentRepairDomainService
 {
+    private static readonly IReadOnlyList<BusinessSlot> RepairAllSlots =
+    [
+        .. Enumerable.Range(0, 6)
+            .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)),
+        .. Enumerable.Range(0, 12)
+            .Select(index => new BusinessSlot(BusinessInventorySpace.WornEquipment, index)),
+    ];
+
     public async ValueTask<EquipmentRepairResult> RepairAsync(SelectedSessionIdentity session,
-        InventoryContainerType container, int slotIndex, CancellationToken cancellationToken)
+        BusinessSlot? slot, CancellationToken cancellationToken)
     {
         if (sessions.Find(session.AccountId) != session
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
             || online is not { State: OnlineUserState.CharacterActive }
             || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
             return new(EquipmentRepairRejection.NoSession);
-        if (container is not (InventoryContainerType.Main or InventoryContainerType.Equipment
-            or InventoryContainerType.PersonalCargo) || slotIndex < -1 || slotIndex > short.MaxValue)
-            return new(EquipmentRepairRejection.InvalidRequest);
-
         var rates = await definitions.RatesAsync(cancellationToken).ConfigureAwait(false);
         if (rates is null)
             return new(EquipmentRepairRejection.CannotRepair);
 
-        var candidates = new List<(IItemContainer Bag, EquipmentInstance Equipment, int Cost)>();
-        if (slotIndex == -1)
+        var candidates = new List<(BoundInventorySlot Slot, EquipmentInstance Equipment, int Cost)>();
+        if (slot is null)
         {
-            foreach (var (type, first, last) in new[]
-                { (InventoryContainerType.Equipment, 11, 22), (InventoryContainerType.Main, 3, 8) })
+            foreach (var repairSlot in RepairAllSlots)
             {
-                var bag = containers.FindContainer(session.CharacterId, type);
-                if (bag is null) continue;
-                for (var slot = first; slot <= last; slot++)
-                {
-                    var item = await bag.ReadSlotAsync(slot, cancellationToken).ConfigureAwait(false);
-                    if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
-                    var candidate = await QuoteAsync(bag, item, rates.Value, cancellationToken).ConfigureAwait(false);
-                    if (candidate is not null) candidates.Add(candidate.Value);
-                    // An unreadable occupied equipment slot must not turn "repair all" into a partial charge.
-                    else return new(EquipmentRepairRejection.CannotRepair);
-                }
+                var bound = slots.Find(session.CharacterId, repairSlot);
+                if (bound is null) continue;
+                var item = await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken)
+                    .ConfigureAwait(false);
+                if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
+                var candidate = await QuoteAsync(bound, item, rates.Value, cancellationToken)
+                    .ConfigureAwait(false);
+                if (candidate is not null) candidates.Add(candidate.Value);
+                // An unreadable occupied equipment slot must not turn "repair all" into a partial charge.
+                else return new(EquipmentRepairRejection.CannotRepair);
             }
         }
         else
         {
-            var bag = containers.FindContainer(session.CharacterId, container);
-            var item = bag is null ? null : await bag.ReadSlotAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+            if (!IsRepairable(slot.Value.Space))
+                return new(EquipmentRepairRejection.InvalidRequest);
+            var bound = slots.Find(session.CharacterId, slot.Value);
+            var item = bound is null
+                ? null
+                : await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
             if (item is null) return new(EquipmentRepairRejection.ItemUnavailable);
             if (item.WorldClass != ItemWorldClass.Equipment)
                 return new(EquipmentRepairRejection.CannotRepair);
-            var candidate = await QuoteAsync(bag!, item, rates.Value, cancellationToken).ConfigureAwait(false);
+            var candidate = await QuoteAsync(bound!, item, rates.Value, cancellationToken).ConfigureAwait(false);
             if (candidate is null) return new(EquipmentRepairRejection.CannotRepair);
             candidates.Add(candidate.Value);
         }
@@ -70,15 +76,25 @@ internal sealed class EquipmentRepairDomainService(
         var gold = await character.TrySpendGoldAsync((int)total, cancellationToken).ConfigureAwait(false);
         if (gold is null)
             return new(EquipmentRepairRejection.InsufficientGold);
-        foreach (var (bag, equipment, _) in candidates)
+        foreach (var (bound, equipment, _) in candidates)
             if (equipment.Core.Durability != equipment.OriginalDurability)
-                await bag.PutAsync(equipment.SlotIndex, equipment.Core, cancellationToken)
+                await bound.Container.PutAsync(bound.StorageIndex, equipment.Core, cancellationToken)
                     .ConfigureAwait(false);
-        return new(EquipmentRepairRejection.None, new(session, container, slotIndex, gold.Value));
+        return new(EquipmentRepairRejection.None, new(session, slot, gold.Value));
     }
 
-    private async ValueTask<(IItemContainer Bag, EquipmentInstance Equipment, int Cost)?> QuoteAsync(
-        IItemContainer bag, ContainerSlotItem item, (float CostRate, IReadOnlyList<float> UpgradeRates) rates,
+    private static bool IsRepairable(BusinessInventorySpace space) =>
+        space.IsCarriedItemSpace()
+        || space == BusinessInventorySpace.PersonalCargo
+        || space is BusinessInventorySpace.WornAvatar
+            or BusinessInventorySpace.WornEquipment
+            or BusinessInventorySpace.WornCreature
+            or BusinessInventorySpace.WornCreatureEquipment
+            or BusinessInventorySpace.WornEquipmentExtension;
+
+    private async ValueTask<(BoundInventorySlot Slot, EquipmentInstance Equipment, int Cost)?> QuoteAsync(
+        BoundInventorySlot slot, ContainerSlotItem item,
+        (float CostRate, IReadOnlyList<float> UpgradeRates) rates,
         CancellationToken cancellationToken)
     {
         var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
@@ -87,7 +103,7 @@ internal sealed class EquipmentRepairDomainService(
         var equipment = EquipmentInstance.From(item);
         var decision = equipment?.Repair(definition, rates);
         return decision is { } repaired
-            ? (bag, equipment!, repaired.Cost)
+            ? (slot, equipment!, repaired.Cost)
             : null;
     }
 }

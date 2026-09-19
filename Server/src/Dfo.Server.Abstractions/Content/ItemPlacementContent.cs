@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Inventory;
+
 namespace Dfo.Server.Abstractions.Content;
 
 /// <summary>
@@ -48,12 +50,14 @@ public enum ItemWorldClass
 /// Where an item belongs when it arrives, how much of it one slot holds, and what sort of thing
 /// it is.
 /// </summary>
-/// <param name="SlotStart">
-/// First slot of the range this kind occupies, inclusive. The main inventory is not one flat run:
-/// consumables, materials and cube fragments each have their own band, and an item placed outside
-/// its own band is one the client will not draw where the player looks for it.
+/// <param name="Destination">
+/// The one business-space range this kind occupies.  It contains no protocol list number or
+/// persistence offset; those are restored only at their respective adapters.
 /// </param>
-public sealed record ItemPlacement(byte ItemKind, int StackLimit, int SlotStart, int SlotEnd)
+public sealed record ItemPlacement(
+    byte ItemKind,
+    int StackLimit,
+    BusinessSlotRange Destination)
 {
     /// <summary>
     /// What the archive says this template is.

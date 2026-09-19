@@ -147,9 +147,11 @@ public sealed class MovingInsideTheAvatarListTests
             var avatars = List(side);
             await side.InUseCaseAsync(token => avatars.PutAsync(0, Core(CostumeItemId), token));
 
-            var moved = await side.InUseCaseAsync(token => avatars.MoveToAsync(0, 210, 1, token));
+            await Assert.ThrowsAsync<InventorySlotMappingException>(() =>
+                side.InUseCaseAsync(token => avatars.MoveToAsync(0, 210, 1, token)));
 
-            Assert.Equal(new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot), moved);
+            var stayed = await side.InUseCaseAsync(token => avatars.ReadSlotAsync(0, token));
+            Assert.Equal(CostumeItemId, stayed!.ItemId);
         });
     }
 

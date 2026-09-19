@@ -22,6 +22,109 @@ public enum InventoryContainerType : byte
     GuildMedal = 38,
 }
 
+/// <summary>An indivisible slot address as the A21 game protocol expresses it.</summary>
+/// <remarks>
+/// The list and its index are one coordinate.  Keeping them in one value prevents a caller from
+/// carrying one without the other or combining the list from one request with the index from
+/// another.  This type belongs at protocol and persistence-adapter boundaries; commands and
+/// domain behavior use <see cref="BusinessSlot"/> instead.
+/// </remarks>
+public readonly record struct GameSlot(InventoryContainerType Space, int Index);
+
+/// <summary>The logical inventory spaces understood by game business behavior.</summary>
+public enum BusinessInventorySpace
+{
+    /// <summary>A client-drawn counter which is not backed by an ordinary item slot.</summary>
+    VirtualResource,
+    QuickSlot,
+    CarriedEquipment,
+    Consumable,
+    Material,
+    Quest,
+    ExpertMaterial,
+    AvatarEmblem,
+    Avatar,
+    PersonalCargo,
+    WornAvatar,
+    WornEquipment,
+    WornCreature,
+    WornCreatureEquipment,
+    WornEquipmentExtension,
+    CreatureInventory,
+    CreatureEquipment,
+    CreatureConsumable,
+    AccountCargo,
+    GuildMedal,
+    GuardianGem,
+}
+
+public static class BusinessInventorySpaceRules
+{
+    public static bool IsCarriedItemSpace(this BusinessInventorySpace space) => space is
+        BusinessInventorySpace.QuickSlot
+        or BusinessInventorySpace.CarriedEquipment
+        or BusinessInventorySpace.Consumable
+        or BusinessInventorySpace.Material
+        or BusinessInventorySpace.Quest
+        or BusinessInventorySpace.ExpertMaterial
+        or BusinessInventorySpace.AvatarEmblem;
+
+    public static bool IsWornEquipmentSpace(this BusinessInventorySpace space) => space is
+        BusinessInventorySpace.WornEquipment
+        or BusinessInventorySpace.WornEquipmentExtension;
+}
+
+/// <summary>An indivisible slot address used by commands and domain behavior.</summary>
+public readonly record struct BusinessSlot(BusinessInventorySpace Space, int Index);
+
+/// <summary>A contiguous range inside exactly one business inventory space.</summary>
+/// <remarks>
+/// The range uses local business indexes.  It can therefore cross neither protocol lists nor
+/// persistence containers, and an item placement cannot accidentally carry an A21 absolute slot
+/// offset into domain behavior.
+/// </remarks>
+public readonly record struct BusinessSlotRange
+{
+    public BusinessSlotRange(BusinessInventorySpace space, int firstIndex, int lastIndex)
+    {
+        if (firstIndex < 0 || lastIndex < firstIndex)
+            throw new ArgumentOutOfRangeException(nameof(firstIndex),
+                $"Business slot range {space}/{firstIndex}..{lastIndex} is invalid.");
+        Space = space;
+        FirstIndex = firstIndex;
+        LastIndex = lastIndex;
+    }
+
+    public BusinessInventorySpace Space { get; }
+
+    public int FirstIndex { get; }
+
+    public int LastIndex { get; }
+
+    public bool Contains(BusinessSlot slot) =>
+        slot.Space == Space && slot.Index >= FirstIndex && slot.Index <= LastIndex;
+}
+
+/// <summary>A game/business inventory coordinate cannot be represented on the other side.</summary>
+public sealed class InventorySlotMappingException : Exception
+{
+    public InventorySlotMappingException(GameSlot source)
+        : base($"Game inventory slot {(byte)source.Space}/{source.Index} has no business mapping.")
+    {
+        GameSlot = source;
+    }
+
+    public InventorySlotMappingException(BusinessSlot source)
+        : base($"Business inventory slot {source.Space}/{source.Index} has no game mapping.")
+    {
+        BusinessSlot = source;
+    }
+
+    public GameSlot? GameSlot { get; }
+
+    public BusinessSlot? BusinessSlot { get; }
+}
+
 public enum InventoryOwnerType : byte
 {
     Character = 0,

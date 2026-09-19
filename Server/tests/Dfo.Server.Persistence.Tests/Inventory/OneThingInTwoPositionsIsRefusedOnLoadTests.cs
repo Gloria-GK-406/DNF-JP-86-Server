@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Tests.Support;
@@ -139,7 +140,8 @@ public sealed class OneThingInTwoPositionsIsRefusedOnLoadTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(
-                new ItemPlacement(1, 1, 0, 120) { WorldClass = declared });
+                new ItemPlacement(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 120))
+                { WorldClass = declared });
     }
 
     private static async Task WithASeededCharacterAsync(Func<string, InventorySide, Task> body)

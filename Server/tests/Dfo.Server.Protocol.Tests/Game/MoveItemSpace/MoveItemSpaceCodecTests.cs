@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
@@ -30,8 +31,8 @@ public sealed class MoveItemSpaceCodecTests
     {
         var request = Decode(ObservedBody);
 
-        Assert.Equal(0, request.SourceListType);
-        Assert.Equal(0, request.DestinationListType);
+        Assert.Equal(InventoryContainerType.Main, request.SourceSlot.Space);
+        Assert.Equal(InventoryContainerType.Main, request.DestinationSlot.Space);
     }
 
     /// <remarks>
@@ -45,9 +46,9 @@ public sealed class MoveItemSpaceCodecTests
     {
         var request = Decode(ObservedBody);
 
-        Assert.Equal(3, request.SourceSlotIndex);
+        Assert.Equal(3, request.SourceSlot.Index);
         Assert.Equal(0, request.SourceInstanceValue);
-        Assert.Equal(65, request.DestinationSlotIndex);
+        Assert.Equal(65, request.DestinationSlot.Index);
         Assert.Equal(8474, request.DestinationInstanceValue);
     }
 
@@ -71,7 +72,7 @@ public sealed class MoveItemSpaceCodecTests
     {
         var request = Decode(ObservedBody.AsSpan(0, 14).ToArray());
 
-        Assert.Equal(65, request.DestinationSlotIndex);
+        Assert.Equal(65, request.DestinationSlot.Index);
         Assert.Equal(0, request.DestinationInstanceValue);
     }
 
@@ -90,7 +91,9 @@ public sealed class MoveItemSpaceCodecTests
     [Fact]
     public void A_success_carries_both_ends_and_the_moved_count()
     {
-        var response = MoveItemSpaceResponse.Success(Decode(ObservedBody), 1, 65);
+        var request = Decode(ObservedBody);
+        var response = MoveItemSpaceResponse.Success(
+            request.SourceSlot, 1, request.DestinationSlot);
 
         Assert.Equal(
             [0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x41, 0x00],
@@ -105,7 +108,9 @@ public sealed class MoveItemSpaceCodecTests
     public void A_refusal_carries_the_code_and_the_two_lists()
     {
         var response = MoveItemSpaceResponse.Failure(
-            Decode(ObservedBody), MoveItemSpaceResponse.Silent);
+            Decode(ObservedBody).SourceSlot,
+            Decode(ObservedBody).DestinationSlot,
+            MoveItemSpaceResponse.Silent);
 
         Assert.Equal([0x00, 0x02, 0x00, 0x00], MoveItemSpacePayloadCodec.Encode(response));
     }

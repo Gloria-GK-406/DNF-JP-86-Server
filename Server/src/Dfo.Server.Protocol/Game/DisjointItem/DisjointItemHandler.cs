@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -11,6 +12,7 @@ namespace Dfo.Server.Protocol.Game.DisjointItem;
 public sealed class DisjointItemHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
+    IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender) : ClientMessageHandler<DisjointItemRequest>
@@ -20,6 +22,7 @@ public sealed class DisjointItemHandler(
         DisjointItemRequest message,
         CancellationToken cancellationToken)
     {
+        var targetSlot = slotMappings.ToBusinessSlot(message.TargetSlot);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         EquipmentDisjointResult result;
         if (session is null
@@ -30,8 +33,7 @@ public sealed class DisjointItemHandler(
             result = await commands.SendAsync(new DisjointItemCommand(
                 online.OnlineUserId,
                 session,
-                message.TargetSlotIndex,
-                message.ItemSpace,
+                targetSlot,
                 message.DisjointItemSlotIndex,
                 message.ContextValue,
                 EquipmentDisjointSettings.System), cancellationToken).ConfigureAwait(false);
@@ -43,7 +45,7 @@ public sealed class DisjointItemHandler(
                 cancellationToken).ConfigureAwait(false);
         else
             await sender.SendCmdAsync(context.Connection.ConnectionId,
-                new DisjointItemResponse(null, ErrorCode(result.Rejection)),
+                new DisjointItemResponse(null, ErrorCode: ErrorCode(result.Rejection)),
                 cancellationToken).ConfigureAwait(false);
     }
 

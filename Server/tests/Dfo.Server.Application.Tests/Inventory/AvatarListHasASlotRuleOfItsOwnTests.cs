@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 
@@ -32,16 +33,20 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     /// what the archive's own <c>[equipment type]</c> makes it, not the kind byte beside it.
     /// </remarks>
     private static readonly ItemPlacement Costume =
-        new(8, 1, 9, 64) { WorldClass = ItemWorldClass.Avatar };
+        new(8, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+        { WorldClass = ItemWorldClass.Avatar };
 
     private static readonly ItemPlacement Shoulder =
-        new(1, 1, 9, 64) { WorldClass = ItemWorldClass.Equipment };
+        new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+        { WorldClass = ItemWorldClass.Equipment };
 
     private static readonly ItemPlacement Potion =
-        new(2, 100, 65, 120) { WorldClass = ItemWorldClass.Interchangeable };
+        new(2, 100, new(BusinessInventorySpace.Consumable, 0, 55))
+        { WorldClass = ItemWorldClass.Interchangeable };
 
     private static readonly ItemPlacement Creature =
-        new(5, 1, 9, 64) { WorldClass = ItemWorldClass.Creature };
+        new(5, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+        { WorldClass = ItemWorldClass.Creature };
 
     [Theory]
     [InlineData(0)]
@@ -50,7 +55,8 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     [InlineData(209)]
     public void A_costume_may_sit_anywhere_in_the_avatar_list(int slotIndex)
     {
-        Assert.True(Rules.CanOccupySlot(InventoryContainerType.Avatar, Costume, slotIndex));
+        Assert.True(Rules.CanOccupySlot(
+            new BusinessSlot(BusinessInventorySpace.Avatar, slotIndex), Costume));
     }
 
     /// <remarks>
@@ -62,10 +68,10 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     [InlineData(-1)]
     [InlineData(210)]
     [InlineData(289)]
-    public void The_avatar_list_ends_at_two_hundred_and_nine(int slotIndex)
-    {
-        Assert.False(Rules.CanOccupySlot(InventoryContainerType.Avatar, Costume, slotIndex));
-    }
+    public void The_avatar_list_ends_at_two_hundred_and_nine(int slotIndex) =>
+        Assert.Throws<InventorySlotMappingException>(() =>
+            new InventorySlotMappingRuleService().ToGameSlot(
+                new BusinessSlot(BusinessInventorySpace.Avatar, slotIndex)));
 
     /// <summary>
     /// The avatar list takes costumes, and the band a thing has in the bag does not get it in.
@@ -82,7 +88,8 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     [MemberData(nameof(ThingsThatAreNotCostumes))]
     public void The_avatar_list_takes_nothing_but_costumes(ItemPlacement placement)
     {
-        Assert.False(Rules.CanOccupySlot(InventoryContainerType.Avatar, placement, 0));
+        Assert.False(Rules.CanOccupySlot(
+            new BusinessSlot(BusinessInventorySpace.Avatar, 0), placement));
     }
 
     /// <summary>Every list with no rule written for it is shut, costume or not.</summary>
@@ -91,51 +98,50 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     /// is refused before this is asked -- the handler serves four combinations and nothing else --
     /// so if that refusal were ever loosened, this is what would still be standing.
     /// </remarks>
-    public static TheoryData<InventoryContainerType> ListsWithNoRuleOfTheirOwn() =>
+    public static TheoryData<BusinessInventorySpace> ListsWithNoRuleOfTheirOwn() =>
     [
-        InventoryContainerType.PersonalCargo,
-        InventoryContainerType.Equipment,
-        InventoryContainerType.Pet,
-        InventoryContainerType.AccountCargo,
-        InventoryContainerType.TitleBookGeneral,
-        InventoryContainerType.QuickSlot,
-        InventoryContainerType.KnightShieldEquipped,
+        BusinessInventorySpace.PersonalCargo,
+        BusinessInventorySpace.WornEquipment,
+        BusinessInventorySpace.CreatureInventory,
+        BusinessInventorySpace.AccountCargo,
+        BusinessInventorySpace.GuildMedal,
     ];
 
     [Theory]
     [MemberData(nameof(ListsWithNoRuleOfTheirOwn))]
-    public void A_list_nobody_decided_about_is_shut(InventoryContainerType containerType)
+    public void A_list_nobody_decided_about_is_shut(BusinessInventorySpace space)
     {
-        Assert.False(Rules.CanOccupySlot(containerType, Costume, 0));
-        Assert.False(Rules.CanOccupySlot(containerType, Potion, 0));
+        Assert.False(Rules.CanOccupySlot(new BusinessSlot(space, 0), Costume));
+        Assert.False(Rules.CanOccupySlot(new BusinessSlot(space, 0), Potion));
     }
 
-    /// <summary>
-    /// Asking by name and asking the main list are the same question about the main list.
-    /// </summary>
+    /// <summary>The mapped main-list bands retain their established admission rules.</summary>
     /// <remarks>
-    /// The two are one implementation -- the named form calls the main one -- and this is what
-    /// says so out loud. It is worth an assertion because the alternative shape, two rules that
-    /// each know the bands, is exactly the drift this list-taking form was added to avoid: the
-    /// same item would be admitted by one caller and refused by the other, and both would look
-    /// right on their own.
+    /// The protocol offsets are translated before this rule is asked. These expectations pin the
+    /// old main-list behavior to the resulting business space without restating the offset table
+    /// inside production code.
     /// </remarks>
     [Theory]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(8)]
-    [InlineData(9)]
-    [InlineData(64)]
-    [InlineData(65)]
-    [InlineData(120)]
-    [InlineData(351)]
-    public void The_main_list_answers_the_same_either_way(int slotIndex)
+    [InlineData(3, false, true, true, false)]
+    [InlineData(8, false, true, true, false)]
+    [InlineData(9, true, true, false, true)]
+    [InlineData(64, true, true, false, true)]
+    [InlineData(65, false, false, true, false)]
+    [InlineData(120, false, false, true, false)]
+    [InlineData(351, false, false, false, false)]
+    public void The_main_list_mapping_preserves_admission(
+        int slotIndex,
+        bool costume,
+        bool shoulder,
+        bool potion,
+        bool creature)
     {
-        foreach (var placement in new[] { Costume, Shoulder, Potion, Creature })
-        {
-            Assert.Equal(
-                Rules.CanOccupyMainSlot(placement, slotIndex),
-                Rules.CanOccupySlot(InventoryContainerType.Main, placement, slotIndex));
-        }
+        var slot = new InventorySlotMappingRuleService().ToBusinessSlot(
+            new GameSlot(InventoryContainerType.Main, slotIndex));
+
+        Assert.Equal(costume, Rules.CanOccupySlot(slot, Costume));
+        Assert.Equal(shoulder, Rules.CanOccupySlot(slot, Shoulder));
+        Assert.Equal(potion, Rules.CanOccupySlot(slot, Potion));
+        Assert.Equal(creature, Rules.CanOccupySlot(slot, Creature));
     }
 }

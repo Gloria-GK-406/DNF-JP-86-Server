@@ -47,12 +47,15 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
     public async ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int itemId, CancellationToken cancellationToken)
     {
         // The archive's 42 is a revive-coin grant, represented by virtual main slot 1.
-        if (itemId is 1 or 42) return new(1, new(0, int.MaxValue, 1, 1), 0, false, [], null, true);
+        if (itemId is 1 or 42) return new(1, new(0, int.MaxValue,
+            new(BusinessInventorySpace.VirtualResource, 1, 1)), 0, false, [], null, true);
         lock (gate)
         {
             premiums ??= Premiums();
             if (premiums.TryGetValue(itemId, out var premium))
-                return new(itemId, new(0, 1, -1, -1), 0, false, [], null,
+                return new(itemId, new(0, 1,
+                    new(BusinessInventorySpace.VirtualResource, premium.Type, premium.Type)),
+                    0, false, [], null,
                     premium.Type is > 0 and <= sbyte.MaxValue && premium.Days > 0, PremiumType: premium.Type, PremiumDays: premium.Days);
         }
         var item = await items.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
@@ -60,10 +63,14 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         if (item is null || placement is null) return null;
         placement = item.Kind switch
         {
-            CeraShopItemKind.Avatar => placement with { ItemKind = 8, StackLimit = 1, SlotStart = 0, SlotEnd = 209 },
-            CeraShopItemKind.Creature => placement with { ItemKind = 5, StackLimit = 1, SlotStart = 0, SlotEnd = 139 },
-            CeraShopItemKind.CreatureEquipment => placement with { ItemKind = 6, StackLimit = 1, SlotStart = 140, SlotEnd = 188 },
-            _ when placement.ItemKind == 7 => placement with { SlotStart = 189, SlotEnd = 239 },
+            CeraShopItemKind.Avatar => placement with { ItemKind = 8, StackLimit = 1,
+                Destination = new(BusinessInventorySpace.Avatar, 0, 209) },
+            CeraShopItemKind.Creature => placement with { ItemKind = 5, StackLimit = 1,
+                Destination = new(BusinessInventorySpace.CreatureInventory, 0, 139) },
+            CeraShopItemKind.CreatureEquipment => placement with { ItemKind = 6, StackLimit = 1,
+                Destination = new(BusinessInventorySpace.CreatureEquipment, 0, 48) },
+            _ when placement.ItemKind == 7 => placement with {
+                Destination = new(BusinessInventorySpace.CreatureConsumable, 0, 50) },
             _ => placement,
         };
         // Catalog purchase restrictions do not restrict rewards. Instance diagnostics still do.

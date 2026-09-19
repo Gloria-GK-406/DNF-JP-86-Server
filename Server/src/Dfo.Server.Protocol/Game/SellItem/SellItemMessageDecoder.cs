@@ -11,8 +11,9 @@ internal sealed class SellItemMessageDecoder : IGameMessageDecoder
     {
         if (body.Length != 13)
             throw new InvalidDataException($"SELL_ITEM requires 13 body bytes; received {body.Length}.");
-        return new SellItemRequest(metadata, (InventoryContainerType)body[0],
-            BinaryPrimitives.ReadInt16LittleEndian(body[1..]), BinaryPrimitives.ReadInt16LittleEndian(body[3..]),
+        return new SellItemRequest(metadata,
+            new GameSlot((InventoryContainerType)body[0], BinaryPrimitives.ReadInt16LittleEndian(body[1..])),
+            BinaryPrimitives.ReadInt16LittleEndian(body[3..]),
             BinaryPrimitives.ReadInt32LittleEndian(body[5..]), BinaryPrimitives.ReadInt32LittleEndian(body[9..]));
     }
 }

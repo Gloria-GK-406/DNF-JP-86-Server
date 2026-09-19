@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Inventory;
+
 namespace Dfo.Server.Protocol.Game.RepairItem;
 
 internal sealed class RepairItemResponseEncoder : GameCmdMessageEncoder<RepairItemResponse>
@@ -7,14 +9,14 @@ internal sealed class RepairItemResponseEncoder : GameCmdMessageEncoder<RepairIt
 
     internal static byte[] EncodeBody(RepairItemResponse message)
     {
-        if (message.Receipt is not { } receipt)
+        if (message.ErrorCode != 0)
             return [0, message.ErrorCode];
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)1);
-        writer.Write(receipt.Gold);
-        writer.Write((byte)receipt.Container);
-        writer.Write(checked((short)receipt.SlotIndex));
+        writer.Write(message.Gold);
+        writer.Write((byte)(message.Slot?.Space ?? message.RepairAllSpace));
+        writer.Write(checked((short)(message.Slot?.Index ?? -1)));
         writer.Write((short)0);
         return stream.ToArray();
     }

@@ -247,7 +247,7 @@ public sealed class QuestClearVerticalTests
         var transaction = new DomainTransaction();
         store.SessionIn(transaction).Write(
             Main,
-            new StoredItem(0, QuestItem(14))
+            new StoredItem(9, QuestItem(14))
             {
                 WorldClass = ItemWorldClass.Interchangeable,
             });
@@ -257,7 +257,7 @@ public sealed class QuestClearVerticalTests
     private static async Task<int> StoredQuantityAsync(SqliteItemDomainStore store)
     {
         var transaction = new DomainTransaction();
-        var stored = await store.SessionIn(transaction).ReadAsync(Main, 0, default);
+        var stored = await store.SessionIn(transaction).ReadAsync(Main, 9, default);
         await transaction.CommitAsync(CancellationToken.None);
         return stored!.Core.Value;
     }
@@ -333,7 +333,7 @@ public sealed class QuestClearVerticalTests
         public ValueTask<ItemPlacement?> GetAsync(
             int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(itemId == 10149163
-                ? new ItemPlacement(6, 15, 9, 64)
+                ? new ItemPlacement(6, 15, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
                 : null);
     }
 

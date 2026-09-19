@@ -14,8 +14,8 @@ internal sealed class DisjointItemMessageDecoder : IGameMessageDecoder
                 $"DISJOINT_ITEM requires 9 body bytes; received {body.Length}.");
         return new DisjointItemRequest(
             metadata,
-            BinaryPrimitives.ReadInt16LittleEndian(body),
-            (InventoryContainerType)body[2],
+            new GameSlot((InventoryContainerType)body[2],
+                BinaryPrimitives.ReadInt16LittleEndian(body)),
             BinaryPrimitives.ReadInt16LittleEndian(body[3..]),
             BinaryPrimitives.ReadInt32LittleEndian(body[5..]));
     }

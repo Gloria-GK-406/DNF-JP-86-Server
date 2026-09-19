@@ -109,15 +109,18 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
 
     /// <summary>Past the end of the list is past the end of the list.</summary>
     [Fact]
-    public async Task A_costume_does_not_go_past_the_end_of_the_avatar_list()
+    public async Task A_business_slot_past_the_end_of_the_avatar_list_is_rejected_as_an_invariant_failure()
     {
         var side = Build(costumeInBagAt: BagSlot);
 
-        var result = await side.MoveAsync(
-            InventoryContainerType.Main, BagSlot, InventoryContainerType.Avatar, 210);
+        await Assert.ThrowsAsync<InventorySlotMappingException>(() =>
+            side.MoveBusinessAsync(
+                new InventorySlotMappingRuleService().ToBusinessSlot(
+                    new GameSlot(InventoryContainerType.Main, BagSlot)),
+                new BusinessSlot(BusinessInventorySpace.Avatar, 210)).AsTask());
 
-        Assert.Equal(ItemMoveStatus.ItemCannotOccupySlot, result.Status);
-        Assert.Equal(CostumeTemplate, result.ItemId);
+        Assert.Equal(CostumeTemplate,
+            (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
     }
 
     /// <summary>A move inside one list is that list's own business, and reaches it.</summary>
@@ -348,10 +351,11 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         containers.Register(character, avatars);
         containers.Register(character, worn);
 
+        var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
             new MoveItemSpaceCommandHandler(
-                containers,
+                new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                     new ItemSlotRuleService())),
@@ -378,8 +382,36 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
                     typeof(Side),
                     CommandExecutionKind.Transactional),
                 new MoveItemSpaceCommand(
-                    this.Character, (byte)source, sourceSlot, 1, (byte)destination, destinationSlot),
+                    this.Character,
+                    ToBusinessSlot(source, sourceSlot), 1,
+                    ToBusinessSlot(destination, destinationSlot)),
                 CancellationToken.None);
+
+        public ValueTask<ItemMoveResult> MoveBusinessAsync(
+            BusinessSlot source,
+            BusinessSlot destination) =>
+            this.Handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.Empty,
+                    typeof(MoveItemSpaceCommand),
+                    typeof(Side),
+                    CommandExecutionKind.Transactional),
+                new MoveItemSpaceCommand(this.Character, source, 1, destination),
+                CancellationToken.None);
+
+        private static BusinessSlot ToBusinessSlot(
+            InventoryContainerType space, int index)
+        {
+            try
+            {
+                return new InventorySlotMappingRuleService().ToBusinessSlot(
+                    new GameSlot(space, index));
+            }
+            catch (InventorySlotMappingException)
+            {
+                return new BusinessSlot(BusinessInventorySpace.PersonalCargo, 0);
+            }
+        }
 
         public async ValueTask<ContainerSlotItem?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>

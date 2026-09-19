@@ -23,16 +23,32 @@ public sealed class RepairItemRegistrationTests
             decoder.Decode(GameMessageMetadata.Empty, Convert.FromHexString("030C00FFFF000000")));
         Assert.Equal((ClientMessageType)0x0001_0017, request.MessageType);
         Assert.Equal((InventoryContainerType.Equipment, (short)12, (short)-1, (byte)0),
-            (request.Container, request.SlotIndex, request.MaterialSlot, request.QuickRepair));
+            (request.Slot!.Value.Space, (short)request.Slot.Value.Index,
+                request.MaterialSlot, request.QuickRepair));
+    }
+
+    [Fact]
+    public void Repair_all_preserves_the_request_list_for_its_success_acknowledgement()
+    {
+        var decoder = new RepairItemMessageDecoder();
+        var request = Assert.IsType<RepairItemRequest>(decoder.Decode(
+            GameMessageMetadata.Empty,
+            Convert.FromHexString("02FFFFFFFF000000")));
+
+        Assert.Null(request.Slot);
+        Assert.Equal(InventoryContainerType.PersonalCargo, request.RepairAllSpace);
+        Assert.Equal(Convert.FromHexString("010000000002FFFF0000"),
+            RepairItemResponseEncoder.EncodeBody(new(
+                null, 0, RepairAllSpace: request.RepairAllSpace)));
     }
 
     [Fact]
     public void Success_and_failure_bodies_follow_the_upstream_ack_layout()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("repair"), 1, 10011);
-        var receipt = new EquipmentRepairReceipt(session, InventoryContainerType.Equipment, 12, 99887);
         Assert.Equal(Convert.FromHexString("012F860100030C000000"),
-            RepairItemResponseEncoder.EncodeBody(new(receipt)));
-        Assert.Equal(new byte[] { 0, 10 }, RepairItemResponseEncoder.EncodeBody(new(null, 10)));
+            RepairItemResponseEncoder.EncodeBody(new(
+                new GameSlot(InventoryContainerType.Equipment, 12), 99887)));
+        Assert.Equal(new byte[] { 0, 10 },
+            RepairItemResponseEncoder.EncodeBody(new(null, ErrorCode: 10)));
     }
 }

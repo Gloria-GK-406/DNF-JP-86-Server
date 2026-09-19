@@ -218,7 +218,8 @@ public sealed class ExitFlushHandlerTests
     private sealed class KnownPlacement : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 100, 121, 176));
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 100,
+                new(BusinessInventorySpace.Material, 0, 55)));
     }
 
     /// <summary>

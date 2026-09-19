@@ -8,13 +8,13 @@ internal sealed class ItemMovementDomainService(
     IItemPlacementRuleService placementRules,
     IItemSlotRuleService slotRules) : IItemMovementDomainService
 {
-    public ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken) =>
+    public ValueTask<BusinessSlot?> WornSlotForAsync(
+        int itemId, CancellationToken cancellationToken) =>
         placementRules.WornSlotForAsync(itemId, cancellationToken);
 
     public async ValueTask<SlotAdmission> MayOccupySlotAsync(
-        InventoryContainerType containerType,
+        BusinessSlot slot,
         int itemId,
-        int slotIndex,
         CancellationToken cancellationToken)
     {
         var placement = await placementRules.PlacementForAsync(itemId, cancellationToken)
@@ -22,7 +22,7 @@ internal sealed class ItemMovementDomainService(
         if (placement is null)
             return SlotAdmission.ItemUnknown;
 
-        return slotRules.CanOccupySlot(containerType, placement, slotIndex)
+        return slotRules.CanOccupySlot(slot, placement)
             ? SlotAdmission.Allowed
             : SlotAdmission.SlotNotAllowed;
     }

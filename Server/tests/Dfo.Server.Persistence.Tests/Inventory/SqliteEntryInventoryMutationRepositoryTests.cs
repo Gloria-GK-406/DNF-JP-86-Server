@@ -194,7 +194,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             var first = await repository.ApplyDailyRefillAsync(
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
@@ -301,7 +302,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.Mutations;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             var reloaded = await side.InUseCaseAsync(async token =>
             {
@@ -352,7 +354,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             long keyBefore;
             await using (var before = Open(path))
@@ -409,7 +412,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var kindless = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 0, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 0,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await repository.ApplyDailyRefillAsync(
@@ -458,7 +462,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(80);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(2222, 2, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             var result = await repository.ApplyDailyRefillAsync(
                 new AccountId(8), new CharacterId(80), [rule], PreparedAt, CancellationToken.None);
@@ -501,7 +506,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             // day grants again -- a refill-to-target rule would grant nothing the second day
             // whatever the boundary did, and the test could not tell the two apart.
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.AddUpToStackLimit, 100, 2, 65, 120);
+                DailyRefillMode.AddUpToStackLimit, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             // 23:30 and 00:30 in UTC+8: one hour apart, and two different days.
             var lateOnDayOne = new DateTimeOffset(2026, 8, 12, 23, 30, 0, TimeSpan.FromHours(8));
@@ -538,7 +544,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.AddUpToStackLimit, 100, 2, 65, 120);
+                DailyRefillMode.AddUpToStackLimit, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             // 07:30 and 08:30 in UTC+8 on one day: 23:30 and 00:30 in UTC, so two UTC days.
             var beforeUtcMidnight = new DateTimeOffset(2026, 8, 13, 7, 30, 0, TimeSpan.FromHours(8));
@@ -578,7 +585,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             var result = await repository.ApplyDailyRefillAsync(
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
@@ -618,7 +626,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 55));
 
             var result = await repository.ApplyDailyRefillAsync(
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
@@ -647,7 +656,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.RefillToTarget, 100, 2, 65, 66);
+                DailyRefillMode.RefillToTarget, 100, 2,
+                new(BusinessInventorySpace.Consumable, 0, 1));
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await repository.ApplyDailyRefillAsync(
@@ -668,8 +678,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(itemId is 100 or 900
-                ? new ItemPlacement(8, 1, 0, 255) { WorldClass = ItemWorldClass.Avatar }
-                : new ItemPlacement(2, 100, 65, 120));
+                ? new ItemPlacement(8, 1, new(BusinessInventorySpace.Avatar, 0, 255))
+                    { WorldClass = ItemWorldClass.Avatar }
+                : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     private static async Task SeedCharacterAsync(string path, int accountId, int characterId)

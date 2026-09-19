@@ -46,12 +46,11 @@ public sealed record EquipmentDisjointRuleResult(
     EquipmentDisjointRejection Rejection,
     IReadOnlyList<EquipmentDisjointReward>? Rewards = null);
 
-public sealed record EquipmentDisjointMaterialReceipt(short SlotIndex, int ItemId, int Count);
+public sealed record EquipmentDisjointMaterialReceipt(BusinessSlot Slot, int ItemId, int Count);
 
 public sealed record EquipmentDisjointReceipt(
     SelectedSessionIdentity Session,
-    short TargetSlotIndex,
-    InventoryContainerType ItemSpace,
+    BusinessSlot TargetSlot,
     IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials);
 
 public sealed record EquipmentDisjointResult(

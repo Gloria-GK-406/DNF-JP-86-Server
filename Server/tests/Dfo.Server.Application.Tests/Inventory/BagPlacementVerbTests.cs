@@ -128,7 +128,8 @@ public sealed class BagPlacementVerbTests
 
         var grant = await granted.InUseCase(container => container.AddAsync(Potion, 5, default));
         var refill = await refilled.InUseCase(container => container.RefillAsync(
-            new ItemRefill(Potion, ItemKind, 5, 65, 120), default));
+            new ItemRefill(Potion, ItemKind, 5,
+                new(BusinessInventorySpace.Consumable, 0, 55)), default));
 
         var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(grant);
         Assert.Equal(3, opened.SlotIndex);
@@ -147,7 +148,8 @@ public sealed class BagPlacementVerbTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
-                itemId == Potion ? new ItemPlacement(ItemKind, 10, 65, 66) : null);
+                itemId == Potion ? new ItemPlacement(ItemKind, 10,
+                    new(BusinessInventorySpace.Consumable, 0, 1)) : null);
     }
 
     private sealed class BagInventory : FakeMainInventory

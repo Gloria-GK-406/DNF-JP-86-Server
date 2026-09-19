@@ -12,10 +12,10 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemSaleDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas, ICharacterDomainService characters,
-    ICharacterContainerDomainService containers, IItemSaleRuleService rules) : IItemSaleDomainService
+    IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules) : IItemSaleDomainService
 {
-    public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, InventoryContainerType container,
-        int slotIndex, int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
+    public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
+        int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
     {
         if (sessions.Find(session.AccountId) != session
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
@@ -23,14 +23,16 @@ internal sealed class ItemSaleDomainService(
             || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
             return new(ItemSaleRejection.NoSession);
         // Worn pieces, avatars and creatures require their own appearance/lifecycle updates.
-        if (container != InventoryContainerType.Main || slotIndex is < 3 or >= 354 || count <= 0)
+        if (!slot.Space.IsCarriedItemSpace() || count <= 0)
             return new(ItemSaleRejection.InvalidRequest);
         if (townAreas.Find(session.CharacterId) is not { } member
             || !session.Owns(member)
             || !await rules.HasShopAsync(npcId, cancellationToken).ConfigureAwait(false))
             return new(ItemSaleRejection.ShopUnavailable);
-        var bag = containers.FindContainer(session.CharacterId, container);
-        var item = bag is null ? null : await bag.ReadSlotAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+        var bound = slots.Find(session.CharacterId, slot);
+        var item = bound is null
+            ? null
+            : await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         if (item is null)
             return new(ItemSaleRejection.ItemUnavailable);
         var quote = await rules.QuoteAsync(item, count, cancellationToken).ConfigureAwait(false);
@@ -52,10 +54,10 @@ internal sealed class ItemSaleDomainService(
         }
         var remaining = item.Count == quote.Count ? null : item.Core with { Value = item.Count - quote.Count };
         if (remaining is null)
-            await bag!.ClearAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+            await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         else
-            await bag!.PutAsync(slotIndex, remaining, cancellationToken).ConfigureAwait(false);
+            await bound!.Container.PutAsync(bound.StorageIndex, remaining, cancellationToken).ConfigureAwait(false);
         return new(ItemSaleRejection.None,
-            new(session, container, slotIndex, item.ItemId, quote.Count, gold, remaining, now));
+            new(session, slot, item.ItemId, quote.Count, gold, remaining, now));
     }
 }

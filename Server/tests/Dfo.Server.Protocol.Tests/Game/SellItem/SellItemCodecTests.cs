@@ -28,7 +28,7 @@ public sealed class SellItemCodecTests
         Assert.Equal((ClientMessageType)0x0001_0016, request.MessageType);
         var sale = Assert.IsType<SellItemRequest>(request);
         Assert.Equal((InventoryContainerType.Main, slot, (short)1, 2, sum),
-            (sale.Container, sale.SlotIndex, sale.Count, sale.NpcId, sale.FieldSum));
+            (sale.Slot.Space, (short)sale.Slot.Index, sale.Count, sale.NpcId, sale.FieldSum));
     }
 
     [Theory]
@@ -41,10 +41,11 @@ public sealed class SellItemCodecTests
     [Fact]
     public void Success_matches_the_four_reads_in_the_A21_handler()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("codec"), 1, 10011);
-        var receipt = new ItemSaleReceipt(session, InventoryContainerType.Main, 65, 5000, 3, 100093, null, DateTimeOffset.UnixEpoch);
         // RVA D222B9..D222DF: i32 gold, u8 container, u16 slot, u16 count.
-        Assert.Equal(Convert.FromHexString("01FD8601000041000300"), SellItemResponseEncoder.EncodeBody(new(receipt)));
-        Assert.Equal(new byte[] { 0, 22 }, SellItemResponseEncoder.EncodeBody(new(null, 22)));
+        Assert.Equal(Convert.FromHexString("01FD8601000041000300"),
+            SellItemResponseEncoder.EncodeBody(new(
+                new GameSlot(InventoryContainerType.Main, 65), 100093, 3)));
+        Assert.Equal(new byte[] { 0, 22 },
+            SellItemResponseEncoder.EncodeBody(new(null, ErrorCode: 22)));
     }
 }

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
@@ -85,8 +86,9 @@ public sealed class PvfEntryLifecycleContentSourceTests
             Assert.True(rule.Quantity > 0);
             Assert.True(rule.ExpiresAt > PreparedAt);
             Assert.Contains(rule.ItemKind, new byte[] { 1, 2, 3, 4, 7, 9, 10, 11 });
-            Assert.Equal(177, rule.SlotStart);
-            Assert.Equal(232, rule.SlotEnd);
+            Assert.Equal(BusinessInventorySpace.Quest, rule.Destination.Space);
+            Assert.Equal(0, rule.Destination.FirstIndex);
+            Assert.Equal(55, rule.Destination.LastIndex);
         });
         Assert.Equal(
             new Dictionary<int, byte>

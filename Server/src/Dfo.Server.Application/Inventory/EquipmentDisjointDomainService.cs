@@ -11,15 +11,18 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class EquipmentDisjointDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
-    ICharacterContainerDomainService containers,
+    IBusinessInventorySlotDomainService slots,
     IEquipmentDisjointRuleService rules,
     IItemPlacementRuleService placements,
-    IItemArrivalRuleService arrivals) : IEquipmentDisjointDomainService
+    IItemSlotRuleService slotRules,
+    IItemArrivalRuleService arrivals,
+    IInventorySlotMappingRuleService? slotMappings = null) : IEquipmentDisjointDomainService
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<EquipmentDisjointResult> DisjointAsync(
         SelectedSessionIdentity session,
-        short targetSlotIndex,
-        InventoryContainerType itemSpace,
+        BusinessSlot targetSlot,
         short disjointItemSlotIndex,
         int contextValue,
         EquipmentDisjointSettings settings,
@@ -35,17 +38,25 @@ internal sealed class EquipmentDisjointDomainService(
         // context: A21 forwards it for ordinary system disjoint and the reference server does not
         // use it as authority. Eligibility therefore comes from the selected tool slot and rules,
         // never from this caller-provided context value.
-        if (itemSpace != InventoryContainerType.Main || targetSlotIndex < 3
+        if (!targetSlot.Space.IsCarriedItemSpace()
             || disjointItemSlotIndex != -1
             || settings.Method != EquipmentDisjointMethod.SystemNpc)
             return new(EquipmentDisjointRejection.InvalidRequest);
 
-        var bag = containers.FindContainer(session.CharacterId, InventoryContainerType.Main);
-        var equipment = bag is null
+        var bound = slots.Find(session.CharacterId, targetSlot);
+        var equipment = bound is null
             ? null
-            : await bag.ReadSlotAsync(targetSlotIndex, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         if (equipment is null)
             return new(EquipmentDisjointRejection.ItemUnavailable);
+        var placement = await placements.PlacementForAsync(equipment.ItemId, cancellationToken)
+            .ConfigureAwait(false);
+        if (placement is null)
+            return new(EquipmentDisjointRejection.CannotDisjoint);
+        if (!slotRules.CanOccupySlot(targetSlot, placement))
+            throw new InvalidDataException(
+                $"Stored item {equipment.ItemId} contradicts business slot "
+                    + $"{targetSlot.Space}/{targetSlot.Index}.");
         var instance = EquipmentInstance.From(equipment);
         if (instance is null)
             return new(EquipmentDisjointRejection.CannotDisjoint);
@@ -59,28 +70,27 @@ internal sealed class EquipmentDisjointDomainService(
                 ? EquipmentDisjointRejection.CannotDisjoint : decided.Rejection);
 
         var planned = await PlanAsync(
-            bag!, targetSlotIndex, rewards, cancellationToken).ConfigureAwait(false);
+            bound!, rewards, cancellationToken).ConfigureAwait(false);
         if (planned is null)
             return new(EquipmentDisjointRejection.InventoryFull);
         if (planned.Materials.Count > byte.MaxValue)
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
-        await bag!.ClearAsync(targetSlotIndex, cancellationToken).ConfigureAwait(false);
+        await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         foreach (var write in planned.Writes.OrderBy(entry => entry.Key))
-            await bag.PutAsync(write.Key, write.Value, cancellationToken).ConfigureAwait(false);
+            await bound.Container.PutAsync(write.Key, write.Value, cancellationToken).ConfigureAwait(false);
         return new(EquipmentDisjointRejection.None,
-            new(session, targetSlotIndex, itemSpace, planned.Materials));
+            new(session, targetSlot, planned.Materials));
     }
 
     private async ValueTask<DisjointPlan?> PlanAsync(
-        IItemContainer bag,
-        int sourceSlot,
+        BoundInventorySlot source,
         IReadOnlyList<EquipmentDisjointReward> rewards,
         CancellationToken cancellationToken)
     {
-        var standing = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        var standing = (await source.Container.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             .ToDictionary(item => item.SlotIndex);
-        standing.Remove(sourceSlot);
+        standing.Remove(source.StorageIndex);
         var writes = new Dictionary<int, InventoryItemCoreState>();
         var materials = new List<EquipmentDisjointMaterialReceipt>();
         foreach (var reward in rewards)
@@ -94,26 +104,35 @@ internal sealed class EquipmentDisjointDomainService(
             var remaining = reward.Count;
             while (remaining > 0)
             {
+                var candidates = CandidateSlots(placement).ToArray();
                 var arrival = arrivals.ForGrant(
-                    standing.Values
-                        .Where(item => item.IsPile && item.ItemId == reward.ItemId)
-                        .Select(item => new ItemPile(item.SlotIndex, item.Count))
+                    candidates.Select(slot =>
+                            (Slot: slot, Index: this.StorageIndex(source.Container, slot)))
+                        .Where(candidate => standing.TryGetValue(candidate.Index, out var item)
+                            && item.IsPile && item.ItemId == reward.ItemId)
+                        .Select(candidate => new ItemPile(
+                            candidate.Slot, standing[candidate.Index].Count))
                         .ToArray(),
                     remaining,
                     placement,
-                    standing.Keys.ToHashSet());
+                    candidates.Where(slot =>
+                            standing.ContainsKey(this.StorageIndex(source.Container, slot)))
+                        .ToHashSet());
                 int slot;
                 int added;
+                BusinessSlot materialSlot;
                 InventoryItemCoreState core;
                 switch (arrival)
                 {
                     case ItemArrival.OntoExistingPile pile:
-                        slot = pile.SlotIndex;
+                        materialSlot = pile.Slot;
+                        slot = this.StorageIndex(source.Container, pile.Slot);
                         added = pile.Added;
                         core = standing[slot].Core with { Value = pile.Total };
                         break;
                     case ItemArrival.IntoEmptySlot empty:
-                        slot = empty.SlotIndex;
+                        materialSlot = empty.Slot;
+                        slot = this.StorageIndex(source.Container, empty.Slot);
                         added = empty.Count;
                         core = StackableItemCore.Create(placement.ItemKind, reward.ItemId, added);
                         break;
@@ -127,11 +146,32 @@ internal sealed class EquipmentDisjointDomainService(
                     return null;
                 standing[slot] = new(slot, core, ItemWorldClass.Interchangeable);
                 writes[slot] = core;
-                materials.Add(new((short)slot, reward.ItemId, added));
+                materials.Add(new(materialSlot, reward.ItemId, added));
                 remaining -= added;
             }
         }
         return new(writes, materials);
+    }
+
+    private int StorageIndex(IItemContainer container, BusinessSlot slot)
+    {
+        var game = slotMappings.ToGameSlot(slot);
+        if (game.Space != container.Type)
+            throw new InvalidDataException(
+                $"Disjoint reward slot {slot.Space}/{slot.Index} does not belong to {container.Type}.");
+        return game.Index;
+    }
+
+    private static IEnumerable<BusinessSlot> CandidateSlots(ItemPlacement placement)
+    {
+        var own = Enumerable.Range(
+                placement.Destination.FirstIndex,
+                placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
+            .Select(index => new BusinessSlot(placement.Destination.Space, index));
+        return ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+            ? own.Concat(Enumerable.Range(0, 6)
+                .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)))
+            : own;
     }
 
     private sealed record DisjointPlan(

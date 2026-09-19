@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.World;
+using Dfo.Server.Data.Inventory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Inventory;
@@ -69,22 +70,24 @@ public sealed class AvatarSlotRulesAfterTheKindChangeTests
     /// </para>
     /// </remarks>
     [SkippableTheory]
-    [InlineData(ItemSlotRuleService.QuickSlotStart)]
+    [InlineData(3)]
     [InlineData(5)]
-    [InlineData(ItemSlotRuleService.QuickSlotEnd)]
+    [InlineData(8)]
     public async Task A_quick_slot_refuses_the_avatar_the_archive_declares(int slotIndex)
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         var placement = await ArchivePlacementAsync();
         Assert.Equal(KindStorageJudgesAnAvatarBy, placement.ItemKind);
 
-        Assert.False(SlotRules.CanOccupyMainSlot(placement, slotIndex));
+        Assert.False(SlotRules.CanOccupySlot(
+            new BusinessSlot(BusinessInventorySpace.QuickSlot, slotIndex - 3), placement));
 
-        Assert.True(SlotRules.CanOccupyMainSlot(placement, placement.SlotStart));
+        Assert.True(SlotRules.CanOccupySlot(
+            new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), placement));
 
-        Assert.True(SlotRules.CanOccupyMainSlot(
-            placement with { ItemKind = KindTheEquipmentIndexHandedThisTemplateBefore },
-            slotIndex));
+        Assert.True(SlotRules.CanOccupySlot(
+            new BusinessSlot(BusinessInventorySpace.QuickSlot, slotIndex - 3),
+            placement with { ItemKind = KindTheEquipmentIndexHandedThisTemplateBefore }));
     }
 
     /// <summary>
@@ -116,17 +119,21 @@ public sealed class AvatarSlotRulesAfterTheKindChangeTests
         };
 
         // Nothing occupied: each lands at the first slot of the band the archive gave.
-        var nothingOccupied = new HashSet<int>();
+        var nothingOccupied = new HashSet<BusinessSlot>();
         Assert.Equal(
-            new ItemArrival.IntoEmptySlot(asItIsNow.SlotStart, 1),
+            new ItemArrival.IntoEmptySlot(
+                new(asItIsNow.Destination.Space, asItIsNow.Destination.FirstIndex), 1),
             ArrivalRules.ForGrant([], 1, asItIsNow, nothingOccupied));
         Assert.Equal(
             ArrivalRules.ForGrant([], 1, asItWasBefore, nothingOccupied),
             ArrivalRules.ForGrant([], 1, asItIsNow, nothingOccupied));
 
         // Its own band full, the bar free: each answers no room.
-        var ownBandFull = new HashSet<int>(
-            Enumerable.Range(asItIsNow.SlotStart, asItIsNow.SlotEnd - asItIsNow.SlotStart + 1));
+        var ownBandFull = Enumerable.Range(
+                asItIsNow.Destination.FirstIndex,
+                asItIsNow.Destination.LastIndex - asItIsNow.Destination.FirstIndex + 1)
+            .Select(index => new BusinessSlot(asItIsNow.Destination.Space, index))
+            .ToHashSet();
         Assert.IsType<ItemArrival.NoRoom>(ArrivalRules.ForGrant([], 1, asItIsNow, ownBandFull));
         Assert.Equal(
             ArrivalRules.ForGrant([], 1, asItWasBefore, ownBandFull),
@@ -134,7 +141,7 @@ public sealed class AvatarSlotRulesAfterTheKindChangeTests
 
         // And the bar was free in that same occupied set.
         Assert.Equal(
-            new ItemArrival.IntoEmptySlot(ItemSlotRuleService.QuickSlotStart, 1),
+            new ItemArrival.IntoEmptySlot(new(BusinessInventorySpace.QuickSlot, 0), 1),
             ArrivalRules.ForGrant(
                 [], 1, asItIsNow with { ItemKind = ConsumableKind }, ownBandFull));
     }

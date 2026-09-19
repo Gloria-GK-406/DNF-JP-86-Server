@@ -141,6 +141,9 @@ public sealed class ApplicationModule : IServerModule
         // What a room declares, and what a run standing in it makes of that: the actor numbering,
         // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
         services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
+        services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
+        services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
+        services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
         // Where an item belongs, which slot it is worn in, and whether it is equipment at all --
         // the one place the archive's item definitions are read for those three answers.

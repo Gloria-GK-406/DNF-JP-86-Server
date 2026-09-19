@@ -8,8 +8,11 @@ internal sealed class NpcShopRuleService(
     INpcShopDefinitionSource content,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IDailyRefillRuleService days) : INpcShopRuleService
+    IDailyRefillRuleService days,
+    IInventorySlotMappingRuleService? slotMappings = null) : INpcShopRuleService
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<NpcShopQuoteResult> QuoteAsync(
         int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken)
     {
@@ -93,22 +96,27 @@ internal sealed class NpcShopRuleService(
         while (outstanding > 0)
         {
             var placement = quote.Placement;
+            var candidates = CandidateSlots(placement).ToArray();
             var arrival = arrivals.ForGrant(
-                standing.Values.Where(item => item.ItemId == quote.Definition.ItemId && item.IsPile)
-                    .Select(item => new ItemPile(item.SlotIndex, item.Count)).ToArray(),
-                outstanding, placement, standing.Keys.ToHashSet());
+                candidates.Select(slot => (Slot: slot, Index: this.MainIndex(slot)))
+                    .Where(candidate => standing.TryGetValue(candidate.Index, out var item)
+                        && item.ItemId == quote.Definition.ItemId && item.IsPile)
+                    .Select(candidate => new ItemPile(
+                        candidate.Slot, standing[candidate.Index].Count)).ToArray(),
+                outstanding, placement,
+                candidates.Where(slot => standing.ContainsKey(this.MainIndex(slot))).ToHashSet());
             int slot;
             int added;
             InventoryItemCoreState core;
             switch (arrival)
             {
                 case ItemArrival.OntoExistingPile pile:
-                    slot = pile.SlotIndex;
+                    slot = this.MainIndex(pile.Slot);
                     added = pile.Added;
                     core = standing[slot].Core with { Value = pile.Total };
                     break;
                 case ItemArrival.IntoEmptySlot empty:
-                    slot = empty.SlotIndex;
+                    slot = this.MainIndex(empty.Slot);
                     added = empty.Count;
                     core = StackableItemCore.Create(placement.ItemKind, quote.Definition.ItemId, added);
                     if (placement.WorldClass == ItemWorldClass.Equipment)
@@ -138,4 +146,25 @@ internal sealed class NpcShopRuleService(
 
     private static IEnumerable<int> OfferedItems(NpcShopDefinition shop, byte job) =>
         shop.Pages.Where(page => page.Job is null || page.Job == job).SelectMany(page => page.ItemIds).Distinct();
+
+    private int MainIndex(BusinessSlot slot)
+    {
+        var game = slotMappings.ToGameSlot(slot);
+        if (game.Space != InventoryContainerType.Main)
+            throw new InvalidDataException(
+                $"NPC shop placement {slot.Space}/{slot.Index} is not in the main inventory.");
+        return game.Index;
+    }
+
+    private static IEnumerable<BusinessSlot> CandidateSlots(ItemPlacement placement)
+    {
+        var own = Enumerable.Range(
+                placement.Destination.FirstIndex,
+                placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
+            .Select(index => new BusinessSlot(placement.Destination.Space, index));
+        return ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+            ? own.Concat(Enumerable.Range(0, 6)
+                .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)))
+            : own;
+    }
 }

@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -19,14 +20,25 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 internal sealed class ItemPlacementRuleService(
     IItemPlacementDefinitionSource placements,
-    IEquipmentSlotDefinitionSource equipmentSlots) : IItemPlacementRuleService
+    IEquipmentSlotDefinitionSource equipmentSlots,
+    IInventorySlotMappingRuleService? slotMappings = null) : IItemPlacementRuleService
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
+
     public ValueTask<ItemPlacement?> PlacementForAsync(
         int itemId, CancellationToken cancellationToken) =>
         placements.GetAsync(itemId, cancellationToken);
 
-    public ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken) =>
-        equipmentSlots.GetAsync(itemId, cancellationToken);
+    public async ValueTask<BusinessSlot?> WornSlotForAsync(
+        int itemId, CancellationToken cancellationToken)
+    {
+        var slot = await equipmentSlots.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        return slot is null
+            ? null
+            : this.slotMappings.ToBusinessSlot(
+                new GameSlot(InventoryContainerType.Equipment, slot.Value));
+    }
 
     /// <summary>
     /// The single place a thing is classified.

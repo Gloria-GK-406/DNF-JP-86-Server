@@ -11,10 +11,9 @@ namespace Dfo.Server.Protocol.Game.DeleteItem;
 public sealed record DeleteItemCommand(
     OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session,
-    InventoryContainerType Container,
+    BusinessSlot Slot,
     byte EntryCount,
     ushort OperationType,
-    int SlotIndex,
     int ItemId,
     int Count) : ICommand<DeleteItemOutcome>, IOnlineUserCommand, IAccountCommand
 {
@@ -39,10 +38,10 @@ public sealed class DeleteItemCommandHandler(
         CancellationToken cancellationToken)
     {
         var discard = await discards.DiscardAsync(
-            command.Session, command.Container, command.EntryCount,
-            command.OperationType, command.SlotIndex, command.ItemId, command.Count,
+            command.Session, command.Slot, command.EntryCount,
+            command.OperationType, command.ItemId, command.Count,
             clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
-        if (discard.Receipt is null || command.Container != InventoryContainerType.Main)
+        if (discard.Receipt is null || !command.Slot.Space.IsCarriedItemSpace())
             return new DeleteItemOutcome(discard, null);
 
         var progress = await quests.ReportAsync(

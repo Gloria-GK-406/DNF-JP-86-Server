@@ -5,8 +5,8 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IItemSaleDomainService
 {
-    ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, InventoryContainerType container,
-        int slotIndex, int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken);
+    ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
+        int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken);
 }
 
 // This exception must cross the command transaction boundary before becoming a protocol refusal.

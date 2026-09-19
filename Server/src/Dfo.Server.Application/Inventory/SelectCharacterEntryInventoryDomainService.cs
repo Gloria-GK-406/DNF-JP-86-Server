@@ -17,7 +17,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules) : ISelectCharacterEntryInventoryDomainService
+    IItemSlotRuleService slotRules,
+    IInventorySlotMappingRuleService? slotMappings = null) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
@@ -82,7 +83,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 mutations,
                 placementRules,
                 arrivals,
-                slotRules));
+                slotRules,
+                slotMappings ?? new InventorySlotMappingRuleService()));
         }
     }
 

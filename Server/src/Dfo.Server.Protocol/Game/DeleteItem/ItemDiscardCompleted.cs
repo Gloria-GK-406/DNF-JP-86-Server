@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Game;
@@ -12,7 +13,9 @@ public sealed record ItemDiscardCompleted(
     ItemDiscardReceipt Receipt,
     QuestProgressSnapshot? QuestProgress = null) : INotification<ItemDiscardCompleted>;
 
-public sealed class ItemDiscardCompletedHandler(ISelectedSessionDomainService sessions)
+public sealed class ItemDiscardCompletedHandler(
+    ISelectedSessionDomainService sessions,
+    IInventorySlotProjectionDomainService slotProjection)
     : INotificationHandler<ItemDiscardCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
@@ -27,11 +30,13 @@ public sealed class ItemDiscardCompletedHandler(ISelectedSessionDomainService se
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
 
         // The A21 client applies this deletion from the success acknowledgement; never replay it.
+        var response = new DeleteItemResponse(
+            slotProjection.Project(receipt.Slot), receipt.AppliedCount, Success: true);
         if (notification.QuestProgress is not { } progress)
-            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([new DeleteItemResponse(receipt)]);
+            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([response]);
 
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
-            new DeleteItemResponse(receipt),
+            response,
             new AcceptedQuestProgressMessage(
                 [.. progress.Quests.OrderBy(quest => quest.Slot)
                     .Select(quest => new AcceptedQuestProgressState(

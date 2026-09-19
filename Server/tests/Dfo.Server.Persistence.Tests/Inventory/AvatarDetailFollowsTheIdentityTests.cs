@@ -270,8 +270,9 @@ public sealed class AvatarDetailFollowsTheIdentityTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(itemId is FirstAvatarId or SecondAvatarId
-                ? new ItemPlacement(AvatarKind, 1, 0, 255) { WorldClass = ItemWorldClass.Avatar }
-                : new ItemPlacement(2, 100, 65, 120));
+                ? new ItemPlacement(AvatarKind, 1, new(BusinessInventorySpace.Avatar, 0, 255))
+                    { WorldClass = ItemWorldClass.Avatar }
+                : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     /// <summary>Stands in for the coordinator, as the store's own tests do.</summary>

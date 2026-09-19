@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -101,7 +102,8 @@ public sealed class RefillRuleServiceTests
         DailyRefillMode mode, int quantity, int stackLimit, int current, int expected)
     {
         var rule = new DailyRefillRule(
-            1234, quantity, DateTimeOffset.MaxValue, mode, stackLimit, 2, 65, 120);
+            1234, quantity, DateTimeOffset.MaxValue, mode, stackLimit, 2,
+            new(BusinessInventorySpace.Consumable, 0, 55));
 
         Assert.Equal(expected, Refill.GrantFor(rule, current));
     }
@@ -110,7 +112,8 @@ public sealed class RefillRuleServiceTests
     public void AnItemThatDoesNotStackGrantsNothing()
     {
         var rule = new DailyRefillRule(
-            1234, 5, DateTimeOffset.MaxValue, DailyRefillMode.RefillToTarget, 0, 2, 65, 120);
+            1234, 5, DateTimeOffset.MaxValue, DailyRefillMode.RefillToTarget, 0, 2,
+            new(BusinessInventorySpace.Consumable, 0, 55));
 
         Assert.Equal(0, Refill.GrantFor(rule, 0));
     }
@@ -121,10 +124,10 @@ public sealed class RefillRuleServiceTests
     public void ARefillTopsUpThePileTheCharacterAlreadyHas()
     {
         var arrival = Arrival.ForDailyRefill(
-            [new ItemPile(70, 2)], grant: 3, slotStart: 65, slotEnd: 120, Occupied(70));
+            [Pile(70, 2)], grant: 3, Range(65, 120), Occupied(70));
 
         var onto = Assert.IsType<ItemArrival.OntoExistingPile>(arrival);
-        Assert.Equal(70, onto.SlotIndex);
+        Assert.Equal(70, GameIndex(onto.Slot));
         Assert.Equal(3, onto.Added);
         Assert.Equal(5, onto.Total);
     }
@@ -137,19 +140,19 @@ public sealed class RefillRuleServiceTests
     public void ARefillTopsUpTheFirstPileInSlotOrder()
     {
         var arrival = Arrival.ForDailyRefill(
-            [new ItemPile(68, 1), new ItemPile(90, 4)], grant: 2, slotStart: 65, slotEnd: 120,
+            [Pile(68, 1), Pile(90, 4)], grant: 2, Range(65, 120),
             Occupied(68, 90));
 
-        Assert.Equal(68, Assert.IsType<ItemArrival.OntoExistingPile>(arrival).SlotIndex);
+        Assert.Equal(68, GameIndex(Assert.IsType<ItemArrival.OntoExistingPile>(arrival).Slot));
     }
 
     [Fact]
     public void ARefillOpensASlotOnlyWhenTheCharacterHasNone()
     {
-        var arrival = Arrival.ForDailyRefill([], grant: 5, slotStart: 65, slotEnd: 120, Occupied());
+        var arrival = Arrival.ForDailyRefill([], grant: 5, Range(65, 120), Occupied());
 
         var into = Assert.IsType<ItemArrival.IntoEmptySlot>(arrival);
-        Assert.Equal(65, into.SlotIndex);
+        Assert.Equal(65, GameIndex(into.Slot));
         Assert.Equal(5, into.Count);
     }
 
@@ -159,9 +162,9 @@ public sealed class RefillRuleServiceTests
     public void ANewPileTakesTheFirstFreeSlotOfItsOwnBand()
     {
         var arrival = Arrival.ForDailyRefill(
-            [], grant: 5, slotStart: 65, slotEnd: 120, Occupied(3, 65, 66));
+            [], grant: 5, Range(65, 120), Occupied(3, 65, 66));
 
-        Assert.Equal(67, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).SlotIndex);
+        Assert.Equal(67, GameIndex(Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).Slot));
     }
 
     /// <remarks>
@@ -172,7 +175,7 @@ public sealed class RefillRuleServiceTests
     public void AFullBandDoesNotSpillIntoTheSlotsBelowIt()
     {
         var arrival = Arrival.ForDailyRefill(
-            [], grant: 5, slotStart: 65, slotEnd: 66, Occupied(65, 66));
+            [], grant: 5, Range(65, 66), Occupied(65, 66));
 
         Assert.IsType<ItemArrival.NoRoom>(arrival);
     }
@@ -188,7 +191,7 @@ public sealed class RefillRuleServiceTests
     public void AGrantFillsAPileOnlyToTheStackLimit()
     {
         var arrival = Arrival.ForGrant(
-            [new ItemPile(70, 3)], count: 4, new ItemPlacement(2, 5, 65, 120), Occupied(70));
+            [Pile(70, 3)], count: 4, Placement(2, 5, 65, 120), Occupied(70));
 
         var onto = Assert.IsType<ItemArrival.OntoExistingPile>(arrival);
         Assert.Equal(2, onto.Added);
@@ -199,10 +202,10 @@ public sealed class RefillRuleServiceTests
     public void AGrantSkipsAPileThatIsAlreadyFull()
     {
         var arrival = Arrival.ForGrant(
-            [new ItemPile(70, 5), new ItemPile(71, 1)], count: 2,
-            new ItemPlacement(2, 5, 65, 120), Occupied(70, 71));
+            [Pile(70, 5), Pile(71, 1)], count: 2,
+            Placement(2, 5, 65, 120), Occupied(70, 71));
 
-        Assert.Equal(71, Assert.IsType<ItemArrival.OntoExistingPile>(arrival).SlotIndex);
+        Assert.Equal(71, GameIndex(Assert.IsType<ItemArrival.OntoExistingPile>(arrival).Slot));
     }
 
     /// <remarks>
@@ -213,10 +216,10 @@ public sealed class RefillRuleServiceTests
     public void AnItemThatDoesNotStackAlwaysOpensASlot()
     {
         var arrival = Arrival.ForGrant(
-            [new ItemPile(70, 1)], count: 1, new ItemPlacement(1, 1, 65, 120), Occupied(70));
+            [Pile(70, 1)], count: 1, Placement(1, 1, 65, 120), Occupied(70));
 
         var into = Assert.IsType<ItemArrival.IntoEmptySlot>(arrival);
-        Assert.Equal(65, into.SlotIndex);
+        Assert.Equal(65, GameIndex(into.Slot));
         Assert.Equal(1, into.Count);
     }
 
@@ -224,7 +227,7 @@ public sealed class RefillRuleServiceTests
     public void AGrantIntoAnEmptySlotIsCappedByTheStackLimit()
     {
         var arrival = Arrival.ForGrant(
-            [], count: 9, new ItemPlacement(2, 5, 65, 120), Occupied());
+            [], count: 9, Placement(2, 5, 65, 120), Occupied());
 
         Assert.Equal(5, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).Count);
     }
@@ -234,7 +237,7 @@ public sealed class RefillRuleServiceTests
     public void AGrantWithNoDeclaredStackLimitIsNotCapped()
     {
         var arrival = Arrival.ForGrant(
-            [], count: 9, new ItemPlacement(2, 0, 65, 120), Occupied());
+            [], count: 9, Placement(2, 0, 65, 120), Occupied());
 
         Assert.Equal(9, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).Count);
     }
@@ -258,10 +261,10 @@ public sealed class RefillRuleServiceTests
     public void AGrantWithNoDeclaredStackLimitStillJoinsAPile()
     {
         var arrival = Arrival.ForGrant(
-            [new ItemPile(123, 1)], count: 1, new ItemPlacement(3, 0, 121, 176), Occupied(123));
+            [Pile(123, 1)], count: 1, Placement(3, 0, 121, 176), Occupied(123));
 
         var onto = Assert.IsType<ItemArrival.OntoExistingPile>(arrival);
-        Assert.Equal(123, onto.SlotIndex);
+        Assert.Equal(123, GameIndex(onto.Slot));
         Assert.Equal(1, onto.Added);
         Assert.Equal(2, onto.Total);
     }
@@ -271,8 +274,8 @@ public sealed class RefillRuleServiceTests
     public void An_uncapped_pile_keeps_taking_more()
     {
         var arrival = Arrival.ForGrant(
-            [new ItemPile(123, 9_999_999)], count: 3,
-            new ItemPlacement(3, 0, 121, 176), Occupied(123));
+            [Pile(123, 9_999_999)], count: 3,
+            Placement(3, 0, 121, 176), Occupied(123));
 
         Assert.Equal(10_000_002, Assert.IsType<ItemArrival.OntoExistingPile>(arrival).Total);
     }
@@ -288,9 +291,9 @@ public sealed class RefillRuleServiceTests
     public void A_limit_of_one_still_never_joins_a_pile()
     {
         var arrival = Arrival.ForGrant(
-            [new ItemPile(9, 1)], count: 1, new ItemPlacement(1, 1, 9, 64), Occupied(9));
+            [Pile(9, 1)], count: 1, Placement(1, 1, 9, 64), Occupied(9));
 
-        Assert.Equal(10, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).SlotIndex);
+        Assert.Equal(10, GameIndex(Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).Slot));
     }
 
     /// <remarks>
@@ -302,7 +305,7 @@ public sealed class RefillRuleServiceTests
     public void AGrantWithNowhereToGoAnswersNoRoom()
     {
         var arrival = Arrival.ForGrant(
-            [], count: 1, new ItemPlacement(2, 5, 65, 66), Occupied(3, 4, 5, 6, 7, 8, 65, 66));
+            [], count: 1, Placement(2, 5, 65, 66), Occupied(3, 4, 5, 6, 7, 8, 65, 66));
 
         Assert.IsType<ItemArrival.NoRoom>(arrival);
     }
@@ -311,16 +314,16 @@ public sealed class RefillRuleServiceTests
     [Fact]
     public void AConsumableIsOfferedTheQuickBarBeforeItsOwnBand()
     {
-        var placement = new ItemPlacement(2, 5, 65, 66);
+        var placement = Placement(2, 5, 65, 66);
 
         Assert.Equal(
             3,
-            Assert.IsType<ItemArrival.IntoEmptySlot>(
-                Arrival.ForGrant([], count: 1, placement, Occupied())).SlotIndex);
+            GameIndex(Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied())).Slot));
         Assert.Equal(
             65,
-            Assert.IsType<ItemArrival.IntoEmptySlot>(
-                Arrival.ForGrant([], count: 1, placement, Occupied(3, 4, 5, 6, 7, 8))).SlotIndex);
+            GameIndex(Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied(3, 4, 5, 6, 7, 8))).Slot));
     }
 
     /// <summary>Everything else is offered its own band first and the bar only as a fallback.</summary>
@@ -332,16 +335,16 @@ public sealed class RefillRuleServiceTests
     [Fact]
     public void AQuestItemIsOfferedItsOwnBandBeforeTheQuickBar()
     {
-        var placement = new ItemPlacement(4, 5, 177, 178);
+        var placement = Placement(4, 5, 177, 178);
 
         Assert.Equal(
             177,
-            Assert.IsType<ItemArrival.IntoEmptySlot>(
-                Arrival.ForGrant([], count: 1, placement, Occupied())).SlotIndex);
+            GameIndex(Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied())).Slot));
         Assert.Equal(
             3,
-            Assert.IsType<ItemArrival.IntoEmptySlot>(
-                Arrival.ForGrant([], count: 1, placement, Occupied(177, 178))).SlotIndex);
+            GameIndex(Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied(177, 178))).Slot));
     }
 
     /// <summary>Equipment never reaches the bar, however full its own band is.</summary>
@@ -353,10 +356,31 @@ public sealed class RefillRuleServiceTests
     public void EquipmentIsNeverOfferedTheQuickBar()
     {
         var arrival = Arrival.ForGrant(
-            [], count: 1, new ItemPlacement(1, 1, 9, 10), Occupied(9, 10));
+            [], count: 1, Placement(1, 1, 9, 10), Occupied(9, 10));
 
         Assert.IsType<ItemArrival.NoRoom>(arrival);
     }
 
-    private static IReadOnlySet<int> Occupied(params int[] slots) => slots.ToHashSet();
+    private static readonly IInventorySlotMappingRuleService Mappings =
+        new InventorySlotMappingRuleService();
+
+    private static ItemPile Pile(int gameIndex, int count) =>
+        new(Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, gameIndex)), count);
+
+    private static ItemPlacement Placement(byte kind, int limit, int first, int last) =>
+        new(kind, limit, Range(first, last));
+
+    private static BusinessSlotRange Range(int first, int last)
+    {
+        var start = Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, first));
+        var end = Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, last));
+        Assert.Equal(start.Space, end.Space);
+        return new(start.Space, start.Index, end.Index);
+    }
+
+    private static int GameIndex(BusinessSlot slot) => Mappings.ToGameSlot(slot).Index;
+
+    private static IReadOnlySet<BusinessSlot> Occupied(params int[] slots) =>
+        slots.Select(index => Mappings.ToBusinessSlot(
+            new GameSlot(InventoryContainerType.Main, index))).ToHashSet();
 }

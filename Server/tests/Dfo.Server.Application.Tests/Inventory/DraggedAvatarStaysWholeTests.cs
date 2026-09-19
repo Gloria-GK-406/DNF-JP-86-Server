@@ -304,8 +304,12 @@ public sealed class DraggedAvatarStaysWholeTests
         var taken = (await side.InUseCaseAsync(token => Bag(side).ReadAllAsync(token)))
             .Select(item => item.SlotIndex)
             .ToHashSet();
-        for (var slot = placement!.SlotStart; slot <= placement.SlotEnd; slot++)
+        var mappings = new InventorySlotMappingRuleService();
+        for (var index = placement!.Destination.FirstIndex;
+             index <= placement.Destination.LastIndex;
+             index++)
         {
+            var slot = mappings.ToGameSlot(new BusinessSlot(placement.Destination.Space, index)).Index;
             if (slot != landedSlotIndex && !taken.Contains(slot))
             {
                 return slot;

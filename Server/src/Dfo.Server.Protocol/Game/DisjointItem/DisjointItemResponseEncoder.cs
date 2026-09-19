@@ -7,19 +7,20 @@ internal sealed class DisjointItemResponseEncoder : GameCmdMessageEncoder<Disjoi
 
     internal static byte[] EncodeBody(DisjointItemResponse message)
     {
-        if (message.Receipt is not { } receipt)
+        if (message.TargetSlot is not { } targetSlot)
             return [0, message.ErrorCode];
-        if (receipt.Materials.Count > byte.MaxValue)
+        var materials = message.Materials ?? [];
+        if (materials.Count > byte.MaxValue)
             throw new InvalidDataException("DISJOINT_ITEM cannot encode more than 255 material entries.");
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)1);
-        writer.Write(receipt.TargetSlotIndex);
-        writer.Write((byte)receipt.ItemSpace);
-        writer.Write((byte)receipt.Materials.Count);
-        foreach (var material in receipt.Materials)
+        writer.Write(checked((short)targetSlot.Index));
+        writer.Write((byte)targetSlot.Space);
+        writer.Write((byte)materials.Count);
+        foreach (var material in materials)
         {
-            writer.Write(material.SlotIndex);
+            writer.Write(checked((short)material.Slot.Index));
             writer.Write(material.ItemId);
             writer.Write(material.Count);
         }

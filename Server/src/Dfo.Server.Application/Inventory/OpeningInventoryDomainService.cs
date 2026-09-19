@@ -22,8 +22,11 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     ICharacterInventoryEntryDomainService inventory, IAccountPremiumTable premiums,
     ICharacterCreatureTable creatures,
     ICharacterDomainService characterDomain, IItemUseJudgementService useRules,
-    ICharacterItemCooldownDomainService cooldowns) : IOpeningInventoryDomainService
+    ICharacterItemCooldownDomainService cooldowns,
+    IInventorySlotMappingRuleService? slotMappings = null) : IOpeningInventoryDomainService
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, int slot, DateTimeOffset now, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Opening requires a transaction.");
@@ -97,7 +100,35 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
                 continue;
             }
             var placement = grant.Item.Placement;
-            var type = placement.ItemKind switch { 8 => InventoryContainerType.Avatar, 5 or 6 or 7 => InventoryContainerType.Pet, _ => InventoryContainerType.Main };
+            if (placement.Destination.Space == BusinessInventorySpace.VirtualResource)
+            {
+                if (placement.Destination.FirstIndex != placement.Destination.LastIndex
+                    || placement.Destination.FirstIndex is < 0 or > 2
+                    || !standing.TryGetValue(InventoryContainerType.Main, out var virtualSlots))
+                    throw new OpeningRejectedException(
+                        OpeningRejection.UnsupportedContent, "Invalid virtual reward destination.");
+                var slot = placement.Destination.FirstIndex;
+                InventoryItemCoreState core;
+                if (virtualSlots.TryGetValue(slot, out var existing))
+                {
+                    if (!existing.IsPile || existing.ItemId != grant.Item.ItemId)
+                        throw new OpeningRejectedException(
+                            OpeningRejection.UnsupportedContent, "Virtual reward slot is occupied.");
+                    core = existing.Core with {
+                        Value = checked(existing.Count + grant.Reward.Count) };
+                }
+                else
+                {
+                    core = StackableItemCore.Create(
+                        placement.ItemKind, grant.Item.ItemId, grant.Reward.Count);
+                }
+                virtualSlots[slot] = new(slot, core, ItemWorldClass.Interchangeable);
+                writes[(InventoryContainerType.Main, slot)] = (core, null);
+                displayed.Add(new(slot, grant.Reward.ItemId, grant.Reward.Count, 0, 0, 0));
+                continue;
+            }
+            var type = slotMappings.ToGameSlot(new BusinessSlot(
+                placement.Destination.Space, placement.Destination.FirstIndex)).Space;
             if (!standing.TryGetValue(type, out var slots))
                 throw new OpeningRejectedException(OpeningRejection.NoSession, $"No {type} container.");
             var baseline = StackableItemCore.Create(placement.ItemKind, grant.Item.ItemId, 0) with
@@ -110,14 +141,16 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             while (remaining > 0)
             {
                 var piles = slots.Values.Where(item => item.IsPile && item.ItemId == grant.Item.ItemId
-                    && item.Core with { Value = 0 } == baseline).Select(item => new ItemPile(item.SlotIndex, item.Count)).ToArray();
-                var arrival = arrivals.ForGrant(piles, remaining, placement, slots.Keys.ToHashSet());
+                    && item.Core with { Value = 0 } == baseline)
+                    .Select(item => new ItemPile(this.BusinessSlot(type, item.SlotIndex), item.Count)).ToArray();
+                var arrival = arrivals.ForGrant(piles, remaining, placement,
+                    this.OccupiedSlots(type, slots, placement));
                 int slot, added; InventoryItemCoreState core; InventoryItemCreationFacts? facts = null;
                 if (arrival is ItemArrival.OntoExistingPile pile)
-                { slot = pile.SlotIndex; added = pile.Added; core = slots[slot].Core with { Value = pile.Total }; }
+                { slot = this.StorageIndex(type, pile.Slot); added = pile.Added; core = slots[slot].Core with { Value = pile.Total }; }
                 else if (arrival is ItemArrival.IntoEmptySlot empty)
                 {
-                    slot = empty.SlotIndex; added = empty.Count;
+                    slot = this.StorageIndex(type, empty.Slot); added = empty.Count;
                     core = baseline with { Value = placement.WorldClass == ItemWorldClass.Interchangeable ? added : (int)(identity++ % (int.MaxValue - 1)) + 1 };
                     facts = placement.WorldClass switch
                     {
@@ -169,6 +202,38 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         return new(session, updates.ToImmutable(), writes.Where(w => w.Key.Bag == InventoryContainerType.Main && w.Value.Core is null)
             .Select(w => w.Key.Slot).ToImmutableArray(), displayed.ToImmutable(), now,
             changedPremiums.Select(p => new AccountPremiumEntryState(p.Key, p.Value)).ToImmutableArray(), pets, creaturesChanged);
+    }
+
+    private BusinessSlot BusinessSlot(InventoryContainerType container, int index) =>
+        slotMappings.ToBusinessSlot(new GameSlot(container, index));
+
+    private IReadOnlySet<BusinessSlot> OccupiedSlots(
+        InventoryContainerType container,
+        IReadOnlyDictionary<int, ContainerSlotItem> slots,
+        ItemPlacement placement)
+    {
+        var candidates = Enumerable.Range(
+                placement.Destination.FirstIndex,
+                placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
+            .Select(index => new BusinessSlot(placement.Destination.Space, index));
+        if (ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+            candidates = candidates.Concat(Enumerable.Range(0, 6)
+                .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)));
+        return candidates.Where(slot =>
+            {
+                var game = slotMappings.ToGameSlot(slot);
+                return game.Space == container && slots.ContainsKey(game.Index);
+            })
+            .ToHashSet();
+    }
+
+    private int StorageIndex(InventoryContainerType container, BusinessSlot slot)
+    {
+        var game = slotMappings.ToGameSlot(slot);
+        if (game.Space != container)
+            throw new InvalidDataException(
+                $"Opening placement {slot.Space}/{slot.Index} does not belong to {container}.");
+        return game.Index;
     }
 
     private sealed class OpeningCooldown(ISelectedSessionDomainService sessions, ICharacterItemCooldownDomainService cooldowns,

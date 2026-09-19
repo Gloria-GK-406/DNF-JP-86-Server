@@ -18,10 +18,7 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// </remarks>
 public interface IItemSlotRuleService
 {
-    /// <summary>Whether an item with this placement may sit in that slot of the main inventory.</summary>
-    bool CanOccupyMainSlot(ItemPlacement placement, int slotIndex);
-
-    /// <summary>Whether an item with this placement may sit in that slot of that list.</summary>
+    /// <summary>Whether an item with this placement may sit in this business slot.</summary>
     /// <remarks>
     /// The main list is not the only one a move can name any more, and each list a move may enter
     /// has to answer for what it lets in. This is where those answers live, together, because the
@@ -33,5 +30,5 @@ public interface IItemSlotRuleService
     /// makes adding a list a deliberate act rather than something that happens by falling through.
     /// </para>
     /// </remarks>
-    bool CanOccupySlot(InventoryContainerType containerType, ItemPlacement placement, int slotIndex);
+    bool CanOccupySlot(BusinessSlot slot, ItemPlacement placement);
 }

@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
@@ -66,7 +67,8 @@ internal sealed class CharacterSide
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(
-                new ItemPlacement(1, 1, 9, 64) { WorldClass = ItemWorldClass.Equipment });
+                new ItemPlacement(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+                { WorldClass = ItemWorldClass.Equipment });
     }
 
     /// <summary>Nothing here resolves a worn slot; no test through this side puts a piece on.</summary>

@@ -25,22 +25,23 @@ public sealed class DisjointItemCodecTests
 
         Assert.Equal(ClientMessageType.GameDisjointItem, request.MessageType);
         Assert.Equal(((short)9, InventoryContainerType.Main, (short)-1, 0),
-            (request.TargetSlotIndex, request.ItemSpace, request.DisjointItemSlotIndex,
+            ((short)request.TargetSlot.Index, request.TargetSlot.Space, request.DisjointItemSlotIndex,
                 request.ContextValue));
     }
 
     [Fact]
     public void Success_ack_names_the_source_and_every_material_landing()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint"), 1, 10011);
-        var receipt = new EquipmentDisjointReceipt(session, 9, InventoryContainerType.Main,
-            [new(121, 3037, 12), new(122, 3166, 2)]);
-
         Assert.Equal(Convert.FromHexString(
                 "01090000027900DD0B00000C0000007A005E0C000002000000"),
-            DisjointItemResponseEncoder.EncodeBody(new(receipt)));
+            DisjointItemResponseEncoder.EncodeBody(new(
+                new GameSlot(InventoryContainerType.Main, 9),
+                [
+                    new(new GameSlot(InventoryContainerType.Main, 121), 3037, 12),
+                    new(new GameSlot(InventoryContainerType.Main, 122), 3166, 2),
+                ])));
         Assert.Equal(new byte[] { 0, 0x13 },
-            DisjointItemResponseEncoder.EncodeBody(new(null, 0x13)));
+            DisjointItemResponseEncoder.EncodeBody(new(null, ErrorCode: 0x13)));
     }
 
     [Theory]

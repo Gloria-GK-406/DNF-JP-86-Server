@@ -1,6 +1,7 @@
 using System.Globalization;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -22,9 +23,8 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
     public ItemArrival ForDailyRefill(
         IReadOnlyList<ItemPile> present,
         int grant,
-        int slotStart,
-        int slotEnd,
-        IReadOnlySet<int> occupiedSlots)
+        BusinessSlotRange destination,
+        IReadOnlySet<BusinessSlot> occupiedSlots)
     {
         ArgumentNullException.ThrowIfNull(present);
         ArgumentNullException.ThrowIfNull(occupiedSlots);
@@ -32,10 +32,10 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         if (First(present) is { } pile)
         {
             return new ItemArrival.OntoExistingPile(
-                pile.SlotIndex, grant, checked(pile.Count + grant));
+                pile.Slot, grant, checked(pile.Count + grant));
         }
 
-        return FirstFreeSlot(slotStart, slotEnd, occupiedSlots) is { } slot
+        return FirstFreeSlot(destination, occupiedSlots) is { } slot
             ? new ItemArrival.IntoEmptySlot(slot, grant)
             : new ItemArrival.NoRoom();
     }
@@ -49,7 +49,7 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         IReadOnlyList<ItemPile> present,
         int count,
         ItemPlacement placement,
-        IReadOnlySet<int> occupiedSlots)
+        IReadOnlySet<BusinessSlot> occupiedSlots)
     {
         ArgumentNullException.ThrowIfNull(present);
         ArgumentNullException.ThrowIfNull(placement);
@@ -65,7 +65,7 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         var stackLimit = placement.StackLimit > 0 ? placement.StackLimit : int.MaxValue;
         if (stackLimit > 1)
         {
-            foreach (var pile in present.OrderBy(value => value.SlotIndex))
+            foreach (var pile in present.OrderBy(value => value.Slot.Space).ThenBy(value => value.Slot.Index))
             {
                 if (pile.Count >= stackLimit)
                 {
@@ -74,13 +74,13 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
 
                 var added = Math.Min(count, stackLimit - pile.Count);
                 return new ItemArrival.OntoExistingPile(
-                    pile.SlotIndex, added, pile.Count + added);
+                    pile.Slot, added, pile.Count + added);
             }
         }
 
-        foreach (var (start, end) in BandsFor(placement))
+        foreach (var range in BandsFor(placement))
         {
-            if (FirstFreeSlot(start, end, occupiedSlots) is not { } slot)
+            if (FirstFreeSlot(range, occupiedSlots) is not { } slot)
             {
                 continue;
             }
@@ -115,9 +115,9 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
     /// used, and the reference excludes anything unstackable from this whole decision.
     /// </para>
     /// </remarks>
-    private static IEnumerable<(int Start, int End)> BandsFor(ItemPlacement placement)
+    private static IEnumerable<BusinessSlotRange> BandsFor(ItemPlacement placement)
     {
-        var own = (placement.SlotStart, placement.SlotEnd);
+        var own = placement.Destination;
         if (placement.ItemKind == EquipmentKind
             || !ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
         {
@@ -125,7 +125,7 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
             yield break;
         }
 
-        var bar = (ItemSlotRuleService.QuickSlotStart, ItemSlotRuleService.QuickSlotEnd);
+        var bar = new BusinessSlotRange(BusinessInventorySpace.QuickSlot, 0, 5);
         if (placement.ItemKind == ConsumableKind)
         {
             yield return bar;
@@ -139,22 +139,20 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
 
     /// <summary>The pile that grows, chosen by slot so that two runs agree about which one it is.</summary>
     private static ItemPile? First(IReadOnlyList<ItemPile> present) =>
-        present.Count == 0 ? null : present.MinBy(pile => pile.SlotIndex);
+        present.Count == 0 ? null : present.MinBy(pile => (pile.Slot.Space, pile.Slot.Index));
 
     /// <remarks>
     /// Only within the band it is given. Which bands an item is given, and in what order, is
     /// <see cref="BandsFor"/>'s business; an item that landed outside all of them is one the client
     /// does not draw where the player looks.
     /// </remarks>
-    private static int? FirstFreeSlot(int slotStart, int slotEnd, IReadOnlySet<int> occupiedSlots)
+    private static BusinessSlot? FirstFreeSlot(
+        BusinessSlotRange range,
+        IReadOnlySet<BusinessSlot> occupiedSlots)
     {
-        if (slotStart < 0 || slotEnd < slotStart || slotEnd > ushort.MaxValue)
+        for (var index = range.FirstIndex; index <= range.LastIndex; index++)
         {
-            throw new InvalidDataException($"Item slot range {slotStart}-{slotEnd} is invalid.");
-        }
-
-        for (var slot = slotStart; slot <= slotEnd; slot++)
-        {
+            var slot = new BusinessSlot(range.Space, index);
             if (!occupiedSlots.Contains(slot))
             {
                 return slot;

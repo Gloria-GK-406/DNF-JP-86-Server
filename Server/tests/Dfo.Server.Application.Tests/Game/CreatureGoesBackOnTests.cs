@@ -189,9 +189,12 @@ public sealed class CreatureGoesBackOnTests
             }
 
             this.Containers = containers;
+            var mappings = new InventorySlotMappingRuleService();
             this.bus = new DirectCommandBus(
                 move: new MoveItemSpaceCommandHandler(
-                    containers, new ItemMovementDomainService(rules, new ItemSlotRuleService())),
+                    new BusinessInventorySlotDomainService(containers, mappings),
+                    new ItemMovementDomainService(
+                        rules, new ItemSlotRuleService())),
                 scope: this.scope);
         }
 
@@ -213,7 +216,12 @@ public sealed class CreatureGoesBackOnTests
             byte sourceList, short sourceSlot, byte destinationList, short destinationSlot) =>
             this.bus.SendAsync(
                 new MoveItemSpaceCommand(
-                    this.character, sourceList, sourceSlot, 0, destinationList, destinationSlot),
+                    this.character,
+                    new InventorySlotMappingRuleService().ToBusinessSlot(
+                        new GameSlot((InventoryContainerType)sourceList, sourceSlot)),
+                    0,
+                    new InventorySlotMappingRuleService().ToBusinessSlot(
+                        new GameSlot((InventoryContainerType)destinationList, destinationSlot))),
                 CancellationToken.None);
 
         /// <summary>

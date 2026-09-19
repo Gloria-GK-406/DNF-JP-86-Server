@@ -7,16 +7,14 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemDiscardRuleService : IItemDiscardRuleService
 {
     public ItemDiscardRejection ValidateRequest(
-        InventoryContainerType container,
+        BusinessSlot slot,
         byte entryCount,
         ushort operationType,
-        int slotIndex,
         int itemId,
         int count) =>
-        container == InventoryContainerType.Main
+        slot.Space.IsCarriedItemSpace()
         && entryCount == 1
         && operationType == 1
-        && slotIndex is >= 3 and < 354
         && itemId > 0
         && count > 0
             ? ItemDiscardRejection.None

@@ -42,8 +42,8 @@ public sealed class ItemDiscardTests
         await Discard(bag, 9, 3000, 1, safeModeSkipIndex: 1);
 
         var response = Assert.IsType<DeleteItemResponse>(Assert.Single(bag.Sender.Messages));
-        Assert.Equal((9, 3000, 1),
-            (response.Receipt!.SlotIndex, response.Receipt.ItemId, response.Receipt.AppliedCount));
+        Assert.Equal((9, 1, true),
+            (response.Slot.Index, response.AppliedCount, response.Success));
     }
 
     [Fact]
@@ -55,9 +55,10 @@ public sealed class ItemDiscardTests
 
         await Discard(bag, 65, 5000, 3);
 
-        var receipt = Assert.IsType<DeleteItemResponse>(Assert.Single(bag.Sender.Messages)).Receipt!;
-        Assert.Equal(3, receipt.AppliedCount);
-        Assert.Equal(7, receipt.RemainingCore!.Value);
+        var response = Assert.IsType<DeleteItemResponse>(Assert.Single(bag.Sender.Messages));
+        Assert.Equal(3, response.AppliedCount);
+        Assert.True(response.Success);
+        Assert.Equal(7, bag.Count(5000));
     }
 
     [Theory]
@@ -74,7 +75,7 @@ public sealed class ItemDiscardTests
 
         Assert.Equal(10, bag.Count(5000));
         var response = Assert.IsType<DeleteItemResponse>(Assert.Single(bag.Sender.Messages));
-        Assert.Null(response.Receipt);
+        Assert.False(response.Success);
         Assert.Equal(DeleteItemResponse.CannotDelete, response.ErrorCode);
     }
 
@@ -87,7 +88,7 @@ public sealed class ItemDiscardTests
         await Discard(bag, 9, 3000, 1);
 
         Assert.Equal(1, bag.Count(3000));
-        Assert.Null(Assert.IsType<DeleteItemResponse>(Assert.Single(bag.Sender.Messages)).Receipt);
+        Assert.False(Assert.IsType<DeleteItemResponse>(Assert.Single(bag.Sender.Messages)).Success);
     }
 
     [Fact]
@@ -113,8 +114,10 @@ public sealed class ItemDiscardTests
         bag.Select(2);
 
         var result = await bag.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new DeleteItemCommand(bag.OnlineUser, old, InventoryContainerType.Main,
-                1, 1, 65, 5000, 1));
+            new DeleteItemCommand(
+                bag.OnlineUser, old,
+                new BusinessSlot(BusinessInventorySpace.Consumable, 0),
+                1, 1, 5000, 1));
 
         Assert.Equal(ItemDiscardRejection.NoSession, result.Rejection);
         Assert.Equal(10, bag.Scalar(
@@ -125,8 +128,11 @@ public sealed class ItemDiscardTests
     private static ValueTask Discard(ShopFixture bag, ushort slot, int itemId, int count,
         ushort operationType = 1, byte safeModeSkipIndex = 0) =>
         bag.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(bag.Connection),
-            new DeleteItemRequest(GameMessageMetadata.Empty, InventoryContainerType.Main, 1, operationType,
-                slot, itemId, count, 0, safeModeSkipIndex), default);
+            new DeleteItemRequest(
+                GameMessageMetadata.Empty,
+                new GameSlot(InventoryContainerType.Main, slot),
+                1, operationType, itemId, count, 0, safeModeSkipIndex),
+            default);
 
     private sealed class HeldItemQuestRules : IQuestContentRuleService
     {

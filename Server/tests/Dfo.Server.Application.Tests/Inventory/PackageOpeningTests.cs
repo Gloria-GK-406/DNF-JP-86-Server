@@ -105,7 +105,9 @@ public sealed class PackageOpeningTests
     {
         using var opening = new OpeningFixture();
         opening.Content.Definitions[1001] = OpeningContent.Package(1001, [new(30, 2), new(3, 1)]);
-        opening.Content.Items[30] = new(30, new(0, 1, -1, -1), 0, false, [], null, true, PremiumType: 31, PremiumDays: 3);
+        opening.Content.Items[30] = new(30,
+            new(0, 1, new(BusinessInventorySpace.VirtualResource, 31, 31)),
+            0, false, [], null, true, PremiumType: 31, PremiumDays: 3);
         var current = opening.Host.Clock.GetUtcNow().AddDays(1).ToUnixTimeSeconds();
         opening.Host.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,31,{current})");
         await opening.Host.Seed(80, 1001, 1);
@@ -320,7 +322,8 @@ public sealed class PackageOpeningTests
     public async Task Full_reward_band_does_not_consume_material_or_source()
     {
         using var opening = new OpeningFixture();
-        opening.Content.Items[3] = opening.Content.Items[3] with { Placement = new(2, 1, 65, 65) };
+        opening.Content.Items[3] = opening.Content.Items[3] with {
+            Placement = new(2, 1, new(BusinessInventorySpace.Consumable, 0, 0)) };
         // Quick slots also belong to the main consumable band.
         foreach (var slot in new[] { 3, 4, 5, 6, 7, 8, 65 }) await opening.Host.Seed(slot, 3, 1);
         await opening.Host.Seed(80, 1000, 1); await opening.Host.Seed(120, 2000, 1);
@@ -423,17 +426,29 @@ internal sealed class OpeningContent : IPackageOpeningDefinitionSource, IItemPla
             Pools = [new(1, [new(new(3, 2), 100)]), new(1, [new(new(6000, 1), 100)])] };
         Definitions[1001] = Package(1001, [new(3, 2)]);
         Definitions[1002] = Package(1002, [new(39032, 1)]) with { Kind = OpeningPackageKind.AvatarPackage };
-        foreach (var id in new[] { 3, 6000 }) Items[id] = new(id, new(2, 10000, 65, 100), 0, false, [], null, true);
-        Items[3000] = new(3000, new(1, 1, 9, 56) { WorldClass = ItemWorldClass.Equipment }, 45, true, [], null, true);
-        Items[39032] = new(39032, new(8, 1, 0, 209) { WorldClass = ItemWorldClass.Avatar }, 0, false, [0, 1, 2], null, true);
-        Items[63022] = new(63022, new(5, 1, 0, 139) { WorldClass = ItemWorldClass.Creature }, 0, false, [], 1, true);
-        Items[42] = Items[1] = new(1, new(0, int.MaxValue, 1, 1), 0, false, [], null, true);
+        foreach (var id in new[] { 3, 6000 }) Items[id] = new(id,
+            new(2, 10000, new(BusinessInventorySpace.Consumable, 0, 35)),
+            0, false, [], null, true);
+        Items[3000] = new(3000,
+            new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+            { WorldClass = ItemWorldClass.Equipment }, 45, true, [], null, true);
+        Items[39032] = new(39032,
+            new(8, 1, new(BusinessInventorySpace.Avatar, 0, 209))
+            { WorldClass = ItemWorldClass.Avatar }, 0, false, [0, 1, 2], null, true);
+        Items[63022] = new(63022,
+            new(5, 1, new(BusinessInventorySpace.CreatureInventory, 0, 139))
+            { WorldClass = ItemWorldClass.Creature }, 0, false, [], 1, true);
+        Items[42] = Items[1] = new(1,
+            new(0, int.MaxValue, new(BusinessInventorySpace.VirtualResource, 1, 1)),
+            0, false, [], null, true);
     }
     public static OpeningPackageDefinition Package(int id, ImmutableArray<OpeningReward> rewards) =>
         new(id, OpeningPackageKind.Package, rewards, [], 0, 0, 0, 1, false, []);
     public ValueTask<OpeningPackageDefinition?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Definitions.GetValueOrDefault(id));
     public ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int id, CancellationToken ct) => ValueTask.FromResult(Items.GetValueOrDefault(id));
     ValueTask<ItemPlacement?> IItemPlacementDefinitionSource.GetAsync(int id, CancellationToken ct) =>
-        ValueTask.FromResult<ItemPlacement?>(Items.TryGetValue(id, out var item) ? item.Placement : new(2, 10000, 65, 122));
+        ValueTask.FromResult<ItemPlacement?>(Items.TryGetValue(id, out var item)
+            ? item.Placement
+            : new(2, 10000, new(BusinessInventorySpace.Consumable, 0, 55)));
     ValueTask<ItemUseRule?> IItemUseRuleDefinitionSource.GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<ItemUseRule?>(UseRule);
 }

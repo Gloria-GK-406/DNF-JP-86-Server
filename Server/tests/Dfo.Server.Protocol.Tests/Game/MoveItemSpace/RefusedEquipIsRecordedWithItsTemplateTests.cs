@@ -190,12 +190,10 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// <summary>The drag: out of the bag, onto the worn list, at the slot the client named.</summary>
     private static MoveItemSpaceRequest Request(int itemId, short wornSlot) =>
         new(GameMessageMetadata.Empty,
-            (byte)InventoryContainerType.Main,
-            BagSlot,
+            new GameSlot(InventoryContainerType.Main, BagSlot),
             itemId,
             MoveCount: 0,
-            (byte)InventoryContainerType.Equipment,
-            wornSlot,
+            new GameSlot(InventoryContainerType.Equipment, wornSlot),
             DestinationInstanceValue: 0);
 
     private (MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingLogger Logger) Build(
@@ -208,8 +206,9 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         containers.Register(character, bag);
         containers.Register(character, new SlotDictionaryContainer(InventoryContainerType.Equipment));
 
+        var mappings = new InventorySlotMappingRuleService();
         var commandHandler = new MoveItemSpaceCommandHandler(
-            containers,
+            new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                 new ItemSlotRuleService()));
@@ -219,6 +218,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         return (
             new MoveItemSpaceHandler(
                 new OneSession(), new NoPublishedRuntime(),
+                mappings,
                 new DirectMoveBus(commandHandler), sender, logger),
             sender,
             logger);

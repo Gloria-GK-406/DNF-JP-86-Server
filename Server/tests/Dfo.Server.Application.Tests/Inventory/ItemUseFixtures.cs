@@ -164,7 +164,8 @@ internal abstract class FakeMainInventory(int characterId = 60)
     private sealed class ConsumableBandPlacements : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100,
+                new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     /// <summary>Nothing here is worn; these fixtures use items rather than put them on.</summary>

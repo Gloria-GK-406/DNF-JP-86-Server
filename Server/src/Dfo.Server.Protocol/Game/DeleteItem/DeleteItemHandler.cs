@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -12,6 +13,7 @@ namespace Dfo.Server.Protocol.Game.DeleteItem;
 public sealed class DeleteItemHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
+    IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
@@ -22,6 +24,8 @@ public sealed class DeleteItemHandler(
         DeleteItemRequest message,
         CancellationToken cancellationToken)
     {
+        var slot = slotMappings.ToBusinessSlot(message.Slot);
+        var responseSlot = slotMappings.ToGameSlot(slot);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         DeleteItemOutcome result;
         if (session is null
@@ -33,8 +37,9 @@ public sealed class DeleteItemHandler(
         else
         {
             result = await commands.SendAsync(
-                new DeleteItemCommand(online.OnlineUserId, session, message.Container,
-                    message.EntryCount, message.OperationType, message.SlotIndex,
+                new DeleteItemCommand(online.OnlineUserId, session,
+                    slot,
+                    message.EntryCount, message.OperationType,
                     message.ItemId, message.DeleteCount),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -43,7 +48,7 @@ public sealed class DeleteItemHandler(
         {
             logger.LogInformation(
                 "Discard character={CharacterId} container={Container} slot={Slot} item={ItemId} count={Count}",
-                receipt.Session.CharacterId.Value, receipt.Container, receipt.SlotIndex,
+                receipt.Session.CharacterId.Value, receipt.Slot.Space, receipt.Slot.Index,
                 receipt.ItemId, receipt.AppliedCount);
             await notifications.PublishAsync(
                 new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
@@ -53,10 +58,10 @@ public sealed class DeleteItemHandler(
 
         logger.LogInformation(
             "Discard {ConnectionId} container={Container} slot={Slot} item={ItemId} count={Count} refused={Reason}",
-            context.Connection.ConnectionId, message.Container, message.SlotIndex,
+            context.Connection.ConnectionId, message.Slot.Space, message.Slot.Index,
             message.ItemId, message.DeleteCount, result.Rejection);
         await sender.SendCmdAsync(context.Connection.ConnectionId,
-            new DeleteItemResponse(null, DeleteItemResponse.CannotDelete, message.Container),
+            new DeleteItemResponse(responseSlot, ErrorCode: DeleteItemResponse.CannotDelete),
             cancellationToken).ConfigureAwait(false);
     }
 }

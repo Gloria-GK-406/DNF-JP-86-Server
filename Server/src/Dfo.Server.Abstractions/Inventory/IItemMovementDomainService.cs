@@ -33,7 +33,7 @@ public interface IItemMovementDomainService
     /// The equipment slot this item is worn in, or null when nothing wearable is declared under
     /// that identifier.
     /// </summary>
-    ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
+    ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
 
     /// <summary>Whether this item may occupy that slot of that list.</summary>
     /// <remarks>
@@ -42,8 +42,7 @@ public interface IItemMovementDomainService
     /// takes the list is one rule rather than two free to disagree about the same item.
     /// </remarks>
     ValueTask<SlotAdmission> MayOccupySlotAsync(
-        InventoryContainerType containerType,
+        BusinessSlot slot,
         int itemId,
-        int slotIndex,
         CancellationToken cancellationToken);
 }

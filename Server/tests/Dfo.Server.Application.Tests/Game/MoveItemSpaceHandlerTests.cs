@@ -57,8 +57,8 @@ public sealed class MoveItemSpaceHandlerTests
         await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
 
         var response = (MoveItemSpaceResponse)sender.Sent.Single();
-        Assert.Equal(3, response.SourceSlotIndex);
-        Assert.Equal(65, response.DestinationSlotIndex);
+        Assert.Equal(3, response.SourceSlot.Index);
+        Assert.Equal(65, response.DestinationSlot.Index);
     }
 
     [Fact]
@@ -131,7 +131,10 @@ public sealed class MoveItemSpaceHandlerTests
 
         await handler.HandleAsync(
             Context,
-            ObservedRequest with { DestinationListType = 2 },
+            ObservedRequest with
+            {
+                DestinationSlot = new GameSlot(InventoryContainerType.PersonalCargo, 65),
+            },
             CancellationToken.None);
 
         Assert.Equal([(65, 8474, 1)], inventory.Rows());
@@ -308,8 +311,10 @@ public sealed class MoveItemSpaceHandlerTests
     {
         var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
         var placements = new ConsumablePlacements();
+        var mappings = new InventorySlotMappingRuleService();
+        var containers = inventory.Containers(placements);
         var handler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(placements),
+            new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(placements, new NoWearables()),
                 new ItemSlotRuleService()));
@@ -337,8 +342,15 @@ public sealed class MoveItemSpaceHandlerTests
         Task.Run(async () =>
         {
             var bus = new DirectCommandBus(move: handler, scope: inventory.Scope);
+            var mappings = new InventorySlotMappingRuleService();
             return await bus.SendAsync(
-                new MoveItemSpaceCommand(new CharacterId(60), 0, sourceSlot, 0, 0, destinationSlot),
+                new MoveItemSpaceCommand(
+                    new CharacterId(60),
+                    mappings.ToBusinessSlot(
+                        new GameSlot(InventoryContainerType.Main, sourceSlot)),
+                    0,
+                    mappings.ToBusinessSlot(
+                        new GameSlot(InventoryContainerType.Main, destinationSlot))),
                 CancellationToken.None);
         });
 
@@ -354,16 +366,20 @@ public sealed class MoveItemSpaceHandlerTests
 
     private static MoveItemSpaceRequest Request(
         short sourceSlot, short destinationSlot, int sourceInstance, int destinationInstance) =>
-        new(GameMessageMetadata.Empty, 0, sourceSlot, sourceInstance, 0, 0, destinationSlot,
-            destinationInstance);
+        new(
+            GameMessageMetadata.Empty,
+            new GameSlot(InventoryContainerType.Main, sourceSlot), sourceInstance, 0,
+            new GameSlot(InventoryContainerType.Main, destinationSlot), destinationInstance);
 
     private static (MoveItemSpaceHandler Handler, RecordingSender Sender) Build(
         FakeInventory inventory, IItemPlacementDefinitionSource? placements = null)
     {
         var sender = new RecordingSender();
         var resolved = placements ?? new ConsumablePlacements();
+        var mappings = new InventorySlotMappingRuleService();
+        var containers = inventory.Containers(resolved);
         var commandHandler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(resolved),
+            new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(resolved, new NoWearables()),
                 new ItemSlotRuleService()));
@@ -372,6 +388,7 @@ public sealed class MoveItemSpaceHandlerTests
             new MoveItemSpaceHandler(
                 new OneSession(),
                 new NoPublishedRuntime(),
+                mappings,
                 new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<MoveItemSpaceHandler>.Instance),
@@ -383,7 +400,8 @@ public sealed class MoveItemSpaceHandlerTests
     private sealed class ConsumablePlacements : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100,
+                new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     /// <summary>
@@ -398,8 +416,10 @@ public sealed class MoveItemSpaceHandlerTests
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(
                 itemId == Equipment
-                    ? new ItemPlacement(1, 1, 9, 64)
-                    : new ItemPlacement(2, 100, 65, 120));
+                    ? new ItemPlacement(1, 1,
+                        new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+                    : new ItemPlacement(2, 100,
+                        new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     /// <summary>The character's main container, seeded by slot.</summary>

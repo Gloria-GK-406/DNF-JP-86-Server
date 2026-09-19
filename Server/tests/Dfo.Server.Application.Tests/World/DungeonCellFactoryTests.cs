@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -114,9 +115,9 @@ public sealed class DungeonCellFactoryTests
             int itemId,
             CancellationToken cancellationToken) => ValueTask.FromResult<ItemPlacement?>(null);
 
-        public ValueTask<byte?> WornSlotForAsync(
+        public ValueTask<BusinessSlot?> WornSlotForAsync(
             int itemId,
-            CancellationToken cancellationToken) => ValueTask.FromResult<byte?>(null);
+            CancellationToken cancellationToken) => ValueTask.FromResult<BusinessSlot?>(null);
 
         public ValueTask<ItemWorldClass> ClassifyAsync(
             int itemId,

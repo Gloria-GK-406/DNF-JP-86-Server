@@ -101,7 +101,7 @@ public sealed class CharacterContainerDomainServiceTests
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_item_commands_reach_storage_only_through_a_container()
+    public void The_item_commands_reach_storage_only_through_business_slot_binding()
     {
         foreach (var handler in
                  new[] { typeof(MoveItemSpaceCommandHandler), typeof(UseStackableCommandHandler) })
@@ -110,7 +110,7 @@ public sealed class CharacterContainerDomainServiceTests
             Assert.DoesNotContain(
                 parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
             Assert.Contains(
-                parameters, value => value.ParameterType == typeof(ICharacterContainerDomainService));
+                parameters, value => value.ParameterType == typeof(IBusinessInventorySlotDomainService));
         }
     }
 
@@ -128,9 +128,39 @@ public sealed class CharacterContainerDomainServiceTests
         }
     }
 
+    [Theory]
+    [InlineData(BusinessInventorySpace.Consumable, 5, InventoryContainerType.Main, 70)]
+    [InlineData(BusinessInventorySpace.WornEquipment, 2, InventoryContainerType.Equipment, 13)]
+    [InlineData(BusinessInventorySpace.PersonalCargo, 7, InventoryContainerType.PersonalCargo, 7)]
+    public void Existing_storage_coordinates_round_trip_through_the_business_binding(
+        BusinessInventorySpace businessSpace,
+        int businessIndex,
+        InventoryContainerType containerType,
+        int storageIndex)
+    {
+        var containers = new CharacterContainerDomainService();
+        var container = Container(containerType.ToString(), containerType);
+        containers.Register(Character, container);
+        var binding = new BusinessInventorySlotDomainService(
+            containers, new InventorySlotMappingRuleService());
+        var business = new BusinessSlot(businessSpace, businessIndex);
+
+        var bound = binding.Get(Character, business);
+        var projected = binding.FromStorage(new InventoryStorageSlot(container, storageIndex));
+
+        Assert.Same(container, bound.Container);
+        Assert.Equal(storageIndex, bound.StorageIndex);
+        Assert.Equal(business, projected.Slot);
+        Assert.Same(container, projected.Container);
+        Assert.Equal(storageIndex, projected.StorageIndex);
+    }
+
     private static IItemContainer Container(string id, bool removable = true) =>
         new StandInContainer(
             new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0), removable);
+
+    private static IItemContainer Container(string id, InventoryContainerType type) =>
+        new StandInContainer(new ContainerId(id), new ContainerShape(type, 0), removable: false);
 
     /// <summary>
     /// A container that answers for itself and nothing more.

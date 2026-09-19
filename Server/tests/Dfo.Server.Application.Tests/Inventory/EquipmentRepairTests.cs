@@ -24,7 +24,7 @@ public sealed class EquipmentRepairTests
         await Repair(shop, InventoryContainerType.Equipment, 12);
         var ack = Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages));
         Assert.Equal((99887, InventoryContainerType.Equipment, 12),
-            (ack.Receipt!.Gold, ack.Receipt.Container, ack.Receipt.SlotIndex));
+            (ack.Gold, ack.Slot!.Value.Space, ack.Slot.Value.Index));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class EquipmentRepairTests
         Assert.Equal(99774, shop.Gold);
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 3));
-        Assert.Equal(-1, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt!.SlotIndex);
+        Assert.Null(Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class EquipmentRepairTests
         Assert.Equal(99887, shop.Gold);
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 20));
-        Assert.Equal(99887, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt!.Gold);
+        Assert.Equal(99887, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Gold);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class EquipmentRepairTests
         Assert.Equal(100000, shop.Gold);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 20));
         var ack = Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages));
-        Assert.Equal((100000, 20), (ack.Receipt!.Gold, ack.Receipt.SlotIndex));
+        Assert.Equal((100000, 20), (ack.Gold, ack.Slot!.Value.Index));
     }
 
     [Fact]
@@ -98,10 +98,27 @@ public sealed class EquipmentRepairTests
         using var shop = Fixture();
         await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
         await shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(GameMessageMetadata.Empty, InventoryContainerType.Equipment, 12, -1, 0, 0, 1), default);
+            new RepairItemRequest(
+                GameMessageMetadata.Empty,
+                new GameSlot(InventoryContainerType.Equipment, 12), -1, 0, 0, 1),
+            default);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
-        Assert.Null(Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt);
+        Assert.NotEqual(0, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
+    }
+
+    [Fact]
+    public async Task Structurally_mapped_pet_equipment_is_not_a_repair_target()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(140, Piece(0), InventoryContainerType.Pet);
+
+        await Repair(shop, InventoryContainerType.Pet, 140);
+
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Pet, 140));
+        Assert.Equal(10,
+            Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
     }
 
     [Fact]
@@ -112,7 +129,9 @@ public sealed class EquipmentRepairTests
         var old = shop.Session;
         shop.Select(2);
         var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new RepairItemCommand(shop.OnlineUser, old, InventoryContainerType.Equipment, 12));
+            new RepairItemCommand(
+                shop.OnlineUser, old,
+                new BusinessSlot(BusinessInventorySpace.WornEquipment, 1)));
         Assert.Equal(EquipmentRepairRejection.NoSession, result.Rejection);
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
         Assert.Empty(shop.Sender.Messages);
@@ -126,7 +145,11 @@ public sealed class EquipmentRepairTests
 
     private static ValueTask Repair(ShopFixture shop, InventoryContainerType container, short slot) =>
         shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(GameMessageMetadata.Empty, container, slot, -1, 0, 0, 0), default);
+            new RepairItemRequest(
+                GameMessageMetadata.Empty,
+                slot == -1 ? null : new GameSlot(container, slot), -1, 0, 0, 0,
+                container),
+            default);
 
     private sealed class Prices : IEquipmentRepairDefinitionSource
     {

@@ -274,7 +274,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(
-                [new(9001, 2, DateTimeOffset.MaxValue, DailyRefillMode.RefillToTarget, 10, 4, 177, 232)]);
+                [new(9001, 2, DateTimeOffset.MaxValue, DailyRefillMode.RefillToTarget, 10, 4,
+                    new(BusinessInventorySpace.Quest, 0, 55))]);
     }
 
     private sealed class RefillMutation : IEntryInventoryMutationRepository

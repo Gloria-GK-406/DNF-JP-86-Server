@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Inventory;
+
 namespace Dfo.Server.Abstractions.Content;
 
 public enum DailyRefillMode : byte
@@ -13,8 +15,7 @@ public sealed record DailyRefillRule(
     DailyRefillMode Mode,
     int StackLimit,
     byte ItemKind,
-    int SlotStart,
-    int SlotEnd);
+    BusinessSlotRange Destination);
 
 public interface IEntryLifecycleContentSource
 {

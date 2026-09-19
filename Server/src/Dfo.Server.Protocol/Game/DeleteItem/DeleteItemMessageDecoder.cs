@@ -17,10 +17,10 @@ internal sealed class DeleteItemMessageDecoder : IGameMessageDecoder
 
         return new DeleteItemRequest(
             metadata,
-            (InventoryContainerType)body[0],
+            new GameSlot((InventoryContainerType)body[0],
+                BinaryPrimitives.ReadUInt16LittleEndian(body[4..])),
             body[1],
             BinaryPrimitives.ReadUInt16LittleEndian(body[2..]),
-            BinaryPrimitives.ReadUInt16LittleEndian(body[4..]),
             BinaryPrimitives.ReadInt32LittleEndian(body[6..]),
             BinaryPrimitives.ReadInt32LittleEndian(body[10..]),
             BinaryPrimitives.ReadUInt32LittleEndian(body[14..]),

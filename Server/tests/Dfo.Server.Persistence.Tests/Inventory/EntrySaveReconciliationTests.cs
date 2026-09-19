@@ -221,8 +221,9 @@ public sealed class EntrySaveReconciliationTests
             int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(
                 itemId is SwordId or SecondSwordId
-                    ? new ItemPlacement(1, 1, 0, 120) { WorldClass = ItemWorldClass.Equipment }
-                    : new ItemPlacement(2, 100, 65, 120));
+                    ? new ItemPlacement(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 120))
+                        { WorldClass = ItemWorldClass.Equipment }
+                    : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     private static SelectedSessionIdentity Session() =>

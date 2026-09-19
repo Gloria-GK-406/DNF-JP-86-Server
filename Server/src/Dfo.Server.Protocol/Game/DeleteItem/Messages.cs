@@ -5,10 +5,9 @@ namespace Dfo.Server.Protocol.Game.DeleteItem;
 
 public sealed record DeleteItemRequest(
     GameMessageMetadata Metadata,
-    InventoryContainerType Container,
+    GameSlot Slot,
     byte EntryCount,
     ushort OperationType,
-    ushort SlotIndex,
     int ItemId,
     int DeleteCount,
     uint ReservedZero,
@@ -18,9 +17,10 @@ public sealed record DeleteItemRequest(
 }
 
 public sealed record DeleteItemResponse(
-    ItemDiscardReceipt? Receipt,
-    byte ErrorCode = 0,
-    InventoryContainerType Container = InventoryContainerType.Main) : IGameCmdMessage
+    GameSlot Slot,
+    int AppliedCount = 0,
+    bool Success = false,
+    byte ErrorCode = 0) : IGameCmdMessage
 {
     public const byte CannotDelete = 0x17;
 

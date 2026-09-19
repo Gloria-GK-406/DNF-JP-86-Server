@@ -24,8 +24,8 @@ public sealed class ItemSaleTests
         shop.Sender.BeforeSend = () => { Assert.Equal(left, shop.Count(5000)); Assert.Equal(gold, shop.Gold); };
         await Sell(shop, 65, count);
         var response = Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages));
-        Assert.NotNull(response.Receipt);
-        Assert.Equal((65, count, gold), (response.Receipt.SlotIndex, response.Receipt.Count, response.Receipt.Gold));
+        Assert.NotNull(response.Slot);
+        Assert.Equal((65, count, gold), (response.Slot.Value.Index, response.Count, response.Gold));
     }
 
     [Fact]
@@ -45,10 +45,6 @@ public sealed class ItemSaleTests
     [InlineData(0, 65, 0, 2)]
     [InlineData(0, 65, -1, 2)]
     [InlineData(0, 65, 11, 2)]
-    [InlineData(0, 0, 1, 2)]
-    [InlineData(0, 354, 1, 2)]
-    [InlineData(12, 65, 1, 2)]
-    [InlineData(255, 65, 1, 2)]
     [InlineData(0, 65, 1, 999)]
     public async Task Invalid_quantity_container_slot_or_npc_cannot_change_the_inventory(byte container, short slot, short count, int npc)
     {
@@ -57,7 +53,26 @@ public sealed class ItemSaleTests
         await Sell(shop, slot, count, (InventoryContainerType)container, npc);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal(10, shop.Count(5000));
-        Assert.Null(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt);
+        Assert.Null(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 354)]
+    [InlineData(12, 65)]
+    [InlineData(255, 65)]
+    public async Task An_unmappable_game_slot_is_a_boundary_failure_and_cannot_reach_the_command(
+        byte container, short slot)
+    {
+        using var shop = Fixture();
+        await shop.Seed(65, 5000, 10);
+
+        await Assert.ThrowsAsync<InventorySlotMappingException>(() =>
+            Sell(shop, slot, 1, (InventoryContainerType)container).AsTask());
+
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(10, shop.Count(5000));
+        Assert.Empty(shop.Sender.Messages);
     }
 
     [Fact]
@@ -69,7 +84,8 @@ public sealed class ItemSaleTests
         var old = shop.Session;
         shop.Select(2);
         var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new SellItemCommand(
-            shop.OnlineUser, old, InventoryContainerType.Main, 65, 1, 2));
+            shop.OnlineUser, old,
+            new BusinessSlot(BusinessInventorySpace.Consumable, 0), 1, 2));
         Assert.Equal(ItemSaleRejection.NoSession, result.Rejection);
         Assert.Equal(10, shop.Scalar("SELECT count FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
@@ -120,7 +136,7 @@ public sealed class ItemSaleTests
         await shop.SeedCore(9, StackableItemCore.Create(1, 3000, 1111) with { Durability = 45 });
         await Task.WhenAll(Sell(shop, 9, 1).AsTask(), Sell(shop, 9, 1).AsTask());
         Assert.Equal(102332, shop.Gold);
-        Assert.Single(shop.Sender.Messages.OfType<SellItemResponse>(), x => x.Receipt is not null);
+        Assert.Single(shop.Sender.Messages.OfType<SellItemResponse>(), x => x.Slot is not null);
     }
 
     [Fact]
@@ -141,7 +157,10 @@ public sealed class ItemSaleTests
         using var shop = Fixture();
         await shop.Seed(65, 5000, 10);
         await Sell(shop, 65, 1);
-        var receipt = Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt!;
+        var receipt = new ItemSaleReceipt(
+            shop.Session,
+            new BusinessSlot(BusinessInventorySpace.Consumable, 0),
+            5000, 1, 31, null, DateTimeOffset.UtcNow);
         shop.Select(2);
         await shop.Services.GetRequiredService<INotificationBus>().PublishAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
@@ -171,13 +190,17 @@ public sealed class ItemSaleTests
         await Sell(shop, 9, 1);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal(1, shop.Count(3000));
-        Assert.Null(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt);
+        Assert.Null(Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
     }
 
     private static ValueTask Sell(ShopFixture shop, int slot, int count,
         InventoryContainerType container = InventoryContainerType.Main, int npc = 2, int? sum = null) =>
         shop.Services.GetRequiredService<SellItemHandler>().HandleAsync(new(shop.Connection),
-            new SellItemRequest(GameMessageMetadata.Empty, container, checked((short)slot), checked((short)count), npc, sum ?? (byte)container + slot + count), default);
+            new SellItemRequest(
+                GameMessageMetadata.Empty,
+                new GameSlot(container, slot),
+                checked((short)count), npc, sum ?? (byte)container + slot + count),
+            default);
 
     private static ShopFixture Fixture(int cap = 1000000) => new(services =>
     {

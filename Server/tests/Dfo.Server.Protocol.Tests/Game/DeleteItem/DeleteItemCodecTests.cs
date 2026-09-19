@@ -1,7 +1,10 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -20,10 +23,12 @@ public sealed class DeleteItemCodecTests
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("discard-quest"), 1, 10011);
         var sessions = new SelectedSessionDomainService();
         sessions.Select(session);
-        var receipt = new ItemDiscardReceipt(session, InventoryContainerType.Main, 65, 5000, 1,
+        var receipt = new ItemDiscardReceipt(
+            session, new BusinessSlot(BusinessInventorySpace.Consumable, 0), 5000, 1,
             null, DateTimeOffset.UnixEpoch);
 
-        var messages = await new ItemDiscardCompletedHandler(sessions).ComposeAsync(
+        var messages = await new ItemDiscardCompletedHandler(
+            sessions, new SlotProjection()).ComposeAsync(
             new NotificationRecipient(session.CharacterId, session.ConnectionId),
             new ItemDiscardCompleted(receipt,
                 new QuestProgressSnapshot([new CarriedQuest(0, 2001, 1)])),
@@ -32,6 +37,13 @@ public sealed class DeleteItemCodecTests
         Assert.IsType<DeleteItemResponse>(messages[0]);
         var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[1]);
         Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+    }
+
+    private sealed class SlotProjection : IInventorySlotProjectionDomainService
+    {
+        private readonly InventorySlotMappingRuleService mappings = new();
+
+        public GameSlot Project(BusinessSlot slot) => mappings.ToGameSlot(slot);
     }
 
     [Theory]
@@ -51,7 +63,7 @@ public sealed class DeleteItemCodecTests
 
         Assert.Equal(ClientMessageType.GameDeleteItem, request.MessageType);
         Assert.Equal((InventoryContainerType.Main, (byte)1, (ushort)1, slot, itemId, 1, 0u, (byte)0),
-            (request.Container, request.EntryCount, request.OperationType, request.SlotIndex,
+            (request.Slot.Space, request.EntryCount, request.OperationType, request.Slot.Index,
                 request.ItemId, request.DeleteCount, request.ReservedZero, request.SafeModeSkipIndex));
     }
 
@@ -75,14 +87,12 @@ public sealed class DeleteItemCodecTests
     [Fact]
     public void A21_success_and_failure_responses_match_the_client_reads()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("codec"), 1, 10011);
-        var receipt = new ItemDiscardReceipt(session, InventoryContainerType.Main, 9, 27312, 1, null,
-            DateTimeOffset.UnixEpoch);
-
         Assert.Equal(Convert.FromHexString("0100010900010000000000"),
-            DeleteItemResponseEncoder.EncodeBody(new(receipt)));
+            DeleteItemResponseEncoder.EncodeBody(new(
+                new GameSlot(InventoryContainerType.Main, 9), 1, Success: true)));
         Assert.Equal(Convert.FromHexString("001700"),
-            DeleteItemResponseEncoder.EncodeBody(new(null, DeleteItemResponse.CannotDelete,
-                InventoryContainerType.Main)));
+            DeleteItemResponseEncoder.EncodeBody(new(
+                new GameSlot(InventoryContainerType.Main, 9),
+                ErrorCode: DeleteItemResponse.CannotDelete)));
     }
 }

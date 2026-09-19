@@ -43,10 +43,16 @@ internal sealed class CeraShopTestContent : ICeraShopDefinitionSource, IItemPlac
         Items[item] = new(item, "fixture", kind, 0, false, null, [], [], null, null, []);
         Placements[item] = kind switch
         {
-            CeraShopItemKind.Avatar => new(8, 1, 9, 56) { WorldClass = ItemWorldClass.Avatar },
-            CeraShopItemKind.Creature => new(5, 1, 9, 56) { WorldClass = ItemWorldClass.Creature },
-            CeraShopItemKind.Equipment or CeraShopItemKind.CreatureEquipment => new(1, 1, 9, 56) { WorldClass = ItemWorldClass.Equipment },
-            _ => new(2, 10, 65, 66),
+            CeraShopItemKind.Avatar => new(8, 1,
+                new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+                { WorldClass = ItemWorldClass.Avatar },
+            CeraShopItemKind.Creature => new(5, 1,
+                new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+                { WorldClass = ItemWorldClass.Creature },
+            CeraShopItemKind.Equipment or CeraShopItemKind.CreatureEquipment => new(1, 1,
+                new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+                { WorldClass = ItemWorldClass.Equipment },
+            _ => new(2, 10, new(BusinessInventorySpace.Consumable, 0, 1)),
         };
     }
     public CeraShopRuleService Rules() => new(this, new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService());

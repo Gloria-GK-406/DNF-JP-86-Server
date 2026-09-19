@@ -18,8 +18,7 @@ public interface IEquipmentDisjointDomainService
 {
     ValueTask<EquipmentDisjointResult> DisjointAsync(
         SelectedSessionIdentity session,
-        short targetSlotIndex,
-        InventoryContainerType itemSpace,
+        BusinessSlot targetSlot,
         short disjointItemSlotIndex,
         int contextValue,
         EquipmentDisjointSettings settings,

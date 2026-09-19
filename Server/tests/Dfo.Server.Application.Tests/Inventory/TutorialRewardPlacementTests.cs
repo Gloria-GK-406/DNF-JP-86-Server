@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 
 namespace Dfo.Server.Application.Tests.Inventory;
@@ -160,8 +161,10 @@ public sealed class TutorialRewardPlacementTests
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(itemId switch
             {
-                Potion => new ItemPlacement(2, 10, 65, 65),
-                Scroll => new ItemPlacement(2, 20, 65, 65),
+                Potion => new ItemPlacement(2, 10,
+                    new(BusinessInventorySpace.Consumable, 0, 0)),
+                Scroll => new ItemPlacement(2, 20,
+                    new(BusinessInventorySpace.Consumable, 0, 0)),
                 _ => null,
             });
     }

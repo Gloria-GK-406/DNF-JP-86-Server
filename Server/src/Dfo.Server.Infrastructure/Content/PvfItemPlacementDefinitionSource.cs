@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -11,9 +13,13 @@ namespace Dfo.Server.Infrastructure.Content;
 /// and the answer comes from the item's own <c>[stackable type]</c> -- and having two derivations
 /// of it would let a refilled potion and a granted one land in different places.
 /// </remarks>
-internal sealed class PvfItemPlacementDefinitionSource(PvfArchiveProvider provider)
+internal sealed class PvfItemPlacementDefinitionSource(
+    PvfArchiveProvider provider,
+    IInventorySlotMappingRuleService? slotMappings = null)
     : IItemPlacementDefinitionSource
 {
+    private readonly IInventorySlotMappingRuleService slotMappings =
+        slotMappings ?? new InventorySlotMappingRuleService();
     private const string StackableListPath = "stackable/stackable.lst";
     private const string EquipmentListPath = "equipment/equipment.lst";
 
@@ -43,12 +49,24 @@ internal sealed class PvfItemPlacementDefinitionSource(PvfArchiveProvider provid
             var placement = metadata.SlotEnd < metadata.SlotStart
                 ? null
                 : new ItemPlacement(
-                    metadata.ItemKind, metadata.StackLimit, metadata.SlotStart, metadata.SlotEnd)
+                    metadata.ItemKind,
+                    metadata.StackLimit,
+                    RangeFromMainSlots(metadata.SlotStart, metadata.SlotEnd))
                 {
                     WorldClass = metadata.WorldClass,
                 };
             _cache[itemId] = placement;
             return ValueTask.FromResult(placement);
         }
+    }
+
+    private BusinessSlotRange RangeFromMainSlots(int first, int last)
+    {
+        var start = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, first));
+        var end = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, last));
+        if (start.Space != end.Space)
+            throw new InvalidDataException(
+                $"PVF item placement Main/{first}..{last} crosses business spaces.");
+        return new(start.Space, start.Index, end.Index);
     }
 }

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
@@ -30,7 +31,7 @@ public interface IItemPlacementRuleService
     /// The equipment slot this item is worn in, or null when the archive declares nothing wearable
     /// under that identifier.
     /// </summary>
-    ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
+    ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
 
     /// <summary>
     /// What sort of thing this template is: a pile, or an individual piece of one of three kinds.

@@ -10,8 +10,7 @@ namespace Dfo.Server.Protocol.Game.DisjointItem;
 public sealed record DisjointItemCommand(
     OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session,
-    short TargetSlotIndex,
-    InventoryContainerType ItemSpace,
+    BusinessSlot TargetSlot,
     short DisjointItemSlotIndex,
     int ContextValue,
     EquipmentDisjointSettings Settings)
@@ -27,7 +26,7 @@ public sealed class DisjointItemCommandHandler(IEquipmentDisjointDomainService d
         CommandExecutionContext context,
         DisjointItemCommand command,
         CancellationToken cancellationToken) =>
-        disjoint.DisjointAsync(command.Session, command.TargetSlotIndex, command.ItemSpace,
+        disjoint.DisjointAsync(command.Session, command.TargetSlot,
             command.DisjointItemSlotIndex, command.ContextValue, command.Settings,
             cancellationToken);
 }

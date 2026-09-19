@@ -210,7 +210,7 @@ public interface IItemContainer
 
 /// <summary>What a daily rule owes, in the terms the container needs to place it.</summary>
 public sealed record ItemRefill(
-    int ItemId, byte ItemKind, int Count, int SlotStart, int SlotEnd);
+    int ItemId, byte ItemKind, int Count, BusinessSlotRange Destination);
 
 /// <summary>What became of an item offered to a container.</summary>
 /// <remarks>

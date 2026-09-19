@@ -618,10 +618,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
         var acknowledgement = (MoveItemSpaceResponse)Assert.Single(sender.Sent);
         Assert.Null(acknowledgement.ErrorCode);
-        Assert.Equal((byte)InventoryContainerType.Main, acknowledgement.SourceListType);
-        Assert.Equal(BagSlot, acknowledgement.SourceSlotIndex);
-        Assert.Equal((byte)InventoryContainerType.Equipment, acknowledgement.DestinationListType);
-        Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlotIndex);
+        Assert.Equal(InventoryContainerType.Main, acknowledgement.SourceSlot.Space);
+        Assert.Equal(BagSlot, acknowledgement.SourceSlot.Index);
+        Assert.Equal(InventoryContainerType.Equipment, acknowledgement.DestinationSlot.Space);
+        Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlot.Index);
         Assert.Equal(1, acknowledgement.MoveValue);
 
         Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
@@ -653,12 +653,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// <summary>The drag that started all of this: a costume off the character, into the bag.</summary>
     private static MoveItemSpaceRequest TakeOffRequest() =>
         new(GameMessageMetadata.Empty,
-            (byte)InventoryContainerType.Main,
-            BagSlot,
+            new GameSlot(InventoryContainerType.Main, BagSlot),
             SourceInstanceValue: 0,
             MoveCount: 1,
-            (byte)InventoryContainerType.Equipment,
-            WornCostumeSlot,
+            new GameSlot(InventoryContainerType.Equipment, WornCostumeSlot),
             DestinationInstanceValue: Costume);
 
     /// <summary>A slot in each list that a costume is allowed to occupy.</summary>
@@ -703,10 +701,11 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             containers.Register(character, new SlotBook(type, character));
         }
 
+        var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
             new MoveItemSpaceCommandHandler(
-                containers,
+                new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                     new ItemSlotRuleService())),
@@ -722,6 +721,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         return (
             new MoveItemSpaceHandler(
                 new OneSession(), new NoPublishedRuntime(),
+                new InventorySlotMappingRuleService(),
                 new DirectMoveBus(side.Handler), sender, logger),
             sender,
             logger,
@@ -751,14 +751,28 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                     CommandExecutionKind.Transactional),
                 new MoveItemSpaceCommand(
                     this.Character,
-                    (byte)source,
-                    sourceSlot,
+                    ToBusinessSlot(source, sourceSlot),
                     1,
-                    (byte)destination,
-                    destinationSlot,
+                    ToBusinessSlot(destination, destinationSlot),
                     sourceInstanceValue,
                     destinationInstanceValue),
                 CancellationToken.None);
+
+        private static BusinessSlot ToBusinessSlot(
+            InventoryContainerType space, int index)
+        {
+            try
+            {
+                return new InventorySlotMappingRuleService().ToBusinessSlot(
+                    new GameSlot(space, index));
+            }
+            catch (InventorySlotMappingException)
+            {
+                return space == InventoryContainerType.Main
+                    ? new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0)
+                    : new BusinessSlot(BusinessInventorySpace.PersonalCargo, 0);
+            }
+        }
 
         public async ValueTask<ContainerSlotItem?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>

@@ -10,15 +10,14 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemDiscardDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
-    ICharacterContainerDomainService containers,
+    IBusinessInventorySlotDomainService slots,
     IItemDiscardRuleService rules) : IItemDiscardDomainService
 {
     public async ValueTask<ItemDiscardResult> DiscardAsync(
         SelectedSessionIdentity session,
-        InventoryContainerType container,
+        BusinessSlot slot,
         byte entryCount,
         ushort operationType,
-        int slotIndex,
         int itemId,
         int count,
         DateTimeOffset now,
@@ -32,14 +31,14 @@ internal sealed class ItemDiscardDomainService(
             return new(ItemDiscardRejection.NoSession);
 
         var requestRejection = rules.ValidateRequest(
-            container, entryCount, operationType, slotIndex, itemId, count);
+            slot, entryCount, operationType, itemId, count);
         if (requestRejection != ItemDiscardRejection.None)
             return new(requestRejection);
 
-        var bag = containers.FindContainer(session.CharacterId, container);
-        var item = bag is null
+        var bound = slots.Find(session.CharacterId, slot);
+        var item = bound is null
             ? null
-            : await bag.ReadSlotAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         if (item is null)
             return new(ItemDiscardRejection.ItemUnavailable);
 
@@ -51,11 +50,11 @@ internal sealed class ItemDiscardDomainService(
             ? null
             : item.Core with { Value = item.Count - count };
         if (remaining is null)
-            await bag!.ClearAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+            await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         else
-            await bag!.PutAsync(slotIndex, remaining, cancellationToken).ConfigureAwait(false);
+            await bound!.Container.PutAsync(bound.StorageIndex, remaining, cancellationToken).ConfigureAwait(false);
 
         return new(ItemDiscardRejection.None,
-            new(session, container, slotIndex, item.ItemId, count, remaining, now));
+            new(session, slot, item.ItemId, count, remaining, now));
     }
 }

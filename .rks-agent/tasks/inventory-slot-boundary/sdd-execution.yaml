@@ -1,0 +1,63 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: .rks-agent/tasks/inventory-slot-boundary/TaskContract.md
+  revision: 1
+current_stage: verification
+state: complete
+artifacts:
+  spec: .rks-agent/tasks/inventory-slot-boundary/spec.md
+  result: .rks-agent/tasks/inventory-slot-boundary/spec-result.md
+  plan: .rks-agent/tasks/inventory-slot-boundary/plan.md
+  change_review: .rks-agent/tasks/inventory-slot-boundary/reviews/change-review.md
+  completion_evidence: .rks-agent/tasks/inventory-slot-boundary/verification/completion-evidence.md
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: the Spec defines the requested result, scope, and evidence-based acceptance
+  writes:
+  - spec
+- id: plan
+  reads:
+  - contract
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: the ready Plan selects direct or task-units with complete coverage at the chosen resolution
+  writes:
+  - plan
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  gate: auto
+  done_when: the chosen planning mode is delivered with usable Task plans and passing required self-checks when
+    using units, and no remaining required high-level work
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-work
+  gate: auto
+  done_when: the complete code, non-code, or mixed result is independently approved against the governing artifacts
+    and actual output criteria
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves every TaskContract success condition
+  writes:
+  - completion_evidence

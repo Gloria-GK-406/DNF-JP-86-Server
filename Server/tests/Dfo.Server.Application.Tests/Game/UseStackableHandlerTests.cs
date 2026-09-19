@@ -133,7 +133,12 @@ public sealed class UseStackableHandlerTests
         var (handler, sender) = Build(inventory);
 
         await handler.HandleAsync(
-            Context, Request(3, 8474) with { ListType = 7 }, CancellationToken.None);
+            Context,
+            Request(3, 8474) with
+            {
+                Slot = new GameSlot(InventoryContainerType.Pet, 3),
+            },
+            CancellationToken.None);
 
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
@@ -286,7 +291,8 @@ public sealed class UseStackableHandlerTests
         new NetworkConnectionContext(new NetworkConnectionId("game-use"), NetworkEndpointKind.Game, 10011));
 
     private static UseStackableRequest Request(short slot, int itemCode) =>
-        new(GameMessageMetadata.Empty, slot, 0, 25333, itemCode);
+        new(GameMessageMetadata.Empty,
+            new GameSlot(InventoryContainerType.Main, slot), 25333, itemCode);
 
     private static (UseStackableHandler Handler, RecordingSender Sender) Build(
         FakeInventory inventory,
@@ -303,8 +309,10 @@ public sealed class UseStackableHandlerTests
         var sender = new RecordingSender();
 
         var judgement = new ItemUseJudgementService(content);
+        var mappings = new InventorySlotMappingRuleService();
+        var containers = inventory.Containers();
         var commandHandler = new UseStackableCommandHandler(
-            inventory.Containers(),
+            new BusinessInventorySlotDomainService(containers, mappings),
             new OneCharacter(new PlayingCharacter(
                 new CharacterId(60),
                 judgement,
@@ -319,6 +327,7 @@ public sealed class UseStackableHandlerTests
         return (
             new UseStackableHandler(
                 sessions,
+                mappings,
                 new DirectCommandBus(use: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<UseStackableHandler>.Instance),

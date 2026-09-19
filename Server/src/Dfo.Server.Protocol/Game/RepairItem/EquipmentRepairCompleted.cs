@@ -1,14 +1,19 @@
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.RepairItem;
 
-public sealed record EquipmentRepairCompleted(EquipmentRepairReceipt Receipt)
+public sealed record EquipmentRepairCompleted(
+    EquipmentRepairReceipt Receipt,
+    InventoryContainerType RepairAllSpace = InventoryContainerType.Main)
     : INotification<EquipmentRepairCompleted>;
 
-public sealed class EquipmentRepairCompletedHandler(ISelectedSessionDomainService sessions)
+public sealed class EquipmentRepairCompletedHandler(
+    ISelectedSessionDomainService sessions,
+    IInventorySlotProjectionDomainService slotProjection)
     : INotificationHandler<EquipmentRepairCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -19,6 +24,9 @@ public sealed class EquipmentRepairCompletedHandler(ISelectedSessionDomainServic
             recipient.CharacterId == receipt.Session.CharacterId
             && recipient.ConnectionId == receipt.Session.ConnectionId
             && sessions.Find(receipt.Session.AccountId) == receipt.Session
-                ? [new RepairItemResponse(receipt)] : []);
+                ? [new RepairItemResponse(
+                    receipt.Slot is { } slot ? slotProjection.Project(slot) : null,
+                    receipt.Gold,
+                    RepairAllSpace: notification.RepairAllSpace)] : []);
     }
 }

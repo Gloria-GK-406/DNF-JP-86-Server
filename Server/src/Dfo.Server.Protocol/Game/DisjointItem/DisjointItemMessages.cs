@@ -5,16 +5,18 @@ namespace Dfo.Server.Protocol.Game.DisjointItem;
 
 public sealed record DisjointItemRequest(
     GameMessageMetadata Metadata,
-    short TargetSlotIndex,
-    InventoryContainerType ItemSpace,
+    GameSlot TargetSlot,
     short DisjointItemSlotIndex,
     int ContextValue) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameDisjointItem;
 }
 
+public sealed record DisjointItemMaterial(GameSlot Slot, int ItemId, int Count);
+
 public sealed record DisjointItemResponse(
-    EquipmentDisjointReceipt? Receipt,
+    GameSlot? TargetSlot,
+    IReadOnlyList<DisjointItemMaterial>? Materials = null,
     byte ErrorCode = 0) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameDisjointItem;

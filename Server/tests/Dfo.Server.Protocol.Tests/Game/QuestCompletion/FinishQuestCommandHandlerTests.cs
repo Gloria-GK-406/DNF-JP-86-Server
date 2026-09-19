@@ -492,7 +492,8 @@ public sealed class FinishQuestCommandHandlerTests
         public ValueTask<ItemPlacement?> GetAsync(
             int itemId,
             CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100,
+                new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     private sealed class NoWearables : IEquipmentSlotDefinitionSource

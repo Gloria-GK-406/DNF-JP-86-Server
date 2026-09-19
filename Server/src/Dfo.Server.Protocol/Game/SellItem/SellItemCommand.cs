@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.SellItem;
 
 public sealed record SellItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    InventoryContainerType Container, int SlotIndex, int Count, int NpcId)
+    BusinessSlot Slot, int Count, int NpcId)
     : ICommand<ItemSaleResult>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
@@ -18,6 +18,6 @@ public sealed class SellItemCommandHandler(IItemSaleDomainService sales, TimePro
     : ICommandHandler<SellItemCommand, ItemSaleResult>
 {
     public ValueTask<ItemSaleResult> HandleAsync(CommandExecutionContext context, SellItemCommand command,
-        CancellationToken cancellationToken) => sales.SellAsync(command.Session, command.Container,
-            command.SlotIndex, command.Count, command.NpcId, clock.GetUtcNow(), cancellationToken);
+        CancellationToken cancellationToken) => sales.SellAsync(command.Session, command.Slot,
+            command.Count, command.NpcId, clock.GetUtcNow(), cancellationToken);
 }

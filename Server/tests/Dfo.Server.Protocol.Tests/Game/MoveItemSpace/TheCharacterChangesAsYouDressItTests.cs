@@ -382,8 +382,9 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         containers.Register(character, avatars);
         containers.Register(character, worn);
 
+        var mappings = new InventorySlotMappingRuleService();
         var commandHandler = new MoveItemSpaceCommandHandler(
-            containers,
+            new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                 new ItemSlotRuleService()));
@@ -398,6 +399,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             new MoveItemSpaceHandler(
                 new OneSession(),
                 currentViews,
+                mappings,
                 new DirectMoveBus(commandHandler),
                 sender,
                 logger),
@@ -440,12 +442,10 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                 Dispatch,
                 new MoveItemSpaceRequest(
                     GameMessageMetadata.Empty,
-                    (byte)source,
-                    sourceSlot,
+                    new GameSlot(source, sourceSlot),
                     SourceInstanceValue: 0,
                     MoveCount: 1,
-                    (byte)destination,
-                    destinationSlot,
+                    new GameSlot(destination, destinationSlot),
                     DestinationInstanceValue: 0),
                 CancellationToken.None);
     }

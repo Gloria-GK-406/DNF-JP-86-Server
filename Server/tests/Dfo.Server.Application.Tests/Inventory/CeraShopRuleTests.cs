@@ -132,7 +132,8 @@ public sealed class CeraShopRuleTests
         var item = new CeraShopItemDefinition(3, "stackable/cash/river_lethe.stk", CeraShopItemKind.Stackable,
             0, false, null, [], [], null, null, []);
         var quote = new CeraShopQuote([110000], [new(110000, 0, 3600, CeraShopPaymentMode.Ordinary)],
-            [new(item, new ItemPlacement(2, 100, 65, 120), 1, 0, 0)]);
+            [new(item, new ItemPlacement(2, 100,
+                new(BusinessInventorySpace.Consumable, 0, 55)), 1, 0, 0)]);
         var held = new Dictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>>
             { [InventoryContainerType.Main] = [] };
 

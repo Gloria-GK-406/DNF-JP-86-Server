@@ -20,9 +20,6 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 public sealed class ItemSlotRuleService : IItemSlotRuleService
 {
-    internal const int QuickSlotStart = 3;
-    internal const int QuickSlotEnd = 8;
-
     private const byte KindCreature = 5;
     private const byte KindCreatureEquipment = 6;
     private const byte KindCreatureConsumable = 7;
@@ -42,34 +39,17 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
     /// that parameter means to the client, which this does not answer and does not depend on.
     /// </para>
     /// </remarks>
-    private const int AvatarSlotStart = 0;
-
-    private const int AvatarSlotEnd = 209;
-
-    public bool CanOccupySlot(
-        InventoryContainerType containerType, ItemPlacement placement, int slotIndex)
+    public bool CanOccupySlot(BusinessSlot slot, ItemPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(placement);
 
-        return containerType switch
+        return slot.Space switch
         {
-            InventoryContainerType.Main => this.CanOccupyMainSlot(placement, slotIndex),
-            InventoryContainerType.Avatar => slotIndex >= AvatarSlotStart
-                && slotIndex <= AvatarSlotEnd
-                && placement.WorldClass == ItemWorldClass.Avatar,
+            BusinessInventorySpace.QuickSlot => AllowsQuickSlot(placement.ItemKind),
+            BusinessInventorySpace.Avatar => placement.WorldClass == ItemWorldClass.Avatar,
+            _ when slot.Space.IsCarriedItemSpace() => placement.Destination.Contains(slot),
             _ => false,
         };
-    }
-
-    public bool CanOccupyMainSlot(ItemPlacement placement, int slotIndex)
-    {
-        ArgumentNullException.ThrowIfNull(placement);
-
-        if (slotIndex >= placement.SlotStart && slotIndex <= placement.SlotEnd)
-            return true;
-
-        return slotIndex >= QuickSlotStart && slotIndex <= QuickSlotEnd
-            && AllowsQuickSlot(placement.ItemKind);
     }
 
     /// <summary>

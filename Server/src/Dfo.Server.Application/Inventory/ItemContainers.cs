@@ -289,7 +289,8 @@ internal abstract class StoreBackedItemContainer(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules) : IItemContainer
+    IItemSlotRuleService slotRules,
+    IInventorySlotMappingRuleService slotMappings) : IItemContainer
 {
     public ContainerId Id => id;
 
@@ -411,7 +412,8 @@ internal abstract class StoreBackedItemContainer(
 
         var held = await this.ReadAllAsync(cancellationToken).ConfigureAwait(false);
         var arrival = arrivals.ForGrant(
-            PilesOf(held, itemId), count, placement, OccupiedSlots(held));
+            this.PilesOf(held, itemId, Candidates(placement)), count, placement,
+            this.OccupiedSlots(held, Candidates(placement)));
         return await this.LandAsync(
             arrival, held, itemId, placement.ItemKind, cancellationToken).ConfigureAwait(false);
     }
@@ -421,12 +423,12 @@ internal abstract class StoreBackedItemContainer(
     {
         ArgumentNullException.ThrowIfNull(refill);
         var held = await this.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var candidates = SlotsIn(refill.Destination);
         var arrival = arrivals.ForDailyRefill(
-            PilesOf(held, refill.ItemId),
+            this.PilesOf(held, refill.ItemId, candidates),
             refill.Count,
-            refill.SlotStart,
-            refill.SlotEnd,
-            OccupiedSlots(held));
+            refill.Destination,
+            this.OccupiedSlots(held, candidates));
         return await this.LandAsync(
             arrival, held, refill.ItemId, refill.ItemKind, cancellationToken).ConfigureAwait(false);
     }
@@ -460,14 +462,15 @@ internal abstract class StoreBackedItemContainer(
         switch (arrival)
         {
             case ItemArrival.OntoExistingPile topped:
-                var pile = held.Single(item => item.SlotIndex == topped.SlotIndex);
+                var toppedIndex = this.StorageIndex(topped.Slot);
+                var pile = held.Single(item => item.SlotIndex == toppedIndex);
                 await this.PutAsync(
-                    topped.SlotIndex,
+                    toppedIndex,
                     pile.Core with { Value = topped.Total },
                     cancellationToken).ConfigureAwait(false);
                 await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
                 return new ItemPlacementOutcome.AddedToPile(
-                    topped.SlotIndex, topped.Added, topped.Total);
+                    toppedIndex, topped.Added, topped.Total);
 
             case ItemArrival.IntoEmptySlot opened:
                 if (itemKind == 0)
@@ -477,15 +480,16 @@ internal abstract class StoreBackedItemContainer(
                             + "opened for it.");
                 }
 
+                var openedIndex = this.StorageIndex(opened.Slot);
                 var landing = StackableItemCore.Create(itemKind, itemId, opened.Count);
                 var isAvatar = itemKind == ArrivingAvatar.ItemKind;
                 await this.WriteOneAsync(
-                    opened.SlotIndex,
+                    openedIndex,
                     isAvatar ? landing with { Value = ArrivingAvatar.NewIdentity() } : landing,
                     isAvatar ? ArrivingAvatar.Facts() : null,
                     cancellationToken).ConfigureAwait(false);
                 await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
-                return new ItemPlacementOutcome.PutInEmptySlot(opened.SlotIndex, opened.Count);
+                return new ItemPlacementOutcome.PutInEmptySlot(openedIndex, opened.Count);
 
             case ItemArrival.NoRoom:
                 return new ItemPlacementOutcome.NoRoom();
@@ -583,7 +587,8 @@ internal abstract class StoreBackedItemContainer(
     {
         var placement = await placementRules.PlacementForAsync(moving.ItemId, cancellationToken)
             .ConfigureAwait(false);
-        if (placement is null || !slotRules.CanOccupySlot(shape.ContainerType, placement, targetSlot))
+        var target = slotMappings.ToBusinessSlot(new InventoryStorageSlot(this, targetSlot));
+        if (placement is null || !slotRules.CanOccupySlot(target, placement))
         {
             return (null, ItemMoveRefusal.ItemCannotOccupySlot);
         }
@@ -623,19 +628,55 @@ internal abstract class StoreBackedItemContainer(
         var displacedPlacement = await placementRules
             .PlacementForAsync(displaced.ItemId, cancellationToken)
             .ConfigureAwait(false);
+        var source = slotMappings.ToBusinessSlot(
+            new InventoryStorageSlot(this, moving.SlotIndex));
         return displacedPlacement is null
-            || !slotRules.CanOccupySlot(shape.ContainerType, displacedPlacement, moving.SlotIndex)
+            || !slotRules.CanOccupySlot(source, displacedPlacement)
             ? (null, ItemMoveRefusal.DisplacedCannotOccupySlot)
             : (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Swap), null);
     }
 
-    private static IReadOnlyList<ItemPile> PilesOf(
-        IReadOnlyList<ContainerSlotItem> held, int itemId) =>
-        [.. held.Where(item => item.ItemId == itemId)
-            .Select(item => new ItemPile(item.SlotIndex, item.Count))];
+    private IReadOnlyList<ItemPile> PilesOf(
+        IReadOnlyList<ContainerSlotItem> held,
+        int itemId,
+        IEnumerable<BusinessSlot> candidates)
+    {
+        var byIndex = held.ToDictionary(item => item.SlotIndex);
+        return [.. candidates
+            .Select(slot => (Slot: slot, Index: this.StorageIndex(slot)))
+            .Where(candidate => byIndex.TryGetValue(candidate.Index, out var item)
+                && item.ItemId == itemId)
+            .Select(candidate => new ItemPile(candidate.Slot, byIndex[candidate.Index].Count))];
+    }
 
-    private static IReadOnlySet<int> OccupiedSlots(IReadOnlyList<ContainerSlotItem> held) =>
-        held.Select(item => item.SlotIndex).ToHashSet();
+    private IReadOnlySet<BusinessSlot> OccupiedSlots(
+        IReadOnlyList<ContainerSlotItem> held,
+        IEnumerable<BusinessSlot> candidates)
+    {
+        var occupied = held.Select(item => item.SlotIndex).ToHashSet();
+        return candidates.Where(slot => occupied.Contains(this.StorageIndex(slot))).ToHashSet();
+    }
+
+    private static IEnumerable<BusinessSlot> Candidates(ItemPlacement placement)
+    {
+        var own = SlotsIn(placement.Destination);
+        return ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+            ? own.Concat(SlotsIn(new(BusinessInventorySpace.QuickSlot, 0, 5)))
+            : own;
+    }
+
+    private static IEnumerable<BusinessSlot> SlotsIn(BusinessSlotRange range) =>
+        Enumerable.Range(range.FirstIndex, range.LastIndex - range.FirstIndex + 1)
+            .Select(index => new BusinessSlot(range.Space, index));
+
+    private int StorageIndex(BusinessSlot slot)
+    {
+        var game = slotMappings.ToGameSlot(slot);
+        if (game.Space != this.Type)
+            throw new InvalidDataException(
+                $"Business slot {slot.Space}/{slot.Index} does not belong to container {this.Type}.");
+        return game.Index;
+    }
 
     /// <summary>
     /// Reads through this use case's session when there is one, and through a session of its own
@@ -740,8 +781,11 @@ internal sealed class PersistentItemContainer(
     IEntryInventoryMutationRepository snapshots,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules)
-    : StoreBackedItemContainer(id, shape, store, transactions, placementRules, arrivals, slotRules)
+    IItemSlotRuleService slotRules,
+    IInventorySlotMappingRuleService? slotMappings = null)
+    : StoreBackedItemContainer(
+        id, shape, store, transactions, placementRules, arrivals, slotRules,
+        slotMappings ?? new InventorySlotMappingRuleService())
 {
     public override bool IsRemovable => false;
 

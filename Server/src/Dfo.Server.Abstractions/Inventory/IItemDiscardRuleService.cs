@@ -5,10 +5,9 @@ namespace Dfo.Server.Abstractions.Inventory;
 public interface IItemDiscardRuleService
 {
     ItemDiscardRejection ValidateRequest(
-        InventoryContainerType container,
+        BusinessSlot slot,
         byte entryCount,
         ushort operationType,
-        int slotIndex,
         int itemId,
         int count);
 

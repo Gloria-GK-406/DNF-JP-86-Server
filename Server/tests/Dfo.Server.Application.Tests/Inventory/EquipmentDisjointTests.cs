@@ -26,9 +26,10 @@ public sealed class EquipmentDisjointTests
 
         var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
         Assert.Equal((9, InventoryContainerType.Main),
-            (response.Receipt!.TargetSlotIndex, response.Receipt.ItemSpace));
-        Assert.Equal(new EquipmentDisjointMaterialReceipt(121, 1000, 12),
-            Assert.Single(response.Receipt.Materials));
+            (response.TargetSlot!.Value.Index, response.TargetSlot.Value.Space));
+        Assert.Equal(new DisjointItemMaterial(
+            new GameSlot(InventoryContainerType.Main, 121), 1000, 12),
+            Assert.Single(response.Materials!));
     }
 
     [Fact]
@@ -46,7 +47,7 @@ public sealed class EquipmentDisjointTests
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(2000, shop.Count(1000));
         var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
-        Assert.Null(response.Receipt);
+        Assert.Null(response.TargetSlot);
         Assert.Equal(0x04, response.ErrorCode);
     }
 
@@ -91,7 +92,48 @@ public sealed class EquipmentDisjointTests
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(12, shop.Count(1000));
         Assert.NotNull(Assert.IsType<DisjointItemResponse>(
-            Assert.Single(shop.Sender.Messages)).Receipt);
+            Assert.Single(shop.Sender.Messages)).TargetSlot);
+    }
+
+    [Fact]
+    public async Task Equipment_in_a_quick_slot_passes_occupancy_then_disjoints_by_equipment_behavior()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(4, Piece());
+
+        await Disjoint(shop, 4);
+
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 4));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Equal(new GameSlot(InventoryContainerType.Main, 4), response.TargetSlot);
+    }
+
+    [Fact]
+    public async Task A_non_equipment_in_a_quick_slot_passes_occupancy_but_behavior_refuses_disjoint()
+    {
+        using var shop = Fixture();
+        await shop.Seed(4, 4000, 1);
+
+        await Disjoint(shop, 4);
+
+        Assert.Equal(1, shop.Count(4000));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Stored_content_that_contradicts_its_business_space_is_an_invariant_failure()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(121, Piece());
+
+        var failure = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Disjoint(shop, 121).AsTask());
+
+        Assert.Contains("Material/0", failure.Message, StringComparison.Ordinal);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 121));
+        Assert.Empty(shop.Sender.Messages);
     }
 
     private static ShopFixture Fixture() => new(services =>
@@ -102,8 +144,10 @@ public sealed class EquipmentDisjointTests
 
     private static ValueTask Disjoint(ShopFixture shop, short slot, int contextValue = 0) =>
         shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
-            new DisjointItemRequest(GameMessageMetadata.Empty, slot, InventoryContainerType.Main,
-                -1, contextValue), default);
+            new DisjointItemRequest(
+                GameMessageMetadata.Empty,
+                new GameSlot(InventoryContainerType.Main, slot), -1, contextValue),
+            default);
 
     private sealed class FixedRules : IEquipmentDisjointRuleService
     {

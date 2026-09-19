@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
@@ -569,11 +570,13 @@ public sealed class DungeonEntryCodecTests
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(itemId switch
             {
-                ShoulderItemId => new ItemPlacement(ItemKind: 1, StackLimit: 1, SlotStart: 0, SlotEnd: 0)
+                ShoulderItemId => new ItemPlacement(ItemKind: 1, StackLimit: 1,
+                    Destination: new(BusinessInventorySpace.CarriedEquipment, 0, 0))
                 {
                     WorldClass = ItemWorldClass.Equipment,
                 },
-                MaterialItemId => new ItemPlacement(ItemKind: 4, StackLimit: 999, SlotStart: 0, SlotEnd: 0),
+                MaterialItemId => new ItemPlacement(ItemKind: 4, StackLimit: 999,
+                    Destination: new(BusinessInventorySpace.Material, 0, 0)),
                 _ => null,
             });
     }

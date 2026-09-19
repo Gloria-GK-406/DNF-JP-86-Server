@@ -26,8 +26,7 @@ namespace Dfo.Server.Protocol.Game.UseStackable;
 /// </remarks>
 public sealed record UseStackableRequest(
     GameMessageMetadata Metadata,
-    short SlotIndex,
-    byte ListType,
+    GameSlot Slot,
     int InstanceValue,
     int ItemCode) : IClientNetworkMessage
 {
@@ -37,8 +36,7 @@ public sealed record UseStackableRequest(
 /// <summary>The CMD acknowledgement for the same type.</summary>
 public sealed record UseStackableResponse(
     byte? ErrorCode,
-    short SlotIndex,
-    byte ListType,
+    GameSlot Slot,
     int InstanceValue,
     int ItemCode) : IGameCmdMessage
 {
@@ -81,11 +79,13 @@ public sealed record UseStackableResponse(
 
     public ServerMessageType MessageType => ServerMessageType.GameUseStackable;
 
-    public static UseStackableResponse Success(UseStackableRequest request, int itemCode) =>
-        new(null, request.SlotIndex, request.ListType, request.InstanceValue, itemCode);
+    public static UseStackableResponse Success(
+        GameSlot slot, int instanceValue, int itemCode) =>
+        new(null, slot, instanceValue, itemCode);
 
-    public static UseStackableResponse Failure(UseStackableRequest request, byte errorCode) =>
-        new(errorCode, request.SlotIndex, request.ListType, request.InstanceValue, request.ItemCode);
+    public static UseStackableResponse Failure(
+        GameSlot slot, int instanceValue, int itemCode, byte errorCode) =>
+        new(errorCode, slot, instanceValue, itemCode);
 }
 
 internal static class UseStackablePayloadCodec
@@ -108,7 +108,7 @@ internal static class UseStackablePayloadCodec
             var failure = new byte[11];
             failure[0] = 0x00;
             failure[1] = errorCode;
-            failure[2] = message.ListType;
+            failure[2] = (byte)message.Slot.Space;
             BinaryPrimitives.WriteInt32LittleEndian(failure.AsSpan(3, 4), message.InstanceValue);
             BinaryPrimitives.WriteInt32LittleEndian(failure.AsSpan(7, 4), message.ItemCode);
             return failure;
@@ -116,8 +116,9 @@ internal static class UseStackablePayloadCodec
 
         var body = new byte[12];
         body[0] = 0x01;
-        BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(1, 2), message.SlotIndex);
-        body[3] = message.ListType;
+        BinaryPrimitives.WriteInt16LittleEndian(
+            body.AsSpan(1, 2), checked((short)message.Slot.Index));
+        body[3] = (byte)message.Slot.Space;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4, 4), message.InstanceValue);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8, 4), message.ItemCode);
         return body;
@@ -125,8 +126,9 @@ internal static class UseStackablePayloadCodec
 
     public static UseStackableRequest Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
         new(metadata,
-            BinaryPrimitives.ReadInt16LittleEndian(body),
-            body[2],
+            new GameSlot(
+                (InventoryContainerType)body[2],
+                BinaryPrimitives.ReadInt16LittleEndian(body)),
             BinaryPrimitives.ReadInt32LittleEndian(body[3..]),
             body.Length >= ItemCodeBodyLength ? BinaryPrimitives.ReadInt32LittleEndian(body[7..]) : 0);
 }
@@ -199,8 +201,7 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
 /// <summary>One character using one item out of one slot.</summary>
 public sealed record UseStackableCommand(
     CharacterId CharacterId,
-    short SlotIndex,
-    byte ListType,
+    BusinessSlot Slot,
     int ItemCode) : ICommand<ItemUseResult>;
 
 /// <summary>
@@ -220,12 +221,10 @@ public sealed record UseStackableCommand(
 /// already applied.
 /// </remarks>
 public sealed class UseStackableCommandHandler(
-    ICharacterContainerDomainService containers,
+    IBusinessInventorySlotDomainService inventory,
     ICharacterDomainService characters,
     IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
 {
-    private const byte MainListType = (byte)InventoryContainerType.Main;
-
     public async ValueTask<ItemUseResult> HandleAsync(
         CommandExecutionContext context,
         UseStackableCommand command,
@@ -233,14 +232,14 @@ public sealed class UseStackableCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (command.ListType != MainListType)
+        if (!command.Slot.Space.IsCarriedItemSpace())
             return ItemUseResult.Refused(ItemUseStatus.ListNotServed);
 
-        var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
-        if (container is null)
+        var slot = inventory.Find(command.CharacterId, command.Slot);
+        if (slot is null)
             return ItemUseResult.Refused(ItemUseStatus.NoBoundContainer);
 
-        var item = await container.ReadSlotAsync(command.SlotIndex, cancellationToken)
+        var item = await slot.Container.ReadSlotAsync(slot.StorageIndex, cancellationToken)
             .ConfigureAwait(false);
 
         // The client names what it believes it is using. A slot that holds something else means the
@@ -257,7 +256,7 @@ public sealed class UseStackableCommandHandler(
         var planned = await effects.PlanAsync(item.ItemId, item.SlotIndex, cancellationToken)
             .ConfigureAwait(false);
         var applied = await effects
-            .ApplyAsync(command.CharacterId, container, item, planned, cancellationToken)
+            .ApplyAsync(command.CharacterId, slot.Container, item, planned, cancellationToken)
             .ConfigureAwait(false);
 
         return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
@@ -296,6 +295,7 @@ public sealed class UseStackableCommandHandler(
 /// </remarks>
 public sealed class UseStackableHandler(
     ISelectedSessionDomainService selectedSessions,
+    IInventorySlotMappingRuleService slotMappings,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<UseStackableHandler> logger) : ClientMessageHandler<UseStackableRequest>
@@ -317,18 +317,24 @@ public sealed class UseStackableHandler(
         UseStackableRequest message,
         CancellationToken cancellationToken)
     {
+        var slot = slotMappings.ToBusinessSlot(message.Slot);
+        var responseSlot = slotMappings.ToGameSlot(slot);
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
             logger.LogWarning(
                 "Use stackable {ConnectionId}: no published session",
                 context.Connection.ConnectionId);
-            return UseStackableResponse.Failure(message, UseStackableResponse.Silent);
+            return UseStackableResponse.Failure(
+                responseSlot,
+                message.InstanceValue,
+                message.ItemCode,
+                UseStackableResponse.Silent);
         }
 
         var result = await commandBus.SendAsync(
             new UseStackableCommand(
-                session.CharacterId, message.SlotIndex, message.ListType, message.ItemCode),
+                session.CharacterId, slot, message.ItemCode),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is ItemUseStatus.Used)
@@ -339,18 +345,20 @@ public sealed class UseStackableHandler(
                 context.Connection.ConnectionId,
                 session.CharacterId.Value,
                 result.ItemId,
-                message.SlotIndex,
+                responseSlot.Index,
                 result.RemainingCount);
-            return UseStackableResponse.Success(message, result.ItemId);
+            return UseStackableResponse.Success(
+                responseSlot, message.InstanceValue, result.ItemId);
         }
 
         logger.LogInformation(
             "Use stackable {ConnectionId} character={CharacterId}: slot {Slot} refused as {Status}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
-            message.SlotIndex,
+            responseSlot.Index,
             result.Status);
-        return UseStackableResponse.Failure(message, ErrorCodeFor(result.Status));
+        return UseStackableResponse.Failure(
+            responseSlot, message.InstanceValue, message.ItemCode, ErrorCodeFor(result.Status));
     }
 
     /// <summary>

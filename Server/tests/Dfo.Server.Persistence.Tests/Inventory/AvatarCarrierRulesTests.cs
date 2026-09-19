@@ -292,7 +292,8 @@ public sealed class AvatarCarrierRulesTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(
-                new ItemPlacement(8, 1, 0, 120) { WorldClass = ItemWorldClass.Avatar });
+                new ItemPlacement(8, 1, new(BusinessInventorySpace.Avatar, 0, 120))
+                { WorldClass = ItemWorldClass.Avatar });
     }
 
     private sealed class NoWornSlots : IEquipmentSlotDefinitionSource

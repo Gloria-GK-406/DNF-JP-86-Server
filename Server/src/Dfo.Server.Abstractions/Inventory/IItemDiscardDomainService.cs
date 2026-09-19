@@ -7,10 +7,9 @@ public interface IItemDiscardDomainService
 {
     ValueTask<ItemDiscardResult> DiscardAsync(
         SelectedSessionIdentity session,
-        InventoryContainerType container,
+        BusinessSlot slot,
         byte entryCount,
         ushort operationType,
-        int slotIndex,
         int itemId,
         int count,
         DateTimeOffset now,
