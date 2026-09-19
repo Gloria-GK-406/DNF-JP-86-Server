@@ -121,6 +121,9 @@ C2S `[1]` 作为兼容输入，在领域写入前由 `IPartyModeRuleService` 强
 `Unhandled`。操作顺序只能给出“`0x0079` 高度对应委任、`0x000E` 高度对应踢出”的运行时关联，尚未
 完成各自静态布局确认；服务端没有执行这两个动作，也没有产生新的设置 revision。
 
+这段是 2026-09-12 当时的历史状态。两条命令的成功路径已于 2026-09-19 闭环，见
+[`a21-party-leadership-removal-live-20260919.md`](a21-party-leadership-removal-live-20260919.md)。
+
 ## 状态与剩余缺口
 
 - `0x000C` direct 12 字节已有当前 A21 `ClientVerified` 编辑样本；inline-title `16+n` 仍为 High。

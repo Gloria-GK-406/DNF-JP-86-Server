@@ -30,7 +30,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | 上游恒写常量 0x00，无任何参数参与；唯一构造点名为 BuildUnavailable，疑为"是否提供 UDP 主机"的标志 | Hypothesis | 上游 Network/Builders/Service/UdpHostBuilder.cs:7-12 body 只有一句 WriteByte(0x00)；唯一调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:115，取自 `[ebp - 0x211]` |
+| 0 | 1 | `u8` | 队伍 UDP/P2P host 的成员槽位；上游恒写 0 与其队长固定在 slot 0 的模型一致。当前服务端在 CHANGE_HOST 后写新队长 slot 1，A21 双客户端与随后 0x0009 type 2 成对消费并正确切换队长；两帧未做单独效应隔离，故语义保留 High | High | 上游 Network/Builders/Service/UdpHostBuilder.cs:7-12 写常量 0；2026-09-19 当前服务端发送日志与双客户端结果见 protocol/patterns/data/traces/a21-party-leadership-removal-live-20260919.md，取自 `[ebp - 0x211]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -81,7 +81,11 @@ P2P UDP 主机通告。参照实现的 `UdpHostBuilder.BuildUnavailable()` 只�
 
 ## 服务端实现映射
 
-同 [`DungeonSelectionSlice.cs`](../../../Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs)，恒发不可用。
+A12 历史入场路径由
+[`DungeonSelectionSlice.cs`](../../../Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs)
+发值 0；A21 当前换队长路径另由
+[`PartyNotificationSlice.cs`](../../../Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationSlice.cs)
+发送新队长槽位。两条路径复用同一协议身份，不能再把值 0 单独解释成“不可用”。
 
 ## 待实机补全
 
@@ -98,3 +102,23 @@ P2P UDP 主机通告。参照实现的 `UdpHostBuilder.BuildUnavailable()` 只�
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
 
 <!-- rks:a12:end -->
+
+## A21 换队长形态（2026-09-19）
+
+**状态：ClientVerified（与 `NOTI 0x0009 type=2` 成对验证）。**
+
+```text
+BodyLength = 1
+```
+
+| Offset | Size | Enc | 含义 | 置信度 |
+|---:|---:|---|---|---|
+| 0 | 1 | `u8` | UDP/P2P host 所在的队伍成员槽位；当前换队长流程取新队长 `SlotIndex` | High |
+
+2026-09-19，服务端把队长由 slot 0 委任给 slot 1 后，向两个当前队员各发送一帧 16 字节完整帧，
+即 15 字节 S2C header 加 1 字节 body；每帧随后紧跟同接收者的 64 字节完整
+`NOTI 0x0009 type=2`。两端正确切换队长身份与权限，且连接保持正常。完整时序见
+[`flow-party-leadership-removal.md`](../../patterns/flow-party-leadership-removal.md)。
+
+由于本次同时改变了 `0x001A` 与 `0x0009 type=2` 中的槽位，尚未用单变量差分隔离两帧各自对 UI
+和 P2P host 的独立作用；因此字段语义维持 `High`，不升级为独立 `Confirmed`。

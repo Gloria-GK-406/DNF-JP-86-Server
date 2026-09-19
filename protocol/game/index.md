@@ -35,7 +35,7 @@
 | `0x000B` | `RESPONSE_PEER` | ClientVerified（A21 type 0；真实 body 待归档） | `7` 或 `16` | [0x000B.md](client-to-server/0x000B.md) |
 | `0x000C` | `SET_PARTY_INFO` | ClientVerified（A21 12B direct 创建/更新；`16+n` inline-title 创建，更新仍待实帧） | `12` 或 `16+n` | [0x000C.md](client-to-server/0x000C.md) |
 | `0x000D` | `LEAVE_PARTY` | ClientVerified（A21 普通成员、多人队长与单人队主动离队） | `0` | [0x000D.md](client-to-server/0x000D.md) |
-| `0x000E` | `WALKOUT_PARTY_MEMBER` | 布局已闭合 | `1` | [0x000E.md](client-to-server/0x000E.md) |
+| `0x000E` | `WALKOUT_PARTY_MEMBER` | ClientVerified（A21 城镇两人队：新队长踢出 slot 0 原队长；拒绝分支待验证） | `1` | [0x000E.md](client-to-server/0x000E.md) |
 | `0x000F` | `ENTER_SELECT_DUNGEON` | 布局部分可得 | `≥ 4` | [0x000F.md](client-to-server/0x000F.md) |
 | `0x0010` | `SELECT_DUNGEON` | 布局部分可得 | `≥ 15` | [0x0010.md](client-to-server/0x0010.md) |
 | `0x0011` | `SEND_MESSAGE` | 布局部分可得 | `—` | [0x0011.md](client-to-server/0x0011.md) |
@@ -126,7 +126,7 @@
 | `0x0076` | `REGISITER_TO_BLACKLIST` | 布局部分可得 | `—` | [0x0076.md](client-to-server/0x0076.md) |
 | `0x0077` | `DELETE_TO_BLACKLIST` | 布局部分可得 | `—` | [0x0077.md](client-to-server/0x0077.md) |
 | `0x0078` | `REQUEST_BLACKLIST` | 布局已闭合 | `0` | [0x0078.md](client-to-server/0x0078.md) |
-| `0x0079` | `CHANGE_HOST` | 布局已闭合 | `1` | [0x0079.md](client-to-server/0x0079.md) |
+| `0x0079` | `CHANGE_HOST` | ClientVerified（A21 城镇两人队：slot 1 接任且成员槽位不重排） | `1` | [0x0079.md](client-to-server/0x0079.md) |
 | `0x007A` | `CREATURE_SCRIPT_MESSAGE` | 布局部分可得 | `—` | [0x007A.md](client-to-server/0x007A.md) |
 | `0x007B` | `CHARACTER_STATISTIC` | 布局部分可得 | `≥ 24` | [0x007B.md](client-to-server/0x007B.md) |
 | `0x007D` | `GUILDMEMBER_NAMING` | 布局部分可得 | `—` | [0x007D.md](client-to-server/0x007D.md) |
@@ -883,7 +883,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x0006` | `USER_LEAVE` | WireCaptured（A21 正常退出） | `2` | [NOTI-0x0006.md](server-to-client/NOTI-0x0006.md) |
 | `0x0007` | `REQUEST_PEER` | ClientVerified（A21 邀请 UI；真实 body 待归档） | `13` | [NOTI-0x0007.md](server-to-client/NOTI-0x0007.md) |
 | `0x0008` | `RESPONSE_PEER` | Implemented（接受链 UI 通过；待逐帧归因） | `7` | [NOTI-0x0008.md](server-to-client/NOTI-0x0008.md) |
-| `0x0009` | `PARTY_INFO` | ClientVerified（A21 成员与同区非成员 type-0/type-1/clear，原生 ID `0x11` add/update/delete；type-1 22B 静态） | baseline `2`；type-0 `61/65+n`；type-1 `18/22+n`；clear `5` | [NOTI-0x0009.md](server-to-client/NOTI-0x0009.md) |
+| `0x0009` | `PARTY_INFO` | ClientVerified（A21 type-0/type-1/type-2/clear；同区非成员原生 ID `0x11` add/update/delete；type-1 22B 静态） | baseline `2`；type-0 `61/65+n`；type-1 `18/22+n`；type-2 `49`；clear `5` | [NOTI-0x0009.md](server-to-client/NOTI-0x0009.md) |
 | `0x000A` | `WALKOUT` | 布局部分可得 | `≥ 2` | [NOTI-0x000A.md](server-to-client/NOTI-0x000A.md) |
 | `0x000B` | `USER_UDP_IP_PORT` | Implemented（双端已上报建队 UI 通过；待逐帧归因/P2P） | `1 + n×22` | [NOTI-0x000B.md](server-to-client/NOTI-0x000B.md) |
 | `0x000C` | `MESSAGE` | 布局部分可得 | `≥ 4` | [NOTI-0x000C.md](server-to-client/NOTI-0x000C.md) |
@@ -899,7 +899,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x0017` | `USER_AREA` | 布局部分可得 | `≥ 10` | [NOTI-0x0017.md](server-to-client/NOTI-0x0017.md) |
 | `0x0018` | `AREA_USERS` | ClientVerified（A21 gate/normal audience） | `≥ 12` | [NOTI-0x0018.md](server-to-client/NOTI-0x0018.md) |
 | `0x0019` | `FISHING` | 结构未知 | `—` | [NOTI-0x0019.md](server-to-client/NOTI-0x0019.md) |
-| `0x001A` | `UDP_HOST` | 布局部分可得 | `≥ 1` | [NOTI-0x001A.md](server-to-client/NOTI-0x001A.md) |
+| `0x001A` | `UDP_HOST` | ClientVerified（A21 换队长时 host slot 1，与 0x0009 type 2 成对验证；单帧效应未隔离） | `1` | [NOTI-0x001A.md](server-to-client/NOTI-0x001A.md) |
 | `0x001B` | `ENTER_SELECT_DUNGEON` | 布局部分可得 | `≥ 4` | [NOTI-0x001B.md](server-to-client/NOTI-0x001B.md) |
 | `0x001C` | `DUNGEON_INFO` | 布局部分可得 | `≥ 8` | [NOTI-0x001C.md](server-to-client/NOTI-0x001C.md) |
 | `0x001D` | `START_MAP` | 布局部分可得 | `≥ 14` | [NOTI-0x001D.md](server-to-client/NOTI-0x001D.md) |

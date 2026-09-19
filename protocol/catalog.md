@@ -50,6 +50,7 @@
 | `0x01` | `0x000B` | `RESPONSE_PEER` | Mutation / type 0 接受邀请 | ClientVerified（A21 type 0；真实 body 待归档） | [0x000B.md](game/client-to-server/0x000B.md) |
 | `0x01` | `0x000C` | `SET_PARTY_INFO` | Mutation / 无队时创建、在队时更新；当前成功路径无 CMD 回包 | ClientVerified（A21 12B direct 创建/更新；`16+n` inline-title 创建；inline-title 更新/拒绝仍待实帧） | [0x000C.md](game/client-to-server/0x000C.md) |
 | `0x01` | `0x000D` | `LEAVE_PARTY` | Mutation / 离队或解散 | ClientVerified（A21 普通成员、多人队长与单人队主动离队） | [0x000D.md](game/client-to-server/0x000D.md) |
+| `0x01` | `0x000E` | `WALKOUT_PARTY_MEMBER` | Mutation / 队长按稳定槽位踢出成员；成功无 CMD 回包 | ClientVerified（A21 城镇两人队成功路径；拒绝与地下城路径待验证） | [0x000E.md](game/client-to-server/0x000E.md) |
 | `0x01` | `0x000F` | `ENTER_SELECT_DUNGEON` | Query / 推 NOTI | 实现服务端功能 | [0x000F.md](game/client-to-server/0x000F.md) |
 | `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 成功路径推 NOTI，拒绝路径有响应 | ClientVerified（A21 教学/正式副本成功入场与 `DungeonNotFound` 拒绝；其余准入规则待补） | [0x0010.md](game/client-to-server/0x0010.md) |
 | `0x01` | `0x0012` | `DELETE_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备与堆叠物） | [0x0012.md](game/client-to-server/0x0012.md) |
@@ -72,6 +73,7 @@
 | `0x01` | `0x0047` | `SELECT_CARD` | Mutation / 有响应（认领不到牌位时不答） | 实现服务端功能 | [0x0047.md](game/client-to-server/0x0047.md) |
 | `0x01` | `0x0048` | `EPLP_COMMAND` | Mutation / state 1 离开副本并恢复城镇投影 | 实现服务端功能（A21 静态布局 + 参照帧；当前真客户端待复验） | [0x0048.md](game/client-to-server/0x0048.md) |
 | `0x01` | `0x0075` | `BOSS_DIE_CHECK` | Report / 无 CMD 应答 | WireCaptured（A21 单次 39B 实帧；当前只核对，不以它触发通关） | [0x0075.md](game/client-to-server/0x0075.md) |
+| `0x01` | `0x0079` | `CHANGE_HOST` | Mutation / 按稳定槽位委任队长；成功无 CMD 回包 | ClientVerified（A21 城镇两人队 slot 1 接任且槽位不重排） | [0x0079.md](game/client-to-server/0x0079.md) |
 | `0x01` | `0x0084` | `BACK_2_VILLAGE` | Mutation / 关闭选图界面并恢复城镇投影 | 实现服务端功能（A21 空请求实帧；实现后的按钮行为待复验） | [0x0084.md](game/client-to-server/0x0084.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00A0` | `USE_BOOSTER_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，待实机） | [0x00A0.md](game/client-to-server/0x00A0.md) |
@@ -106,6 +108,7 @@
 | `0x01` CMD | `0x04DD` | `CHECK_USER_CONNECTION` response | Response | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 实现服务端功能 | [NOTI-0x0002.md](game/server-to-client/NOTI-0x0002.md) |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 实现服务端功能（A21 七帧线级重放；真客户端完整退出待归档） | [0x0003.md](game/client-to-server/0x0003.md) |
+| `0x01` CMD | `0x000E` | `WALKOUT_PARTY_MEMBER` refusal | Response / `00 13` | 实现服务端拒绝分支；上游与自动化字节向量确认，A21 实机待验证 | [0x000E.md](game/client-to-server/0x000E.md) |
 | `0x01` CMD | `0x0040` | `BUY_CERASHOP_ITEM` response | Response | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [CMD-0x0040.md](game/server-to-client/CMD-0x0040.md) |
 | `0x01` CMD | `0x0041` | `GEN_CERATICKET` response | Response | 实现服务端功能（失败分支，待实机） | [0x0041.md](game/client-to-server/0x0041.md) |
 | `0x00` NOTI | `0x01F7` | `SERVER_NOTICE_MESSAGE` | Notification | 实现服务端功能（mode=0，商城反馈待实机） | [NOTI-0x01F7.md](game/server-to-client/NOTI-0x01F7.md) |
@@ -116,10 +119,10 @@
 | `0x00` NOTI | `0x0007` | `REQUEST_PEER` | Notification / 组队邀请 | ClientVerified（A21 邀请 UI；真实 body 待归档） | [NOTI-0x0007.md](game/server-to-client/NOTI-0x0007.md) |
 | `0x00` NOTI | `0x0008` | `RESPONSE_PEER` | Notification / 接受回执 | Implemented（接受链 UI 通过；待逐帧归因） | [NOTI-0x0008.md](game/server-to-client/NOTI-0x0008.md) |
 | `0x00` NOTI | `0x0017` | `USER_AREA` | Notification | 编码器保留，**选副本时不发**——A21 参照只在回城路上发 | [NOTI-0x0017.md](game/server-to-client/NOTI-0x0017.md) |
-| `0x00` NOTI | `0x001A` | UDP 主机通告 | Notification | 实现服务端功能 | [NOTI-0x001A.md](game/server-to-client/NOTI-0x001A.md) |
+| `0x00` NOTI | `0x001A` | UDP/P2P host 槽位通告 | Notification | ClientVerified（A21 换队长时 slot 1；与 `0x0009 type=2` 成对验证） | [NOTI-0x001A.md](game/server-to-client/NOTI-0x001A.md) |
 | `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能（A21：37 字节，随 `0x0010` 的回包发） | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
 | `0x00` NOTI | `0x007C` | `ENTER_GAMEWORLD_COMPLETE` | **阶段闸点** | 双向验证结束 | [NOTI-0x007C.md](game/server-to-client/NOTI-0x007C.md) |
-| `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification / baseline、refresh、settings、clear | ClientVerified（A21 成员与同区非成员的 refresh/settings/clear；原生 ID `0x11` add/update/delete） | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
+| `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification / baseline、refresh、settings、host-change、clear | ClientVerified（A21 type-0/type-1/type-2/clear；原生 ID `0x11` add/update/delete） | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
 | `0x00` NOTI | `0x000B` | `USER_UDP_IP_PORT` | Notification / 队员 P2P 端点 | Implemented（双端已上报建队 UI 通过；待逐帧归因/回落/P2P） | [NOTI-0x000B.md](game/server-to-client/NOTI-0x000B.md) |
 | `0x00` NOTI | `0x0099` | `PARTY_MEMBER_REALTIME_INFO` | Notification / 队员实时摘要 | ClientVerified（A21 双端初始 HP） | [NOTI-0x0099.md](game/server-to-client/NOTI-0x0099.md) |
 | `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（两个调用方：当日补给的真实增量、翻牌到货；批次里的空信封已撤） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
