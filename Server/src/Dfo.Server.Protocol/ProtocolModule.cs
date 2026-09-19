@@ -43,6 +43,7 @@ using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
 using Dfo.Server.Protocol.Game.RepairItem;
+using Dfo.Server.Protocol.Game.DisjointItem;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
@@ -130,6 +131,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
@@ -290,6 +292,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<DisjointItemCommand, EquipmentDisjointResult, DisjointItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
@@ -458,6 +462,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
+        services.RegisterMessageHandler<DisjointItemHandler>(ClientMessageType.GameDisjointItem);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
@@ -640,6 +645,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
         services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
         services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
+        services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(
+            GameProtocol.DisjointItemType, ClientMessageType.GameDisjointItem);
         services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
             GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
@@ -743,6 +750,7 @@ public sealed class ProtocolModule : IServerModule
         GameInstanceDelivery.AddEncoders(services);
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();

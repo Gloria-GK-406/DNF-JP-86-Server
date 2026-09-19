@@ -236,6 +236,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
+        services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
+        services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
         services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();

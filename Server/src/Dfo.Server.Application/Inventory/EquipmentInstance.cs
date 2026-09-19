@@ -26,6 +26,12 @@ internal sealed class EquipmentInstance
     internal static EquipmentInstance? From(ContainerSlotItem? item) =>
         item is { WorldClass: ItemWorldClass.Equipment } ? new(item) : null;
 
+    /// <summary>
+    /// Gives a disjoint rule the equipment facts it may judge, but neither its container nor a
+    /// mutation surface. Settlement remains the calling domain service's responsibility.
+    /// </summary>
+    internal EquipmentDisjointCandidate DisjointCandidate() => new(Core.ItemId, Core);
+
     /// <summary>Wear the piece down, never below zero. A broken or non-durable piece is unchanged.</summary>
     internal bool DecreaseDurability(ushort amount)
     {

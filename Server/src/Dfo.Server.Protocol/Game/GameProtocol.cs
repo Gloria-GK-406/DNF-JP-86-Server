@@ -259,6 +259,8 @@ internal static class GameProtocol
     public const ushort BuyItemType = 0x0015;
     public const ushort SellItemType = 0x0016;
     public const ushort RepairItemType = 0x0017;
+    // Selector one: the same numeric type is also UDP-host NOTI 0x001A under selector zero.
+    public const ushort DisjointItemType = 0x001A;
 
     public const ushort ShopPurchaseCountType = 0x02CC;
 
