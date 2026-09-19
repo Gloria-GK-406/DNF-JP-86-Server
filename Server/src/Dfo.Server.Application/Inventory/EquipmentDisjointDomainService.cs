@@ -31,10 +31,12 @@ internal sealed class EquipmentDisjointDomainService(
             || online.AccountId != session.AccountId
             || online.CurrentCharacterId != session.CharacterId)
             return new(EquipmentDisjointRejection.NoSession);
-        // Portable tools use another client path. This slice accepts only the ordinary system
-        // operation so a context field we do not understand cannot silently become free service.
+        // Portable tools use another client path. The final request dword is an opaque client/UI
+        // context: A21 forwards it for ordinary system disjoint and the reference server does not
+        // use it as authority. Eligibility therefore comes from the selected tool slot and rules,
+        // never from this caller-provided context value.
         if (itemSpace != InventoryContainerType.Main || targetSlotIndex < 3
-            || disjointItemSlotIndex != -1 || contextValue != 0
+            || disjointItemSlotIndex != -1
             || settings.Method != EquipmentDisjointMethod.SystemNpc)
             return new(EquipmentDisjointRejection.InvalidRequest);
 
