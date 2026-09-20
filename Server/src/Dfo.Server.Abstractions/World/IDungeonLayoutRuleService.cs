@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
@@ -57,7 +58,7 @@ public readonly record struct DungeonRunPurpose(
 /// the one holding the lease while it does so.
 /// </remarks>
 public sealed record DungeonEntryFacts(
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     IReadOnlyCollection<int> ActiveQuestIds,
     IReadOnlyCollection<int> ClearedQuestIds,
     DungeonEntryIntent Intent = default)

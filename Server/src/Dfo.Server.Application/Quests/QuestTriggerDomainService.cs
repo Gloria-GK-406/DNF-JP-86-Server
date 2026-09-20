@@ -60,7 +60,7 @@ internal sealed class QuestTriggerDomainService(
             var target = definition.HuntEnemyRequirements[index];
             if (target.EnemyType != HuntEnemyTargetTypes.PassiveObject
                 || (target.DungeonId > 0 && target.DungeonId != run.Layout.DungeonId)
-                || (target.Difficulty >= 0 && target.Difficulty != run.Difficulty))
+                || (target.Difficulty >= 0 && target.Difficulty != (int)run.Difficulty))
             {
                 return false;
             }

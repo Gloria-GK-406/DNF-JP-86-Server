@@ -234,7 +234,7 @@ public sealed class TutorialLevelUpHandlerTests
             throw new NotSupportedException("This fixture only answers.");
 
         public DungeonRunState Begin(
-            CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+            CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("This fixture only answers.");
 
         public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -1241,7 +1242,7 @@ public sealed class ClearRewardRuleServiceTests
             ClearRewardFixture.Table(), ClearRewardFixture.Pool());
 
         var face = service.FaceFor(
-            ClearRewardFixture.Occasion() with { Difficulty = 9 }, Seed);
+            ClearRewardFixture.Occasion() with { Difficulty = (DungeonDifficulty)9 }, Seed);
 
         Assert.Equal(0, face.Gold);
     }
@@ -1384,7 +1385,7 @@ internal static class ClearRewardFixture
             kind,
             level,
             dungeonBasisLevel ?? level,
-            difficulty,
+            (DungeonDifficulty)difficulty,
             mapMaxCount,
             partyMemberCount);
 

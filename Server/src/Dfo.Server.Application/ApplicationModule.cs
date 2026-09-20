@@ -218,6 +218,8 @@ public sealed class ApplicationModule : IServerModule
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();
+        services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();
+        services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         // Runtime kill interpretation reads only the published Cell snapshot.
         services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
         // Recomputing a session's offer list after a level or a quest moved what it is made of.

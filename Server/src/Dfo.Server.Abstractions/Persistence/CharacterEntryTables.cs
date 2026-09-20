@@ -190,6 +190,9 @@ public interface ICharacterDungeonPermissionTable
 {
     ValueTask<IReadOnlyList<DungeonPermissionRow>> ReadAsync(
         CharacterId characterId, CancellationToken cancellationToken);
+
+    ValueTask RaiseMaximumAsync(CharacterId characterId, int dungeonId, byte maximum, CancellationToken cancellationToken);
+
 }
 
 /// <summary>The creature rows of <c>items</c>: a character's creatures, in the order they list in.</summary>

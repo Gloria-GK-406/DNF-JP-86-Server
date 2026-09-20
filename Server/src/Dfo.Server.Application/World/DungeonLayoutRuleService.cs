@@ -118,7 +118,7 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
     private static bool IsEligible(
         DungeonQuestConnection connection,
         DungeonEntryFacts facts) =>
-        (connection.MinimumDifficulty < 0 || facts.Difficulty >= connection.MinimumDifficulty)
+        (connection.MinimumDifficulty < 0 || (int)facts.Difficulty >= connection.MinimumDifficulty)
         && (connection.State == DungeonQuestConnectionState.Active
             ? facts.ActiveQuestIds.Contains(connection.QuestId)
             : facts.ClearedQuestIds.Contains(connection.QuestId));

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
@@ -18,7 +19,7 @@ public sealed record ApplyMonsterKillCommand(
     CharacterId CharacterId,
     KilledMonster Monster,
     int DungeonId,
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     double DungeonWeight,
     int EnemyType = HuntEnemyTargetTypes.Monster,
     int PartyMemberCount = 1,

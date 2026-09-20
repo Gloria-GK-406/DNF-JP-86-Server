@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Accounts;
@@ -23,7 +24,7 @@ public sealed record DungeonRunState(
     int CurrentRoomMapId,
     IReadOnlySet<MazeCell> VisitedCells,
     DateTimeOffset StartedAt,
-    byte Difficulty = 0,
+    DungeonDifficulty Difficulty = 0,
     bool IsSettled = false,
     ClearRewardCardSet? ClearRewardCards = null,
     DungeonRunId RunId = default,
@@ -431,7 +432,7 @@ public interface IDungeonRunDomainService
     DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         DungeonCellSeed initialCell,
         DungeonRunId runId,
         DateTimeOffset startedAt) => throw new NotSupportedException(

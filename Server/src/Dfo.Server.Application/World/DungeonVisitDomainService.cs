@@ -1,4 +1,6 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -17,7 +19,9 @@ internal sealed class DungeonVisitDomainService(
     IDungeonLayoutRuleService layouts,
     IDungeonRunDomainService runs,
     IDungeonSelectionRuleService selection,
-    IDungeonCellFactory cells) : IDungeonVisitDomainService
+    IDungeonCellFactory cells,
+    ICharacterDungeonDifficultyDomainService difficulties,
+    IDungeonDifficultyRuleService difficultyRules) : IDungeonVisitDomainService
 {
     public bool DefersSelectionState(byte characterLevel) =>
         selection.DefersSelectionState(characterLevel);
@@ -25,7 +29,7 @@ internal sealed class DungeonVisitDomainService(
     public async ValueTask<DungeonEntry?> EnterAsync(
         CharacterId characterId,
         int dungeonId,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         DungeonEntryFacts facts,
         CancellationToken cancellationToken)
     {
@@ -44,12 +48,28 @@ internal sealed class DungeonVisitDomainService(
     public async ValueTask<DungeonPartyEntry?> EnterPartyAsync(
         IReadOnlyList<DungeonRunParticipant> participants,
         int dungeonId,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         DungeonEntryFacts facts,
         CancellationToken cancellationToken)
     {
+        var attempt = await TryEnterPartyAsync(participants, dungeonId, facts with { Difficulty = difficulty }, cancellationToken)
+            .ConfigureAwait(false);
+        return attempt.Entry;
+    }
+
+    public async ValueTask<DungeonEntryAttempt> TryEnterPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, int dungeonId,
+        DungeonEntryFacts facts, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(facts);
+
+        var difficulty = facts.Difficulty;
+        if (!Enum.IsDefined(difficulty)) throw new ArgumentOutOfRangeException(nameof(facts));
+        // Party-wide eligibility policy is intentionally unchanged in this task.
+        if (participants.Count == 1 && !difficultyRules.Allows(difficulty, await difficulties.GetMaximumAsync(
+                participants[0].CharacterId, dungeonId, cancellationToken).ConfigureAwait(false)))
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
 
         // One seed and one layout per shared run. Every participant is attached only after the
         // layout exists, and BeginParty publishes all character indexes under one aggregate lock.
@@ -57,7 +77,7 @@ internal sealed class DungeonVisitDomainService(
             .ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
             .ConfigureAwait(false);
         if (layout is null)
-            return null;
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
 
         var runId = DungeonRunId.New();
         var startedAt = DateTimeOffset.UtcNow;
@@ -80,7 +100,7 @@ internal sealed class DungeonVisitDomainService(
                     ?? throw new InvalidOperationException(
                         "A shared dungeon run was published without every participant index."),
                 firstEntry: true));
-        return new DungeonPartyEntry(layout, createdVisits, change);
+        return DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout, createdVisits, change));
     }
 
     public async ValueTask<DungeonRoomVisit?> MoveAsync(

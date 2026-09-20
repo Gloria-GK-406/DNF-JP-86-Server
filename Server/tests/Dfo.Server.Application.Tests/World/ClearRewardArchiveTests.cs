@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -298,7 +299,7 @@ public sealed class ClearRewardArchiveTests
                 Kind: ClearRewardCardKind.Free,
                 CharacterLevel: level,
                 DungeonBasisLevel: EndgameLevel,
-                Difficulty: difficulty,
+                Difficulty: (DungeonDifficulty)difficulty,
                 MapMaxCount: mapMaxCount,
                 PartyMemberCount: partyMemberCount));
 
@@ -331,7 +332,7 @@ public sealed class ClearRewardArchiveTests
         Assert.Equal(1.0, table.GoldCardCreateRate);
 
         int Rate(ClearRewardCardKind kind, int rooms) => service.ChanceOf(
-            new ClearRewardOccasion(kind, EndgameLevel, EndgameLevel, 3, rooms, 1)).Rate;
+            new ClearRewardOccasion(kind, EndgameLevel, EndgameLevel, (DungeonDifficulty)3, rooms, 1)).Rate;
 
         // 6000 from the largest map row, 1400 from the third difficulty, against a threshold of
         // 10000. Drawn at the event profile's 9000 it would be 8400 instead.
@@ -385,7 +386,7 @@ public sealed class ClearRewardArchiveTests
         Assert.Equal([0], zeroed);
 
         var occasion = new ClearRewardOccasion(
-            ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, zeroed[0], 5, 1);
+            ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, (DungeonDifficulty)zeroed[0], 5, 1);
         Assert.Equal(6000, service.ChanceOf(occasion).Rate);
         Assert.False(service.ChanceOf(occasion).IsImpossible);
 
@@ -403,7 +404,7 @@ public sealed class ClearRewardArchiveTests
         }
 
         // Still less than the same run one difficulty up, which is what the bonus is for.
-        Assert.Equal(6600, service.ChanceOf(occasion with { Difficulty = 1 }).Rate);
+        Assert.Equal(6600, service.ChanceOf(occasion with { Difficulty = (DungeonDifficulty)1 }).Rate);
     }
 
     /// <summary>
@@ -507,7 +508,7 @@ public sealed class ClearRewardArchiveTests
             foreach (var kind in new[] { ClearRewardCardKind.Free, ClearRewardCardKind.Paid })
             {
                 var occasion =
-                    new ClearRewardOccasion(kind, EndgameLevel, EndgameLevel, 3, rooms, 1);
+                    new ClearRewardOccasion(kind, EndgameLevel, EndgameLevel, (DungeonDifficulty)3, rooms, 1);
                 Assert.False(
                     service.ChanceOf(occasion).IsImpossible,
                     $"{kind} at {rooms} rooms carried nothing");
@@ -522,7 +523,7 @@ public sealed class ClearRewardArchiveTests
         // priced by that row, and a maze past the table by the largest row there is.
         int Free(int rooms) => service.ChanceOf(
             new ClearRewardOccasion(
-                ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, 3, rooms, 1)).Rate;
+                ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, (DungeonDifficulty)3, rooms, 1)).Rate;
         Assert.Equal(6400, Free(4));
         Assert.Equal(7400, Free(6));
         Assert.Equal(7400, Free(10));
@@ -561,7 +562,7 @@ public sealed class ClearRewardArchiveTests
 
         int Free(int rooms) => service.ChanceOf(
                 new ClearRewardOccasion(
-                    ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, 3, rooms, 1))
+                    ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, (DungeonDifficulty)3, rooms, 1))
             .Rate;
 
         Assert.Equal(7400, Free(10));
@@ -601,7 +602,7 @@ public sealed class ClearRewardArchiveTests
         Assert.NotNull(grades);
 
         var occasion = new ClearRewardOccasion(
-            ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, 3, 5, 1);
+            ClearRewardCardKind.Free, EndgameLevel, EndgameLevel, (DungeonDifficulty)3, 5, 1);
         var drawn = Enumerable.Range(0, 400)
             .SelectMany(seed => service.FaceFor(occasion, (ulong)seed).Slots)
             .Where(slot => !slot.IsEmpty)
@@ -694,7 +695,7 @@ public sealed class ClearRewardArchiveTests
             foreach (var characterLevel in new[] { LowLevel, EndgameLevel })
             {
                 var runs = new DungeonRunDomainService();
-                runs.Begin(Character, LayoutOf(dungeon, MazeRooms, seed), difficulty: 3);
+                runs.Begin(Character, LayoutOf(dungeon, MazeRooms, seed), difficulty: (DungeonDifficulty)3);
                 var settled = await new CardRewardDomainService(rules, runs).SettleAsync(
                     new ClearRewardSettlement(Character, characterLevel), CancellationToken.None);
 

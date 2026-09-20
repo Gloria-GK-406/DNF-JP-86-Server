@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -28,7 +29,7 @@ public sealed record GrantKillExperienceCommand(
     CharacterId CharacterId,
     KilledMonster Monster,
     int DungeonId,
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     double DungeonWeight,
     int PartyMemberCount = 1) : ICommand<KillExperienceResult>;
 

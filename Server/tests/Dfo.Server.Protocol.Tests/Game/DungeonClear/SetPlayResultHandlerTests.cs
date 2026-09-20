@@ -809,7 +809,7 @@ public sealed class SetPlayResultHandlerTests
             CurrentCellState: DungeonCellSeed.CompleteEmpty(
                 new MazeCell(0, 0), 1).Snapshot());
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("This fixture only answers.");
 
         /// <summary>Not exercised here: nothing in these tests kills anything.</summary>

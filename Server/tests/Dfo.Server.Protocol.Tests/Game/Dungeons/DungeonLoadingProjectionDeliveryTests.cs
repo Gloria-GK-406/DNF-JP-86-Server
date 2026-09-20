@@ -215,7 +215,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
 
         public DungeonRunState? Find(CharacterId characterId) =>
             current.Participants.Any(value => value.CharacterId == characterId) ? current : null;
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException();
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;

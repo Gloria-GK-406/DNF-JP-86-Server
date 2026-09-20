@@ -133,7 +133,7 @@ public sealed class QuestProgressDomainService(
 
     private static bool Matches(HuntEnemyRequirement target, QuestEnemyDefeated death) =>
         target.DungeonId == death.DungeonId
-        && (target.Difficulty < 0 || target.Difficulty == death.Difficulty)
+        && (target.Difficulty < 0 || target.Difficulty == (int)death.Difficulty)
         && target.EnemyCode == death.EnemyCode
         && target.EnemyType == death.EnemyType;
 
@@ -150,7 +150,7 @@ public sealed class QuestProgressDomainService(
                 .ConfigureAwait(false);
             var target = definition?.DungeonClearRequirement;
             if (target is null || target.DungeonId != clear.DungeonId
-                || (target.Difficulty >= 0 && target.Difficulty != clear.Difficulty))
+                || (target.Difficulty >= 0 && target.Difficulty != (int)clear.Difficulty))
                 continue;
 
             var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
@@ -215,7 +215,7 @@ public sealed class QuestProgressDomainService(
     {
         if (death.EnemyCode <= 0
             || (target.DungeonId != -1 && target.DungeonId != death.DungeonId)
-            || death.Difficulty < target.MinimumDifficulty)
+            || (int)death.Difficulty < target.MinimumDifficulty)
             return false;
 
         return target.MonsterCode switch

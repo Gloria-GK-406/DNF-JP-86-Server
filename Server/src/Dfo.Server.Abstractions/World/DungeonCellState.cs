@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 
@@ -139,7 +140,7 @@ public sealed record DungeonCellCreationContext(
     DungeonLayout Layout,
     MazeCell Cell,
     int MapId,
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     DateTimeOffset StartedAt,
     IReadOnlyList<DungeonRunParticipant> Participants);
 

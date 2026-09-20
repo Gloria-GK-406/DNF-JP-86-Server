@@ -1183,7 +1183,7 @@ public sealed class CardRewardTests
             if (!inARun)
                 return;
 
-            var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: 1);
+            var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: Dfo.Server.Data.World.DungeonDifficulty.Adventure);
             if (cardsFixed)
             {
                 // The price goes down with the faces, which is where a clear fixes it. Handing it

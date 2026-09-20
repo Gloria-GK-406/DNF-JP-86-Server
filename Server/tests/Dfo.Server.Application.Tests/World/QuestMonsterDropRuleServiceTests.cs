@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
@@ -46,17 +47,17 @@ public sealed class QuestMonsterDropRuleServiceTests
     }
 
     [Theory]
-    [InlineData(99999, 145, 0)]
-    [InlineData(65601, 144, 0)]
-    [InlineData(65601, 145, 2)]
+    [InlineData(99999, 145, DungeonDifficulty.Normal)]
+    [InlineData(65601, 144, DungeonDifficulty.Normal)]
+    [InlineData(65601, 145, DungeonDifficulty.Tier2)]
     public async Task Monster_dungeon_and_difficulty_scope_all_have_to_match(
-        int monsterCode, int dungeonId, byte difficulty)
+        int monsterCode, int dungeonId, DungeonDifficulty difficulty)
     {
         var fixture = Build(
             DungeonRunPurpose.QuestLinked(1779, DungeonQuestConnectionState.Active),
             dungeonId,
             difficulty,
-            rewardDifficulty: difficulty == 2 ? 1 : -1);
+            rewardDifficulty: difficulty == DungeonDifficulty.Tier2 ? 1 : -1);
 
         Assert.Empty(await fixture.Service.DrawAsync(
             Kill(fixture.Run, monsterCode), CancellationToken.None));
@@ -103,7 +104,7 @@ public sealed class QuestMonsterDropRuleServiceTests
     private static Fixture Build(
         DungeonRunPurpose purpose,
         int dungeonId = 145,
-        byte difficulty = 0,
+        DungeonDifficulty difficulty = 0,
         int held = 0,
         int maxStack = 15,
         int rewardCount = 1,

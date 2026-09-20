@@ -50,7 +50,7 @@ internal sealed class QuestMonsterDropRuleService(
                 {
                     if (source.MonsterCode != kill.MonsterCode
                         || (source.DungeonId >= 0 && source.DungeonId != kill.Context.Layout.DungeonId)
-                        || (source.Difficulty >= 0 && source.Difficulty != kill.Context.Difficulty))
+                        || (source.Difficulty >= 0 && source.Difficulty != (int)kill.Context.Difficulty))
                         continue;
 
                     var required = definition.SeekingItems?

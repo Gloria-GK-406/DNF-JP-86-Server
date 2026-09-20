@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 
@@ -127,9 +128,9 @@ public sealed class DungeonClearExperienceRulesTests
     /// <summary>A difficulty the archive does not list is worth one, not the easiest.</summary>
     [Fact]
     public void ADifficultyTheArchiveDoesNotListIsWorthOne() =>
-        Assert.Equal(424u, Base(basisLevel: 5, difficulty: 9)); // 293 x 1 x 1.45
+        Assert.Equal(424u, Base(basisLevel: 5, difficulty: (DungeonDifficulty)9)); // 293 x 1 x 1.45
 
-    private static uint Base(int basisLevel, double weight = CapturedDungeonWeight, byte difficulty = 0) =>
+    private static uint Base(int basisLevel, double weight = CapturedDungeonWeight, DungeonDifficulty difficulty = 0) =>
         DungeonClearExperienceRules.BaseWorth(
             Circumstances(basisLevel, weight, difficulty), Quests, Rates);
 
@@ -138,6 +139,6 @@ public sealed class DungeonClearExperienceRulesTests
             clearBase, (byte)Math.Clamp(score, 0, 255), Grades, Rates);
 
     private static ClearCircumstances Circumstances(
-        int basisLevel, double weight = CapturedDungeonWeight, byte difficulty = 0) =>
+        int basisLevel, double weight = CapturedDungeonWeight, DungeonDifficulty difficulty = 0) =>
         new(basisLevel, difficulty, weight, ClientRankPoint: 0);
 }

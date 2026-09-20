@@ -128,7 +128,7 @@ public sealed class CardRewardReconnectIntegrationTests
                     SelectedSessionIdentity.Create(
                         Account, Character, first, connectionGeneration: 1, gamePort));
 
-                var run = runs.Begin(Character, Layout, difficulty: 1);
+                var run = runs.Begin(Character, Layout, difficulty: (DungeonDifficulty)1);
                 Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
                 Assert.NotNull(
                     runs.FixClearRewardCards(

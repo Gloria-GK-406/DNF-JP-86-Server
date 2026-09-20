@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
@@ -21,7 +22,7 @@ public readonly record struct KillCircumstances(
     int MonsterLevel,
     MonsterRank Rank,
     int CharacterLevel,
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     double DungeonWeight,
     int PartyMemberCount);
 
@@ -67,7 +68,7 @@ public static class MonsterExperienceRules
         var shared = Floor(
             worth / tuning.WorthDivisor
             * parameters.PartyMemberRate(partySize)
-            * parameters.DifficultyRate(kill.Difficulty)
+            * parameters.DifficultyRate((int)kill.Difficulty)
             * kill.DungeonWeight
             * tuning.RankRate(kill.Rank)
             * parameters.MonsterOverallRate);

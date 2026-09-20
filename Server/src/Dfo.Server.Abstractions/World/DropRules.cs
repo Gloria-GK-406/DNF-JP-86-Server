@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
@@ -122,7 +123,7 @@ public static class DropRules
         DropRateTable table,
         DropRateBand band,
         int monsterRank,
-        int difficulty,
+        DungeonDifficulty difficulty,
         int partyMemberCount,
         int basis)
     {
@@ -135,7 +136,7 @@ public static class DropRules
             var slot = (DropRateSlot)index;
             var rate = band.RateOf(slot)
                 * table.MonsterRankRate(slot, monsterRank)
-                * table.DifficultyRate(slot, difficulty)
+                * table.DifficultyRate(slot, (int)difficulty)
                 * table.PartyMemberRate(slot, partyMemberCount);
             slots.Add(new SlotRate(slot, Math.Min(rate, basis)));
         }

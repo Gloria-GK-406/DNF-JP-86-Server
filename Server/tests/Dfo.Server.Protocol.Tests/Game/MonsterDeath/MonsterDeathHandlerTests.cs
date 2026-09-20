@@ -964,7 +964,7 @@ public sealed class MonsterDeathHandlerTests
             throw new NotSupportedException("This fixture only answers.");
 
         public DungeonRunState Begin(
-            CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+            CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("This fixture only answers.");
 
         public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
@@ -1143,7 +1143,7 @@ public sealed class MonsterDeathHandlerTests
             return true;
         }
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw Unused();
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw Unused();
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort number) => throw Unused();

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Quests;
@@ -111,7 +112,7 @@ public sealed class QuestProgressDomainServiceTests
 
         var result = await service.ReportAsync(
             Account, Character,
-            [new QuestEnemyDefeated(144, 2, 13099, HuntEnemyTargetTypes.Monster,
+            [new QuestEnemyDefeated(144, (DungeonDifficulty)2, 13099, HuntEnemyTargetTypes.Monster,
                 MonsterRank.Boss)], CancellationToken.None);
 
         Assert.Equal([new QuestProgressChange(2001, 514, 1)], result.Changes);
@@ -128,11 +129,11 @@ public sealed class QuestProgressDomainServiceTests
         var service = Service(logs, new FixedClientReport(QuestAdvance.Refused));
         foreach (var fact in new[]
         {
-            new QuestEnemyDefeated(145, 2, 13099, HuntEnemyTargetTypes.Monster,
+            new QuestEnemyDefeated(145, (DungeonDifficulty)2, 13099, HuntEnemyTargetTypes.Monster,
                 MonsterRank.Boss),
             new QuestEnemyDefeated(144, 0, 13099, HuntEnemyTargetTypes.Monster,
                 MonsterRank.Boss),
-            new QuestEnemyDefeated(144, 2, 13100, HuntEnemyTargetTypes.Monster),
+            new QuestEnemyDefeated(144, (DungeonDifficulty)2, 13100, HuntEnemyTargetTypes.Monster),
         })
         {
             var result = await service.ReportAsync(Account, Character, [fact],

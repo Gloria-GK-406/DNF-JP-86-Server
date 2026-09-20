@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
@@ -12,7 +13,7 @@ namespace Dfo.Server.Abstractions.World;
 /// </param>
 public readonly record struct ClearCircumstances(
     int BasisLevel,
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     double DungeonWeight,
     byte ClientRankPoint);
 
@@ -55,7 +56,7 @@ public static class DungeonClearExperienceRules
         return Floor(
             atLevel
             * parameters.ClearOverallRate
-            * parameters.DifficultyRate(clear.Difficulty)
+            * parameters.DifficultyRate((int)clear.Difficulty)
             * clear.DungeonWeight);
     }
 

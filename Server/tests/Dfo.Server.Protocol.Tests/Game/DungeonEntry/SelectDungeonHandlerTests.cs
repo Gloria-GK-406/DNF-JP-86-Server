@@ -432,7 +432,7 @@ public sealed class SelectDungeonHandlerTests
 
     private const ushort TutorialDungeonId = 10000;
 
-    private const byte Difficulty = 3;
+    private const DungeonDifficulty Difficulty = (DungeonDifficulty)3;
 
     private static SelectDungeonHandler Handler(
         RecordingVisits visits,
@@ -561,7 +561,7 @@ public sealed class SelectDungeonHandlerTests
         public ValueTask<EnteredDungeon?> EnterAsync(
             CharacterId characterId,
             int dungeonId,
-            byte difficulty,
+            DungeonDifficulty difficulty,
             DungeonEntryFacts facts,
             CancellationToken cancellationToken)
         {
@@ -594,7 +594,7 @@ public sealed class SelectDungeonHandlerTests
         public ValueTask<EnteredDungeon?> EnterAsync(
             CharacterId characterId,
             int dungeonId,
-            byte difficulty,
+            DungeonDifficulty difficulty,
             DungeonEntryFacts facts,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<EnteredDungeon?>(null);
@@ -848,7 +848,7 @@ public sealed class SelectDungeonHandlerTests
 
     private sealed class NoopRuns : IDungeonRunDomainService
     {
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) => throw new NotSupportedException();
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
         public DungeonRunState? Find(CharacterId characterId) => null;
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;

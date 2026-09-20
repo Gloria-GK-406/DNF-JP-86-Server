@@ -574,7 +574,7 @@ public sealed class LeaveDungeonTests
                     Layout.StartCell, Layout.StartRoomMapId).Snapshot())
             : null;
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("This fixture only ends.");
 
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>

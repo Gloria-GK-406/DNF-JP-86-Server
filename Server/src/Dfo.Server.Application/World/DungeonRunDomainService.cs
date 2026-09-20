@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Parties;
@@ -46,7 +47,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         DungeonCellSeed initialCell,
         DungeonRunId runId,
         DateTimeOffset startedAt)
@@ -1303,7 +1304,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             IPartyService? parties,
             ImmutableArray<DungeonRunParticipant> participants,
             DungeonLayout layout,
-            byte difficulty,
+            DungeonDifficulty difficulty,
             DateTimeOffset startedAt,
             DungeonCellSeed initialCell)
         {
@@ -1352,7 +1353,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public DungeonRunParticipant Leader =>
             this.Participants.Single(participant => participant.IsLeader);
         public DungeonLayout Layout { get; }
-        public byte Difficulty { get; }
+        public DungeonDifficulty Difficulty { get; }
         public DateTimeOffset StartedAt { get; }
         public MazeCell CurrentCell { get; set; }
         public int CurrentRoomMapId => this.Cells[this.CurrentCell].MapId;

@@ -352,7 +352,13 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Equal(OtherCostume, Assert.Single(frame.Equipment).Core.ItemId);
         var expected = new List<Type> { typeof(ExtendedUserStateMessage), typeof(EnterSelectDungeonAcknowledgement),
             typeof(UserStateNotification), typeof(UdpHostNotification) };
-        if (level > 1) expected.Add(typeof(EnterSelectDungeonNotification));
+        if (level > 1)
+        {
+            expected.Add(typeof(DungeonPermissionStateMessage));
+            expected.Add(typeof(EnterSelectDungeonNotification));
+            Assert.Equal(current.CharacterEntry.Progression.Dungeons,
+                Assert.Single(world.Sender.Sent.OfType<DungeonPermissionStateMessage>()).Dungeons);
+        }
         Assert.Equal(expected, world.Sender.Sent.Select(message => message.GetType()));
     }
 
@@ -670,7 +676,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     {
         public bool DefersSelectionState(byte characterLevel) => characterLevel <= 1;
         public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
-            byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
+            DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
         public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId characterId,
             DungeonRunState current, MazeCell target, CancellationToken cancellationToken) =>

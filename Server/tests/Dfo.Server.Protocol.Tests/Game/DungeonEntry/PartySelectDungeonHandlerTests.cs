@@ -669,7 +669,7 @@ public sealed class PartySelectDungeonHandlerTests
         new AccountId(2), new CharacterId(1002), new NetworkConnectionId("member"), 21, 10011);
 
     private const ushort DungeonId = 10000;
-    private const byte Difficulty = 3;
+    private const DungeonDifficulty Difficulty = (DungeonDifficulty)3;
 
     private sealed record TestWorld(
         SelectDungeonHandler Handler,
@@ -805,8 +805,8 @@ public sealed class PartySelectDungeonHandlerTests
             new Dictionary<CharacterId, DungeonRoomVisit>();
 
         public bool DefersSelectionState(byte characterLevel) => false;
-        public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<DungeonPartyEntry?> EnterPartyAsync(IReadOnlyList<DungeonRunParticipant> participants, int dungeonId, byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken)
+        public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<DungeonPartyEntry?> EnterPartyAsync(IReadOnlyList<DungeonRunParticipant> participants, int dungeonId, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken)
         {
             PartyEntries++;
             Participants = participants.ToArray();
@@ -870,7 +870,7 @@ public sealed class PartySelectDungeonHandlerTests
         public List<CharacterId> Ended { get; } = [];
         public void SetCurrent(CharacterId characterId, DungeonRunState run) =>
             current[characterId] = run;
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) => throw new NotSupportedException();
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
         public DungeonRunState? Find(CharacterId characterId) => current.GetValueOrDefault(characterId);
         public bool TryAbortEntry(
             DungeonRunId expectedRunId,

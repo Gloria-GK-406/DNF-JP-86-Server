@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
@@ -249,12 +250,12 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     }
 
     [Theory]
-    [InlineData(145, 0, 13099, 3)]
-    [InlineData(144, 0, 13100, 3)]
-    [InlineData(144, 0, 13099, 2)]
+    [InlineData(145, DungeonDifficulty.Normal, 13099, 3)]
+    [InlineData(144, DungeonDifficulty.Normal, 13100, 3)]
+    [InlineData(144, DungeonDifficulty.Normal, 13099, 2)]
     public async Task AThingTheObjectiveDoesNotNameDoesNotAdvance(
         int dungeonId,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         int enemyCode,
         int enemyType)
     {
@@ -292,7 +293,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
 
     private static AdvanceHuntEnemyQuestCommand Command(
         int dungeonId,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         int enemyCode,
         int enemyType) =>
         new(Account, Character, dungeonId, difficulty, enemyCode, enemyType);

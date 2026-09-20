@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -77,7 +78,7 @@ public sealed class DropRulesTests
         var band = new DropRateBand(81, 200, [9000, 0, 0, 0, 0]);
 
         // Boss, hardest difficulty, full party: 9000 x 6.6 x 1.1, well past the basis.
-        var rates = DropRules.RatesFor(table, band, 3, 4, 4, Basis);
+        var rates = DropRules.RatesFor(table, band, 3, (DungeonDifficulty)4, 4, Basis);
 
         Assert.Equal(Basis, rates.Of(DropRateSlot.Gold), 4);
     }

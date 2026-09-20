@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -181,7 +182,7 @@ public sealed class CardRewardDomainServiceTests
         Build(DungeonLayout layout)
     {
         var runs = new DungeonRunDomainService();
-        runs.Begin(Character, layout, (byte)Difficulty);
+        runs.Begin(Character, layout, (DungeonDifficulty)Difficulty);
         var rules = new RecordingRules();
         return (new CardRewardDomainService(rules, runs), runs, rules);
     }
@@ -246,7 +247,7 @@ public sealed class CardRewardDomainServiceTests
         _ = runs.PreparePartyEntry(
             [participant],
             Tutorial,
-            (byte)Difficulty,
+            (DungeonDifficulty)Difficulty,
             new DungeonCellSeed(
                 Tutorial.StartCell,
                 Tutorial.StartRoomMapId,
@@ -286,14 +287,14 @@ public sealed class CardRewardDomainServiceTests
     public async Task Card_resolution_for_an_old_run_cannot_fix_cards_on_its_replacement()
     {
         var runs = new DungeonRunDomainService();
-        var old = runs.Begin(Character, Tutorial, (byte)Difficulty);
+        var old = runs.Begin(Character, Tutorial, (DungeonDifficulty)Difficulty);
         var rules = new RecordingRules(pauseOffers: true);
         var service = new CardRewardDomainService(rules, runs);
         var pending = service.SettleAsync(
             Settlement with { RunId = old.RunId }, CancellationToken.None).AsTask();
         await rules.WaitForOffersAsync();
 
-        var replacement = runs.Begin(Character, Tutorial, (byte)(Difficulty + 1));
+        var replacement = runs.Begin(Character, Tutorial, (DungeonDifficulty)(Difficulty + 1));
         rules.ReleaseOffers();
 
         Assert.Null(await pending);
@@ -415,7 +416,7 @@ public sealed class CardRewardDomainServiceTests
                 Assert.Equal(Level, asked.Occasion.CharacterLevel);
                 Assert.Equal(BasisLevel, asked.Occasion.DungeonBasisLevel);
                 Assert.Equal(PartySize, asked.Occasion.PartyMemberCount);
-                Assert.Equal(Difficulty, asked.Occasion.Difficulty);
+                Assert.Equal((DungeonDifficulty)Difficulty, asked.Occasion.Difficulty);
                 Assert.Equal(layout.Rooms.Count, asked.Occasion.MapMaxCount);
             });
 

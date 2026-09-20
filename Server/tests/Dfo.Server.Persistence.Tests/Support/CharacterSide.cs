@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Inventory;
@@ -164,7 +165,7 @@ internal sealed class CharacterSide
             new SqliteCharacterDailyChallengeEntryTable(this.database),
             new SqliteCharacterDailyChallengeTailTable(this.database),
             new SqliteCharacterDailyScheduleTable(this.database),
-            new SqliteCharacterDungeonPermissionTable(this.database),
+            new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database)),
             new SqliteCharacterDailyCounterValueTable(this.database),
             new SqliteCharacterCreatureTable(this.database),
             new SqliteCharacterTitleBookTable(this.database),

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 
@@ -180,7 +181,7 @@ public sealed record ClearRewardOccasion(
     ClearRewardCardKind Kind,
     int CharacterLevel,
     int DungeonBasisLevel,
-    int Difficulty,
+    DungeonDifficulty Difficulty,
     int MapMaxCount,
     int PartyMemberCount)
 {

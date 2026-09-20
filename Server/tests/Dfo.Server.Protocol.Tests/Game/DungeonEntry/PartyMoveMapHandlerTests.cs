@@ -239,7 +239,7 @@ public sealed class PartyMoveMapHandlerTests
                 layout.StartCell, layout.StartRoomMapId).Snapshot());
 
         public bool DefersSelectionState(byte characterLevel) => false;
-        public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId characterId, DungeonRunState current, MazeCell target, CancellationToken cancellationToken)
         {
             Moves++;
@@ -265,7 +265,7 @@ public sealed class PartyMoveMapHandlerTests
                 participant => participant.CharacterId,
                 participant => state with { Participant = participant });
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) => throw new NotSupportedException();
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
         public DungeonRunState? Find(CharacterId characterId) => states.GetValueOrDefault(characterId);
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw new NotSupportedException();
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => throw new NotSupportedException();

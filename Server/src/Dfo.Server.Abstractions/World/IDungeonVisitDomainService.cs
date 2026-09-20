@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 
@@ -34,6 +35,14 @@ public sealed record DungeonPartyEntry(
     DungeonLayout Layout,
     IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits,
     DungeonEntryChange? Change = null);
+
+public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked }
+
+public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure)
+{
+    public static DungeonEntryAttempt Accepted(DungeonPartyEntry entry) => new(entry, null);
+    public static DungeonEntryAttempt Refused(DungeonEntryFailure failure) => new(null, failure);
+}
 
 /// <summary>
 /// Entering a dungeon and walking between its rooms.
@@ -72,15 +81,25 @@ public interface IDungeonVisitDomainService
     ValueTask<DungeonEntry?> EnterAsync(
         CharacterId characterId,
         int dungeonId,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         DungeonEntryFacts facts,
         CancellationToken cancellationToken);
+
+    async ValueTask<DungeonEntryAttempt> TryEnterPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, int dungeonId,
+        DungeonEntryFacts facts, CancellationToken cancellationToken)
+    {
+        var entry = await EnterPartyAsync(participants, dungeonId, facts.Difficulty, facts, cancellationToken)
+            .ConfigureAwait(false);
+        return entry is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
+            : DungeonEntryAttempt.Accepted(entry);
+    }
 
     /// <summary>Resolves one layout and atomically begins one run for all frozen participants.</summary>
     async ValueTask<DungeonPartyEntry?> EnterPartyAsync(
         IReadOnlyList<DungeonRunParticipant> participants,
         int dungeonId,
-        byte difficulty,
+        DungeonDifficulty difficulty,
         DungeonEntryFacts facts,
         CancellationToken cancellationToken)
     {

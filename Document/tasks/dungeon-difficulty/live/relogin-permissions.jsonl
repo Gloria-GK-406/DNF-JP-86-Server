@@ -1,0 +1,7 @@
+{"timestamp_utc": "2026-09-20T11:53:23.819023+00:00", "connection": "game-0001", "direction": "S2C", "selector": "0x01", "type": "0x0004", "header_length": 15, "body_length": 298, "capture_kind": "selected_fields_only", "body_slices": [{"offset": 11, "length": 6, "hex": "0000BC000000"}]}
+{"timestamp_utc": "2026-09-20T11:53:23.820022+00:00", "connection": "game-0001", "direction": "S2C", "selector": "0x00", "type": "0x0005", "header_length": 15, "body_length": 7, "body_hex": "01009600000001"}
+{"timestamp_utc": "2026-09-20T11:53:23.820022+00:00", "connection": "game-0001", "direction": "S2C", "selector": "0x00", "type": "0x01EB", "header_length": 15, "body_length": 3, "body_hex": "000000"}
+{"timestamp_utc": "2026-09-20T11:54:56.092349+00:00", "connection": "game-0001", "direction": "C2S", "selector": "0x01", "type": "0x000F", "header_length": 14, "body_length": 4, "body_hex": "00000000"}
+{"timestamp_utc": "2026-09-20T11:54:56.100143+00:00", "connection": "game-0001", "direction": "S2C", "selector": "0x01", "type": "0x000F", "header_length": 15, "body_length": 1, "body_hex": "01"}
+{"timestamp_utc": "2026-09-20T11:54:56.100143+00:00", "connection": "game-0001", "direction": "S2C", "selector": "0x00", "type": "0x0005", "header_length": 15, "body_length": 7, "body_hex": "01009600000001"}
+{"timestamp_utc": "2026-09-20T11:54:56.100143+00:00", "connection": "game-0001", "direction": "S2C", "selector": "0x00", "type": "0x001B", "header_length": 15, "body_length": 37, "body_hex": "00000000000000000000010100000000000001000000000000000000000000000000000000"}

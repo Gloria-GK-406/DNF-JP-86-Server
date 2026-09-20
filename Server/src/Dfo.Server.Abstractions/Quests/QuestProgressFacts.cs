@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.World;
@@ -13,11 +14,11 @@ public sealed record ClientQuestTriggerReport(int QuestId, byte Selector, bool I
 
 /// <summary>An actor death already claimed and verified by the dungeon run.</summary>
 public sealed record QuestEnemyDefeated(
-    int DungeonId, byte Difficulty, int EnemyCode, int EnemyType,
+    int DungeonId, DungeonDifficulty Difficulty, int EnemyCode, int EnemyType,
     MonsterRank? Rank = null) : QuestProgressFact;
 
 /// <summary>The run opened its clear after the boss room was verified empty.</summary>
-public sealed record QuestDungeonCleared(int DungeonId, byte Difficulty) : QuestProgressFact;
+public sealed record QuestDungeonCleared(int DungeonId, DungeonDifficulty Difficulty) : QuestProgressFact;
 
 /// <summary>The authoritative inventory or currency balance changed; item goals are re-read.</summary>
 public sealed record QuestHoldingsChanged : QuestProgressFact;

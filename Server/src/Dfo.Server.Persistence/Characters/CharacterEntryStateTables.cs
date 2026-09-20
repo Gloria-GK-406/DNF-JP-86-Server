@@ -262,6 +262,26 @@ internal sealed class SqliteCharacterDungeonPermissionTable(SqliteDatabase datab
             reader => new DungeonPermissionRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
             cancellationToken);
+
+    public ValueTask RaiseMaximumAsync(CharacterId characterId, int dungeonId, byte maximum, CancellationToken cancellationToken) =>
+        database.WriteAsync(async (command, token) =>
+        {
+            // The existing primary key is (character, sort_order). Preserve rows and their order.
+            command.CommandText = """
+                INSERT INTO character_dungeon_permissions(character_id,sort_order,dungeon_id,clear_state)
+                SELECT @cid, COALESCE(MAX(sort_order),-1)+1, @did, @maximum
+                FROM character_dungeon_permissions WHERE character_id=@cid
+                HAVING NOT EXISTS(SELECT 1 FROM character_dungeon_permissions WHERE character_id=@cid AND dungeon_id=@did);
+                UPDATE character_dungeon_permissions SET clear_state = MAX(@maximum,
+                    (SELECT MAX(clear_state) FROM character_dungeon_permissions WHERE character_id=@cid AND dungeon_id=@did))
+                WHERE character_id=@cid AND dungeon_id=@did;
+                """;
+            command.Parameters.AddWithValue("@cid", characterId.Value);
+            command.Parameters.AddWithValue("@did", dungeonId);
+            command.Parameters.AddWithValue("@maximum", maximum);
+            await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, cancellationToken);
+
 }
 
 /// <summary>The creature rows of <c>items</c>: a character's creatures, each one a world row.</summary>

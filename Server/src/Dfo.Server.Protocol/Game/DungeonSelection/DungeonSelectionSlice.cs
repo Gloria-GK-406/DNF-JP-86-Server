@@ -42,10 +42,8 @@ internal sealed class EnterSelectDungeonDecoder : IGameMessageDecoder
 {
     /// <remarks>
     /// The selection is a <c>u16</c>, not a <c>u32</c>: the client's own builder writes two bytes at
-    /// offset 0, and the paired CMD 0x0010 has a closed layout that puts a difficulty byte at offset
-    /// 2. Reading four bytes happened to yield the right number only because the observed dungeon is
-    /// the tutorial at difficulty zero, which leaves bytes 2 and 3 clear. Those two bytes carry no
-    /// evidenced meaning on this type and are not consumed.
+    /// offset 0. The separate CMD 0x0010 uses a u32 dungeon id and must not be used to infer
+    /// this selection field's width. The remaining bytes are not interpreted here.
     /// </remarks>
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
@@ -668,7 +666,10 @@ public sealed class EnterSelectDungeonHandler(
                 new UdpHostNotification(),
             ];
             if (!visits.DefersSelectionState(refreshed.Character.Progression.Level))
+            {
+                notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
                 notifications.Add(new EnterSelectDungeonNotification(wireUserIds));
+            }
             deliveries.Add((member.Session, notifications));
         }
 

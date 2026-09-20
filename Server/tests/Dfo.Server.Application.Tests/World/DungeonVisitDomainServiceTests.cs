@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Parties;
@@ -38,6 +39,50 @@ public sealed class DungeonVisitDomainServiceTests
         });
 
     [Fact]
+    public async Task Locked_single_player_difficulty_does_not_create_a_run_or_room()
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var layouts = new RecordingLayouts();
+        var visits = new DungeonVisitDomainService(layouts, runs, new ImmediateSelection(), cells,
+            new MaximumDifficulty(DungeonDifficulty.Normal), new DungeonDifficultyRuleService());
+        var result = await visits.TryEnterPartyAsync(
+            [new(new AccountId(1), new CharacterId(1), 0, true)], 150,
+            new DungeonEntryFacts(DungeonDifficulty.Adventure, [], []), default);
+        Assert.Equal(DungeonEntryFailure.DifficultyNotUnlocked, result.Failure);
+        Assert.Null(result.Entry);
+        Assert.Null(runs.Find(new CharacterId(1)));
+        Assert.Equal(0, cells.CallCount);
+        Assert.Equal(0, layouts.CallCount);
+    }
+
+    [Fact]
+    public async Task Adventure_is_fixed_for_layout_first_room_next_room_and_revisit()
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var layouts = new RecordingLayouts(TwoRoomLayout);
+        var visits = new DungeonVisitDomainService(layouts, runs, new ImmediateSelection(), cells,
+            new MaximumDifficulty(DungeonDifficulty.Adventure), new DungeonDifficultyRuleService());
+        var character = new CharacterId(1);
+        var result = await visits.TryEnterPartyAsync(
+            [new(new AccountId(1), character, 0, true)], TwoRoomLayout.DungeonId,
+            new DungeonEntryFacts(DungeonDifficulty.Adventure, [], []), default);
+        Assert.Null(result.Failure);
+        var first = Assert.IsType<DungeonPartyEntry>(result.Entry).Visits[character];
+        Assert.Equal(DungeonDifficulty.Adventure, layouts.Facts!.Difficulty);
+        Assert.Equal(DungeonDifficulty.Adventure, first.Run.Difficulty);
+        var next = await visits.MoveAsync(character, first.Run, new MazeCell(1, 0), default);
+        Assert.NotNull(next);
+        var revisit = await visits.MoveAsync(character, next.Run, first.Run.CurrentCell, default);
+        Assert.NotNull(revisit);
+        Assert.False(revisit.FirstEntry);
+        Assert.Equal(DungeonDifficulty.Adventure, revisit.Run.Difficulty);
+        Assert.Equal(2, cells.Contexts.Count);
+        Assert.All(cells.Contexts, context => Assert.Equal(DungeonDifficulty.Adventure, context.Difficulty));
+    }
+
+    [Fact]
     public async Task Party_entry_resolves_one_layout_and_describes_one_shared_start_room()
     {
         DungeonRunParticipant[] party =
@@ -50,10 +95,10 @@ public sealed class DungeonVisitDomainServiceTests
             layouts,
             new DungeonRunDomainService(),
             new ImmediateSelection(),
-            new RecordingCellFactory());
+            new RecordingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService());
 
         var entered = await visits.EnterPartyAsync(
-            party, Layout.DungeonId, difficulty: 2, DungeonEntryFacts.None, CancellationToken.None);
+            party, Layout.DungeonId, difficulty: (DungeonDifficulty)2, DungeonEntryFacts.None, CancellationToken.None);
 
         Assert.NotNull(entered);
         Assert.Equal(1, layouts.CallCount);
@@ -81,13 +126,13 @@ public sealed class DungeonVisitDomainServiceTests
             new RecordingLayouts(),
             runs,
             new ImmediateSelection(),
-            new ThrowingCellFactory());
+            new ThrowingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService());
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await visits.EnterPartyAsync(
                 party,
                 Layout.DungeonId,
-                difficulty: 2,
+                difficulty: (DungeonDifficulty)2,
                 DungeonEntryFacts.None,
                 CancellationToken.None));
 
@@ -104,7 +149,7 @@ public sealed class DungeonVisitDomainServiceTests
             new RecordingLayouts(),
             runs,
             new ImmediateSelection(),
-            new ThrowingCellFactory());
+            new ThrowingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService());
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await visits.MoveAsync(
@@ -130,7 +175,7 @@ public sealed class DungeonVisitDomainServiceTests
             new RecordingLayouts(),
             runs,
             new ImmediateSelection(),
-            factory);
+            factory, new MaximumDifficulty(), new DungeonDifficultyRuleService());
 
         var second = await visits.MoveAsync(
             character, current, new MazeCell(1, 0), CancellationToken.None);
@@ -167,7 +212,7 @@ public sealed class DungeonVisitDomainServiceTests
             DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
         var factory = new RecordingCellFactory();
         var visits = new DungeonVisitDomainService(
-            new RecordingLayouts(), runs, new ImmediateSelection(), factory);
+            new RecordingLayouts(), runs, new ImmediateSelection(), factory, new MaximumDifficulty(), new DungeonDifficultyRuleService());
 
         Assert.True(parties.LeaveParty(leader.CharacterId).Succeeded);
         var moved = await visits.MoveAsync(
@@ -198,7 +243,7 @@ public sealed class DungeonVisitDomainServiceTests
             new RecordingLayouts(),
             runs,
             new ImmediateSelection(),
-            factory);
+            factory, new MaximumDifficulty(), new DungeonDifficultyRuleService());
         var target = new MazeCell(1, 0);
 
         var attempts = await Task.WhenAll(
@@ -224,9 +269,10 @@ public sealed class DungeonVisitDomainServiceTests
         Assert.Empty(revisited.Actors);
     }
 
-    private sealed class RecordingLayouts : IDungeonLayoutRuleService
+    private sealed class RecordingLayouts(DungeonLayout? layout = null) : IDungeonLayoutRuleService
     {
         public int CallCount { get; private set; }
+        public DungeonEntryFacts? Facts { get; private set; }
 
         public ValueTask<DungeonLayout?> ResolveAsync(
             int dungeonId,
@@ -235,7 +281,8 @@ public sealed class DungeonVisitDomainServiceTests
             CancellationToken cancellationToken)
         {
             this.CallCount++;
-            return ValueTask.FromResult<DungeonLayout?>(Layout);
+            this.Facts = facts;
+            return ValueTask.FromResult<DungeonLayout?>(layout ?? Layout);
         }
     }
 
@@ -299,5 +346,11 @@ public sealed class DungeonVisitDomainServiceTests
     private sealed class ImmediateSelection : IDungeonSelectionRuleService
     {
         public bool DefersSelectionState(byte characterLevel) => false;
+    }
+    private sealed class MaximumDifficulty(DungeonDifficulty maximum = DungeonDifficulty.Tier4) : Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService
+    {
+        public ValueTask<DungeonDifficulty> GetMaximumAsync(CharacterId characterId, int dungeonId, CancellationToken token) => ValueTask.FromResult(maximum);
+        public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Characters.CharacterDungeonDifficulty>> GetRecordedAsync(CharacterId characterId, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<DungeonDifficulty> UnlockAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, CancellationToken token) => throw new NotSupportedException();
     }
 }

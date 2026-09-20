@@ -22,6 +22,34 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 /// </remarks>
 public sealed class DungeonEntryCodecTests
 {
+    [Theory]
+    [InlineData(5)]
+    [InlineData(255)]
+    public void Undefined_difficulty_is_rejected_before_business(int value)
+    {
+        var body = Convert.FromHexString("96000000000000FFFF000000000000");
+        body[4] = (byte)value;
+        Assert.Throws<InvalidDataException>(() => new SelectDungeonDecoder().Decode(GameMessageMetadata.Empty, body));
+    }
+
+    [Fact]
+    public void Permission_entries_preserve_u32_map_ids_and_five_byte_stride()
+    {
+        var body = Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec.EncodeDungeonPermissions(
+            [new(150, 1), new(65686, 2)]);
+        Assert.Equal(Convert.FromHexString("020096000000019600010002"), body);
+    }
+
+    [Fact]
+    public void A21_adventure_request_preserves_u32_id_and_offset_four_difficulty()
+    {
+        var body = Convert.FromHexString("96000100010000FFFF000000000000");
+        var request = Assert.IsType<SelectDungeonRequest>(new SelectDungeonDecoder()
+            .Decode(GameMessageMetadata.Empty, body));
+        Assert.Equal(65686, request.DungeonId);
+        Assert.Equal(1, (byte)request.Difficulty);
+    }
+
     /// <summary>The tutorial's layout, as the rule resolves it from the archive.</summary>
     private static readonly DungeonLayout Tutorial = new(
         DungeonId: 10000,
@@ -50,28 +78,34 @@ public sealed class DungeonEntryCodecTests
             Tutorial.StartCell, Tutorial.StartRoomMapId).Snapshot());
 
     /// <remarks>
-    /// The captured body, byte for byte: <c>102700000000000000</c>, identical across all eight
-    /// sessions that sent it. 10000 is Tutorial/Tutorial.dgn.
+    /// #101 T02: the ordinary spider entrance, captured as a 15-byte request.
     /// </remarks>
     [Fact]
-    public void The_captured_request_decodes_as_the_tutorial_dungeon_at_difficulty_zero()
+    public void Captured_spider_normal_request_decodes_at_difficulty_zero()
     {
-        byte[] body = [0x10, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        byte[] body = Convert.FromHexString("96000000000000FFFF000000000000");
 
         var request = (SelectDungeonRequest)new SelectDungeonDecoder()
             .Decode(GameMessageMetadata.Empty, body)!;
 
-        Assert.Equal(10000, request.DungeonId);
-        Assert.Equal(0, request.Difficulty);
+        Assert.Equal(150, request.DungeonId);
+        Assert.Equal(Dfo.Server.Data.World.DungeonDifficulty.Normal, request.Difficulty);
         Assert.Equal(0, request.HellPartyRequested);
         Assert.Equal(0, request.HellPartyDifficulty);
     }
 
-    [Fact]
-    public void A_body_shorter_than_its_evidenced_fields_is_refused()
+    [Theory]
+    [InlineData(4)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(11)]
+    [InlineData(12)]
+    [InlineData(13)]
+    [InlineData(14)]
+    public void A_body_shorter_than_its_evidenced_fields_is_refused(int length)
     {
         Assert.Throws<InvalidDataException>(() =>
-            new SelectDungeonDecoder().Decode(GameMessageMetadata.Empty, new byte[4]));
+            new SelectDungeonDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
     }
 
     /// <remarks>

@@ -111,7 +111,7 @@ internal sealed class ClearRewardRuleService(
 
         var table = rates.Load(DropRateTables.ClearReward);
         if (table.ProfileNamed(ThresholdProfile)?.BandFor(occasion.CharacterLevel) is not { } band
-            || table.DifficultyRate(occasion.Difficulty) is not { } difficulty
+            || table.DifficultyRate((int)occasion.Difficulty) is not { } difficulty
             || table.PartyMemberRate(occasion.PartyMemberCount) is not { } party
             || ClearRewardRules.MapBaseRate(table.MapCountRates, occasion.MapMaxCount)
                 is not { } mapBase)
@@ -341,7 +341,7 @@ internal sealed class ClearRewardRuleService(
         if (occasion.Kind is not ClearRewardCardKind.Free)
             return 0;
 
-        if (table.DifficultyGoldRate(occasion.Difficulty) is not { } difficultyRate)
+        if (table.DifficultyGoldRate((int)occasion.Difficulty) is not { } difficultyRate)
             return 0;
 
         var gold = goldTables.Load(DropRateTables.ClearReward);

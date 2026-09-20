@@ -320,7 +320,7 @@ public sealed class ResultScreenTests
                 : null;
         }
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
         /// <summary>Not exercised here: nothing in these tests kills anything.</summary>

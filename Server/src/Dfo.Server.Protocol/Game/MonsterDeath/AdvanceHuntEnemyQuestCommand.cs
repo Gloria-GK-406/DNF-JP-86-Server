@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -9,7 +10,7 @@ public sealed record AdvanceHuntEnemyQuestCommand(
     AccountId AccountId,
     CharacterId CharacterId,
     int DungeonId,
-    byte Difficulty,
+    DungeonDifficulty Difficulty,
     int EnemyCode,
     int EnemyType) : ICommand<AdvanceHuntEnemyQuestResult>;
 

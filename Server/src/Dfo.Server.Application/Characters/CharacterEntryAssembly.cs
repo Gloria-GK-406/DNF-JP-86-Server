@@ -44,7 +44,7 @@ internal sealed class CharacterEntryAssembly(
     ICharacterDailyChallengeEntryTable challengeEntries,
     ICharacterDailyChallengeTailTable challengeTails,
     ICharacterDailyScheduleTable dailySchedules,
-    ICharacterDungeonPermissionTable dungeonPermissions,
+    ICharacterDungeonDifficultyDomainService dungeonPermissions,
     ICharacterDailyCounterValueTable dailyCounters,
     ICharacterCreatureTable creatures,
     ICharacterTitleBookTable titleBooks,
@@ -372,17 +372,10 @@ internal sealed class CharacterEntryAssembly(
             throw new InvalidDataException("Daily schedule must contain exactly slots 0, 1 and 2.");
         }
 
-        var dungeons = new List<(int, int, int)>();
-        foreach (var permission in await dungeonPermissions.ReadAsync(characterId, cancellationToken)
-                     .ConfigureAwait(false))
-        {
-            if (permission.DungeonId <= 0 || permission.ClearState is < 0 or > byte.MaxValue)
-            {
-                throw new InvalidDataException("Dungeon progress is out of range.");
-            }
-
-            dungeons.Add((permission.SortOrder, permission.DungeonId, permission.ClearState));
-        }
+        var recordedDifficulties = await dungeonPermissions.GetRecordedAsync(characterId, cancellationToken)
+            .ConfigureAwait(false);
+        var dungeons = recordedDifficulties.Select((value, index) =>
+            (index, value.DungeonId, (int)value.Maximum)).ToArray();
 
         var claimedRevive = await CounterAsync(characterId, ReviveCoinCounter, cancellationToken)
             .ConfigureAwait(false) > 0;

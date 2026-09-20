@@ -461,7 +461,7 @@ internal static partial class StateSynchronizationPayloadCodec
     {
         if (entries.Count > ushort.MaxValue) throw CountError("dungeon", "u16");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(checked((ushort)entries.Count)); foreach (var entry in entries) { writer.Write(checked((ushort)entry.DungeonId)); writer.Write(entry.State); }
+        writer.Write(checked((ushort)entries.Count)); foreach (var entry in entries) { writer.Write(checked((uint)entry.DungeonId)); writer.Write(entry.State); }
         return stream.ToArray();
     }
 

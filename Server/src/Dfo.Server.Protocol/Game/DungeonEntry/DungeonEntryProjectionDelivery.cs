@@ -73,11 +73,18 @@ public sealed class DungeonEntryProjectionDelivery(
         var previousRuns = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
-        var entered = await visits.EnterPartyAsync(
-            participants, message.DungeonId, message.Difficulty, facts, cancellationToken)
+        var attempt = await visits.TryEnterPartyAsync(
+            participants, message.DungeonId, facts, cancellationToken)
             .ConfigureAwait(false);
+        var entered = attempt.Entry;
         if (entered is null)
         {
+            if (attempt.Failure == DungeonEntryFailure.DifficultyNotUnlocked)
+            {
+                await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked,
+                    participants[0].Slot, cancellationToken).ConfigureAwait(false);
+                return;
+            }
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: the archive declares no enterable dungeon "
                     + "{DungeonId}, refusing",
@@ -206,7 +213,7 @@ public sealed class DungeonEntryProjectionDelivery(
                 }
 
                 frames.Add(new SupportTagNotification());
-                frames.Add(new DungeonInfoNotification(layout, message.Difficulty));
+                frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
                 frames.Add(new StartMapNotification(
                     roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
                     FirstEntry: true,
@@ -329,7 +336,7 @@ public sealed class DungeonEntryProjectionDelivery(
             change.Revision,
             participants.Length,
             layout.DungeonId,
-            message.Difficulty,
+            leaderVisit.Run.Difficulty,
             intent);
     }
 

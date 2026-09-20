@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
@@ -13,7 +14,7 @@ internal static class DungeonRunTestEntryExtensions
         this IDungeonRunDomainService runs,
         CharacterId characterId,
         DungeonLayout layout,
-        byte difficulty) => runs.BeginParty(
+        DungeonDifficulty difficulty) => runs.BeginParty(
             [new DungeonRunParticipant(
                 new AccountId(0), characterId, Slot: 0, IsLeader: true)],
             layout,
@@ -23,13 +24,13 @@ internal static class DungeonRunTestEntryExtensions
         this IDungeonRunDomainService runs,
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
-        byte difficulty) => runs.PreparePartyEntry(participants, layout, difficulty).Run;
+        DungeonDifficulty difficulty) => runs.PreparePartyEntry(participants, layout, difficulty).Run;
 
     public static DungeonEntryChange PreparePartyEntry(
         this IDungeonRunDomainService runs,
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
-        byte difficulty) => runs.PreparePartyEntry(
+        DungeonDifficulty difficulty) => runs.PreparePartyEntry(
             participants,
             layout,
             difficulty,

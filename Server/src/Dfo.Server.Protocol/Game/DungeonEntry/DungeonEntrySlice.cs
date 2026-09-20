@@ -33,14 +33,13 @@ namespace Dfo.Server.Protocol.Game.DungeonEntry;
 /// this handler existed the burst went unanswered and the tutorial could not be finished; it was
 /// the only unhandled game frame. See protocol/patterns/flow-dungeon-entry.md.
 ///
-/// The body is nine bytes and closed: identifier, difficulty, and two flags that only mean
-/// anything for abyss dungeons. The trailing u32 has a determined boundary and no evidenced
-/// meaning, so it is read past rather than interpreted.
+/// A21 ordinary entry carries 15 bytes: u32 dungeon and u8 difficulty, followed by fields
+/// whose full meaning remains unverified. No new abyss behavior is inferred from those fields.
 /// </remarks>
 public sealed record SelectDungeonRequest(
     GameMessageMetadata Metadata,
-    ushort DungeonId,
-    byte Difficulty,
+    int DungeonId,
+    DungeonDifficulty Difficulty,
     byte HellPartyRequested,
     byte HellPartyDifficulty) : IClientNetworkMessage
 {
@@ -109,7 +108,7 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
 }
 
 /// <summary>NOTI 0x001C <c>DUNGEON_INFO</c>: which dungeon is being run, and its shape.</summary>
-internal sealed record DungeonInfoNotification(DungeonLayout Layout, byte Difficulty)
+internal sealed record DungeonInfoNotification(DungeonLayout Layout, DungeonDifficulty Difficulty)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameDungeonInfo;
@@ -166,12 +165,12 @@ internal static class DungeonEntryPayloadCodec
     /// The generated field table records six bytes for this type; that is where static analysis
     /// stopped, not the body's length.
     /// </remarks>
-    public static byte[] EncodeDungeonInfo(DungeonLayout layout, byte difficulty)
+    public static byte[] EncodeDungeonInfo(DungeonLayout layout, DungeonDifficulty difficulty)
     {
         using var stream = new MemoryStream(32);
         using var writer = new BinaryWriter(stream);
         writer.Write(layout.DungeonId);
-        writer.Write(difficulty);
+        writer.Write((byte)difficulty);
         writer.Write(checked((byte)layout.MazeIndex));
         writer.Write(layout.BossCell.X);
         writer.Write(layout.BossCell.Y);
@@ -396,23 +395,22 @@ internal sealed class SupportTagEncoder : GameNotiMessageEncoder<SupportTagNotif
 
 internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 {
-    /// <summary>The body is closed at nine bytes; the first five carry every evidenced field.</summary>
-    public const int MinimumBodyLength = 5;
+    /// <summary>The confirmed A21 ordinary and tutorial requests carry 15 bytes.</summary>
+    public const int MinimumBodyLength = 15;
 
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         if (body.Length < MinimumBodyLength)
         {
             throw new InvalidDataException(
-                $"SELECT_DUNGEON requires at least five body bytes; received '{body.Length}'.");
+                $"SELECT_DUNGEON requires at least fifteen body bytes; received '{body.Length}'.");
         }
 
-        return new SelectDungeonRequest(
-            metadata,
-            BinaryPrimitives.ReadUInt16LittleEndian(body),
-            body[2],
-            body[3],
-            body[4]);
+        var dungeonId = BinaryPrimitives.ReadUInt32LittleEndian(body);
+        var difficulty = (DungeonDifficulty)body[4];
+        if (dungeonId is 0 or > int.MaxValue || !Enum.IsDefined(difficulty))
+            throw new InvalidDataException("SELECT_DUNGEON has an invalid dungeon or difficulty.");
+        return new SelectDungeonRequest(metadata, (int)dungeonId, difficulty, body[5], body[6]);
     }
 }
 
