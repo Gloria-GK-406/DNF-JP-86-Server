@@ -1,0 +1,25 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  A21 第一波功能全集已经投影为 27 个 GitHub Milestone、74 个绑定到
+  Milestone 的 Feature Cycle 父 Issue，以及 1 个不绑定正式 Milestone 的
+  结婚系统调查 Issue；后 A21 排除项未被创建为 Cycle。
+conditions:
+  - condition: GitHub Milestone 数量与功能全集目录一致
+    result: pass
+    evidence: GitHub API 当前返回 27 个 Milestone，编号 1 至 27，且无空 Milestone
+  - condition: 每个已投影 Feature Cycle 都具有 Milestone 和 cycle 标签
+    result: pass
+    evidence: 74 个 Cycle Issue，未绑定 Milestone 数 0，缺少 cycle 标签数 0
+  - condition: 每个 Feature Cycle 都具有范围状态标签
+    result: pass
+    evidence: 缺少 scope:in 或 scope:unknown 标签的 Cycle 数 0
+  - condition: 未决婚恋系统不进入正式 Milestone
+    result: pass
+    evidence: Issue 64 带 investigation 与 scope:unknown，milestone 为空
+  - condition: 后 A21 排除项没有误建为 Feature Cycle
+    result: pass
+    evidence: Cycle 标题中卢克、悲叹之塔、90 级相关命中数 0
+  - condition: 本地权威文档记录证据边界和 GitHub 投影结果
+    result: pass
+    evidence: Document/A21玩法与系统全集第一轮普查.md
