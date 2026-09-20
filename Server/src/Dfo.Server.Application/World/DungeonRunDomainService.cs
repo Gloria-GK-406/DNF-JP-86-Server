@@ -514,6 +514,14 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                     || aggregate.IsActiveMember(owner));
             if (added is null)
                 return null;
+            if (killedActor is { IsMonster: true })
+            {
+                aggregate.RecordKill(new DungeonKillRecord(
+                    claim.Actor,
+                    killedActor.Actor.Code,
+                    aggregate.Layout.LevelOf(killedActor.Actor.Level),
+                    (MonsterRank)killedActor.Actor.ActorType));
+            }
             var autoKilled = killedActor is { IsMonster: true, Actor.ActorType: (byte)MonsterRank.Boss }
                 && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
                     ? cell.SuppressRemainingMonsters(sequence =>
@@ -1287,6 +1295,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         private readonly ImmutableArray<DungeonRunParticipant> entryParticipants;
         private readonly Dictionary<CharacterId, DungeonRunParticipant> participantsByCharacter;
         private readonly Dictionary<CharacterId, ParticipantProgress> progressByCharacter;
+        private readonly List<DungeonKillRecord> kills = [];
 
         public DungeonRunAggregate(
             DungeonRunId runId,
@@ -1358,6 +1367,13 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public List<DungeonCardSelection> CardSelections { get; } = [];
         public HashSet<ClearRewardCardKind> RevealedCardKinds { get; } = [];
 
+        public void RecordKill(DungeonKillRecord kill)
+        {
+            if (this.kills.Any(existing => existing.Actor == kill.Actor))
+                throw new InvalidOperationException("One dungeon actor cannot die twice.");
+            this.kills.Add(kill);
+        }
+
         public IReadOnlyList<DungeonCardSelection> PublishedCardSelections() =>
             [.. this.CardSelections
                 .Where(selection => this.RevealedCardKinds.Contains(selection.Kind)
@@ -1410,6 +1426,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             {
                 PartyKey = this.PartyKey,
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
+                Kills = this.kills.ToImmutableArray(),
             };
         }
     }

@@ -60,6 +60,12 @@ public sealed record DungeonRunState(
     public IReadOnlyList<DungeonCardSelection> CardSelections { get; init; } =
         CardSelections ?? [];
 
+    /// <summary>Every monster death committed by this run, across all visited cells.</summary>
+    public ImmutableArray<DungeonKillRecord> Kills { get; init; } = [];
+
+    /// <summary>Counts derived from <see cref="Kills"/> without becoming a second source.</summary>
+    public DungeonKillSummary KillSummary => DungeonKillSummary.From(this.Kills);
+
     /// <summary>The current in-run party size used by run-scoped reward rules.</summary>
     public int PartyMemberCount => Math.Max(1, this.Participants.Count);
 
@@ -215,6 +221,46 @@ public sealed record ClearRewardCardSet(
 /// and what the player killed in one of those rooms they have not killed in the other.
 /// </remarks>
 public readonly record struct RoomActorId(MazeCell Cell, ushort Sequence);
+
+/// <summary>One monster death committed by one dungeon run.</summary>
+/// <remarks>
+/// <paramref name="Actor"/> is the identity that makes the fact idempotent. Code, level and rank
+/// are the frozen Cell facts used to derive per-monster and per-rank totals later; no reward rule
+/// is embedded in the record.
+/// </remarks>
+public readonly record struct DungeonKillRecord(
+    RoomActorId Actor,
+    int MonsterCode,
+    int MonsterLevel,
+    MonsterRank Rank);
+
+/// <summary>One immutable projection of a run's exact kill records.</summary>
+public sealed record DungeonKillSummary(
+    int Total,
+    int Ordinary,
+    int Champion,
+    int SuperChampion,
+    int Boss,
+    ImmutableDictionary<int, int> ByMonsterCode)
+{
+    public static DungeonKillSummary From(ImmutableArray<DungeonKillRecord> kills)
+    {
+        if (kills.IsDefaultOrEmpty)
+        {
+            return new DungeonKillSummary(
+                0, 0, 0, 0, 0, ImmutableDictionary<int, int>.Empty);
+        }
+
+        return new DungeonKillSummary(
+            kills.Length,
+            kills.Count(kill => kill.Rank == MonsterRank.Ordinary),
+            kills.Count(kill => kill.Rank == MonsterRank.Champion),
+            kills.Count(kill => kill.Rank == MonsterRank.SuperChampion),
+            kills.Count(kill => kill.Rank == MonsterRank.Boss),
+            kills.GroupBy(kill => kill.MonsterCode)
+                .ToImmutableDictionary(group => group.Key, group => group.Count()));
+    }
+}
 
 /// <summary>An exact, retryable claim over one actor death in one run.</summary>
 public sealed record DungeonActorDeathClaim(

@@ -688,6 +688,12 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Empty(change.Run.CurrentCellState.GroundItems);
         Assert.Null(service.TryClaimActorDeath(Character, remaining));
         Assert.Null(service.TryClaimActorDeath(Character, boss));
+        var recorded = Assert.Single(change.Run.Kills);
+        Assert.Equal(new RoomActorId(Tutorial.BossCell, boss), recorded.Actor);
+        Assert.Equal(65303, recorded.MonsterCode);
+        Assert.Equal(MonsterRank.Boss, recorded.Rank);
+        Assert.Equal(1, change.Run.KillSummary.Boss);
+        Assert.Equal(0, change.Run.KillSummary.Ordinary);
     }
 
     [Fact]
@@ -1521,6 +1527,83 @@ public sealed class DungeonRunDomainServiceTests
 
         Assert.NotNull(moved);
         Assert.False(moved.IsCleared);
+    }
+
+    [Fact]
+    public void Committed_monster_deaths_form_one_idempotent_run_ledger_across_cells()
+    {
+        var service = new DungeonRunDomainService();
+        var firstActor = new DungeonRoomActor(
+            61670, 4, (byte)MonsterRank.Ordinary);
+        var run = BeginWithCell(
+            service,
+            actors: [CellActor(FirstSequence, firstActor)]);
+
+        var firstClaim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        run = Assert.IsType<DungeonRunState>(service.CommitActorDeath(firstClaim));
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
+
+        var target = new MazeCell(1, 1);
+        var secondActor = new DungeonRoomActor(
+            firstActor.Code, 5, (byte)MonsterRank.Champion);
+        run = Assert.IsType<DungeonRunState>(service.TryMove(
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            target,
+            CellSeed(
+                target,
+                Tutorial.Rooms[target],
+                actors: [CellActor(FirstSequence, secondActor)])));
+        var secondClaim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        run = Assert.IsType<DungeonRunState>(service.CommitActorDeath(secondClaim));
+
+        Assert.Collection(
+            run.Kills,
+            first =>
+            {
+                Assert.Equal(new RoomActorId(Tutorial.StartCell, FirstSequence), first.Actor);
+                Assert.Equal(firstActor.Code, first.MonsterCode);
+                Assert.Equal(Tutorial.LevelOf(firstActor.Level), first.MonsterLevel);
+                Assert.Equal(MonsterRank.Ordinary, first.Rank);
+            },
+            second =>
+            {
+                Assert.Equal(new RoomActorId(target, FirstSequence), second.Actor);
+                Assert.Equal(secondActor.Code, second.MonsterCode);
+                Assert.Equal(Tutorial.LevelOf(secondActor.Level), second.MonsterLevel);
+                Assert.Equal(MonsterRank.Champion, second.Rank);
+            });
+        Assert.Equal(2, run.KillSummary.Total);
+        Assert.Equal(1, run.KillSummary.Ordinary);
+        Assert.Equal(1, run.KillSummary.Champion);
+        Assert.Equal(0, run.KillSummary.SuperChampion);
+        Assert.Equal(0, run.KillSummary.Boss);
+        Assert.Equal(2, run.KillSummary.ByMonsterCode[firstActor.Code]);
+    }
+
+    [Fact]
+    public void An_ai_character_death_is_not_a_monster_kill()
+    {
+        var service = new DungeonRunDomainService();
+        _ = BeginWithCell(
+            service,
+            actors:
+            [
+                CellActor(
+                    FirstSequence,
+                    new DungeonRoomActor(32001, 5, (byte)MonsterRank.Ordinary),
+                    isAi: true),
+            ]);
+
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var run = Assert.IsType<DungeonRunState>(service.CommitActorDeath(claim));
+
+        Assert.Empty(run.Kills);
+        Assert.Equal(0, run.KillSummary.Total);
     }
 
     /// <summary>A run is timed from the moment it begins.</summary>

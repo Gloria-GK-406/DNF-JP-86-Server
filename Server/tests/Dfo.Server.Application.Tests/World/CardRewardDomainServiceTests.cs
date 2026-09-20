@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -231,6 +232,54 @@ public sealed class CardRewardDomainServiceTests
         Assert.Equal(ClearRewardCardKind.Free, cards.Free.Kind);
         Assert.Equal(ClearRewardCardKind.Paid, cards.Paid.Kind);
         Assert.Empty(cards.Claimed);
+    }
+
+    [Fact]
+    public async Task A_clear_hands_the_runs_committed_kills_to_both_reward_faces()
+    {
+        const ushort sequence = 41;
+        var actor = new DungeonRoomActor(
+            61670, 5, (byte)MonsterRank.Champion);
+        var runs = new DungeonRunDomainService();
+        var participant = new DungeonRunParticipant(
+            new AccountId(1), Character, Slot: 0, IsLeader: true);
+        _ = runs.PreparePartyEntry(
+            [participant],
+            Tutorial,
+            (byte)Difficulty,
+            new DungeonCellSeed(
+                Tutorial.StartCell,
+                Tutorial.StartRoomMapId,
+                sequence,
+                [new DungeonCellActorState(
+                    sequence,
+                    actor,
+                    IsAiCharacter: false,
+                    IsDead: false,
+                    PendingLoot: [],
+                    IsMonster: true)],
+                GroundItems: []),
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow);
+        var death = Assert.IsType<DungeonActorDeathClaim>(
+            runs.TryClaimActorDeath(Character, sequence));
+        var killed = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
+        Assert.NotNull(runs.TryOpenClear(Character, killed.RunId, killed.RoomVersion));
+        var rules = new RecordingRules();
+        var service = new CardRewardDomainService(rules, runs);
+
+        var settled = await service.SettleAsync(Settlement, CancellationToken.None);
+
+        Assert.NotNull(settled);
+        Assert.Equal(2, rules.Asked.Count);
+        Assert.All(
+            rules.Asked,
+            asked =>
+            {
+                var recorded = Assert.Single(asked.Occasion.Kills);
+                Assert.Equal(actor.Code, recorded.MonsterCode);
+                Assert.Equal(MonsterRank.Champion, recorded.Rank);
+            });
     }
 
     [Fact]

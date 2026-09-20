@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
@@ -181,7 +182,14 @@ public sealed record ClearRewardOccasion(
     int DungeonBasisLevel,
     int Difficulty,
     int MapMaxCount,
-    int PartyMemberCount);
+    int PartyMemberCount)
+{
+    /// <summary>The run's committed monster deaths when this face is fixed.</summary>
+    public ImmutableArray<DungeonKillRecord> Kills { get; init; } = [];
+
+    /// <summary>Counts derived from <see cref="Kills"/> for reward rules that need aggregates.</summary>
+    public DungeonKillSummary KillSummary => DungeonKillSummary.From(this.Kills);
+}
 
 /// <summary>
 /// What a clear's card face holds: the odds each position carries, and what those odds produce.

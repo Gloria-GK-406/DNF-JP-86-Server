@@ -120,7 +120,10 @@ internal sealed class CardRewardDomainService(
                 run.Layout.BasisLevel,
                 run.Difficulty,
                 run.Layout.Rooms.Count,
-                settlement.PartyMemberCount),
+                settlement.PartyMemberCount)
+            {
+                Kills = run.Kills,
+            },
             SeedFor(run, kind));
 
     /// <summary>
