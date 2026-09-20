@@ -117,6 +117,24 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public DungeonRunState? TryMarkParticipantDead(
+        CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || aggregate.RoomVersion != expectedRoomVersion
+                || !aggregate.IsActiveMember(characterId)
+                || !aggregate.ReadyParticipants.Contains(characterId)
+                || !aggregate.DeadParticipants.Add(characterId))
+                return null;
+
+            aggregate.RuntimeRevision++;
+            return aggregate.ViewFor(characterId);
+        }
+    }
+
     public DungeonEntryChange? TryMarkParticipantReady(
         CharacterId characterId,
         DungeonRunId expectedRunId,
@@ -1010,6 +1028,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
         aggregate.ActiveParticipants.Remove(characterId);
         aggregate.ReadyParticipants.Remove(characterId);
+        aggregate.DeadParticipants.Remove(characterId);
         aggregate.EntryRevision++;
         foreach (var key in this.settlementClaims.Keys
                      .Where(key => key.RunId == aggregate.RunId && key.CharacterId == characterId)
@@ -1365,6 +1384,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
+
+        public HashSet<CharacterId> DeadParticipants { get; } = [];
         public List<DungeonCardSelection> CardSelections { get; } = [];
         public HashSet<ClearRewardCardKind> RevealedCardKinds { get; } = [];
 
@@ -1426,6 +1447,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.Cells[this.CurrentCell].Snapshot())
             {
                 PartyKey = this.PartyKey,
+                DeadParticipants = this.DeadParticipants.ToImmutableHashSet(),
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
                 Kills = this.kills.ToImmutableArray(),
             };

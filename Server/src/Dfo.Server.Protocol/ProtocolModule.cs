@@ -53,6 +53,7 @@ using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
@@ -177,6 +178,8 @@ public sealed class ProtocolModule : IServerModule
     /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
     private static void RegisterCommands(IServiceCollection services)
     {
+        services.AddCommandHandler<MarkDungeonParticipantDeadCommand, MarkDungeonParticipantDeadResult, MarkDungeonParticipantDeadCommandHandler>(
+            CommandExecutionKind.Direct);
         services.AddCommandHandler<MarkDungeonParticipantReadyCommand, MarkDungeonParticipantReadyResult, MarkDungeonParticipantReadyCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
@@ -424,6 +427,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
+        services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
@@ -531,6 +535,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<CharacterLifeStateNotification, CharacterLifeStateEncoder>();
         services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
         services.AddGameNotiMessageEncoder<
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
@@ -594,6 +599,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
         services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
             GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
+        services.AddGameCmdMessageDecoder<CharacterDeathDecoder>(GameProtocol.CharacterDeathType, ClientMessageType.GameCharacterDeath);
         services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
             GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
         services.AddGameCmdMessageDecoder<GetItemDecoder>(

@@ -33,6 +33,13 @@
 5. 服务端 parser/codec 与 typed message 有回归测试；
 6. 实机客户端验证通过，并记录可观察结果。
 
+## 死亡处理增量（2026-09-20，待实机）
+
+| Command | Type | 名称 | 阶段 | 文档 |
+|---|---|---|---|---|
+| C2S `01` | `0028` | DIE_CHARACTER | 实现服务端功能；4/6B 解码、状态提交与幂等检查；未知字段保留 | [请求](game/client-to-server/0x0028.md) |
+| S2C `00` | `0020` | DIE_STATE | 实现死亡通知；客户端静态确认读取，实机 UI 待验证 | [通知](game/server-to-client/NOTI-0x0020.md) |
+
 ## Game / Client → Server
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |

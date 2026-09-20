@@ -118,6 +118,8 @@ internal static class GameProtocol
 
     /// <summary>The client reporting a room actor dead, and the two frames that answer it.</summary>
     public const ushort MonsterDeathType = 0x0027;
+    public const ushort CharacterDeathType = 0x0028;
+    public const ushort CharacterLifeStateNotificationType = 0x0020;
 
     public const ushort ExperienceNotificationType = 0x0025;
 

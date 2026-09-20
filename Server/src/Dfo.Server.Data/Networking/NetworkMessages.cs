@@ -86,6 +86,7 @@ public enum ClientMessageType
 
     // The client reporting a room actor dead. See Game/MonsterDeath.
     GameMonsterDeath = 0x0001_0027,
+    GameCharacterDeath = 0x0001_0028,
 
     // Picking a dropped item up off a room's floor. See Game/GroundPickup.
     GameGetItem = 0x0001_002B,
@@ -247,6 +248,7 @@ public enum ServerMessageType
     // What the kill was worth, and the kill acknowledged. See Game/MonsterDeath.
     GameExperience = 0x0000_0025,
     GameMonsterDeath = 0x0000_0026,
+    GameCharacterLifeState = 0x0000_0020,
 
     // Whether the item was picked up, and where it landed. See Game/GroundPickup.
     GameGetItem = 0x0001_002B,

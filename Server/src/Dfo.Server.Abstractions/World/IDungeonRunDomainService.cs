@@ -42,6 +42,9 @@ public sealed record DungeonRunState(
     /// <summary>Stable party identity bound to this run, independent of the client's party number.</summary>
     public PartyKey PartyKey { get; init; }
 
+    /// <summary>Dead members of this run; a new entry starts with an empty set.</summary>
+    public ImmutableHashSet<CharacterId> DeadParticipants { get; init; } = [];
+
     /// <summary>The entry-time quest purpose owner, not an authority for current membership.</summary>
     public DungeonRunParticipant? EntryPurposeOwner { get; init; }
     /// <summary>The authoritative runtime mirror of the room this view stands in.</summary>
@@ -428,6 +431,10 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
+    /// <summary>Commits one current member death; stale and duplicate reports return null.</summary>
+    DungeonRunState? TryMarkParticipantDead(
+        CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion) => null;
+
     /// <summary>Publishes a shared run together with its already-complete initial cell.</summary>
     DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,

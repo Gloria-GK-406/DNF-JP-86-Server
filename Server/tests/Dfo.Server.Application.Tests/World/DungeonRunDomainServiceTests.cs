@@ -26,6 +26,34 @@ public sealed class DungeonRunDomainServiceTests
     private static readonly CharacterId Character = new(1);
 
     [Fact]
+    public void Death_is_shared_idempotent_and_rejects_stale_or_unloaded_reports()
+    {
+        var leader = new DungeonRunParticipant(new AccountId(101), new CharacterId(1), 0, true);
+        var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
+        var service = new DungeonRunDomainService();
+        var run = service.PreparePartyEntry([leader, member], Tutorial, difficulty: DungeonDifficulty.Normal).Run;
+        Assert.Null(service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion));
+        service.TryMarkParticipantReady(leader.CharacterId, run.RunId, run.RoomVersion);
+        service.TryMarkParticipantReady(member.CharacterId, run.RunId, run.RoomVersion);
+        Assert.Null(service.TryMarkParticipantDead(leader.CharacterId, new DungeonRunId(Guid.NewGuid()), run.RoomVersion));
+        Assert.Null(service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion + 1));
+        Assert.Null(service.TryMarkParticipantDead(new CharacterId(99), run.RunId, run.RoomVersion));
+        var first = service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion);
+        Assert.NotNull(first);
+        Assert.Equal([leader.CharacterId], service.Find(member.CharacterId)!.DeadParticipants);
+        Assert.Null(service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion));
+        Assert.Equal(first.RuntimeRevision, service.Find(member.CharacterId)!.RuntimeRevision);
+        var second = service.TryMarkParticipantDead(member.CharacterId, run.RunId, run.RoomVersion);
+        Assert.NotNull(second);
+        Assert.Equal(2, second.DeadParticipants.Count);
+        Assert.Single(first.DeadParticipants); // snapshots cannot mutate behind their reader
+        var next = service.PreparePartyEntry([leader, member], Tutorial, difficulty: DungeonDifficulty.Normal).Run;
+        Assert.Empty(next.DeadParticipants);
+        Assert.Null(service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion));
+    }
+
+
+    [Fact]
     public void Party_entry_changes_share_one_instance_and_readiness_is_monotonic_and_idempotent()
     {
         var leader = new DungeonRunParticipant(
