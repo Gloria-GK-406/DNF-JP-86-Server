@@ -236,7 +236,8 @@ public sealed class AcceptQuestCommandHandlerTests
                 new CharacterQuestLogDomainService(
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers,
-                this.Progress);
+                this.Progress,
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
         }
 
         public async Task<List<(int Slot, int QuestId, int TriggerValue)>> ReadQuestsAsync()

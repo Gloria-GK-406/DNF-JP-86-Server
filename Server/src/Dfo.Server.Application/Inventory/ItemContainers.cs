@@ -381,6 +381,12 @@ internal abstract class StoreBackedItemContainer(
         InventoryCreatureDetailState? creatureDetail = null)
     {
         ArgumentNullException.ThrowIfNull(core);
+        if (AccountMaterialCatalog.ContainsItem(core.ItemId))
+        {
+            throw new InvalidOperationException(
+                $"Account material {core.ItemId} cannot be written into character container "
+                    + $"'{this.Id.Value}'; route the grant through IItemGrantDomainService.");
+        }
         var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
             .ConfigureAwait(false);
         if (avatarDetail is not null && (worldClass != ItemWorldClass.Avatar || core.ItemKind != 8)

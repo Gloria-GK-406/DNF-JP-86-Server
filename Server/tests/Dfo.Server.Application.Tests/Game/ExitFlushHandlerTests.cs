@@ -233,7 +233,9 @@ public sealed class ExitFlushHandlerTests
         RecordingInventory inventory, IItemPlacementDefinitionSource placements) =>
         new DirectCommandBus(
             scope: inventory.Scope,
-            reward: new GrantTutorialRewardCommandHandler(inventory.Containers(placements)));
+            reward: new GrantTutorialRewardCommandHandler(
+                inventory.Containers(placements),
+                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService()));
 
     /// <summary>The character's main container, and what reached it.</summary>
     private sealed class RecordingInventory() : FakeMainInventory(characterId: 1)

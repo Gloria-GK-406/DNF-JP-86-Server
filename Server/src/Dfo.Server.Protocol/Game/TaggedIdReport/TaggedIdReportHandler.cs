@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -49,6 +50,7 @@ public sealed class TaggedIdReportHandler(
         // hold.
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         var granted = new List<GrantedTutorialItem>(declared.Count);
+        TutorialRewardResult? rewardResult = null;
         if (session is null)
         {
             if (declared.Count > 0)
@@ -63,22 +65,23 @@ public sealed class TaggedIdReportHandler(
         {
             // One command for the whole step, so its items settle together rather than one at a
             // time -- and so each placement sees the ones before it.
-            var result = await commandBus.SendAsync(
+            rewardResult = await commandBus.SendAsync(
                 new GrantTutorialRewardCommand(
                     session.CharacterId,
-                    [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))]),
+                    [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
+                    session.AccountId),
                 cancellationToken).ConfigureAwait(false);
 
-            granted.AddRange(result.Placed.Select(item => new GrantedTutorialItem(
+            granted.AddRange(rewardResult.Placed.Select(item => new GrantedTutorialItem(
                 checked((ushort)item.SlotIndex), (uint)item.ItemId, (uint)item.Count)));
 
-            if (result.Placed.Count < declared.Count)
+            if (rewardResult.Placed.Count < declared.Count)
             {
                 logger.LogWarning(
                     "Tagged id report {ConnectionId}: flag {Flag} declared {Declared} item(s) but "
                         + "only {Granted} reached the inventory",
                     context.Connection.ConnectionId, message.FlagIndex, declared.Count,
-                    result.Placed.Count);
+                    rewardResult.Placed.Count);
             }
         }
 
@@ -91,9 +94,23 @@ public sealed class TaggedIdReportHandler(
             declared.Count,
             granted.Count);
 
+        var responseFrames = new List<IGameServerMessage>
+        {
+            new TutorialFlagAcknowledgement(granted),
+        };
+        if (rewardResult?.AccountMaterials is { Count: > 0 } accountMaterials)
+        {
+            responseFrames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
+                    material.VirtualSlotIndex,
+                    material.ItemId,
+                    material.FinalCount))],
+                DateTimeOffset.UtcNow));
+        }
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([new TutorialFlagAcknowledgement(granted)], []),
+            new GameExplicitMessageDelivery(responseFrames, []),
             cancellationToken).ConfigureAwait(false);
     }
 }

@@ -34,6 +34,151 @@ public sealed class EquipmentDisjointTests
     }
 
     [Fact]
+    public async Task Cube_reward_updates_the_account_virtual_bag_instead_of_character_materials()
+    {
+        using var shop = Fixture(rewards: [new(3037, 12)]);
+        await shop.SeedCore(9, Piece());
+
+        await Disjoint(shop, 9);
+
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(0, shop.Count(3037));
+        Assert.Equal(12, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
+        Assert.Equal(
+            new DisjointItemMaterial(
+                new GameSlot(InventoryContainerType.Main, 358), 3037, 12),
+            Assert.Single(response.Materials!));
+    }
+
+    [Fact]
+    public async Task Rarity_soul_reward_updates_the_account_virtual_bag()
+    {
+        using var shop = Fixture(rewards: [new(10100115, 2)]);
+        await shop.SeedCore(9, Piece());
+
+        await Disjoint(shop, 9);
+
+        Assert.Equal(0, shop.Count(10100115));
+        Assert.Equal(2, shop.Scalar("SELECT soul_common FROM accounts WHERE account_id=1"));
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
+        Assert.Equal(
+            new DisjointItemMaterial(
+                new GameSlot(InventoryContainerType.Main, 360), 10100115, 2),
+            Assert.Single(response.Materials!));
+    }
+
+    [Fact]
+    public async Task Universe_soul_remains_an_ordinary_character_material()
+    {
+        using var shop = Fixture(rewards: [new(3257, 3)]);
+        await shop.SeedCore(9, Piece());
+
+        await Disjoint(shop, 9);
+
+        Assert.Equal(3, shop.Count(3257));
+        Assert.Equal(0, shop.Scalar("SELECT soul_common+soul_advanced+soul_rare+soul_unique+soul_legendary "
+            + "FROM accounts WHERE account_id=1"));
+        var material = Assert.Single(
+            Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).Materials!);
+        Assert.Equal(3257, material.ItemId);
+        Assert.Equal(InventoryContainerType.Main, material.Slot.Space);
+        Assert.InRange(material.Slot.Index, 121, 185);
+    }
+
+    [Fact]
+    public async Task Mixed_rewards_settle_character_and_account_materials_together()
+    {
+        using var shop = Fixture(rewards:
+        [
+            new(1000, 5),
+            new(3037, 12),
+            new(10100115, 2),
+            new(3257, 3),
+        ]);
+        await shop.SeedCore(9, Piece());
+
+        await Disjoint(shop, 9);
+
+        Assert.Equal(5, shop.Count(1000));
+        Assert.Equal(3, shop.Count(3257));
+        Assert.Equal(0, shop.Count(3037));
+        Assert.Equal(0, shop.Count(10100115));
+        Assert.Equal(12, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(2, shop.Scalar("SELECT soul_common FROM accounts WHERE account_id=1"));
+        Assert.Equal(
+            [1000, 3037, 3257, 10100115],
+            Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).Materials!
+                .Select(material => material.ItemId)
+                .OrderBy(itemId => itemId));
+    }
+
+    [Fact]
+    public async Task Account_only_reward_does_not_need_a_free_character_material_slot()
+    {
+        using var shop = Fixture(rewards: [new(3037, 12)]);
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(121, 1000, 1000, 3);
+        await shop.Seed(122, 1000, 1000, 3);
+        for (var slot = 3; slot <= 8; slot++)
+            await shop.Seed(slot, 2000, 10);
+
+        await Disjoint(shop, 9);
+
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(12, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+    }
+
+    [Fact]
+    public async Task Account_material_failure_rolls_back_piece_and_account_balance()
+    {
+        using var shop = Fixture(rewards: [new(3037, 12)]);
+        await shop.SeedCore(9, Piece());
+        shop.Sql("CREATE TRIGGER refuse_account_material BEFORE UPDATE OF cube_clear ON accounts "
+            + "WHEN NEW.cube_clear <> OLD.cube_clear BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
+
+        await Assert.ThrowsAsync<SqliteException>(() => Disjoint(shop, 9).AsTask());
+
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Empty(shop.Sender.Messages);
+    }
+
+    [Fact]
+    public async Task Portable_account_material_failure_also_rolls_back_the_tool()
+    {
+        using var shop = Fixture(rewards: [new(3037, 12)]);
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(65, 2600469, 2);
+        shop.Sql("CREATE TRIGGER refuse_portable_account_material BEFORE UPDATE OF cube_clear ON accounts "
+            + "WHEN NEW.cube_clear <> OLD.cube_clear BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
+
+        await Assert.ThrowsAsync<SqliteException>(() =>
+            Disjoint(shop, 9, disjointToolSlot: 65).AsTask());
+
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(2, shop.Count(2600469));
+        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Empty(shop.Sender.Messages);
+    }
+
+    [Fact]
+    public async Task The_same_account_exposes_one_material_bag_to_both_characters()
+    {
+        using var shop = Fixture(rewards: [new(3037, 12)]);
+        var bags = shop.Services.GetRequiredService<IAccountMaterialBagDomainService>();
+        var first = bags.Get(new(1));
+        await shop.SeedCore(9, Piece());
+        await Disjoint(shop, 9);
+
+        shop.Select(2);
+        var second = bags.Get(new(1));
+
+        Assert.Same(first, second);
+        Assert.Equal(12, (await second.SnapshotAsync(default)).ClearCube);
+    }
+
+    [Fact]
     public async Task Full_material_band_keeps_the_source_and_returns_inventory_full()
     {
         using var shop = Fixture();
@@ -206,9 +351,12 @@ public sealed class EquipmentDisjointTests
         Assert.Empty(shop.Sender.Messages);
     }
 
-    private static ShopFixture Fixture(int equipmentLevel = 10) => new(services =>
+    private static ShopFixture Fixture(
+        int equipmentLevel = 10,
+        IReadOnlyList<EquipmentDisjointReward>? rewards = null) => new(services =>
     {
-        services.AddSingleton<IEquipmentDisjointRuleService>(new FixedRules());
+        services.AddSingleton<IEquipmentDisjointRuleService>(new FixedRules(
+            rewards ?? [new EquipmentDisjointReward(1000, 12)]));
         services.AddSingleton<IEquipmentDisjointDefinitionSource>(
             new DisjointContent(equipmentLevel));
     });
@@ -227,12 +375,13 @@ public sealed class EquipmentDisjointTests
                 new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot, disjointProviderId),
             default);
 
-    private sealed class FixedRules : IEquipmentDisjointRuleService
+    private sealed class FixedRules(IReadOnlyList<EquipmentDisjointReward> rewards)
+        : IEquipmentDisjointRuleService
     {
         public ValueTask<EquipmentDisjointRuleResult> ResolveAsync(EquipmentDisjointCandidate equipment,
             EquipmentDisjointSettings settings, int randomSeed, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new EquipmentDisjointRuleResult(
-                EquipmentDisjointRejection.None, [new(1000, 12)]));
+                EquipmentDisjointRejection.None, rewards));
     }
 
     private sealed class DisjointContent(int equipmentLevel) : IEquipmentDisjointDefinitionSource

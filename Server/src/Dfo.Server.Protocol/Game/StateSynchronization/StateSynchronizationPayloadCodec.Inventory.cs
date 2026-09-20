@@ -145,16 +145,14 @@ internal static partial class StateSynchronizationPayloadCodec
                 WriteVirtualInventoryItem(writer, values, slot, slot);
             foreach (var item in items)
                 GameInventoryItemEntry.Write(writer, item, preparedAt, containerType);
-            int[] cubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
-            for (short slot = 354; slot <= 359; slot++)
-                WriteVirtualInventoryItem(writer, values, slot, cubeItemIds[slot - 354]);
-            // Five slots the older client's main container did not have. The reference session's
-            // snapshot declares fourteen entries -- three at slots 0..2, six cubes at 354..359, and
-            // these -- where this server declared nine. The ids are transcribed; what they hold is
-            // not established, and like the cubes they carry a count of zero until something sets one.
-            int[] extendedItemIds = [10100115, 10100116, 10099773, 10099774, 10099775];
-            for (short slot = 360; slot <= 364; slot++)
-                WriteVirtualInventoryItem(writer, values, slot, extendedItemIds[slot - 360]);
+            foreach (var material in AccountMaterialCatalog.Definitions)
+            {
+                WriteVirtualInventoryItem(
+                    writer,
+                    values,
+                    checked((short)material.VirtualSlotIndex),
+                    material.ItemId);
+            }
         }
         else
         {

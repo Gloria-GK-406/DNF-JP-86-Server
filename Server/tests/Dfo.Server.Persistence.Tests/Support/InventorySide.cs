@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -220,7 +221,11 @@ internal sealed class InventorySide
 
     private InventoryEntryAssembly Assembly => new(
         new SqliteCharacterTable(this.database),
-        new SqliteAccountTable(this.database),
+        new AccountMaterialBagDomainService(
+            new SqliteAccountMaterialBagStore(this.databasePath),
+            new AccountMaterialRuleService(),
+            new AmbientStoreAccess(this.Scope)),
+        new AccountMaterialRuleService(),
         new SqliteCharacterItemTable(this.database),
         new SqliteAccountCargoItemTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),

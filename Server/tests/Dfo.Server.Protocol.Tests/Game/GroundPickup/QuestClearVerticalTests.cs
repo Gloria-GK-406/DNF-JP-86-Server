@@ -99,6 +99,8 @@ public sealed class QuestClearVerticalTests
                 new SeekingFactAdapter(
                     provider.GetRequiredService<ISeekingQuestProgressDomainService>()));
             services.AddSingleton<IGroundPickupDomainService>(new GroundPickupDomainService());
+            services.AddSingleton<IItemGrantDomainService>(
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
             services.AddCommandHandler<
                 PickUpGroundDropCommand,
                 GroundPickupResult,

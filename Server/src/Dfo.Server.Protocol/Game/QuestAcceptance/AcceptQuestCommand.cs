@@ -54,7 +54,8 @@ public sealed record QuestAcceptOutcome(
     uint InitialTrigger,
     IReadOnlyList<AcceptedQuestItem> Items,
     QuestAcceptRefusal? Refusal = null,
-    QuestProgressSnapshot? QuestProgress = null)
+    QuestProgressSnapshot? QuestProgress = null,
+    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null)
 {
     public static QuestAcceptOutcome Refuse(ushort questId, QuestAcceptRefusal refusal) =>
         new(false, questId, 0, [], refusal);
@@ -84,7 +85,8 @@ public sealed class AcceptQuestCommandHandler(
     IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
-    IQuestProgressDomainService questProgress)
+    IQuestProgressDomainService questProgress,
+    IItemGrantDomainService itemGrants)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(
@@ -117,6 +119,7 @@ public sealed class AcceptQuestCommandHandler(
 
         var declared = definition.EventItems ?? [];
         var placed = new List<AcceptedQuestItem>(declared.Count);
+        var accountChanges = new List<AccountMaterialChange>();
         if (declared.Count > 0)
         {
             var container = containers.FindContainer(
@@ -129,26 +132,36 @@ public sealed class AcceptQuestCommandHandler(
 
             foreach (var item in declared)
             {
-                var outcome = await container
-                    .AddAsync(item.ItemId, item.Count, cancellationToken).ConfigureAwait(false);
-                switch (outcome)
+                var granted = await itemGrants.GrantAsync(
+                        command.AccountId, container, item.ItemId, item.Count,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                switch (granted)
                 {
-                    case ItemPlacementOutcome.AddedToPile topped:
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
                         placed.Add(new AcceptedQuestItem(
                             checked((ushort)topped.SlotIndex),
                             (uint)item.ItemId,
                             (uint)topped.Added));
                         break;
 
-                    case ItemPlacementOutcome.PutInEmptySlot opened:
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
                         placed.Add(new AcceptedQuestItem(
                             checked((ushort)opened.SlotIndex),
                             (uint)item.ItemId,
                             (uint)opened.Count));
                         break;
 
-                    case ItemPlacementOutcome.NoRoom:
-                    case ItemPlacementOutcome.UnknownItem:
+                    case ItemGrantOutcome.AccountMaterial account:
+                        accountChanges.Add(account.Change);
+                        placed.Add(new AcceptedQuestItem(
+                            checked((ushort)account.Change.VirtualSlotIndex),
+                            (uint)item.ItemId,
+                            (uint)account.Change.AddedCount));
+                        break;
+
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
                         return await this.HandBackAsync(log, command.QuestId, cancellationToken)
                             .ConfigureAwait(false);
 
@@ -156,7 +169,7 @@ public sealed class AcceptQuestCommandHandler(
                         // Listed rather than defaulted: an outcome nobody read would quietly
                         // become an item the quest promised and never handed over.
                         throw new ArgumentOutOfRangeException(
-                            nameof(command), outcome, "No reading was decided for this outcome.");
+                            nameof(command), granted, "No reading was decided for this outcome.");
                 }
             }
         }
@@ -173,7 +186,9 @@ public sealed class AcceptQuestCommandHandler(
                 .ConfigureAwait(false));
         }
         return new QuestAcceptOutcome(
-            true, command.QuestId, definition.InitialTrigger, placed, QuestProgress: progress);
+            true, command.QuestId, definition.InitialTrigger, placed,
+            QuestProgress: progress,
+            AccountMaterials: accountChanges);
     }
 
     /// <remarks>

@@ -53,10 +53,6 @@ public interface IAccountTable
     /// <summary>How many lucky stars the account has, or nothing when it is not there.</summary>
     ValueTask<int?> FindLuckyStarAsync(AccountId accountId, CancellationToken cancellationToken);
 
-    /// <summary>The six cube fragment counts, or nothing when the account is not there.</summary>
-    ValueTask<CubeFragmentRow?> FindCubeFragmentsAsync(
-        AccountId accountId, CancellationToken cancellationToken);
-
     /// <summary>Sets how many lucky stars the account has. Says how many rows that touched.</summary>
     ValueTask<int> SetLuckyStarAsync(
         AccountId accountId, int luckyStar, CancellationToken cancellationToken);

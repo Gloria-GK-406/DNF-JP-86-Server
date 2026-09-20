@@ -104,7 +104,8 @@ public sealed record SelectCardResult(
     int GoldPaid = 0,
     int GoldCarried = 0,
     DungeonCardSelectionChange? StaticChange = null,
-    DungeonCardSelectionCommit? SelectionCommit = null)
+    DungeonCardSelectionCommit? SelectionCommit = null,
+    AccountMaterialChange? AccountMaterial = null)
 {
     public DungeonCardSelectionChange? Change => this.SelectionCommit?.Change ?? this.StaticChange;
 
@@ -158,7 +159,8 @@ public sealed class SelectCardCommandHandler(
     IDungeonRunDomainService runs,
     ICharacterContainerDomainService containers,
     ICharacterDomainService characters,
-    TimeProvider clock) : ICommandHandler<SelectCardCommand, SelectCardResult>
+    TimeProvider clock,
+    IItemGrantDomainService itemGrants) : ICommandHandler<SelectCardCommand, SelectCardResult>
 {
     public async ValueTask<SelectCardResult> HandleAsync(
         CommandExecutionContext context,
@@ -218,7 +220,8 @@ public sealed class SelectCardCommandHandler(
                     .ConfigureAwait(false)
                 : charge.Carried;
             var delivery = claim.Slot.Item is { } piece
-                ? await this.DeliverAsync(command.CharacterId, piece, cancellationToken)
+                ? await this.DeliverAsync(
+                    command.AccountId, command.CharacterId, piece, cancellationToken)
                     .ConfigureAwait(false)
                 : null;
 
@@ -234,12 +237,13 @@ public sealed class SelectCardCommandHandler(
                 command.Kind,
                 command.Index,
                 fixedCards.FaceOf(command.Kind).Slots,
-                delivery,
+                delivery?.CharacterItem,
                 charge.Price,
                 paid,
                 carried,
                 StaticChange: null,
-                SelectionCommit: commit);
+                SelectionCommit: commit,
+                AccountMaterial: delivery?.AccountMaterial);
         }
         catch
         {
@@ -316,7 +320,8 @@ public sealed class SelectCardCommandHandler(
     /// and for the same reason: the face has been revealed and cannot be un-revealed.
     /// </para>
     /// </remarks>
-    private async ValueTask<CommittedInventoryUpdateState?> DeliverAsync(
+    private async ValueTask<CardItemDelivery?> DeliverAsync(
+        AccountId accountId,
         CharacterId characterId,
         ClearRewardCardItem piece,
         CancellationToken cancellationToken)
@@ -325,30 +330,34 @@ public sealed class SelectCardCommandHandler(
         if (container is null)
             return null;
 
-        var outcome = await container.AddAsync(piece.ItemId, piece.Quantity, cancellationToken)
+        var granted = await itemGrants.GrantAsync(
+                accountId, container, piece.ItemId, piece.Quantity, cancellationToken)
             .ConfigureAwait(false);
         int slotIndex;
         var opensASlot = false;
-        switch (outcome)
+        switch (granted)
         {
-            case ItemPlacementOutcome.AddedToPile topped:
+            case ItemGrantOutcome.AccountMaterial account:
+                return new CardItemDelivery(null, account.Change);
+
+            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
                 slotIndex = topped.SlotIndex;
                 break;
 
-            case ItemPlacementOutcome.PutInEmptySlot opened:
+            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
                 slotIndex = opened.SlotIndex;
                 opensASlot = true;
                 break;
 
-            case ItemPlacementOutcome.NoRoom:
-            case ItemPlacementOutcome.UnknownItem:
+            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
+            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
                 return null;
 
             default:
                 // Listed rather than defaulted: an outcome nobody read would become a piece the
                 // player was shown and never given, with nothing said about it.
                 throw new ArgumentOutOfRangeException(
-                    nameof(piece), outcome, "No reading was decided for this outcome.");
+                    nameof(piece), granted, "No reading was decided for this outcome.");
         }
 
         var landed = await container.ReadSlotAsync(slotIndex, cancellationToken)
@@ -371,9 +380,15 @@ public sealed class SelectCardCommandHandler(
         // answer the piece as the bag opened it and not as it now stands. No name is carried
         // because this frame has no field for one, and because the name of what was just written
         // is settlement's to hand out rather than this caller's to guess at.
-        return new CommittedInventoryUpdateState(
-            container.Type,
-            [new InventoryItemState(null, slotIndex, core)],
-            clock.GetUtcNow());
+        return new CardItemDelivery(
+            new CommittedInventoryUpdateState(
+                container.Type,
+                [new InventoryItemState(null, slotIndex, core)],
+                clock.GetUtcNow()),
+            null);
     }
+
+    private sealed record CardItemDelivery(
+        CommittedInventoryUpdateState? CharacterItem,
+        AccountMaterialChange? AccountMaterial);
 }

@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MonsterDeath;
@@ -161,6 +162,15 @@ public sealed class FinishQuestHandler(
         var mirror = await characters.Get(session.CharacterId)
             .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         var frames = new List<IGameServerMessage>();
+        if (outcome.AccountMaterials is { Count: > 0 } accountMaterials)
+        {
+            frames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
+                    material.VirtualSlotIndex,
+                    material.ItemId,
+                    material.FinalCount))],
+                clock.GetUtcNow()));
+        }
         if (mirror is not null)
         {
             frames.Add(new ExperienceNotification(

@@ -167,19 +167,6 @@ public sealed record ItemLockRow(
 public sealed record RentalRow(
     int CharacterId, long ItemId, long InventoryTemplateId, long ExpireTime);
 
-/// <summary>The six cube fragment counts an account carries.</summary>
-/// <remarks>
-/// Six colours of a crafting fragment, not six currencies. <c>GoldCube</c> is the gold-coloured
-/// fragment and holds no gold: in this repository a bare <c>Gold</c> always means the money.
-/// </remarks>
-public sealed record CubeFragmentRow(
-    int BlackCube,
-    int WhiteCube,
-    int RedCube,
-    int BlueCube,
-    int ClearCube,
-    int GoldCube);
-
 /// <summary>The rows of <c>items</c>, read and written as things rather than as places.</summary>
 /// <remarks>
 /// Beside <see cref="ICharacterItemTable"/> rather than replacing it: that one answers a

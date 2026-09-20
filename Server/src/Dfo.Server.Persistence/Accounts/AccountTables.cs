@@ -102,21 +102,6 @@ internal sealed class SqliteAccountTable(SqliteDatabase database) : IAccountTabl
             reader => (object)reader.GetInt32(0),
             cancellationToken).ConfigureAwait(false) is int luckyStar ? luckyStar : null;
 
-    public ValueTask<CubeFragmentRow?> FindCubeFragmentsAsync(
-        AccountId accountId, CancellationToken cancellationToken) =>
-        database.ReadFirstAsync(
-            """
-            SELECT cube_black, cube_white, cube_red, cube_blue, cube_clear, cube_gold
-            FROM accounts
-            WHERE account_id = @accountId
-            LIMIT 1;
-            """,
-            parameters => parameters.AddWithValue("@accountId", accountId.Value),
-            reader => new CubeFragmentRow(
-                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2),
-                reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5)),
-            cancellationToken);
-
     public ValueTask<int> SetLuckyStarAsync(
         AccountId accountId, int luckyStar, CancellationToken cancellationToken) =>
         database.ExecuteAsync(

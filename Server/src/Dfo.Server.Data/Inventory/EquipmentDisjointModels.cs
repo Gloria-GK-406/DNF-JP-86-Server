@@ -62,6 +62,7 @@ public sealed record EquipmentDisjointReceipt(
     SelectedSessionIdentity Session,
     BusinessSlot TargetSlot,
     IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials,
+    IReadOnlyList<AccountMaterialChange> AccountMaterials,
     IReadOnlyList<EquipmentDisjointSlotChange> InventoryChanges,
     DateTimeOffset PreparedAt);
 

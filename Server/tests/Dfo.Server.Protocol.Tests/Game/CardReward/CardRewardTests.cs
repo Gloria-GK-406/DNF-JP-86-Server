@@ -1177,7 +1177,8 @@ public sealed class CardRewardTests
                 this._runs,
                 new StubContainers(bagBound ? this.Bag : null),
                 new OnePlayingCharacter(this.Gold),
-                new FixedClock(Flipped));
+                new FixedClock(Flipped),
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
             if (!inARun)
                 return;

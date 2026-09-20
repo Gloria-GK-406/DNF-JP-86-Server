@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -203,7 +204,11 @@ public sealed class AvatarCarrierRulesTests
 
             ICharacterInventoryEntryRepository entries = new InventoryEntryAssembly(
                 new SqliteCharacterTable(database),
-                new SqliteAccountTable(database),
+                new AccountMaterialBagDomainService(
+                    new SqliteAccountMaterialBagStore(path),
+                    new AccountMaterialRuleService(),
+                    new AmbientStoreAccess(scope)),
+                new AccountMaterialRuleService(),
                 new Handing(handed),
                 new SqliteAccountCargoItemTable(database),
                 new SqliteCharacterContainerStateTable(database),

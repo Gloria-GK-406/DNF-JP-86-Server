@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -48,6 +49,15 @@ public sealed class DungeonCardSelectionProjectionDelivery(
             actorFrames.Add(shared);
         if (result.Delivered is { } delivered)
             actorFrames.Add(GameInventoryDelivery.Notification(delivered));
+        if (result.AccountMaterial is { } accountMaterial)
+        {
+            actorFrames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [new InventoryRuntimeValueState(
+                    accountMaterial.VirtualSlotIndex,
+                    accountMaterial.ItemId,
+                    accountMaterial.FinalCount)],
+                preparedAt));
+        }
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
         {
             actorFrames.Add(GameInventoryDelivery.CarriedGoldNotification(

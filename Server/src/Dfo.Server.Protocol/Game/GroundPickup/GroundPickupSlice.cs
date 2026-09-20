@@ -255,7 +255,8 @@ public sealed record GroundPickupResult(
     int Total = 0,
     DungeonPickupChange? Change = null,
     QuestProgressSnapshot? QuestProgress = null,
-    DungeonPickupCommit? PendingCommit = null)
+    DungeonPickupCommit? PendingCommit = null,
+    AccountMaterialChange? AccountMaterial = null)
 {
     public DungeonPickupChange? CommittedChange => this.PendingCommit?.Change ?? this.Change;
 
@@ -289,7 +290,8 @@ public sealed class PickUpGroundDropCommandHandler(
     IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
     ICharacterDomainService characters,
-    IQuestProgressDomainService questProgress)
+    IQuestProgressDomainService questProgress,
+    IItemGrantDomainService itemGrants)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -366,34 +368,42 @@ public sealed class PickUpGroundDropCommandHandler(
 
         try
         {
-            var outcome = await container.AddAsync(piece.ItemId, piece.Count, cancellationToken)
+            var granted = await itemGrants.GrantAsync(
+                    command.AccountId, container, piece.ItemId, piece.Count,
+                    cancellationToken)
                 .ConfigureAwait(false);
             int slotIndex;
-            switch (outcome)
+            AccountMaterialChange? accountMaterial = null;
+            switch (granted)
             {
-                case ItemPlacementOutcome.AddedToPile topped:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
                     slotIndex = topped.SlotIndex;
                     break;
 
-                case ItemPlacementOutcome.PutInEmptySlot opened:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
                     slotIndex = opened.SlotIndex;
                     await CarryOverAsync(container, piece, opened.SlotIndex, cancellationToken)
                         .ConfigureAwait(false);
                     break;
 
-                case ItemPlacementOutcome.NoRoom:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
                     runs.ReleaseGroundDrop(itemClaim);
                     return GroundPickupResult.Refused(
                         GroundPickupStatus.InventoryFull, piece.ItemId);
 
-                case ItemPlacementOutcome.UnknownItem:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
                     runs.ReleaseGroundDrop(itemClaim);
                     return GroundPickupResult.Refused(
                         GroundPickupStatus.UnknownItem, piece.ItemId);
 
+                case ItemGrantOutcome.AccountMaterial account:
+                    accountMaterial = account.Change;
+                    slotIndex = account.Change.VirtualSlotIndex;
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException(
-                        nameof(command), outcome, "No reading was decided for this outcome.");
+                        nameof(command), granted, "No reading was decided for this outcome.");
             }
 
             var reported = await questProgress.ReportAsync(
@@ -411,7 +421,8 @@ public sealed class PickUpGroundDropCommandHandler(
                 slotIndex,
                 Change: staged.Change,
                 QuestProgress: reported.NotificationSnapshot,
-                PendingCommit: staged.IsDeferred ? staged : null);
+                PendingCommit: staged.IsDeferred ? staged : null,
+                AccountMaterial: accountMaterial);
         }
         catch
         {
@@ -580,6 +591,15 @@ public sealed class DungeonPickupProjectionDelivery(
                     new GetItemResponse(Accepted: true),
                     notification,
                 };
+                if (result.AccountMaterial is { } accountMaterial)
+                {
+                    itemMessages.Add(GameInventoryDelivery.VirtualResourceNotification(
+                        [new InventoryRuntimeValueState(
+                            accountMaterial.VirtualSlotIndex,
+                            accountMaterial.ItemId,
+                            accountMaterial.FinalCount)],
+                        clock.GetUtcNow()));
+                }
                 if (result.QuestProgress is { } questProgress)
                     itemMessages.Add(QuestProgressMessage(questProgress));
                 required = itemMessages;

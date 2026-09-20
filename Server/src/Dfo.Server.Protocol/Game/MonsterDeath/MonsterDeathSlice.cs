@@ -11,6 +11,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
@@ -944,6 +945,15 @@ public sealed class MonsterDeathHandler(
     {
         if (applied?.QuestItems is { } items)
             frames.Add(GameInventoryDelivery.Notification(items));
+        if (applied?.AccountMaterials is { Count: > 0 } accountMaterials)
+        {
+            frames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
+                    material.VirtualSlotIndex,
+                    material.ItemId,
+                    material.FinalCount))],
+                DateTimeOffset.UtcNow));
+        }
         var quests = applied?.QuestProgress?.Quests;
         if (quests is not null)
         {

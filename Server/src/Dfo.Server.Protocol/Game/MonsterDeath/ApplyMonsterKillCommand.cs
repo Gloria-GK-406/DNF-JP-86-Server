@@ -30,7 +30,8 @@ public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
     IReadOnlyList<HuntEnemyQuestAdvance> QuestAdvances,
     CommittedInventoryUpdateState? QuestItems = null,
-    QuestProgressSnapshot? QuestProgress = null);
+    QuestProgressSnapshot? QuestProgress = null,
+    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null);
 
 /// <summary>
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
@@ -42,6 +43,7 @@ public sealed class ApplyMonsterKillCommandHandler(
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
+    IItemGrantDomainService itemGrants,
     IPartyService? parties = null)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
@@ -84,7 +86,7 @@ public sealed class ApplyMonsterKillCommandHandler(
         if (command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss
             && command.EnemyType == HuntEnemyTargetTypes.Monster)
             facts.Add(new QuestDungeonCleared(command.DungeonId, command.Difficulty));
-        if (granted is not null)
+        if (granted.HasChanges)
             facts.Add(new QuestHoldingsChanged());
         var reported = await questProgress.ReportAsync(
             command.AccountId, command.CharacterId, facts, cancellationToken).ConfigureAwait(false);
@@ -92,31 +94,36 @@ public sealed class ApplyMonsterKillCommandHandler(
             .Select(change => new HuntEnemyQuestAdvance(change.QuestId, change.Before, change.After))
             .ToArray();
         return new ApplyMonsterKillResult(
-            awarded, advanced, granted, QuestProgress: reported.NotificationSnapshot);
+            awarded,
+            advanced,
+            granted.CharacterItems,
+            QuestProgress: reported.NotificationSnapshot,
+            AccountMaterials: granted.AccountMaterials);
     }
 
-    private async ValueTask<CommittedInventoryUpdateState?> GrantQuestItemsAsync(
+    private async ValueTask<QuestItemGrant> GrantQuestItemsAsync(
         ApplyMonsterKillCommand command,
         CancellationToken cancellationToken)
     {
         if (command.PartyKey != default
             && (parties?.FindByKey(command.PartyKey) is not { } current
                 || !current.Members.Any(member => member.CharacterId == command.CharacterId)))
-            return null;
+            return QuestItemGrant.Empty;
         var candidates = command.PendingLoot?
             .Where(drop => drop.Delivery == RolledDropDelivery.DirectQuestItem
                 && drop.OwnerCharacterId == command.CharacterId)
             .ToArray() ?? [];
         if (candidates.Length == 0)
-            return null;
+            return QuestItemGrant.Empty;
 
         var bag = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (bag is null)
-            return null;
+            return QuestItemGrant.Empty;
         var carried = await questLogs.LogOf(command.AccountId, command.CharacterId)
             .CarriedAsync(cancellationToken).ConfigureAwait(false);
         var active = carried.Select(quest => quest.QuestId).ToHashSet();
         var changed = new HashSet<int>();
+        var accountChanges = new List<AccountMaterialChange>();
         foreach (var drop in candidates)
         {
             if (drop.QuestId <= 0 || !active.Contains(drop.QuestId)
@@ -132,32 +139,40 @@ public sealed class ApplyMonsterKillCommandHandler(
             var remaining = count;
             while (remaining > 0)
             {
-                var placement = await bag.AddAsync(drop.ItemId, remaining, cancellationToken)
+                var granted = await itemGrants.GrantAsync(
+                        command.AccountId, bag, drop.ItemId, remaining,
+                        cancellationToken)
                     .ConfigureAwait(false);
-                switch (placement)
+                switch (granted)
                 {
-                    case ItemPlacementOutcome.AddedToPile topped when topped.Added > 0:
+                    case ItemGrantOutcome.CharacterItem
+                        { Placement: ItemPlacementOutcome.AddedToPile topped } when topped.Added > 0:
                         changed.Add(topped.SlotIndex);
                         remaining -= topped.Added;
                         break;
-                    case ItemPlacementOutcome.PutInEmptySlot opened when opened.Count > 0:
+                    case ItemGrantOutcome.CharacterItem
+                        { Placement: ItemPlacementOutcome.PutInEmptySlot opened } when opened.Count > 0:
                         changed.Add(opened.SlotIndex);
                         remaining -= opened.Count;
                         break;
-                    case ItemPlacementOutcome.NoRoom:
+                    case ItemGrantOutcome.AccountMaterial account:
+                        accountChanges.Add(account.Change);
+                        remaining -= account.Change.AddedCount;
+                        break;
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
                         remaining = 0;
                         break;
-                    case ItemPlacementOutcome.UnknownItem:
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
                         throw new InvalidDataException($"Quest item {drop.ItemId} has no inventory definition.");
                     default:
                         throw new InvalidDataException(
-                            $"Quest item {drop.ItemId} placement made no progress: {placement}.");
+                            $"Quest item {drop.ItemId} placement made no progress: {granted}.");
                 }
             }
         }
 
         if (changed.Count == 0)
-            return null;
+            return new QuestItemGrant(null, accountChanges);
         var items = new List<InventoryItemState>(changed.Count);
         foreach (var slot in changed.Order())
         {
@@ -165,7 +180,18 @@ public sealed class ApplyMonsterKillCommandHandler(
                 ?? throw new InvalidDataException($"Quest item slot {slot} disappeared before commit.");
             items.Add(new InventoryItemState(null, slot, item.Core));
         }
-        return new CommittedInventoryUpdateState(
-            InventoryContainerType.Main, items, DateTimeOffset.UtcNow);
+        return new QuestItemGrant(
+            new CommittedInventoryUpdateState(
+                InventoryContainerType.Main, items, DateTimeOffset.UtcNow),
+            accountChanges);
+    }
+
+    private sealed record QuestItemGrant(
+        CommittedInventoryUpdateState? CharacterItems,
+        IReadOnlyList<AccountMaterialChange> AccountMaterials)
+    {
+        public static QuestItemGrant Empty { get; } = new(null, []);
+
+        public bool HasChanges => this.CharacterItems is not null || this.AccountMaterials.Count > 0;
     }
 }

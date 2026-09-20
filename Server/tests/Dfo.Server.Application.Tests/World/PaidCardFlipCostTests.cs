@@ -433,7 +433,8 @@ public sealed class PaidCardFlipCostTests
                 runs,
                 new OneBag(this.Bag),
                 new OneCharacter(new RealCarriedGold(this._carried)),
-                TimeProvider.System);
+                TimeProvider.System,
+                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
         }
 
         /// <summary>

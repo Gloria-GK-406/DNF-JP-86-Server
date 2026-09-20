@@ -111,6 +111,7 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
         ValueTask.FromResult<ItemPlacement?>(itemId switch
         {
             1000 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
+            >= 3257 and <= 3260 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
             3000 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 1))
                 { WorldClass = ItemWorldClass.Equipment },
             100310669 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 47))

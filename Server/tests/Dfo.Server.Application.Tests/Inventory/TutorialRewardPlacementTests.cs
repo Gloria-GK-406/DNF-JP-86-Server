@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
@@ -129,11 +130,13 @@ public sealed class TutorialRewardPlacementTests
     public async Task A_character_with_no_bound_container_receives_nothing()
     {
         var handler = new GrantTutorialRewardCommandHandler(
-            new CharacterContainerDomainService());
+            new CharacterContainerDomainService(),
+            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
 
         var result = await handler.HandleAsync(
             Context,
-            new GrantTutorialRewardCommand(new CharacterId(60), [new DeclaredRewardItem(Potion, 1)]),
+            new GrantTutorialRewardCommand(
+                new CharacterId(60), [new DeclaredRewardItem(Potion, 1)], new AccountId(6)),
             CancellationToken.None);
 
         Assert.Empty(result.Placed);
@@ -143,12 +146,14 @@ public sealed class TutorialRewardPlacementTests
         RewardInventory inventory, params (int ItemId, int Count)[] declared)
     {
         var handler = new GrantTutorialRewardCommandHandler(
-            inventory.Containers(new RewardPlacements()));
+            inventory.Containers(new RewardPlacements()),
+            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
         var bus = new DirectCommandBus(reward: handler, scope: inventory.Scope);
         return await bus.SendAsync(
             new GrantTutorialRewardCommand(
                 new CharacterId(60),
-                [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))]),
+                [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
+                new AccountId(6)),
             CancellationToken.None);
     }
 

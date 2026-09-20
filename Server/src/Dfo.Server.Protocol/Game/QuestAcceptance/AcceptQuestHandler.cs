@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -75,6 +76,21 @@ public sealed class AcceptQuestHandler(
 
         if (!outcome.Accepted)
             return;
+
+        if (outcome.AccountMaterials is { Count: > 0 } accountMaterials)
+        {
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [GameInventoryDelivery.VirtualResourceNotification(
+                        [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
+                            material.VirtualSlotIndex,
+                            material.ItemId,
+                            material.FinalCount))],
+                        DateTimeOffset.UtcNow)],
+                    []),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         if (outcome.QuestProgress is { } progress)
         {

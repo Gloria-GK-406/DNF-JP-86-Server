@@ -155,6 +155,9 @@ public sealed class ApplicationModule : IServerModule
         // The rules a character's entry turns on, kept out of whatever reads or writes the rows
         // they apply to, so each can be checked without a database in reach.
         services.TryAddSingleton<AmbientStoreAccess>();
+        services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
+        services.TryAddSingleton<IAccountMaterialBagDomainService, AccountMaterialBagDomainService>();
+        services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
         // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
         // outright would make such a host fail to start; asking for it optionally lets it start

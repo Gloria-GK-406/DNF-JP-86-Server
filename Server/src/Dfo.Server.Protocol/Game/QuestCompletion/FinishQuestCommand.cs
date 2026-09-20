@@ -35,7 +35,8 @@ public sealed record QuestFinishOutcome(
     byte NewLevel,
     uint NewExperience,
     QuestFinishRefusal? Refusal = null,
-    QuestProgressSnapshot? QuestProgress = null)
+    QuestProgressSnapshot? QuestProgress = null,
+    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null)
 {
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>
@@ -94,7 +95,8 @@ public sealed class FinishQuestCommandHandler(
     ICharacterContainerDomainService containers,
     ICharacterExperienceDomainService grant,
     ICharacterDomainService characters,
-    IQuestProgressDomainService questProgress)
+    IQuestProgressDomainService questProgress,
+    IItemGrantDomainService itemGrants)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(
@@ -149,6 +151,7 @@ public sealed class FinishQuestCommandHandler(
                 return QuestFinishOutcome.Refuse(command.QuestId, holdingsProgress);
 
             var placed = new List<FinishedQuestItem>();
+            var accountChanges = new List<AccountMaterialChange>();
             if (reward.Items.Count > 0)
             {
                 var container = containers.FindContainer(
@@ -158,27 +161,37 @@ public sealed class FinishQuestCommandHandler(
 
                 foreach (var (itemId, count) in reward.Items)
                 {
-                    var outcome = await container.AddAsync(itemId, count, cancellationToken)
+                    var granted = await itemGrants.GrantAsync(
+                            command.AccountId, container, itemId, count,
+                            cancellationToken)
                         .ConfigureAwait(false);
-                    switch (outcome)
+                    switch (granted)
                     {
-                        case ItemPlacementOutcome.AddedToPile topped:
+                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
                             placed.Add(new FinishedQuestItem(
                                 checked((ushort)topped.SlotIndex), (uint)itemId, (uint)topped.Added));
                             break;
 
-                        case ItemPlacementOutcome.PutInEmptySlot opened:
+                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
                             placed.Add(new FinishedQuestItem(
                                 checked((ushort)opened.SlotIndex), (uint)itemId, (uint)opened.Count));
                             break;
 
-                        case ItemPlacementOutcome.NoRoom:
-                        case ItemPlacementOutcome.UnknownItem:
+                        case ItemGrantOutcome.AccountMaterial account:
+                            accountChanges.Add(account.Change);
+                            placed.Add(new FinishedQuestItem(
+                                checked((ushort)account.Change.VirtualSlotIndex),
+                                (uint)itemId,
+                                (uint)account.Change.AddedCount));
+                            break;
+
+                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
+                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
                             throw Rejected(command, $"item {itemId} could not be placed");
 
                         default:
                             throw new ArgumentOutOfRangeException(
-                                nameof(command), outcome, "No reading was decided for this outcome.");
+                                nameof(command), granted, "No reading was decided for this outcome.");
                     }
                 }
             }
@@ -230,7 +243,8 @@ public sealed class FinishQuestCommandHandler(
                 placed,
                 award.Level,
                 award.Total,
-                QuestProgress: questReport.NotificationSnapshot);
+                QuestProgress: questReport.NotificationSnapshot,
+                AccountMaterials: accountChanges);
         }
         catch (Exception exception)
             when (exception is not (QuestFinishRejectedException or OperationCanceledException))

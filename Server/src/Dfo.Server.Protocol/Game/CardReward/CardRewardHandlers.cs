@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -177,6 +178,15 @@ public sealed class SelectCardHandler(
             frames.Add(new SelectCardResponse(change.Selections));
         if (result.Delivered is { } delivered)
             frames.Add(GameInventoryDelivery.Notification(delivered));
+        if (result.AccountMaterial is { } accountMaterial)
+        {
+            frames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [new InventoryRuntimeValueState(
+                    accountMaterial.VirtualSlotIndex,
+                    accountMaterial.ItemId,
+                    accountMaterial.FinalCount)],
+                preparedAt));
+        }
 
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
             frames.Add(GameInventoryDelivery.CarriedGoldNotification(result.GoldCarried, preparedAt));

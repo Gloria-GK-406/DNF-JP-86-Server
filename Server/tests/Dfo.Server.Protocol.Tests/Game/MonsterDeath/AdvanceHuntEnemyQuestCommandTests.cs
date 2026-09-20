@@ -51,7 +51,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new NoExperienceAward(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
-            Progress(log));
+            Progress(log),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -87,7 +88,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         var handler = new ApplyMonsterKillCommandHandler(
             new UnusedValuation(), new UnusedBonuses(), new NoExperienceAward(),
             new OneCharacterLog(log), new CharacterContainerDomainService(),
-            Progress(log, definition));
+            Progress(log, definition),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
@@ -111,7 +113,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new ExperienceMustNotBeAwarded(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
-            Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)));
+            Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -144,7 +147,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new PricingOnlyExperience(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
-            Progress(log));
+            Progress(log),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
         await handler.HandleAsync(
             new CommandExecutionContext(
@@ -179,7 +183,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new NoExperienceAward(),
             new OneCharacterLog(log),
             containers,
-            Progress(log, seeking: seeking));
+            Progress(log, seeking: seeking),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -220,6 +225,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         var handler = new ApplyMonsterKillCommandHandler(
             new UnusedValuation(), new UnusedBonuses(), new NoExperienceAward(),
             new OneCharacterLog(log), containers, Progress(log),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(),
             new VirtualOnlyPartyService());
 
         var result = await handler.HandleAsync(

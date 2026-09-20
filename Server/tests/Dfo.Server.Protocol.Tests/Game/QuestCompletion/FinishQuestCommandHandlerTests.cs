@@ -188,6 +188,8 @@ public sealed class FinishQuestCommandHandlerTests
             new CharacterExperienceDomainService(fixture.Characters, new FixedProgression()));
         services.AddSingleton(CurrentCharacterStub.Domain(fixture.Current));
         services.AddSingleton<IQuestProgressDomainService>(new RecordingQuestProgress());
+        services.AddSingleton<IItemGrantDomainService>(
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -260,6 +262,8 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<ICharacterDomainService>(
             new CharacterDomainService(null!, null!, _ => character));
         services.AddSingleton<IQuestProgressDomainService>(new RecordingQuestProgress());
+        services.AddSingleton<IItemGrantDomainService>(
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -403,7 +407,8 @@ public sealed class FinishQuestCommandHandlerTests
                 containers ?? new CharacterContainerDomainService(),
                 new CharacterExperienceDomainService(this.Characters, new FixedProgression()),
                 CurrentCharacterStub.Domain(this.Current),
-                this.Progress);
+                this.Progress,
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
         /// <summary>Puts the quest in the carried list with its objective already at that value.</summary>
         public async Task CarryAsync(int questId, int triggerValue)

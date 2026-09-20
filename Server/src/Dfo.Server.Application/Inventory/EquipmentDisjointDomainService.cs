@@ -17,6 +17,8 @@ internal sealed class EquipmentDisjointDomainService(
     IItemPlacementRuleService placements,
     IItemSlotRuleService slotRules,
     IItemArrivalRuleService arrivals,
+    IAccountMaterialBagDomainService accountMaterials,
+    IAccountMaterialRuleService accountMaterialRules,
     TimeProvider timeProvider,
     IInventorySlotMappingRuleService? slotMappings = null) : IEquipmentDisjointDomainService
 {
@@ -119,7 +121,7 @@ internal sealed class EquipmentDisjointDomainService(
             bound!, rewards, cancellationToken).ConfigureAwait(false);
         if (planned is null)
             return new(EquipmentDisjointRejection.InventoryFull);
-        if (planned.Materials.Count > byte.MaxValue)
+        if (planned.Materials.Count + planned.AccountAdditions.Count > byte.MaxValue)
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
         InventoryItemCoreState? toolFinalCore = null;
@@ -140,6 +142,11 @@ internal sealed class EquipmentDisjointDomainService(
         await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         foreach (var write in planned.Writes.OrderBy(entry => entry.Key))
             await bound.Container.PutAsync(write.Key, write.Value, cancellationToken).ConfigureAwait(false);
+        var accountChanges = planned.AccountAdditions.Count == 0
+            ? []
+            : await accountMaterials.Get(session.AccountId)
+                .AddAsync(planned.AccountAdditions, cancellationToken)
+                .ConfigureAwait(false);
 
         var changes = new List<EquipmentDisjointSlotChange>
         {
@@ -153,7 +160,8 @@ internal sealed class EquipmentDisjointDomainService(
             .Select(entry => new EquipmentDisjointSlotChange(entry.Key, entry.Value)));
 
         return new(EquipmentDisjointRejection.None,
-            new(session, targetSlot, planned.Materials, changes, timeProvider.GetUtcNow()));
+            new(session, targetSlot, planned.Materials, accountChanges, changes,
+                timeProvider.GetUtcNow()));
     }
 
     private async ValueTask<DisjointPlan?> PlanAsync(
@@ -167,10 +175,17 @@ internal sealed class EquipmentDisjointDomainService(
         var writes = new Dictionary<int, InventoryItemCoreState>();
         var materials = new List<EquipmentDisjointMaterialReceipt>();
         var finalSlots = new Dictionary<BusinessSlot, InventoryItemCoreState>();
+        var accountAdditions = new Dictionary<AccountMaterialKind, int>();
         foreach (var reward in rewards)
         {
             if (reward.ItemId <= 0 || reward.Count <= 0)
                 return null;
+            if (accountMaterialRules.TryGetByItemId(reward.ItemId, out var accountMaterial))
+            {
+                accountAdditions[accountMaterial.Kind] = checked(
+                    accountAdditions.GetValueOrDefault(accountMaterial.Kind) + reward.Count);
+                continue;
+            }
             var placement = await placements.PlacementForAsync(reward.ItemId, cancellationToken)
                 .ConfigureAwait(false);
             if (placement is not { WorldClass: ItemWorldClass.Interchangeable, ItemKind: > 0 })
@@ -225,7 +240,7 @@ internal sealed class EquipmentDisjointDomainService(
                 remaining -= added;
             }
         }
-        return new(writes, materials, finalSlots);
+        return new(writes, materials, finalSlots, accountAdditions);
     }
 
     private int StorageIndex(IItemContainer container, BusinessSlot slot)
@@ -252,7 +267,8 @@ internal sealed class EquipmentDisjointDomainService(
     private sealed record DisjointPlan(
         IReadOnlyDictionary<int, InventoryItemCoreState> Writes,
         IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials,
-        IReadOnlyDictionary<BusinessSlot, InventoryItemCoreState> FinalSlots);
+        IReadOnlyDictionary<BusinessSlot, InventoryItemCoreState> FinalSlots,
+        IReadOnlyDictionary<AccountMaterialKind, int> AccountAdditions);
 
     private sealed record PortableMachineUse(BusinessSlot Slot);
 }

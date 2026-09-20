@@ -23,7 +23,8 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 internal sealed class InventoryEntryAssembly(
     ICharacterTable characters,
-    IAccountTable accounts,
+    IAccountMaterialBagDomainService accountMaterials,
+    IAccountMaterialRuleService accountMaterialRules,
     ICharacterItemTable characterItems,
     IAccountCargoItemTable cargoItems,
     ICharacterContainerStateTable containerStates,
@@ -46,11 +47,6 @@ internal sealed class InventoryEntryAssembly(
     private const int CarriedGoldSlot = 0;
 
     private const int CarriedGoldItemId = 0;
-
-    /// <summary>The six cube fragments, in the slots and under the ids the client knows.</summary>
-    private static readonly int[] CubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
-
-    private const int FirstCubeSlot = 354;
 
     public async ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
         AccountId accountId,
@@ -520,28 +516,16 @@ internal sealed class InventoryEntryAssembly(
     private async ValueTask<IReadOnlyList<InventoryRuntimeValueState>> AccountVirtualResourcesAsync(
         AccountId accountId, CancellationToken cancellationToken)
     {
-        var row = await accounts.FindCubeFragmentsAsync(accountId, cancellationToken)
-                .ConfigureAwait(false)
-            ?? throw new InvalidDataException(
-                $"Account {accountId.Value} is missing while loading inventory values.");
-        int[] counts =
-            [row.BlackCube, row.WhiteCube, row.RedCube, row.BlueCube, row.ClearCube, row.GoldCube];
-        var values = new List<InventoryRuntimeValueState>();
-        for (var index = 0; index < counts.Length; index++)
-        {
-            if (counts[index] < 0)
-            {
-                throw new InvalidDataException("Account cube fragment counts cannot be negative.");
-            }
-
-            if (counts[index] > 0)
-            {
-                values.Add(new InventoryRuntimeValueState(
-                    FirstCubeSlot + index, CubeItemIds[index], counts[index]));
-            }
-        }
-
-        return [.. values.OrderBy(value => value.SlotIndex)];
+        var bag = await accountMaterials.Get(accountId).SnapshotAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return accountMaterialRules.Definitions
+            .Select(definition => new InventoryRuntimeValueState(
+                definition.VirtualSlotIndex,
+                definition.ItemId,
+                bag.Count(definition.Kind)))
+            .Where(value => value.Value > 0)
+            .OrderBy(value => value.SlotIndex)
+            .ToArray();
     }
 
     /// <summary>The cooldowns and then the effects, which is the order the client expects.</summary>

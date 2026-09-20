@@ -67,7 +67,8 @@ public sealed class GroundPickupTests
             new GroundPickupDomainService(),
             new StubContainers(bag),
             new OnePlayingCharacter(carried),
-            new QuestProgressFromSeeking(seeking));
+            new QuestProgressFromSeeking(seeking),
+            new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
         return (handler, runs, bag, carried);
     }
 

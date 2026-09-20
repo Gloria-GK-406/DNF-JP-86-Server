@@ -23,8 +23,8 @@ public sealed class SqliteInventoryEntryRepositoryTests
             var characterCore = CreateCore(itemKind: 1, itemId: 1001, value: 17);
             var cargoCore = CreateCore(itemKind: 2, itemId: 2002, value: 23);
             await ExecuteAsync(databasePath, """
-                INSERT INTO characters(character_id, account_id) VALUES(21, 11);
-                INSERT INTO accounts(account_id, cube_red) VALUES(11, 99);
+                INSERT INTO characters(character_id, account_id) VALUES(21, 11), (22, 11);
+                INSERT INTO accounts(account_id, cube_red, soul_unique) VALUES(11, 99, 7);
                 INSERT INTO items(item_uid, item_core) VALUES(101, @characterCore);
                 INSERT INTO item_slots(
                     owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
@@ -66,6 +66,10 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 new AccountId(11),
                 new CharacterId(21),
                 CancellationToken.None);
+            var secondCharacterAccountResult = await repository.LoadAccountAsync(
+                new AccountId(11),
+                new CharacterId(22),
+                CancellationToken.None);
 
             var characterItem = Assert.Single(characterResult.CharacterItems);
             Assert.Equal(InventoryOwnerType.Character, characterItem.OwnerType);
@@ -86,8 +90,14 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Equal(3456, accountResult.AccountCargoState.Value32);
             Assert.Equal((ushort)1, accountResult.AccountCargoState.StoredItemCount);
             Assert.Equal(
-                new InventoryRuntimeValueState(356, 3035, 99),
-                Assert.Single(accountResult.AccountVirtualResources));
+                [
+                    new InventoryRuntimeValueState(356, 3035, 99),
+                    new InventoryRuntimeValueState(363, 10099774, 7),
+                ],
+                accountResult.AccountVirtualResources);
+            Assert.Equal(
+                accountResult.AccountVirtualResources,
+                secondCharacterAccountResult.AccountVirtualResources);
             // Slot 0 is the gold this character carries, and it is answered for every character
             // this server has rather than only for one that has been given some. Zero is a figure
             // a character can carry; "no entry" was how the old reading said "no item row here",
@@ -558,7 +568,12 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 cube_red INTEGER NOT NULL DEFAULT 0,
                 cube_blue INTEGER NOT NULL DEFAULT 0,
                 cube_clear INTEGER NOT NULL DEFAULT 0,
-                cube_gold INTEGER NOT NULL DEFAULT 0);
+                cube_gold INTEGER NOT NULL DEFAULT 0,
+                soul_common INTEGER NOT NULL DEFAULT 0,
+                soul_advanced INTEGER NOT NULL DEFAULT 0,
+                soul_rare INTEGER NOT NULL DEFAULT 0,
+                soul_unique INTEGER NOT NULL DEFAULT 0,
+                soul_legendary INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE items(
                 item_uid INTEGER PRIMARY KEY,
                 item_core BLOB NOT NULL,

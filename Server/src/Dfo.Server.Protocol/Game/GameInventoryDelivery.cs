@@ -346,14 +346,34 @@ internal static class GameInventoryDelivery
             [new InventoryItemState(null, CarriedGoldSlot, CarriedGoldCore(carried))],
             preparedAt);
 
+    /// <summary>
+    /// Publishes absolute account-resource values through the main inventory's virtual slots.
+    /// </summary>
+    public static IGameServerMessage VirtualResourceNotification(
+        IReadOnlyList<InventoryRuntimeValueState> resources,
+        DateTimeOffset preparedAt)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+        return new InventoryDeltaMessage(
+            InventoryContainerType.Main,
+            [.. resources.Select(resource => new InventoryItemState(
+                null,
+                resource.SlotIndex,
+                VirtualResourceCore(resource.ItemId, resource.Value)))],
+            preparedAt);
+    }
+
     /// <summary>The main list's first virtual slot, where the client draws carried gold.</summary>
     private const int CarriedGoldSlot = 0;
 
     private static InventoryItemCoreState CarriedGoldCore(int carried) =>
+        VirtualResourceCore(0, carried);
+
+    private static InventoryItemCoreState VirtualResourceCore(int itemId, int value) =>
         new(
             ItemKind: 0,
-            ItemId: 0,
-            Value: Math.Max(0, carried),
+            ItemId: itemId,
+            Value: Math.Max(0, value),
             Attribute: 0,
             Durability: 0,
             SealFlag: 0,

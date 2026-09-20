@@ -370,7 +370,8 @@ public sealed class PickedUpAvatarStaysWholeTests
                 new GroundPickupDomainService(),
                 side.Containers,
                 null!,
-                new NoQuestProgress());
+                new NoQuestProgress(),
+                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
 
             await body(side, handler, runs);
         }

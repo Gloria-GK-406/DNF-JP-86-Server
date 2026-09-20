@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
@@ -13,12 +14,15 @@ public sealed record DeclaredRewardItem(int ItemId, int Count);
 public sealed record PlacedRewardItem(int SlotIndex, int ItemId, int Count);
 
 /// <summary>Everything one tutorial step managed to hand over.</summary>
-public sealed record TutorialRewardResult(IReadOnlyList<PlacedRewardItem> Placed);
+public sealed record TutorialRewardResult(
+    IReadOnlyList<PlacedRewardItem> Placed,
+    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null);
 
 /// <summary>One character receiving what a tutorial step declared.</summary>
 public sealed record GrantTutorialRewardCommand(
     CharacterId CharacterId,
-    IReadOnlyList<DeclaredRewardItem> Declared) : ICommand<TutorialRewardResult>;
+    IReadOnlyList<DeclaredRewardItem> Declared,
+    AccountId AccountId) : ICommand<TutorialRewardResult>;
 
 /// <summary>
 /// Puts a tutorial step's items into the character's inventory.
@@ -36,7 +40,8 @@ public sealed record GrantTutorialRewardCommand(
 /// that knows an acknowledgement exists can decide that two of those answers mean "say nothing".
 /// </remarks>
 public sealed class GrantTutorialRewardCommandHandler(
-    ICharacterContainerDomainService containers)
+    ICharacterContainerDomainService containers,
+    IItemGrantDomainService itemGrants)
     : ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>
 {
     public async ValueTask<TutorialRewardResult> HandleAsync(
@@ -48,28 +53,38 @@ public sealed class GrantTutorialRewardCommandHandler(
 
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
-            return new TutorialRewardResult([]);
+            return new TutorialRewardResult([], []);
 
         var placed = new List<PlacedRewardItem>(command.Declared.Count);
+        var accountChanges = new List<AccountMaterialChange>();
         foreach (var declared in command.Declared)
         {
-            var outcome = await container
-                .AddAsync(declared.ItemId, declared.Count, cancellationToken)
+            var granted = await itemGrants.GrantAsync(
+                    command.AccountId, container, declared.ItemId, declared.Count,
+                    cancellationToken)
                 .ConfigureAwait(false);
-            switch (outcome)
+            switch (granted)
             {
-                case ItemPlacementOutcome.AddedToPile topped:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
                     placed.Add(new PlacedRewardItem(
                         topped.SlotIndex, declared.ItemId, topped.Added));
                     break;
 
-                case ItemPlacementOutcome.PutInEmptySlot opened:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
                     placed.Add(new PlacedRewardItem(
                         opened.SlotIndex, declared.ItemId, opened.Count));
                     break;
 
-                case ItemPlacementOutcome.NoRoom:
-                case ItemPlacementOutcome.UnknownItem:
+                case ItemGrantOutcome.AccountMaterial account:
+                    accountChanges.Add(account.Change);
+                    placed.Add(new PlacedRewardItem(
+                        account.Change.VirtualSlotIndex,
+                        declared.ItemId,
+                        account.Change.AddedCount));
+                    break;
+
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
                     // Left out of the acknowledgement, which is what the caller reports and logs.
                     break;
 
@@ -77,10 +92,10 @@ public sealed class GrantTutorialRewardCommandHandler(
                     // Listed rather than defaulted: an outcome nobody read would quietly become a
                     // reward the player was promised and never given, with nothing said.
                     throw new ArgumentOutOfRangeException(
-                        nameof(command), outcome, "No reading was decided for this outcome.");
+                        nameof(command), granted, "No reading was decided for this outcome.");
             }
         }
 
-        return new TutorialRewardResult(placed);
+        return new TutorialRewardResult(placed, accountChanges);
     }
 }

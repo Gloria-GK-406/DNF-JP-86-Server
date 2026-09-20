@@ -59,6 +59,7 @@ public sealed class DisjointItemCodecTests
             session,
             new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
             [new(new BusinessSlot(BusinessInventorySpace.Material, 0), 3037, 12)],
+            [],
             [
                 new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
                 new(new BusinessSlot(BusinessInventorySpace.Consumable, 0),
@@ -84,6 +85,36 @@ public sealed class DisjointItemCodecTests
             [(65, 2600469, 1), (121, 3037, 112)],
             Assert.Single(updates, update => update != cleared).Items
                 .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)));
+    }
+
+    [Fact]
+    public async Task Account_material_completion_acks_the_virtual_slot_and_publishes_its_absolute_total()
+    {
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-account"), 1, 10011);
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(session);
+        var receipt = new EquipmentDisjointReceipt(
+            session,
+            new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
+            [],
+            [new(AccountMaterialKind.ClearCube, 3037, 358, 12, 112)],
+            [new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null)],
+            DateTimeOffset.UnixEpoch);
+
+        var messages = await new EquipmentDisjointCompletedHandler(
+            sessions, new SlotProjection()).ComposeAsync(
+            new NotificationRecipient(session.CharacterId, session.ConnectionId),
+            new EquipmentDisjointCompleted(receipt),
+            CancellationToken.None);
+
+        var response = Assert.IsType<DisjointItemResponse>(messages[0]);
+        Assert.Equal(
+            new DisjointItemMaterial(new GameSlot(InventoryContainerType.Main, 358), 3037, 12),
+            Assert.Single(response.Materials!));
+        var virtualUpdate = Assert.Single(messages.OfType<InventoryDeltaMessage>(),
+            update => update.Items.Any(item => item.SlotIndex == 358));
+        var item = Assert.Single(virtualUpdate.Items);
+        Assert.Equal((358, 3037, 112), (item.SlotIndex, item.Core.ItemId, item.Core.Value));
     }
 
     [Theory]
