@@ -17,6 +17,7 @@ internal sealed class EquipmentDisjointDomainService(
     IItemPlacementRuleService placements,
     IItemSlotRuleService slotRules,
     IItemArrivalRuleService arrivals,
+    TimeProvider timeProvider,
     IInventorySlotMappingRuleService? slotMappings = null) : IEquipmentDisjointDomainService
 {
     private readonly IInventorySlotMappingRuleService slotMappings =
@@ -121,22 +122,38 @@ internal sealed class EquipmentDisjointDomainService(
         if (planned.Materials.Count > byte.MaxValue)
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
+        InventoryItemCoreState? toolFinalCore = null;
         if (toolBound is not null && tool is not null)
         {
             if (tool.Count == 1)
                 await toolBound.Container.ClearAsync(
                     toolBound.StorageIndex, cancellationToken).ConfigureAwait(false);
             else
+            {
+                toolFinalCore = tool.Core with { Value = tool.Count - 1 };
                 await toolBound.Container.PutAsync(
                     toolBound.StorageIndex,
-                    tool.Core with { Value = tool.Count - 1 },
+                    toolFinalCore,
                     cancellationToken).ConfigureAwait(false);
+            }
         }
         await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         foreach (var write in planned.Writes.OrderBy(entry => entry.Key))
             await bound.Container.PutAsync(write.Key, write.Value, cancellationToken).ConfigureAwait(false);
+
+        var changes = new List<EquipmentDisjointSlotChange>
+        {
+            new(targetSlot, null),
+        };
+        if (portableMachine is not null)
+            changes.Add(new(portableMachine.Slot, toolFinalCore));
+        changes.AddRange(planned.FinalSlots
+            .OrderBy(entry => entry.Key.Space)
+            .ThenBy(entry => entry.Key.Index)
+            .Select(entry => new EquipmentDisjointSlotChange(entry.Key, entry.Value)));
+
         return new(EquipmentDisjointRejection.None,
-            new(session, targetSlot, planned.Materials));
+            new(session, targetSlot, planned.Materials, changes, timeProvider.GetUtcNow()));
     }
 
     private async ValueTask<DisjointPlan?> PlanAsync(
@@ -149,6 +166,7 @@ internal sealed class EquipmentDisjointDomainService(
         standing.Remove(source.StorageIndex);
         var writes = new Dictionary<int, InventoryItemCoreState>();
         var materials = new List<EquipmentDisjointMaterialReceipt>();
+        var finalSlots = new Dictionary<BusinessSlot, InventoryItemCoreState>();
         foreach (var reward in rewards)
         {
             if (reward.ItemId <= 0 || reward.Count <= 0)
@@ -202,11 +220,12 @@ internal sealed class EquipmentDisjointDomainService(
                     return null;
                 standing[slot] = new(slot, core, ItemWorldClass.Interchangeable);
                 writes[slot] = core;
+                finalSlots[materialSlot] = core;
                 materials.Add(new(materialSlot, reward.ItemId, added));
                 remaining -= added;
             }
         }
-        return new(writes, materials);
+        return new(writes, materials, finalSlots);
     }
 
     private int StorageIndex(IItemContainer container, BusinessSlot slot)
@@ -232,7 +251,8 @@ internal sealed class EquipmentDisjointDomainService(
 
     private sealed record DisjointPlan(
         IReadOnlyDictionary<int, InventoryItemCoreState> Writes,
-        IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials);
+        IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials,
+        IReadOnlyDictionary<BusinessSlot, InventoryItemCoreState> FinalSlots);
 
     private sealed record PortableMachineUse(BusinessSlot Slot);
 }

@@ -48,10 +48,22 @@ public sealed record EquipmentDisjointRuleResult(
 
 public sealed record EquipmentDisjointMaterialReceipt(BusinessSlot Slot, int ItemId, int Count);
 
+/// <summary>The committed final state of one slot changed by equipment disassembly.</summary>
+/// <remarks>
+/// A null core means that the slot is empty.  The disassembly acknowledgement reports the
+/// operation result, but it does not carry every changed slot (notably the portable machine), so
+/// the protocol projection also needs these authoritative post-commit states.
+/// </remarks>
+public sealed record EquipmentDisjointSlotChange(
+    BusinessSlot Slot,
+    InventoryItemCoreState? Core);
+
 public sealed record EquipmentDisjointReceipt(
     SelectedSessionIdentity Session,
     BusinessSlot TargetSlot,
-    IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials);
+    IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials,
+    IReadOnlyList<EquipmentDisjointSlotChange> InventoryChanges,
+    DateTimeOffset PreparedAt);
 
 public sealed record EquipmentDisjointResult(
     EquipmentDisjointRejection Rejection,

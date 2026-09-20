@@ -1,7 +1,12 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +49,43 @@ public sealed class DisjointItemCodecTests
             DisjointItemResponseEncoder.EncodeBody(new(null, ErrorCode: 0x13)));
     }
 
+    [Fact]
+    public async Task Success_completion_also_publishes_committed_inventory_state()
+    {
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-sync"), 1, 10011);
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(session);
+        var receipt = new EquipmentDisjointReceipt(
+            session,
+            new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
+            [new(new BusinessSlot(BusinessInventorySpace.Material, 0), 3037, 12)],
+            [
+                new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
+                new(new BusinessSlot(BusinessInventorySpace.Consumable, 0),
+                    StackableItemCore.Create(2, 2600469, 1)),
+                new(new BusinessSlot(BusinessInventorySpace.Material, 0),
+                    StackableItemCore.Create(3, 3037, 112)),
+            ],
+            DateTimeOffset.UnixEpoch);
+
+        var messages = await new EquipmentDisjointCompletedHandler(
+            sessions, new SlotProjection()).ComposeAsync(
+            new NotificationRecipient(session.CharacterId, session.ConnectionId),
+            new EquipmentDisjointCompleted(receipt),
+            CancellationToken.None);
+
+        Assert.IsType<DisjointItemResponse>(messages[0]);
+        var updates = messages.OfType<InventoryDeltaMessage>().ToArray();
+        Assert.Equal(2, updates.Length);
+        var cleared = Assert.Single(updates, update => update.Items.Count == 1
+            && update.Items[0].SlotIndex == 9);
+        Assert.Equal(0, cleared.Items[0].Core.ItemId);
+        Assert.Equal(
+            [(65, 2600469, 1), (121, 3037, 112)],
+            Assert.Single(updates, update => update != cleared).Items
+                .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(8)]
@@ -51,4 +93,11 @@ public sealed class DisjointItemCodecTests
     public void Any_body_length_other_than_nine_is_rejected(int length) =>
         Assert.Throws<InvalidDataException>(() => new DisjointItemMessageDecoder()
             .Decode(GameMessageMetadata.Empty, new byte[length]));
+
+    private sealed class SlotProjection : IInventorySlotProjectionDomainService
+    {
+        private readonly InventorySlotMappingRuleService mappings = new();
+
+        public GameSlot Project(BusinessSlot slot) => mappings.ToGameSlot(slot);
+    }
 }

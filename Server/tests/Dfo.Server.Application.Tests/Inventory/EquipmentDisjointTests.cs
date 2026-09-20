@@ -25,7 +25,7 @@ public sealed class EquipmentDisjointTests
 
         await Disjoint(shop, 9);
 
-        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
         Assert.Equal((9, InventoryContainerType.Main),
             (response.TargetSlot!.Value.Index, response.TargetSlot.Value.Space));
         Assert.Equal(new DisjointItemMaterial(
@@ -79,7 +79,7 @@ public sealed class EquipmentDisjointTests
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 10));
         Assert.Equal(24, shop.Count(1000));
-        Assert.Equal(2, shop.Sender.Messages.Count);
+        Assert.Equal(2, shop.Sender.Messages.OfType<DisjointItemResponse>().Count());
     }
 
     [Fact]
@@ -94,8 +94,9 @@ public sealed class EquipmentDisjointTests
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(1, shop.Count(2600469));
         Assert.Equal(12, shop.Count(1000));
-        Assert.NotNull(Assert.IsType<DisjointItemResponse>(
-            Assert.Single(shop.Sender.Messages)).TargetSlot);
+        Assert.NotNull(Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).TargetSlot);
+        Assert.Equal(2, shop.Sender.Messages.Count(message =>
+            message.MessageType == ServerMessageType.GameStateSynchronization));
     }
 
     [Fact]
@@ -131,7 +132,7 @@ public sealed class EquipmentDisjointTests
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 10));
         Assert.Equal(1, shop.Count(2600469));
         Assert.Equal(24, shop.Count(1000));
-        Assert.Equal(2, shop.Sender.Messages.Count);
+        Assert.Equal(2, shop.Sender.Messages.OfType<DisjointItemResponse>().Count());
     }
 
     [Fact]
@@ -161,8 +162,7 @@ public sealed class EquipmentDisjointTests
 
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(12, shop.Count(1000));
-        Assert.NotNull(Assert.IsType<DisjointItemResponse>(
-            Assert.Single(shop.Sender.Messages)).TargetSlot);
+        Assert.NotNull(Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).TargetSlot);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class EquipmentDisjointTests
         await Disjoint(shop, 4);
 
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 4));
-        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
         Assert.Equal(new GameSlot(InventoryContainerType.Main, 4), response.TargetSlot);
     }
 
