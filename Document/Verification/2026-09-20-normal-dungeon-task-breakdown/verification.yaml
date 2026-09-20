@@ -1,0 +1,21 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  普通地下城 Feature Cycle #66 已成为当前聚焦循环，并已建立五个有序、无重复的
+  GitHub Sub-issues；本地 M16 Milestone 计划和普通地下城 Task 计划与远端任务一致。
+conditions:
+  - condition: 父循环被标记为当前聚焦
+    result: pass
+    evidence: GitHub Issue 66 同时具有 cycle、scope:in 和 current-cycle 标签
+  - condition: 普通地下城任务完整且没有重复创建疲劳 Issue
+    result: pass
+    evidence: Issue 66 的 Sub-issues 为 101、6、102、103、104；已有 Issue 6 被更新并复用
+  - condition: 所有子任务具有任务范围标签
+    result: pass
+    evidence: 五个 Sub-issues 均为 open，具有 task 和 scope:in；Issue 6 另保留 bug 标签
+  - condition: 本地计划记录 Milestone、当前 Cycle、边界和交付任务
+    result: pass
+    evidence: Document/plan/m16-normal-story-cycle-dungeons/milestone.md 和 normal-dungeon.md
+  - condition: 本轮没有开始生产代码实现
+    result: pass
+    evidence: Git 工作区只新增计划与本验证记录
