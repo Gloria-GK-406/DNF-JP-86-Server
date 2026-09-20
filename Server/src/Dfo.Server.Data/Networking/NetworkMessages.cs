@@ -249,6 +249,7 @@ public enum ServerMessageType
     GameExperience = 0x0000_0025,
     GameMonsterDeath = 0x0000_0026,
     GameCharacterLifeState = 0x0000_0020,
+    GameCharacterDeath = 0x0001_0028,
 
     // Whether the item was picked up, and where it landed. See Game/GroundPickup.
     GameGetItem = 0x0001_002B,

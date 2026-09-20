@@ -68,7 +68,9 @@ public sealed class CharacterDeathHandlerTests
         Assert.Equal(directCount, sender.Deliveries.Count);
         if (directCount == 0) { Assert.Empty(runs.Find(Current.CharacterId)!.DeadParticipants); return; }
         var delivery = Assert.Single(sender.Deliveries);
-        var noti = Assert.IsType<CharacterLifeStateNotification>(Assert.Single(delivery.RequiredDirectMessages));
+        Assert.Equal(2, delivery.RequiredDirectMessages.Count);
+        Assert.IsType<CharacterDeathResponse>(delivery.RequiredDirectMessages[0]);
+        var noti = Assert.IsType<CharacterLifeStateNotification>(delivery.RequiredDirectMessages[1]);
         Assert.Equal(Current.WireUserId, noti.ActorId);
         Assert.Equal(secondaryCount, delivery.BestEffortTargets.Count);
     }

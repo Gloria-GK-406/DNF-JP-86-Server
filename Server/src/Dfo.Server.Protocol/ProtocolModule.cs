@@ -536,6 +536,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
         services.AddGameNotiMessageEncoder<CharacterLifeStateNotification, CharacterLifeStateEncoder>();
+        services.AddGameCmdMessageEncoder<CharacterDeathResponse, CharacterDeathResponseEncoder>();
         services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
         services.AddGameNotiMessageEncoder<
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();

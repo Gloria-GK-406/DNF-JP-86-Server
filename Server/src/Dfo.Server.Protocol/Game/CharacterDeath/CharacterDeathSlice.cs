@@ -31,6 +31,17 @@ internal sealed class CharacterDeathDecoder : IGameMessageDecoder
     }
 }
 
+internal sealed record CharacterDeathResponse : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameCharacterDeath;
+}
+
+internal sealed class CharacterDeathResponseEncoder : GameCmdMessageEncoder<CharacterDeathResponse>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CharacterDeathResponse message)
+        => OnePayload(GameProtocol.CharacterDeathType, new byte[] { 0x01 });
+}
+
 internal sealed record CharacterLifeStateNotification(ushort ActorId) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameCharacterLifeState;
@@ -105,9 +116,9 @@ public sealed class CharacterDeathHandler(
             .Where(x => runs.Find(x.CharacterId)?.RunId == committed.RunId)
             .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [notification])).ToArray();
         await sender.SendExplicitAsync(connectionId,
-            new GameExplicitMessageDelivery([notification], secondary), cancellationToken).ConfigureAwait(false);
+            new GameExplicitMessageDelivery([new CharacterDeathResponse(), notification], secondary), cancellationToken).ConfigureAwait(false);
         logger.LogInformation(
-            "Character death user={WireUserId} character={CharacterId} run={RunId}: NOTI 0020 sent; dead={DeadCount}/{MemberCount}, report=({First},{Second},{Third})",
+            "Character death user={WireUserId} character={CharacterId} run={RunId}: CMD 0028 ACK + NOTI 0020 sent; dead={DeadCount}/{MemberCount}, report=({First},{Second},{Third})",
             session.WireUserId, session.CharacterId, committed.RunId,
             committed.DeadParticipants.Count, committed.Participants.Count, message.First, message.Second, message.Third);
     }
