@@ -13,13 +13,20 @@ public interface IEquipmentDisjointRuleService
         CancellationToken cancellationToken);
 }
 
-/// <summary>Atomically replaces one piece of equipment with the materials decided by the rules.</summary>
+/// <summary>
+/// Atomically replaces one piece of equipment with rule-selected materials, with a portable tool
+/// consumed in that same settlement when that explicit entry point is used.
+/// </summary>
 public interface IEquipmentDisjointDomainService
 {
-    ValueTask<EquipmentDisjointResult> DisjointAsync(
+    ValueTask<EquipmentDisjointResult> DisjointAtNpcAsync(
         SelectedSessionIdentity session,
         BusinessSlot targetSlot,
-        BusinessSlot? disjointToolSlot,
-        EquipmentDisjointSettings settings,
+        CancellationToken cancellationToken);
+
+    ValueTask<EquipmentDisjointResult> DisjointWithPortableMachineAsync(
+        SelectedSessionIdentity session,
+        BusinessSlot targetSlot,
+        BusinessSlot disjointToolSlot,
         CancellationToken cancellationToken);
 }

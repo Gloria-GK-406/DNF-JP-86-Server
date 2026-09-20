@@ -7,6 +7,11 @@ public sealed record EquipmentDisjointDefinition(
     int Rarity,
     bool CanDisjoint);
 
+/// <summary>The archive-owned limit carried by one portable disjoint machine template.</summary>
+public sealed record PortableDisjointMachineDefinition(
+    int Grade,
+    int MaximumEquipmentLevel);
+
 public sealed record EquipmentDisjointAdditionalRule(
     double GreatCountDivisor,
     double NormalCountDivisor,
@@ -32,6 +37,9 @@ public sealed record EquipmentDisjointTable(
 public interface IEquipmentDisjointDefinitionSource
 {
     ValueTask<EquipmentDisjointDefinition?> GetEquipmentAsync(
+        int itemId, CancellationToken cancellationToken);
+
+    ValueTask<PortableDisjointMachineDefinition?> GetPortableMachineAsync(
         int itemId, CancellationToken cancellationToken);
 
     ValueTask<EquipmentDisjointTable?> GetSystemTableAsync(CancellationToken cancellationToken);

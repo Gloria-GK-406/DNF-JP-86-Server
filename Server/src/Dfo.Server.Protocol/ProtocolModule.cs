@@ -293,7 +293,11 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<DisjointItemCommand, EquipmentDisjointResult, DisjointItemCommandHandler>(
+        services.AddCommandHandler<NpcDisjointItemCommand, EquipmentDisjointResult,
+            NpcDisjointItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult,
+            PortableDisjointItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,

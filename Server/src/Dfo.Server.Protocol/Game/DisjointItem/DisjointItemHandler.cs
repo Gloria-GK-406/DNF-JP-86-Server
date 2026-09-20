@@ -44,13 +44,19 @@ public sealed class DisjointItemHandler(
             result = new(EquipmentDisjointRejection.NoSession);
         else if (invalidToolSlot)
             result = new(EquipmentDisjointRejection.InvalidRequest);
-        else
-            result = await commands.SendAsync(new DisjointItemCommand(
+        else if (disjointToolSlot is not null && message.DisjointProviderId != 0)
+            result = new(EquipmentDisjointRejection.InvalidRequest);
+        else if (disjointToolSlot is { } portableSlot)
+            result = await commands.SendAsync(new PortableDisjointItemCommand(
                 online.OnlineUserId,
                 session,
                 targetSlot,
-                disjointToolSlot,
-                EquipmentDisjointSettings.System), cancellationToken).ConfigureAwait(false);
+                portableSlot), cancellationToken).ConfigureAwait(false);
+        else
+            result = await commands.SendAsync(new NpcDisjointItemCommand(
+                online.OnlineUserId,
+                session,
+                targetSlot), cancellationToken).ConfigureAwait(false);
 
         if (result.Receipt is { } receipt)
             await notifications.PublishAsync(

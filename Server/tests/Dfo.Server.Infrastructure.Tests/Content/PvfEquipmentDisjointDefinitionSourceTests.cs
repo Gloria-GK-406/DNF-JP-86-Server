@@ -45,5 +45,15 @@ public sealed class PvfEquipmentDisjointDefinitionSourceTests
             .GetAsync(0, default), grant => grant.SlotIndex == PvfEquipmentSlots.ByName["[weapon]"]);
         Assert.NotNull(await source.GetEquipmentAsync(beginner.ItemId, default));
         Assert.Null(await source.GetEquipmentAsync(int.MaxValue, default));
+
+        Assert.Equal(new PortableDisjointMachineDefinition(0, 30),
+            await source.GetPortableMachineAsync(2600468, default));
+        Assert.Equal(new PortableDisjointMachineDefinition(1, 50),
+            await source.GetPortableMachineAsync(2600469, default));
+        Assert.Equal(new PortableDisjointMachineDefinition(2, 70),
+            await source.GetPortableMachineAsync(2600470, default));
+        Assert.Equal(new PortableDisjointMachineDefinition(3, 90),
+            await source.GetPortableMachineAsync(2600548, default));
+        Assert.Null(await source.GetPortableMachineAsync(1000, default));
     }
 }

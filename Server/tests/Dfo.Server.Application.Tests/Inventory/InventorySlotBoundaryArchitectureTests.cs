@@ -19,8 +19,9 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<SellItemCommand>(nameof(SellItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<DeleteItemCommand>(nameof(DeleteItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<RepairItemCommand>(nameof(RepairItemCommand.Slot), typeof(BusinessSlot?));
-        AssertSlotProperty<DisjointItemCommand>(nameof(DisjointItemCommand.TargetSlot), typeof(BusinessSlot));
-        AssertSlotProperty<DisjointItemCommand>(nameof(DisjointItemCommand.DisjointToolSlot), typeof(BusinessSlot?));
+        AssertSlotProperty<NpcDisjointItemCommand>(nameof(NpcDisjointItemCommand.TargetSlot), typeof(BusinessSlot));
+        AssertSlotProperty<PortableDisjointItemCommand>(nameof(PortableDisjointItemCommand.TargetSlot), typeof(BusinessSlot));
+        AssertSlotProperty<PortableDisjointItemCommand>(nameof(PortableDisjointItemCommand.DisjointToolSlot), typeof(BusinessSlot));
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.SourceSlot), typeof(BusinessSlot));
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.DestinationSlot), typeof(BusinessSlot));
         AssertSlotProperty<UseStackableCommand>(nameof(UseStackableCommand.Slot), typeof(BusinessSlot));
@@ -28,7 +29,8 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertNoGameAddress<SellItemCommand>();
         AssertNoGameAddress<DeleteItemCommand>();
         AssertNoGameAddress<RepairItemCommand>();
-        AssertNoGameAddress<DisjointItemCommand>();
+        AssertNoGameAddress<NpcDisjointItemCommand>();
+        AssertNoGameAddress<PortableDisjointItemCommand>();
         AssertNoGameAddress<MoveItemSpaceCommand>();
         AssertNoGameAddress<UseStackableCommand>();
     }
@@ -62,7 +64,8 @@ public sealed class InventorySlotBoundaryArchitectureTests
     {
         Assert.Equal(typeof(int), typeof(DisjointItemRequest)
             .GetProperty(nameof(DisjointItemRequest.DisjointProviderId))!.PropertyType);
-        Assert.Null(typeof(DisjointItemCommand).GetProperty("DisjointProviderId"));
+        Assert.Null(typeof(NpcDisjointItemCommand).GetProperty("DisjointProviderId"));
+        Assert.Null(typeof(PortableDisjointItemCommand).GetProperty("DisjointProviderId"));
         Assert.DoesNotContain(typeof(IEquipmentDisjointDomainService).GetMethods()
             .SelectMany(method => method.GetParameters()), parameter =>
                 parameter.Name?.Contains("provider", StringComparison.OrdinalIgnoreCase) == true

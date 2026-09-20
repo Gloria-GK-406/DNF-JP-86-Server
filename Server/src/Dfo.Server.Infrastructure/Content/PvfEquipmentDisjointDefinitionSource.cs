@@ -10,7 +10,10 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
 {
     private readonly Lock gate = new();
     private readonly Dictionary<int, EquipmentDisjointDefinition?> equipmentCache = [];
+    private readonly Dictionary<int, PortableDisjointMachineDefinition?> portableMachineCache = [];
     private Dictionary<int, string>? equipmentPaths;
+    private Dictionary<int, string>? stackablePaths;
+    private IReadOnlyDictionary<int, int>? portableLevelLimits;
     private int? equipmentSaleRate;
     private bool tableRead;
     private EquipmentDisjointTable? table;
@@ -39,6 +42,18 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
                 tableRead = true;
             }
             return ValueTask.FromResult(table);
+        }
+    }
+
+    public ValueTask<PortableDisjointMachineDefinition?> GetPortableMachineAsync(
+        int itemId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!portableMachineCache.TryGetValue(itemId, out var definition))
+                portableMachineCache[itemId] = definition = ReadPortableMachine(itemId);
+            return ValueTask.FromResult(definition);
         }
     }
 
@@ -73,6 +88,42 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
 
         var sellGold = Math.Max(1, checked((int)((long)equipmentValue * saleRate / 1000)));
         return new(sellGold, equipmentLevel, equipmentRarity, !cannotDisjoint && !tradeDelete);
+    }
+
+    private PortableDisjointMachineDefinition? ReadPortableMachine(int itemId)
+    {
+        var archive = provider.Archive;
+        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        if (!stackablePaths.TryGetValue(itemId, out var relative))
+            return null;
+
+        var grade = OneInt(PvfNpcShopDefinitionSource.Sections(
+            archive, "stackable/" + relative), "[portable disjoint]");
+        portableLevelLimits ??= ReadPortableLevelLimits();
+        return grade is { } value
+            && portableLevelLimits.TryGetValue(value, out var maximumLevel)
+            && maximumLevel > 0
+                ? new(value, maximumLevel)
+                : null;
+    }
+
+    private IReadOnlyDictionary<int, int> ReadPortableLevelLimits()
+    {
+        var values = Integers(One(PvfNpcShopDefinitionSource.Sections(
+            provider.Archive, "character/expertjob/disjointer.exj"),
+            "[portable disjoint info]"));
+        if (values.Count == 0 || values.Count % 2 != 0)
+            return new Dictionary<int, int>();
+
+        var result = new Dictionary<int, int>();
+        for (var index = 0; index < values.Count; index += 2)
+        {
+            if (values[index] < 0 || values[index + 1] <= 0
+                || !result.TryAdd(values[index], values[index + 1]))
+                return new Dictionary<int, int>();
+        }
+        return result;
     }
 
     private int? ReadEquipmentSaleRate()

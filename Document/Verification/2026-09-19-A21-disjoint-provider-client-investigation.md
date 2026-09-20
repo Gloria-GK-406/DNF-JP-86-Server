@@ -1,5 +1,12 @@
 # A21 客户端 `0x001A DISJOINT_ITEM` offset 5 语义调查（rev 3，反证驱动）
 
+## 2026-09-20 实机补证
+
+便携模式的 H1/H2 已由本地 A21 实机样本裁决为 **H1（Confirmed）**：普通、坚固、优质三档
+单件分解分别上报工具槽 89、90、91，随后普通档批量分解对三个目标逐件上报并始终复用工具槽 89；
+全部六帧的 offset 5 均为 `0`。因此 offset 5 在便携模式下不是工具 item id，便携工具身份只由
+offset 3 槽位中的服务端物品决定。下文保留 rev 3 当时的静态不确定性，作为裁决前证据链记录。
+
 - 日期：2026-09-19（rev 3；撤回 rev 2 的 `DisjointToolItemId` 结论）
 - 目标问题（rev 3 重定义）：offset 5 是否是**提供分解服务的 NPC index**，或 NPC/便携工具共用的
   **tagged provider context**——而不是 rev 2 假设的"分解工具物品 ID"。

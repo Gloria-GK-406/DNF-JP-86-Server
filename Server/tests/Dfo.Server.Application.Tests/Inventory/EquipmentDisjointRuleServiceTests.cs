@@ -55,6 +55,10 @@ public sealed class EquipmentDisjointRuleServiceTests
             int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<EquipmentDisjointDefinition?>(new(150, 10, 1, true));
 
+        public ValueTask<PortableDisjointMachineDefinition?> GetPortableMachineAsync(
+            int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<PortableDisjointMachineDefinition?>(null);
+
         public ValueTask<EquipmentDisjointTable?> GetSystemTableAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<EquipmentDisjointTable?>(new(

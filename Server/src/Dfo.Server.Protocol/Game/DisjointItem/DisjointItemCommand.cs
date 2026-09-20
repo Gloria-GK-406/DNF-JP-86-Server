@@ -7,25 +7,44 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.DisjointItem;
 
-public sealed record DisjointItemCommand(
+public sealed record NpcDisjointItemCommand(
     OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session,
-    BusinessSlot TargetSlot,
-    BusinessSlot? DisjointToolSlot,
-    EquipmentDisjointSettings Settings)
+    BusinessSlot TargetSlot)
     : ICommand<EquipmentDisjointResult>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
 
-public sealed class DisjointItemCommandHandler(IEquipmentDisjointDomainService disjoint)
-    : ICommandHandler<DisjointItemCommand, EquipmentDisjointResult>
+public sealed record PortableDisjointItemCommand(
+    OnlineUserId OnlineUserId,
+    SelectedSessionIdentity Session,
+    BusinessSlot TargetSlot,
+    BusinessSlot DisjointToolSlot)
+    : ICommand<EquipmentDisjointResult>, IOnlineUserCommand, IAccountCommand
+{
+    public AccountId AccountId => Session.AccountId;
+}
+
+public sealed class NpcDisjointItemCommandHandler(IEquipmentDisjointDomainService disjoint)
+    : ICommandHandler<NpcDisjointItemCommand, EquipmentDisjointResult>
 {
     public ValueTask<EquipmentDisjointResult> HandleAsync(
         CommandExecutionContext context,
-        DisjointItemCommand command,
+        NpcDisjointItemCommand command,
         CancellationToken cancellationToken) =>
-        disjoint.DisjointAsync(command.Session, command.TargetSlot,
-            command.DisjointToolSlot, command.Settings,
+        disjoint.DisjointAtNpcAsync(command.Session, command.TargetSlot,
+            cancellationToken);
+}
+
+public sealed class PortableDisjointItemCommandHandler(IEquipmentDisjointDomainService disjoint)
+    : ICommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult>
+{
+    public ValueTask<EquipmentDisjointResult> HandleAsync(
+        CommandExecutionContext context,
+        PortableDisjointItemCommand command,
+        CancellationToken cancellationToken) =>
+        disjoint.DisjointWithPortableMachineAsync(
+            command.Session, command.TargetSlot, command.DisjointToolSlot,
             cancellationToken);
 }

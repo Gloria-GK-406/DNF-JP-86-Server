@@ -13,6 +13,7 @@ internal sealed class EquipmentDisjointDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDisjointRuleService rules,
+    IEquipmentDisjointDefinitionSource definitions,
     IItemPlacementRuleService placements,
     IItemSlotRuleService slotRules,
     IItemArrivalRuleService arrivals,
@@ -20,11 +21,24 @@ internal sealed class EquipmentDisjointDomainService(
 {
     private readonly IInventorySlotMappingRuleService slotMappings =
         slotMappings ?? new InventorySlotMappingRuleService();
-    public async ValueTask<EquipmentDisjointResult> DisjointAsync(
+
+    public ValueTask<EquipmentDisjointResult> DisjointAtNpcAsync(
         SelectedSessionIdentity session,
         BusinessSlot targetSlot,
-        BusinessSlot? disjointToolSlot,
-        EquipmentDisjointSettings settings,
+        CancellationToken cancellationToken) =>
+        this.DisjointAsync(session, targetSlot, null, cancellationToken);
+
+    public ValueTask<EquipmentDisjointResult> DisjointWithPortableMachineAsync(
+        SelectedSessionIdentity session,
+        BusinessSlot targetSlot,
+        BusinessSlot disjointToolSlot,
+        CancellationToken cancellationToken) =>
+        this.DisjointAsync(session, targetSlot, new(disjointToolSlot), cancellationToken);
+
+    private async ValueTask<EquipmentDisjointResult> DisjointAsync(
+        SelectedSessionIdentity session,
+        BusinessSlot targetSlot,
+        PortableMachineUse? portableMachine,
         CancellationToken cancellationToken)
     {
         if (sessions.Find(session.AccountId) != session
@@ -33,13 +47,36 @@ internal sealed class EquipmentDisjointDomainService(
             || online.AccountId != session.AccountId
             || online.CurrentCharacterId != session.CharacterId)
             return new(EquipmentDisjointRejection.NoSession);
-        // A21 reports the disjoint provider id in the protocol layer, but that client value is not
-        // domain authority. Portable-tool eligibility is represented only by its mapped business
-        // slot; the current system-NPC method intentionally accepts no tool.
         if (!targetSlot.Space.IsCarriedItemSpace()
-            || disjointToolSlot is not null
-            || settings.Method != EquipmentDisjointMethod.SystemNpc)
+            || portableMachine is { Slot: var toolSlot }
+                && (!toolSlot.Space.IsCarriedItemSpace() || toolSlot == targetSlot))
             return new(EquipmentDisjointRejection.InvalidRequest);
+
+        BoundInventorySlot? toolBound = null;
+        ContainerSlotItem? tool = null;
+        PortableDisjointMachineDefinition? portableDefinition = null;
+        if (portableMachine is { Slot: var portableSlot })
+        {
+            toolBound = slots.Find(session.CharacterId, portableSlot);
+            tool = toolBound is null
+                ? null
+                : await toolBound.Container.ReadSlotAsync(
+                    toolBound.StorageIndex, cancellationToken).ConfigureAwait(false);
+            if (tool is not { IsPile: true, Count: > 0 })
+                return new(EquipmentDisjointRejection.ItemUnavailable);
+            var toolPlacement = await placements.PlacementForAsync(tool.ItemId, cancellationToken)
+                .ConfigureAwait(false);
+            if (toolPlacement is null)
+                return new(EquipmentDisjointRejection.InvalidRequest);
+            if (!slotRules.CanOccupySlot(portableSlot, toolPlacement))
+                throw new InvalidDataException(
+                    $"Stored item {tool.ItemId} contradicts business slot "
+                        + $"{portableSlot.Space}/{portableSlot.Index}.");
+            portableDefinition = await definitions.GetPortableMachineAsync(
+                tool.ItemId, cancellationToken).ConfigureAwait(false);
+            if (portableDefinition is null)
+                return new(EquipmentDisjointRejection.UnsupportedMethod);
+        }
 
         var bound = slots.Find(session.CharacterId, targetSlot);
         var equipment = bound is null
@@ -59,8 +96,18 @@ internal sealed class EquipmentDisjointDomainService(
         if (instance is null)
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
+        if (portableDefinition is not null)
+        {
+            var equipmentDefinition = await definitions.GetEquipmentAsync(
+                equipment.ItemId, cancellationToken).ConfigureAwait(false);
+            if (equipmentDefinition is null
+                || equipmentDefinition.MinimumLevel > portableDefinition.MaximumEquipmentLevel)
+                return new(EquipmentDisjointRejection.CannotDisjoint);
+        }
+
         var decided = await rules.ResolveAsync(
-            instance.DisjointCandidate(), settings, Random.Shared.Next(), cancellationToken)
+            instance.DisjointCandidate(), EquipmentDisjointSettings.System,
+            Random.Shared.Next(), cancellationToken)
             .ConfigureAwait(false);
         if (decided.Rejection != EquipmentDisjointRejection.None
             || decided.Rewards is not { Count: > 0 } rewards)
@@ -74,6 +121,17 @@ internal sealed class EquipmentDisjointDomainService(
         if (planned.Materials.Count > byte.MaxValue)
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
+        if (toolBound is not null && tool is not null)
+        {
+            if (tool.Count == 1)
+                await toolBound.Container.ClearAsync(
+                    toolBound.StorageIndex, cancellationToken).ConfigureAwait(false);
+            else
+                await toolBound.Container.PutAsync(
+                    toolBound.StorageIndex,
+                    tool.Core with { Value = tool.Count - 1 },
+                    cancellationToken).ConfigureAwait(false);
+        }
         await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
         foreach (var write in planned.Writes.OrderBy(entry => entry.Key))
             await bound.Container.PutAsync(write.Key, write.Value, cancellationToken).ConfigureAwait(false);
@@ -175,4 +233,6 @@ internal sealed class EquipmentDisjointDomainService(
     private sealed record DisjointPlan(
         IReadOnlyDictionary<int, InventoryItemCoreState> Writes,
         IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials);
+
+    private sealed record PortableMachineUse(BusinessSlot Slot);
 }
