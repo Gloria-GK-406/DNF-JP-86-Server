@@ -1,0 +1,440 @@
+PVF_SHA256=19F5FA85FF73CCE94E299E0902269DE2F0164934128F15B8A7B99249C881BE1A
+
+===== QUEST 1856 =====
+id 1856 -> new_quest/driftcave/epic_27_spider_2.qst
+=== n_quest/new_quest/driftcave/epic_27_spider_2.qst ===
+[grade]
+[epic]
+[difficulty]
+3
+[npc index]
+26
+[complete npc index]
+-1
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1854
+[/pre required quest]
+[dungeon info]
+150 -1
+[/dungeon info]
+[type]
+[clear map]
+[sub type]
+0
+[int data]
+59265 31509
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name]
+探索蜘蛛王国
+[depend message]
+看来你不明白我为什么帮助革命军。
+我向往阿拉德大陆的和平， 但是帝国的野心太大， 对我们暗精灵和其他周边国家太有威胁了。 我协助革命军也是为了牵制帝国。
+言归正传， 因为此前签订了和平协定， 帝国的和平使节团正在访问暗黑城。 帝国军队这次来了不少人， 所以警备力量得到了加强。
+我不了解黑色噩梦， 但是如果你想在这附近逛逛， 建议你去漂流洞穴。 那里是管制区域， 但你是摩根的朋友， 同时也是革命军的合作者， 所以我会为你申请特别许可。
+祝你好运！
+[condition message]
+    调查漂流洞穴的『蜘蛛王国』。 (如果毗奥拉死亡， 将无法完成任务)
+[solve message]
+真对不起。 听说帝国使节团到访时提高了警备级别， 最多只能允许你进入蜘蛛王国。 那个地方长期受暗黑城管理， 应该没什么可看的。
+什么？ 同行的士兵有点古怪？
+[dialog]
+0 0 0 59260 0 0 0 0 <apc::31509>克伦特大人说的那个特殊的冒险家就是你吗？ 我是黑岩军团的毗奥拉。 虽然我不知道你是怎么得到特别许可的， 但是我现在知道你是友善的。
+不过蜘蛛王国的废墟长时间在暗黑城的管辖地内， 我觉得并不是值得冒险家感兴趣的地方。
+[/dialog]
+[dialog]
+0 0 0 59261 0 0 0 0 <apc::31509>蜘蛛王国覆灭之后， 这里只有仅存的几只蜘蛛了。 虽然听说了一些奇怪的传闻， 但都只是些谣言罢了。 你逛够了， 请就直接回到暗黑城吧。
+[/dialog]
+[dialog]
+0 0 0 59263 0 0 0 0 <monster::59511>止步吧， 暗精灵！ 这里是我们蜘蛛的地盘……你难道忘了约定吗！
+<apc::31509>什么啊， 这蜘蛛是疯了吗？ 地下警备队怎么放着这么个家伙不管……
+[/dialog]
+[dialog]
+0 0 0 59265 0 0 0 0 <apc::31509>等等……难道那个是……
+[/dialog]
+[dialog]
+0 0 1 59265 0 0 0 0 <apc::31509>……冒险家， 我必须先走一步去进行报告。 请不要在别的地方乱逛， 一定要直接回到暗黑城！
+[/dialog]
+
+===== QUEST 1866 =====
+id 1866 -> new_quest/driftcave/epic_29_tomb_1.qst
+=== n_quest/new_quest/driftcave/epic_29_tomb_1.qst ===
+[grade]
+[epic]
+[difficulty]
+3
+[npc index]
+26
+[complete npc index]
+-1
+[npc visibility]
+[npc]
+358
+[/npc]
+[condition]
+[accept]
+[visibility]
+[show]
+[/npc visibility]
+[npc visibility]
+[npc]
+342
+[/npc]
+[condition]
+[accept]
+[visibility]
+[show]
+[/npc visibility]
+[npc visibility]
+[npc]
+358
+[/npc]
+[condition]
+[clear]
+[visibility]
+[show]
+[/npc visibility]
+[npc visibility]
+[npc]
+342
+[/npc]
+[condition]
+[clear]
+[visibility]
+[show]
+[/npc visibility]
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1855
+[/pre required quest]
+[dungeon info]
+151 -1
+[/dungeon info]
+[cant giveup]
+2
+[type]
+[clear map]
+[sub type]
+0
+[int data]
+59300 31509
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+克伦特的请求
+[depend message]
+冒险家， 记得你在调查黑色噩梦吧？ 你对黑色噩梦有了解吗？ 或者有没有在蜘蛛王国感受到一些迹象？
+<npc::0>在蜘蛛王国没有发现黑色噩梦的痕迹。 为什么突然问这个？
+<npc::26>我们在调查蜘蛛王国的异变时， 得知其他地方也发生了类似的事件。 虽然还在进行调查， 但我们没有亲自经历过黑色噩梦。
+摩根说你是一个非常可靠的人。 你能帮我们调查这起事件吗？
+<npc::0>摩根？ 你也认识银色村庄的摩根吗？
+<npc::26>没错， 摩根是我的朋友。不久之前我收到了摩根的来信， 知道了冒险家帮助银色村庄的事。
+<npc::0>原来是这样。 我也想仔细调查一下黑色噩梦， 所以我会帮你的。
+<npc::26>太感谢了， 这份恩情我一定会好好报答！
+[condition message]
+    调查漂流洞穴的『英雄冢』。 (如果毗奥拉死亡， 将无法完成任务)
+[solve message]
+你说什么？ 死去的英雄醒来了？ 怎么可能……
+那个地方埋葬了暗精灵引以为傲的7大英雄， 到底是什么力量席卷了地下墓穴？<apc::31509>德莉娜大人说， 希望可以再次恢复和平。 目前正在调查这个原因。
+<npc::26>这么看来蜘蛛王国现在事态严重， 必须要进行具体的调查……
+<apc::31509>对于最近英雄从永眠中醒来的这件事， 要怎么着手调查呢！ 而且你也知道的， 现在暗黑城人手不够。
+我要向夏普伦长老报告。
+<npc::26>不， 请稍等一下。
+[dialog]
+0 0 0 59294 0 0 0 0 <npc::0>谁在跟着我……又是你？
+<apc::31509>我也是在帮助你。 而且我不知道你想在我们祖先的坟墓里做什么， 所以必须进行监视。
+[/dialog]
+[dialog]
+0 0 0 59296 0 0 0 0 <apc::31509>那些人是……？ 为什么第一次见面就要把我们当成敌人对待？ 这是帝国的诡计……？
+[/dialog]
+[dialog]
+0 0 0 59300 0 0 0 0 <apc::31509>难道这位是德莉娜大人？
+<monster::58014>我们的子孙啊……让我们在安息中沉睡的邪恶力量……
+意识渐渐模糊了……我们一定会重新回到和平……
+[/dialog]
+[dialog]
+0 0 1 59300 0 0 0 0 <apc::31509>德莉娜大人……不可思议的事情正在发生……
+[/dialog]
+[dialog depend on job]
+[thief] -1 -1 0 0 0 59294 0 0 0 0 <npc::0>谁在跟着我……又是你？
+<apc::31509>我也是在帮助你。 虽然你是暗精灵， 但我不太信任在外到处漂泊流浪的冒险家。
+[/dialog depend on job]
+
+===== QUEST 1875 =====
+id 1875 -> new_quest/driftcave/epic_31_despot_2.qst
+=== n_quest/new_quest/driftcave/epic_31_despot_2.qst ===
+[grade]
+[epic]
+[difficulty]
+3
+[npc index]
+304
+[complete npc index]
+-1
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1874
+[/pre required quest]
+[dungeon info]
+152 -1
+[/dungeon info]
+[type]
+[condition under clear]
+[sub type]
+6
+[int data]
+152 -1
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+暴君的祭坛
+[depend message]
+据说漂流洞穴也出现了黑色噩梦。 虽然我们内部应该派人去调查这个事情， 但是由于人手不足， 希望你可以协助。
+矮人在漂流洞穴有个祭坛叫做‘暴君的祭坛’。 你去那个地方看看， 回来后我不会亏待你的。
+<npc::0>在那里发生过什么事情？
+<apc::6511>嘿， 害怕了吗？ 暗精灵委托的事情没有什么不危险的。 害怕的话就走开吧， 小鬼。
+[condition message]
+    调查漂流洞穴的『暴君的祭坛』。
+[solve message]
+生还者只有这些吗？ 和出发时对比少了一半啊。
+[dialog]
+0 0 0 59335 0 0 0 0 <npc::0>是矮人吗？ 好强烈的敌意。 看来只能先返回了……
+糟糕， 进来的路被堵住上！
+[/dialog]
+
+===== QUEST 1885 =====
+id 1885 -> new_quest/driftcave/epic_33_goldcave_2.qst
+=== n_quest/new_quest/driftcave/epic_33_goldcave_2.qst ===
+[grade]
+[epic]
+[difficulty]
+3
+[npc index]
+358
+[complete npc index]
+2
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1884
+[/pre required quest]
+[dungeon info]
+153 -1
+[/dungeon info]
+[type]
+[condition under clear]
+[sub type]
+6
+[int data]
+153 -1
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+通往黄金矿洞之路
+[depend message]
+这可是个放松身心的大好机会。 想实际看看矮人们……听说你见过矮人了？ 是不是像传闻的那样长得很富态？
+<npc::0>……你怎么知道我去过漂流洞穴？
+<npc::358>哦？ 只是我的直觉而已。 有个声音让我这么问的。
+<npc::0>(这是逗我玩吗……)算了， 我先走了。
+<npc::358>是吗？ 也没什么别的事， 要是你忙那就先走吧。 等你去了黄金矿洞之后， 我再找你。
+<apc::56408>团长大人， 那个土包子怎么能去黄金矿洞？ 最好他知道分寸逃走， 如果真的进去了， 说不定就没法活着出来了。
+<npc::358>不是这样的， 这种类型生命力反倒像小强般旺盛， 我以前提到的那位女剑士你还记得吗？ 那个女人……
+<npc::0>(气氛很融洽。本来应该提起警觉的他们， 看起来好像更蠢了……)
+(嗯……分明说前往黄金矿洞的路很难找到， 什么时候通了？ 好奇心抑制不住啊， 还是去看看吧……)
+[condition message]
+    调查漂流洞穴的『黄金矿洞』。
+[solve message]
+<npc::0>呼， 勉强躲过了警备队……没想到黄金矿洞里有这么多矮人。 难道做了那么多阻止暴君， 都是白费力气吗？
+<npc::2>冒险家！
+<npc::0>啊， 吓我一跳！
+<npc::2>对不起， 我不是故意吓你的！
+因为我这里有你的一封信， 所以正在到处找你……
+
+===== QUEST 1895 =====
+id 1895 -> new_quest/driftcave/epic_35_heart_1.qst
+=== n_quest/new_quest/driftcave/epic_35_heart_1.qst ===
+[grade]
+[epic]
+[difficulty]
+3
+[npc index]
+304
+[complete npc index]
+-1
+[dungeon info]
+154 -1
+[/dungeon info]
+[job]
+[all]
+[grow type]
+-1
+[level]
+27 99
+[pre required quest]
+1894
+[/pre required quest]
+[type]
+[condition under clear]
+[sub type]
+6
+[int data]
+154 -1
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+再探黄金矿洞
+[depend message]
+听说无耻的维迪尔又出现在黄金矿洞， 他还胆敢向我们寻求帮助？
+冒险家， 我命令你马上去漂流洞穴最深处了解情况， 然后回来向我汇报。
+[condition message]
+    探索漂流洞穴的『远古墓穴深处』。
+[solve message]
+你说什么？ 远古墓穴的封印被解开了……？
+
+===== QUEST 2100 =====
+id 2100 -> new_quest/driftcave/dragon/epic_54_dragon_2.qst
+=== n_quest/new_quest/driftcave/dragon/epic_54_dragon_2.qst ===
+[grade]
+[epic]
+[difficulty]
+6
+[npc index]
+28
+[complete npc index]
+358
+[job]
+[all]
+[grow type]
+-1
+[level]
+54 99
+[cant giveup]
+2
+[pre required quest]
+2099
+[/pre required quest]
+[dungeon info]
+155 -1
+[/dungeon info]
+[type]
+[clear map]
+[sub type]
+-1
+[int data]
+58400
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+变弱的邪龙封印
+[depend message]
+正如巴恩所说， 暗精灵封印了邪龙。 毁灭纪来临时， 暗精灵也一度因为害怕封印失效变得战战兢兢。
+但他们却拒绝外人查看邪龙封印。 我想， 理由只有一个。 那就是封印邪龙的力量正在逐渐衰减， 连他们也不敢靠近。
+<npc::0>封印在衰减……
+<npc::28>我来到暗黑城后一直在关注这件事， 受到毁灭纪和黑色噩梦的影响， 封印已经变得非常脆弱。 稍有不慎， 邪龙就有可能会冲破封印。 到时候， 不止是这个暗黑城， 甚至整个阿拉德大陆都会血流成河。
+<npc::0>与此同时， 还有使徒造成的伤害……
+<npc::28>我多次向暗精灵女王说过这些信息， 但女王听不进去我的意见。 本来我以为巴恩去说可能会有效果， 没想到也是无功而返。
+<npc::362>对不起， 辜负了你的期待。
+事已至此， 没有别的办法了。 我们只能偷偷溜进去查看了。
+[condition message]
+    探索漂流洞穴的『邪龙的封印』。
+[solve message]
+封印不是衰减， 而是彻底失效了。
+[dialog]
+0 0 0 58397 0 0 0 0 <npc::0>矮人们为什么会在这……
+<npc::358>真让人头痛……
+[/dialog]
+[dialog]
+0 0 0 58400 0 0 0 0 <monster::64057>愚蠢的人类来送死了……
+<npc::358>封印竟然解除了！ 不要想着能打赢了， 还是看准机会逃跑吧。
+[/dialog]
+[dialog]
+0 0 1 58400 0 0 0 0 <npc::358>看来力量并没有完全恢复， 趁现在快跑！
+[/dialog]
+
+===== QUEST 2489 =====
+id 2489 -> new_quest/anton/epic_85_anton_1.qst
+=== n_quest/new_quest/anton/epic_85_anton_1.qst ===
+[grade]
+[epic]
+[difficulty]
+g
+[npc index]
+28
+[complete npc index]
+76
+[job]
+[all]
+[grow type]
+-1
+[level]
+85 99
+[type]
+[meet npc]
+[sub type]
+-1
+[int data]
+76
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[name]
+与安徒恩的对决
+[depend message]
+我聆听来自遥远天界的风声， 得到了你平安无事的消息。 真是太好了。
+但与此同时， 可怕的乌云也在铺天盖地而来。 是时候去对付使徒安徒恩了。
+你为即将刮来的暴风雨做好了心理准备， 但能不能顺利挺过去……谁也无法预测。 任何一个预言家也无法看到命运的尽头。
+但请不要不安， 因为你不是一个人在战斗……
+希望这次你依然能够凯旋而归， 我会给你我最衷心的祝福。
+[condition message]
+    去找尼贝尔， 询问安徒恩战线的情况。
+[solve message]
+你来得正是时候。 快到这边来。

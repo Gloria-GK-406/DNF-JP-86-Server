@@ -1,0 +1,79 @@
+{
+  "root": "0xb470000",
+  "select_module": "0x423c0000",
+  "fields": {
+    "0x8c": 0,
+    "0x3d4": 0,
+    "0x3e0": 4294967295,
+    "0x3e4": 0,
+    "0x44c": 23
+  },
+  "candidate_ids": [
+    8007
+  ],
+  "definitions": {
+    "150": {
+      "wrapper": "0x486b10c0",
+      "definition": "0x486b1200",
+      "id_at_34": 150,
+      "minimum_level_at_88": 27,
+      "flag_at_44c": 0
+    },
+    "151": {
+      "wrapper": "0x4875f040",
+      "definition": "0x4875f180",
+      "id_at_34": 151,
+      "minimum_level_at_88": 29,
+      "flag_at_44c": 0
+    },
+    "8007": {
+      "wrapper": "0x48792080",
+      "definition": "0x487921c0",
+      "id_at_34": 8007,
+      "minimum_level_at_88": 36,
+      "flag_at_44c": 0
+    },
+    "152": {
+      "wrapper": "0x486b3040",
+      "definition": "0x486b3180",
+      "id_at_34": 152,
+      "minimum_level_at_88": 31,
+      "flag_at_44c": 0
+    },
+    "153": {
+      "wrapper": "0x4875c100",
+      "definition": "0x4875c240",
+      "id_at_34": 153,
+      "minimum_level_at_88": 33,
+      "flag_at_44c": 0
+    },
+    "155": {
+      "wrapper": "0x487910c0",
+      "definition": "0x48791200",
+      "id_at_34": 155,
+      "minimum_level_at_88": 54,
+      "flag_at_44c": 0
+    },
+    "154": {
+      "wrapper": "0x4ad4c100",
+      "definition": "0x4ad4c240",
+      "id_at_34": 154,
+      "minimum_level_at_88": 35,
+      "flag_at_44c": 0
+    }
+  },
+  "events_present": {
+    "69": false,
+    "75": false,
+    "214": false
+  },
+  "late_filter_gate": {
+    "user": "0x404a9600",
+    "user_plus_3f4": 0,
+    "active_if_value_equals": 1
+  },
+  "deduplication_values": [],
+  "pid": 36852,
+  "utc": "2026-09-20T07:17:48.839858+00:00",
+  "method": "PROCESS_VM_READ; non-atomic snapshot; no memory writes"
+}

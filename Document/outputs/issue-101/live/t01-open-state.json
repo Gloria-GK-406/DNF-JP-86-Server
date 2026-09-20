@@ -1,0 +1,71 @@
+{
+  "observation": "User confirmed empty selection UI open; read-only RPM; no client memory writes",
+  "initial_snapshot": {
+    "utc": "2026-09-20T07:03:58.986910+00:00",
+    "pid": 36852,
+    "root": "0xb470000",
+    "select_module": "0x423c0000",
+    "fields": {
+      "0x8c": 0,
+      "0x3b0": 1214861568,
+      "0x3b4": 1214861684,
+      "0x3c8": 0,
+      "0x3d4": 0,
+      "0x3e0": 4294967295,
+      "0x3e4": 0,
+      "0x44c": 23
+    }
+  },
+  "frames": [
+    {
+      "timestamp_utc": "2026-09-20T07:03:44.295303+00:00",
+      "connection": "game-0002",
+      "direction": "C2S",
+      "selector": "0x01",
+      "type": "0x000F",
+      "header_length": 14,
+      "body_length": 4,
+      "body_hex": "00000000"
+    },
+    {
+      "timestamp_utc": "2026-09-20T07:03:44.304316+00:00",
+      "connection": "game-0002",
+      "direction": "S2C",
+      "selector": "0x01",
+      "type": "0x000F",
+      "header_length": 15,
+      "body_length": 1,
+      "body_hex": "01"
+    },
+    {
+      "timestamp_utc": "2026-09-20T07:03:44.304316+00:00",
+      "connection": "game-0002",
+      "direction": "S2C",
+      "selector": "0x00",
+      "type": "0x001B",
+      "header_length": 15,
+      "body_length": 37,
+      "body_hex": "00000000000000000000010100000000000001000000000000000000000000000000000000"
+    }
+  ],
+  "later_branch_snapshot": {
+    "utc": "2026-09-20T07:05:01.510626+00:00",
+    "select_module": "0x423c0000",
+    "branch_state": "0x3be21f10",
+    "state_fields": {
+      "0x24": 4,
+      "0x40": 1024354272,
+      "0x44": 1024354276
+    },
+    "select_8c": 0,
+    "select_44c": 23,
+    "branch_list": "17000000"
+  },
+  "later_module_vector": {
+    "stride": 116,
+    "count": 1,
+    "first_key": 8007,
+    "observation_utc": "2026-09-20T07:05:01.510626+00:00",
+    "active_ui_at_this_later_time": "not reconfirmed"
+  }
+}

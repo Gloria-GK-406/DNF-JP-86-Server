@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1854,
+    "path": "new_quest/driftcave/epic_27_spider_1.qst",
+    "pre": null,
+    "int_data": "26"
+  },
+  {
+    "id": 1855,
+    "path": "new_quest/driftcave/epic_27_spider_10.qst",
+    "pre": "1865",
+    "int_data": "358"
+  },
+  {
+    "id": 1856,
+    "path": "new_quest/driftcave/epic_27_spider_2.qst",
+    "pre": "1854",
+    "int_data": "59265 31509"
+  },
+  {
+    "id": 1857,
+    "path": "new_quest/driftcave/epic_27_spider_3.qst",
+    "pre": "1856",
+    "int_data": "150 -1 13099 3 1"
+  },
+  {
+    "id": 1858,
+    "path": "new_quest/driftcave/epic_27_spider_4.qst",
+    "pre": "1857",
+    "int_data": "26"
+  },
+  {
+    "id": 1859,
+    "path": "new_quest/driftcave/epic_27_spider_5.qst",
+    "pre": "1858",
+    "int_data": "150 -1 13099 3 1"
+  },
+  {
+    "id": 1860,
+    "path": "new_quest/driftcave/epic_27_spider_6.qst",
+    "pre": "1859",
+    "int_data": "26"
+  },
+  {
+    "id": 1861,
+    "path": "new_quest/driftcave/epic_27_spider_7.qst",
+    "pre": "1860",
+    "int_data": "12"
+  },
+  {
+    "id": 1862,
+    "path": "new_quest/driftcave/epic_27_spider_8.qst",
+    "pre": "1861",
+    "int_data": "12"
+  },
+  {
+    "id": 1863,
+    "path": "new_quest/driftcave/epic_27_spider_8_angel.qst",
+    "pre": null,
+    "int_data": "150 -1 65017 1"
+  },
+  {
+    "id": 1864,
+    "path": "new_quest/driftcave/epic_27_spider_8_nichol.qst",
+    "pre": null,
+    "int_data": "150 -1 64049 1"
+  },
+  {
+    "id": 1865,
+    "path": "new_quest/driftcave/epic_27_spider_9.qst",
+    "pre": "1863",
+    "int_data": "342"
+  }
+]

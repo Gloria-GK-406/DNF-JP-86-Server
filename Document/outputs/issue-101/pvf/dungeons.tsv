@@ -1,0 +1,1048 @@
+DungeonId	ArchivePath	Name	MinimumLevelDeclared	MinimumLevelProjected	NoFatigueDeclared	ConsumesFatigueProjected	RawMazeCount	ProjectedMazeCount	OrdinaryMazeCount	QuestMazeCount	QuestConnectionTagCount	ValidQuestConnectionCount	FileQuestConnections	MazeQuestConnections	StoryModeDeclared	DungeonType	Difficulty	DesignateDifficulty	DifficultyLevel	FreeDifficultyDeclared	EventDungeonDifficulty	EnterWithoutFatigueDeclared	UseFatigueOnlyStartDungeonDeclared	ProhibitPracticeDeclared	RequiredItem	SpecialFlags	Missing
+1	dungeon/Act1/Lorien.dgn	洛兰	55	55	0	1	1	0	0	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+2	dungeon/Act1/LorienInside.dgn	洛兰深处	55	55	0	1	1	0	0	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+3	dungeon/Act1/MirkWood.dgn	幽暗密林	55	55	0	1	1	0	0	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+4	dungeon/Act1/MirkWoodDeep.dgn	幽暗密林深处	55	55	0	1	1	1	1	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+5	dungeon/Act1/SunderLand.dgn	雷鸣废墟	55	55	0	1	1	1	1	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+6	dungeon/Act1/SunderLandPoison.dgn	猛毒雷鸣废墟	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+7	dungeon/Act1/GrakKarak.dgn	格拉卡	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+8	dungeon/Act1/GrakKarakBurning.dgn	烈焰格拉卡	55	55	0	1	2	2	1	1	1	1		m1:0,215,-1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+9	dungeon/Act1/MirkWoodFrost.dgn	冰霜幽暗密林	55	55	0	1	1	0	0	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+11	dungeon/Act2/DraconianTower.dgn	龙人之塔	55	55	0	1	2	2	1	1	1	1		m1:0,4307,2	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+12	dungeon/Act2/Hallofdoll.dgn	人偶玄关	55	55	0	1	3	2	0	2	2	2		m1:0,4308,2;m2:0,4656,2	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+13	dungeon/Act2/GolemTower.dgn	石巨人塔	55	55	0	1	2	2	1	1	1	1		m1:0,4661,-1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+14	dungeon/Act2/DarkEntrance.dgn	黑暗玄廊	55	55	0	1	1	0	0	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+15	dungeon/Act2/PalaceOfLoad.dgn	城主宫殿	55	55	0	1	4	4	1	3	3	3		m1:0,4312,1;m2:0,4673,-1;m3:0,4674,-1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+17	dungeon/Act2/FloatingCastle.dgn	悬空城	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+21	dungeon/Act3/OuterWall.dgn	神殿外围	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[hell dungeon];[crack of dimension dungeon]	0
+22	dungeon/Act3/Jungle.dgn	树精丛林	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[hell dungeon];[crack of dimension dungeon]	0
+23	dungeon/Act3/Darkhell.dgn	炼狱	55	55	0	1	2	2	1	1	1	1		m1:0,4681,2	0		1	1		0		0	0	0		[hell dungeon];[crack of dimension dungeon]	0
+24	dungeon/Act3/WhiteNight.dgn	极昼	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[hell dungeon];[crack of dimension dungeon]	0
+25	dungeon/Act3/1stBackbone.dgn	第一脊椎	55	55	0	1	2	2	1	1	1	1		m1:0,4329,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+26	dungeon/Act3/2ndBackbone.dgn	第二脊椎	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[hell dungeon];[crack of dimension dungeon]	0
+27	dungeon/Act3/BloodHell.dgn	天帷禁地	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[hell dungeon];[crack of dimension dungeon]	0
+31	dungeon/Act4/ShallowKeep.dgn	浅栖之地	55	55	0	1	2	2	1	1	1	1		m1:0,4420,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+32	dungeon/Act4/MarpissaLair.dgn	蜘蛛洞穴	55	55	0	1	3	3	1	2	2	2		m1:0,4408,1;m2:0,4421,2	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+34	dungeon/Act4/MagmaCave.dgn	熔岩穴	55	55	0	1	2	2	1	1	1	1		m1:0,4417,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+35	dungeon/Act4/DarkelfCemetary.dgn	暗精灵墓地	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+36	dungeon/Act4/Underfoot.dgn	暗黑城入口	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+37	dungeon/Act4/ShadowMaze.dgn	暗影迷宫	55	55	0	1	4	4	4	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+40	dungeon/Act5/CharnakRidge.dgn	山脊	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+41	dungeon/Act5/TheBoyWithColdheart.dgn	冰心少年	55	55	0	1	1	0	0	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+42	dungeon/Act5/RicuCeiling.dgn	利库天井	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+43	dungeon/Act5/WhiteLand.dgn	白色废墟	55	55	0	1	1	0	0	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+44	dungeon/Act5/IcePalace.dgn	冰雪宫殿	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+45	dungeon/Act5/ScasaLair.dgn	斯卡萨之巢	55	55	0	1	2	2	1	1	1	1		m1:0,4571,2	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+50	dungeon/Act6/AstrayThief.dgn	堕落的盗贼	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+51	dungeon/Act6/VillageOfTemptation.dgn	迷乱之村哈穆林	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+52	dungeon/Act6/DanceingButterfly.dgn	血蝴蝶之舞	55	55	0	1	7	7	1	6	6	6		m1:0,5809,1;m2:0,5814,1;m3:0,5806,-1;m4:0,5811,-1;m5:0,5829,4;m6:0,5815,4	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+53	dungeon/Act6/SuspiciousVillage.dgn	疑惑之村	55	55	0	1	2	2	1	1	1	1		m1:0,5891,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+60	dungeon/Village/CartelArad/Odesa.dgn	热血八番街	55	55	0	1	5	5	1	4	4	4		m0:0,3901,-1;m1:0,3903,-1;m2:0,3904,1;m3:0,3906,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+61	dungeon/Village/CartelArad/Grozni.dgn	绿都格罗兹尼	55	55	0	1	10	10	1	9	9	9		m0:0,3907,-1;m1:0,3908,1;m2:0,3909,1;m3:0,3911,1;m4:0,3910,1;m5:0,3919,-1;m6:0,3920,1;m7:0,3921,1;m9:0,3917,2	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+140	dungeon/Village/MoonLightPub/Aganzo.dgn	月光酒馆	55	55	0	1	6	6	1	5	5	5		m0:0,4102,-1;m1:0,4103,1;m2:0,4104,1;m3:0,4105,1;m5:0,4106,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+141	dungeon/Act5/Bwanga.dgn	布万加的修炼场	55	55	0	1	7	7	1	6	6	6		m1:0,4002,-1;m2:0,4003,-1;m3:0,4004,1;m4:0,4005,1;m5:0,4006,1;m6:0,4007,1	0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+1000	dungeon/Act1/SunderLandDark.dgn	暗黑雷鸣废墟	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+111	dungeon/Village/Gbl/Gbl_Laboratory.dgn	GBL教研究所	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+112	dungeon/Village/Gbl/Gbl_Hatchery.dgn	GBL教孵化场	55	55	0	1	1	1	1	0	0	0			0		1	1		0		0	0	0		[crack of dimension dungeon]	0
+130	dungeon/SaintHorn/RollingStone.dgn	滚石监狱	55	55	0	1	2	2	1	1	1	1		m1:0,4637,-1	0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+131	dungeon/SaintHorn/BlackStone.dgn	黑石监狱	55	55	0	1	2	2	1	1	1	1		m1:0,4638,-1	0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+132	dungeon/SaintHorn/RedStone.dgn	火石监狱	55	55	0	1	2	2	1	1	1	1		m1:0,4639,-1	0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+133	dungeon/SaintHorn/ElvengardSF.dgn	艾尔文防线突袭战	55	55	0	1	1	1	1	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+134	dungeon/SaintHorn/HendonMyreSF.dgn	赫顿玛尔攻防战	55	55	0	1	1	1	1	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+135	dungeon/SaintHorn/EmpireRampart.dgn	机密重地	55	55	0	1	1	1	1	0	0	0			0		1	0;1		0		0	0	0		[crack of dimension dungeon]	0
+8000	dungeon/Crackofdimension/Crackofdimension.dgn	阿拉德大陆	55	55	0	1	1	0	0	0	0	0			0			0		0		0	0	1		[crack of dimension dungeon]	0
+62	dungeon/Impossible/GoblinKingdom.dgn	哥布林王国	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	1	1		[dimension dungeon]	0
+63	dungeon/Impossible/ActiveSkyCastle.dgn	蠕动之城	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	1	1		[dimension dungeon]	0
+64	dungeon/Impossible/RanjerusDogs.dgn	兰蒂卢斯的鹰犬	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	1	1		[dimension dungeon]	0
+65	dungeon/Impossible/bakalcastle.dgn	巴卡尔之城	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	1	1		[dimension dungeon]	0
+66	dungeon/Impossible/Cosmofiend.dgn	虚无之境	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+67	dungeon/Impossible/blackearth.dgn	黑色大地	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	1	1		[dimension dungeon]	0
+100	dungeon/SouthernDale/Grimseeker.dgn	南部溪谷	27	27	1	0	1	1	1	0	0	0			0				1,1,1,0,0	0	1	0	0	1	2680738,1,1	[event dungeon]	0
+501	dungeon/quest/captainscabin.dgn	舰长室	65	65	0	1	7	7	1	6	6	6		m0:0,2259,-1;m1:0,2263,-1;m2:0,2265,-1;m4:0,14800,-1;m5:0,14801,-1;m6:0,14802,-1	1			0		0		0	0	0		[quest npc dungeon]	0
+502	dungeon/quest/steelscales.dgn	铁鳞海贼团	65	65	0	1	2	2	1	1	1	1		m1:0,2258,-1	1			0		0		0	0	0			0
+515	dungeon/quest/timegate.dgn	时空之门	70	70	0	1	3	3	1	2	2	2		m1:0,2356,-1;m2:0,2357,-1	1			0		0		0	0	0			0
+516	dungeon/quest/fairyforest.dgn	精灵之森	70	70	0	1	11	11	1	10	10	10		m1:0,2360,-1;m2:0,12740,-1;m3:0,2361,-1;m4:0,2362,-1;m5:0,2363,-1;m6:0,12742,-1;m7:0,14803,-1;m8:0,14804,-1;m9:0,14805,-1;m10:0,14806,-1	1			0		0		0	0	0			0
+517	dungeon/quest/lawlessdistrict.dgn	无法地带	70	70	0	1	7	7	1	6	6	6		m1:0,2386,-1;m2:0,2400,-1;m3:0,2392,-1;m4:0,2394,-1;m5:0,14807,-1;m6:0,14808,-1	1			0		0		0	0	0			0
+518	dungeon/quest/tangledtimegate.dgn	错乱的时空之门	70	70	0	1	3	3	1	2	2	2		m1:0,2406,-1;m2:0,2407,-1	1			0		0		0	0	0			0
+519	dungeon/quest/iristime.dgn	艾丽丝之谜	70	70	0	1	2	2	1	1	1	1		m1:0,2476,-1	1			0		0		0	0	0			0
+520	dungeon/quest/irisconsciousness.dgn	艾丽丝的觉悟	70	70	1	0	1	1	1	0	0	0			0			0		0		0	0	0		[quest npc dungeon]	0
+521	dungeon/quest/deadmoon_new.dgn	亡月雷鸣废墟	15	15	0	1	1	1	1	0	0	0			0			0		0		0	0	0			0
+522	dungeon/quest/Energyisolator.dgn	能量阻断室	78	78	1	0	1	1	1	0	0	0			0			0		0		0	0	0		[quest npc dungeon]	0
+523	dungeon/quest/deadmoon_new2.dgn	亡月雷鸣废墟	15	15	0	1	1	1	1	0	0	0			0			0		0		0	0	0			0
+1001	dungeon/quest/inspried_dream.dgn	永恒梦境	46	46	1	0	4	4	1	3	3	3		m1:0,2039,-1;m2:0,12663,-1;m3:0,14809,-1	0			0		0		0	0	0		[quest npc dungeon]	0
+1002	dungeon/quest/inspried_dream_elvengard.dgn	永恒梦境	46	46	1	0	1	1	1	0	0	0			0			0		0		0	0	0		[quest npc dungeon]	0
+1003	dungeon/quest/inspried_dream_strompass.dgn	永恒梦境	46	46	1	0	1	1	1	0	0	0			0			0		0		0	0	0		[quest npc dungeon]	0
+1004	dungeon/quest/inspried_dream_m.dgn	永恒梦境	46	46	0	1	2	2	1	1	1	1		m1:0,2069,-1	1			0		0		0	0	0			0
+1006	dungeon/quest/investigate_the_Blacksmoke.dgn	黑雾之谜	85	85	0	1	3	3	1	2	2	2		m1:0,2495,-1;m2:0,14810,-1	0			2		0		0	0	0			0
+1005	dungeon/quest/the_way_to_Strongleg.dgn	意志之路	85	85	0	1	1	1	1	0	0	0			0			2		0		0	0	0		[quest npc dungeon]	0
+1007	dungeon/quest/trace_the_Energy.dgn	艰难的攻坚战	85	85	0	1	1	1	1	0	0	0			0			2		0		0	0	0			0
+33	dungeon/Ancient/N_KingsRuins.dgn	王的遗迹	85	85	0	1	3	3	1	2	2	2		m1:0,12001,-1;m2:0,14811,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+1500	dungeon/Ancient/N_Vilmark.dgn	比尔马克帝国试验场	85	85	0	1	5	5	1	4	4	4		m1:0,12002,-1;m2:0,12003,-1;m3:0,14812,-1;m4:0,14813,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+1501	dungeon/Ancient/N_ScreamingCave.dgn	悲鸣洞穴	85	85	0	1	5	3	1	2	4	4		m3:0,12004,-1;m4:0,14814,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+1502	dungeon/Ancient/N_Noirpera.dgn	诺伊佩拉	85	85	0	1	3	3	1	2	2	2		m1:0,12005,-1;m2:0,14815,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+1504	dungeon/Ancient/N_GhostTrain.dgn	幽灵列车	85	85	0	1	3	3	1	2	2	2		m1:0,12006,-1;m2:0,14816,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+1506	dungeon/Ancient/N_leshphon.dgn	痛苦之村列瑟芬	85	85	0	1	3	3	1	2	2	2		m1:0,12007,-1;m2:0,14817,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+1507	dungeon/Ancient/N_cartelcommand.dgn	卡勒特指挥部	85	85	0	1	4	4	1	3	3	3		m1:0,12027,-1;m2:0,12031,-1;m3:0,14818,-1	0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+2000	dungeon/WarRoom/Grenselos20-30.dgn	Grenselos	20	20	1	0	1	1	1	0	0	0			0					0		1	0	0			0
+2001	dungeon/WarRoom/Grenselos30-40.dgn	Grenselos	20	20	0	1	1	1	1	0	0	0			0					0		0	0	0			0
+2002	dungeon/WarRoom/Grenselos40-50.dgn	Grenselos	20	20	0	1	1	1	1	0	0	0			0					0		0	0	0			0
+2003	dungeon/WarRoom/Grenselos50-60.dgn	Grenselos	20	20	0	1	1	1	1	0	0	0			0					0		0	0	0			0
+2004	dungeon/WarRoom/Grenselos60-70.dgn	Grenselos	20	20	0	1	1	1	1	0	0	0			0					0		0	0	0			0
+2005	dungeon/Special/GentInfiltrate.dgn	决战哈尔特山	63	63	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2006	dungeon/Special/SeaChase.dgn	特快列车追击战	68	68	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2007	dungeon/Special/TimeBreak.dgn	时空裂隙	78	78	0	1	4	4	2	2	2	2		m2:0,2510,-1;m3:0,14819,-1	0		1	1		0		0	1	1		[special dungeon]	0
+2008	dungeon/Special/StationEscape.dgn	斯洛特发电站-逃离	83	83	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2009	dungeon/Special/SealForest.dgn	遗忘之森	16	16	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2010	dungeon/Special/MeltdownHelpus.dgn	陷落的村庄	26	26	0	1	2	2	2	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2011	dungeon/Special/Seizemoney.dgn	黄金王的秘密洞穴	36	36	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2012	dungeon/Special/MadnessAdenvine.dgn	疯狂的祭典	45	45	0	1	3	3	1	2	2	2		m1:0,12690,-1;m2:0,14820,-1	0		1	1		0		0	1	1		[special dungeon]	0
+2013	dungeon/Special/FrostCave.dgn	冰霜洞穴	53	53	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2014	dungeon/Special/StationEscape1.dgn	斯洛特发电站	83	83	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+2016	dungeon/Special/StationEscape3.dgn	斯洛特发电站-破坏	83	83	0	1	1	1	1	0	0	0			0		1	1		0		0	1	1		[special dungeon]	0
+10000	dungeon/Tutorial/Tutorial.dgn	卡利丛林	1	1	1	0	1	1	1	0	0	0			0					0		0	0	1			0
+10001	dungeon/Tutorial/Tutorial_timegate.dgn	时空之门	1	1	1	0	1	1	1	0	0	0			0					0		0	0	1			0
+10002	dungeon/Tutorial/Tutorial_timegate2.dgn	时空之门	1	1	1	0	1	1	1	0	0	0			0					0		0	0	1			0
+10003	dungeon/Tutorial/Tutorial_atslayer.dgn	洛兰	1	1	1	0	1	1	1	0	0	0			0					0		0	0	1			0
+10004	dungeon/Tutorial/Tutorial_knight.dgn	卡利丛林外围	1	1	1	0	1	1	1	0	0	0			0					0		0	0	1			0
+10005	dungeon/Tutorial/Tutorial_Demonic.dgn	卡利丛林	1	1	1	0	1	1	1	0	0	0			0					0		0	0	0			0
+11000	dungeon/Towers/TowerOfDeath.dgn	死亡之塔	50	50	0	1	0	0	0	0	0	0			0	tower of death				0		0	0	0	4183,1,1		0
+11001	dungeon/Towers/TowerOfIllusion.dgn	迷妄之塔	40	40	0	1	0	0	0	0	0	0			0	tower of death				0		0	0	0	4183,1,1		0
+11006	dungeon/Towers/TowerOfBloodyFight4.dgn	无尽的祭坛	60	60	0	1	1	1	1	0	0	0			0					0		0	0	0		[blood dungeon]	0
+11007	dungeon/Towers/TowerOfUltimate.dgn	极限的祭坛	65	65	0	1	1	1	1	0	0	0			0					0		0	0	0		[blood dungeon]	0
+11008	dungeon/Towers/ZTowerOfDespair001.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11009	dungeon/Towers/ZTowerOfDespair002.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11010	dungeon/Towers/ZTowerOfDespair003.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11011	dungeon/Towers/ZTowerOfDespair004.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11012	dungeon/Towers/ZTowerOfDespair005.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11013	dungeon/Towers/ZTowerOfDespair006.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11014	dungeon/Towers/ZTowerOfDespair007.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11015	dungeon/Towers/ZTowerOfDespair008.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11016	dungeon/Towers/ZTowerOfDespair009.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11017	dungeon/Towers/ZTowerOfDespair010.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11018	dungeon/Towers/ZTowerOfDespair011.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11019	dungeon/Towers/ZTowerOfDespair012.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11020	dungeon/Towers/ZTowerOfDespair013.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11021	dungeon/Towers/ZTowerOfDespair014.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11022	dungeon/Towers/ZTowerOfDespair015.dgn	绝望之塔	70	70	1	0	1	1	1	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11023	dungeon/Towers/ZTowerOfDespair016.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11024	dungeon/Towers/ZTowerOfDespair017.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11025	dungeon/Towers/ZTowerOfDespair018.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11026	dungeon/Towers/ZTowerOfDespair019.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11027	dungeon/Towers/ZTowerOfDespair020.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11028	dungeon/Towers/ZTowerOfDespair021.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11029	dungeon/Towers/ZTowerOfDespair022.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11030	dungeon/Towers/ZTowerOfDespair023.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11031	dungeon/Towers/ZTowerOfDespair024.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11032	dungeon/Towers/ZTowerOfDespair025.dgn	绝望之塔	70	70	1	0	1	1	1	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11033	dungeon/Towers/ZTowerOfDespair026.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11034	dungeon/Towers/ZTowerOfDespair027.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11035	dungeon/Towers/ZTowerOfDespair028.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11036	dungeon/Towers/ZTowerOfDespair029.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11037	dungeon/Towers/ZTowerOfDespair030.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11038	dungeon/Towers/ZTowerOfDespair031.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11039	dungeon/Towers/ZTowerOfDespair032.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11040	dungeon/Towers/ZTowerOfDespair033.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11041	dungeon/Towers/ZTowerOfDespair034.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11042	dungeon/Towers/ZTowerOfDespair035.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11043	dungeon/Towers/ZTowerOfDespair036.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11044	dungeon/Towers/ZTowerOfDespair037.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11045	dungeon/Towers/ZTowerOfDespair038.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11046	dungeon/Towers/ZTowerOfDespair039.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11047	dungeon/Towers/ZTowerOfDespair040.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11048	dungeon/Towers/ZTowerOfDespair041.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11049	dungeon/Towers/ZTowerOfDespair042.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11050	dungeon/Towers/ZTowerOfDespair043.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11051	dungeon/Towers/ZTowerOfDespair044.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11052	dungeon/Towers/ZTowerOfDespair045.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11053	dungeon/Towers/ZTowerOfDespair046.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11054	dungeon/Towers/ZTowerOfDespair047.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11055	dungeon/Towers/ZTowerOfDespair048.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11056	dungeon/Towers/ZTowerOfDespair049.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11057	dungeon/Towers/ZTowerOfDespair050.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11058	dungeon/Towers/ZTowerOfDespair051.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11059	dungeon/Towers/ZTowerOfDespair052.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11060	dungeon/Towers/ZTowerOfDespair053.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11061	dungeon/Towers/ZTowerOfDespair054.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11062	dungeon/Towers/ZTowerOfDespair055.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11063	dungeon/Towers/ZTowerOfDespair056.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11064	dungeon/Towers/ZTowerOfDespair057.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11065	dungeon/Towers/ZTowerOfDespair058.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11066	dungeon/Towers/ZTowerOfDespair059.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11067	dungeon/Towers/ZTowerOfDespair060.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11068	dungeon/Towers/ZTowerOfDespair061.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11069	dungeon/Towers/ZTowerOfDespair062.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11070	dungeon/Towers/ZTowerOfDespair063.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11071	dungeon/Towers/ZTowerOfDespair064.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11072	dungeon/Towers/ZTowerOfDespair065.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11073	dungeon/Towers/ZTowerOfDespair066.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11074	dungeon/Towers/ZTowerOfDespair067.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11075	dungeon/Towers/ZTowerOfDespair068.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11076	dungeon/Towers/ZTowerOfDespair069.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11077	dungeon/Towers/ZTowerOfDespair070.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11078	dungeon/Towers/ZTowerOfDespair071.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11079	dungeon/Towers/ZTowerOfDespair072.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11080	dungeon/Towers/ZTowerOfDespair073.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11081	dungeon/Towers/ZTowerOfDespair074.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11082	dungeon/Towers/ZTowerOfDespair075.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11083	dungeon/Towers/ZTowerOfDespair076.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11084	dungeon/Towers/ZTowerOfDespair077.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11085	dungeon/Towers/ZTowerOfDespair078.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11086	dungeon/Towers/ZTowerOfDespair079.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11087	dungeon/Towers/ZTowerOfDespair080.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11088	dungeon/Towers/ZTowerOfDespair081.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11089	dungeon/Towers/ZTowerOfDespair082.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11090	dungeon/Towers/ZTowerOfDespair083.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11091	dungeon/Towers/ZTowerOfDespair084.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11092	dungeon/Towers/ZTowerOfDespair085.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11093	dungeon/Towers/ZTowerOfDespair086.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11094	dungeon/Towers/ZTowerOfDespair087.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11095	dungeon/Towers/ZTowerOfDespair088.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11096	dungeon/Towers/ZTowerOfDespair089.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11097	dungeon/Towers/ZTowerOfDespair090.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11098	dungeon/Towers/ZTowerOfDespair091.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11099	dungeon/Towers/ZTowerOfDespair092.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11100	dungeon/Towers/ZTowerOfDespair093.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11101	dungeon/Towers/ZTowerOfDespair094.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11102	dungeon/Towers/ZTowerOfDespair095.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11103	dungeon/Towers/ZTowerOfDespair096.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11104	dungeon/Towers/ZTowerOfDespair097.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11105	dungeon/Towers/ZTowerOfDespair098.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11106	dungeon/Towers/ZTowerOfDespair099.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+11107	dungeon/Towers/ZTowerOfDespair100.dgn	绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	4473,1,1	[tower of despair]	0
+92	dungeon/Act8/haze.dgn	雾都赫伊斯	66	66	0	1	16	16	2	14	14	14		m2:0,2269,-1;m3:0,2270,-1;m4:0,2271,-1;m5:0,2272,-1;m6:0,2273,-1;m7:0,2274,-1;m8:0,2277,-1;m9:0,14821,-1;m10:0,14822,-1;m11:0,14823,-1;m12:0,14824,-1;m13:0,14825,-1;m14:0,14826,-1;m15:0,14827,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+93	dungeon/Act8/arden.dgn	阿登高地	67	67	0	1	21	21	1	20	20	20		m1:0,2280,-1;m2:0,2282,-1;m3:0,2283,-1;m4:0,2284,-1;m5:0,2285,-1;m6:0,2287,-1;m7:0,2288,-1;m8:0,2289,-1;m9:0,2290,-1;m10:0,2292,-1;m11:0,14828,-1;m12:0,14829,-1;m13:0,14830,-1;m14:0,14831,-1;m15:0,14832,-1;m16:0,14833,-1;m17:0,14834,-1;m18:0,14835,-1;m19:0,14836,-1;m20:0,14837,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+120	dungeon/Shonantournament/yellowdragon.dgn	黄龙大会	69	69	0	1	1	0	0	0	0	0			0			2		0		0	0	1	4726,1,1	[tournament dungeon]	0
+121	dungeon/Shonantournament/bluedragon.dgn	青龙大会	77	77	0	1	1	0	0	0	0	0			0			2		0		0	0	1	4727,1,1	[tournament dungeon]	0
+122	dungeon/Shonantournament/blackdragon.dgn	黑龙大会	75	75	0	1	1	0	0	0	0	0			0			0		0		1	0	1		[tournament dungeon]	0
+200	dungeon/Ancient/R_KingsRuins.dgn	魂·王的遗迹	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+201	dungeon/Ancient/R_Vilmark.dgn	魂·比尔马克帝国试验场	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+202	dungeon/Ancient/R_ScreamingCave.dgn	魂·悲鸣洞穴	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+203	dungeon/Ancient/R_Noirpera.dgn	魂·诺伊佩拉	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+204	dungeon/Ancient/R_GhostTrain.dgn	魂·幽灵列车	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+205	dungeon/Ancient/R_Leshphon.dgn	魂·痛苦之村列瑟芬	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+206	dungeon/Ancient/R_Cartelcommand.dgn	魂·卡勒特指挥部	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+101	dungeon/Act9/KohlePowerStation.dgn	克雷发电站	79	79	0	1	11	11	1	10	10	10		m1:0,2541,-1;m2:0,2542,-1;m3:0,2543,-1;m4:0,2547,-1;m5:0,2548,-1;m6:0,14838,-1;m7:0,14839,-1;m8:0,14840,-1;m9:0,14841,-1;m10:0,14842,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+102	dungeon/Act9/Fruz_Station.dgn	普鲁兹发电站	80	80	0	1	25	25	1	24	24	24		m1:0,2553,-1;m2:0,2554,-1;m3:0,2557,-1;m4:0,2558,-1;m5:0,2559,-1;m6:0,3049,-1;m7:0,2560,-1;m8:0,2561,-1;m9:0,2562,-1;m10:0,2563,-1;m11:0,2565,-1;m12:0,2567,-1;m13:0,2568,-1;m14:0,2569,-1;m15:0,14843,-1;m16:0,14844,-1;m17:0,14845,-1;m18:0,14846,-1;m19:0,14847,-1;m20:0,14848,-1;m21:0,14849,-1;m22:0,14850,-1;m23:0,14851,-1;m24:0,14852,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+103	dungeon/Act9/Trombe.dgn	特伦斯发电站	81	81	0	1	23	23	1	22	22	22		m1:0,2571,-1;m2:0,2574,-1;m3:0,2577,-1;m4:0,2579,-1;m5:0,2580,-1;m6:0,2582,-1;m7:0,2583,-1;m8:0,2584,-1;m9:0,2585,-1;m10:0,2586,-1;m11:0,2587,-1;m12:0,14853,-1;m13:0,14854,-1;m14:0,14855,-1;m15:0,14856,-1;m16:0,14857,-1;m17:0,14858,-1;m18:0,14859,-1;m19:0,14860,-1;m20:0,14861,-1;m21:0,14862,-1;m22:0,14863,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+104	dungeon/Act9/grandine.dgn	格兰迪发电站	82	82	0	1	19	19	1	18	18	18		m1:0,2590,-1;m2:0,2591,-1;m3:0,2592,-1;m4:0,2593,-1;m5:0,2595,-1;m6:0,2596,-1;m7:0,2597,-1;m8:0,2598,-1;m9:0,2600,-1;m10:0,14864,-1;m11:0,14865,-1;m12:0,14866,-1;m13:0,14867,-1;m14:0,14868,-1;m15:0,14869,-1;m16:0,14870,-1;m17:0,14871,-1;m18:0,14872,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+3001	dungeon/Event/BlueMarble/3001.dgn	神殿外围	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3002	dungeon/Event/BlueMarble/3002.dgn	树精丛林	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3003	dungeon/Event/BlueMarble/3003.dgn	炼狱	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3004	dungeon/Event/BlueMarble/3004.dgn	极昼	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3005	dungeon/Event/BlueMarble/3005.dgn	极昼	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3006	dungeon/Event/BlueMarble/3006.dgn	第一脊椎	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3007	dungeon/Event/BlueMarble/3007.dgn	GBL女神殿	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3008	dungeon/Event/BlueMarble/3008.dgn	第二脊椎	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3009	dungeon/Event/BlueMarble/3009.dgn	树精繁殖地	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3010	dungeon/Event/BlueMarble/3010.dgn	天帷禁地	21	21	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3011	dungeon/Event/BlueMarble/3011.dgn	浅栖之地	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3012	dungeon/Event/BlueMarble/3012.dgn	蜘蛛洞穴	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3013	dungeon/Event/BlueMarble/3013.dgn	暗精灵墓地	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3014	dungeon/Event/BlueMarble/3014.dgn	熔岩穴	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3015	dungeon/Event/BlueMarble/3015.dgn	熔岩穴	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3016	dungeon/Event/BlueMarble/3016.dgn	山脊	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3017	dungeon/Event/BlueMarble/3017.dgn	利库天井	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3018	dungeon/Event/BlueMarble/3018.dgn	白色废墟	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3019	dungeon/Event/BlueMarble/3019.dgn	布万加的修炼场	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3020	dungeon/Event/BlueMarble/3020.dgn	GBL教阿拉德分部	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3021	dungeon/Event/BlueMarble/3021.dgn	GBL教孵化场	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3022	dungeon/Event/BlueMarble/3022.dgn	堕落的盗贼	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3023	dungeon/Event/BlueMarble/3023.dgn	堕落的盗贼	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3024	dungeon/Event/BlueMarble/3024.dgn	迷乱之村哈穆林	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3025	dungeon/Event/BlueMarble/3025.dgn	暗黑城入口	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3026	dungeon/Event/BlueMarble/3026.dgn	热血八番街	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3027	dungeon/Event/BlueMarble/3027.dgn	绿都格罗兹尼	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3028	dungeon/Event/BlueMarble/3028.dgn	斯卡萨之巢	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0		[hell dungeon]	0
+3029	dungeon/Event/BlueMarble/3029.dgn	根特外围	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3030	dungeon/Event/BlueMarble/3030.dgn	根特东门	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3031	dungeon/Event/BlueMarble/3031.dgn	根特南门	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3032	dungeon/Event/BlueMarble/3032.dgn	根特北门	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3033	dungeon/Event/BlueMarble/3033.dgn	根特北门	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3034	dungeon/Event/BlueMarble/3034.dgn	夜间袭击战	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3035	dungeon/Event/BlueMarble/3035.dgn	补给线阻断战	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3036	dungeon/Event/BlueMarble/3036.dgn	追击歼灭战	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3037	dungeon/Event/BlueMarble/3037.dgn	血蝴蝶之舞	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3038	dungeon/Event/BlueMarble/3038.dgn	疑惑之村	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3039	dungeon/Event/BlueMarble/3039.dgn	列车上的海贼	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3040	dungeon/Event/BlueMarble/3040.dgn	夺回西部线	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3041	dungeon/Event/BlueMarble/3041.dgn	雾都赫伊斯	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3042	dungeon/Event/BlueMarble/3042.dgn	阿登高地	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3043	dungeon/Event/BlueMarble/3043.dgn	阿登高地	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3044	dungeon/Event/BlueMarble/3044.dgn	阿登高地	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3045	dungeon/Event/BlueMarble/3045.dgn	阿登高地	1	1	1	0	1	0	0	0	0	0			0			2		0		1	0	0			0
+3058	dungeon/Event/BlueMarble/3046.dgn	城主宫殿	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3059	dungeon/Event/BlueMarble/3047.dgn	悬空城	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3060	dungeon/Event/BlueMarble/3048.dgn	黑暗玄廊	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3061	dungeon/Event/BlueMarble/3049.dgn	石巨人塔	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3062	dungeon/Event/BlueMarble/3050.dgn	人偶玄关	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3063	dungeon/Event/BlueMarble/3051.dgn	龙人之塔	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3064	dungeon/Event/BlueMarble/3052.dgn	暗黑雷鸣废墟	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3065	dungeon/Event/BlueMarble/3053.dgn	烈焰格拉卡	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3046	dungeon/Event/BlueMarble/Kick.dgn	哥布林王国	1	1	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3047	dungeon/Event/BlueMarble/Aganzo.dgn	月光酒馆	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3048	dungeon/Event/BlueMarble/Lorien.dgn	洛兰	1	1	1	0	1	0	0	0	0	0			0					0		1	0	0			0
+3067	dungeon/Event/BlueMarble/3067.dgn	蘑菇庄园	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3068	dungeon/Event/BlueMarble/3068.dgn	蚁后的巢穴	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3069	dungeon/Event/BlueMarble/3069.dgn	腐烂之地	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3070	dungeon/Event/BlueMarble/3070.dgn	赫顿玛尔旧街区	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3071	dungeon/Event/BlueMarble/3071.dgn	绝望的棋局	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3072	dungeon/Event/BlueMarble/3072.dgn	蜘蛛王国	22	22	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3073	dungeon/Event/BlueMarble/3073.dgn	英雄冢	24	24	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3074	dungeon/Event/BlueMarble/3074.dgn	暴君的祭坛	26	26	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3075	dungeon/Event/BlueMarble/3075.dgn	黄金矿洞	28	28	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3076	dungeon/Event/BlueMarble/3076.dgn	远古墓穴深处	30	30	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3077	dungeon/Event/BlueMarble/3077.dgn	鲨鱼栖息地	32	32	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3078	dungeon/Event/BlueMarble/3078.dgn	人鱼的国度	34	34	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3079	dungeon/Event/BlueMarble/3079.dgn	GBL女神殿	36	36	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3080	dungeon/Event/BlueMarble/3080.dgn	树精繁殖地	38	38	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3081	dungeon/Event/BlueMarble/3081.dgn	罗特斯的宫殿	39	39	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3082	dungeon/Event/BlueMarble/3082.dgn	冰刺庭院	41	41	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3083	dungeon/Event/BlueMarble/3083.dgn	极光幻境	42	42	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3084	dungeon/Event/BlueMarble/3084.dgn	失落的神殿	43	43	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3085	dungeon/Event/BlueMarble/3085.dgn	暮色之城	44	44	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3086	dungeon/Event/BlueMarble/3086.dgn	失落的神殿	45	45	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3087	dungeon/Event/BlueMarble/3087.dgn	噩梦之源	46	46	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3088	dungeon/Event/BlueMarble/3088.dgn	无尽的噩梦	47	47	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3089	dungeon/Event/BlueMarble/3089.dgn	邪龙的封印	49	49	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3090	dungeon/Event/BlueMarble/3090.dgn	格兰之火	65	65	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3091	dungeon/Event/BlueMarble/3091.dgn	瘟疫之源	66	66	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3092	dungeon/Event/BlueMarble/3092.dgn	卡勒特之初	67	67	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3093	dungeon/Event/BlueMarble/3093.dgn	暗黑圣战	68	68	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3094	dungeon/Event/BlueMarble/3094.dgn	绝密区域	69	69	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3095	dungeon/Event/BlueMarble/3095.dgn	昔日悲鸣	70	70	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3096	dungeon/Event/BlueMarble/3096.dgn	凛冬	71	71	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3097	dungeon/Event/BlueMarble/3097.dgn	谜之觉悟	72	72	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3098	dungeon/Event/BlueMarble/3098.dgn	克雷发电站	73	73	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3099	dungeon/Event/BlueMarble/3099.dgn	普鲁兹发电站	74	74	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3102	dungeon/Event/BlueMarble/3102.dgn	特伦斯发电站	75	75	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3103	dungeon/Event/BlueMarble/3103.dgn	格兰迪发电站	76	76	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3104	dungeon/Event/BlueMarble/3104.dgn	虚无之境	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3105	dungeon/Event/BlueMarble/3105.dgn	巴卡尔之城	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3106	dungeon/Event/BlueMarble/3106.dgn	巴卡尔之城	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3107	dungeon/Event/BlueMarble/3107.dgn	黑色大地	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3108	dungeon/Event/BlueMarble/3108.dgn	特快列车追击战	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3109	dungeon/Event/BlueMarble/3109.dgn	卡勒特指挥部	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1	4791,1,1	[ancient dungeon]	0
+3110	dungeon/Event/BlueMarble/3110.dgn	凛冬	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3111	dungeon/Event/BlueMarble/3111.dgn	邪龙的封印	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3112	dungeon/Event/BlueMarble/3112.dgn	圣地 : 龙之魂	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3113	dungeon/Event/BlueMarble/3113.dgn	凛冬	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3114	dungeon/Event/BlueMarble/3114.dgn	邪龙的封印	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3115	dungeon/Event/BlueMarble/3115.dgn	圣地 : 龙之魂	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3116	dungeon/Event/BlueMarble/3116.dgn	凛冬	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3117	dungeon/Event/BlueMarble/3117.dgn	邪龙的封印	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3118	dungeon/Event/BlueMarble/3118.dgn	圣地 : 龙之魂	21	21	1	0	1	0	0	0	0	0			0					0		1	0	1			0
+3119	dungeon/Event/PhotoZone/3119.dgn	name_3119	17	17	1	0	1	1	1	0	0	0			0		3			0		1	0	1			0
+95	dungeon/Event/Real_Estate/95.dgn	房地产大战	15	15	1	0	1	1	1	0	0	0			0				1,1,1,1,1	0		1	0	1			0
+3066	dungeon/quest/bossunique_ex.dgn	时空幻境	70	70	0	1	2	2	1	1	1	1		m1:0,2358,-1	1			0		0		0	0	1			0
+144	dungeon/StormOfMetastasis/Abnoba/Redcrystal_Forest.dgn	炽晶森林	1	1	0	1	5	5	1	4	4	4		m1:0,1776,-1;m2:0,1777,-1;m3:0,14873,-1;m4:0,14874,-1	1			0		0		0	0	0			0
+145	dungeon/StormOfMetastasis/Abnoba/Icecrystal_Forest.dgn	冰晶森林	5	5	0	1	5	5	1	4	4	4		m1:0,1780,-1;m2:0,1779,-1;m3:0,14875,-1;m4:0,14876,-1	1			0		0		0	0	0			0
+146	dungeon/StormOfMetastasis/Abnoba/Lightcrystal_Forest.dgn	水晶矿脉	8	8	0	1	7	7	1	6	6	6		m1:0,1781,-1;m2:0,1782,-1;m3:0,1783,-1;m4:0,14877,-1;m5:0,14878,-1;m6:0,14879,-1	1			0		0		0	0	0			0
+147	dungeon/StormOfMetastasis/Abnoba/Darkrex_Darkforest.dgn	被污染的水晶矿脉	11	11	0	1	7	7	1	6	6	6		m1:0,1784,-1;m2:0,1785,-1;m3:0,1786,-1;m4:0,14880,-1;m5:0,14881,-1;m6:0,14882,-1	1			0		0		0	0	0			0
+148	dungeon/StormOfMetastasis/Abnoba/Prison1.dgn	幽冥监狱	13	13	0	1	21	21	4	17	17	17		m4:0,4126,-1;m5:0,4127,-1;m6:0,13032,0;m7:0,13033,0;m8:0,13016,0;m9:0,13017,0;m10:0,13020,0;m11:0,13021,0;m12:0,12749,0;m13:0,12750,0;m14:0,12751,0;m15:0,1787,-1;m16:0,1788,-1;m17:0,1789,-1;m18:0,14883,-1;m19:0,14884,-1;m20:0,14885,-1	1			0		0		0	0	0			0
+149	dungeon/StormOfMetastasis/Abnoba/Prison2.dgn	幽冥监狱下层	15	15	0	1	48	48	1	47	47	47		m1:0,1790,-1;m2:0,1791,-1;m3:0,1792,-1;m4:0,14886,-1;m5:0,14887,-1;m6:0,14888,-1;m7:0,14889,0;m8:0,14890,0;m9:0,14891,0;m10:0,14892,0;m11:0,14893,0;m12:0,14894,0;m13:0,14895,0;m14:0,14896,0;m15:0,14897,0;m16:0,14898,0;m17:0,14899,0;m18:0,14900,0;m19:0,14901,0;m20:0,14902,0;m21:0,14903,0;m22:0,14904,0;m23:0,14905,0;m24:0,14906,0;m25:0,14907,0;m26:0,14908,0;m27:0,14909,0;m28:0,14910,0;m29:0,14911,0;m30:0,14912,0;m31:0,14913,0;m32:0,14914,0;m33:0,14915,0;m34:0,14916,0;m35:0,14917,0;m36:0,14918,0;m37:0,14919,0;m38:0,14920,0;m39:0,14921,0;m40:0,14922,0;m41:0,14923,0;m42:0,14924,0;m43:0,14925,0;m44:0,14926,0;m45:0,14927,0;m46:0,14928,0;m47:0,14929,0	1			0		0		0	0	0			0
+150	dungeon/StormOfMetastasis/DriftCave/spider_kingom.dgn	蜘蛛王国	27	27	0	1	12	12	2	10	10	10		m2:0,1856,-1;m3:0,1857,-1;m4:0,1859,-1;m5:0,1863,-1;m6:0,1864,-1;m7:0,14930,-1;m8:0,14931,-1;m9:0,14932,-1;m10:0,14933,-1;m11:0,14934,-1	1				1,1,1,0,0	0		0	0	0			0
+151	dungeon/StormOfMetastasis/DriftCave/Tomb_of_the_Heroes.dgn	英雄冢	29	29	0	1	17	17	7	10	10	10		m7:0,1866,-1;m8:0,1867,-1;m9:0,1869,-1;m10:0,1871,-1;m11:0,1872,-1;m12:0,14935,-1;m13:0,14936,-1;m14:0,14937,-1;m15:0,14938,-1;m16:0,14939,-1	1				1,1,1,0,0	0		0	0	0			0
+152	dungeon/StormOfMetastasis/DriftCave/Despot_king_altar.dgn	暴君的祭坛	31	31	0	1	14	14	4	10	10	10		m4:0,1875,-1;m5:0,1877,-1;m6:0,1878,-1;m7:0,1881,-1;m8:0,1882,-1;m9:0,14940,-1;m10:0,14941,-1;m11:0,14942,-1;m12:0,14943,-1;m13:0,14944,-1	1				1,1,1,0,0	0		0	0	0			0
+153	dungeon/StormOfMetastasis/DriftCave/Gold_cave.dgn	黄金矿洞	33	33	0	1	14	14	2	12	12	12		m2:0,1885,-1;m3:0,1887,-1;m4:0,1889,-1;m5:0,1890,-1;m6:0,1891,-1;m7:0,1892,-1;m8:0,14945,-1;m9:0,14946,-1;m10:0,14947,-1;m11:0,14948,-1;m12:0,14949,-1;m13:0,14950,-1	1				1,1,1,0,0	0		0	0	0			0
+154	dungeon/StormOfMetastasis/DriftCave/Ancient_times_heart.dgn	远古墓穴深处	35	35	0	1	15	15	1	14	14	14		m1:0,1895,-1;m2:0,1896,-1;m3:0,1899,-1;m4:0,1900,-1;m5:0,1919,-1;m6:0,1920,-1;m7:0,1923,-1;m8:0,14951,-1;m9:0,14952,-1;m10:0,14953,-1;m11:0,14954,-1;m12:0,14955,-1;m13:0,14956,-1;m14:0,14957,-1	1				1,1,1,0,0	0		0	0	0			0
+155	dungeon/StormOfMetastasis/DriftCave/Dragon_seal.dgn	邪龙的封印	54	54	0	1	11	11	1	10	10	10		m1:0,2100,-1;m2:0,2107,-1;m3:0,2113,-1;m4:0,2115,-1;m5:0,2116,-1;m6:0,14958,-1;m7:0,14959,-1;m8:0,14960,-1;m9:0,14961,-1;m10:0,14962,-1	1				1,1,1,0,0	0		0	0	0			0
+156	dungeon/StormOfMetastasis/Meltdown/MushroomGarden.dgn	蘑菇庄园	17	17	0	1	7	7	1	6	6	6		m1:0,1814,-1;m2:0,1815,-1;m3:0,1816,-1;m4:0,14963,-1;m5:0,14964,-1;m6:0,14965,-1	1				1,1,0,0,0	0		0	0	0			0
+157	dungeon/StormOfMetastasis/Meltdown/Salif.dgn	蚁后的巢穴	19	19	0	1	12	12	2	10	10	10		m2:0,1817,0;m3:0,1820,0;m4:0,1821,0;m5:0,1822,0;m6:0,1823,0;m7:0,14966,0;m8:0,14967,0;m9:0,14968,0;m10:0,14969,0;m11:0,14970,0	1				1,1,0,0,0	0		0	0	0			0
+158	dungeon/StormOfMetastasis/Meltdown/DecayArea.dgn	腐烂之地	21	21	0	1	13	13	1	12	12	12		m1:0,1824,-1;m2:0,1825,-1;m3:0,1827,-1;m4:0,1828,-1;m5:0,1829,-1;m6:0,1831,-1;m7:0,14971,-1;m8:0,14972,-1;m9:0,14973,-1;m10:0,14974,-1;m11:0,14975,-1;m12:0,14976,-1	1				1,1,0,0,0	0		0	0	0			0
+159	dungeon/StormOfMetastasis/Meltdown/Old_town.dgn	赫顿玛尔旧街区	23	23	0	1	13	13	1	12	12	12		m1:0,1832,-1;m2:0,1835,-1;m3:0,1836,-1;m4:0,1837,-1;m5:0,1840,-1;m6:0,2608,-1;m7:0,14977,-1;m8:0,14978,-1;m9:0,14979,-1;m10:0,14980,-1;m11:0,14981,-1;m12:0,14982,-1	1				1,1,0,0,0	0		0	0	0			0
+160	dungeon/StormOfMetastasis/Meltdown/Chessboard_despair.dgn	绝望的棋局	25	25	0	1	16	16	2	14	14	14		m2:0,1842,-1;m3:0,1844,-1;m4:0,1845,-1;m5:0,1848,-1;m6:0,1849,-1;m7:0,1850,-1;m8:0,1851,-1;m9:0,14983,-1;m10:0,14984,-1;m11:0,14985,-1;m12:0,14986,-1;m13:0,14987,-1;m14:0,14988,-1;m15:0,14989,-1	1				1,1,0,0,0	0		0	0	0			0
+161	dungeon/StormOfMetastasis/Falls_to_the_sky/durban.dgn	鲨鱼栖息地	37	37	0	1	13	13	1	12	12	12		m1:0,1933,-1;m2:0,1934,-1;m3:0,1936,-1;m4:0,1938,-1;m5:0,1939,-1;m6:0,1940,-1;m7:0,14990,-1;m8:0,14991,-1;m9:0,14992,-1;m10:0,14993,-1;m11:0,14994,-1;m12:0,14995,-1	1				1,1,1,0,0	0		0	0	0			0
+162	dungeon/StormOfMetastasis/Falls_to_the_sky/Humiliation_reef.dgn	人鱼的国度	39	39	0	1	14	14	2	12	12	12		m2:0,1943,-1;m3:0,1944,-1;m4:0,1945,-1;m5:0,1946,-1;m6:0,1947,-1;m7:0,1949,-1;m8:0,14996,-1;m9:0,14997,-1;m10:0,14998,-1;m11:0,14999,-1;m12:0,15000,-1;m13:0,15001,-1	1				1,1,1,0,0	0		0	0	0			0
+163	dungeon/StormOfMetastasis/Behemoth/goddesstemple.dgn	GBL女神殿	41	41	0	1	19	19	1	18	18	18		m1:0,1951,-1;m2:0,1952,-1;m3:0,1953,-1;m4:0,1954,-1;m5:0,1956,-1;m6:0,1957,-1;m7:0,1959,-1;m8:0,1960,-1;m9:0,1961,-1;m10:0,15002,-1;m11:0,15003,-1;m12:0,15004,-1;m13:0,15005,-1;m14:0,15006,-1;m15:0,15007,-1;m16:0,15008,-1;m17:0,15009,-1;m18:0,15010,-1	1				1,1,1,0,0	0		0	0	0			0
+164	dungeon/StormOfMetastasis/Behemoth/Breeding.dgn	树精繁殖地	43	43	0	1	19	19	1	18	18	18		m1:0,1963,-1;m2:0,1964,-1;m3:0,1966,-1;m4:0,1967,-1;m5:0,1968,-1;m6:0,1969,-1;m7:0,1970,-1;m8:0,1972,-1;m9:0,1973,-1;m10:0,15011,-1;m11:0,15012,-1;m12:0,15013,-1;m13:0,15014,-1;m14:0,15015,-1;m15:0,15016,-1;m16:0,15017,-1;m17:0,15018,-1;m18:0,15019,-1	1				1,1,1,0,0	0		0	0	0			0
+165	dungeon/StormOfMetastasis/Behemoth/Roters_nest.dgn	罗特斯的宫殿	44	44	0	1	15	15	1	14	14	14		m1:0,12730,-1;m2:0,12785,-1;m3:0,1975,-1;m4:0,1977,-1;m5:0,1978,-1;m6:0,1980,-1;m7:0,1981,-1;m8:0,15020,-1;m9:0,15021,-1;m10:0,15022,-1;m11:0,15023,-1;m12:0,15024,-1;m13:0,15025,-1;m14:0,15026,-1	1				1,1,1,0,0	0		0	0	0			0
+166	dungeon/StormOfMetastasis/Icewall/SunderLandDark.dgn	冰刺庭院	46	46	0	1	15	15	1	14	14	14		m1:0,2011,-1;m2:0,2012,-1;m3:0,2013,-1;m4:0,2014,-1;m5:0,2015,-1;m6:0,2016,-1;m7:0,2017,-1;m8:0,15027,-1;m9:0,15028,-1;m10:0,15029,-1;m11:0,15030,-1;m12:0,15031,-1;m13:0,15032,-1;m14:0,15033,-1	1				1,1,1,0,0	0		0	0	0			0
+167	dungeon/StormOfMetastasis/Icewall/Nightmare_darksnake.dgn	极光幻境	47	47	0	1	16	16	1	15	15	15		m1:0,2019,-1;m2:0,2020,-1;m3:0,2021,-1;m4:0,2023,-1;m5:0,2024,-1;m6:0,2025,-1;m7:0,2026,-1;m8:0,12616,-1;m9:0,15034,-1;m10:0,15035,-1;m11:0,15036,-1;m12:0,15037,-1;m13:0,15038,-1;m14:0,15039,-1;m15:0,15040,-1	1				1,1,1,0,0	0		0	0	0			0
+168	dungeon/StormOfMetastasis/Icewall/Nightmare_burn.dgn	失落的神殿	48	48	0	1	17	17	1	16	16	16		m1:0,2029,-1;m2:0,2030,-1;m3:0,2031,-1;m4:0,2033,-1;m5:0,2034,-1;m6:0,2036,-1;m7:0,2037,-1;m8:0,2038,-1;m9:0,15041,-1;m10:0,15042,-1;m11:0,15043,-1;m12:0,15044,-1;m13:0,15045,-1;m14:0,15046,-1;m15:0,15047,-1;m16:0,15048,-1	1				1,1,1,0,0	0		0	0	0			0
+169	dungeon/StormOfMetastasis/Icewall/Nightmare_epidemic.dgn	暮色之城	49	49	0	1	15	15	1	14	14	14		m1:0,2044,-1;m2:0,2045,-1;m3:0,2046,-1;m4:0,2048,-1;m5:0,2049,-1;m6:0,2050,-1;m7:0,2051,-1;m8:0,15049,-1;m9:0,15050,-1;m10:0,15051,-1;m11:0,15052,-1;m12:0,15053,-1;m13:0,15054,-1;m14:0,15055,-1	1				1,1,1,0,0	0		0	0	0			0
+170	dungeon/StormOfMetastasis/Icewall/Nightmare_ice.dgn	失落的神殿	50	50	0	1	15	15	1	14	14	14		m1:0,2053,-1;m2:0,2054,-1;m3:0,2055,-1;m4:0,2058,-1;m5:0,2059,-1;m6:0,2060,-1;m7:0,2063,-1;m8:0,15056,-1;m9:0,15057,-1;m10:0,15058,-1;m11:0,15059,-1;m12:0,15060,-1;m13:0,15061,-1;m14:0,15062,-1	1				1,1,1,0,0	0		0	0	0			0
+171	dungeon/StormOfMetastasis/Icewall/Nightmare_nightmare.dgn	噩梦之源	51	51	0	1	15	15	1	14	14	14		m1:0,2065,-1;m2:0,2066,-1;m3:0,2070,-1;m4:0,2071,-1;m5:0,2072,-1;m6:0,2074,-1;m7:0,2075,-1;m8:0,15063,-1;m9:0,15064,-1;m10:0,15065,-1;m11:0,15066,-1;m12:0,15067,-1;m13:0,15068,-1;m14:0,15069,-1	1				1,1,1,0,0	0		0	0	0			0
+172	dungeon/StormOfMetastasis/Icewall/Nightmare_Fallen.dgn	无尽的噩梦	52	52	0	1	20	20	1	19	19	19		m1:0,2078,-1;m2:0,2079,-1;m3:0,2080,-1;m4:0,2081,-1;m5:0,2082,-1;m6:0,2083,-1;m7:0,2084,-1;m8:0,2085,-1;m9:0,2086,-1;m10:0,12736,-1;m11:0,15070,-1;m12:0,15071,-1;m13:0,15072,-1;m14:0,15073,-1;m15:0,15074,-1;m16:0,15075,-1;m17:0,15076,-1;m18:0,15077,-1;m19:0,15078,-1	1				1,1,1,0,0	0		0	0	0			0
+180	dungeon/Impossible/tutorial_Cosmofiend.dgn	虚无之境 (单人)	70	70	0	1	1	1	1	0	0	0			0		0		1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+181	dungeon/Impossible/tutorial_bakalcastle.dgn	巴卡尔之城 (单人)	70	70	0	1	1	1	1	0	0	0			0		0		1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+182	dungeon/Impossible/tutorial_blackearth.dgn	黑色大地 (单人)	70	70	0	1	3	3	1	2	2	2		m1:0,7731,0;m2:0,15079,0	0		0		1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+183	dungeon/Impossible/tutorial_GoblinKingdom.dgn	哥布林王国 (单人)	70	70	0	1	1	1	1	0	0	0			0		0		1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+184	dungeon/Impossible/tutorial_ActiveSkyCastle.dgn	蠕动之城 (单人)	70	70	0	1	1	1	1	0	0	0			0		0		1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+185	dungeon/Impossible/tutorial_RanjerusDogs.dgn	兰蒂卢斯的鹰犬 (单人)	70	70	0	1	1	1	1	0	0	0			0		0		1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+5000	dungeon/PoongjinTrainingRoom\PoongjinTrainingRoom.dgn	修炼道场	1	1	0	1	1	0	0	0	0	0			0			0		0		0	0	0			0
+4000	dungeon/Fun_test\Fun_test2.dgn	遗忘之地	25	25	1	0	1	1	1	0	0	0			0	lost land	0			0		1	0	1			0
+3600	dungeon/Towers/SAO/SAO_TowerOfDespair001.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3601	dungeon/Towers/SAO/SAO_TowerOfDespair002.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3602	dungeon/Towers/SAO/SAO_TowerOfDespair003.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3603	dungeon/Towers/SAO/SAO_TowerOfDespair004.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3604	dungeon/Towers/SAO/SAO_TowerOfDespair005.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3605	dungeon/Towers/SAO/SAO_TowerOfDespair006.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3606	dungeon/Towers/SAO/SAO_TowerOfDespair007.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3607	dungeon/Towers/SAO/SAO_TowerOfDespair008.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3608	dungeon/Towers/SAO/SAO_TowerOfDespair009.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3609	dungeon/Towers/SAO/SAO_TowerOfDespair010.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3610	dungeon/Towers/SAO/SAO_TowerOfDespair011.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3611	dungeon/Towers/SAO/SAO_TowerOfDespair012.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3612	dungeon/Towers/SAO/SAO_TowerOfDespair013.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3613	dungeon/Towers/SAO/SAO_TowerOfDespair014.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3614	dungeon/Towers/SAO/SAO_TowerOfDespair015.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3615	dungeon/Towers/SAO/SAO_TowerOfDespair016.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3616	dungeon/Towers/SAO/SAO_TowerOfDespair017.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3617	dungeon/Towers/SAO/SAO_TowerOfDespair018.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3618	dungeon/Towers/SAO/SAO_TowerOfDespair019.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3619	dungeon/Towers/SAO/SAO_TowerOfDespair020.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3620	dungeon/Towers/SAO/SAO_TowerOfDespair021.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3621	dungeon/Towers/SAO/SAO_TowerOfDespair022.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3622	dungeon/Towers/SAO/SAO_TowerOfDespair023.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3623	dungeon/Towers/SAO/SAO_TowerOfDespair024.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3624	dungeon/Towers/SAO/SAO_TowerOfDespair025.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3625	dungeon/Towers/SAO/SAO_TowerOfDespair026.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3626	dungeon/Towers/SAO/SAO_TowerOfDespair027.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3627	dungeon/Towers/SAO/SAO_TowerOfDespair028.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3628	dungeon/Towers/SAO/SAO_TowerOfDespair029.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3629	dungeon/Towers/SAO/SAO_TowerOfDespair030.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3630	dungeon/Towers/SAO/SAO_TowerOfDespair031.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3631	dungeon/Towers/SAO/SAO_TowerOfDespair032.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3632	dungeon/Towers/SAO/SAO_TowerOfDespair033.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3633	dungeon/Towers/SAO/SAO_TowerOfDespair034.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3634	dungeon/Towers/SAO/SAO_TowerOfDespair035.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3635	dungeon/Towers/SAO/SAO_TowerOfDespair036.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3636	dungeon/Towers/SAO/SAO_TowerOfDespair037.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3637	dungeon/Towers/SAO/SAO_TowerOfDespair038.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3638	dungeon/Towers/SAO/SAO_TowerOfDespair039.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3639	dungeon/Towers/SAO/SAO_TowerOfDespair040.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3640	dungeon/Towers/SAO/SAO_TowerOfDespair041.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3641	dungeon/Towers/SAO/SAO_TowerOfDespair042.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3642	dungeon/Towers/SAO/SAO_TowerOfDespair043.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3643	dungeon/Towers/SAO/SAO_TowerOfDespair044.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3644	dungeon/Towers/SAO/SAO_TowerOfDespair045.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3645	dungeon/Towers/SAO/SAO_TowerOfDespair046.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3646	dungeon/Towers/SAO/SAO_TowerOfDespair047.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3647	dungeon/Towers/SAO/SAO_TowerOfDespair048.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3648	dungeon/Towers/SAO/SAO_TowerOfDespair049.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3649	dungeon/Towers/SAO/SAO_TowerOfDespair050.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3650	dungeon/Towers/SAO/SAO_TowerOfDespair051.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3651	dungeon/Towers/SAO/SAO_TowerOfDespair052.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3652	dungeon/Towers/SAO/SAO_TowerOfDespair053.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3653	dungeon/Towers/SAO/SAO_TowerOfDespair054.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3654	dungeon/Towers/SAO/SAO_TowerOfDespair055.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3655	dungeon/Towers/SAO/SAO_TowerOfDespair056.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3656	dungeon/Towers/SAO/SAO_TowerOfDespair057.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3657	dungeon/Towers/SAO/SAO_TowerOfDespair058.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3658	dungeon/Towers/SAO/SAO_TowerOfDespair059.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3659	dungeon/Towers/SAO/SAO_TowerOfDespair060.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3660	dungeon/Towers/SAO/SAO_TowerOfDespair061.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3661	dungeon/Towers/SAO/SAO_TowerOfDespair062.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3662	dungeon/Towers/SAO/SAO_TowerOfDespair063.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3663	dungeon/Towers/SAO/SAO_TowerOfDespair064.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3664	dungeon/Towers/SAO/SAO_TowerOfDespair065.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3665	dungeon/Towers/SAO/SAO_TowerOfDespair066.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3666	dungeon/Towers/SAO/SAO_TowerOfDespair067.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3667	dungeon/Towers/SAO/SAO_TowerOfDespair068.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3668	dungeon/Towers/SAO/SAO_TowerOfDespair069.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3669	dungeon/Towers/SAO/SAO_TowerOfDespair070.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3670	dungeon/Towers/SAO/SAO_TowerOfDespair071.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3671	dungeon/Towers/SAO/SAO_TowerOfDespair072.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3672	dungeon/Towers/SAO/SAO_TowerOfDespair073.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3673	dungeon/Towers/SAO/SAO_TowerOfDespair074.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3674	dungeon/Towers/SAO/SAO_TowerOfDespair075.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3675	dungeon/Towers/SAO/SAO_TowerOfDespair076.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3676	dungeon/Towers/SAO/SAO_TowerOfDespair077.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3677	dungeon/Towers/SAO/SAO_TowerOfDespair078.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3678	dungeon/Towers/SAO/SAO_TowerOfDespair079.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3679	dungeon/Towers/SAO/SAO_TowerOfDespair080.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3680	dungeon/Towers/SAO/SAO_TowerOfDespair081.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3681	dungeon/Towers/SAO/SAO_TowerOfDespair082.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3682	dungeon/Towers/SAO/SAO_TowerOfDespair083.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3683	dungeon/Towers/SAO/SAO_TowerOfDespair084.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3684	dungeon/Towers/SAO/SAO_TowerOfDespair085.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3685	dungeon/Towers/SAO/SAO_TowerOfDespair086.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3686	dungeon/Towers/SAO/SAO_TowerOfDespair087.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3687	dungeon/Towers/SAO/SAO_TowerOfDespair088.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3688	dungeon/Towers/SAO/SAO_TowerOfDespair089.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3689	dungeon/Towers/SAO/SAO_TowerOfDespair090.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3690	dungeon/Towers/SAO/SAO_TowerOfDespair091.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3691	dungeon/Towers/SAO/SAO_TowerOfDespair092.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3692	dungeon/Towers/SAO/SAO_TowerOfDespair093.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3693	dungeon/Towers/SAO/SAO_TowerOfDespair094.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3694	dungeon/Towers/SAO/SAO_TowerOfDespair095.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3695	dungeon/Towers/SAO/SAO_TowerOfDespair096.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3696	dungeon/Towers/SAO/SAO_TowerOfDespair097.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3697	dungeon/Towers/SAO/SAO_TowerOfDespair098.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3698	dungeon/Towers/SAO/SAO_TowerOfDespair099.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3699	dungeon/Towers/SAO/SAO_TowerOfDespair100.dgn	艾恩葛朗特	39	39	1	0	1	0	0	0	0	0			0					0		0	0	1	10004322,1,1		0
+3902	dungeon/Act3/sao_enter.dgn	世界树:入口	35	35	0	1	1	1	1	0	0	0			0			0		0		0	0	1	10004351,1,1		0
+3901	dungeon/Act3/sao_system.dgn	世界树:系统区域	35	35	0	1	1	1	1	0	0	0			0			0		0		0	0	1	10004352,1,1	[hell dungeon]	0
+20000	dungeon/VillageAttack/0_Underfoot_Event_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20001	dungeon/VillageAttack/0_Underfoot_Event_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20002	dungeon/VillageAttack/0_Underfoot_Event_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20003	dungeon/VillageAttack/0_Underfoot_Event_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20004	dungeon/VillageAttack/0_Underfoot_Event_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20005	dungeon/VillageAttack/0_Underfoot_Event_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20006	dungeon/VillageAttack/0_Underfoot_Event_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20007	dungeon/VillageAttack/0_Underfoot_Event_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20008	dungeon/VillageAttack/0_Underfoot_Event_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20009	dungeon/VillageAttack/0_Underfoot_Event_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20010	dungeon/VillageAttack/0_Underfoot_Event_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20011	dungeon/VillageAttack/0_Underfoot_Event_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20012	dungeon/VillageAttack/1_Underfoot_Event_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20013	dungeon/VillageAttack/1_Underfoot_Event_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20014	dungeon/VillageAttack/1_Underfoot_Event_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20015	dungeon/VillageAttack/1_Underfoot_Event_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20016	dungeon/VillageAttack/1_Underfoot_Event_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20017	dungeon/VillageAttack/1_Underfoot_Event_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20018	dungeon/VillageAttack/1_Underfoot_Event_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20019	dungeon/VillageAttack/1_Underfoot_Event_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20020	dungeon/VillageAttack/1_Underfoot_Event_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20021	dungeon/VillageAttack/1_Underfoot_Event_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20022	dungeon/VillageAttack/1_Underfoot_Event_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20023	dungeon/VillageAttack/1_Underfoot_Event_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20024	dungeon/VillageAttack/2_Underfoot_Event_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20025	dungeon/VillageAttack/2_Underfoot_Event_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20026	dungeon/VillageAttack/2_Underfoot_Event_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20027	dungeon/VillageAttack/2_Underfoot_Event_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20028	dungeon/VillageAttack/2_Underfoot_Event_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20029	dungeon/VillageAttack/2_Underfoot_Event_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20030	dungeon/VillageAttack/2_Underfoot_Event_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20031	dungeon/VillageAttack/2_Underfoot_Event_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20032	dungeon/VillageAttack/2_Underfoot_Event_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20033	dungeon/VillageAttack/2_Underfoot_Event_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20034	dungeon/VillageAttack/2_Underfoot_Event_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20035	dungeon/VillageAttack/2_Underfoot_Event_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20036	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20037	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20038	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20039	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20040	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20041	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20042	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20043	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20044	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20045	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20046	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20047	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20048	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20049	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20050	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20051	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20052	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20053	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20054	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20055	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20056	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20057	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20058	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20059	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20060	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20061	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20062	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20063	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20064	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20065	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20066	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20067	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20068	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20069	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20070	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20071	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20072	dungeon/VillageAttack/0_Underfoot_GroupBattle_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20073	dungeon/VillageAttack/0_Underfoot_GroupBattle_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20074	dungeon/VillageAttack/0_Underfoot_GroupBattle_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20075	dungeon/VillageAttack/0_Underfoot_GroupBattle_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20076	dungeon/VillageAttack/0_Underfoot_GroupBattle_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20077	dungeon/VillageAttack/0_Underfoot_GroupBattle_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20078	dungeon/VillageAttack/0_Underfoot_GroupBattle_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20079	dungeon/VillageAttack/0_Underfoot_GroupBattle_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20080	dungeon/VillageAttack/0_Underfoot_GroupBattle_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20081	dungeon/VillageAttack/0_Underfoot_GroupBattle_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20082	dungeon/VillageAttack/0_Underfoot_GroupBattle_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20083	dungeon/VillageAttack/0_Underfoot_GroupBattle_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20084	dungeon/VillageAttack/1_Underfoot_GroupBattle_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20085	dungeon/VillageAttack/1_Underfoot_GroupBattle_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20086	dungeon/VillageAttack/1_Underfoot_GroupBattle_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20087	dungeon/VillageAttack/1_Underfoot_GroupBattle_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20088	dungeon/VillageAttack/1_Underfoot_GroupBattle_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20089	dungeon/VillageAttack/1_Underfoot_GroupBattle_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20090	dungeon/VillageAttack/1_Underfoot_GroupBattle_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20091	dungeon/VillageAttack/1_Underfoot_GroupBattle_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20092	dungeon/VillageAttack/1_Underfoot_GroupBattle_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20093	dungeon/VillageAttack/1_Underfoot_GroupBattle_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20094	dungeon/VillageAttack/1_Underfoot_GroupBattle_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20095	dungeon/VillageAttack/1_Underfoot_GroupBattle_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20096	dungeon/VillageAttack/2_Underfoot_GroupBattle_Easy.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20097	dungeon/VillageAttack/2_Underfoot_GroupBattle_Normal.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20098	dungeon/VillageAttack/2_Underfoot_GroupBattle_Hard.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20099	dungeon/VillageAttack/2_Underfoot_GroupBattle_Named_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20100	dungeon/VillageAttack/2_Underfoot_GroupBattle_Named_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20101	dungeon/VillageAttack/2_Underfoot_GroupBattle_Named_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20102	dungeon/VillageAttack/2_Underfoot_GroupBattle_Named_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20103	dungeon/VillageAttack/2_Underfoot_GroupBattle_Named_5.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20104	dungeon/VillageAttack/2_Underfoot_GroupBattle_Boss_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20105	dungeon/VillageAttack/2_Underfoot_GroupBattle_Boss_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20106	dungeon/VillageAttack/2_Underfoot_GroupBattle_Boss_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20107	dungeon/VillageAttack/2_Underfoot_GroupBattle_Boss_4.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20108	dungeon/VillageAttack/Underfoot_Event_GB_Event.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20109	dungeon/VillageAttack/0_Underfoot_Event_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20110	dungeon/VillageAttack/0_Underfoot_Event_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20111	dungeon/VillageAttack/0_Underfoot_Event_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20112	dungeon/VillageAttack/0_Underfoot_Event_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20113	dungeon/VillageAttack/0_Underfoot_Event_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20114	dungeon/VillageAttack/0_Underfoot_Event_Attack_Hidden_B.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20115	dungeon/VillageAttack/0_Underfoot_Event_Attack_Hidden_D_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20116	dungeon/VillageAttack/1_Underfoot_Event_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20117	dungeon/VillageAttack/1_Underfoot_Event_Attack_Hidden_B.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20118	dungeon/VillageAttack/1_Underfoot_Event_Attack_Hidden_D_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20119	dungeon/VillageAttack/1_Underfoot_Event_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20120	dungeon/VillageAttack/2_Underfoot_Event_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20121	dungeon/VillageAttack/2_Underfoot_Event_Attack_Hidden_B.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20122	dungeon/VillageAttack/2_Underfoot_Event_Attack_Hidden_D_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20123	dungeon/VillageAttack/2_Underfoot_Event_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20124	dungeon/VillageAttack/Underfoot_DT_Or_Icewall_GB_Event.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20125	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20126	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20127	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20128	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20129	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Attack_Hidden_A.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20130	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Attack_Hidden_D.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20131	dungeon/VillageAttack/0_Underfoot_DT_Or_Icewall_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20132	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20133	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Attack_Hidden_A.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20134	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Attack_Hidden_D.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20135	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20136	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20137	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Attack_Hidden_A.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20138	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Attack_Hidden_D.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20139	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20140	dungeon/VillageAttack/Underfoot_GroupBattle_GB_Event.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20141	dungeon/VillageAttack/0_Underfoot_GroupBattle_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20142	dungeon/VillageAttack/0_Underfoot_GroupBattle_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20143	dungeon/VillageAttack/0_Underfoot_GroupBattle_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20144	dungeon/VillageAttack/0_Underfoot_GroupBattle_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20145	dungeon/VillageAttack/0_Underfoot_GroupBattle_Attack_Hidden_C.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20146	dungeon/VillageAttack/0_Underfoot_GroupBattle_Attack_Hidden_D_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20147	dungeon/VillageAttack/0_Underfoot_GroupBattle_Attack_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20148	dungeon/VillageAttack/1_Underfoot_GroupBattle_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20149	dungeon/VillageAttack/1_Underfoot_GroupBattle_Attack_Hidden_C.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20150	dungeon/VillageAttack/1_Underfoot_GroupBattle_Attack_Hidden_D_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20151	dungeon/VillageAttack/1_Underfoot_GroupBattle_Attack_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20152	dungeon/VillageAttack/2_Underfoot_GroupBattle_Easy_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20153	dungeon/VillageAttack/2_Underfoot_GroupBattle_Attack_Hidden_C.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20154	dungeon/VillageAttack/2_Underfoot_GroupBattle_Attack_Hidden_D_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20155	dungeon/VillageAttack/2_Underfoot_GroupBattle_Attack_Hidden.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20156	dungeon/VillageAttack/1_Underfoot_Event_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20157	dungeon/VillageAttack/1_Underfoot_Event_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20158	dungeon/VillageAttack/1_Underfoot_Event_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20159	dungeon/VillageAttack/2_Underfoot_Event_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20160	dungeon/VillageAttack/2_Underfoot_Event_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20161	dungeon/VillageAttack/2_Underfoot_Event_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20162	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20163	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20164	dungeon/VillageAttack/1_Underfoot_DT_Or_Icewall_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20165	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20166	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20167	dungeon/VillageAttack/2_Underfoot_DT_Or_Icewall_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20168	dungeon/VillageAttack/1_Underfoot_GroupBattle_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20169	dungeon/VillageAttack/1_Underfoot_GroupBattle_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20170	dungeon/VillageAttack/1_Underfoot_GroupBattle_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20171	dungeon/VillageAttack/2_Underfoot_GroupBattle_Attack_1.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20172	dungeon/VillageAttack/2_Underfoot_GroupBattle_Attack_2.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20173	dungeon/VillageAttack/2_Underfoot_GroupBattle_Attack_3.dgn	西海岸滨海大道	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20174	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Normal_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20175	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Normal_2.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20176	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Normal_3.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20177	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Normal_4.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20178	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Named_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20179	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Boss_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20180	dungeon/VillageAttack/3_Underfoot_DT_Or_Icewall_Attack_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20181	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Normal_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20182	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Normal_2.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20183	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Normal_3.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20184	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Normal_4.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20185	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Normal_5.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20186	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Named_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20187	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Named_2.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20188	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Boss_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20189	dungeon/VillageAttack/4_Underfoot_DT_Or_Icewall_Attack_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20190	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Normal_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20191	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Normal_2.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20192	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Normal_3.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20193	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Normal_4.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20194	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Named_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20195	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Named_2.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20196	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Named_3.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20197	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Boss_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20198	dungeon/VillageAttack/5_Underfoot_DT_Or_Icewall_Attack_1.dgn	工商街	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20199	dungeon/VillageAttack/3_Underfoot_Event_Normal_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20200	dungeon/VillageAttack/3_Underfoot_Event_Normal_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20201	dungeon/VillageAttack/3_Underfoot_Event_Normal_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20202	dungeon/VillageAttack/3_Underfoot_Event_Normal_4.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20203	dungeon/VillageAttack/3_Underfoot_Event_Normal_5.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20204	dungeon/VillageAttack/3_Underfoot_Event_Named_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20205	dungeon/VillageAttack/3_Underfoot_Event_Named_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20206	dungeon/VillageAttack/3_Underfoot_Event_Named_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20207	dungeon/VillageAttack/3_Underfoot_Event_Named_4.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20208	dungeon/VillageAttack/3_Underfoot_Event_Boss_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20209	dungeon/VillageAttack/3_Underfoot_Event_Attack_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20210	dungeon/VillageAttack/3_Underfoot_Event_Attack_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20263	dungeon/VillageAttack/3_Underfoot_Event_Attack_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20211	dungeon/VillageAttack/4_Underfoot_Event_Normal_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20212	dungeon/VillageAttack/4_Underfoot_Event_Normal_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20213	dungeon/VillageAttack/4_Underfoot_Event_Normal_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20214	dungeon/VillageAttack/4_Underfoot_Event_Normal_4.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20215	dungeon/VillageAttack/4_Underfoot_Event_Normal_5.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20216	dungeon/VillageAttack/4_Underfoot_Event_Named_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20217	dungeon/VillageAttack/4_Underfoot_Event_Named_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20218	dungeon/VillageAttack/4_Underfoot_Event_Named_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20219	dungeon/VillageAttack/4_Underfoot_Event_Named_4.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20220	dungeon/VillageAttack/4_Underfoot_Event_Named_5.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20221	dungeon/VillageAttack/4_Underfoot_Event_Boss_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20222	dungeon/VillageAttack/5_Underfoot_Event_Normal_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20223	dungeon/VillageAttack/5_Underfoot_Event_Normal_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20224	dungeon/VillageAttack/5_Underfoot_Event_Normal_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20225	dungeon/VillageAttack/5_Underfoot_Event_Normal_4.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20226	dungeon/VillageAttack/5_Underfoot_Event_Named_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20227	dungeon/VillageAttack/5_Underfoot_Event_Named_2.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20228	dungeon/VillageAttack/5_Underfoot_Event_Named_3.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20229	dungeon/VillageAttack/5_Underfoot_Event_Named_4.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20230	dungeon/VillageAttack/5_Underfoot_Event_Named_5.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20231	dungeon/VillageAttack/5_Underfoot_Event_Boss_1.dgn	暗黑城广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20232	dungeon/VillageAttack/3_Underfoot_GroupBattle_Normal_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20233	dungeon/VillageAttack/3_Underfoot_GroupBattle_Normal_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20234	dungeon/VillageAttack/3_Underfoot_GroupBattle_Normal_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20235	dungeon/VillageAttack/3_Underfoot_GroupBattle_Normal_4.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20236	dungeon/VillageAttack/3_Underfoot_GroupBattle_Named_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20237	dungeon/VillageAttack/3_Underfoot_GroupBattle_Named_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20238	dungeon/VillageAttack/3_Underfoot_GroupBattle_Named_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20239	dungeon/VillageAttack/3_Underfoot_GroupBattle_Boss_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20240	dungeon/VillageAttack/3_Underfoot_GroupBattle_Attack_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20264	dungeon/VillageAttack/3_Underfoot_GroupBattle_Attack_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20265	dungeon/VillageAttack/3_Underfoot_GroupBattle_Attack_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20241	dungeon/VillageAttack/4_Underfoot_GroupBattle_Normal_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20242	dungeon/VillageAttack/4_Underfoot_GroupBattle_Normal_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20243	dungeon/VillageAttack/4_Underfoot_GroupBattle_Normal_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20244	dungeon/VillageAttack/4_Underfoot_GroupBattle_Normal_4.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20245	dungeon/VillageAttack/4_Underfoot_GroupBattle_Named_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20246	dungeon/VillageAttack/4_Underfoot_GroupBattle_Named_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20247	dungeon/VillageAttack/4_Underfoot_GroupBattle_Named_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20248	dungeon/VillageAttack/4_Underfoot_GroupBattle_Boss_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20249	dungeon/VillageAttack/4_Underfoot_GroupBattle_Boss_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20250	dungeon/VillageAttack/4_Underfoot_GroupBattle_Boss_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20251	dungeon/VillageAttack/5_Underfoot_GroupBattle_Normal_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20252	dungeon/VillageAttack/5_Underfoot_GroupBattle_Normal_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20253	dungeon/VillageAttack/5_Underfoot_GroupBattle_Normal_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20254	dungeon/VillageAttack/5_Underfoot_GroupBattle_Normal_4.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20255	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20256	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_2.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20257	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_3.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20258	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_4.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20259	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_5.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20260	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_6.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20261	dungeon/VillageAttack/5_Underfoot_GroupBattle_Named_7.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+20262	dungeon/VillageAttack/5_Underfoot_GroupBattle_Boss_1.dgn	议政广场	1	1	0	1	1	0	0	0	0	0			0	village attack	1			0		0	0	0			0
+3200	dungeon/Event/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden.dgn	纳特拉的复仇	84	84	0	1	1	1	1	0	0	0			0		1			0		0	1	1			0
+3201	dungeon/Event/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins.dgn	双子巨人的背叛	84	84	0	1	1	1	1	0	0	0			0		1			0		0	1	1			0
+3202	dungeon/Event/Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad.dgn	圣地 : 龙之魂	84	84	0	1	1	1	1	0	0	0			0		1			0		0	1	1			0
+210	dungeon/Anton/Phase1/Close_Blacksmoke.dgn	黑雾之源	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+211	dungeon/Anton/Phase1/Close_Blacksmoke2.dgn	黑雾之源	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+212	dungeon/Anton/Phase1/Strongleg_High.dgn	震颤的大地 A战区	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+213	dungeon/Anton/Phase1/Strongleg_Lower.dgn	擎天之柱 A战区	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+214	dungeon/Anton/Phase1/Strongleg_High2.dgn	震颤的大地 B战区	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+215	dungeon/Anton/Phase1/Strongleg_Lower2.dgn	擎天之柱 B战区	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+216	dungeon/Anton/Phase1/Fleet_Fire.dgn	舰炮防御战	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+218	dungeon/Anton/Phase2/EnergyCut.dgn	能量阻截战	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+219	dungeon/Anton/Phase2/BlackVolcano.dgn	黑色火山	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+220	dungeon/Anton/Phase2/AntonHeart.dgn	安徒恩的心脏	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+221	dungeon/Anton/Phase2/Hatchery1.dgn	第一孵化中心	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+222	dungeon/Anton/Phase2/Hatchery2.dgn	第二孵化中心	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+223	dungeon/Anton/Phase2/Hatchery3.dgn	第三孵化中心	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+224	dungeon/Anton/Phase2/Hatchery4.dgn	第四孵化中心	85	85	1	0	1	1	1	0	0	0			0			2		0		1	0	1		[raid dungeon]	0
+225	dungeon/Anton_Normal/Phase1/Close_Blacksmoke.dgn	黑雾之源	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1			0
+226	dungeon/Anton_Normal/Phase1/Strongleg_High.dgn	震颤的大地	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1			0
+227	dungeon/Anton_Normal/Phase1/Fleet_Fire.dgn	舰炮防御战	85	85	0	1	1	1	1	0	0	0			0			2		0		0	0	1			0
+228	dungeon/Anton_Normal/Phase1/Strongleg_Lower.dgn	擎天之柱	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1			0
+229	dungeon/Anton_Normal/Phase2/EnergyCut.dgn	能量阻截战	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1			0
+231	dungeon/Anton_Normal/Phase2/BlackVolcano.dgn	黑色火山	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1			0
+233	dungeon/Anton_Normal/Phase2/AntonHeart.dgn	安徒恩的心脏	85	85	0	1	1	1	1	0	0	0			0			2		0		0	0	1			0
+234	dungeon/Anton_Quest/Phase1/Close_Blacksmoke.dgn	黑雾之源	85	85	0	1	1	1	1	0	0	0			0			0		0		0	1	0			0
+235	dungeon/Anton_Quest/Phase1/Strongleg_High.dgn	破坏关节	85	85	0	1	1	1	1	0	0	0			0			0		0		0	1	0			0
+236	dungeon/Anton_Quest/Phase1/Strongleg_Lower.dgn	擎天之柱上部	85	85	0	1	1	1	1	0	0	0			0			0		0		0	1	0			0
+237	dungeon/Anton_Quest/Phase2/EnergyCut.dgn	能量阻截战	85	85	0	1	1	1	1	0	0	0			0			0		0		0	1	0			0
+238	dungeon/Anton_Quest/Phase2/BlackVolcano.dgn	黑色火山内部	85	85	0	1	1	1	1	0	0	0			0			0		0		0	1	0			0
+243	dungeon/Anton_Awakening/Phase1/Close_Blacksmoke.dgn	暴走 : 黑雾之源	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1	3341,5,1		0
+244	dungeon/Anton_Awakening/Phase1/Strongleg_High.dgn	暴走 : 震颤的大地	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1	3341,5,1		0
+245	dungeon/Anton_Awakening/Phase1/Strongleg_Lower.dgn	暴走 : 擎天之柱	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1	3341,5,1		0
+246	dungeon/Anton_Awakening/Phase2/EnergyCut.dgn	暴走 : 能量阻截战	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1	3341,5,1		0
+247	dungeon/Anton_Awakening/Phase2/BlackVolcano.dgn	暴走 : 黑色火山	85	85	0	1	1	1	1	0	0	0			0			2		0		0	1	1	3341,5,1		0
+300	dungeon/timegate/crack_conflagration.dgn	格兰之火	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+301	dungeon/timegate/crack_epidemic.dgn	瘟疫之源	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+302	dungeon/timegate/crack_formacartel.dgn	卡勒特之初	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+303	dungeon/timegate/crack_Black_church.dgn	暗黑圣战	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+304	dungeon/timegate/crack_TopSecretArea.dgn	绝密区域	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+305	dungeon/timegate/crack_OldScreamingCave.dgn	昔日悲鸣	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+306	dungeon/timegate/crack_beginning.dgn	凛冬	70	70	1	0	1	1	1	0	0	0			0					1		1	0	0			0
+190	dungeon/CastleoftheDead\Wahchtower\Watchtower.dgn	倒悬的瞭望台	85	85	0	1	9	9	1	8	8	8		m1:0,3005,-1;m2:0,3007,-1;m3:0,3008,-1;m4:0,3009,-1;m5:0,15080,-1;m6:0,15081,-1;m7:0,15082,-1;m8:0,15083,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+191	dungeon/CastleoftheDead\LukeRinje\LukeRinje.dgn	卢克的聚光镜	85	85	0	1	7	7	1	6	6	6		m1:0,3010,-1;m2:0,3011,-1;m3:0,3012,-1;m4:0,15084,-1;m5:0,15085,-1;m6:0,15086,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+192	dungeon/CastleoftheDead\MetalsBrakium\MetalsBrakium.dgn	钢铁之臂	85	85	0	1	7	7	1	6	6	6		m1:0,3014,-1;m2:0,3017,-1;m3:0,3018,-1;m4:0,15087,-1;m5:0,15088,-1;m6:0,15089,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+193	dungeon/CastleoftheDead\BrazierofSalamander\BrazierofSalamander.dgn	能源熔炉	85	85	0	1	9	9	1	8	8	8		m1:0,3020,-1;m2:0,3022,-1;m3:0,3023,-1;m4:0,3024,-1;m5:0,15090,-1;m6:0,15091,-1;m7:0,15092,-1;m8:0,15093,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+194	dungeon/CastleoftheDead\BanquetHallofLight\BanquetHallofLight.dgn	光之舞会	85	85	0	1	11	11	1	10	10	10		m1:0,3026,-1;m2:0,3036,-1;m3:0,3038,-1;m4:0,3039,-1;m5:0,3040,-1;m6:0,15094,-1;m7:0,15095,-1;m8:0,15096,-1;m9:0,15097,-1;m10:0,15098,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+195	dungeon/CastleoftheDead\Kings_Library\Kings_Library.dgn	王的书库	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	1	1		[special dungeon]	0
+307	dungeon/quest/moonlight.dgn	月光修炼场	50	50	0	1	1	1	1	0	0	0			0			0		0		0	0	0			0
+239	dungeon/Ancient/Q_Noirpera.dgn	诺伊佩拉	36	36	0	1	3	3	0	3	3	3		m0:0,1925,-1;m1:0,1927,-1;m2:0,15099,-1	1		0	0		0		0	0	1			0
+240	dungeon/Ancient/Q_Vilmark.dgn	比尔马克帝国试验场	53	53	0	1	5	5	0	5	5	5		m0:0,2091,-1;m1:0,2092,-1;m2:0,2097,-1;m3:0,2098,-1;m4:0,15100,-1	1		0	0		0		0	0	1		[hell dungeon]	0
+241	dungeon/Ancient/Q_cartelcommand.dgn	卡勒特指挥部	68	68	0	1	5	5	0	5	5	5		m0:0,2296,-1;m1:0,2297,-1;m2:0,2300,-1;m3:0,2301,-1;m4:0,2302,-1	1		0	0		0		0	0	0			0
+242	dungeon/Ancient/Q_leshphon.dgn	痛苦之村列瑟芬	69	69	0	1	4	4	0	4	4	4		m0:0,2309,-1;m1:0,2310,-1;m2:0,2311,-1;m3:0,2312,-1	1		0	0		0		0	0	1			0
+70	dungeon/timegate/conflagration.dgn	格兰之火	70	70	0	1	11	11	1	10	10	10		m1:0,2364,-1;m2:0,2365,-1;m3:0,2366,-1;m4:0,2367,-1;m5:0,2368,-1;m6:0,15106,-1;m7:0,15107,-1;m8:0,15108,-1;m9:0,15109,-1;m10:0,15110,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+76	dungeon/timegate/beginning.dgn	凛冬	76	76	0	1	17	17	1	16	16	16		m1:0,2460,-1;m2:0,2461,-1;m3:0,2462,-1;m4:0,2463,-1;m5:0,2464,-1;m6:0,2465,-1;m7:0,2466,-1;m8:0,2467,-1;m9:0,15111,-1;m10:0,15112,-1;m11:0,15113,-1;m12:0,15114,-1;m13:0,15115,-1;m14:0,15116,-1;m15:0,15117,-1;m16:0,15118,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+77	dungeon/timegate/consciousness.dgn	谜之觉悟	77	77	0	1	11	11	1	10	10	10		m1:0,2477,-1;m2:0,2482,-1;m3:0,2484,-1;m4:0,2485,-1;m5:0,2486,-1;m6:0,15119,-1;m7:0,15120,-1;m8:0,15121,-1;m9:0,15122,-1;m10:0,15123,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+73	dungeon/timegate/Black_church_r.dgn	暗黑圣战	73	73	0	1	21	21	1	20	20	20		m1:0,2408,-1;m2:0,2409,-1;m3:0,2411,-1;m4:0,2412,-1;m5:0,2413,-1;m6:0,2414,-1;m7:0,2415,-1;m8:0,2416,-1;m9:0,2417,-1;m10:0,2420,-1;m11:0,15124,-1;m12:0,15125,-1;m13:0,15126,-1;m14:0,15127,-1;m15:0,15128,-1;m16:0,15129,-1;m17:0,15130,-1;m18:0,15131,-1;m19:0,15132,-1;m20:0,15133,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+71	dungeon/timegate/epidemic_r.dgn	瘟疫之源	71	71	0	1	17	17	1	16	16	16		m1:0,2371,-1;m2:0,2373,-1;m3:0,2375,-1;m4:0,2376,-1;m5:0,2377,-1;m6:0,2378,-1;m7:0,2383,-1;m8:0,2384,-1;m9:0,15134,-1;m10:0,15135,-1;m11:0,15136,-1;m12:0,15137,-1;m13:0,15138,-1;m14:0,15139,-1;m15:0,15140,-1;m16:0,15141,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+72	dungeon/timegate/formacartel_r.dgn	卡勒特之初	72	72	0	1	17	17	1	16	16	16		m1:0,2386,-1;m2:0,2387,-1;m3:0,2388,-1;m4:0,2389,-1;m5:0,2393,-1;m6:0,2396,-1;m7:0,2397,-1;m8:0,2399,-1;m9:0,15142,-1;m10:0,15143,-1;m11:0,15144,-1;m12:0,15145,-1;m13:0,15146,-1;m14:0,15147,-1;m15:0,15148,-1;m16:0,15149,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+75	dungeon/timegate/OldScreamingCave_r.dgn	昔日悲鸣	75	75	0	1	25	25	1	24	24	24		m1:0,2438,-1;m2:0,2439,-1;m3:0,2440,-1;m4:0,2442,-1;m5:0,2444,-1;m6:0,2446,-1;m7:0,2447,-1;m8:0,2449,-1;m9:0,2450,-1;m10:0,2451,-1;m11:0,2452,-1;m12:0,2453,-1;m13:0,15150,-1;m14:0,15151,-1;m15:0,15152,-1;m16:0,15153,-1;m17:0,15154,-1;m18:0,15155,-1;m19:0,15156,-1;m20:0,15157,-1;m21:0,15158,-1;m22:0,15159,-1;m23:0,15160,-1;m24:0,15161,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+74	dungeon/timegate/TopSecretArea_r.dgn	绝密区域	74	74	0	1	19	19	1	18	18	18		m1:0,2424,-1;m2:0,2425,-1;m3:0,2426,-1;m4:0,2428,-1;m5:0,2432,-1;m6:0,2433,-1;m7:0,2434,-1;m8:0,2436,-1;m9:0,2437,-1;m10:0,15162,-1;m11:0,15163,-1;m12:0,15164,-1;m13:0,15165,-1;m14:0,15166,-1;m15:0,15167,-1;m16:0,15168,-1;m17:0,15169,-1;m18:0,15170,-1	1				1,1,1,1,1	0		0	0	0		[hell dungeon]	0
+89	dungeon/Act7/GentDefence_r.dgn	根特防御战	59	59	0	1	23	23	1	22	22	22		m1:0,2172,-1;m2:0,2173,-1;m3:0,2174,-1;m4:0,2175,-1;m5:0,2176,-1;m6:0,2178,-1;m7:0,2179,-1;m8:0,2180,-1;m9:0,2181,-1;m10:0,2182,-1;m11:0,2184,-1;m12:0,15171,-1;m13:0,15172,-1;m14:0,15173,-1;m15:0,15174,-1;m16:0,15175,-1;m17:0,15176,-1;m18:0,15177,-1;m19:0,15178,-1;m20:0,15179,-1;m21:0,15180,-1;m22:0,15181,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+83	dungeon/Act7/NightAssault_r.dgn	夜间袭击战	60	60	0	1	19	19	1	18	18	18		m1:0,2187,-1;m2:0,2188,-1;m3:0,2189,-1;m4:0,2190,-1;m5:0,2192,-1;m6:0,2193,-1;m7:0,2194,-1;m8:0,2195,-1;m9:0,2196,-1;m10:0,15182,-1;m11:0,15183,-1;m12:0,15184,-1;m13:0,15185,-1;m14:0,15186,-1;m15:0,15187,-1;m16:0,15188,-1;m17:0,15189,-1;m18:0,15190,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+84	dungeon/Act7/Supplycut_r.dgn	补给线阻断战	61	61	0	1	31	31	1	30	30	30		m1:0,2199,-1;m2:0,2200,-1;m3:0,2201,-1;m4:0,2202,-1;m5:0,2203,-1;m6:0,2205,-1;m7:0,2206,-1;m8:0,2207,-1;m9:0,2208,-1;m10:0,2209,-1;m11:0,2210,-1;m12:0,2211,-1;m13:0,2212,-1;m14:0,2213,-1;m15:0,2214,-1;m16:0,15191,-1;m17:0,15192,-1;m18:0,15193,-1;m19:0,15194,-1;m20:0,15195,-1;m21:0,15196,-1;m22:0,15197,-1;m23:0,15198,-1;m24:0,15199,-1;m25:0,15200,-1;m26:0,15201,-1;m27:0,15202,-1;m28:0,15203,-1;m29:0,15204,-1;m30:0,15205,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+85	dungeon/Act7/CounterAttack_r.dgn	追击歼灭战	62	62	0	1	25	25	1	24	24	24		m1:0,2217,-1;m2:0,2218,-1;m3:0,2219,-1;m4:0,2220,-1;m5:0,2221,-1;m6:0,2222,-1;m7:0,2223,-1;m8:0,2224,-1;m9:0,2225,-1;m10:0,2226,-1;m11:0,2227,-1;m12:0,2228,-1;m13:0,15206,-1;m14:0,15207,-1;m15:0,15208,-1;m16:0,15209,-1;m17:0,15210,-1;m18:0,15211,-1;m19:0,15212,-1;m20:0,15213,-1;m21:0,15214,-1;m22:0,15215,-1;m23:0,15216,-1;m24:0,15217,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+80	dungeon/Act7/OuterGent_r.dgn	根特外围	55	55	0	1	15	15	1	14	14	14		m1:0,2121,-1;m2:0,2123,-1;m3:0,2124,-1;m4:0,2125,-1;m5:0,2127,-1;m6:0,2128,-1;m7:0,2130,-1;m8:0,15218,-1;m9:0,15219,-1;m10:0,15220,-1;m11:0,15221,-1;m12:0,15222,-1;m13:0,15223,-1;m14:0,15224,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+81	dungeon/Act7/GentEastGate_r.dgn	根特东门	56	56	0	1	19	19	1	18	18	18		m1:0,2131,-1;m2:0,2132,-1;m3:0,2135,-1;m4:0,2137,-1;m5:0,2138,-1;m6:0,2139,-1;m7:0,2140,-1;m8:0,2141,-1;m9:0,2142,-1;m10:0,15225,-1;m11:0,15226,-1;m12:0,15227,-1;m13:0,15228,-1;m14:0,15229,-1;m15:0,15230,-1;m16:0,15231,-1;m17:0,15232,-1;m18:0,15233,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+82	dungeon/Act7/GentSouthGate_r.dgn	根特南门	57	57	0	1	21	21	1	20	20	20		m1:0,2144,-1;m2:0,2145,-1;m3:0,2147,-1;m4:0,2148,-1;m5:0,2150,-1;m6:0,2151,-1;m7:0,2152,-1;m8:0,2153,-1;m9:0,2155,-1;m10:0,2156,-1;m11:0,15234,-1;m12:0,15235,-1;m13:0,15236,-1;m14:0,15237,-1;m15:0,15238,-1;m16:0,15239,-1;m17:0,15240,-1;m18:0,15241,-1;m19:0,15242,-1;m20:0,15243,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+88	dungeon/Act7/gentnorthgate_r.dgn	根特北门	58	58	0	1	19	19	1	18	18	18		m1:0,2159,-1;m2:0,2160,-1;m3:0,2161,-1;m4:0,2164,-1;m5:0,2165,-1;m6:0,2166,-1;m7:0,2167,-1;m8:0,2168,-1;m9:0,2169,-1;m10:0,15244,-1;m11:0,15245,-1;m12:0,15246,-1;m13:0,15247,-1;m14:0,15248,-1;m15:0,15249,-1;m16:0,15250,-1;m17:0,15251,-1;m18:0,15252,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+86	dungeon/Act8/pirateonthetrain_r.dgn	列车上的海贼	64	64	0	1	20	20	2	18	18	18		m2:0,2234,-1;m3:0,2235,-1;m4:0,2236,-1;m5:0,2238,-1;m6:0,2239,-1;m7:0,2241,-1;m8:0,2243,-1;m9:0,2244,-1;m10:0,2245,-1;m11:0,15253,-1;m12:0,15254,-1;m13:0,15255,-1;m14:0,15256,-1;m15:0,15257,-1;m16:0,15258,-1;m17:0,15259,-1;m18:0,15260,-1;m19:0,15261,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+87	dungeon/Act8/seatrainretaking_r.dgn	夺回西部线	65	65	0	1	15	15	1	14	14	14		m1:0,2248,-1;m2:0,2249,-1;m3:0,2250,-1;m4:0,2251,-1;m5:0,2252,-1;m6:0,2253,-1;m7:0,2257,-1;m8:0,15262,-1;m9:0,15263,-1;m10:0,15264,-1;m11:0,15265,-1;m12:0,15266,-1;m13:0,15267,-1;m14:0,15268,-1	1				1,1,1,1,0	0		0	0	0		[hell dungeon]	0
+8001	dungeon/CircleDungeon/Special/Circle_GentInfiltrate.dgn	决战哈尔特山	63	63	0	1	1	1	1	0	0	0			0				1,1,1,1,0	0		0	0	1			0
+8002	dungeon/CircleDungeon/Special/Circle_SeaChase.dgn	特快列车追击战	68	68	0	1	1	1	1	0	0	0			0				1,1,1,1,0	0		0	0	1			0
+8003	dungeon/CircleDungeon/Special/Circle_TimeBreak.dgn	时空裂隙	78	78	0	1	3	3	2	1	1	1		m2:0,2510,-1	0				1,1,1,1,1	0		0	0	1			0
+8004	dungeon/CircleDungeon/Special/Circle_StationEscape.dgn	斯洛特发电站-逃离	83	83	0	1	1	1	1	0	0	0			0				1,1,1,1,1	0		0	0	1			0
+8005	dungeon/CircleDungeon/Special/Circle_SealForest.dgn	遗忘之森	16	16	0	1	1	1	1	0	0	0			0			0		0		0	0	1			0
+8006	dungeon/CircleDungeon/Special/Circle_MeltdownHelpus.dgn	陷落的村庄	26	26	0	1	2	2	2	0	0	0			0				1,1,0,0,0	0		0	0	1			0
+8007	dungeon/CircleDungeon/Special/Circle_Seizemoney.dgn	黄金王的秘密洞穴	36	36	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	0	1			0
+8008	dungeon/CircleDungeon/Special/Circle_MadnessAdenvine.dgn	疯狂的祭典	45	45	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	0	1			0
+8009	dungeon/CircleDungeon/Special/Circle_FrostCave.dgn	冰霜洞穴	53	53	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	0	1			0
+8010	dungeon/CircleDungeon/Special/Circle_StationEscape1.dgn	斯洛特发电站	83	83	0	1	1	1	1	0	0	0			0				1,1,1,1,1	0		0	0	1			0
+8011	dungeon/CircleDungeon/Special/Circle_StationEscape3.dgn	斯洛特发电站-破坏	83	83	0	1	1	1	1	0	0	0			0				1,1,1,1,1	0		0	0	1			0
+8012	dungeon/CircleDungeon/Special/Kings_Library/Circle_Kings_Library.dgn	王的书库	85	85	0	1	1	1	1	0	0	0			0				1,1,1,1,1	0		0	0	1			0
+8014	dungeon/Event/2015_Tou_Level/Tou_01.dgn	name_TouLevel_1	17	17	1	0	1	1	1	0	0	0			0	tau Dungeon	1	0;1		0		1	0	0			0
+8015	dungeon/Event/2015_Tou_Level/Tou_02.dgn	name_TouLevel_2	17	17	1	0	1	1	1	0	0	0			0	tau Dungeon	1	0;1		0		1	0	0			0
+8016	dungeon/Event/2015_Tou_Level/Tou_03.dgn	name_TouLevel_3	17	17	1	0	1	1	1	0	0	0			0	tau Dungeon	1	0;1		0		1	0	0			0
+8017	dungeon/Event/2015_Tou_Level/Tou_04.dgn	name_TouLevel_1	17	17	1	0	1	1	1	0	0	0			0		1	0;1		0		1	0	0			0
+308	dungeon/StormOfMetastasis\Abnoba\prison_job.dgn	废弃的监狱	15	15	0	1	1	1	1	0	0	0			0			0		0		0	0	0			0
+8013	dungeon/Event/Incubating/Incubating.dgn	name_Incubating	1	1	1	0	1	0	0	0	0	0			0		3			0		1	0	1			0
+8500	dungeon/GuildDungeon/GuildNomal1.dgn	伤城	50	50	0	1	3	3	3	0	0	0			0			2		0		0	1	1		[guild dungeon]	0
+8503	dungeon/GuildDungeon/GuildDefence1.dgn	哀泣之穴	50	50	0	1	1	1	1	0	0	0			0			2		0		0	1	1		[guild dungeon]	0
+8504	dungeon/GuildDungeon/GuildDefence2.dgn	呐喊之地	50	50	0	1	1	1	1	0	0	0			0			2		0		0	1	1		[guild dungeon]	0
+8505	dungeon/GuildDungeon/GuildHard1.dgn	失心迷宫	50	50	0	1	1	1	1	0	0	0			0			2		0		0	1	1		[guild dungeon]	0
+8507	dungeon/GuildDungeon/GuildHard3.dgn	破灭峡谷	50	50	0	1	1	1	1	0	0	0			0			2		0		0	1	1		[guild dungeon]	0
+8508	dungeon/GuildDungeon/GuildLast.dgn	永恒殿堂	50	50	0	1	1	1	1	0	0	0			0			2		0		0	1	1		[guild dungeon]	0
+7513	dungeon/Tutorial/ActionServer_Tutorial.dgn	赛季大区新手引导	17	17	0	1	1	1	1	0	0	0			0					0		0	0	0			0
+7514	dungeon/Tutorial/ActionServer_Tutorial_Creator.dgn	赛季大区新手引导	17	17	0	1	1	1	1	0	0	0			0					0		0	0	0			0
+6001	dungeon/Event/YundyRun/YundyRun.dgn	勇士酷跑	17	17	1	0	1	1	1	0	0	0			0	yunDyRun Dungeon	1	1		0		1	0	1			0
+6002	dungeon/Event/2016_PocketCr/PocketCr_01.dgn	name_PocketCr_1	17	17	1	0	1	1	1	0	0	0			0	pocket creature	1	0;1		0		1	0	1			0
+6003	dungeon/Event/2016_8bit/8bit_01.dgn	name_8bit_01	17	17	0	1	1	1	1	0	0	0			0	tau Dungeon	1;1	0;1		0		0	1	1			0
+6004	dungeon/Event/2016_EpciRoad/EpicRoad_01.dgn	破碎森林	17	17	0	1	3	3	3	0	0	0			0	tau Dungeon		0;0		0		0	1	1			0
+6005	dungeon/Event/2016_AdventurerMaker_MiniGame/AM_MiniGame_UnderTheSea.dgn	美少女养成 - 度假	17	17	1	0	1	1	1	0	0	0			0	adventurer maker	1	1		0		1	0	1			0
+5040	dungeon/Ancient/N_L_KingsRuins.dgn	王的遗迹	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5041	dungeon/Ancient/N_L_Vilmark.dgn	比尔马克帝国试验场	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5042	dungeon/Ancient/N_L_ScreamingCave.dgn	悲鸣洞穴	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5043	dungeon/Ancient/N_L_Noirpera.dgn	诺伊佩拉	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5044	dungeon/Ancient/N_L_GhostTrain.dgn	幽灵列车	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5045	dungeon/Ancient/N_L_leshphon.dgn	痛苦之村列瑟芬	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5046	dungeon/Ancient/N_L_cartelcommand.dgn	卡勒特指挥部	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,120,1,3332,10,1	[ancient dungeon]	0
+5047	dungeon/Ancient/R_L_KingsRuins.dgn	魂·王的遗迹	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5048	dungeon/Ancient/R_L_Vilmark.dgn	魂·比尔马克帝国试验场	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5049	dungeon/Ancient/R_L_ScreamingCave.dgn	魂·悲鸣洞穴	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5050	dungeon/Ancient/R_L_Noirpera.dgn	魂·诺伊佩拉	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5051	dungeon/Ancient/R_L_GhostTrain.dgn	魂·幽灵列车	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5052	dungeon/Ancient/R_L_Leshphon.dgn	魂·痛苦之村列瑟芬	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5053	dungeon/Ancient/R_L_Cartelcommand.dgn	魂·卡勒特指挥部	85	85	0	1	1	1	1	0	0	0			0		2	2		0		0	0	0	3037,300,1,3332,30,1	[ancient dungeon]	0
+5006	dungeon/DarkelfTemple/TempleEnterance_1.dgn	神殿入口	40	40	1	0	1	1	1	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,10,1	[license dungeon]	0
+5007	dungeon/DarkelfTemple/TempleEnterance_2.dgn	神殿入口	40	40	1	0	1	1	1	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,20,1	[license dungeon]	0
+5008	dungeon/DarkelfTemple/TempleEnterance_3.dgn	神殿入口	40	40	1	0	4	4	4	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,40,1	[license dungeon]	0
+5009	dungeon/DarkelfTemple/TempleEnterance_4.dgn	神殿入口	40	40	1	0	4	4	4	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,80,1	[license dungeon]	0
+5016	dungeon/DarkelfTemple/TempleLabyrinth1.dgn	虚妄迷宫	40	40	1	0	1	1	1	0	0	0			0				1,1,1,0,0	0		1	0	0	3033,10,1	[license dungeon]	0
+5017	dungeon/DarkelfTemple/TempleLabyrinth2.dgn	虚妄迷宫	40	40	1	0	1	1	1	0	0	0			0				1,1,1,0,0	0		1	0	0	3033,20,1	[license dungeon]	0
+5018	dungeon/DarkelfTemple/TempleLabyrinth3.dgn	虚妄迷宫	40	40	1	0	4	4	4	0	0	0			0				1,1,1,0,0	0		1	0	0	3033,40,1	[license dungeon]	0
+5019	dungeon/DarkelfTemple/TempleLabyrinth4.dgn	虚妄迷宫	40	40	1	0	4	4	4	0	0	0			0				1,1,1,0,0	0		1	0	0	3033,80,1	[license dungeon]	0
+5026	dungeon/DarkelfTemple/TempleCentral_1.dgn	神殿中心	40	40	1	0	1	1	1	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,10,1	[license dungeon]	0
+5027	dungeon/DarkelfTemple/TempleCentral_2.dgn	神殿中心	40	40	1	0	1	1	1	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,20,1	[license dungeon]	0
+5028	dungeon/DarkelfTemple/TempleCentral_3.dgn	神殿中心	40	40	1	0	4	4	4	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,40,1	[license dungeon]	0
+5029	dungeon/DarkelfTemple/TempleCentral_4.dgn	神殿中心	40	40	1	0	4	4	4	0	0	0			0				1,1,1,1,0	0		1	0	0	3033,80,1	[license dungeon]	0
+7054	dungeon/TerritoryCombat/1_BattleWalls/1_BattleWalls_2vs2.dgn	外城守卫战	85	85	1	0	1	1	1	0	0	0			0	territory combat			1,1,1,1,1	0		1	0	0			0
+7055	dungeon/TerritoryCombat/10_NightCityWar/10_NightCityWar_2vs2.dgn	夜袭市中心	85	85	1	0	1	1	1	0	0	0			0	territory combat			1,1,1,1,1	0		1	0	0			0
+7056	dungeon/TerritoryCombat\39_BasedCombat\39_BasedCombat.dgn	据点攻防战	85	85	1	0	1	1	1	0	0	0			0	territory combat			1,1,1,1,1	0		1	0	0			0
+8888	dungeon/Agitwar/Agitwar.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8021	dungeon/Agitwar/Agitwar_1.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8022	dungeon/Agitwar/Agitwar_2.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8023	dungeon/Agitwar/Agitwar_3.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8024	dungeon/Agitwar/Agitwar_4.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8025	dungeon/Agitwar/Agitwar_5.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8026	dungeon/Agitwar/Agitwar_6.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8027	dungeon/Agitwar/Agitwar_7.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8028	dungeon/Agitwar/Agitwar_8.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8029	dungeon/Agitwar/Agitwar_9.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8030	dungeon/Agitwar/Agitwar_10.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8031	dungeon/Agitwar/Agitwar_11.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8032	dungeon/Agitwar/Agitwar_12.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8033	dungeon/Agitwar/Agitwar_13.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8034	dungeon/Agitwar/Agitwar_14.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8035	dungeon/Agitwar/Agitwar_15.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8036	dungeon/Agitwar/Agitwar_16.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8037	dungeon/Agitwar/Agitwar_17.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8038	dungeon/Agitwar/Agitwar_18.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8039	dungeon/Agitwar/Agitwar_19.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8040	dungeon/Agitwar/Agitwar_20.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1	10157218,10,1	[agit war dungeon]	0
+8050	dungeon/Agitwar/Pra_Agitwar.dgn	基地战争	20	20	1	0	1	1	1	0	0	0			0					0		0	0	1		[agit war dungeon]	0
+7100	dungeon/Impossible/dimension.dgn	融合的异次元裂缝	70	70	0	1	1	1	1	0	0	0			0				1,1,1,0,0	0		0	0	1		[dimension dungeon]	0
+3503	dungeon/Act5/Counterattackarea.dgn	逆袭之谷	1	1	1	0	1	0	0	0	0	0			0					0		0	0	1			0
+3505	dungeon/Towers/TowerOfBoss.dgn	领主之塔	60	60	0	1	0	0	0	0	0	0			0	tower of boss		0		0		0	0	1	2749110,1,1		0
+3511	dungeon/AdvanceAltar/AdvanceAltar_stage_01.dgn	1-1. 腐烂的营地	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3512	dungeon/AdvanceAltar/AdvanceAltar_stage_02.dgn	1-2. 腐烂的营地	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3513	dungeon/AdvanceAltar/AdvanceAltar_stage_03.dgn	1-3. 腐烂的营地	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3514	dungeon/AdvanceAltar/AdvanceAltar_stage_04.dgn	1-4. 腐烂的营地	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3515	dungeon/AdvanceAltar/AdvanceAltar_stage_05.dgn	2-1. 永远忠诚的部下	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3516	dungeon/AdvanceAltar/AdvanceAltar_stage_06.dgn	2-2. 永远忠诚的部下	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3517	dungeon/AdvanceAltar/AdvanceAltar_stage_07.dgn	2-3. 永远忠诚的部下	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3518	dungeon/AdvanceAltar/AdvanceAltar_stage_08.dgn	2-4. 永远忠诚的部下	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3519	dungeon/AdvanceAltar/AdvanceAltar_stage_09.dgn	3-1. 寂静森林里的回声	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3520	dungeon/AdvanceAltar/AdvanceAltar_stage_10.dgn	3-2. 寂静森林里的回声	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3521	dungeon/AdvanceAltar/AdvanceAltar_stage_11.dgn	3-3. 寂静森林里的回声	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3522	dungeon/AdvanceAltar/AdvanceAltar_stage_12.dgn	3-4. 寂静森林里的回声	1	1	0	1	1	0	0	0	0	0			0	advance altar			1,1,1,0,0	0		0	0	0			0
+3523	dungeon/AdvanceAltar/AdvanceAltar_survival_01.dgn	无限模式	1	1	0	1	1	0	0	0	0	0			0	advance altar				0		0	0	0			0
+3524	dungeon/Event/chn_Destroy_Dungeon/chn_Destroy_Dungeon_machine.dgn	异次元攻坚战	17	17	1	0	1	0	0	0	0	0			0	dimension space event dungeon	3			0	0	0	0	1		[event dungeon]	0
+3536	dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_01_tranning_area.dgn	纳特拉的复仇	80	80	0	1	1	1	1	0	0	0			0				1,1,1,1,1	0		0	0	1			0
+3537	dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_02_in_cave.dgn	双子巨人的背叛	82	82	0	1	1	1	1	0	0	0			0				1,1,1,1,1	0		0	0	1			0
+3538	dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_dragon_nest.dgn	圣地 : 龙之魂	84	84	0	1	1	1	1	0	0	0			0			2		0		0	0	1	10002520,1,1		0
+3539	dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_time.dgn	极 · 巨龙盘踞之地	84	84	0	1	1	1	1	0	0	0			0			2		0		0	0	1	10002519,1,1		0
+3540	dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_event.dgn	圣地 : 龙之魂	84	84	1	0	1	1	0	1	1	1	0,20727,-1		0			0		0		0	0	1			0
+3541	dungeon/China/chn_wedding_couple.dgn	爱之摩伽陀	30	30	1	0	1	0	0	0	0	0			0	wedding couple		2		0		0	0	1	10002609,3,1		0
+3900	dungeon/GTimeSpiral/TimeSpiral.dgn	赫拉斯研究所	50	50	1	0	1	1	1	0	0	0			0			1		0		1	0	1		[hell dungeon]	0
+3557	dungeon/Event/chn_Species_Dungeon/chn_Species_dungeon.dgn	封印的藏宝地	70	70	0	1	1	1	1	0	0	0			0			2		0		0	0	1	10003196,1,1		0
+4001	dungeon/Towers/ScreamTower001.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4002	dungeon/Towers/ScreamTower002.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4003	dungeon/Towers/ScreamTower003.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4004	dungeon/Towers/ScreamTower004.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4005	dungeon/Towers/ScreamTower005.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4006	dungeon/Towers/ScreamTower006.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4007	dungeon/Towers/ScreamTower007.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4008	dungeon/Towers/ScreamTower008.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4009	dungeon/Towers/ScreamTower009.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4010	dungeon/Towers/ScreamTower010.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4011	dungeon/Towers/ScreamTower011.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4012	dungeon/Towers/ScreamTower012.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4013	dungeon/Towers/ScreamTower013.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4014	dungeon/Towers/ScreamTower014.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4015	dungeon/Towers/ScreamTower015.dgn	幻影绝望之塔	70	70	1	0	1	1	1	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4016	dungeon/Towers/ScreamTower016.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4017	dungeon/Towers/ScreamTower017.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4018	dungeon/Towers/ScreamTower018.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4019	dungeon/Towers/ScreamTower019.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4020	dungeon/Towers/ScreamTower020.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4021	dungeon/Towers/ScreamTower021.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4022	dungeon/Towers/ScreamTower022.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4023	dungeon/Towers/ScreamTower023.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4024	dungeon/Towers/ScreamTower024.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4025	dungeon/Towers/ScreamTower025.dgn	幻影绝望之塔	70	70	1	0	1	1	1	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4026	dungeon/Towers/ScreamTower026.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4027	dungeon/Towers/ScreamTower027.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4028	dungeon/Towers/ScreamTower028.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4029	dungeon/Towers/ScreamTower029.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4030	dungeon/Towers/ScreamTower030.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4031	dungeon/Towers/ScreamTower031.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4032	dungeon/Towers/ScreamTower032.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4033	dungeon/Towers/ScreamTower033.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4034	dungeon/Towers/ScreamTower034.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4035	dungeon/Towers/ScreamTower035.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4036	dungeon/Towers/ScreamTower036.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4037	dungeon/Towers/ScreamTower037.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4038	dungeon/Towers/ScreamTower038.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4039	dungeon/Towers/ScreamTower039.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4040	dungeon/Towers/ScreamTower040.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4041	dungeon/Towers/ScreamTower041.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4042	dungeon/Towers/ScreamTower042.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4043	dungeon/Towers/ScreamTower043.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4044	dungeon/Towers/ScreamTower044.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4045	dungeon/Towers/ScreamTower045.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4046	dungeon/Towers/ScreamTower046.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4047	dungeon/Towers/ScreamTower047.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4048	dungeon/Towers/ScreamTower048.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4049	dungeon/Towers/ScreamTower049.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4050	dungeon/Towers/ScreamTower050.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4051	dungeon/Towers/ScreamTower051.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4052	dungeon/Towers/ScreamTower052.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4053	dungeon/Towers/ScreamTower053.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4054	dungeon/Towers/ScreamTower054.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4055	dungeon/Towers/ScreamTower055.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4056	dungeon/Towers/ScreamTower056.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4057	dungeon/Towers/ScreamTower057.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4058	dungeon/Towers/ScreamTower058.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4059	dungeon/Towers/ScreamTower059.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4060	dungeon/Towers/ScreamTower060.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4061	dungeon/Towers/ScreamTower061.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4062	dungeon/Towers/ScreamTower062.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4063	dungeon/Towers/ScreamTower063.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4064	dungeon/Towers/ScreamTower064.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4065	dungeon/Towers/ScreamTower065.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4066	dungeon/Towers/ScreamTower066.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4067	dungeon/Towers/ScreamTower067.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4068	dungeon/Towers/ScreamTower068.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4069	dungeon/Towers/ScreamTower069.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4070	dungeon/Towers/ScreamTower070.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4071	dungeon/Towers/ScreamTower071.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4072	dungeon/Towers/ScreamTower072.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4073	dungeon/Towers/ScreamTower073.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4074	dungeon/Towers/ScreamTower074.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4075	dungeon/Towers/ScreamTower075.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4076	dungeon/Towers/ScreamTower076.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4077	dungeon/Towers/ScreamTower077.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4078	dungeon/Towers/ScreamTower078.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4079	dungeon/Towers/ScreamTower079.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4080	dungeon/Towers/ScreamTower080.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4081	dungeon/Towers/ScreamTower081.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4082	dungeon/Towers/ScreamTower082.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4083	dungeon/Towers/ScreamTower083.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4084	dungeon/Towers/ScreamTower084.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4085	dungeon/Towers/ScreamTower085.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4086	dungeon/Towers/ScreamTower086.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4087	dungeon/Towers/ScreamTower087.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4088	dungeon/Towers/ScreamTower088.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4089	dungeon/Towers/ScreamTower089.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4090	dungeon/Towers/ScreamTower090.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4091	dungeon/Towers/ScreamTower091.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4092	dungeon/Towers/ScreamTower092.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4093	dungeon/Towers/ScreamTower093.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4094	dungeon/Towers/ScreamTower094.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4095	dungeon/Towers/ScreamTower095.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4096	dungeon/Towers/ScreamTower096.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4097	dungeon/Towers/ScreamTower097.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4098	dungeon/Towers/ScreamTower098.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4099	dungeon/Towers/ScreamTower099.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4100	dungeon/Towers/ScreamTower100.dgn	幻影绝望之塔	70	70	1	0	1	0	0	0	0	0			0					0		0	0	1	490002365,1,1	[tower of scream]	0
+4101	dungeon/Event/chn_golden_silver_monster_Dungeon/chn_golden_monster_dungeon.dgn	金角的领地	60	60	1	0	1	1	1	0	0	0			0			2		0		0	0	1			0
+4102	dungeon/Event/chn_golden_silver_monster_Dungeon/chn_silver_monster_dungeon.dgn	银角的领地	40	40	1	0	1	1	1	0	0	0			0			2		0		0	0	1			0
+3700	dungeon/Tau_kingdom/Tau_kingdom.dgn	牛头怪乐园	27	27	1	0	1	1	1	0	0	0			0			0		0		0	0	1	690001556,1,1	[event dungeon]	0
+4103	dungeon/Event/circus/circus.dgn	疯狂马戏团	60	60	1	0	1	1	1	0	0	0			0			0		0		1	0	1		[hell dungeon]	0
+4104	dungeon/Event/circus/circus_monkey.dgn	疯狂马戏团入门-追猴子	60	60	0	1	1	1	1	0	0	0			0			0		0		0	0	1		[hell dungeon]	0
+4105	dungeon/Event/circus/circus_ball.dgn	疯狂马戏团入门-躲避球	60	60	0	1	1	1	1	0	0	0			0			0		0		0	0	1		[hell dungeon]	0
+4106	dungeon/Event/circus/circus_pie.dgn	疯狂马戏团入门-抓皮埃罗	60	60	0	1	1	1	1	0	0	0			0			0		0		0	0	1		[hell dungeon]	0
+3706	dungeon/Event/gothloli/gothloli.dgn	哥特萝莉派对	50	50	1	0	1	1	1	0	0	0			0			2		0		1	0	1			0
+4108	dungeon/Event/chn_carrier_Dungeon/port.dgn	硝烟港口	50	50	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4109	dungeon/Event/chn_carrier_Dungeon/deck.dgn	战舰格拉西亚-甲板	50	50	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4110	dungeon/Event/chn_carrier_Dungeon/enginroom.dgn	战舰格拉西亚-发动机舱	50	50	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4111	dungeon/Event/chn_carrier_Dungeon/mainbridge.dgn	战舰格拉西亚-主舰桥	50	50	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4112	dungeon/Event/chn_kronos_Dungeon/kronos_normal.dgn	众神之墓(普通)	50	50	1	0	1	1	1	0	0	0			0			0		0		1	0	1	10005947,1,1	[event dungeon]	0
+4113	dungeon/Event/chn_kronos_Dungeon/kronos_guild.dgn	众神之墓(公会)	50	50	1	0	1	1	1	0	0	0			0			2		0		1	0	1	10005948,1,1		0
+4114	dungeon/Event/circus/circus_new.dgn	凌凌的天幕剧场	60	60	1	0	1	1	1	0	0	0			0			0		0		1	0	1		[hell dungeon]	0
+4115	dungeon/Event/chn_3kingdoms/jang_normal.dgn	突围长坂坡	50	50	0	1	1	1	1	0	0	0			0			0		0		0	0	1			0
+4116	dungeon/Event/chn_3kingdoms/castle_normal.dgn	襄阳攻城战	50	50	0	1	1	1	1	0	0	0			0			0		0		0	0	1			0
+4117	dungeon/Event/chn_3kingdoms/jang_guild.dgn	突围长坂坡	50	50	0	1	1	1	1	0	0	0			0			0		0		0	0	1			0
+4118	dungeon/Event/chn_3kingdoms/castle_guild.dgn	襄阳攻城战	50	50	0	1	1	1	1	0	0	0			0			0		0		0	0	1			0
+4122	dungeon/Event/chn_Fighter_and_Beantree/chn_Fighter_and_Beantree.dgn	勇士与魔豆	1	1	1	0	1	1	1	0	0	0			0		3			0	0	0	0	1		[event dungeon]	0
+4119	dungeon/Event/Shonantournament/Princessfight_event.dgn	天界皇家武斗大会	50	50	0	1	1	0	0	0	0	0			0			0		0		0	0	1	490001486,1,1	[tournament dungeon]	0
+4123	dungeon/Event/chn_dayof_goldsilver_Dungeon/chn_dayof_goldsilver_Dungeon.dgn	新·金角银角	50	50	1	0	1	1	1	0	0	0			0			2		0		1	0	1			0
+4129	dungeon/Event/chn_Dungeon_and_FoodFighter/chn_Dungeon_and_FoodFighter.dgn	冒险家大胃王挑战赛	1	1	1	0	1	1	1	0	0	0			0		3			0	0	0	0	1	490002115,30,1	[event dungeon]	0
+4130	dungeon/Event/chn_zombie_dungeon/zombie_dungeon.dgn	疯狂实验室	30	30	1	0	1	1	1	0	0	0			0	moro laboratory dungeon		0		0		1	0	1			0
+4124	dungeon/Event/chn_knights_of_round/chn_knights_of_round_guild_1.dgn	古代骑士竞技场(公会)		1	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4125	dungeon/Event/chn_knights_of_round/chn_knights_of_round_guild_2.dgn	圣城卡美洛(公会)		1	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4126	dungeon/Event/chn_knights_of_round/chn_knights_of_round_guild3_boss.dgn	卡姆兰之役(公会)		1	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4127	dungeon/Event/chn_knights_of_round/chn_knights_of_round_normal.dgn	古代骑士竞技场(普通)		1	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4128	dungeon/Event/chn_knights_of_round/chn_knights_of_round_normal1.dgn	圣城卡美洛(普通)		1	0	1	1	1	1	0	0	0			0			0		0		0	1	1			0
+4131	dungeon/Event/chn_pumpkin_express/chn_pumpkin_express.dgn	万圣节特快列车	1	1	1	0	1	1	1	0	0	0			0	halloween dungeon	3			0	0	0	0	1	490003246,10,1	[event dungeon]	0

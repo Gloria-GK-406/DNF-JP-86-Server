@@ -1,0 +1,63 @@
+{
+  "timestamp_utc": "2026-09-20T07:30:37.313318+00:00",
+  "pid": 36852,
+  "global": "0x03A5C934",
+  "manager": "0x3a2e4e00",
+  "resource": "driftcave.wdm",
+  "raw": "0x4045d600",
+  "vector_begin": "0x3f6251c0",
+  "vector_end": "0x3f625238",
+  "stride": 12,
+  "entries": [
+    {
+      "dungeon_id": 150,
+      "quest_operand": -1,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 151,
+      "quest_operand": -1,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 152,
+      "quest_operand": -1,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 153,
+      "quest_operand": -1,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 154,
+      "quest_operand": 1895,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 155,
+      "quest_operand": -1,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 239,
+      "quest_operand": 1925,
+      "in_progress_value": 1
+    },
+    {
+      "dungeon_id": 239,
+      "quest_operand": 1927,
+      "in_progress_value": 1
+    },
+    {
+      "dungeon_id": 8007,
+      "quest_operand": -1,
+      "in_progress_value": 0
+    },
+    {
+      "dungeon_id": 2011,
+      "quest_operand": 13505,
+      "in_progress_value": 0
+    }
+  ]
+}

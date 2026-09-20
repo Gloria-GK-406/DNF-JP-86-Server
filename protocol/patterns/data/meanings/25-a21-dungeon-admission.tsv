@@ -1,0 +1,6 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0010	0	普通选图分支的 dungeonId（u32）	Confirmed	A21 SHA-256 1F8244D3...：RVA 0232DF4A..0232DF52 调用 WriteU32；Document/outputs/issue-101/client/static-evidence.md
+CMD	0x0010	4	普通选图分支的 difficulty（u8）	Confirmed	A21 SHA-256 1F8244D3...：RVA 0232DF57..0232DF5F 调用 WriteU8；入参上界4见0232D9D1..0232D9D5；Document/outputs/issue-101/client/static-evidence.md
+NOTI	0x0005	0	u16 条目数；普通列表2+N*5字节，0xFFFF为特殊分支	Confirmed	A21 SHA-256 1F8244D3...：RVA 00D45E51 ReadU16，00D45E5C 比较0xFFFF；Document/outputs/issue-101/client/static-evidence.md
+NOTI	0x0005	g1:0	条目的 dungeonId（u32）	Confirmed	A21 SHA-256 1F8244D3...：RVA 00D45ED4 调用 ReadU32；Document/outputs/issue-101/client/static-evidence.md
+NOTI	0x0005	g1:4	客户端权限状态原始值（u8）；通关升级政策未确认	Confirmed	A21 SHA-256 1F8244D3...：RVA 00D45EDF 调用 ReadU8，00D45F86 写入映射；Document/outputs/issue-101/client/static-evidence.md

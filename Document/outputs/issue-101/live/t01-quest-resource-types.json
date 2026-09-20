@@ -1,0 +1,380 @@
+[
+  {
+    "id": 1854,
+    "raw": "0x40b4f200",
+    "path": "new_quest/driftcave/epic_27_spider_1.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14942,
+    "raw": "0x4877b900",
+    "path": "circleofdungeon/14942_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 2489,
+    "raw": "0x400ddd00",
+    "path": "new_quest/anton/epic_85_anton_1.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1866,
+    "raw": "0x48750100",
+    "path": "new_quest/driftcave/epic_29_tomb_1.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14935,
+    "raw": "0x48760f00",
+    "path": "circleofdungeon/14935_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14938,
+    "raw": "0x4876ab00",
+    "path": "circleofdungeon/14938_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14932,
+    "raw": "0x48751d00",
+    "path": "circleofdungeon/14932_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14947,
+    "raw": "0x4ad70f00",
+    "path": "circleofdungeon/14947_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1878,
+    "raw": "0x4ad6b200",
+    "path": "new_quest/driftcave/epic_31_despot_3_sub02.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14960,
+    "raw": "0x4879b900",
+    "path": "circleofdungeon/14960_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1872,
+    "raw": "0x48761600",
+    "path": "new_quest/driftcave/epic_29_tomb_7.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14944,
+    "raw": "0x48783900",
+    "path": "circleofdungeon/14944_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 2115,
+    "raw": "0x48795d00",
+    "path": "new_quest/driftcave/dragon/epic_54_dragon_9.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14959,
+    "raw": "0x48794100",
+    "path": "circleofdungeon/14959_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1892,
+    "raw": "0x48788100",
+    "path": "new_quest/driftcave/epic_33_goldcave_6.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1877,
+    "raw": "0x4ad6b900",
+    "path": "new_quest/driftcave/epic_31_despot_3_sub01.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14941,
+    "raw": "0x4877b200",
+    "path": "circleofdungeon/14941_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 2100,
+    "raw": "0x48797200",
+    "path": "new_quest/driftcave/dragon/epic_54_dragon_2.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1871,
+    "raw": "0x48761d00",
+    "path": "new_quest/driftcave/epic_29_tomb_6.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1875,
+    "raw": "0x4ad68f00",
+    "path": "new_quest/driftcave/epic_31_despot_2.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1859,
+    "raw": "0x48734800",
+    "path": "new_quest/driftcave/epic_27_spider_5.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1864,
+    "raw": "0x48753900",
+    "path": "new_quest/driftcave/epic_27_spider_8_nichol.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14937,
+    "raw": "0x4876b200",
+    "path": "circleofdungeon/14937_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14931,
+    "raw": "0x48752400",
+    "path": "circleofdungeon/14931_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14950,
+    "raw": "0x48780f00",
+    "path": "circleofdungeon/14950_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14934,
+    "raw": "0x48750f00",
+    "path": "circleofdungeon/14934_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14949,
+    "raw": "0x48781d00",
+    "path": "circleofdungeon/14949_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1882,
+    "raw": "0x48778800",
+    "path": "new_quest/driftcave/epic_31_despot_7.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1891,
+    "raw": "0x48789600",
+    "path": "new_quest/driftcave/epic_33_goldcave_5_sub03.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14943,
+    "raw": "0x48783200",
+    "path": "circleofdungeon/14943_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14962,
+    "raw": "0x4879ab00",
+    "path": "circleofdungeon/14962_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1869,
+    "raw": "0x48762b00",
+    "path": "new_quest/driftcave/epic_29_tomb_4.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14946,
+    "raw": "0x4ad72b00",
+    "path": "circleofdungeon/14946_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 2113,
+    "raw": "0x48796400",
+    "path": "new_quest/driftcave/dragon/epic_54_dragon_7.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1887,
+    "raw": "0x4878b200",
+    "path": "new_quest/driftcave/epic_33_goldcave_4.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14940,
+    "raw": "0x48778f00",
+    "path": "circleofdungeon/14940_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1863,
+    "raw": "0x48734100",
+    "path": "new_quest/driftcave/epic_27_spider_8_angel.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1890,
+    "raw": "0x4878a400",
+    "path": "new_quest/driftcave/epic_33_goldcave_5_sub02.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14939,
+    "raw": "0x4876a400",
+    "path": "circleofdungeon/14939_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14958,
+    "raw": "0x48794800",
+    "path": "circleofdungeon/14958_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 2107,
+    "raw": "0x48796b00",
+    "path": "new_quest/driftcave/dragon/epic_54_dragon_6.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14936,
+    "raw": "0x4876b900",
+    "path": "circleofdungeon/14936_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1857,
+    "raw": "0x48734f00",
+    "path": "new_quest/driftcave/epic_27_spider_3.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1889,
+    "raw": "0x4878b900",
+    "path": "new_quest/driftcave/epic_33_goldcave_5_sub01.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1881,
+    "raw": "0x48778100",
+    "path": "new_quest/driftcave/epic_31_despot_6.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 2116,
+    "raw": "0x48794f00",
+    "path": "new_quest/driftcave/dragon/epic_54_dragon_10.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14933,
+    "raw": "0x48751600",
+    "path": "circleofdungeon/14933_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14948,
+    "raw": "0x4ad71d00",
+    "path": "circleofdungeon/14948_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1885,
+    "raw": "0x4ad36400",
+    "path": "new_quest/driftcave/epic_33_goldcave_2.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 1856,
+    "raw": "0x48735d00",
+    "path": "new_quest/driftcave/epic_27_spider_2.qst",
+    "9c": 0,
+    "c4": 0
+  },
+  {
+    "id": 14961,
+    "raw": "0x4879b200",
+    "path": "circleofdungeon/14961_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14930,
+    "raw": "0x48753200",
+    "path": "circleofdungeon/14930_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 14945,
+    "raw": "0x4ad70800",
+    "path": "circleofdungeon/14945_circle_dungeon.qst",
+    "9c": 15,
+    "c4": 0
+  },
+  {
+    "id": 1867,
+    "raw": "0x48763200",
+    "path": "new_quest/driftcave/epic_29_tomb_2.qst",
+    "9c": 0,
+    "c4": 0
+  }
+]

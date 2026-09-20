@@ -1,7 +1,4 @@
 family	type	offset	meaning	confidence	source
-NOTI	0x0005	0	后续副本权限条目数 count；body 长度恒为 2+count*3	Confirmed	上游 Network/Builders/Init/DungeonPermissionBodyBuilder.cs:26-27 以 new byte[2+count*3] 建包并把 (ushort)count 写入 body[0..2)
-NOTI	0x0005	g1:0	该条目的副本 id DungeonId	Confirmed	上游 DungeonPermissionBodyBuilder.cs:30-31 在 off=2+i*3 处写 persistent[i].DungeonId
-NOTI	0x0005	g1:2	该副本的通关/难度解锁状态 ClearState；上游按"只增不减、取更大值"单调累积保存	Confirmed	上游 DungeonPermissionBodyBuilder.cs:32 body[off+2] = persistent[i].ClearState；单调累积见 Game/CharacterData/SqliteCharacterStateRepository.cs:252-253 与 :345
 NOTI	0x025B	0	顺序副本（安徒恩普通征服序列）的配置 key ConfigKey	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:318 BuildSequentialDungeonInfo 第一个 WriteInt32(configKey)；调用点 Network/Handlers/Dungeon/AntonNormalConquestNotificationSender.cs:45-49 传 state.Sequence.ConfigKey
 NOTI	0x025B	4	该序列的当前进度序号 ProgressIndex	Confirmed	上游 DungeonNotificationBuilder.cs:319 WriteByte(progressIndex)；调用点 AntonNormalConquestNotificationSender.cs:48 传 state.ProgressIndex
 NOTI	0x025B	5	路线掩码 routeMask；上游恒写常量 0	High	上游 DungeonNotificationBuilder.cs:320 WriteInt32(routeMask)；AntonNormalConquestNotificationSender.cs:12 const int SequentialRouteMask = 0，:49 传该常量

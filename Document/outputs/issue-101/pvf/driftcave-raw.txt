@@ -1,0 +1,1933 @@
+PVF_SHA256=19F5FA85FF73CCE94E299E0902269DE2F0164934128F15B8A7B99249C881BE1A
+
+===== dungeon/StormOfMetastasis/DriftCave/spider_kingom.dgn =====
+=== dungeon/StormOfMetastasis/DriftCave/spider_kingom.dgn ===
+[background pos]
+80
+[name]
+蜘蛛王国
+[explain]
+    蜘蛛国王死后， 蜘蛛王国被分成互相对立的两个势力。 王子尼古拉斯和公主安吉丽娜为了争夺王位， 愚蠢地使用禁忌的力量， 最终让蜘蛛王国走上了被死灵诅咒的灭亡之路。 现在， 他们为了那所谓的王位， 仍然在黑暗的洞穴中无休止地争斗着……
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 0
+[difficulty level]
+1 1 1 0 0
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[minimum required level]
+27
+[basis level]
+30
+[experience increasing point]
+2.05
+[champion]
+3 25 40 60 60
+[pathgate object]
+5915 5916 5917 5918 5919 5920 5921 5922 5923 5924
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+130 100
+[increase difficulty rate]
+5 5
+[increase exp rate]
+0 30
+[quest list]
+1856 , 1857 , 1859 ,
+[independent rate]
+20 20 0 90 1863 1864 ,
+[/independent rate]
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+7 2
+[greed]
+BBFFMMAAAAAAAA
+ AAAADDFFFFFFEE
+[map specification]
+map 0 0 8001 map 1 0 8002 map 2 0 8003 map 2 1 8004 map 3 1 8005 map 4 1 8006 map 5 1 8007 boss 6 1 8008
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+6 1
+[/boss map]
+[maze info]
+[size]
+7 2
+[greed]
+BBFFFFFFMMAAAA
+ AAAAAAAADDFFEE
+[map specification]
+map 1 0 8010 map 2 0 8011 map 3 0 8012 map 4 0 8013 map 4 1 8014 map 5 1 8015 map 6 1 8016 boss 0 0 8009
+[/map specification]
+[start map]
+6 1
+[/start map]
+[boss map]
+0 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1856 -1
+[size]
+5 2
+[greed]
+BBFFFFMMAA
+ AAAAAADDEE
+[map specification]
+map 0 0 59260 map 1 0 59261 map 2 0 59262 map 3 0 59263 map 3 1 59264 boss 4 1 59265
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[maze info]
+[quest connection]
+0 1857 -1
+[clear condition]
+[destroy object]
+10601 1
+[/clear condition]
+[size]
+7 2
+[greed]
+AAAAAAAAJJFFEE
+BBFFFFFFGGAAAA
+[map specification]
+map 0 1 59266 map 1 1 59267 map 2 1 59268 map 3 1 59269 map 4 1 59270 map 4 0 59271 map 5 0 59272 boss 6 0 59273
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+6 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1859 -1
+[clear condition]
+[destroy object]
+10601 1
+[/clear condition]
+[size]
+7 2
+[greed]
+BBFFMMAAAAAAAA
+ AAAADDFFFFFFEE
+[map specification]
+map 0 0 59274 map 1 0 59275 map 2 0 59276 map 2 1 59277 map 3 1 59278 map 4 1 59279 map 5 1 59280 boss 6 1 59281
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+6 1
+[/boss map]
+[maze info]
+[quest connection]
+0 1863 -1
+[size]
+5 2
+[greed]
+AAJJFFFFEE
+BBGGAAAAAA
+[map specification]
+map 0 1 59282 map 1 1 59283 map 1 0 59284 map 2 0 59285 map 3 0 59286 boss 4 0 59287
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1864 -1
+[size]
+5 2
+[greed]
+BBFFFFFFMM
+ AAAAAAAACC
+[map specification]
+map 0 0 59288 map 1 0 59289 map 2 0 59290 map 3 0 59291 map 4 0 59292 boss 4 1 59293
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[event monster random map]
+0
+[special passive object item]
+0 -1 1 10088625 2000 1 -1 1 10149508 5000
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14930 -1
+[size]
+5 2
+[greed]
+BBFFFFMMAA
+AAAAAADDEE
+[map specification]
+map 0 0 59260 map 1 0 59261 map 2 0 59262 map 3 0 59263 map 3 1 59264 boss 4 1 59265
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[maze info]
+[quest connection]
+0 14931 -1
+[size]
+7 2
+[greed]
+AAAAAAAAJJFFEE
+BBFFFFFFGGAAAA
+[map specification]
+map 0 1 59266 map 1 1 59267 map 2 1 59268 map 3 1 59269 map 4 1 59270 map 4 0 59271 map 5 0 59272 boss 6 0 59273
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+6 0
+[/boss map]
+[clear condition]
+[destroy object]
+10601 1
+[/clear condition]
+[maze info]
+[quest connection]
+0 14932 -1
+[size]
+7 2
+[greed]
+BBFFMMAAAAAAAA
+AAAADDFFFFFFEE
+[map specification]
+map 0 0 59274 map 1 0 59275 map 2 0 59276 map 2 1 59277 map 3 1 59278 map 4 1 59279 map 5 1 59280 boss 6 1 59281
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+6 1
+[/boss map]
+[clear condition]
+[destroy object]
+10601 1
+[/clear condition]
+[maze info]
+[quest connection]
+0 14933 -1
+[size]
+5 2
+[greed]
+AAJJFFFFEE
+BBGGAAAAAA
+[map specification]
+map 0 1 59282 map 1 1 59283 map 1 0 59284 map 2 0 59285 map 3 0 59286 boss 4 0 59287
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14934 -1
+[size]
+5 2
+[greed]
+BBFFFFFFMM
+AAAAAAAACC
+[map specification]
+map 0 0 59288 map 1 0 59289 map 2 0 59290 map 3 0 59291 map 4 0 59292 boss 4 1 59293
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 1
+[/boss map]
+
+===== dungeon/StormOfMetastasis/DriftCave/Tomb_of_the_Heroes.dgn =====
+=== dungeon/StormOfMetastasis/DriftCave/Tomb_of_the_Heroes.dgn ===
+[background pos]
+80
+[name]
+英雄冢
+[explain]
+    暗精灵们无法掩饰自己的震惊， 历史上辉煌无比的七位暗精灵英雄由于毁灭纪的缘故， 被魔物侵占， 再度重生……邪恶的气息充斥着他们的躯体， 如果让他们走出坟墓， 那么整个暗精灵领地都会陷入无边的恐慌之中……    “一定要让他们永远地安息”梅娅女王沉痛地说道， “不能让我们的英雄毁了他们曾经挚爱的土地。”
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 2
+[difficulty level]
+1 1 1 0 0
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[minimum required level]
+29
+[basis level]
+32
+[experience increasing point]
+2.05
+[champion]
+3 25 40 60 60
+[pathgate object]
+5985 5986 5987 5988 5989 5990 5991 5992 5993 5994
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+130 100
+[increase difficulty rate]
+5 5
+[increase exp rate]
+0 30
+[quest list]
+1866 , 1867 , 1869 , 1871 , 1872 ,
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14017 map 1 0 14018 map 2 0 14019 map 3 0 14020 map 4 0 14021 map 5 0 14022 map 6 0 14023 boss 7 0 14024
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14025 map 1 0 14026 map 2 0 14027 map 3 0 14028 map 4 0 14029 map 5 0 14030 map 6 0 14031 boss 7 0 14032
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14033 map 1 0 14034 map 2 0 14035 map 3 0 14036 map 4 0 14037 map 5 0 14038 map 6 0 14039 boss 7 0 14040
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14041 map 1 0 14042 map 2 0 14043 map 3 0 14044 map 4 0 14045 map 5 0 14046 map 6 0 14047 boss 7 0 14048
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14049 map 1 0 14050 map 2 0 14051 map 3 0 14052 map 4 0 14053 map 5 0 14054 map 6 0 14055 boss 7 0 14056
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14057 map 1 0 14058 map 2 0 14059 map 3 0 14060 map 4 0 14061 map 5 0 14062 map 6 0 14063 boss 7 0 14064
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 14065 map 1 0 14066 map 2 0 14067 map 3 0 14068 map 4 0 14069 map 5 0 14070 map 6 0 14071 boss 7 0 14072
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1866 -1
+[size]
+7 1
+[greed]
+BBFFFFFFFFFFEE
+[map specification]
+map 0 0 59294 map 1 0 59295 map 2 0 59296 map 3 0 59297 map 4 0 59298 map 5 0 59299 boss 6 0 59300
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+6 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1867 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59301 map 1 0 59302 map 2 0 59303 map 3 0 59304 map 4 0 59305 map 5 0 59306 map 6 0 59307 boss 7 0 59308
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1869 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59309 map 1 0 59310 map 2 0 59311 map 3 0 59312 map 4 0 59313 map 5 0 59314 map 6 0 59315 boss 7 0 59316
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1871 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59317 map 1 0 59318 map 2 0 59319 map 3 0 59320 map 4 0 59321 map 5 0 59322 map 6 0 59323 boss 7 0 59324
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 1872 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59325 map 1 0 59326 map 2 0 59327 map 3 0 59328 map 4 0 59329 map 5 0 59330 map 6 0 59331 boss 7 0 59332
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[event monster random map]
+0
+[special passive object item]
+0 -1 1 10088625 2000 1 -1 1 10149508 5000
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14935 -1
+[size]
+7 1
+[greed]
+BBFFFFFFFFFFEE
+[map specification]
+map 0 0 59294 map 1 0 59295 map 2 0 59296 map 3 0 59297 map 4 0 59298 map 5 0 59299 boss 6 0 59300
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+6 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14936 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59301 map 1 0 59302 map 2 0 59303 map 3 0 59304 map 4 0 59305 map 5 0 59306 map 6 0 59307 boss 7 0 59308
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14937 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59309 map 1 0 59310 map 2 0 59311 map 3 0 59312 map 4 0 59313 map 5 0 59314 map 6 0 59315 boss 7 0 59316
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14938 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59317 map 1 0 59318 map 2 0 59319 map 3 0 59320 map 4 0 59321 map 5 0 59322 map 6 0 59323 boss 7 0 59324
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14939 -1
+[size]
+8 1
+[greed]
+BBFFFFFFFFFFFFEE
+[map specification]
+map 0 0 59325 map 1 0 59326 map 2 0 59327 map 3 0 59328 map 4 0 59329 map 5 0 59330 map 6 0 59331 boss 7 0 59332
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+
+===== dungeon/StormOfMetastasis/DriftCave/Despot_king_altar.dgn =====
+=== dungeon/StormOfMetastasis/DriftCave/Despot_king_altar.dgn ===
+[background pos]
+80
+[name]
+暴君的祭坛
+[explain]
+    矮人之王--暴君奥古斯都曾经为暗精灵带来了维纳斯的诅咒， 让他们饱受了无尽的痛苦。 一心复仇的暗精灵攻占了矮人的城市诺伊佩拉， 并杀死了奥古斯都。     为了纪念他们死去的王， 矮人们为奥古斯都修建了一座祭坛。 如果现在想要找到千万黄金矿洞的秘密通道， 这座祭坛则是必经之路。 但要突破矮人的防御并不容易， 更何况这里还散发着令人恐惧的不详气息， 让人毛骨悚然……
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 4
+[difficulty level]
+1 1 1 0 0
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[minimum required level]
+31
+[basis level]
+34
+[experience increasing point]
+2.25
+[champion]
+6 25 30 70 80
+[pathgate object]
+5995 5996 5997 5998 5999 6000 6001 6002 6003 6004
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+130 100
+[increase difficulty rate]
+5 5
+[increase exp rate]
+0 30
+[quest list]
+1875 , 1877 , 1878 , 1881 , 1882 ,
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+5 4
+[greed]
+AAAAAAIIAA
+ AAAAAAKKII
+ BBFFFFPPOO
+ AAAABBGGCC
+[map specification]
+map 3 1 14075 map 4 1 14076 map 0 2 14077 map 1 2 14078 map 2 2 14079 map 3 2 14080 map 4 2 14081 map 2 3 14082 map 3 3 14083 map 4 3 14084 boss 3 0 14074
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+3 0
+[/boss map]
+[maze minimap icon]
+4 1 Interface/minimap.img 37 1 2 3 Interface/minimap.img 37 1 4 3 Interface/minimap.img 37 1
+[/maze minimap icon]
+[event monster random map]
+0
+[maze info]
+[size]
+5 4
+[greed]
+AAAAAAIIAA
+ AAAAAAKKII
+ BBFFFFPPOO
+ AAAABBGGCC
+[map specification]
+map 3 1 14075 map 3 0 14085 map 0 2 14077 map 1 2 14078 map 2 2 14079 map 3 2 14080 map 4 2 14081 map 2 3 14087 map 3 3 14083 map 4 3 14088 boss 4 1 14086
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[maze minimap icon]
+3 0 Interface/minimap.img 37 1 2 3 Interface/minimap.img 37 1 4 3 Interface/minimap.img 37 1
+[/maze minimap icon]
+[event monster random map]
+0
+[maze info]
+[size]
+5 4
+[greed]
+AAAAAAIIAA
+ AAAAAAKKII
+ BBFFFFPPOO
+ AAAABBGGCC
+[map specification]
+map 3 1 14075 map 4 1 14090 map 0 2 14077 map 1 2 14078 map 2 2 14079 map 3 2 14080 map 4 2 14081 map 3 0 14089 map 3 3 14083 map 4 3 14084 boss 2 3 14091
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+2 3
+[/boss map]
+[maze minimap icon]
+4 1 Interface/minimap.img 37 1 3 0 Interface/minimap.img 37 1 4 3 Interface/minimap.img 37 1
+[/maze minimap icon]
+[event monster random map]
+0
+[maze info]
+[size]
+5 4
+[greed]
+AAAAAAIIAA
+ AAAAAAKKII
+ BBFFFFPPOO
+ AAAABBGGCC
+[map specification]
+map 3 1 14075 map 4 1 14094 map 0 2 14077 map 1 2 14078 map 2 2 14079 map 3 2 14080 map 4 2 14081 map 2 3 14095 map 3 3 14083 map 3 0 14093 boss 4 3 14096
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 3
+[/boss map]
+[maze minimap icon]
+4 1 Interface/minimap.img 37 1 2 3 Interface/minimap.img 37 1 3 0 Interface/minimap.img 37 1
+[/maze minimap icon]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1875 -1
+[size]
+6 3
+[greed]
+AAAAAAAAJJEE
+AAAAAAAAKKAA
+BBFFFFFFGGAA
+[map specification]
+map 0 2 59334 map 1 2 59335 map 2 2 59336 map 3 2 59337 map 4 2 59338 map 4 1 59339 map 4 0 59340 boss 5 0 59341
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1877 -1
+[size]
+5 3
+[greed]
+AAAAAAAAII
+AAAAAAAAKK
+BBFFFFFFGG
+[map specification]
+map 0 2 59342 map 1 2 59343 map 2 2 59344 map 3 2 59345 map 4 2 59346 map 4 1 59347 boss 4 0 59348
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1878 -1
+[size]
+5 4
+[greed]
+AAAAAAAAII
+AAAAAAAAKK
+BBFFFFMMKK
+AAAAAADDGG
+[map specification]
+map 0 2 59349 map 1 2 59350 map 2 2 59351 map 3 2 59352 map 3 3 59353 map 4 3 59354 map 4 2 59355 map 4 1 59356 boss 4 0 59357
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1881 -1
+[size]
+6 4
+[greed]
+AAAAAAJJMMAA
+AAAAAAKKKKAA
+BBFFFFGGKKAA
+AAAAAAAADDEE
+[map specification]
+map 0 2 59358 map 1 2 59359 map 2 2 59360 map 3 2 59361 map 3 1 59362 map 3 0 59363 map 4 0 59364 map 4 1 59365 map 4 2 59366 map 4 3 59367 boss 5 3 59368
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+5 3
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1882 -1
+[size]
+5 4
+[greed]
+AAAAJJMMAA
+AAAAKKKKAA
+BBFFGGDDMM
+AAAAAAAACC
+[map specification]
+map 0 2 59369 map 1 2 59370 map 2 2 59371 map 2 1 59372 map 2 0 59373 map 3 0 59374 map 3 1 59375 map 3 2 59376 map 4 2 59377 boss 4 3 59378
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 3
+[/boss map]
+[event monster random map]
+0
+[special passive object item]
+0 -1 2 1000 2000 1004 2000 1 -1 1 10088625 2000 2 -1 1 10149508 5000
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14940 -1
+[size]
+6 3
+[greed]
+AAAAAAAAJJEE
+AAAAAAAAKKAA
+BBFFFFFFGGAA
+[map specification]
+map 0 2 59334 map 1 2 59335 map 2 2 59336 map 3 2 59337 map 4 2 59338 map 4 1 59339 map 4 0 59340 boss 5 0 59341
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14941 -1
+[size]
+5 3
+[greed]
+AAAAAAAAII
+AAAAAAAAKK
+BBFFFFFFGG
+[map specification]
+map 0 2 59342 map 1 2 59343 map 2 2 59344 map 3 2 59345 map 4 2 59346 map 4 1 59347 boss 4 0 59348
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14942 -1
+[size]
+5 4
+[greed]
+AAAAAAAAII
+AAAAAAAAKK
+BBFFFFMMKK
+AAAAAADDGG
+[map specification]
+map 0 2 59349 map 1 2 59350 map 2 2 59351 map 3 2 59352 map 3 3 59353 map 4 3 59354 map 4 2 59355 map 4 1 59356 boss 4 0 59357
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14943 -1
+[size]
+6 4
+[greed]
+AAAAAAJJMMAA
+AAAAAAKKKKAA
+BBFFFFGGKKAA
+AAAAAAAADDEE
+[map specification]
+map 0 2 59358 map 1 2 59359 map 2 2 59360 map 3 2 59361 map 3 1 59362 map 3 0 59363 map 4 0 59364 map 4 1 59365 map 4 2 59366 map 4 3 59367 boss 5 3 59368
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+5 3
+[/boss map]
+[maze info]
+[quest connection]
+0 14944 -1
+[size]
+5 4
+[greed]
+AAAAJJMMAA
+AAAAKKKKAA
+BBFFGGDDMM
+AAAAAAAACC
+[map specification]
+map 0 2 59369 map 1 2 59370 map 2 2 59371 map 2 1 59372 map 2 0 59373 map 3 0 59374 map 3 1 59375 map 3 2 59376 map 4 2 59377 boss 4 3 59378
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 3
+[/boss map]
+
+===== dungeon/StormOfMetastasis/DriftCave/Gold_cave.dgn =====
+=== dungeon/StormOfMetastasis/DriftCave/Gold_cave.dgn ===
+[background pos]
+80
+[name]
+黄金矿洞
+[explain]
+    无法摆脱黄金诱惑的矮人们， 现在仍在暗无天日的洞穴中采集黄金。 预言家曾警告过他们， 如果不停止这贪婪的欲望， 必将惹来祸患。 可惜被贪欲填满理智的矮人们已经听不进任何言语了， 我们必须要在事情无法挽回之前阻止他们！
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 5
+[difficulty level]
+1 1 1 0 0
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[minimum required level]
+33
+[basis level]
+36
+[experience increasing point]
+2.35
+[champion]
+6 25 30 70 80
+[pathgate object]
+6005 6006 6007 6008 6009 6010 6011 6012 6013 6014
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+130 100
+[increase difficulty rate]
+5 5
+[increase exp rate]
+0 30
+[quest list]
+1885 , 1887 , 1889 , 1890 , 1891 , 1892 ,
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+5 4
+[greed]
+BBNNFFNNEE
+ AAKKAAKKAA
+ JJHHFFHHMM
+ DDEEAABBGG
+[map specification]
+map 0 0 8100 map 1 0 8101 map 2 0 8102 map 3 0 8103 map 4 0 8104 map 1 1 8105 map 3 1 8106 map 0 2 8107 map 1 2 8108 map 2 2 8109 map 3 2 8110 map 4 2 8111 map 0 3 8112 boss 1 3 8113 map 3 3 8116 map 4 3 8115
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[maze info]
+[size]
+5 4
+[greed]
+BBNNFFNNEE
+ AAKKAAKKAA
+ JJHHFFHHMM
+ DDEEAABBGG
+[map specification]
+map 0 0 8100 map 1 0 8101 map 2 0 8102 map 3 0 8103 map 4 0 8104 map 1 1 8105 map 3 1 8106 map 0 2 8107 map 1 2 8108 map 2 2 8109 map 3 2 8110 map 4 2 8111 map 0 3 8112 map 1 3 8117 boss 3 3 8114 map 4 3 8115
+[/map specification]
+[start map]
+4 0
+[/start map]
+[boss map]
+3 3
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1885 -1
+[size]
+3 4
+[greed]
+BBFFMM
+AAJJGG
+JJGGAA
+DDEEAA
+[map specification]
+map 0 0 59390 map 1 0 59391 map 2 0 59392 map 2 1 59393 map 1 1 59394 map 1 2 59395 map 0 2 59396 map 0 3 59397 boss 1 3 59398
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1887 -1
+[clear condition]
+[destroy object]
+10601 1
+[/clear condition]
+[size]
+5 3
+[greed]
+AAJJFFFFMM
+BBGGAAJJGG
+AAAAAADDEE
+[map specification]
+map 0 1 59399 map 1 1 59400 map 1 0 59401 map 2 0 59402 map 3 0 59403 map 4 0 59404 map 4 1 59405 map 3 1 59406 map 3 2 59407 boss 4 2 59408
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 2
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1889 -1
+[size]
+5 4
+[greed]
+AAJJFFMMAA
+AAKKAAKKAA
+BBGGAADDMM
+AAAAAAAACC
+[map specification]
+map 0 2 59409 map 1 2 59410 map 1 1 59411 map 1 0 59412 map 2 0 59413 map 3 0 59414 map 3 1 59415 map 3 2 59416 map 4 2 59417 boss 4 3 59418
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 3
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1890 -1
+[size]
+3 4
+[greed]
+JJFFEE
+DDFFMM
+AAAAKK
+BBFFGG
+[map specification]
+map 0 3 59419 map 1 3 59420 map 2 3 59421 map 2 2 59422 map 2 1 59423 map 1 1 59424 map 0 1 59425 map 0 0 59426 map 1 0 59427 boss 2 0 59428
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+2 0
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1891 -1
+[size]
+5 5
+[greed]
+BBFFMMAAAA
+AAAAKKAAII
+AAAADDFFOO
+AAAAAAJJGG
+AAAAAADDEE
+[map specification]
+map 0 0 59429 map 1 0 59430 map 2 0 59431 map 2 1 59432 map 2 2 59433 map 3 2 59434 map 4 2 59435 map 4 3 59436 map 3 3 59437 map 3 4 59438 map 4 1 59439 boss 4 4 59440
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 4
+[/boss map]
+[event monster random map]
+0
+[maze info]
+[quest connection]
+0 1892 -1
+[size]
+5 4
+[greed]
+AAAAAAAAII
+AAJJFFMMKK
+AAKKAAKKKK
+BBGGAADDGG
+[map specification]
+map 0 3 59441 map 1 3 59442 map 1 2 59443 map 1 1 59444 map 2 1 59445 map 3 1 59446 map 3 2 59447 map 3 3 59448 map 4 3 59449 map 4 2 59450 map 4 1 59451 boss 4 0 59452
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[event monster random map]
+0
+[special passive object item]
+0 -1 3 10000911 9500 10000912 480 10000913 20 1 -1 1 10088625 2000 2 -1 1 10149508 5000
+[/special passive object item]
+[appendage destory object]
+[object index]
+37013
+[/object index]
+[object count]
+6
+[gold count]
+4
+[independent drop weight]
+40
+[monster index]
+65026
+[/monster index]
+[/appendage destory object]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14945 -1
+[size]
+3 4
+[greed]
+BBFFMM
+AAJJGG
+JJGGAA
+DDEEAA
+[map specification]
+map 0 0 59390 map 1 0 59391 map 2 0 59392 map 2 1 59393 map 1 1 59394 map 1 2 59395 map 0 2 59396 map 0 3 59397 boss 1 3 59398
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[maze info]
+[quest connection]
+0 14946 -1
+[size]
+5 3
+[greed]
+AAJJFFFFMM
+BBGGAAJJGG
+AAAAAADDEE
+[map specification]
+map 0 1 59399 map 1 1 59400 map 1 0 59401 map 2 0 59402 map 3 0 59403 map 4 0 59404 map 4 1 59405 map 3 1 59406 map 3 2 59407 boss 4 2 59408
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 2
+[/boss map]
+[clear condition]
+[destroy object]
+10601 1
+[/clear condition]
+[maze info]
+[quest connection]
+0 14947 -1
+[size]
+5 4
+[greed]
+AAJJFFMMAA
+AAKKAAKKAA
+BBGGAADDMM
+AAAAAAAACC
+[map specification]
+map 0 2 59409 map 1 2 59410 map 1 1 59411 map 1 0 59412 map 2 0 59413 map 3 0 59414 map 3 1 59415 map 3 2 59416 map 4 2 59417 boss 4 3 59418
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+4 3
+[/boss map]
+[maze info]
+[quest connection]
+0 14948 -1
+[size]
+3 4
+[greed]
+JJFFEE
+DDFFMM
+AAAAKK
+BBFFGG
+[map specification]
+map 0 3 59419 map 1 3 59420 map 2 3 59421 map 2 2 59422 map 2 1 59423 map 1 1 59424 map 0 1 59425 map 0 0 59426 map 1 0 59427 boss 2 0 59428
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+2 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14949 -1
+[size]
+5 5
+[greed]
+BBFFMMAAAA
+AAAAKKAAII
+AAAADDFFOO
+AAAAAAJJGG
+AAAAAADDEE
+[map specification]
+map 0 0 59429 map 1 0 59430 map 2 0 59431 map 2 1 59432 map 2 2 59433 map 3 2 59434 map 4 2 59435 map 4 3 59436 map 3 3 59437 map 3 4 59438 map 4 1 59439 boss 4 4 59440
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 4
+[/boss map]
+[maze info]
+[quest connection]
+0 14950 -1
+[size]
+5 4
+[greed]
+AAAAAAAAII
+AAJJFFMMKK
+AAKKAAKKKK
+BBGGAADDGG
+[map specification]
+map 0 3 59441 map 1 3 59442 map 1 2 59443 map 1 1 59444 map 2 1 59445 map 3 1 59446 map 3 2 59447 map 3 3 59448 map 4 3 59449 map 4 2 59450 map 4 1 59451 boss 4 0 59452
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+4 0
+[/boss map]
+
+===== dungeon/StormOfMetastasis/DriftCave/Ancient_times_heart.dgn =====
+=== dungeon/StormOfMetastasis/DriftCave/Ancient_times_heart.dgn ===
+[background pos]
+80
+[name]
+远古墓穴深处
+[explain]
+    被贪欲冲昏头脑的黄金王维迪尔唤醒了沉睡在地下的恐怖生物——炎魔。 炎魔之王巴塔路西斯向维迪尔提出了一项秘密协议， 维迪尔在恐惧与颤抖中似乎答应了炎魔之王。    协议的内容会是什么？ 它带给我们带来的又会是什么？ 冒险家， 希望你能为我们找到答案。
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 3
+[difficulty level]
+1 1 1 0 0
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[minimum required level]
+35
+[basis level]
+38
+[experience increasing point]
+1.95
+[champion]
+6 25 30 70 80
+[pathgate object]
+6015 6016 6017 6018 6019 6020 6021 6022 6023 6024
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+130 100
+[increase difficulty rate]
+5 5
+[increase exp rate]
+0 30
+[quest list]
+1895 , 1896 , 1899 , 1900 1919 , 1920 , 1923 ,
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+5 3
+[greed]
+AAJJMMJJMM  
+ BBOOLLPPOO
+ AADDGGDDGG
+[map specification]
+map 0 1 8200 map 1 0 8201 map 1 1 8202 map 1 2 8203 map 2 0 8204 map 2 1 8205 map 2 2 8206 map 3 0 8207 map 3 1 8208 map 3 2 8209 map 4 0 8210 map 4 2 8214 boss 4 1 8211 8212 8213
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[open door even enemy]
+0
+[event monster random map]
+0
+[maze info]
+[size]
+5 3
+[quest connection]
+0 1895 -1
+[greed]
+BBMMAAAAAA
+ AADDMMAAAA
+ AAAADDFFEE
+[map specification]
+map 0 0 58320 map 1 0 58322 map 1 1 58323 map 2 1 58325 map 2 2 58326 map 3 2 58328 boss 4 2 58329
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 2
+[/boss map]
+[maze info]
+[size]
+4 3
+[quest connection]
+0 1896 -1
+[greed]
+BBMMAAAA
+ AALLMMAA
+ AACCDDEE
+[map specification]
+map 0 0 58330 map 1 0 58331 map 1 1 58334 map 2 1 58336 map 1 2 58338 map 2 2 58339 boss 3 2 58341
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[maze info]
+[size]
+4 2
+[quest connection]
+0 1899 -1
+[greed]
+IIJJFFMM
+ DDHHEECC
+[map specification]
+map 0 0 58342 map 1 0 58343 map 2 0 58344 map 3 0 58346 map 0 1 58347 map 1 1 58348 map 2 1 58349 boss 3 1 58351
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 1
+[/boss map]
+[maze info]
+[size]
+4 3
+[quest connection]
+0 1900 -1
+[greed]
+BBNNEEAA
+ AALLMMII
+ AACCDDGG
+[map specification]
+map 0 0 58352 map 1 0 58353 map 2 0 58354 map 1 1 58357 map 2 1 58358 map 1 2 58359 map 2 2 58360 map 3 2 58361 boss 3 1 58362
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 1
+[/boss map]
+[maze info]
+[size]
+3 4
+[quest connection]
+0 1919 -1
+[greed]
+JJFFMM
+ LLEECC
+ LLEEAA
+ CCAAAA
+[map specification]
+map 0 0 58363 map 1 0 58364 map 2 0 58365 map 0 1 58367 map 1 1 58368 map 0 2 58369 map 1 2 58371 map 0 3 58372 boss 2 1 58373
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+2 1
+[/boss map]
+[maze info]
+[size]
+4 3
+[quest connection]
+0 1920 -1
+[greed]
+IIAAAAAA
+ KKJJMMAA
+ DDGGDDEE
+[map specification]
+map 0 0 58374 map 0 1 58378 map 1 1 58379 map 2 1 58380 map 0 2 58381 map 1 2 58382 map 2 2 58383 boss 3 2 58385
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[maze info]
+[size]
+4 3
+[quest connection]
+0 1923 -1
+[greed]
+BBMMAAAA
+ AALLNNEE
+ AACCDDEE
+[map specification]
+map 0 0 58386 map 1 0 58387 map 1 1 58390 map 2 1 58391 map 3 1 58392 map 1 2 58394 map 2 2 58395 boss 3 2 58396
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[special passive object item]
+0 -1 1 10088625 2000 1 -1 1 10149508 5000
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14951 -1
+[size]
+5 3
+[greed]
+BBMMAAAAAA
+AADDMMAAAA
+AAAADDFFEE
+[map specification]
+map 0 0 58320 map 1 0 58322 map 1 1 58323 map 2 1 58325 map 2 2 58326 map 3 2 58328 boss 4 2 58329
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 2
+[/boss map]
+[maze info]
+[quest connection]
+0 14952 -1
+[size]
+4 3
+[greed]
+BBMMAAAA
+AALLMMAA
+AACCDDEE
+[map specification]
+map 0 0 58330 map 1 0 58331 map 1 1 58334 map 2 1 58336 map 1 2 58338 map 2 2 58339 boss 3 2 58341
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[maze info]
+[quest connection]
+0 14953 -1
+[size]
+4 2
+[greed]
+IIJJFFMM
+DDHHEECC
+[map specification]
+map 0 0 58342 map 1 0 58343 map 2 0 58344 map 3 0 58346 map 0 1 58347 map 1 1 58348 map 2 1 58349 boss 3 1 58351
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 1
+[/boss map]
+[maze info]
+[quest connection]
+0 14954 -1
+[size]
+4 3
+[greed]
+BBNNEEAA
+AALLMMII
+AACCDDGG
+[map specification]
+map 0 0 58352 map 1 0 58353 map 2 0 58354 map 1 1 58357 map 2 1 58358 map 1 2 58359 map 2 2 58360 map 3 2 58361 boss 3 1 58362
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 1
+[/boss map]
+[maze info]
+[quest connection]
+0 14955 -1
+[size]
+3 4
+[greed]
+JJFFMM
+LLEECC
+LLEEAA
+CCAAAA
+[map specification]
+map 0 0 58363 map 1 0 58364 map 2 0 58365 map 0 1 58367 map 1 1 58368 map 0 2 58369 map 1 2 58371 map 0 3 58372 boss 2 1 58373
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+2 1
+[/boss map]
+[maze info]
+[quest connection]
+0 14956 -1
+[size]
+4 3
+[greed]
+IIAAAAAA
+KKJJMMAA
+DDGGDDEE
+[map specification]
+map 0 0 58374 map 0 1 58378 map 1 1 58379 map 2 1 58380 map 0 2 58381 map 1 2 58382 map 2 2 58383 boss 3 2 58385
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[maze info]
+[quest connection]
+0 14957 -1
+[size]
+4 3
+[greed]
+BBMMAAAA
+AALLNNEE
+AACCDDEE
+[map specification]
+map 0 0 58386 map 1 0 58387 map 1 1 58390 map 2 1 58391 map 3 1 58392 map 1 2 58394 map 2 2 58395 boss 3 2 58396
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+
+===== dungeon/StormOfMetastasis/DriftCave/Dragon_seal.dgn =====
+=== dungeon/StormOfMetastasis/DriftCave/Dragon_seal.dgn ===
+[background pos]
+80
+[name]
+邪龙的封印
+[explain]
+    很久之前， 为了封印邪龙斯皮兹， 矮人族和暗精灵付出了巨大的代价。 数百年之后， 邪龙的封印似乎有了松动征兆……在巨大的威胁面前， 矮人和暗精灵族决定暂时化解仇恨， 并肩战斗。 希望他们不是貌合神离……
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 1
+[difficulty level]
+1 1 1 0 0
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[minimum required level]
+54
+[basis level]
+57
+[experience increasing point]
+2.05
+[champion]
+0 0 0 0 0
+[pathgate object]
+6025 6026 6027 6028 6029 6030 6031 6032 6033 6034
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+130 100
+[increase difficulty rate]
+5 5
+[increase exp rate]
+0 30
+[quest list]
+2100 , 2107 , 2113 , 2115 ,
+[independent rate]
+25 25 0 120 2116 ,
+[/independent rate]
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+1 7
+[greed]
+II
+ KK
+ KK
+ KK
+ KK
+ KK
+ CC
+[map specification]
+map 0 6 14191 map 0 5 14192 map 0 4 14193 map 0 3 14194 map 0 2 14195 map 0 1 14197 boss 0 0 14198
+[/map specification]
+[start map]
+0 6
+[/start map]
+[boss map]
+0 0
+[/boss map]
+[maze info]
+[quest connection]
+0 2100 -1
+[size]
+5 2
+[greed]
+AAAAIIAAAA
+ BBFFHHFFEE
+[map specification]
+map 0 1 58397 map 1 1 58398 map 2 1 58399 map 2 0 58400 map 3 1 58401 boss 4 1 58402
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[maze info]
+[quest connection]
+0 2107 -1
+[size]
+4 3
+[greed]
+BBMMAAAA
+ AAKKJJEE
+ AADDHHEE
+[map specification]
+map 0 0 58403 map 1 0 58404 map 1 1 58405 map 1 2 58406 map 2 2 58407 map 3 2 58408 map 2 1 58409 boss 3 1 58410
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 1
+[/boss map]
+[maze info]
+[quest connection]
+0 2113 -1
+[size]
+2 5
+[greed]
+IIII
+ LLGG
+ KKAA
+ KKAA
+ DDEE
+[map specification]
+map 0 4 58411 map 1 4 58412 map 0 3 58413 map 0 2 58415 map 0 1 58417 map 1 1 58418 map 0 0 58419 boss 1 0 58420
+[/map specification]
+[start map]
+0 4
+[/start map]
+[boss map]
+1 0
+[/boss map]
+[maze info]
+[quest connection]
+0 2115 -1
+[size]
+4 4
+[greed]
+BBMMAAAA
+ AALLEEAA
+ AAKKAAAA
+ AADDFFEE
+[map specification]
+map 0 0 58421 map 1 0 58422 map 1 1 58423 map 2 1 58424 map 1 2 58425 map 1 3 58426 map 2 3 58427 boss 3 3 58428
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 3
+[/boss map]
+[maze info]
+[quest connection]
+0 2116 -1
+[size]
+3 4
+[greed]
+AAIIAA
+ AAKKAA
+ AADDMM
+ BBFFGG
+[map specification]
+map 0 3 58429 map 1 3 58430 map 2 3 58431 map 2 2 58432 map 1 2 58433 map 1 1 58434 boss 1 0 58435
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+1 0
+[/boss map]
+[event monster random map]
+0
+[special passive object item]
+0 -1 1 3336 4200
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 14958 -1
+[size]
+5 2
+[greed]
+AAAAIIAAAA
+BBFFHHFFEE
+[map specification]
+map 0 1 58397 map 1 1 58398 map 2 1 58399 map 2 0 58400 map 3 1 58401 boss 4 1 58402
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+4 1
+[/boss map]
+[maze info]
+[quest connection]
+0 14959 -1
+[size]
+4 3
+[greed]
+BBMMAAAA
+AAKKJJEE
+AADDHHEE
+[map specification]
+map 0 0 58403 map 1 0 58404 map 1 1 58405 map 1 2 58406 map 2 2 58407 map 3 2 58408 map 2 1 58409 boss 3 1 58410
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 1
+[/boss map]
+[maze info]
+[quest connection]
+0 14960 -1
+[size]
+2 5
+[greed]
+IIII
+LLGG
+KKAA
+KKAA
+DDEE
+[map specification]
+map 0 4 58411 map 1 4 58412 map 0 3 58413 map 0 2 58415 map 0 1 58417 map 1 1 58418 map 0 0 58419 boss 1 0 58420
+[/map specification]
+[start map]
+0 4
+[/start map]
+[boss map]
+1 0
+[/boss map]
+[maze info]
+[quest connection]
+0 14961 -1
+[size]
+4 4
+[greed]
+BBMMAAAA
+AALLEEAA
+AAKKAAAA
+AADDFFEE
+[map specification]
+map 0 0 58421 map 1 0 58422 map 1 1 58423 map 2 1 58424 map 1 2 58425 map 1 3 58426 map 2 3 58427 boss 3 3 58428
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 3
+[/boss map]
+[maze info]
+[quest connection]
+0 14962 -1
+[size]
+3 4
+[greed]
+AAIIAA
+AAKKAA
+AADDMM
+BBFFGG
+[map specification]
+map 0 3 58429 map 1 3 58430 map 2 3 58431 map 2 2 58432 map 1 2 58433 map 1 1 58434 boss 1 0 58435
+[/map specification]
+[start map]
+0 3
+[/start map]
+[boss map]
+1 0
+[/boss map]
+
+===== dungeon/CircleDungeon/Special/Circle_Seizemoney.dgn =====
+=== dungeon/CircleDungeon/Special/Circle_Seizemoney.dgn ===
+[background pos]
+80
+[name]
+黄金王的秘密洞穴
+[explain]
+    即使被赶出黄金矿洞， 维迪尔也没有放弃铸造黄金雕像的野心。 在消耗矮人王国所有的黄金之后， 维迪尔终于在自己准备的秘密洞穴中， 成功建造了自己的黄金雕像。    得知这一消息的暗精灵决定攻入秘密洞穴毁掉这个雕像， 并趁机将黄金王维迪尔彻底消灭。
+[cutscene image]
+Map/CutScene/DriftCave.img 0
+[minimap image]
+Map/MiniMap/Act2.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/DriftCave.img 6
+[minimum required level]
+36
+[basis level]
+36
+[experience increasing point]
+1.9
+[champion]
+3 25 40 60 60
+[pathgate object]
+6005 6006 6007 6008 6009 6010 6011 6012 6013 6014
+[maze info]
+[size]
+8 2
+[greed]
+BBFFFFFFFFFFFFEE
+AAAAAAAAAAAAAAAA
+[map specification]
+map 0 0 36275 map 1 0 36276 map 2 0 36277 map 3 0 36278 map 4 0 36279 map 5 0 36280 map 6 0 36281 map 7 1 36283 boss 7 0 36282
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+7 0
+[/boss map]
+[escape hell]
+1
+[difficulty level]
+1 1 1 0 0
+[warp map condition]
+[source grid pos]
+7 0
+[dest grid pos]
+7 1
+[/warp map condition]
+[clear condition]
+[hunt boss]
+69275 1
+[/clear condition]
+[prohibit practice]
+1
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[special passive object item]
+0 -1 1 10149508 5000
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+
+===== worldmap/driftcave.wdm =====
+=== worldmap/driftcave.wdm ===
+[map image]
+WorldMap/DriftCave.img 0
+[ui path]
+WorldMap/UI/DriftCave.xui
+[dungeon]
+150 -1 151 -1 152 -1 153 -1 154 1895 155 -1 239
+[in progress]
+1925 239
+[in progress]
+1927 8007 -1 2011 13505
+[/dungeon]
+[name]
+漂流洞穴
+[hell dungeon]
+1
+[hell quest]
+2610
+[/hell quest]
+[hell freepass item]
+490003092 1 490003314 1 490700622 1 490003362 1 490003168 1 490003358 1 490003222 1 490003066 1 490002858 1 490002229 1 490002089 1 490001899 1 490001923 1 490001860 1 490001453 1 490001408 1 490000378 1 490000405 1 10005377 1 10158327 1 10157097 1 8272 1 8376 1 8247 1
+[/hell freepass item]
+[item condition]
+3330
+[/item condition]

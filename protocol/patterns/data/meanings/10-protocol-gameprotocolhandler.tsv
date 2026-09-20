@@ -4,10 +4,6 @@ CMD	0x0008	2	查询模式 mode:0/1/3 为查看目标玩家(target-relative),2 �
 CMD	0x000A	0	邀请目标的 uid(user id),用于在会话目录中定位目标会话	Confirmed	上游 PartyHandler.cs:1008 读 BitConverter.ToUInt16(body,0) 作 targetUid
 CMD	0x000A	2	请求类型 reqType:0=组队邀请,1=交易邀请,2=PvP 房间邀请	Confirmed	上游 PartyHandler.cs:1009 读 body[2] 作 reqType,并在 1034/1052/1084 按值分支
 CMD	0x000A	3	peer 标识(int32);reqType=2 时作为房间参数传给 HandleRoomInviteRequestAsync,reqType=1 时原样回传给被邀请方	Confirmed	上游 PartyHandler.cs:1010 读 BitConverter.ToInt32(body,3) 作 peerInt,1048/1065 处使用
-CMD	0x0010	0	副本 id (DungeonId)	Confirmed	上游 SelectDungeonRequest.cs:27 读 BitConverter.ToUInt16(body,0) 作 DungeonId
-CMD	0x0010	2	难度 Difficulty	Confirmed	上游 SelectDungeonRequest.cs:28 取 body[2] 作 Difficulty
-CMD	0x0010	3	深渊(hell party)请求标志:非 0 且该副本是深渊副本时置 run.HellMode	Confirmed	上游 SelectDungeonRequest.cs:28 取 body[3] 作 Flag1/HellPartyRequestFlag;DungeonEntryHandler.cs:418,422 据此开启深渊
-CMD	0x0010	4	深渊难度标志:用于解析深渊模式(HellPartyMode)	Confirmed	上游 SelectDungeonRequest.cs:28 取 body[4] 作 Flag2/HellPartyDifficultyFlag;DungeonEntryHandler.cs:1174 传入 ResolveHellPartyMode
 CMD	0x0011	0	聊天模式 mode:2=队伍频道,3=同区域频道,45=1对1会话;未识别的值只回给发送者自己	Confirmed	上游 ChatHandler.cs:454 读 body[0] 作 mode;19-22 定义 2/3/45 常量,133/155/167 按值分流
 CMD	0x0011	1	目标 uid(user id),私聊类模式下用于定位收信会话	Confirmed	上游 ChatHandler.cs:455 读 BitConverter.ToUInt16(body,1) 作 targetUniqueId
 CMD	0x0011	3	目标角色 id;mode=45 时同一字段被复用为会话 id(ConversationId)	Confirmed	上游 ChatHandler.cs:456 读 BitConverter.ToUInt32(body,3) 作 targetCharacterId,509-513 在 mode==45 时复用为 ConversationId

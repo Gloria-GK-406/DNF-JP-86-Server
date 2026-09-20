@@ -1,0 +1,28 @@
+{
+  "utc": "20260920T084258Z",
+  "character_id": 1,
+  "completed_quests": [
+    1854,
+    1855,
+    1856,
+    1857,
+    1858,
+    1859,
+    1860,
+    1861,
+    1862,
+    1863,
+    1864,
+    1865
+  ],
+  "removed_active_quests": [
+    1856
+  ],
+  "preserved_active_quests": [
+    2489,
+    2007
+  ],
+  "backup_directory": "Document\\outputs\\issue-101\\runtime\\spider-chain-20260920T084258Z",
+  "quest_rewards_granted": false,
+  "unrelated_quest_rows_unchanged": true
+}

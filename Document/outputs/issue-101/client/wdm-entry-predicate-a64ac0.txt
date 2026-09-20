@@ -1,0 +1,221 @@
+RVA 00A64A40 VA 00E64A40  7E 4C                      jle      0xa64a8e
+RVA 00A64A42 VA 00E64A42  72 0C                      jb       0xa64a50
+RVA 00A64A44 VA 00E64A44  8B 46 38                   mov      eax, dword ptr [esi + 0x38]
+RVA 00A64A47 VA 00E64A47  50                         push     eax
+RVA 00A64A48 VA 00E64A48  E8 31 AD DF 01             call     0x285f77e
+RVA 00A64A4D VA 00E64A4D  83 C4 04                   add      esp, 4
+RVA 00A64A50 VA 00E64A50  33 C9                      xor      ecx, ecx
+RVA 00A64A52 VA 00E64A52  C7 46 4C 07 00 00 00       mov      dword ptr [esi + 0x4c], 7
+RVA 00A64A59 VA 00E64A59  89 5E 48                   mov      dword ptr [esi + 0x48], ebx
+RVA 00A64A5C VA 00E64A5C  66 89 4E 38                mov      word ptr [esi + 0x38], cx
+RVA 00A64A60 VA 00E64A60  8B 56 34                   mov      edx, dword ptr [esi + 0x34]
+RVA 00A64A63 VA 00E64A63  52                         push     edx
+RVA 00A64A64 VA 00E64A64  E8 15 AD DF 01             call     0x285f77e
+RVA 00A64A69 VA 00E64A69  83 C4 04                   add      esp, 4
+RVA 00A64A6C VA 00E64A6C  89 5E 34                   mov      dword ptr [esi + 0x34], ebx
+RVA 00A64A6F VA 00E64A6F  39 7E 2C                   cmp      dword ptr [esi + 0x2c], edi
+RVA 00A64A72 VA 00E64A72  72 0C                      jb       0xa64a80
+RVA 00A64A74 VA 00E64A74  8B 46 18                   mov      eax, dword ptr [esi + 0x18]
+RVA 00A64A77 VA 00E64A77  50                         push     eax
+RVA 00A64A78 VA 00E64A78  E8 01 AD DF 01             call     0x285f77e
+RVA 00A64A7D VA 00E64A7D  83 C4 04                   add      esp, 4
+RVA 00A64A80 VA 00E64A80  33 C9                      xor      ecx, ecx
+RVA 00A64A82 VA 00E64A82  C7 46 2C 07 00 00 00       mov      dword ptr [esi + 0x2c], 7
+RVA 00A64A89 VA 00E64A89  89 5E 28                   mov      dword ptr [esi + 0x28], ebx
+RVA 00A64A8C VA 00E64A8C  66 89 4E 18                mov      word ptr [esi + 0x18], cx
+RVA 00A64A90 VA 00E64A90  8B 56 14                   mov      edx, dword ptr [esi + 0x14]
+RVA 00A64A93 VA 00E64A93  52                         push     edx
+RVA 00A64A94 VA 00E64A94  E8 E5 AC DF 01             call     0x285f77e
+RVA 00A64A99 VA 00E64A99  83 C4 04                   add      esp, 4
+RVA 00A64A9C VA 00E64A9C  89 5E 14                   mov      dword ptr [esi + 0x14], ebx
+RVA 00A64A9F VA 00E64A9F  8B 4D F4                   mov      ecx, dword ptr [ebp - 0xc]
+RVA 00A64AA2 VA 00E64AA2  64 89 0D 00 00 00 00       mov      dword ptr fs:[0], ecx
+RVA 00A64AA9 VA 00E64AA9  59                         pop      ecx
+RVA 00A64AAA VA 00E64AAA  5F                         pop      edi
+RVA 00A64AAB VA 00E64AAB  5E                         pop      esi
+RVA 00A64AAC VA 00E64AAC  5B                         pop      ebx
+RVA 00A64AAD VA 00E64AAD  8B E5                      mov      esp, ebp
+RVA 00A64AAF VA 00E64AAF  5D                         pop      ebp
+RVA 00A64AB0 VA 00E64AB0  C3                         ret      
+RVA 00A64AB1 VA 00E64AB1  CC                         int3     
+RVA 00A64AB2 VA 00E64AB2  CC                         int3     
+RVA 00A64AB3 VA 00E64AB3  CC                         int3     
+RVA 00A64AB4 VA 00E64AB4  CC                         int3     
+RVA 00A64AB5 VA 00E64AB5  CC                         int3     
+RVA 00A64AB6 VA 00E64AB6  CC                         int3     
+RVA 00A64AB7 VA 00E64AB7  CC                         int3     
+RVA 00A64AB8 VA 00E64AB8  CC                         int3     
+RVA 00A64AB9 VA 00E64AB9  CC                         int3     
+RVA 00A64ABA VA 00E64ABA  CC                         int3     
+RVA 00A64ABB VA 00E64ABB  CC                         int3     
+RVA 00A64ABC VA 00E64ABC  CC                         int3     
+RVA 00A64ABD VA 00E64ABD  CC                         int3     
+RVA 00A64ABE VA 00E64ABE  CC                         int3     
+RVA 00A64ABF VA 00E64ABF  CC                         int3     
+RVA 00A64AC0 VA 00E64AC0  55                         push     ebp
+RVA 00A64AC1 VA 00E64AC1  8B EC                      mov      ebp, esp
+RVA 00A64AC3 VA 00E64AC3  56                         push     esi
+RVA 00A64AC4 VA 00E64AC4  57                         push     edi
+RVA 00A64AC5 VA 00E64AC5  8B 7D 08                   mov      edi, dword ptr [ebp + 8]
+RVA 00A64AC8 VA 00E64AC8  8B F1                      mov      esi, ecx
+RVA 00A64ACA VA 00E64ACA  8B 4F 04                   mov      ecx, dword ptr [edi + 4]
+RVA 00A64ACD VA 00E64ACD  83 F9 FF                   cmp      ecx, -1
+RVA 00A64AD0 VA 00E64AD0  74 17                      je       0xa64ae9
+RVA 00A64AD2 VA 00E64AD2  8B 47 08                   mov      eax, dword ptr [edi + 8]
+RVA 00A64AD5 VA 00E64AD5  83 E8 00                   sub      eax, 0
+RVA 00A64AD8 VA 00E64AD8  74 17                      je       0xa64af1
+RVA 00A64ADA VA 00E64ADA  48                         dec      eax
+RVA 00A64ADB VA 00E64ADB  75 2F                      jne      0xa64b0c
+RVA 00A64ADD VA 00E64ADD  51                         push     ecx
+RVA 00A64ADE VA 00E64ADE  8B CE                      mov      ecx, esi
+RVA 00A64AE0 VA 00E64AE0  E8 0B D1 FE FF             call     0xa51bf0
+RVA 00A64AE5 VA 00E64AE5  84 C0                      test     al, al
+RVA 00A64AE7 VA 00E64AE7  74 23                      je       0xa64b0c
+RVA 00A64AE9 VA 00E64AE9  5F                         pop      edi
+RVA 00A64AEA VA 00E64AEA  B0 01                      mov      al, 1
+RVA 00A64AEC VA 00E64AEC  5E                         pop      esi
+RVA 00A64AED VA 00E64AED  5D                         pop      ebp
+RVA 00A64AEE VA 00E64AEE  C2 04 00                   ret      4
+RVA 00A64AF1 VA 00E64AF1  51                         push     ecx
+RVA 00A64AF2 VA 00E64AF2  8B CE                      mov      ecx, esi
+RVA 00A64AF4 VA 00E64AF4  E8 A7 BA FE FF             call     0xa505a0
+RVA 00A64AF9 VA 00E64AF9  84 C0                      test     al, al
+RVA 00A64AFB VA 00E64AFB  75 EC                      jne      0xa64ae9
+RVA 00A64AFD VA 00E64AFD  8B 47 04                   mov      eax, dword ptr [edi + 4]
+RVA 00A64B00 VA 00E64B00  50                         push     eax
+RVA 00A64B01 VA 00E64B01  8B CE                      mov      ecx, esi
+RVA 00A64B03 VA 00E64B03  E8 C8 D3 FF FF             call     0xa61ed0
+RVA 00A64B08 VA 00E64B08  84 C0                      test     al, al
+RVA 00A64B0A VA 00E64B0A  75 DD                      jne      0xa64ae9
+RVA 00A64B0C VA 00E64B0C  E8 1F E1 29 00             call     0xd02c30
+RVA 00A64B11 VA 00E64B11  8B C8                      mov      ecx, eax
+RVA 00A64B13 VA 00E64B13  E8 B8 F3 8F 00             call     0x1363ed0
+RVA 00A64B18 VA 00E64B18  84 C0                      test     al, al
+RVA 00A64B1A VA 00E64B1A  5F                         pop      edi
+RVA 00A64B1B VA 00E64B1B  0F 95 C0                   setne    al
+RVA 00A64B1E VA 00E64B1E  5E                         pop      esi
+RVA 00A64B1F VA 00E64B1F  5D                         pop      ebp
+RVA 00A64B20 VA 00E64B20  C2 04 00                   ret      4
+RVA 00A64B23 VA 00E64B23  CC                         int3     
+RVA 00A64B24 VA 00E64B24  CC                         int3     
+RVA 00A64B25 VA 00E64B25  CC                         int3     
+RVA 00A64B26 VA 00E64B26  CC                         int3     
+RVA 00A64B27 VA 00E64B27  CC                         int3     
+RVA 00A64B28 VA 00E64B28  CC                         int3     
+RVA 00A64B29 VA 00E64B29  CC                         int3     
+RVA 00A64B2A VA 00E64B2A  CC                         int3     
+RVA 00A64B2B VA 00E64B2B  CC                         int3     
+RVA 00A64B2C VA 00E64B2C  CC                         int3     
+RVA 00A64B2D VA 00E64B2D  CC                         int3     
+RVA 00A64B2E VA 00E64B2E  CC                         int3     
+RVA 00A64B2F VA 00E64B2F  CC                         int3     
+RVA 00A64B30 VA 00E64B30  55                         push     ebp
+RVA 00A64B31 VA 00E64B31  8B EC                      mov      ebp, esp
+RVA 00A64B33 VA 00E64B33  83 EC 24                   sub      esp, 0x24
+RVA 00A64B36 VA 00E64B36  53                         push     ebx
+RVA 00A64B37 VA 00E64B37  56                         push     esi
+RVA 00A64B38 VA 00E64B38  57                         push     edi
+RVA 00A64B39 VA 00E64B39  8B 7D 08                   mov      edi, dword ptr [ebp + 8]
+RVA 00A64B3C VA 00E64B3C  8D 45 E8                   lea      eax, [ebp - 0x18]
+RVA 00A64B3F VA 00E64B3F  89 4D F8                   mov      dword ptr [ebp - 8], ecx
+RVA 00A64B42 VA 00E64B42  33 DB                      xor      ebx, ebx
+RVA 00A64B44 VA 00E64B44  50                         push     eax
+RVA 00A64B45 VA 00E64B45  8B CF                      mov      ecx, edi
+RVA 00A64B47 VA 00E64B47  89 5D FC                   mov      dword ptr [ebp - 4], ebx
+RVA 00A64B4A VA 00E64B4A  E8 B1 15 FF FF             call     0xa56100
+RVA 00A64B4F VA 00E64B4F  8B 08                      mov      ecx, dword ptr [eax]
+RVA 00A64B51 VA 00E64B51  3B CB                      cmp      ecx, ebx
+RVA 00A64B53 VA 00E64B53  74 08                      je       0xa64b5d
+RVA 00A64B55 VA 00E64B55  8B 09                      mov      ecx, dword ptr [ecx]
+RVA 00A64B57 VA 00E64B57  3B CB                      cmp      ecx, ebx
+RVA 00A64B59 VA 00E64B59  74 02                      je       0xa64b5d
+RVA 00A64B5B VA 00E64B5B  8B 19                      mov      ebx, dword ptr [ecx]
+RVA 00A64B5D VA 00E64B5D  8B 70 08                   mov      esi, dword ptr [eax + 8]
+RVA 00A64B60 VA 00E64B60  8D 4D E8                   lea      ecx, [ebp - 0x18]
+RVA 00A64B63 VA 00E64B63  51                         push     ecx
+RVA 00A64B64 VA 00E64B64  8B CF                      mov      ecx, edi
+RVA 00A64B66 VA 00E64B66  E8 05 69 AD 01             call     0x253b470
+RVA 00A64B6B VA 00E64B6B  85 DB                      test     ebx, ebx
+RVA 00A64B6D VA 00E64B6D  0F 84 2A 01 00 00          je       0xa64c9d
+RVA 00A64B73 VA 00E64B73  8B 13                      mov      edx, dword ptr [ebx]
+RVA 00A64B75 VA 00E64B75  85 D2                      test     edx, edx
+RVA 00A64B77 VA 00E64B77  0F 84 20 01 00 00          je       0xa64c9d
+RVA 00A64B7D VA 00E64B7D  8B 08                      mov      ecx, dword ptr [eax]
+RVA 00A64B7F VA 00E64B7F  85 C9                      test     ecx, ecx
+RVA 00A64B81 VA 00E64B81  74 02                      je       0xa64b85
+RVA 00A64B83 VA 00E64B83  8B 09                      mov      ecx, dword ptr [ecx]
+RVA 00A64B85 VA 00E64B85  3B D1                      cmp      edx, ecx
+RVA 00A64B87 VA 00E64B87  0F 85 10 01 00 00          jne      0xa64c9d
+RVA 00A64B8D VA 00E64B8D  3B 70 08                   cmp      esi, dword ptr [eax + 8]
+RVA 00A64B90 VA 00E64B90  0F 84 0C 01 00 00          je       0xa64ca2
+RVA 00A64B96 VA 00E64B96  8B C2                      mov      eax, edx
+RVA 00A64B98 VA 00E64B98  85 C0                      test     eax, eax
+RVA 00A64B9A VA 00E64B9A  0F 84 FD 00 00 00          je       0xa64c9d
+RVA 00A64BA0 VA 00E64BA0  85 F6                      test     esi, esi
+RVA 00A64BA2 VA 00E64BA2  0F 84 F5 00 00 00          je       0xa64c9d
+RVA 00A64BA8 VA 00E64BA8  39 70 04                   cmp      dword ptr [eax + 4], esi
+RVA 00A64BAB VA 00E64BAB  0F 87 EC 00 00 00          ja       0xa64c9d
+RVA 00A64BB1 VA 00E64BB1  3B 70 08                   cmp      esi, dword ptr [eax + 8]
+RVA 00A64BB4 VA 00E64BB4  0F 83 E3 00 00 00          jae      0xa64c9d
+RVA 00A64BBA VA 00E64BBA  8B 16                      mov      edx, dword ptr [esi]
+RVA 00A64BBC VA 00E64BBC  8B 0D EC C9 A5 03          mov      ecx, dword ptr [0x3a5c9ec]
+RVA 00A64BC2 VA 00E64BC2  52                         push     edx
+RVA 00A64BC3 VA 00E64BC3  E8 38 D1 FE FF             call     0xa51d00
+RVA 00A64BC8 VA 00E64BC8  84 C0                      test     al, al
+RVA 00A64BCA VA 00E64BCA  0F 84 BA 00 00 00          je       0xa64c8a
+RVA 00A64BD0 VA 00E64BD0  8B 3B                      mov      edi, dword ptr [ebx]
+RVA 00A64BD2 VA 00E64BD2  85 FF                      test     edi, edi
+RVA 00A64BD4 VA 00E64BD4  0F 84 C3 00 00 00          je       0xa64c9d
+RVA 00A64BDA VA 00E64BDA  39 77 04                   cmp      dword ptr [edi + 4], esi
+RVA 00A64BDD VA 00E64BDD  0F 87 BA 00 00 00          ja       0xa64c9d
+RVA 00A64BE3 VA 00E64BE3  3B 77 08                   cmp      esi, dword ptr [edi + 8]
+RVA 00A64BE6 VA 00E64BE6  0F 83 B1 00 00 00          jae      0xa64c9d
+RVA 00A64BEC VA 00E64BEC  8B 0E                      mov      ecx, dword ptr [esi]
+RVA 00A64BEE VA 00E64BEE  8B 81 C4 00 00 00          mov      eax, dword ptr [ecx + 0xc4]
+RVA 00A64BF4 VA 00E64BF4  83 F8 01                   cmp      eax, 1
+RVA 00A64BF7 VA 00E64BF7  7C 4D                      jl       0xa64c46
+RVA 00A64BF9 VA 00E64BF9  83 F8 03                   cmp      eax, 3
+RVA 00A64BFC VA 00E64BFC  7F 48                      jg       0xa64c46
+RVA 00A64BFE VA 00E64BFE  8B 91 24 01 00 00          mov      edx, dword ptr [ecx + 0x124]
+RVA 00A64C04 VA 00E64C04  2B 91 20 01 00 00          sub      edx, dword ptr [ecx + 0x120]
+RVA 00A64C0A VA 00E64C0A  B8 67 66 66 66             mov      eax, 0x66666667
+RVA 00A64C0F VA 00E64C0F  F7 EA                      imul     edx
+RVA 00A64C11 VA 00E64C11  C1 FA 03                   sar      edx, 3
+RVA 00A64C14 VA 00E64C14  8B C2                      mov      eax, edx
+RVA 00A64C16 VA 00E64C16  C1 E8 1F                   shr      eax, 0x1f
+RVA 00A64C19 VA 00E64C19  03 C2                      add      eax, edx
+RVA 00A64C1B VA 00E64C1B  74 09                      je       0xa64c26
+RVA 00A64C1D VA 00E64C1D  83 B9 A4 03 00 00 FF       cmp      dword ptr [ecx + 0x3a4], -1
+RVA 00A64C24 VA 00E64C24  74 20                      je       0xa64c46
+RVA 00A64C26 VA 00E64C26  83 B9 CC 00 00 00 FF       cmp      dword ptr [ecx + 0xcc], -1
+RVA 00A64C2D VA 00E64C2D  74 17                      je       0xa64c46
+RVA 00A64C2F VA 00E64C2F  83 7D FC 00                cmp      dword ptr [ebp - 4], 0
+RVA 00A64C33 VA 00E64C33  75 11                      jne      0xa64c46
+RVA 00A64C35 VA 00E64C35  85 FF                      test     edi, edi
+RVA 00A64C37 VA 00E64C37  74 64                      je       0xa64c9d
+RVA 00A64C39 VA 00E64C39  39 77 04                   cmp      dword ptr [edi + 4], esi
+RVA 00A64C3C VA 00E64C3C  77 5F                      ja       0xa64c9d
+RVA 00A64C3E VA 00E64C3E  3B 77 08                   cmp      esi, dword ptr [edi + 8]
+RVA 00A64C41 VA 00E64C41  73 5A                      jae      0xa64c9d
+RVA 00A64C43 VA 00E64C43  89 4D FC                   mov      dword ptr [ebp - 4], ecx
+RVA 00A64C46 VA 00E64C46  83 EC 0C                   sub      esp, 0xc
+RVA 00A64C49 VA 00E64C49  8B C4                      mov      eax, esp
+RVA 00A64C4B VA 00E64C4B  C7 00 00 00 00 00          mov      dword ptr [eax], 0
+RVA 00A64C51 VA 00E64C51  C7 40 04 00 00 00 00       mov      dword ptr [eax + 4], 0
+RVA 00A64C58 VA 00E64C58  8B 0B                      mov      ecx, dword ptr [ebx]
+RVA 00A64C5A VA 00E64C5A  89 65 F4                   mov      dword ptr [ebp - 0xc], esp
+RVA 00A64C5D VA 00E64C5D  85 C9                      test     ecx, ecx
+RVA 00A64C5F VA 00E64C5F  74 04                      je       0xa64c65
+RVA 00A64C61 VA 00E64C61  8B 09                      mov      ecx, dword ptr [ecx]
+RVA 00A64C63 VA 00E64C63  89 08                      mov      dword ptr [eax], ecx
+RVA 00A64C65 VA 00E64C65  8B 4D 08                   mov      ecx, dword ptr [ebp + 8]
+RVA 00A64C68 VA 00E64C68  8D 55 DC                   lea      edx, [ebp - 0x24]
+RVA 00A64C6B VA 00E64C6B  52                         push     edx
+RVA 00A64C6C VA 00E64C6C  89 70 08                   mov      dword ptr [eax + 8], esi
+RVA 00A64C6F VA 00E64C6F  E8 9C A9 87 01             call     0x22df610
+RVA 00A64C74 VA 00E64C74  8B 08                      mov      ecx, dword ptr [eax]
+RVA 00A64C76 VA 00E64C76  3B D9                      cmp      ebx, ecx
+RVA 00A64C78 VA 00E64C78  74 08                      je       0xa64c82
+RVA 00A64C7A VA 00E64C7A  8B 09                      mov      ecx, dword ptr [ecx]
+RVA 00A64C7C VA 00E64C7C  85 C9                      test     ecx, ecx
+RVA 00A64C7E VA 00E64C7E  74 02                      je       0xa64c82

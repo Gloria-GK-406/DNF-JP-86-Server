@@ -1,0 +1,481 @@
+PVF_SHA256=19F5FA85FF73CCE94E299E0902269DE2F0164934128F15B8A7B99249C881BE1A
+
+===== MAP 8001 =====
+id 8001 -> 150_spider_kingom/(0,0)8001_start.map
+=== map/150_spider_kingom/(0,0)8001_start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+150
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/Tile01.til Tile/Tile01.til Tile/Tile01.til Tile/Tile01.til Tile/Tile01.til Tile/Tile01.til
+[/tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[near sight scroll]
+100
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+251 1052 1330 215 867 1174 447 1036
+[dungeon start area]
+258 240 123 88
+[sound]
+M_SPIDER_KINGDOM AMB_CAVE_02
+[/sound]
+[animation]
+Animation/Spider_line2.ani [normal] -12 -147 0 Animation/Spider_egg0.ani [normal] 215 -130 0 Animation/Spider_egg1.ani [normal] 203 -78 0 Animation/Spider_egg0.ani [normal] 142 -68 0 Animation/Spider_egg1.ani [normal] 189 -20 0 Animation/Spider_egg1.ani [normal] 152 -11 0 Animation/Spider_egg1.ani [normal] 180 35 0 Animation/tile_stone3.ani [normal] 887 121 0 Animation/tile_stone3.ani [normal] 979 129 0 Animation/Spider_line5.ani [normal] 1067 104 0 Animation/Spider_line0.ani [bottom] 836 317 0 Animation/tile_deck0.ani [bottom] 165 246 0 Animation/tile_deck4.ani [bottom] 1081 292 0 Animation/tile_deck4.ani [bottom] 1088 258 0 Animation/tile_deck2.ani [bottom] 1086 354 0 Animation/tile_deck2.ani [bottom] 1138 341 0 Animation/tile_deck4.ani [bottom] 1016 369 0 Animation/tile_deck4.ani [bottom] 124 235 0 Animation/Spider_line4.ani [normal] 577 32 0 Animation/Spider_line4.ani [normal] 292 -169 0 Animation/Spider_line4.ani [normal] 260 63 0 Animation/Spider_line4.ani [normal] 337 -182 0 Animation/Spider_line4.ani [normal] 420 -156 0 Animation/tile_deck0.ani [bottom] 661 203 0 Animation/tile_deck4.ani [bottom] 630 171 0 Animation/tile_deck2.ani [bottom] 599 146 0 Animation/tile_deck1.ani [bottom] 1084 222 0 Animation/tile_deck1.ani [bottom] 789 165 0 Animation/Spider_egg0.ani [closeback] 621 -116 0 Animation/tile_deck2.ani [closeback] 369 262 0 Animation/midle_black_srv3.ani [closeback] 107 96 0 Animation/midle_black3.ani [closeback] 246 -152 0 Animation/midle_black1.ani [closeback] 653 -152 0 Animation/Spider_egg0.ani [closeback] 504 -122 0 Animation/Spider_egg1.ani [closeback] 570 -136 0 Animation/Spider_egg1.ani [closeback] 521 3 0 Animation/Spider_egg1.ani [closeback] 1078 -176 0 Animation/midle_black_srv0.ani [closeback] 1408 91 0 Animation/Spider_egg1.ani [closeback] 551 -83 0 Animation/Spider_egg1.ani [closeback] 597 -70 0 Animation/Spider_egg1.ani [closeback] 512 -64 0 Animation/tile_ceiling.ani [close] 163 -174 0 Animation/tile_ceiling.ani [close] 670 -174 0 Animation/tile_ceiling.ani [close] 1177 -174 0 Animation/tile_stone4.ani [normal] 219 164 0 Animation/tile_stone4.ani [normal] 100 220 0 Animation/Spider_egg3.ani [normal] 101 228 0 Animation/Spider_egg1.ani [normal] 159 214 0 Animation/Spider_line5.ani [normal] 116 224 0 Animation/tile_stone3.ani [normal] -14 228 0 Animation/tile_stone3.ani [normal] 16 330 0 Animation/tile_ceiling.ani [close] 312 -182 0 Animation/tile_ceiling.ani [close] 819 -183 0 Animation/Spider_line4.ani [close] 161 -146 0 Animation/Spider_line4.ani [close] 1131 -129 0 Animation/Spider_egg1.ani [close] 1132 -141 0 Animation/Spider_line0.ani [bottom] 1013 253 0 Animation/Spider_line0.ani [bottom] 792 216 0 Animation/ufmid.ani [middleback] 239 -124 0 Animation/ufmid.ani [middleback] 901 -147 0 Animation/tile_ceiling.ani [close] -195 -182 0
+[/animation]
+[passive object]
+37001 141 197 0 37008 858 319 0 37008 753 310 0 37008 783 349 0 37005 926 368 0 48359 1150 273 0 48359 891 268 0 48359 999 204 0 48359 761 215 0
+[/passive object]
+[monster]
+69017 1 0 397 333 0 1 1 [fixed] [normal] 69017 1 0 386 196 0 1 1 [fixed] [normal] 65617 1 0 432 277 0 1 1 [fixed] [normal] 63514 1 0 1118 270 0 1 1 [fixed] [normal] 63514 1 0 1048 331 0 1 1 [fixed] [normal] 63514 1 0 1030 210 0 1 1 [fixed] [normal] 65614 1 0 953 266 0 1 1 [fixed] [normal]
+[/monster]
+[monster team]
+0 0 0 100 100 100 100
+[/monster team]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+588 236 0 565 236 0 565 258 0 588 258 0
+[/event monster position]
+
+===== MAP 14017 =====
+id 14017 -> 151_Tomb_of_the_Heroes/(0,1)14017_start.map
+=== map/151_Tomb_of_the_Heroes/(0,1)14017_start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+151
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/air_Tile02.til Tile/air_Tile02.til Tile/air_Tile01.til Tile/air_Tile03.til
+[/tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+191 693 893 181 450 777 661 706
+[dungeon start area]
+113 222 160 -93
+[sound]
+M_TOMB_OF_THE_HERO AMB_DARKSTAGE_01
+[/sound]
+[animation]
+Animation/air_tile_deak0.ani [normal] 560 105 0 Animation/air_tile_deak1.ani [bottom] 808 233 0 Animation/air_tile_deak1.ani [bottom] 699 122 0 Animation/air_tile_deak1.ani [bottom] 219 146 0 Animation/air_tile_deak1.ani [bottom] 345 208 0 Animation/air_midle_gate0.ani [closeback] 729 -88 0
+[/animation]
+[monster]
+65609 1 0 492 159 0 1 1 [fixed] [normal] 65609 1 0 643 169 0 1 1 [fixed] [normal] 65609 1 0 706 187 0 1 1 [fixed] [normal] 65609 1 0 568 195 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+522 153 0 465 153 0 417 150 0 571 156 0
+[/event monster position]
+[map name]
+PVP无名
+
+===== MAP 14075 =====
+id 14075 -> 152_Despot_king_altar/1_(3,1)14075_normal.map
+=== map/152_Despot_king_altar/1_(3,1)14075_normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+152
+[/dungeon]
+[type]
+[normal]
+[greed]
+KK KK
+[tile]
+Tile/Tile07_1.til Tile/Tile06_1.til Tile/Tile06_1.til Tile/Tile09_1.til Tile/Tile12.til Tile/Tile08.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Tile21_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[near sight scroll]
+100
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+animation/ufmid.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+326 910 695 749 126 150 1150 271
+[sound]
+M_DESPOT_KING_ALTAR AMB_MINE
+[/sound]
+[animation]
+Animation/tile_deck10.ani [normal] 588 82 0 Animation/tile_deck10.ani [normal] 402 80 0 Animation/tile_deck11.ani [normal] 822 130 0 Animation/midle_black3.ani [closeback] 382 -177 0 Animation/midle_black1.ani [closeback] -253 -177 0 Animation/tile_deck10.ani [normal] 423 82 0 Animation/tile_deck10.ani [normal] 445 82 0 Animation/tile_deck10.ani [normal] 383 80 0 Animation/tile_deck10.ani [normal] 363 81 0 Animation/midle_black1.ani [closeback] 789 -177 0
+[/animation]
+[passive object]
+48343 595 291 0 48343 220 268 0 48345 342 122 0 48345 485 121 0 18079 775 164 0 18089 1347 196 0 18079 753 203 0 48343 1317 256 0 48343 1360 219 0
+[/passive object]
+[monster]
+63510 1 0 290 201 0 1 1 [fixed] [normal] 63510 1 0 359 165 0 1 1 [fixed] [normal] 63510 1 0 327 259 0 1 1 [fixed] [normal] 63511 1 0 558 155 0 1 1 [fixed] [normal] 63511 1 0 553 206 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+148 206 0 462 219 0 643 162 0 388 159 0
+[/event monster position]
+[map name]
+PVP无名
+
+===== MAP 8100 =====
+id 8100 -> 153_Gold_cave/(0,0)8100_start1.map
+=== map/153_Gold_cave/(0,0)8100_start1.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+153
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/Tile01.til Tile/Tile02.til Tile/Tile01.til Tile/Tile02.til Tile/Tile01.til
+[/tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[near sight scroll]
+100
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+animation/ufmid.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+191 693 1098 182 450 777 661 706
+[dungeon start area]
+103 250 90 62
+[sound]
+M_GOLD_CAVE AMB_MINE
+[/sound]
+[animation]
+Animation/tile_deck5.ani [normal] 1002 367 0 Animation/tile_deck7.ani [normal] 141 238 0 Animation/tile_deck6.ani [normal] 476 314 0 Animation/tile_deck0.ani [bottom] 180 208 0 Animation/tile_deck1.ani [bottom] 338 286 0 Animation/tile_deck8.ani [bottom] 127 146 0 Animation/tile_deck4.ani [bottom] 1054 294 0 Animation/tile_deck3.ani [bottom] 821 335 0 Animation/tile_deck2.ani [bottom] 632 289 0 Animation/tile_rail1.ani [bottom] 950 219 0 Animation/tile_rail0.ani [bottom] 665 219 0 Animation/tile_rail2.ani [bottom] 1213 219 0 Animation/tile_rail3.ani [bottom] 104 224 0 Animation/midle_black5.ani [closeback] 1081 -158 0 Animation/midle_black1.ani [closeback] 445 -145 0 Animation/midle_black1.ani [closeback] -191 -148 0 Animation/tile_rail0.ani [bottom] 381 219 0 Animation/153_jewellery0.ani [bottom] 951 267 0 Animation/153_jewellery0.ani [bottom] 877 310 0 Animation/153_dust1.ani [bottom] 885 357 0
+[/animation]
+[passive object]
+48358 826 282 0 48355 16 172 0 48355 -43 280 0 48373 438 67 0 48368 949 162 0 48364 650 241 0 48362 373 193 0 48369 150 159 0 48369 41 204 0 48356 1098 350 0 48356 1041 423 0 48372 859 -183 0 48369 131 192 0 48369 681 242 0 48369 580 275 0 48356 652 264 0 48369 21 337 0 48369 90 383 0 18524 938 193 0 18524 213 198 0
+[/passive object]
+[monster]
+65609 0 34 733 193 0 1 1 [fixed] [normal] 65609 0 34 672 194 0 1 1 [fixed] [normal] 65609 0 34 648 321 0 1 1 [fixed] [normal] 65609 0 34 720 331 0 1 1 [fixed] [normal] 65608 0 34 883 190 0 1 1 [fixed] [normal]
+[/monster]
+[monster team]
+110 110 110 110 110
+[/monster team]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+324 287 0 301 287 0 301 309 0 324 309 0
+[/event monster position]
+[map name]
+PVP无名
+
+===== MAP 8200 =====
+id 8200 -> 154_Ancient_times_heart/(0,2)8200_start.map
+=== map/154_Ancient_times_heart/(0,2)8200_start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+154
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/Tile01_8200_3.til Tile/Tile02_8200_1.til Tile/Tile01.til Tile/Tile02.til Tile/Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Tile18_Ex.til 1 Tile/Tile19_Ex.til
+[/tile files]
+[tile map]
+0 1 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+75
+[near sight scroll]
+100
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+animation/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+128 890 1106 262 449 941 842 859
+[dungeon start area]
+205 221 113 73
+[sound]
+M_ANCIENT_TIMES_HEART AMB_CAVE_02
+[/sound]
+[animation]
+Animation/tile_deck3.ani [normal] 674 151 0 Animation/tile_deck3.ani [normal] 675 398 0 Animation/tile_deck3.ani [normal] 904 394 0 Animation/tile_stone0.ani [bottom] -105 239 0 Animation/tile_deck0.ani [bottom] 198 249 0 Animation/tile_deck1.ani [bottom] 333 266 0 Animation/tile_deck4.ani [bottom] 879 286 0 Animation/tile_deck2.ani [bottom] 674 292 0 Animation/tile_deck0.ani [bottom] 650 236 0 Animation/tile_deck0.ani [bottom] 158 299 0 Animation/midle_black5.ani [closeback] 49 -159 0 Animation/midle_black_srv0.ani [closeback] 1263 90 0 Animation/midle_black0.ani [closeback] 492 -159 0 Animation/midle_black1.ani [closeback] -587 -159 0 Animation/tile_deck3.ani [normal] 893 152 0 Animation/tile_deck4.ani [normal] 724 339 0 Animation/tile_deck4.ani [normal] 949 349 0 Animation/tile_deck4.ani [bottom] 955 174 0 Animation/tile_deck4.ani [bottom] 882 174 0 Animation/tile_deck4.ani [bottom] 730 177 0 Animation/tile_deck4.ani [normal] 626 352 0 Animation/tile_deck4.ani [bottom] 415 298 0 Animation/tile_deck4.ani [bottom] 430 226 0 Animation/tile_deck4.ani [bottom] 261 235 0 Animation/tile_deck4.ani [bottom] 252 354 0 Animation/tile_deck0.ani [bottom] 788 306 0 Animation/tile_dust0.ani [bottom] 468 171 0 Animation/tile_quake0.ani [bottom] 278 264 0 Animation/tile_quake2.ani [bottom] 961 275 0 Animation/tile_quake4.ani [bottom] 633 300 0
+[/animation]
+[passive object]
+48333 -37 237 0 18015 809 147 0 18015 806 375 0 48451 567 160 0 48451 571 388 0 48336 -47 382 0 48336 -48 328 0 18091 173 154 0 18091 377 157 0 18099 453 223 0 18099 471 320 0
+[/passive object]
+[monster]
+63515 0 36 830 261 0 1 1 [fixed] [normal] 63515 0 36 931 260 0 1 1 [fixed] [normal] 63511 0 36 689 221 0 1 1 [fixed] [normal] 63511 0 36 623 261 0 1 1 [fixed] [normal] 63511 0 36 631 310 0 1 1 [fixed] [normal] 63511 0 36 704 342 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+716 282 0 570 230 0 562 298 0 669 218 0
+[/event monster position]
+[map name]
+PVP无名
+
+===== MAP 14191 =====
+id 14191 -> 155_Dragon_seal/(0,0)8025_start.map
+=== map/155_Dragon_seal/(0,0)8025_start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+155
+[/dungeon]
+[type]
+[normal]
+[greed]
+CC CC
+[tile]
+Tile/Tile03.til Tile/Tile01_8031_5.til Tile/Tile06.til Tile/Tile01_8031_4.til Tile/Tile03.til
+[/tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+animation/ufmid.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+191 693 1298 604 550 142 532 659
+[dungeon start area]
+125 210 90 62
+[sound]
+M_DRAGON_SEAL AMB_CAVE_03
+[/sound]
+[animation]
+Animation/tile_deck1.ani [bottom] 523 158 0 Animation/tile_deck3.ani [bottom] 836 218 0 Animation/tile_deck5.ani [bottom] 724 225 0 Animation/tile_deck2.ani [bottom] 738 195 0 Animation/midle_black_srv0.ani [closeback] 803 58 0 Animation/midle_black_srv3.ani [closeback] -173 -152 0 Animation/midle_black_srv2.ani [closeback] 126 62 0 Animation/midle_black_srv5.ani [closeback] 342 62 0 Animation/midle_black_srv3.ani [closeback] 1069 58 0 Animation/midle_black5.ani [closeback] 321 -188 0 Animation/tile_stone2.ani [normal] -79 357 0 Animation/tile_stone2.ani [normal] -97 207 0
+[/animation]
+[passive object]
+48350 328 160 0 48351 747 130 0 48351 49 260 0 48350 30 188 0
+[/passive object]
+[monster]
+63510 0 54 455 211 0 1 1 [fixed] [normal] 63510 0 54 616 216 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal]
+[/monster specific AI]
+[event monster position]
+517 210 0 494 210 0 494 232 0 517 232 0
+[/event monster position]
+[map name]
+PVP无名
+
+===== MAP 36275 =====
+id 36275 -> Circle_Seizemoney/(0,0)17129_start.map
+=== map/Circle_Seizemoney/(0,0)17129_start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+8007
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/Tile06.til Tile/Tile06.til Tile/Tile06.til Tile/Tile07.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Tile21_Ex.til 1 Tile/Tile05_Ex_s1.til 2 Tile/Tile06_Ex.til 3 Tile/Tile05_Ex.til 4 Tile/Tile01_Ex_s1.til 5 Tile/Tile01_Ex.til 6 Tile/Tile17_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 1 2 3 2 4 5 5 5 6 6 6 6
+[/tile map]
+[/extended tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/midle_black0.ani
+[layer]
+[closeback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+37 1066 884 605 0 0 402 1053
+[dungeon start area]
+430 683 90 62
+[sound]
+M_SHADOW_MAZE R_AMB_CAVE
+[/sound]
+[animation]
+Animation/tile_deck0.ani [bottom] 793 650 0 Animation/tile_deck4.ani [bottom] 841 635 0 Animation/153_jewellery0.ani [bottom] 645 657 0 Animation/153_jewellery0.ani [bottom] 340 626 0 Animation/153_jewellery0.ani [bottom] 370 675 0 Animation/153_jewellery0.ani [bottom] 317 663 0 Animation/153_jewellery0.ani [bottom] 580 644 0 Animation/153_jewellery0.ani [bottom] 518 650 0 Animation/153_jewellery0.ani [bottom] 404 689 0 Animation/153_jewellery0.ani [bottom] 603 691 0 Animation/153_jewellery0.ani [bottom] 587 667 0 Animation/153_jewellery0.ani [bottom] 484 662 0 Animation/153_jewellery0.ani [bottom] 306 639 0 Animation/153_jewellery0.ani [bottom] 545 658 0 Animation/153_jewellery0.ani [bottom] 568 681 0 Animation/153_jewellery0.ani [bottom] 611 650 0 Animation/153_jewellery0.ani [bottom] 628 629 0 Animation/153_jewellery0.ani [bottom] 607 609 0 Animation/153_jewellery0.ani [bottom] 395 707 0 Animation/153_jewellery0.ani [bottom] 321 671 0 Animation/153_jewellery0.ani [bottom] 358 612 0 Animation/153_jewellery0.ani [bottom] 427 676 0 Animation/153_jewellery2.ani [bottom] 319 632 0 Animation/153_jewellery2.ani [bottom] 375 678 0 Animation/153_jewellery2.ani [bottom] 530 651 0 Animation/153_jewellery2.ani [bottom] 573 643 0 Animation/153_jewellery2.ani [bottom] 582 687 0 Animation/153_jewellery0.ani [bottom] 419 665 0 Animation/153_jewellery0.ani [bottom] 334 646 0 Animation/153_jewellery0.ani [bottom] 470 681 0 Animation/153_jewellery0.ani [bottom] 516 678 0 Animation/153_jewellery0.ani [bottom] 280 615 0 Animation/153_jewellery0.ani [bottom] 307 580 0 Animation/153_jewellery0.ani [bottom] 299 597 0 Animation/153_jewellery0.ani [bottom] 344 564 0 Animation/153_jewellery0.ani [bottom] 682 636 0 Animation/153_jewellery0.ani [bottom] 642 677 0 Animation/153_jewellery0.ani [bottom] 691 659 0 Animation/153_jewellery0.ani [bottom] 652 623 0 Animation/153_jewellery0.ani [bottom] 680 608 0 Animation/153_jewellery0.ani [bottom] 709 614 0 Animation/153_jewellery0.ani [bottom] 634 596 0 Animation/153_jewellery0.ani [bottom] 659 585 0 Animation/153_jewellery0.ani [bottom] 653 593 0 Animation/153_jewellery0.ani [bottom] 623 557 0 Animation/153_gold_dust0.ani [bottom] 210 594 0 Animation/153_gold_dust0.ani [bottom] 165 656 0 Animation/153_gold_dust1.ani [bottom] 154 648 0 Animation/153_gold_dust1.ani [bottom] 220 712 0 Animation/153_gold_dust1.ani [bottom] 845 711 0 Animation/153_gold_dust1.ani [bottom] 822 693 0 Animation/153_gold_dust1.ani [bottom] 825 676 0 Animation/153_gold_dust1.ani [bottom] 812 658 0 Animation/153_gold_dust1.ani [bottom] 778 647 0 Animation/153_gold_dust1.ani [bottom] 617 534 0 Animation/153_gold_dust1.ani [bottom] 582 526 0 Animation/153_jewellery0.ani [bottom] 746 554 0 Animation/153_jewellery0.ani [bottom] 703 545 0 Animation/153_jewellery0.ani [bottom] 215 604 0 Animation/153_jewellery0.ani [bottom] 173 620 0 Animation/153_jewellery0.ani [bottom] 214 628 0 Animation/153_jewellery0.ani [bottom] 143 614 0 Animation/153_jewellery0.ani [bottom] 207 653 0 Animation/153_jewellery0.ani [bottom] 148 673 0 Animation/153_jewellery0.ani [bottom] 188 692 0 Animation/153_jewellery0.ani [bottom] 240 674 0 Animation/153_jewellery0.ani [bottom] 296 723 0 Animation/153_jewellery0.ani [bottom] 772 626 0 Animation/153_jewellery0.ani [bottom] 799 649 0 Animation/153_jewellery0.ani [bottom] 153 659 0 Animation/153_jewellery0.ani [bottom] 723 647 0 Animation/153_jewellery0.ani [bottom] 349 730 0 Animation/153_jewellery0.ani [bottom] 786 545 0 Animation/153_jewellery0.ani [bottom] 171 633 0 Animation/153_jewellery0.ani [bottom] 435 719 0 Animation/153_jewellery0.ani [bottom] 482 706 0 Animation/153_jewellery0.ani [bottom] 532 722 0 Animation/153_jewellery0.ani [bottom] 736 708 0 Animation/153_jewellery0.ani [bottom] 762 712 0 Animation/153_jewellery0.ani [bottom] 831 677 0 Animation/153_jewellery0.ani [bottom] 800 565 0 Animation/153_jewellery0.ani [bottom] 760 567 0 Animation/153_jewellery0.ani [bottom] 755 674 0 Animation/153_jewellery0.ani [bottom] 671 703 0 Animation/153_jewellery0.ani [bottom] 821 722 0 Animation/153_jewellery0.ani [bottom] 809 700 0 Animation/153_jewellery0.ani [bottom] 659 719 0 Animation/153_jewellery0.ani [bottom] 598 704 0 Animation/153_jewellery0.ani [bottom] 704 695 0 Animation/153_jewellery0.ani [bottom] 759 671 0 Animation/153_jewellery0.ani [bottom] 755 640 0 Animation/153_jewellery0.ani [bottom] 767 594 0 Animation/153_jewellery0.ani [bottom] 694 572 0 Animation/153_jewellery0.ani [bottom] 720 581 0 Animation/153_jewellery0.ani [bottom] 727 525 0 Animation/153_jewellery0.ani [bottom] 583 520 0 Animation/153_jewellery0.ani [bottom] 303 558 0 Animation/153_jewellery0.ani [bottom] 335 524 0 Animation/153_jewellery0.ani [bottom] 302 544 0 Animation/153_jewellery0.ani [bottom] 237 576 0 Animation/153_jewellery0.ani [bottom] 171 592 0 Animation/153_jewellery0.ani [bottom] 204 578 0 Animation/153_jewellery0.ani [bottom] 270 562 0 Animation/153_jewellery0.ani [bottom] 246 548 0 Animation/153_jewellery0.ani [bottom] 270 525 0 Animation/153_jewellery0.ani [bottom] 230 528 0 Animation/153_jewellery0.ani [bottom] 403 514 0 Animation/153_jewellery0.ani [bottom] 472 521 0 Animation/153_jewellery0.ani [bottom] 494 534 0 Animation/153_jewellery0.ani [bottom] 556 516 0 Animation/153_jewellery0.ani [bottom] 584 534 0 Animation/153_jewellery0.ani [bottom] 645 541 0 Animation/153_jewellery0.ani [bottom] 782 567 0 Animation/153_jewellery0.ani [bottom] 802 687 0 Animation/153_jewellery0.ani [bottom] 331 698 0 Animation/153_jewellery0.ani [bottom] 235 704 0 Animation/153_gold_dust1.ani [bottom] 220 651 0 Animation/153_gold_dust1.ani [bottom] 713 637 0 Animation/153_gold_dust1.ani [bottom] 770 626 0 Animation/153_gold_dust1.ani [bottom] 625 711 0 Animation/153_gold_dust1.ani [bottom] 802 545 0 Animation/153_gold_dust1.ani [bottom] 221 549 0 Animation/153_jewellery0.ani [bottom] 275 685 0 Animation/153_jewellery0.ani [bottom] 276 707 0 Animation/153_jewellery0.ani [bottom] 256 646 0 Animation/153_jewellery0.ani [bottom] 119 634 0 Animation/153_jewellery0.ani [bottom] 544 698 0 Animation/153_jewellery1.ani [bottom] 572 698 0 Animation/153_jewellery1.ani [bottom] 452 721 0 Animation/153_jewellery1.ani [bottom] 291 709 0 Animation/153_jewellery1.ani [bottom] 186 652 0 Animation/153_jewellery1.ani [bottom] 736 582 0 Animation/153_jewellery1.ani [bottom] 715 542 0 Animation/153_jewellery1.ani [bottom] 255 529 0 Animation/153_jewellery1.ani [bottom] 255 583 0 Animation/153_jewellery2.ani [bottom] 277 658 0 Animation/153_jewellery2.ani [bottom] 148 665 0 Animation/153_jewellery2.ani [bottom] 806 645 0 Animation/153_jewellery2.ani [bottom] 737 706 0 Animation/153_jewellery2.ani [bottom] 719 670 0 Animation/153_jewellery2.ani [bottom] 736 617 0 Animation/153_jewellery2.ani [bottom] 696 581 0 Animation/153_jewellery2.ani [bottom] 691 537 0 Animation/153_jewellery2.ani [bottom] 280 536 0 Animation/153_jewellery2.ani [bottom] 224 583 0 Animation/153_jewellery2.ani [bottom] 174 631 0 Animation/153_jewellery2.ani [bottom] 229 691 0 Animation/153_jewellery3.ani [bottom] 232 611 0 Animation/153_jewellery3.ani [bottom] 341 708 0 Animation/153_jewellery3.ani [bottom] 814 651 0 Animation/153_jewellery3.ani [bottom] 655 678 0 Animation/153_jewellery3.ani [bottom] 724 601 0 Animation/153_jewellery3.ani [bottom] 672 530 0 Animation/piece_wall1.ani [closeback] 109 395 0 Animation/piece_wall1.ani [closeback] 522 409 0 Animation/piece_wall1.ani [closeback] 731 472 0 Animation/piece_wall1.ani [closeback] 846 387 0 Animation/piece_wall2.ani [closeback] 271 426 0 Animation/piece_wall2.ani [closeback] 61 422 0 Animation/piece_wall2.ani [closeback] 181 418 0 Animation/piece_wall1.ani [closeback] 839 468 0 Animation/piece_wall1.ani [closeback] 20 391 0 Animation/piece_wall1.ani [closeback] 151 451 0 Animation/piece_wall1.ani [closeback] 310 395 0 Animation/piece_wall1.ani [closeback] 235 463 0 Animation/piece_wall1.ani [closeback] 211 403 0 Animation/piece_wall2.ani [closeback] 385 405 0 Animation/piece_wall1.ani [closeback] 346 439 0 Animation/piece_wall1.ani [closeback] 422 403 0 Animation/piece_wall3.ani [normal] 309 474 0 Animation/piece_wall3.ani [normal] 390 471 0 Animation/piece_wall1.ani [closeback] 451 468 0 Animation/piece_wall2.ani [closeback] 486 423 0 Animation/piece_wall2.ani [closeback] 699 395 0 Animation/piece_wall2.ani [closeback] 808 392 0 Animation/piece_wall2.ani [closeback] 602 407 0 Animation/piece_wall1.ani [closeback] 634 396 0 Animation/piece_wall1.ani [closeback] 667 449 0 Animation/piece_wall1.ani [closeback] 752 395 0 Animation/piece_wall1.ani [closeback] 787 455 0 Animation/piece_wall1.ani [closeback] 564 448 0 Animation/piece_wall1.ani [closeback] 886 435 0 Animation/piece_wall3.ani [normal] 523 451 0 Animation/piece_wall3.ani [normal] 629 467 0 Animation/piece_wall3.ani [normal] 578 403 0 Animation/piece_wall3.ani [normal] 727 386 0 Animation/piece_wall3.ani [normal] 876 397 0 Animation/piece_wall3.ani [normal] 352 399 0 Animation/153_gold_dust0.ani [bottom] 167 541 0 Animation/153_gold_dust0.ani [bottom] 594 542 0 Animation/153_gold_dust0.ani [bottom] 863 555 0 Animation/GoldObject_1.ani [normal] 297 501 0 Animation/GoldObject_1.ani [normal] 48 500 0 Animation/GoldObject_2.ani [normal] 41 612 0 Animation/GoldObject_2.ani [normal] 22 562 0 Animation/GoldObject_3.ani [normal] 90 730 0 Animation/GoldObject_2.ani [normal] 20 724 0 Animation/GoldObject_2.ani [normal] 40 527 0 Animation/GoldObject_2.ani [normal] 596 508 0
+[/animation]
+[passive object]
+48368 525 677 0 48369 346 579 0 48369 372 649 0 48369 387 554 0 48369 61 717 0 48369 69 681 0 18524 803 612 0 48369 617 656 0 48369 312 615 0 48357 25 716 0 48369 558 545 0 48369 91 712 0 48369 586 568 0 48369 569 591 0 48369 482 661 0 48369 127 734 0 6 507 582 500 6 548 718 500 6 318 691 500 19092 104 408 0 19117 637 218 0
+[/passive object]
+[monster]
+69263 1 0 476 616 0 0 0 [fixed] [normal] 56630 1 0 37 643 0 1 1 [fixed] [normal]
+[/monster]
+[monster team]
+100 0
+[/monster team]
+[monster specific AI]
+[normal] [normal]
+[/monster specific AI]
+[event monster position]
+239 586 0 267 587 0 241 621 0 269 622 0
+[/event monster position]
+[basic action]
+Action/Basic.act
+[map name]
+PVP无名

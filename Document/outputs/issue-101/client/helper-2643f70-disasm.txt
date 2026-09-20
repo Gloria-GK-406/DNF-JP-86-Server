@@ -1,0 +1,121 @@
+RVA 02643F70 VA 02A43F70  11 85 D2 74 1B 8B          adc      dword ptr [ebp - 0x74e48b2e], eax
+RVA 02643F76 VA 02A43F76  08 85 C9 74 02 8B          or       byte ptr [ebp - 0x74fd8b37], al
+RVA 02643F7C VA 02A43F7C  09 3B                      or       dword ptr [ebx], edi
+RVA 02643F7E VA 02A43F7E  D1 75 0F                   sal      dword ptr [ebp + 0xf], 1
+RVA 02643F81 VA 02A43F81  8B 4D FC                   mov      ecx, dword ptr [ebp - 4]
+RVA 02643F84 VA 02A43F84  3B 48 08                   cmp      ecx, dword ptr [eax + 8]
+RVA 02643F87 VA 02A43F87  0F 95 C0                   setne    al
+RVA 02643F8A VA 02A43F8A  8B E5                      mov      esp, ebp
+RVA 02643F8C VA 02A43F8C  5D                         pop      ebp
+RVA 02643F8D VA 02A43F8D  C2 04 00                   ret      4
+RVA 02643F90 VA 02A43F90  E8 4C E4 21 00             call     0x28623e1
+RVA 02643F95 VA 02A43F95  CC                         int3     
+RVA 02643F96 VA 02A43F96  CC                         int3     
+RVA 02643F97 VA 02A43F97  CC                         int3     
+RVA 02643F98 VA 02A43F98  CC                         int3     
+RVA 02643F99 VA 02A43F99  CC                         int3     
+RVA 02643F9A VA 02A43F9A  CC                         int3     
+RVA 02643F9B VA 02A43F9B  CC                         int3     
+RVA 02643F9C VA 02A43F9C  CC                         int3     
+RVA 02643F9D VA 02A43F9D  CC                         int3     
+RVA 02643F9E VA 02A43F9E  CC                         int3     
+RVA 02643F9F VA 02A43F9F  CC                         int3     
+RVA 02643FA0 VA 02A43FA0  55                         push     ebp
+RVA 02643FA1 VA 02A43FA1  8B EC                      mov      ebp, esp
+RVA 02643FA3 VA 02A43FA3  83 EC 18                   sub      esp, 0x18
+RVA 02643FA6 VA 02A43FA6  56                         push     esi
+RVA 02643FA7 VA 02A43FA7  8D B1 98 00 00 00          lea      esi, [ecx + 0x98]
+RVA 02643FAD VA 02A43FAD  8D 45 08                   lea      eax, [ebp + 8]
+RVA 02643FB0 VA 02A43FB0  50                         push     eax
+RVA 02643FB1 VA 02A43FB1  8D 4D F4                   lea      ecx, [ebp - 0xc]
+RVA 02643FB4 VA 02A43FB4  51                         push     ecx
+RVA 02643FB5 VA 02A43FB5  8B CE                      mov      ecx, esi
+RVA 02643FB7 VA 02A43FB7  E8 24 55 57 FE             call     0xbb94e0
+RVA 02643FBC VA 02A43FBC  8D 55 E8                   lea      edx, [ebp - 0x18]
+RVA 02643FBF VA 02A43FBF  52                         push     edx
+RVA 02643FC0 VA 02A43FC0  8B CE                      mov      ecx, esi
+RVA 02643FC2 VA 02A43FC2  E8 A9 74 EF FF             call     0x253b470
+RVA 02643FC7 VA 02A43FC7  8B 4D F4                   mov      ecx, dword ptr [ebp - 0xc]
+RVA 02643FCA VA 02A43FCA  5E                         pop      esi
+RVA 02643FCB VA 02A43FCB  85 C9                      test     ecx, ecx
+RVA 02643FCD VA 02A43FCD  74 21                      je       0x2643ff0
+RVA 02643FCF VA 02A43FCF  8B 11                      mov      edx, dword ptr [ecx]
+RVA 02643FD1 VA 02A43FD1  85 D2                      test     edx, edx
+RVA 02643FD3 VA 02A43FD3  74 1B                      je       0x2643ff0
+RVA 02643FD5 VA 02A43FD5  8B 08                      mov      ecx, dword ptr [eax]
+RVA 02643FD7 VA 02A43FD7  85 C9                      test     ecx, ecx
+RVA 02643FD9 VA 02A43FD9  74 02                      je       0x2643fdd
+RVA 02643FDB VA 02A43FDB  8B 09                      mov      ecx, dword ptr [ecx]
+RVA 02643FDD VA 02A43FDD  3B D1                      cmp      edx, ecx
+RVA 02643FDF VA 02A43FDF  75 0F                      jne      0x2643ff0
+RVA 02643FE1 VA 02A43FE1  8B 4D FC                   mov      ecx, dword ptr [ebp - 4]
+RVA 02643FE4 VA 02A43FE4  3B 48 08                   cmp      ecx, dword ptr [eax + 8]
+RVA 02643FE7 VA 02A43FE7  0F 95 C0                   setne    al
+RVA 02643FEA VA 02A43FEA  8B E5                      mov      esp, ebp
+RVA 02643FEC VA 02A43FEC  5D                         pop      ebp
+RVA 02643FED VA 02A43FED  C2 04 00                   ret      4
+RVA 02643FF0 VA 02A43FF0  E8 EC E3 21 00             call     0x28623e1
+RVA 02643FF5 VA 02A43FF5  CC                         int3     
+RVA 02643FF6 VA 02A43FF6  CC                         int3     
+RVA 02643FF7 VA 02A43FF7  CC                         int3     
+RVA 02643FF8 VA 02A43FF8  CC                         int3     
+RVA 02643FF9 VA 02A43FF9  CC                         int3     
+RVA 02643FFA VA 02A43FFA  CC                         int3     
+RVA 02643FFB VA 02A43FFB  CC                         int3     
+RVA 02643FFC VA 02A43FFC  CC                         int3     
+RVA 02643FFD VA 02A43FFD  CC                         int3     
+RVA 02643FFE VA 02A43FFE  CC                         int3     
+RVA 02643FFF VA 02A43FFF  CC                         int3     
+RVA 02644000 VA 02A44000  55                         push     ebp
+RVA 02644001 VA 02A44001  8B EC                      mov      ebp, esp
+RVA 02644003 VA 02A44003  83 EC 18                   sub      esp, 0x18
+RVA 02644006 VA 02A44006  56                         push     esi
+RVA 02644007 VA 02A44007  8B F1                      mov      esi, ecx
+RVA 02644009 VA 02A44009  8D 45 08                   lea      eax, [ebp + 8]
+RVA 0264400C VA 02A4400C  50                         push     eax
+RVA 0264400D VA 02A4400D  8D 4D F4                   lea      ecx, [ebp - 0xc]
+RVA 02644010 VA 02A44010  51                         push     ecx
+RVA 02644011 VA 02A44011  8B CE                      mov      ecx, esi
+RVA 02644013 VA 02A44013  E8 18 FE FF FF             call     0x2643e30
+RVA 02644018 VA 02A44018  8D 55 E8                   lea      edx, [ebp - 0x18]
+RVA 0264401B VA 02A4401B  52                         push     edx
+RVA 0264401C VA 02A4401C  8B CE                      mov      ecx, esi
+RVA 0264401E VA 02A4401E  E8 4D 74 EF FF             call     0x253b470
+RVA 02644023 VA 02A44023  8B 75 F4                   mov      esi, dword ptr [ebp - 0xc]
+RVA 02644026 VA 02A44026  85 F6                      test     esi, esi
+RVA 02644028 VA 02A44028  74 32                      je       0x264405c
+RVA 0264402A VA 02A4402A  8B 16                      mov      edx, dword ptr [esi]
+RVA 0264402C VA 02A4402C  85 D2                      test     edx, edx
+RVA 0264402E VA 02A4402E  74 2C                      je       0x264405c
+RVA 02644030 VA 02A44030  8B 08                      mov      ecx, dword ptr [eax]
+RVA 02644032 VA 02A44032  85 C9                      test     ecx, ecx
+RVA 02644034 VA 02A44034  74 02                      je       0x2644038
+RVA 02644036 VA 02A44036  8B 09                      mov      ecx, dword ptr [ecx]
+RVA 02644038 VA 02A44038  3B D1                      cmp      edx, ecx
+RVA 0264403A VA 02A4403A  75 20                      jne      0x264405c
+RVA 0264403C VA 02A4403C  8B 4D FC                   mov      ecx, dword ptr [ebp - 4]
+RVA 0264403F VA 02A4403F  3B 48 08                   cmp      ecx, dword ptr [eax + 8]
+RVA 02644042 VA 02A44042  75 09                      jne      0x264404d
+RVA 02644044 VA 02A44044  33 C0                      xor      eax, eax
+RVA 02644046 VA 02A44046  5E                         pop      esi
+RVA 02644047 VA 02A44047  8B E5                      mov      esp, ebp
+RVA 02644049 VA 02A44049  5D                         pop      ebp
+RVA 0264404A VA 02A4404A  C2 04 00                   ret      4
+RVA 0264404D VA 02A4404D  8B C2                      mov      eax, edx
+RVA 0264404F VA 02A4404F  85 C0                      test     eax, eax
+RVA 02644051 VA 02A44051  74 09                      je       0x264405c
+RVA 02644053 VA 02A44053  85 C9                      test     ecx, ecx
+RVA 02644055 VA 02A44055  74 05                      je       0x264405c
+RVA 02644057 VA 02A44057  3B 48 08                   cmp      ecx, dword ptr [eax + 8]
+RVA 0264405A VA 02A4405A  75 05                      jne      0x2644061
+RVA 0264405C VA 02A4405C  E8 80 E3 21 00             call     0x28623e1
+RVA 02644061 VA 02A44061  8D 41 10                   lea      eax, [ecx + 0x10]
+RVA 02644064 VA 02A44064  5E                         pop      esi
+RVA 02644065 VA 02A44065  8B E5                      mov      esp, ebp
+RVA 02644067 VA 02A44067  5D                         pop      ebp
+RVA 02644068 VA 02A44068  C2 04 00                   ret      4
+RVA 0264406B VA 02A4406B  CC                         int3     
+RVA 0264406C VA 02A4406C  CC                         int3     
+RVA 0264406D VA 02A4406D  CC                         int3     
+RVA 0264406E VA 02A4406E  CC                         int3     
+RVA 0264406F VA 02A4406F  CC                         int3     

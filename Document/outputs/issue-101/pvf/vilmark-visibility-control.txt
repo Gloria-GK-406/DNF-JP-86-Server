@@ -1,0 +1,436 @@
+PVF_SHA256=19F5FA85FF73CCE94E299E0902269DE2F0164934128F15B8A7B99249C881BE1A
+
+===== dungeon/Ancient/Q_Vilmark.dgn =====
+=== dungeon/Ancient/Q_Vilmark.dgn ===
+[background pos]
+80
+[cutscene image]
+Map/CutScene/SaintHorn.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 5 WorldMap/Act1/elvengard.img 2
+[designate dungeon difficulty]
+0
+[difficulty]
+0
+[recommend equipment]
+0 0 0 0 10 3 0 0 0 0
+[/recommend equipment]
+[minimum required level]
+53
+[basis level]
+56
+[experience increasing point]
+1.3
+[champion]
+0 0 0 0 0
+[pathgate object]
+371 372 373 374 375 376 377 378 379 380
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+100 100
+[increase difficulty rate]
+5 15
+[increase exp rate]
+0 15
+[quest list]
+2309 , 2310 , 2311 , 2312 ,
+[/quest list]
+[/story mode]
+[maze info]
+[quest connection]
+0 2091 -1
+[size]
+6 1
+[greed]
+BBFFFFFFFFEE
+[map specification]
+boss 5 0 37052 map 4 0 37051 map 3 0 37050 map 2 0 37049 map 1 0 37048 map 0 0 909
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 2092 -1
+[size]
+6 1
+[greed]
+BBFFFFFFFFEE
+[map specification]
+boss 5 0 37052 map 4 0 37051 map 3 0 37050 map 2 0 37049 map 1 0 37048 map 0 0 37047
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 2097 -1
+[size]
+6 1
+[greed]
+BBFFFFFFFFEE
+[map specification]
+boss 5 0 37052 map 4 0 37051 map 3 0 37050 map 2 0 37049 map 1 0 37048 map 0 0 37047
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 2098 -1
+[size]
+6 1
+[greed]
+BBFFFFFFFFEE
+[map specification]
+boss 5 0 37052 map 4 0 37051 map 3 0 37050 map 2 0 37049 map 1 0 37048 map 0 0 37047
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[seal door map index]
+60038
+[seal door pos]
+4 0
+[hit count]
+50 50 50 50 50
+[seal door appear rate]
+10
+[special passive object item]
+0 -1 2 1091 2000 1092 2000 1 -1 0 2 -1 1 1079 2000
+[/special passive object item]
+[hell dungeon]
+1
+[name]
+比尔马克帝国试验场
+[explain]
+    阿拉德大陆的和平时代， 帝国根据艾丽丝的占卜， 在艾尔文防线建立了研发新兵器的秘密试验场。 异变发生前， 那里突然变成了一片废墟。 难道阿拉德大陆发生的异变、 格兰之森的大火灾……是它带来的？
+[limit party count]
+1
+[prohibit practice]
+1
+[monsterapc diff table]
+Dungeon/Ancient/table/MonsterApcDifficultyBonus.tbl
+[recommend party]
+> 1 > 1 > 1 > 1 > 1
+[/recommend party]
+[maze info]
+[quest connection]
+0 15100 -1
+[size]
+6 1
+[greed]
+BBFFFFFFFFEE
+[map specification]
+boss 5 0 37052 map 4 0 37051 map 3 0 37050 map 2 0 37049 map 1 0 37048 map 0 0 909
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+
+===== dungeon/Ancient/N_Vilmark.dgn =====
+=== dungeon/Ancient/N_Vilmark.dgn ===
+[background pos]
+80
+[cutscene image]
+Map/CutScene/SaintHorn.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 5 WorldMap/Act1/elvengard.img 2
+[name]
+比尔马克帝国试验场
+[explain]
+    阿拉德大陆的和平时代， 帝国根据艾丽丝的占卜， 在艾尔文防线建立了研发新兵器的秘密试验场。 异变发生前， 那里突然变成了一片废墟。 难道阿拉德大陆发生的异变、 格兰之森的大火灾……是它带来的？
+[designate dungeon difficulty]
+2
+[difficulty]
+2
+[party member coin limit]
+3
+[required item]
+3037 120 1 3332 10 1
+[/required item]
+[recommend equipment]
+0 0 0 0 10 3 0 0 0 0
+[/recommend equipment]
+[ancient dungeon]
+1
+[minimum required level]
+85
+[basis level]
+88
+[experience increasing point]
+1.3
+[champion]
+0 0 0 0 0
+[pathgate object]
+371 372 373 374 375 376 377 378 379 380
+[maze info]
+[size]
+6 1
+[greed]
+BBFFFFFFFFEE
+[map specification]
+boss 5 0 5206 map 4 0 5205 map 3 0 5204 map 2 0 5203 map 1 0 5202 map 0 0 5201
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 2 1091 2000 1092 2000 1 -1 0 2 -1 1 1079 2000
+[/special passive object item]
+[maze info]
+[quest connection]
+0 12002 -1
+[size]
+6 2
+[greed]
+JJFFFFFFFFEE
+CCAAAAAAAAAA
+[map specification]
+boss 5 0 5213 map 4 0 5212 map 3 0 5211 map 2 0 5210 map 1 0 5209
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 12003 -1
+[size]
+6 2
+[greed]
+JJFFFFFFFFEE
+CCAAAAAAAAAA
+[map specification]
+boss 5 0 5213 map 4 0 5212 map 3 0 5211 map 2 0 5210 map 1 0 5209
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[monsterapc diff table]
+Dungeon/Ancient/table/MonsterApcDifficultyBonus.tbl
+[recommend party]
+> 1 > 2 > 3 > 4 > 4
+[/recommend party]
+[adjust hp gauge]
+[boss]
+0.725
+[named]
+0.7
+[normal]
+0.77
+[/adjust hp gauge]
+[maze info]
+[quest connection]
+0 14812 -1
+[size]
+6 2
+[greed]
+JJFFFFFFFFEE
+CCAAAAAAAAAA
+[map specification]
+boss 5 0 5213 map 4 0 5212 map 3 0 5211 map 2 0 5210 map 1 0 5209
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 14813 -1
+[size]
+6 2
+[greed]
+JJFFFFFFFFEE
+CCAAAAAAAAAA
+[map specification]
+boss 5 0 5213 map 4 0 5212 map 3 0 5211 map 2 0 5210 map 1 0 5209
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+5 0
+[/boss map]
+[escape hell]
+1
+
+===== worldmap/Abnoba.wdm =====
+=== worldmap/Abnoba.wdm ===
+[map image]
+WorldMap/Abnoba.img 0
+[ui path]
+WorldMap/UI/Abnoba.xui
+[dungeon]
+144 -1 145 -1 146 -1 147 -1 148 -1 149 -1 2009 13501 240
+[in progress]
+2091 240
+[in progress]
+2092 240
+[in progress]
+2097 240
+[in progress]
+2098 8005 -1 308
+[in progress]
+12757 308
+[in progress]
+12770 308
+[in progress]
+7803 308
+[in progress]
+7807 308
+[in progress]
+7810 308
+[in progress]
+7814 308
+[in progress]
+4621 308
+[in progress]
+13101 308
+[in progress]
+4622 308
+[in progress]
+13102 308
+[in progress]
+7889 308
+[in progress]
+7892 308
+[in progress]
+7895 308
+[in progress]
+7898 308
+[in progress]
+7817 308
+[in progress]
+7820 308
+[in progress]
+7824 308
+[in progress]
+7827 308
+[in progress]
+7831 308
+[in progress]
+7834 308
+[in progress]
+7837 308
+[in progress]
+7840 308
+[in progress]
+7870 308
+[in progress]
+7873 308
+[in progress]
+7876 308
+[in progress]
+7879 308
+[in progress]
+4065 308
+[in progress]
+4068 308
+[in progress]
+7842 308
+[in progress]
+7845 308
+[in progress]
+7848 308
+[in progress]
+7851 308
+[in progress]
+7855 308
+[in progress]
+7859 308
+[in progress]
+7862 308
+[in progress]
+7866 308
+[in progress]
+7882 308
+[in progress]
+7886 308
+[in progress]
+12797 308
+[in progress]
+3064 308
+[in progress]
+2633 308
+[in progress]
+2634
+[/dungeon]
+[name]
+亚诺法森林
+[hell dungeon]
+1
+[hell quest]
+2610
+[/hell quest]
+[hell freepass item]
+490003092 1 490003314 1 490700622 1 490003362 1 490003168 1 490003358 1 490003066 1 490002858 1 490002229 1 490002089 1 490001899 1 490001923 1 490001860 1 490001453 1 490001408 1 490000378 1 490000405 1 10005377 1 10158327 1 10157097 1 8272 1 8376 1 8247 1
+[/hell freepass item]
+[item condition]
+3330
+[/item condition]
+
+===== worldmap/Ancient.wdm =====
+=== worldmap/Ancient.wdm ===
+[map image]
+WorldMap/TimeGate.img 0
+[ui path]
+WorldMap/UI/Ancient.xui
+[dungeon]
+33 -1 1500 -1 1501 -1 1502 -1 1504 -1 1506 -1 1507 -1 200 -1 201 -1 202 -1 203 -1 204 -1 205 -1 206 -1
+[/dungeon]
+[ancient freepass item]
+490003635 1 490003360 1 490002172 1 490003284 1
+[/ancient freepass item]
+[risk ancient freepass item]
+490003635 1 490003360 1 490002489 1 490002173 1 490003284 1
+[/risk ancient freepass item]
+[name]
+时空之门 - 镇魂曲
