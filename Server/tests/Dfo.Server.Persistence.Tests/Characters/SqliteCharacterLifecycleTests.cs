@@ -66,6 +66,12 @@ public sealed class SqliteCharacterLifecycleTests
             Assert.Equal(3, record.Profile.Job);
             Assert.Equal(1, record.Profile.Level);
 
+            var coins = Assert.Single(
+                await new CharacterSide(databasePath).Items.ReadMainAsync(id, CancellationToken.None),
+                item => item.SlotIndex == 1);
+            Assert.Equal(1, coins.Core.ItemId);
+            Assert.Equal(10, coins.Core.Value);
+
             // Entering also loads account-scoped state, and that side reads this character's
             // rows too. Asserting only the character loader is what let a null pc_room_state
             // through: the character profile never reads that column, while the account loader

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -48,6 +49,10 @@ internal sealed class CharacterRosterService(
     /// the read fell through to the column default and the client was told the bag holds nothing.
     /// </remarks>
     private const int InitialMainContainerSlots = 24;
+
+    private const int InitialReviveCoins = 10;
+    private const int ReviveCoinSlot = 1;
+    private const int ReviveCoinItemId = 1;
 
     /// <summary>The appearance a character is created wearing.</summary>
     /// <remarks>
@@ -307,6 +312,18 @@ internal sealed class CharacterRosterService(
                 throw new InvalidDataException(
                     $"Two starting pieces claim equipment slot {piece.SlotIndex}.");
             }
+        }
+
+        // A creation gift, settled with the character so a failed creation grants nothing.
+        var coinIdentity = await items.InsertOwnAsync(
+            StackableItemCore.Create(0, ReviveCoinItemId, InitialReviveCoins),
+            null, cancellationToken).ConfigureAwait(false);
+        if (coinIdentity is not { } coinUid || await items.HoldOwnAsync(
+                characterId, (int)InventoryContainerType.Main, ReviveCoinSlot,
+                ItemSlotKind.Template, ReviveCoinItemId, checked((int)coinUid),
+                InitialReviveCoins, cancellationToken).ConfigureAwait(false) != 1)
+        {
+            throw new InvalidDataException("Starting revival coins could not be granted.");
         }
 
         // The rows without which the character cannot be entered. Each of the six holds one

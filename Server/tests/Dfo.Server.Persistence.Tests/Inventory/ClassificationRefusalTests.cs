@@ -59,7 +59,7 @@ public sealed class ClassificationRefusalTests
         _ = await database.InUseCaseAsync(token => Roster(database, ItemWorldClass.Equipment)
             .CreateAsync(SpecWearing(WeaponId), token));
 
-        Assert.Equal(1, await database.CountAsync("SELECT COUNT(*) FROM items"));
+        Assert.Equal(1, await database.CountAsync("SELECT COUNT(*) FROM item_slots WHERE list_type=3"));
     }
 
     /// <summary>

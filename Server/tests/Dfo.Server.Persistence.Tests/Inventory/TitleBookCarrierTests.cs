@@ -176,6 +176,15 @@ public sealed class TitleBookCarrierTests
                 CancellationToken.None);
             Assert.Equal(Character, characterId);
 
+            // These cases start with an empty inventory, excluding the creation coin gift.
+            await ExecuteAsync(path, """
+                DELETE FROM items WHERE item_uid IN (
+                    SELECT core_uid FROM item_slots
+                    WHERE owner_scope='character' AND owner_id=1 AND list_type=0 AND slot_index=1);
+                DELETE FROM item_slots
+                    WHERE owner_scope='character' AND owner_id=1 AND list_type=0 AND slot_index=1;
+                """);
+
             await body(path, new InventorySide(path));
         }
         finally

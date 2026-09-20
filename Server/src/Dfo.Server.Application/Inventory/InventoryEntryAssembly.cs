@@ -484,10 +484,9 @@ internal sealed class InventoryEntryAssembly(
     /// can be a single statement.
     /// </para>
     /// <para>
-    /// Slots 1 and 2 still come out of the items already loaded. Nothing writes them yet either,
-    /// so they are empty today; when a revival coin or a PvP point becomes real it follows slot 0
-    /// out of the item rows rather than the other way round -- they are three currencies, and none
-    /// of the three is an item.
+    /// Slots 1 and 2 come out of the items already loaded. Character creation grants ten revival
+    /// coins in slot 1, and package grants can increase that balance. These counters are projected
+    /// as virtual resources rather than ordinary carried items.
     /// </para>
     /// </remarks>
     private async ValueTask<IReadOnlyList<InventoryRuntimeValueState>> CharacterVirtualResourcesAsync(
