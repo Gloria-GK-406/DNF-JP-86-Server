@@ -57,7 +57,7 @@
 | `0x01` | `0x0015` | `BUY_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，部分商品实机通过） | [0x0015.md](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SELL_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备）；堆叠物自动化通过，特殊装备未覆盖 | [0x0016.md](game/client-to-server/0x0016.md) |
 | `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 实现服务端普通修理；A21 静态有 8B/7B 两种构包及 10B 成功读取，成对帧与 7B 触发条件待归档 | [0x0017.md](game/client-to-server/0x0017.md) |
-| `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | 实现系统与便携分解；A21 实机确认便携模式 providerId=0、工具槽区分档位、批量逐件请求；首次验收确认事务落库但仅 ACK 不刷新客户端，现追加 `NOTI 0x000E` 投影源槽/工具/晶体与灵魂最终状态，待复验 | [0x001A.md](game/client-to-server/0x001A.md) |
+| `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | ClientVerified（A21 系统/便携分解成功流程；便携 providerId=0、工具槽分档、批量逐件请求；`0x000E` 修复后当前角色刷新与同账号换角余额一致；成功 S2C body 未归档） | [0x001A.md](game/client-to-server/0x001A.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 受理请求与回包有实帧；后续任务投影未整体验证） | [0x001F.md](game/client-to-server/0x001F.md) |
 | `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能；A21 静态证实 `0x0020+questId` 请求及成功回包读法，实帧/UI 待验证 | [0x0020.md](game/client-to-server/0x0020.md) |
@@ -126,7 +126,8 @@
 | `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification / baseline、refresh、settings、host-change、clear | ClientVerified（A21 type-0/type-1/type-2/clear；原生 ID `0x11` add/update/delete） | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
 | `0x00` NOTI | `0x000B` | `USER_UDP_IP_PORT` | Notification / 队员 P2P 端点 | Implemented（双端已上报建队 UI 通过；待逐帧归因/回落/P2P） | [NOTI-0x000B.md](game/server-to-client/NOTI-0x000B.md) |
 | `0x00` NOTI | `0x0099` | `PARTY_MEMBER_REALTIME_INFO` | Notification / 队员实时摘要 | ClientVerified（A21 双端初始 HP） | [NOTI-0x0099.md](game/server-to-client/NOTI-0x0099.md) |
-| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（两个调用方：当日补给的真实增量、翻牌到货；批次里的空信封已撤） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
+| `0x00` NOTI | `0x000D` | `ITEM_LIST` | Notification / 入场背包快照 | ClientVerified（A21 101 字节条目及虚拟材料槽；本服账号材料在同账号换角后余额一致；本次换角 S2C body 未归档） | [NOTI-0x000D.md](game/server-to-client/NOTI-0x000D.md) |
+| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | ClientVerified（A21 随身金币绝对值；分解后的源槽/工具/账号晶体与品级灵魂刷新，并与换角后的 `0x000D` 重载一致；本次分解 S2C body 未归档） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
 | `0x00` NOTI | `0x0016` | `USER_POSITION` | Notification / 兼作 `0x0023` 的应答 | 实现服务端功能 | [NOTI-0x0016.md](game/server-to-client/NOTI-0x0016.md) |
 | `0x00` NOTI | `0x0018` | `AREA_USERS` | Notification | ClientVerified（A21 `[gate]` 私有、`[normal]` 共享投影；旧区权威移除待复验） | [NOTI-0x0018.md](game/server-to-client/NOTI-0x0018.md) |
 | `0x00` NOTI | `0x00CA` | `VILLAGE_OBJECT_LIST` | Notification | 实现服务端功能 | [NOTI-0x00CA.md](game/server-to-client/NOTI-0x00CA.md) |

@@ -13,7 +13,7 @@
 |---|---|---|---|
 | **帧层** | 全部协议共享的包结构不变量：帧头、CMD 两字节结果信封、CMD/NOTI 是两张注册表、入站流与读取原语 | [game-frame](patterns/game-frame.md)（**含 RVA/VA 约定，先读**）、[game-receive](patterns/game-receive.md) | 两页，长期稳定；改一次影响全部 1411 条 |
 | **协议层** | **这些字节是什么，凭什么这么说** | `game/client-to-server/*.md`、`game/server-to-client/NOTI-*.md` | 千余份，持续变动 |
-| **流程层** | 协议**如何被编排**成一个有业务语义的流程 | [flow-login](patterns/flow-login.md)（连接→停在选人界面）、[world-entry](patterns/world-entry.md)（选角色→站进城里）、[flow-dungeon-entry](patterns/flow-dungeon-entry.md)（点开副本列表→进第一个房间）、[game-settings](patterns/game-settings.md)、[character-lifecycle](patterns/character-lifecycle.md) | 按业务流程增长 |
+| **流程层** | 协议**如何被编排**成一个有业务语义的流程 | [flow-login](patterns/flow-login.md)（连接→停在选人界面）、[world-entry](patterns/world-entry.md)（选角色→站进城里）、[flow-dungeon-entry](patterns/flow-dungeon-entry.md)（点开副本列表→进第一个房间）、[flow-equipment-disjoint](patterns/flow-equipment-disjoint.md)（分解请求→事务结算→背包刷新）、[game-settings](patterns/game-settings.md)、[character-lifecycle](patterns/character-lifecycle.md) | 按业务流程增长 |
 | **方法层** | 证据有哪些**种类**、各能回答什么、引用怎么写、错了怎么办 | [evidence.md](evidence.md)（判决规则）、[methodology.md](methodology.md)（工作顺序） | 两页 |
 
 三条分界规则，不清楚时按这个判：
