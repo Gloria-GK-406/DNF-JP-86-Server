@@ -21,6 +21,25 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 public sealed class SelectCharacterPayloadCodecTests
 {
+    [Theory]
+    [InlineData(1699999999L)]
+    [InlineData(1700000000L)]
+    public void Entry_omits_expired_premiums_without_shifting_wallet_or_quest_fields(long expiry)
+    {
+        var result = SelectCharacterPayloadTestData.Create();
+        var expected = EncodeAcknowledgement(result);
+        var changed = result with
+        {
+            Account = result.Account with
+            {
+                Entitlements = new AccountEntitlementEntryState(
+                    [.. result.Account.Entitlements.Premiums, new AccountPremiumEntryState(27, expiry)]),
+            },
+        };
+        Assert.Equal(expected, EncodeAcknowledgement(changed));
+        Assert.Equal(2, changed.Account.Entitlements.Premiums.Count);
+    }
+
     [Fact]
     public void SelectCharacterPayload_AcknowledgementProjectsPremiumWalletAndQuestSlots()
     {

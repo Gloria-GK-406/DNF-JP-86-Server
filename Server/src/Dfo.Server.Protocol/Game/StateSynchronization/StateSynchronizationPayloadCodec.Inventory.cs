@@ -34,7 +34,12 @@ internal static partial class StateSynchronizationPayloadCodec
                 + "dereferences the result unchecked.");
         }
 
-        if (account.Entitlements.Premiums.Count > byte.MaxValue)
+        // Keep expiry history for domain reconciliation, but never start a client
+        // contract countdown at zero. The entry list contains active services only.
+        var now = preparedAt.ToUnixTimeSeconds();
+        var activePremiums = account.Entitlements.Premiums
+            .Where(premium => premium.ExpiresAtUnixSeconds > now).ToArray();
+        if (activePremiums.Length > byte.MaxValue)
             throw new InvalidDataException("Premium count cannot be represented as u8.");
 
         using var stream = new MemoryStream(320);
@@ -46,13 +51,13 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write((ushort)0); // observed leading fatigue compatibility field
         writer.Write(character.Fatigue.Total);
         writer.Write(character.Fatigue.Used);
-        writer.Write(checked((byte)account.Entitlements.Premiums.Count));
-        foreach (var premium in account.Entitlements.Premiums.OrderBy(value => value.PremiumType))
+        writer.Write(checked((byte)activePremiums.Length));
+        foreach (var premium in activePremiums.OrderBy(value => value.PremiumType))
         {
             // The observed ACK layout carries only the low byte. Legacy loading
             // projected the stored integer to byte before this body was built.
             writer.Write(unchecked((byte)premium.PremiumType));
-            writer.Write(Math.Max(0, premium.ExpiresAtUnixSeconds - preparedAt.ToUnixTimeSeconds()));
+            writer.Write(premium.ExpiresAtUnixSeconds - now);
         }
         writer.Write(account.Wallet.Cera);
 
