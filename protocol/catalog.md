@@ -147,7 +147,7 @@
 | `0x00` NOTI | `0x03C1` | `EQUIPMENT_RENTAL_LIST`（A21 号，A12 为 `0x0357`） | Notification | 实现服务端功能 | [NOTI-0x03C1.md](game/server-to-client/NOTI-0x03C1.md) |
 | `0x00` NOTI | `0x0465` | `EPIC_BOOK_INFO` | Notification | 实现服务端功能 | [NOTI-0x0465.md](game/server-to-client/NOTI-0x0465.md) |
 | `0x01` CMD | `0x0239` | `SET_CLONE_TITLE`（闸点之后） | Notification-shaped CMD | 实现服务端功能 | [0x0239.md](game/client-to-server/0x0239.md) |
-| `0x01` CMD | `0x036F` | `PREMIUM_SERVICE`（A21 号，A12 为 `0x0312`） | Notification-shaped CMD | 编码器保留，**入场批次不发**——A21 参照全程不发此号 | [0x036F.md](game/client-to-server/0x036F.md) |
+| `0x01` CMD | `0x036F` | `PREMIUM_SERVICE`（A21 号，A12 为 `0x0312`） | Notification-shaped CMD | 购买提交后及正常入场结束发送完整快照；续期/重登期限显示ClientVerified（2026-09-22用户实测） | [CMD-0x036F.md](game/server-to-client/CMD-0x036F.md) |
 
 角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
 S→C 文档；理由见
@@ -536,7 +536,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x02B5` | `CheckCharacterNameResponse` | 仅证明 encoder 可产生该 identity | [0x02B5](game/client-to-server/0x02B5.md) |
 | `0x01` CMD | `0x02C1` | `ContentsPlayInfoResponse` | 仅证明 encoder 可产生该 identity | [0x02C1](game/client-to-server/0x02C1.md) |
 | `0x01` CMD | `0x02CC` | `ShopPurchaseCountResponse` | 仅证明 encoder 可产生该 identity | [0x02CC](game/client-to-server/0x02CC.md) |
-| `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 仅证明 encoder 可产生该 identity | [0x036F](game/client-to-server/0x036F.md) |
+| `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 续期及重登期限显示ClientVerified；次数/效果未验收 | [CMD-0x036F](game/server-to-client/CMD-0x036F.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
 | `0x00` NOTI | `0x0001` | `GameInitialConnectionNotice` | 仅证明 encoder 可产生该 identity | [0x0001](game/server-to-client/NOTI-0x0001.md) |
