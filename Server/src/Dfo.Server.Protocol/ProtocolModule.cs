@@ -109,6 +109,9 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.TryAddSingleton<DungeonProjectionGate>();
         services.AddHostedService<DungeonPartyWipeService>();
+        var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
+        if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
+        services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupPostCommitCoordinator>();
@@ -179,6 +182,8 @@ public sealed class ProtocolModule : IServerModule
     /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
     private static void RegisterCommands(IServiceCollection services)
     {
+        services.AddCommandHandler<UseRevivalCoinCommand, DungeonRevivalResult, UseRevivalCoinCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<EndPartyWipeCommand, EndPartyWipeResult, EndPartyWipeCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<MarkDungeonParticipantDeadCommand, MarkDungeonParticipantDeadResult, MarkDungeonParticipantDeadCommandHandler>(
@@ -430,6 +435,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
+        services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
@@ -540,6 +546,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
         services.AddGameNotiMessageEncoder<CharacterLifeStateNotification, CharacterLifeStateEncoder>();
         services.AddGameCmdMessageEncoder<CharacterDeathResponse, CharacterDeathResponseEncoder>();
+        services.AddGameCmdMessageEncoder<UseRevivalCoinResponse, UseRevivalCoinEncoder>();
         services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
         services.AddGameNotiMessageEncoder<
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
@@ -603,6 +610,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
         services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
             GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
+        services.AddGameCmdMessageDecoder<UseRevivalCoinDecoder>(0x0029, ClientMessageType.GameUseRevivalCoin);
         services.AddGameCmdMessageDecoder<CharacterDeathDecoder>(GameProtocol.CharacterDeathType, ClientMessageType.GameCharacterDeath);
         services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
             GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);

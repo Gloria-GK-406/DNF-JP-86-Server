@@ -42,7 +42,7 @@ internal sealed class CharacterDeathResponseEncoder : GameCmdMessageEncoder<Char
         => OnePayload(GameProtocol.CharacterDeathType, new byte[] { 0x01 });
 }
 
-internal sealed record CharacterLifeStateNotification(ushort ActorId) : IGameNotiMessage
+internal sealed record CharacterLifeStateNotification(ushort ActorId, byte State = 0) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameCharacterLifeState;
 }
@@ -58,7 +58,11 @@ internal sealed class CharacterLifeStateEncoder : GameNotiMessageEncoder<Charact
     }
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CharacterLifeStateNotification message)
-        => OnePayload(GameProtocol.CharacterLifeStateNotificationType, EncodeDeath(message.ActorId));
+    {
+        var body = EncodeDeath(message.ActorId);
+        body[2] = message.State;
+        return OnePayload(GameProtocol.CharacterLifeStateNotificationType, body);
+    }
 }
 
 public sealed record MarkDungeonParticipantDeadCommand(

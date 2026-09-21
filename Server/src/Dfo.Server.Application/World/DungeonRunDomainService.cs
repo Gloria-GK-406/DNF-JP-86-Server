@@ -118,6 +118,55 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsById.TryGetValue(runId, out var aggregate)
+                || !CanRevive(aggregate, payer, target)) return false;
+            var transaction = this.transactions?.Current
+                ?? throw new InvalidOperationException("Revival requires a transaction.");
+            transaction.Enlist((this, runId, target, "revival"),
+                () => new RevivalCommitParticipant(this, aggregate, payer, target));
+            return true;
+        }
+    }
+
+    private static bool CanRevive(DungeonRunAggregate aggregate, CharacterId payer, CharacterId target) =>
+        aggregate.IsActiveMember(payer) && aggregate.IsActiveMember(target)
+        && aggregate.ReadyParticipants.Contains(payer) && aggregate.ReadyParticipants.Contains(target)
+        && aggregate.DeadParticipants.Contains(target)
+        && !aggregate.Cells[aggregate.CurrentCell].ClearOpen
+        && !aggregate.ProgressFor(target).IsSettled;
+
+    private sealed class RevivalCommitParticipant(DungeonRunDomainService owner,
+        DungeonRunAggregate aggregate, CharacterId payer, CharacterId target) : ITransactionParticipant
+    {
+        public bool CommitCanFail => false;
+        public ValueTask PrepareAsync(CancellationToken cancellationToken)
+        {
+            lock (owner.gate)
+            {
+                if (!owner.runsById.TryGetValue(aggregate.RunId, out var current)
+                    || current != aggregate || !CanRevive(aggregate, payer, target))
+                    throw new InvalidOperationException("Revival target changed before commit.");
+            }
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask CommitAsync(CancellationToken cancellationToken)
+        {
+            // Caller retains instance and admitted-session leases across the durable commit.
+            lock (owner.gate)
+            {
+                aggregate.DeadParticipants.Remove(target);
+                owner.wipeDeadlines.Remove(aggregate.RunId);
+                aggregate.RuntimeRevision++;
+            }
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
     public IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now)
     {
         lock (this.gate)

@@ -623,3 +623,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0465` | `EpicBookBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
 
 <!-- rks:server-coverage:end -->
+
+## 2026-09-21 复活币实现候选
+
+CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B；事务扣付款人一枚币、NOTI 0020 state=1 广播并取消全灭计时。ACK flag 首轮取 1，业务值与实机复活尚待验证，不标记 ClientVerified。

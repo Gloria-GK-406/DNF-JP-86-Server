@@ -5,6 +5,25 @@ namespace Dfo.Server.Protocol.Tests.Game.CharacterDeath;
 
 public sealed class CharacterDeathCodecTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void Revival_ack_preserves_target_and_explicit_flag(byte flag)
+    {
+        var request = Assert.IsType<UseRevivalCoinRequest>(new UseRevivalCoinDecoder().Decode(
+            GameMessageMetadata.Empty, Convert.FromHexString("3412")));
+        Assert.Equal((ushort)0x1234, request.TargetActorId);
+        Assert.Equal(new byte[] { 1, 0x34, 0x12, flag },
+            UseRevivalCoinEncoder.EncodeBody(new(true, request.TargetActorId, flag)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void Revival_rejects_non_u16_requests(int length) => Assert.Throws<InvalidDataException>(
+        () => new UseRevivalCoinDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
+
     [Fact]
     public void Observed_death_preserves_all_three_words()
     {

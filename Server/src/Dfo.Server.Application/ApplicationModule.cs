@@ -176,6 +176,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+        services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
 
         // The compensation seam and its first-phase implementation, which never compensates. It is
         // registered rather than left out so that everything upstream is written against the real
