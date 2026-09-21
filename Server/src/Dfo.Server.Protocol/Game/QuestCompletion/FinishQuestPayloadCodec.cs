@@ -20,12 +20,8 @@ namespace Dfo.Server.Protocol.Game.QuestCompletion;
 /// </code>
 /// See protocol/game/client-to-server/0x0022.md.
 ///
-/// Only the chain-0 answer is written here, which is the ordinary completion: a quest that pays
-/// experience and items. The reference server has five more shapes behind the same first bytes --
-/// career change, title, slot expansion and two others -- each replacing the item list with
-/// something else. None is reachable from the tutorial and none has a capture, so this codec
-/// refuses to invent them rather than writing an untested branch that would desynchronise the
-/// client mid-frame.
+/// Ordinary completion retains its captured A21 shape. Career completion uses the reference
+/// server's chain-1 shape; this branch is not yet ClientVerified.
 /// </remarks>
 internal static class FinishQuestPayloadCodec
 {
@@ -81,6 +77,20 @@ internal static class FinishQuestPayloadCodec
         ArgumentNullException.ThrowIfNull(message);
         if (!message.Finished)
             return [0x00, message.RefusalCode];
+
+        if (message.GrowType is { } growType)
+        {
+            // Reference 86JP QuestAckBuilder.BuildFinish chain 1; A21 live acceptance is pending.
+            var career = new byte[17];
+            career[0] = 1;
+            BinaryPrimitives.WriteUInt16LittleEndian(career.AsSpan(1), message.QuestId);
+            BinaryPrimitives.WriteUInt32LittleEndian(career.AsSpan(4), message.Experience);
+            BinaryPrimitives.WriteUInt32LittleEndian(career.AsSpan(8),
+                checked((uint)message.Items.Where(item => item.ItemId == 0).Sum(item => (long)item.Count)));
+            career[13] = 1;
+            career[14] = growType;
+            return career;
+        }
 
         if (message.Items.Count > byte.MaxValue)
         {

@@ -1,3 +1,10 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
@@ -153,12 +160,133 @@ public sealed class FinishQuestHandlerTests
         Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
     }
 
+    [Fact]
+    public async Task Advancement_sends_new_skills_before_ack_and_projects_the_new_identity_afterwards()
+    {
+        var ledger = new SkillPointLedger();
+        var before = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
+        var after = before with
+        {
+            Character = before.Character with { Identity = before.Character.Identity with { GrowType = 4 } },
+            CharacterEntry = before.CharacterEntry with
+            {
+                Features = new([], null!, null!, null!, []),
+                Skills = before.CharacterEntry.Skills with
+                {
+                    Pages = [new(0, [new(5, 100, 1, [])]), new(1, [new(5, 100, 1, [])])],
+                },
+            },
+        };
+        var sent = await Finish(ledger, new FixedCompletion(ledger, 4), views: new ChangedView(before, after));
+        Assert.IsType<SkillStateMessage>(sent[0]);
+        Assert.Equal(100u, Assert.Single(Assert.IsType<SkillStateMessage>(sent[0]).Skills.Pages[0].Skills).SkillId);
+        Assert.Equal((byte?)4, Assert.IsType<FinishQuestAcknowledgement>(sent[1]).GrowType);
+        Assert.Equal(4, Assert.Single(sent.OfType<CurrentUserStateMessage>()).Character.Identity.GrowType);
+        Assert.Equal(4, Assert.Single(sent.OfType<ExtendedUserStateMessage>()).Character.Identity.GrowType);
+        Assert.Single(sent.OfType<InventorySnapshotMessage>());
+        Assert.Equal(28, Assert.IsType<WeaknessProjectionNotification>(sent[^1]).Value);
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, true, false, false)]
+    [InlineData(false, false, false, true)]
+    [InlineData(true, false, false, true)]
+    public async Task Career_publication_only_reaches_current_visible_or_admitted_generations(bool dungeon, bool replaced, bool privateRoom, bool sourceReplaced)
+    {
+        var actor = SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010);
+        var peer = SelectedSessionIdentity.Create(new(2), new(61), new("peer-old"), 1, 10010);
+        var selectedPeer = replaced ? peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") } : peer;
+        var identities = new List<SelectedSessionIdentity> { actor, selectedPeer };
+        var sessions = new PeerSessions(identities);
+        ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
+        var runs = new Dfo.Server.Application.World.DungeonRunDomainService();
+        var generations = new DungeonRunDeliveryRegistry();
+        if (dungeon)
+        {
+            var cell = new MazeCell(0, 0);
+            var layout = new DungeonLayout(10000, 0, 1, 1, cell, cell, 61000, 1,
+                new Dictionary<MazeCell, int> { [cell] = 61000 });
+            var id = DungeonRunId.New();
+            runs.PreparePartyEntry([new(actor.AccountId, actor.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)],
+                layout, DungeonDifficulty.Normal, DungeonCellSeed.CompleteEmpty(cell, 61000), id, DateTimeOffset.UnixEpoch);
+            generations.Register(id, [actor, peer]);
+        }
+        else
+        {
+            var area = new TownAreaKey(1, 0, 0);
+            var position = new CharacterPositionState(0, 0, 0, 0, 0);
+            areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, !privateRoom));
+            areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), area, position, true));
+        }
+        var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
+        entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
+        var ledger = new SkillPointLedger();
+        var sender = new RecordingSender();
+        await Finish(ledger, new FixedCompletion(ledger, 4), views: new ChangedView(entry, entry, () =>
+            {
+                if (sourceReplaced) identities[0] = actor with { ConnectionGeneration = 2, ConnectionId = new("one-new") };
+            }),
+            sessions: sessions, areas: areas, runs: runs, generations: generations, recording: sender);
+        if (replaced || privateRoom || sourceReplaced) Assert.Empty(sender.Targets);
+        else
+        {
+            var target = Assert.Single(sender.Targets);
+            Assert.Equal(peer.ConnectionId, target.ConnectionId);
+            Assert.IsType<CurrentUserStateMessage>(Assert.Single(target.OrderedMessages));
+        }
+    }
+
+    private sealed class PeerSessions(IReadOnlyList<SelectedSessionIdentity> values) : ISelectedSessionDomainService
+    {
+        public SelectedSessionIdentity? FindByCharacter(CharacterId id) => values.SingleOrDefault(s => s.CharacterId == id);
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId id) => values.SingleOrDefault(s => s.ConnectionId == id);
+        public SelectedSessionIdentity? Find(AccountId id) => values.SingleOrDefault(s => s.AccountId == id);
+        public SelectedSessionIdentity? FindByWireUserId(ushort id) => values.SingleOrDefault(s => s.WireUserId == id);
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => throw new NotSupportedException();
+        public bool ReleaseExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+    }
+
+    private sealed class WeaknessState : IWeaknessDomainService, IWeakness
+    {
+        public byte Value => 28;
+        public IWeakness For(CharacterId id) => this;
+        public TimeSpan RecoveryInterval => TimeSpan.FromMinutes(1);
+        public IReadOnlyList<CharacterId> AdvanceRecovery() => [];
+        public ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask SetWeakness() => throw new NotSupportedException();
+        public void Recover() => throw new NotSupportedException();
+        public void PauseRecovery() => throw new NotSupportedException();
+        public void ResumeRecovery() => throw new NotSupportedException();
+    }
+
+    private sealed class ChangedView(SelectCharacterResult before, SelectCharacterResult after, Action? afterReload = null)
+        : ISelectedCharacterCurrentViewDomainService
+    {
+        private int reads;
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+        {
+            if (reads++ == 0) return ValueTask.FromResult<SelectCharacterResult?>(before);
+            afterReload?.Invoke();
+            return ValueTask.FromResult<SelectCharacterResult?>(after);
+        }
+    }
+
     private static async Task<IReadOnlyList<IGameServerMessage>> Finish(
         SkillPointLedger ledger,
         ICommandBus bus,
         StubWorldContentEntryRuleService? content = null,
         ushort rewardSelection = FinishQuestRequest.NoRewardSelection,
-        ushort completionCount = 1)
+        ushort completionCount = 1,
+        ISelectedCharacterCurrentViewDomainService? views = null,
+        ISelectedSessionDomainService? sessions = null,
+        ITownAreaDomainService? areas = null,
+        IDungeonRunDomainService? runs = null,
+        DungeonRunDeliveryRegistry? generations = null,
+        RecordingSender? recording = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -166,18 +294,23 @@ public sealed class FinishQuestHandlerTests
             new NetworkConnectionId("one"),
             connectionGeneration: 1,
             listenerPort: 10010);
-        var sender = new RecordingSender();
+        var sender = recording ?? new RecordingSender();
+        sessions ??= new OneSession(session);
 
         var handler = new FinishQuestHandler(
-            new OneSession(session),
-            new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
+            sessions,
+            views ?? new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
             new OnePlayingCharacter(ledger),
             bus,
             sender,
             new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
             new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)),
-            NullLogger<FinishQuestHandler>.Instance);
+            NullLogger<FinishQuestHandler>.Instance,
+            areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService(),
+            runs ?? new Dfo.Server.Application.World.DungeonRunDomainService(),
+            new WeaknessProjectionDelivery(new WeaknessState(), sessions, sender),
+            generations ?? new DungeonRunDeliveryRegistry());
 
         await handler.HandleAsync(
             new NetworkDispatchContext(
@@ -202,7 +335,7 @@ public sealed class FinishQuestHandlerTests
     /// walked in with, which is the same wrong answer the session holds and just as invisible on
     /// the frame.
     /// </remarks>
-    private sealed class FixedCompletion(SkillPointLedger ledger) : ICommandBus
+    private sealed class FixedCompletion(SkillPointLedger ledger, byte? growType = null) : ICommandBus
     {
         /// <summary>What the ledger's count stood at when the completion was written.</summary>
         public int LedgerAsksWhenTheCompletionRan { get; private set; } = -1;
@@ -222,7 +355,7 @@ public sealed class FinishQuestHandlerTests
                 Experience: FinishedTotal - StartingExperience,
                 Items: [],
                 NewLevel: FinishedLevel,
-                NewExperience: FinishedTotal);
+                NewExperience: FinishedTotal, GrowType: growType);
             return ValueTask.FromResult((TResult)(object)outcome);
         }
     }

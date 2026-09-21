@@ -21,6 +21,11 @@ internal sealed class QuestRewardRuleService : IQuestRewardRuleService
         if (completionCount != 1)
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidCompletionCount);
 
+        var careerRewards = definition.Rewards.Where(reward => reward.Kind == QuestRewardKind.GrowType).ToArray();
+        if (careerRewards.Length > 1 || careerRewards.Any(reward =>
+                reward.Values.Count != 1 || reward.Values[0] is < 1 or > 15))
+            return QuestRewardResolution.Refused(QuestRewardRejection.InvalidCareerReward);
+        byte? growType = careerRewards.Length == 0 ? null : checked((byte)careerRewards[0].Values[0]);
         var declaration = definition.ItemRewards;
         var eligibleSelection = declaration.Selectable
             .Where(rule => Matches(rule, candidate))
@@ -78,7 +83,7 @@ internal sealed class QuestRewardRuleService : IQuestRewardRuleService
                     definition.PaysAtCharacterLevel))
                 : 0;
 
-        return QuestRewardResolution.Valid(new QuestCompletionRewardPlan(experience, gold, items));
+        return QuestRewardResolution.Valid(new QuestCompletionRewardPlan(experience, gold, items, growType));
     }
 
     private static bool Matches(QuestItemRewardRule rule, QuestRewardCandidate candidate)

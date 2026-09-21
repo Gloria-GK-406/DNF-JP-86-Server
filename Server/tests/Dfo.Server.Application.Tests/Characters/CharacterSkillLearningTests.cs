@@ -460,9 +460,10 @@ internal sealed class LearningContent : ISkillRuleDefinitionSource
         Definition(6) with { UsesTp = true, Costs = [1, 2] },
         Definition(7) with { MaximumLevels = [0, 10] },
     ];
+    public List<SkillFreeGrant> Grants { get; } = [];
     public int SpBudget { get; set; } = 1000;
     public SkillRuleCatalog Get(byte job) => new(Definitions.ToDictionary(value => value.SkillId),
-        [], [(1, SpBudget)], new HashSet<CharacterCareer> { new(12), new(12, 1) });
+        Grants, [(1, SpBudget)], new HashSet<CharacterCareer> { new(12), new(12, 1) });
     public static SkillRuleDefinition Definition(int id) => new(id, $"skill-{id}", string.Empty,
         false, [20], [100], [], [], 1, 1, [], false, 0, 1, 0, true, 0, 4);
 }

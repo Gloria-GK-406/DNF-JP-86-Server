@@ -77,6 +77,7 @@ internal sealed class OneRuntimeSession(SelectCharacterResult entry)
 internal sealed class RecordingSender : IGameMessageSender
 {
     public List<IGameServerMessage> Sent { get; } = [];
+    public List<GameExplicitMessageTarget> Targets { get; } = [];
 
     public ValueTask SendCmdAsync(
         NetworkConnectionId connectionId, IGameCmdMessage message,
@@ -85,8 +86,11 @@ internal sealed class RecordingSender : IGameMessageSender
 
     public ValueTask SendNotiAsync(
         NetworkConnectionId connectionId, IGameNotiMessage message,
-        CancellationToken cancellationToken) =>
-        throw new InvalidOperationException("These slices send their frames explicitly.");
+        CancellationToken cancellationToken)
+    {
+        Sent.Add(message);
+        return ValueTask.CompletedTask;
+    }
 
     public ValueTask SendExplicitAsync(
         NetworkConnectionId requiredDirectConnectionId,
@@ -94,6 +98,7 @@ internal sealed class RecordingSender : IGameMessageSender
         CancellationToken cancellationToken)
     {
         this.Sent.AddRange(delivery.RequiredDirectMessages);
+        Targets.AddRange(delivery.BestEffortTargets);
         return ValueTask.CompletedTask;
     }
 }

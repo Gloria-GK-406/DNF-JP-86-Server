@@ -19,6 +19,14 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestCompletion;
 /// </remarks>
 public sealed class FinishQuestPayloadCodecTests
 {
+    [Fact]
+    public void Career_reward_matches_reference_chain_one_without_changing_the_ordinary_shape()
+    {
+        var body = FinishQuestPayloadCodec.Encode(new(true, 7840, 2, 5836,
+            [new(0, 0, 123)], 0, 0, GrowType: 4));
+        Assert.Equal(Convert.FromHexString("01A01E00CC1600007B0000000001040000"), body);
+    }
+
     /// <summary>The captured request, field by field past the echoed type.</summary>
     [Fact]
     public void Decode_ReadsTheCapturedRequest()

@@ -138,7 +138,7 @@ public sealed class RemainingSkillPointTests
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints()),
+            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope()),
             archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(
@@ -210,6 +210,9 @@ public sealed class RemainingSkillPointTests
             int slotIndex,
             byte[] appearanceBlob,
             CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<int> SetGrowTypeAsync(CharacterId characterId, int expectedGrowType, int growType,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<int> SetProgressAsync(
             CharacterId characterId, int newLevel, long experience,

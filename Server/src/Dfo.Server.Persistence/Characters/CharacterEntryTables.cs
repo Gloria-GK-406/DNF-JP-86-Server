@@ -220,6 +220,17 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
             : throw new InvalidOperationException("Character insert did not return an identifier.");
     }
 
+    public ValueTask<int> SetGrowTypeAsync(
+        CharacterId characterId, int expectedGrowType, int growType, CancellationToken cancellationToken) =>
+        database.ExecuteAsync(
+            "UPDATE characters SET grow_type=@grow WHERE character_id=@cid AND grow_type=@before AND delete_flag=0",
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@before", expectedGrowType);
+                parameters.AddWithValue("@grow", growType);
+            }, cancellationToken);
+
     public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken) =>
         database.ExecuteAsync(

@@ -36,7 +36,8 @@ public sealed record QuestFinishOutcome(
     uint NewExperience,
     QuestFinishRefusal? Refusal = null,
     QuestProgressSnapshot? QuestProgress = null,
-    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null)
+    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null,
+    byte? GrowType = null)
 {
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>
@@ -96,7 +97,8 @@ public sealed class FinishQuestCommandHandler(
     ICharacterExperienceDomainService grant,
     ICharacterDomainService characters,
     IQuestProgressDomainService questProgress,
-    IItemGrantDomainService itemGrants)
+    IItemGrantDomainService itemGrants,
+    ICharacterCareerDomainService careers)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(
@@ -228,6 +230,9 @@ public sealed class FinishQuestCommandHandler(
             if (award is null)
                 throw Rejected(command, "experience could not be granted");
 
+            if (reward.GrowType is { } growType)
+                await careers.AdvanceAsync(command.AccountId, command.CharacterId, growType, cancellationToken).ConfigureAwait(false);
+
             var facts = new List<QuestProgressFact> { new QuestCleared(command.QuestId) };
             if (placed.Count > 0)
                 facts.Add(new QuestHoldingsChanged());
@@ -244,7 +249,8 @@ public sealed class FinishQuestCommandHandler(
                 award.Level,
                 award.Total,
                 QuestProgress: questReport.NotificationSnapshot,
-                AccountMaterials: accountChanges);
+                AccountMaterials: accountChanges,
+                GrowType: reward.GrowType);
         }
         catch (Exception exception)
             when (exception is not (QuestFinishRejectedException or OperationCanceledException))

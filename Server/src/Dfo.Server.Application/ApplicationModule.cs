@@ -273,6 +273,7 @@ public sealed class ApplicationModule : IServerModule
         // What a character has left to spend, asked by identifier and worked out on the spot. The
         // arithmetic belongs to the shared skill rules; the state service supplies current facts.
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
+        services.TryAddSingleton<ICharacterCareerDomainService, CharacterCareerDomainService>();
         services.TryAddSingleton<ICharacterSkillLearningDomainService, CharacterSkillLearningDomainService>();
         services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();
         services.TryAddSingleton<

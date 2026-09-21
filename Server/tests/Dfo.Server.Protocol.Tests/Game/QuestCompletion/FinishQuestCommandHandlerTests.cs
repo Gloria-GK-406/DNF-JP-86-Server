@@ -44,6 +44,12 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestCompletion;
 /// </remarks>
 public sealed class FinishQuestCommandHandlerTests
 {
+    private sealed class NoCareerChange : ICharacterCareerDomainService
+    {
+        public ValueTask AdvanceAsync(AccountId accountId, CharacterId characterId, byte growType, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+    }
+
     private static readonly AccountId Account = new(6);
 
     private static readonly CharacterId Character = new(60);
@@ -190,6 +196,7 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<IQuestProgressDomainService>(new RecordingQuestProgress());
         services.AddSingleton<IItemGrantDomainService>(
             new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+        services.AddSingleton<ICharacterCareerDomainService, NoCareerChange>();
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -264,6 +271,7 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<IQuestProgressDomainService>(new RecordingQuestProgress());
         services.AddSingleton<IItemGrantDomainService>(
             new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+        services.AddSingleton<ICharacterCareerDomainService, NoCareerChange>();
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -408,7 +416,7 @@ public sealed class FinishQuestCommandHandlerTests
                 new CharacterExperienceDomainService(this.Characters, new FixedProgression()),
                 CurrentCharacterStub.Domain(this.Current),
                 this.Progress,
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new NoCareerChange());
 
         /// <summary>Puts the quest in the carried list with its objective already at that value.</summary>
         public async Task CarryAsync(int questId, int triggerValue)

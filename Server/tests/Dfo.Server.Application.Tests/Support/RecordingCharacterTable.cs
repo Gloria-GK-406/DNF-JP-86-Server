@@ -31,7 +31,10 @@ internal sealed class RecordingCharacterTable(int level, uint experience) : ICha
         CharacterId characterId, CancellationToken cancellationToken) =>
         ValueTask.FromResult(this.Exists ? new CharacterProgressRow(level, experience) : null);
 
-    public ValueTask<int> SetProgressAsync(
+    public ValueTask<int> SetGrowTypeAsync(CharacterId characterId, int expectedGrowType, int growType,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int newLevel, long newExperience, CancellationToken cancellationToken)
     {
         if (!this.AcceptWrites)

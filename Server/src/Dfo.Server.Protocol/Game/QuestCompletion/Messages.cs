@@ -47,7 +47,8 @@ public sealed record FinishQuestAcknowledgement(
     uint Experience,
     IReadOnlyList<FinishedQuestItem> Items,
     uint AcquiredAtUnixTime,
-    byte RefusalCode) : IGameCmdMessage
+    byte RefusalCode,
+    byte? GrowType = null) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameFinishQuest;
 }

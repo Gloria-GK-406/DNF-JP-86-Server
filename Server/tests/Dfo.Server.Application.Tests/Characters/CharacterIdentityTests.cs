@@ -198,6 +198,9 @@ public sealed class CharacterIdentityTests
             byte[] appearanceBlob,
             CancellationToken cancellationToken) => throw Unneeded();
 
+        public ValueTask<int> SetGrowTypeAsync(CharacterId characterId, int expectedGrowType, int growType,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public ValueTask<int> SetProgressAsync(
             CharacterId characterId, int level, long experience,
             CancellationToken cancellationToken) => throw Unneeded();

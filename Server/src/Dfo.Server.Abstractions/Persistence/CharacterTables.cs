@@ -141,6 +141,9 @@ public interface ICharacterTable
         CancellationToken cancellationToken);
 
     /// <summary>Moves a character along. Says how many rows that touched.</summary>
+    ValueTask<int> SetGrowTypeAsync(
+        CharacterId characterId, int expectedGrowType, int growType, CancellationToken cancellationToken);
+
     ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken);
 

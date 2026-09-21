@@ -631,3 +631,5 @@ CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B
 ## 虚弱投影（2026-09-21）
 
 [NOTI 0x0021](game/server-to-client/NOTI-0x0021.md)：登录 32/100 单值实验经用户实机确认；已接内存虚弱与自然恢复，完整生命周期待用户实机验收。CMD 0009 付费恢复仍未实现。
+
+- 2026-09-21：`0x0022` 转职任务奖励实现与候选17B特殊ACK，规则/事务测试通过；A21实机验收待完成，详见 [FINISH_QUEST](game/client-to-server/0x0022.md)。

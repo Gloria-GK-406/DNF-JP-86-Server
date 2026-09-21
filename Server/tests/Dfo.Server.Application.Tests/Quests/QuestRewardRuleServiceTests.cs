@@ -77,6 +77,18 @@ public sealed class QuestRewardRuleServiceTests
         Assert.Equal(252, multiplierWithoutMarker.Plan!.Gold);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(16)]
+    public void Invalid_career_reward_is_rejected_before_the_quest_is_cleared(int growType)
+    {
+        var quest = Quest(QuestItemRewardDefinition.Empty) with
+        {
+            Rewards = [new QuestReward(QuestRewardKind.GrowType, [growType])],
+        };
+        Assert.False(Resolve(quest).IsValid);
+    }
+
     private static QuestRewardResolution Resolve(
         QuestDefinition quest,
         byte job = 0,

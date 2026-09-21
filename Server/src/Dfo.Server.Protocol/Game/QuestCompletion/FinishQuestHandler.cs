@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -9,6 +10,8 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -38,7 +41,9 @@ public sealed class FinishQuestHandler(
     IGameMessageSender sender,
     IQuestOfferRefreshDomainService offers,
     TimeProvider clock,
-    ILogger<FinishQuestHandler> logger) : ClientMessageHandler<FinishQuestRequest>
+    ILogger<FinishQuestHandler> logger,
+    ITownAreaDomainService townAreas, IDungeonRunDomainService dungeonRuns,
+    WeaknessProjectionDelivery weaknessProjection, DungeonRunDeliveryRegistry runGenerations) : ClientMessageHandler<FinishQuestRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -93,6 +98,15 @@ public sealed class FinishQuestHandler(
             outcome.NewLevel,
             outcome.NewExperience);
 
+        if (outcome.Finished && outcome.GrowType is not null)
+        {
+            result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Character left before advancement could be projected.");
+            await sender.SendExplicitAsync(context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery([new SkillStateMessage(result.CharacterEntry.Skills)], []),
+                cancellationToken).ConfigureAwait(false);
+        }
+
         await this.AnswerAsync(
             context,
             new FinishQuestAcknowledgement(
@@ -102,7 +116,7 @@ public sealed class FinishQuestHandler(
                 outcome.Experience,
                 outcome.Items,
                 checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),
-                (byte)(outcome.Refusal ?? QuestFinishRefusal.Unusable)),
+                (byte)(outcome.Refusal ?? QuestFinishRefusal.Unusable), outcome.GrowType),
             cancellationToken).ConfigureAwait(false);
 
         if (!outcome.Finished)
@@ -191,6 +205,45 @@ public sealed class FinishQuestHandler(
                 context.Connection.ConnectionId, message.QuestId);
         }
 
+        var targets = new List<GameExplicitMessageTarget>();
+        if (outcome.GrowType is not null)
+        {
+            var equipment = result.CharacterInventory.Containers
+                .SingleOrDefault(container => container.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
+            var appearance = new CurrentUserStateMessage(result.Character, result.CharacterEntry.Public,
+                equipment, result.CharacterEntry.Features.Pets);
+            frames.Add(appearance);
+            frames.Add(new ExtendedUserStateMessage(result.Character, result.CharacterEntry.Public,
+                result.CharacterEntry.Skills, equipment, clock.GetUtcNow()));
+            var audience = new HashSet<SelectedSessionIdentity>();
+            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+            {
+                if (townAreas.Find(session.CharacterId) is { } own && session.Owns(own)
+                    && townAreas.Find(own.Area) is { } area)
+                    foreach (var member in area.VisibleTo(session.CharacterId))
+                        if (selectedSessions.FindByCharacter(member.CharacterId) is { } peer && peer.Owns(member))
+                            audience.Add(peer);
+                if (dungeonRuns.Find(session.CharacterId) is { } run)
+                {
+                    var admitted = runGenerations.Find(run.RunId);
+                    if (admitted.Contains(session))
+                        foreach (var peer in admitted)
+                            if (selectedSessions.FindByCharacter(peer.CharacterId) == peer
+                                && dungeonRuns.Find(peer.CharacterId)?.RunId == run.RunId)
+                                audience.Add(peer);
+                }
+            }
+            foreach (var peer in audience.Where(peer => peer != session))
+                targets.Add(new(peer.ConnectionId, [appearance]));
+            // Special completion carries the career instead of the ordinary item list.
+            var inventory = result.CharacterInventory.Containers
+                .SingleOrDefault(container => container.ContainerType == InventoryContainerType.Main);
+            if (inventory is not null)
+                frames.Add(new InventorySnapshotMessage(inventory, result.CharacterInventory.VirtualResources,
+                    result.AccountInventory.VirtualResources, result.AccountInventory.Cargo.SelectionKey,
+                    result.AccountInventory.Cargo.Value32, clock.GetUtcNow()));
+        }
+
         frames.Add(new AvailableQuestListMessage(
             outcome.NewLevel, result.World.Content.AvailableQuests));
 
@@ -201,8 +254,10 @@ public sealed class FinishQuestHandler(
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(frames, []),
+            new GameExplicitMessageDelivery(frames, targets),
             cancellationToken).ConfigureAwait(false);
+        if (outcome.GrowType is not null)
+            await weaknessProjection.SendCurrentAsync(session, cancellationToken).ConfigureAwait(false);
     }
 
     private static FinishQuestAcknowledgement Refusal(ushort questId) =>
