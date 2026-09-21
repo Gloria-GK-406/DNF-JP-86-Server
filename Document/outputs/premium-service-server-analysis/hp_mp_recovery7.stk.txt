@@ -1,0 +1,25 @@
+=== stackable/cash/chn_contract_devil/hp_mp_recovery7.stk ===
+[name]
+HP/MP自动恢复
+[explain]
+在地下城中， 当HP降到50%%以下时， 可以自动恢复角色100%%的HP和MP； 虚弱状态下无效。 (该服务项使用次数不限； 每次进入地下城后皆可生效， 但仅限一次)
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 326
+[stackable type]
+[etc] 0
+[move wav]
+PAPER_TOUCH
+[impossible contents]
+gift
+[/impossible contents]

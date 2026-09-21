@@ -1,0 +1,32 @@
+id 9 -> cash/package_adventurer.stk
+=== stackable/cash/package_adventurer.stk ===
+[name]
+冒险家礼包 1
+[explain]
+您被任命为贝尔玛尔公国的正式冒险家， 在您任职的30天里， 我们希望您能好好表现。 (奖励 : 雷米的援助150个、 猫头鹰50个、 疲劳值25%%、 每天补充4个复活币) 若消耗品道具栏没有足够空间， 将暂缓奖励雷米的援助和猫头鹰。 道具栏有足够的空间后， 重新连接游戏就可以正常获取。
+[flavor text]
+亲爱的冒险家， 从今天开始疯狂练级吧！
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash.img 7
+[field image]
+Item/FieldImage.img 22
+[stackable type]
+[etc] 0
+[move wav]
+PAPER_TOUCH
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]

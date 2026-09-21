@@ -1,0 +1,25 @@
+=== stackable/cash/chn_contract_devil/stamina_recovery7.stk ===
+[name]
+免费解除虚弱状态
+[explain]
+可以免费找索西雅解除虚弱状态。 (该服务项每天限用10次)
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 327
+[stackable type]
+[etc] 0
+[move wav]
+PAPER_TOUCH
+[impossible contents]
+gift
+[/impossible contents]

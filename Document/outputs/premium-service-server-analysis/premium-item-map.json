@@ -1,0 +1,560 @@
+[
+  {
+    "type": 1,
+    "items": []
+  },
+  {
+    "type": 3,
+    "items": []
+  },
+  {
+    "type": 5,
+    "items": []
+  },
+  {
+    "type": 8,
+    "items": []
+  },
+  {
+    "type": 9,
+    "items": []
+  },
+  {
+    "type": 10,
+    "items": []
+  },
+  {
+    "type": 11,
+    "items": []
+  },
+  {
+    "type": 12,
+    "items": []
+  },
+  {
+    "type": 13,
+    "items": []
+  },
+  {
+    "type": 14,
+    "items": []
+  },
+  {
+    "type": 16,
+    "items": []
+  },
+  {
+    "type": 29,
+    "items": [
+      {
+        "item": 901,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 193,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 22,
+    "items": [
+      {
+        "item": 30,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660704,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 741,
+        "term": 2,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 31,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 32,
+        "term": 5,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 33,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660050,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 34,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660012,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10096109,
+        "term": 60,
+        "minute": true,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683454,
+        "term": 6,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683455,
+        "term": 14,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700031,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700032,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700033,
+        "term": 100,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 27,
+    "items": [
+      {
+        "item": 43,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660705,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 742,
+        "term": 2,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 44,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 200,
+        "term": 5,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 45,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660051,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 46,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660013,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10096110,
+        "term": 60,
+        "minute": true,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683452,
+        "term": 6,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683453,
+        "term": 14,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700028,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700029,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700030,
+        "term": 100,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 33,
+    "items": [
+      {
+        "item": 194,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 720,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 820,
+        "term": 5,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 920,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 744,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 743,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 196,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 198,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": false
+      },
+      {
+        "item": 2660290,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": false
+      },
+      {
+        "item": 2660358,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": false
+      },
+      {
+        "item": 917,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": false
+      },
+      {
+        "item": 2682763,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2749321,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 80,
+    "items": [
+      {
+        "item": 2660354,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10092497,
+        "term": 5,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10096111,
+        "term": 60,
+        "minute": true,
+        "adjacent_term": true
+      },
+      {
+        "item": 10151653,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10157955,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 84,
+    "items": [
+      {
+        "item": 2660703,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660409,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660410,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2660411,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10096112,
+        "term": 60,
+        "minute": true,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683456,
+        "term": 6,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683457,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700021,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700022,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700023,
+        "term": 100,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 88,
+    "items": [
+      {
+        "item": 2660543,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 92,
+    "items": [
+      {
+        "item": 2660545,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 97,
+    "items": [
+      {
+        "item": 10000391,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10000388,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10000389,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10000390,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10096113,
+        "term": 60,
+        "minute": true,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683458,
+        "term": 6,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 2683459,
+        "term": 30,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700034,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700035,
+        "term": 10,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 490700036,
+        "term": 100,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 100,
+    "items": [
+      {
+        "item": 10012579,
+        "term": 1,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10012576,
+        "term": 3,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10012577,
+        "term": 7,
+        "minute": false,
+        "adjacent_term": true
+      },
+      {
+        "item": 10012578,
+        "term": 15,
+        "minute": false,
+        "adjacent_term": true
+      }
+    ]
+  },
+  {
+    "type": 56,
+    "items": []
+  },
+  {
+    "type": 57,
+    "items": []
+  }
+]

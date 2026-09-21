@@ -1,0 +1,672 @@
+=== etc/premiumlist.etc ===
+[overequip list]
+1 [weapon] 6 [coat] [shoulder] [pants] [shoes] [waist] [title name] 3 [amulet] [wrist] [ring] 9 [hat avatar] [hair avatar] [face avatar] [coat avatar] [pants avatar] [shoes avatar] [breast avatar] [waist avatar] [skin avatar] 2 [support] [magic stone]
+[/overequip list]
+[returnitem list]
+1 14
+[/returnitem list]
+[type]
+1
+[attr]
+[bonus]
+[term]
+30
+[items]
+8 150 10 50
+[/items]
+[fatigue]
+25
+[coin]
+3
+[apply date]
+-1
+[/apply date]
+[type]
+2
+[attr]
+[bonus]
+[term]
+30
+[items]
+8 100 10 20
+[/items]
+[fatigue]
+50
+[coin]
+4
+[apply date]
+0 6 -1
+[/apply date]
+[type]
+3
+[attr]
+[bonus]
+[term]
+51
+[items]
+8 300 10 100
+[/items]
+[fatigue]
+25
+[coin]
+3
+[apply date]
+-1
+[/apply date]
+[type]
+4
+[attr]
+[bonus]
+[term]
+30
+[items]
+8 100 10 20
+[/items]
+[fatigue]
+20
+[coin]
+2
+[apply date]
+-1
+[/apply date]
+[type]
+5
+[attr]
+[bonus]
+[term]
+0
+[fatigue]
+50
+[exp]
+5
+[coin]
+0
+[apply date]
+-1
+[/apply date]
+[type]
+7
+[attr]
+[term]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+8
+[attr]
+[term]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+9
+[attr]
+[bonus]
+[term]
+30
+[items]
+10 50
+[/items]
+[coin]
+2
+[gold bonus]
+[true]
+[over equipinfo]
+1 1 5
+[return iteminfo]
+1 1 10
+[inventory limit]
+50
+[apply date]
+-1
+[/apply date]
+[type]
+10
+[attr]
+[bonus]
+[term]
+30
+[items]
+1085 50
+[/items]
+[coin]
+2
+[gold bonus]
+[true]
+[over equipinfo]
+1 2 5
+[return iteminfo]
+1 1 10
+[inventory limit]
+50
+[apply date]
+-1
+[/apply date]
+[type]
+11
+[attr]
+[bonus]
+[term]
+30
+[items]
+8 50
+[/items]
+[coin]
+2
+[gold bonus]
+[true]
+[over equipinfo]
+1 3 5
+[return iteminfo]
+1 1 10
+[inventory limit]
+50
+[apply date]
+-1
+[/apply date]
+[type]
+12
+[name]
+橇府固决 乔矫规 焊呈胶
+[attr]
+[bonus]
+[term]
+1
+[fatigue]
+50
+[exp]
+5
+[apply date]
+-1
+[/apply date]
+[type]
+13
+[name]
+糕滚讥 乔肺档 焊呈胶
+[attr]
+[bonus]
+[term]
+30
+[fatigue]
+20
+[apply date]
+-1
+[/apply date]
+[type]
+14
+[name]
+糕滚讥 乔肺档 焊呈胶(抗距啊涝)
+[attr]
+[bonus]
+[term]
+30
+[fatigue]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+16
+[name]
+凯乏 捞亥飘侩 乔肺档 公力茄 橇府固决
+[attr]
+[bonus]
+[term]
+30
+[expire time]
+1189198800
+[unlimit fatigue]
+1
+[apply target server]
+self
+[apply date]
+-1
+[/apply date]
+[type]
+17
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+18
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+3
+[apply date]
+-1
+[/apply date]
+[type]
+19
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+5
+[apply date]
+-1
+[/apply date]
+[type]
+20
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+7
+[apply date]
+-1
+[/apply date]
+[type]
+21
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+15
+[apply date]
+-1
+[/apply date]
+[type]
+22
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+1
+[over equipinfo]
+5 1 5 2 5 3 5 4 5 5 5
+[apply date]
+-1
+[/apply date]
+[type]
+23
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+24
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+3
+[apply date]
+-1
+[/apply date]
+[type]
+25
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+7
+[apply date]
+-1
+[/apply date]
+[type]
+26
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+15
+[apply date]
+-1
+[/apply date]
+[type]
+27
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+1
+[over skill]
+5
+[apply date]
+-1
+[/apply date]
+[type]
+28
+[name]
+何葛 救缴焊氰
+[attr]
+[bonus]
+[term]
+1
+[apply target server]
+self
+[cerashop discount rate]
+20
+[apply date]
+-1
+[/apply date]
+[type]
+29
+[name]
+版概厘 快措鼻
+[attr]
+[term]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+30
+[name]
+版概厘 快措鼻
+[attr]
+[term]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+31
+[name]
+1老 饭抛狼 拌距
+[attr]
+[term]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+32
+[name]
+30老 饭抛狼 拌距
+[attr]
+[term]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+33
+[name]
+饭抛狼 拌距
+[attr]
+[term]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+34
+[name]
+饭抛狼 拌距 1老
+[attr]
+[term]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+35
+[name]
+3老 饭抛狼 拌距
+[attr]
+[term]
+[term]
+3
+[apply date]
+-1
+[/apply date]
+[type]
+36
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+2
+[apply date]
+-1
+[/apply date]
+[type]
+37
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+2
+[apply date]
+-1
+[/apply date]
+[type]
+38
+[name]
+15老 饭抛狼 拌距
+[attr]
+[term]
+[term]
+15
+[apply date]
+-1
+[/apply date]
+[type]
+39
+[name]
+10老 饭抛狼 拌距
+[attr]
+[term]
+[term]
+10
+[apply date]
+-1
+[/apply date]
+[type]
+40
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+5
+[apply date]
+-1
+[/apply date]
+[type]
+41
+[name]
+5老 饭抛狼 拌距
+[attr]
+[term]
+[term]
+5
+[apply date]
+-1
+[/apply date]
+[type]
+42
+[name]
+版概厘 快措鼻
+[attr]
+[term]
+[term]
+10
+[apply date]
+-1
+[/apply date]
+[type]
+43
+[name]
+饭抛狼 拌距 1老
+[attr]
+[term]
+[term]
+7
+[apply date]
+-1
+[/apply date]
+[type]
+44
+[name]
+饭抛狼 拌距 1老
+[attr]
+[term]
+[term]
+7
+[apply date]
+-1
+[/apply date]
+[type]
+45
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+46
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+47
+[name]
+企空狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+10
+[apply date]
+-1
+[/apply date]
+[type]
+48
+[name]
+崔牢狼 拌距 橇府固决
+[attr]
+[bonus]
+[term]
+10
+[apply date]
+-1
+[/apply date]
+[type]
+73
+[name]
+啊宏府郡狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+30
+[apply date]
+-1
+[/apply date]
+[type]
+75
+[name]
+啊宏府郡狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+81
+[name]
+己厘狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+3
+[apply date]
+-1
+[/apply date]
+[type]
+82
+[name]
+己厘狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+7
+[apply date]
+-1
+[/apply date]
+[type]
+83
+[name]
+己厘狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+15
+[apply date]
+-1
+[/apply date]
+[type]
+84
+[name]
+己厘狼 拌距 橇府固决
+[attr]
+[term]
+[bonus exp]
+20
+[quest item drop rate]
+20
+[independent drop rate]
+20 23 27 30
+[/independent drop rate]
+[term]
+1
+[apply date]
+-1
+[/apply date]
+[type]
+98
+[name]
+己厘狼 拌距 橇府固决
+[attr]
+[term]
+[term]
+1
+[apply date]
+-1
+[/apply date]

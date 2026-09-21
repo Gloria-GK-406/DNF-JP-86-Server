@@ -1,0 +1,29 @@
+id 43 -> cash/contract_expert3.stk
+=== stackable/cash/contract_expert3.stk ===
+[name]
+达人之契约 (1天)
+[explain]
+使用后， 可以签订达人之契约1天。 在此期间， 可以学习比自身高Lv5的技能。 契约结束时， 当前Lv不能学习的技能将返还成SP。 返还的SP， 可以在重新登录游戏时获得。
+    (购买契约道具后， 立即适用于帐号上的所有角色)
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash.img 23
+[stackable type]
+[etc] 0
+[move wav]
+PAPER_TOUCH
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]

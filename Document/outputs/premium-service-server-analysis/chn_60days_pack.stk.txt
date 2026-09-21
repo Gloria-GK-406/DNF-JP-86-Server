@@ -1,0 +1,30 @@
+=== stackable/cash/chn_contract_devil/chn_60days_pack.stk ===
+[name]
+魔王之契约礼包 (60天)
+[explain]
+购买后， 可以签订魔王之契约， 并拥有8项特殊服务项的使用权， 有效期限为60天。
+[flavor text]
+<魔王之契约>
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 544
+[stackable type]
+[cera package] 0
+[move wav]
+BONE_TOUCH
+[package data]
+2681934 1 2681931 1 2681932 1 2681933 1 2681929 1 2681930 1 2682205 1 2682206 1
+[/package data]
+[impossible contents]
+gift
+[/impossible contents]

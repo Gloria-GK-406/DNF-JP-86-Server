@@ -1,0 +1,24 @@
+id 2660703 -> cash/contract_growth_1.stk
+=== stackable/cash/contract_growth_1.stk ===
+[name]
+成长之契约 (1天)
+[explain]
+使用后， 可以签订成长之契约1天。 在此期间， 任务经验、 怪物经验、 通关经验、 任务道具掉落率增加20%%， 同时提高神器装备的掉落率。 队伍内使用该契约的玩家越多， 神器装备的掉落率越高。
+    攻击时， 有4%%的几率给敌人造成500点的额外伤害。
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash.img 543
+[stackable type]
+[contract] 0
+[move wav]
+BONE_TOUCH

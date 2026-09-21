@@ -1,0 +1,29 @@
+id 30 -> cash/contract_monarch1.stk
+=== stackable/cash/contract_monarch1.stk ===
+[name]
+霸王之契约 (1天)
+[explain]
+使用后， 可以签订霸王之契约1天。 在此期间， 可以穿戴比自身高Lv10的装备或装扮。
+    (购买契约道具后， 立即适用于帐号上的所有角色)
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash.img 18
+[stackable type]
+[etc] 0
+[move wav]
+PAPER_TOUCH
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]

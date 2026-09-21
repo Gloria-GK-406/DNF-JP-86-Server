@@ -1,0 +1,26 @@
+=== stackable/cash/chn_contract_devil/contract_devil7.stk ===
+[name]
+魔王之契约
+[explain]
+使用后， 可以签订魔王之契约。 购买时， 请选择使用期限以及角色所需的特殊服务项； 契约价格由以上因素决定。
+(购买契约道具后， 立即适用于同一帐号大区的所有角色。）
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 389
+[stackable type]
+[etc] 0
+[move wav]
+PAPER_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
