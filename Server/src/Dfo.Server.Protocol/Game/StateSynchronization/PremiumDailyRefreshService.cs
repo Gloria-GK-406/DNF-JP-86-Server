@@ -39,14 +39,14 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
     IPremiumServiceUsageDomainService usage, ICommandBus commands, IGameMessageSender sender, TimeProvider clock,
     ILogger<PremiumDailyRefreshService> logger) : BackgroundService
 {
-    private readonly Dictionary<SelectedSessionIdentity, string> delivered = [];
+    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
     public async Task RefreshAsync(CancellationToken token)
     {
         var current = directory.Snapshot();
         foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
         foreach (var session in current)
         {
-            var period = usage.CurrentPeriod;
+            var period = usage.CurrentPeriodStart;
             if (delivered.GetValueOrDefault(session) == period) continue;
             try
             {

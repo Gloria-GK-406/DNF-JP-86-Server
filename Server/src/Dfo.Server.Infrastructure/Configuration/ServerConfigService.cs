@@ -11,12 +11,14 @@ public sealed class ServerConfigService : IServerConfigService
     public ServerConfigService(IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        values = configuration.AsEnumerable()
+        var snapshot = configuration.AsEnumerable()
             .Where(entry => entry.Value is not null)
             .ToDictionary(
                 entry => entry.Key,
                 entry => entry.Value!,
                 StringComparer.OrdinalIgnoreCase);
+        snapshot.TryAdd("Game:DailyResetTime", "06:00:00");
+        values = snapshot;
     }
 
     public T GetConfig<T>(string key)

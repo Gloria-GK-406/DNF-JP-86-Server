@@ -22,7 +22,7 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.TryAddSingleton<IServerConfigService, ServerConfigService>();
+        services.TryAddSingleton<IServerConfigService>(_ => new ServerConfigService(configuration));
         if (bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
             && launcherEnabled)
         {

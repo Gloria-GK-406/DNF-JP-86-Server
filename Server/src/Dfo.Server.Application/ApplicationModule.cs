@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
@@ -175,6 +176,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICarriedGoldRuleService, CarriedGoldRuleService>();
         services.TryAddSingleton<IPremiumServiceDomainService, PremiumServiceDomainService>();
         services.TryAddSingleton<IPremiumServiceUsageDomainService, PremiumServiceUsageDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService, DailyResetRuleService>();
         services.TryAddSingleton<IPremiumServiceRuleService, PremiumServiceRuleService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();

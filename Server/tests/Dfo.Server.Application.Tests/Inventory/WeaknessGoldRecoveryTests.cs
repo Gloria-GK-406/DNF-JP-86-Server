@@ -26,6 +26,58 @@ public sealed class WeaknessGoldRecoveryTests
         services.AddSingleton<IPremiumServiceDefinitionSource>(new PremiumRules()));
 
     [Fact]
+    public async Task Timestamp_counter_rejects_a_stale_write_instead_of_losing_consumption()
+    {
+        using var shop = PremiumShop();
+        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+        await using var transaction = scope.Begin();
+        var table = shop.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.IPremiumServiceUsageTable>();
+        var id = shop.Session.CharacterId;
+        var now = shop.Clock.GetUtcNow();
+        Assert.Equal(1, await table.TryWriteAsync(id, "premium_free_weakness_used", null, 1, now, default));
+        Assert.Equal(0, await table.TryWriteAsync(id, "premium_free_weakness_used", null, 1, now, default));
+        var first = await table.ReadAsync(id, "premium_free_weakness_used", default);
+        Assert.Equal(1, await table.TryWriteAsync(id, "premium_free_weakness_used", first, 2, now, default));
+        Assert.Equal(0, await table.TryWriteAsync(id, "premium_free_weakness_used", first, 2, now, default));
+        Assert.Equal(2, (await table.ReadAsync(id, "premium_free_weakness_used", default))!.UsedCount);
+    }
+
+    [Fact]
+    public async Task Timestamp_counter_survives_midnight_then_resets_at_six_without_appending_rows()
+    {
+        using var shop = PremiumShop();
+        shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,585,4000000000)");
+        await Weaken(shop);
+        await Recover(shop, 1); // The fixture starts at 20:00 Beijing time.
+        var usage = shop.Services.GetRequiredService<IPremiumServiceUsageDomainService>();
+        Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE last_consumed_at IS NOT NULL AND period IS NULL"));
+        shop.Clock.Advance(TimeSpan.FromHours(9) + TimeSpan.FromMinutes(59));
+        Assert.Equal(1, (await usage.ReadAsync(shop.Session.CharacterId, default)).Single(x => x.SlotIndex == 5).UsedCount);
+        shop.Clock.Advance(TimeSpan.FromMinutes(1));
+        Assert.Equal(0, (await usage.ReadAsync(shop.Session.CharacterId, default)).Single(x => x.SlotIndex == 5).UsedCount);
+        Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_free_weakness_used'"));
+        await Weaken(shop);
+        await Recover(shop, 1);
+        Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+        var row = await shop.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.IPremiumServiceUsageTable>()
+            .ReadAsync(shop.Session.CharacterId, "premium_free_weakness_used", default);
+        Assert.Equal(shop.Clock.GetUtcNow(), row!.LastConsumedAt);
+        Assert.Equal(1, row.UsedCount);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(4000000000000L)]
+    public async Task Missing_or_future_timestamp_is_not_current_usage(long? timestamp)
+    {
+        using var shop = PremiumShop();
+        shop.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at) VALUES(1,'premium_free_weakness_used','2026-09-08',10,{timestamp?.ToString() ?? "NULL"})");
+        var usage = shop.Services.GetRequiredService<IPremiumServiceUsageDomainService>();
+        Assert.Equal(0, (await usage.ReadAsync(shop.Session.CharacterId, default)).Single(x => x.SlotIndex == 5).UsedCount);
+        Assert.Equal(10, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_free_weakness_used'"));
+    }
+
+    [Fact]
     public async Task Contract_recovery_is_free_limited_persistent_and_renews_on_the_next_day()
     {
         using var shop = PremiumShop();

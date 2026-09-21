@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Configuration;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
@@ -138,6 +139,10 @@ internal sealed class CharacterSide
         return result;
     }
 
+    private sealed class ResetSettings : Dfo.Server.Abstractions.Configuration.IServerConfigService
+    {
+        public T GetConfig<T>(string key) => (T)(object)TimeSpan.FromHours(6);
+    }
     private sealed class UsageRules : IPremiumServiceDefinitionSource
     {
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
@@ -188,7 +193,7 @@ internal sealed class CharacterSide
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
                 new SqlitePremiumServiceUsageTable(this.database), new SqliteCharacterDailyCounterValueTable(this.database),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
-                new DailyRefillRuleService(), this.Scope, TimeProvider.System));
+                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System));
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

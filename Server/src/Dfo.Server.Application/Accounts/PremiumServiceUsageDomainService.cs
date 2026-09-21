@@ -1,5 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
-using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -8,15 +8,17 @@ namespace Dfo.Server.Application.Accounts;
 
 internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainService premiums,
     IPremiumServiceUsageTable counters, ICharacterDailyCounterValueTable legacyCounters,
-    ICharacterTable characters, IPremiumServiceRuleService rules, IDailyRefillRuleService days,
+    ICharacterTable characters, IPremiumServiceRuleService rules, IDailyResetRuleService days,
     IDomainTransactionAccessor transactions, TimeProvider clock) : IPremiumServiceUsageDomainService
 {
-    public string CurrentPeriod => days.PeriodOf(clock.GetUtcNow());
+    public DateTimeOffset CurrentPeriodStart => days.PeriodStart(clock.GetUtcNow());
     private const string FreeWeakness = "premium_free_weakness_used";
     public async ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAsync(CharacterId id, CancellationToken token)
     {
         var lottery = await legacyCounters.FindValueAsync(id, "lottery_double_reward_used", token).ConfigureAwait(false) ?? 0;
-        var weakness = await counters.ReadAsync(id, FreeWeakness, days.PeriodOf(clock.GetUtcNow()), token).ConfigureAwait(false);
+        var now = clock.GetUtcNow();
+        var row = await counters.ReadAsync(id, FreeWeakness, token).ConfigureAwait(false);
+        var weakness = CurrentUsage(row, now);
         if (lottery is < 0 or > 255 || weakness is < 0 or > 255)
             throw new InvalidDataException("Premium usage is outside the one-byte projection range.");
         return [new(1, lottery), new(5, weakness)];
@@ -27,7 +29,17 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
         if (!await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false)
             || !await premiums.For(accountId).HasBenefitAsync(PremiumBenefit.FreeWeaknessRecovery, token).ConfigureAwait(false))
             return false;
-        return await counters.TryIncrementAsync(id, FreeWeakness, days.PeriodOf(clock.GetUtcNow()),
-            rules.FreeWeaknessDailyLimit, token).ConfigureAwait(false) == 1;
+        var now = clock.GetUtcNow();
+        var row = await counters.ReadAsync(id, FreeWeakness, token).ConfigureAwait(false);
+        var used = CurrentUsage(row, now);
+        if (used >= rules.FreeWeaknessDailyLimit) return false;
+        return await counters.TryWriteAsync(id, FreeWeakness, row, used + 1, now, token).ConfigureAwait(false) == 1;
     }
+    private int CurrentUsage(PremiumServiceUsageRow? row, DateTimeOffset now)
+    {
+        if (row?.LastConsumedAt is not { } recorded || !days.IsCurrentPeriod(recorded, now)) return 0;
+        if (row.UsedCount is < 0 or > 255) throw new InvalidDataException("Invalid premium usage.");
+        return row.UsedCount;
+    }
+
 }

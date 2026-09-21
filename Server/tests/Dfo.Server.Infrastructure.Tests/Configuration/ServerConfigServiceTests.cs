@@ -7,6 +7,18 @@ namespace Dfo.Server.Infrastructure.Tests.Configuration;
 public sealed class ServerConfigServiceTests
 {
     [Fact]
+    public void Daily_reset_has_a_default_and_configuration_overrides_it()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
+        Assert.Equal(TimeSpan.FromHours(6), new ServerConfigService(configuration).GetConfig<TimeSpan>("Game:DailyResetTime"));
+        configuration["Game:DailyResetTime"] = "08:00:00";
+        var settings = new ServerConfigService(configuration);
+        Assert.Equal(TimeSpan.FromHours(8), settings.GetConfig<TimeSpan>("Game:DailyResetTime"));
+        configuration["Game:DailyResetTime"] = "09:00:00";
+        Assert.Equal(TimeSpan.FromHours(8), settings.GetConfig<TimeSpan>("Game:DailyResetTime"));
+    }
+
+    [Fact]
     public void GetConfig_ReadsRequiredScalarValuesFromTheStartupSnapshot()
     {
         var values = new Dictionary<string, string?>

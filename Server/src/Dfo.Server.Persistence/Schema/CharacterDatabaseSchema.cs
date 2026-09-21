@@ -232,7 +232,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_daily_challenge_entries(character_id INTEGER, group_index INTEGER, entry_index INTEGER, track_like_id INTEGER, value_a INTEGER, value_b INTEGER, PRIMARY KEY(character_id,group_index,entry_index));
         CREATE TABLE IF NOT EXISTS character_daily_challenge_tail_ids(character_id INTEGER, sort_order INTEGER, id_value INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_daily_challenges ( character_id INTEGER, group_index INTEGER, group_id INTEGER, claimed_at TEXT, PRIMARY KEY(character_id,group_index) );
-        CREATE TABLE IF NOT EXISTS character_daily_counters(character_id INTEGER, counter_key TEXT, period TEXT, value INTEGER, PRIMARY KEY(character_id,counter_key));
+        CREATE TABLE IF NOT EXISTS character_daily_counters(character_id INTEGER, counter_key TEXT, period TEXT, value INTEGER, last_consumed_at INTEGER, PRIMARY KEY(character_id,counter_key));
         CREATE TABLE IF NOT EXISTS character_daily_schedule_states(character_id INTEGER, sort_order INTEGER, param_a INTEGER, mode_or_state INTEGER, content_id INTEGER, param_b INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_dark_knight_combo_skill_pages(character_id INTEGER, page_index INTEGER, body BLOB NOT NULL, PRIMARY KEY(character_id,page_index));
         CREATE TABLE IF NOT EXISTS character_dimensions(character_id INTEGER, sort_order INTEGER, dim_key INTEGER, val1 INTEGER, val2 INTEGER, PRIMARY KEY(character_id,sort_order));
@@ -326,6 +326,7 @@ internal static class CharacterDatabaseSchema
         character_daily_counters|counter_key|TEXT
         character_daily_counters|period|TEXT
         character_daily_counters|value|INTEGER
+        character_daily_counters|last_consumed_at|INTEGER
         character_daily_schedule_states|character_id|INTEGER
         character_daily_schedule_states|sort_order|INTEGER
         character_daily_schedule_states|param_a|INTEGER
