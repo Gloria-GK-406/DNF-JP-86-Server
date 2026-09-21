@@ -5,6 +5,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.Weakness;
 
 namespace Dfo.Server.Protocol.Game.Dungeons;
 
@@ -51,7 +52,8 @@ public sealed class DungeonLoadingProjectionDelivery(
     DungeonRunDeliveryRegistry deliveryRegistry,
     SelectedSessionTransitionGate transitionGate,
     DungeonProjectionGate projectionGate,
-    ICommandBus commands) : IDungeonLoadingProjectionDelivery
+    ICommandBus commands,
+    WeaknessProjectionDelivery? weaknessProjection = null) : IDungeonLoadingProjectionDelivery
 {
     public async ValueTask<bool> CompleteLoadingAsync(
         NetworkConnectionId connectionId,
@@ -99,6 +101,12 @@ public sealed class DungeonLoadingProjectionDelivery(
             return false;
         }
 
+        // Entry USERINFO refreshes the client's combat attributes. Restore the retained
+        // weakness after the first map loads, once per participant. Room changes and duplicate
+        // loading reports must not reapply a notification that can also reset current HP/MP.
+        var restoreEntryWeakness = current.RoomVersion == 0
+            && !current.ReadyParticipants.Contains(session.CharacterId);
+
         _ = await commands.SendAsync(
             new MarkDungeonParticipantReadyCommand(
                 session.CharacterId,
@@ -120,6 +128,8 @@ public sealed class DungeonLoadingProjectionDelivery(
         // The direct response belongs to this frozen generation too. Keep both leases until the
         // frame has been accepted by the required connection, closing the validation/send race.
         await releaseClient(cancellationToken).ConfigureAwait(false);
+        if (restoreEntryWeakness && weaknessProjection is not null)
+            await weaknessProjection.SendCurrentAsync(session, cancellationToken).ConfigureAwait(false);
         return true;
     }
 

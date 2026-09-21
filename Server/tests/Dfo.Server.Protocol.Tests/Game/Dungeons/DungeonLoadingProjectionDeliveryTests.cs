@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -8,11 +9,39 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Weakness;
 
 namespace Dfo.Server.Protocol.Tests.Game.Dungeons;
 
 public sealed class DungeonLoadingProjectionDeliveryTests
 {
+    [Theory]
+    [InlineData(10)]
+    [InlineData(28)]
+    [InlineData(100)]
+    public async Task Entry_restores_retained_weakness_after_loading_without_reapplying_on_duplicate(byte value)
+    {
+        var world = World(weaknessValue: value);
+        var released = false;
+        world.Sender.BeforeSend = () => Assert.True(released);
+        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+            _ => { released = true; return ValueTask.CompletedTask; }, default));
+        Assert.Equal(value, Assert.Single(world.Sender.Values));
+        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+            _ => ValueTask.CompletedTask, default));
+        Assert.Single(world.Sender.Values);
+    }
+
+    [Fact]
+    public async Task Later_room_loading_does_not_reapply_weakness_and_reset_combat_vitals()
+    {
+        var world = World(roomVersion: 1);
+        Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+            _ => ValueTask.CompletedTask, default));
+        Assert.Empty(world.Sender.Values);
+    }
+
     [Fact]
     public async Task The_exact_frozen_generation_submits_ready_for_its_current_room()
     {
@@ -38,6 +67,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         Assert.False(accepted);
         Assert.Equal(0, world.Commands.Submissions);
         Assert.Empty(world.Runs.Find(Current.CharacterId)!.ReadyParticipants);
+        Assert.Empty(world.Sender.Values);
     }
 
     [Fact]
@@ -102,7 +132,9 @@ public sealed class DungeonLoadingProjectionDeliveryTests
 
     private static TestWorld World(
         TaskCompletionSource? enteredCommand = null,
-        TaskCompletionSource? releaseCommand = null)
+        TaskCompletionSource? releaseCommand = null,
+        byte weaknessValue = 19,
+        long roomVersion = 0)
     {
         var participant = new DungeonRunParticipant(
             Current.AccountId, Current.CharacterId, Slot: 0, IsLeader: true);
@@ -122,6 +154,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             new HashSet<MazeCell> { new(0, 0) },
             DateTimeOffset.UnixEpoch,
             RunId: DungeonRunId.New(),
+            RoomVersion: roomVersion,
             Participant: participant,
             Participants: [participant],
             EntryRevision: 1,
@@ -133,14 +166,16 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         registry.Register(run.RunId, [Current]);
         var transitionGate = new SelectedSessionTransitionGate();
         var commands = new ReadyCommandBus(runs, enteredCommand, releaseCommand);
+        var sender = new WeaknessSender();
         var delivery = new DungeonLoadingProjectionDelivery(
             sessions,
             runs,
             registry,
             transitionGate,
             new DungeonProjectionGate(),
-            commands);
-        return new TestWorld(delivery, sessions, runs, commands, transitionGate);
+            commands,
+            new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender));
+        return new TestWorld(delivery, sessions, runs, commands, transitionGate, sender);
     }
 
     private static readonly SelectedSessionIdentity Current = SelectedSessionIdentity.Create(
@@ -157,7 +192,36 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         Sessions Sessions,
         Runs Runs,
         ReadyCommandBus Commands,
-        SelectedSessionTransitionGate TransitionGate);
+        SelectedSessionTransitionGate TransitionGate,
+        WeaknessSender Sender);
+
+    private sealed class WeaknessState(byte value) : IWeaknessDomainService, IWeakness
+    {
+        public byte Value => value;
+        public ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public IWeakness For(CharacterId id) => this;
+        public TimeSpan RecoveryInterval => TimeSpan.FromMinutes(1);
+        public IReadOnlyList<CharacterId> AdvanceRecovery() => [];
+        public ValueTask SetWeakness() => throw new NotSupportedException();
+        public void Recover() => throw new NotSupportedException();
+        public void PauseRecovery() => throw new NotSupportedException();
+        public void ResumeRecovery() => throw new NotSupportedException();
+    }
+
+    private sealed class WeaknessSender : IGameMessageSender
+    {
+        public List<byte> Values { get; } = [];
+        public Action? BeforeSend { get; set; }
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken token)
+        {
+            Assert.Equal(Current.ConnectionId, id);
+            BeforeSend?.Invoke();
+            Values.Add(Assert.IsType<WeaknessProjectionNotification>(message).Value);
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken token) => throw new NotSupportedException();
+    }
 
     private sealed class Sessions(SelectedSessionIdentity initial) : ISelectedSessionDomainService
     {
