@@ -1,0 +1,75 @@
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Protocol.Game.StateSynchronization;
+
+public sealed record ReadPremiumSnapshotCommand(SelectedSessionIdentity Session)
+    : ICommand<PremiumSnapshotResult>, IAccountCommand
+{
+    public AccountId AccountId => Session.AccountId;
+}
+public sealed record PremiumSnapshotResult(AccountEntitlementEntryState Entitlements,
+    IReadOnlyList<CharacterPremiumUsageSlotState> Usage, DateTimeOffset PreparedAt, bool IsCurrent = true);
+
+public sealed class ReadPremiumSnapshotCommandHandler(ISelectedSessionDomainService sessions,
+    IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService usage, TimeProvider clock)
+    : ICommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult>
+{
+    public async ValueTask<PremiumSnapshotResult> HandleAsync(CommandExecutionContext context,
+        ReadPremiumSnapshotCommand command, CancellationToken token)
+    {
+        if (sessions.FindByCharacter(command.Session.CharacterId) != command.Session) return new(new([]), [], clock.GetUtcNow(), false);
+        return new(new(await premiums.For(command.AccountId).ReadAsync(token).ConfigureAwait(false)),
+            await usage.ReadAsync(command.Session.CharacterId, token).ConfigureAwait(false), clock.GetUtcNow());
+    }
+}
+
+// One server timer refreshes online UI after the day changes; period-aware counters reset lazily.
+public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery directory,
+    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    IPremiumServiceUsageDomainService usage, ICommandBus commands, IGameMessageSender sender, TimeProvider clock,
+    ILogger<PremiumDailyRefreshService> logger) : BackgroundService
+{
+    private readonly Dictionary<SelectedSessionIdentity, string> delivered = [];
+    public async Task RefreshAsync(CancellationToken token)
+    {
+        var current = directory.Snapshot();
+        foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
+        foreach (var session in current)
+        {
+            var period = usage.CurrentPeriod;
+            if (delivered.GetValueOrDefault(session) == period) continue;
+            try
+            {
+                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
+                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                var state = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
+                if (!state.IsCurrent) continue;
+                await sender.SendCmdAsync(session.ConnectionId,
+                    new PremiumServiceStateMessage(state.Entitlements, state.Usage, state.PreparedAt), token).ConfigureAwait(false);
+                delivered[session] = period;
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception ex) { logger.LogWarning(ex, "Premium daily projection failed character={CharacterId}", session.CharacterId); }
+        }
+    }
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
+                await RefreshAsync(stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+    }
+}

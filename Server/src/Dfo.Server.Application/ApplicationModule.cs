@@ -174,6 +174,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IGoldLimitRuleService, GoldLimitRuleService>();
         services.TryAddSingleton<ICarriedGoldRuleService, CarriedGoldRuleService>();
         services.TryAddSingleton<IPremiumServiceDomainService, PremiumServiceDomainService>();
+        services.TryAddSingleton<IPremiumServiceUsageDomainService, PremiumServiceUsageDomainService>();
         services.TryAddSingleton<IPremiumServiceRuleService, PremiumServiceRuleService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
@@ -362,7 +363,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
-        services.TryAddSingleton<ISelectedSessionDomainService, SelectedSessionDomainService>();
+        services.TryAddSingleton<SelectedSessionDomainService>();
+        services.TryAddSingleton<ISelectedSessionDomainService>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
+        services.TryAddSingleton<ISelectedSessionSnapshotQuery>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
         services.TryAddSingleton<ICharacterVitalRuntimeDomainService, CharacterVitalRuntimeDomainService>();
         services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();

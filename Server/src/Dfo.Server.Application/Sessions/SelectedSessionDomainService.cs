@@ -6,10 +6,15 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
 
-internal sealed class SelectedSessionDomainService : ISelectedSessionDomainService
+internal sealed class SelectedSessionDomainService : ISelectedSessionDomainService, ISelectedSessionSnapshotQuery
 {
     private readonly object sync = new();
     private readonly Dictionary<AccountId, SelectedSessionIdentity> sessions = [];
+
+    public IReadOnlyList<SelectedSessionIdentity> Snapshot()
+    {
+        lock (sync) return sessions.Values.ToArray();
+    }
 
     public SelectedSessionIdentity? Select(SelectedSessionIdentity session)
     {

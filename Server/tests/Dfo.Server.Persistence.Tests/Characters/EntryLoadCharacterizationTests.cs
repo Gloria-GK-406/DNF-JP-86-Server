@@ -338,6 +338,8 @@ public sealed class EntryLoadCharacterizationTests
         Progression.Dungeons[0].Item3 = 2
         Progression.PremiumUsageSlots[0].Item1 = 1
         Progression.PremiumUsageSlots[0].Item2 = 6
+        Progression.PremiumUsageSlots[1].Item1 = 5
+        Progression.PremiumUsageSlots[1].Item2 = 0
         Progression.DailyReviveCoinClaimed = True
         Features.Pets[0].SortOrder = 0
         Features.Pets[0].CreatureKey = 400

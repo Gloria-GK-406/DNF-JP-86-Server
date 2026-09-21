@@ -5,6 +5,8 @@ namespace Dfo.Server.Application.Accounts;
 
 internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource source) : IPremiumServiceRuleService
 {
+    private readonly Lazy<int> freeWeaknessLimit = new(source.ReadFreeWeaknessDailyLimit);
+    public int FreeWeaknessDailyLimit => freeWeaknessLimit.Value;
     private readonly Lazy<PremiumContractLevels> levels = new(source.ReadContractLevels);
     public int LevelAllowance(PremiumBenefit benefit) => benefit switch
     {

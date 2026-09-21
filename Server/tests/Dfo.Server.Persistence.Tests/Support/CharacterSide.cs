@@ -138,6 +138,12 @@ internal sealed class CharacterSide
         return result;
     }
 
+    private sealed class UsageRules : IPremiumServiceDefinitionSource
+    {
+        public PremiumContractLevels ReadContractLevels() => new(5, 10);
+        public int ReadFreeWeaknessDailyLimit() => 10;
+    }
+
     /// <summary>
     /// Everything a character is entered with, wired the way the server wires it.
     /// </summary>
@@ -178,7 +184,11 @@ internal sealed class CharacterSide
             new SqliteMailboxRecipientTable(this.database),
             new SqliteMailboxMessageTable(this.database),
             new SqliteMailboxAttachmentTable(this.database),
-            goldLimits);
+            goldLimits, new PremiumServiceUsageDomainService(
+                new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
+                new SqlitePremiumServiceUsageTable(this.database), new SqliteCharacterDailyCounterValueTable(this.database),
+                new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
+                new DailyRefillRuleService(), this.Scope, TimeProvider.System));
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

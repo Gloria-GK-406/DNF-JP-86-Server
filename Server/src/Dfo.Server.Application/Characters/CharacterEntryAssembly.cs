@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
@@ -56,16 +57,13 @@ internal sealed class CharacterEntryAssembly(
     IMailboxRecipientTable mailboxRecipients,
     IMailboxMessageTable mailboxMessages,
     IMailboxAttachmentTable mailboxAttachments,
-    IGoldLimitRuleService goldLimits) : ICharacterEntryStateRepository
+    IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices) : ICharacterEntryStateRepository
 {
     /// <summary>How many of the inbox a character is shown on entry.</summary>
     private const int InboxPageSize = 20;
 
     /// <summary>The counter that says today's revive coin has been taken.</summary>
     private const string ReviveCoinCounter = "revive_coin_daily_claim";
-
-    /// <summary>The counter that says today's doubled lottery reward has been taken.</summary>
-    private const string LotteryDoubleCounter = "lottery_double_reward_used";
 
     public async ValueTask<CharacterEntryStorageRecord> LoadAsync(
         AccountId accountId,
@@ -379,18 +377,13 @@ internal sealed class CharacterEntryAssembly(
 
         var claimedRevive = await CounterAsync(characterId, ReviveCoinCounter, cancellationToken)
             .ConfigureAwait(false) > 0;
-        var premiumUsage = await CounterAsync(characterId, LotteryDoubleCounter, cancellationToken)
-            .ConfigureAwait(false);
-        if (premiumUsage < 0)
-        {
-            throw new InvalidDataException("Character premium usage cannot be negative.");
-        }
+        var premiumUsage = await premiumServices.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
 
         return new CharacterProgressionStorageRecord(
             level, growth, cube.CubeType, cube.CubeGrade,
             champion.KeyId, champion.Mode, champion.Value, goldLevel,
             groups, tails, schedules, dungeons,
-            [((byte)1, premiumUsage)], claimedRevive);
+            premiumUsage.Select(slot => (slot.SlotIndex, slot.UsedCount)).ToArray(), claimedRevive);
     }
 
     private async ValueTask<CharacterFeatureStorageRecord> LoadFeaturesAsync(

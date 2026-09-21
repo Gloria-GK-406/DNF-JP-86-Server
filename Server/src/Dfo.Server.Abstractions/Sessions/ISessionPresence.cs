@@ -27,6 +27,11 @@ public interface ISelectedSessionDomainService
     SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId);
 }
 
+public interface ISelectedSessionSnapshotQuery
+{
+    IReadOnlyList<SelectedSessionIdentity> Snapshot();
+}
+
 public interface ISelectedSessionRuntimeDirectory
 {
     void Publish(SelectedSessionIdentity session, bool shouldPersistPosition);

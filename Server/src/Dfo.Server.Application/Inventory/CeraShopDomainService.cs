@@ -19,7 +19,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
     ICharacterTable characterRows, IAccountTable accounts, ICharacterContainerDomainService containers,
     ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
-    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, ICharacterDailyCounterValueTable dailyCounters) : ICeraShopDomainService
+    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -103,12 +103,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (!quote.Subscriptions.IsEmpty)
         {
             entitlements = new(await premiums.For(session.AccountId).ReadAsync(cancellationToken).ConfigureAwait(false));
-            // Match the existing entry projection; consumption/reset rules remain unchanged.
-            var used = await dailyCounters.FindValueAsync(session.CharacterId, "lottery_double_reward_used",
-                cancellationToken).ConfigureAwait(false) ?? 0;
-            if (used is < 0 or > byte.MaxValue)
-                throw new InvalidDataException("Premium usage cannot be represented in the service snapshot.");
-            usage = [new(1, used)];
+            usage = await premiumUsage.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
         }
         return new(CeraShopRejection.None, new(session, quote.ProductIds, plan.Balances, gold, plan.GoldCost > 0,
             updates.ToImmutable(), pets, hasCreatures, now)

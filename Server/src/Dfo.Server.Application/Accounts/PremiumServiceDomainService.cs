@@ -33,6 +33,7 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
             {
                 PremiumBenefit.LearnSkillsEarly => PremiumServiceType.ExpertSkillContract,
                 PremiumBenefit.EquipItemsEarly => PremiumServiceType.OverEquipmentContract,
+                PremiumBenefit.FreeWeaknessRecovery => PremiumServiceType.FreeWeaknessRecovery,
                 _ => throw new ArgumentOutOfRangeException(nameof(benefit)),
             }, cancellationToken);
 

@@ -86,6 +86,7 @@ public sealed class PremiumContractTests
 
     private sealed class Levels : IPremiumServiceDefinitionSource
     {
+        public int ReadFreeWeaknessDailyLimit() => 10;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
     }
     private sealed class Requirement(int level) : IEquipmentWearRuleService
