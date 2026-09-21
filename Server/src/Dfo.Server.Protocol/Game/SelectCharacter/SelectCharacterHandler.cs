@@ -65,7 +65,8 @@ public sealed class SelectCharacterHandler(
     ICleanupNotificationDelivery cleanupDelivery,
     INetworkConnectionCloser closer,
     ILogger<SelectCharacterHandler> logger,
-    SelectCharacterDeliveryOptions delivery) : ClientMessageHandler<SelectCharacterRequest>
+    SelectCharacterDeliveryOptions delivery,
+    WeaknessProjectionTestOptions? weaknessTest = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -388,6 +389,13 @@ public sealed class SelectCharacterHandler(
                 cancellationToken).ConfigureAwait(false);
         }
         EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && weaknessTest?.Value is { } weakness)
+        {
+            await sender.SendNotiAsync(session.ConnectionId,
+                new WeaknessProjectionNotification(weakness), cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Diagnostic weakness projection character={CharacterId} value={Value}; no persistent or server attribute changes",
+                session.CharacterId, weakness);
+        }
     }
 
     private static IReadOnlyList<SupplementalSynchronizationMessage> BuildPrePublicationMessages(

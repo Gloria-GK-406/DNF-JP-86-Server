@@ -109,6 +109,9 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.TryAddSingleton<DungeonProjectionGate>();
         services.AddHostedService<DungeonPartyWipeService>();
+        var weaknessTestValue = configuration.GetValue<byte?>("Diagnostics:WeaknessOnLogin");
+        if (weaknessTestValue > 100) throw new InvalidOperationException("WeaknessOnLogin must be 0..100.");
+        services.TryAddSingleton(new WeaknessProjectionTestOptions(weaknessTestValue));
         var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
@@ -546,6 +549,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<WeaknessProjectionNotification, WeaknessProjectionEncoder>();
         services.AddGameNotiMessageEncoder<CharacterLifeStateNotification, CharacterLifeStateEncoder>();
         services.AddGameCmdMessageEncoder<CharacterDeathResponse, CharacterDeathResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseRevivalCoinResponse, UseRevivalCoinEncoder>();
