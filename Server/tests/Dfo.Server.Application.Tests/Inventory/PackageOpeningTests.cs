@@ -107,7 +107,7 @@ public sealed class PackageOpeningTests
         opening.Content.Definitions[1001] = OpeningContent.Package(1001, [new(30, 2), new(3, 1)]);
         opening.Content.Items[30] = new(30,
             new(0, 1, new(BusinessInventorySpace.VirtualResource, 31, 31)),
-            0, false, [], null, true, PremiumType: 31, PremiumDays: 3);
+            0, false, [], null, true, PremiumType: 31, PremiumDuration: TimeSpan.FromDays(3));
         var current = opening.Host.Clock.GetUtcNow().AddDays(1).ToUnixTimeSeconds();
         opening.Host.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,31,{current})");
         await opening.Host.Seed(80, 1001, 1);

@@ -46,7 +46,7 @@ public sealed class ItemPathFrameTests
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                new ItemSlotRuleService()));
+                new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
 
         // The boundary the pipeline would have opened for a Transactional command. Without it the
         // container refuses the write outright, which is the guarantee working rather than a
@@ -88,7 +88,7 @@ public sealed class ItemPathFrameTests
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                new ItemSlotRuleService()));
+                new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
 
         await using var boundary = storage.Scope.Begin();
         var result = await handler.HandleAsync(
@@ -252,4 +252,9 @@ public sealed class ItemPathFrameTests
             return ValueTask.CompletedTask;
         }
     }
+}
+
+internal sealed class ItemPathFrameTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

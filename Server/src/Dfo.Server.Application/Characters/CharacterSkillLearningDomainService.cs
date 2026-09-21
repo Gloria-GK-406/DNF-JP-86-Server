@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
@@ -15,7 +16,8 @@ internal sealed class CharacterSkillLearningDomainService(
     ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
     ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
-    IDomainTransactionAccessor transactions) : ICharacterSkillLearningDomainService
+    IDomainTransactionAccessor transactions, IPremiumServiceDomainService premiums,
+    IPremiumServiceRuleService premiumRules) : ICharacterSkillLearningDomainService
 {
     public async ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session, byte pageIndex,
         IReadOnlyList<CharacterSkillLearningChange> changes, byte mode, CancellationToken cancellationToken)
@@ -72,10 +74,13 @@ internal sealed class CharacterSkillLearningDomainService(
             target[change.SkillId] = learned;
             changed.Add(learned);
         }
+        var learningLevel = (int)facts.Level;
+        if (await premiums.For(session.AccountId).HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, cancellationToken).ConfigureAwait(false))
+            learningLevel = checked(learningLevel + premiumRules.LevelAllowance(PremiumBenefit.LearnSkillsEarly));
         var finalLevels = target.ToDictionary(pair => pair.Key, pair => (int)pair.Value.Level);
         foreach (var learned in changed)
             if (!rules.Get(facts.Career.Job, (int)learned.SkillId)!
-                .CanLearn(facts.Career, facts.Level, learned.Level, finalLevels))
+                .CanLearn(facts.Career, learningLevel, learned.Level, finalLevels))
                 return new(CharacterSkillLearningRejection.SkillUnavailable);
         var pages = facts.Pages.Where(page => page.PageIndex != pageIndex)
             .Append(new CharacterSkillPageState(pageIndex, target.Values.OrderBy(skill => skill.Slot).ToArray())).ToArray();

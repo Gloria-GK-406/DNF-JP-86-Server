@@ -211,7 +211,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                new ItemSlotRuleService()));
+                new ItemSlotRuleService(), new RefusedEquipIsRecordedWithItsTemplateTestsWearEligibility()));
 
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
@@ -459,4 +459,9 @@ public sealed class ArchiveContentFixture : IDisposable
 
     public void Dispose() => this.services.Dispose();
 
+}
+
+internal sealed class RefusedEquipIsRecordedWithItsTemplateTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

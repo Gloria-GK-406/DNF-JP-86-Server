@@ -317,7 +317,7 @@ public sealed class MoveItemSpaceHandlerTests
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(placements, new NoWearables()),
-                new ItemSlotRuleService()));
+                new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
         var results = await Task.WhenAll(
             Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
@@ -382,7 +382,7 @@ public sealed class MoveItemSpaceHandlerTests
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(resolved, new NoWearables()),
-                new ItemSlotRuleService()));
+                new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
         return (
             new MoveItemSpaceHandler(
@@ -523,4 +523,9 @@ public sealed class MoveItemSpaceHandlerTests
                 "The inventory is loaded only for a session that is published.");
     }
 
+}
+
+internal sealed class MoveItemSpaceHandlerTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

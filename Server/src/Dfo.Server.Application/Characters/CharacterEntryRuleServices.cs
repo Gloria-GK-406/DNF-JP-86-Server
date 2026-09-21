@@ -38,37 +38,6 @@ internal sealed class CarriedGoldRuleService(IGoldCarryLimitSource carryLimits)
 internal sealed class ExpertSkillContractRuleService : IExpertSkillContractRuleService
 {
     /// <remarks>
-    /// One contract still running is enough to leave everything alone, so the answer is no as soon
-    /// as one is found. Having none at all is also no: there was nothing holding anything up.
-    /// </remarks>
-    public bool HasRunOut(
-        IReadOnlyList<(int PremiumType, long EndTimeUnixSeconds)> premiums,
-        IReadOnlySet<int> overSkillPremiumTypes,
-        DateTimeOffset now)
-    {
-        ArgumentNullException.ThrowIfNull(premiums);
-        ArgumentNullException.ThrowIfNull(overSkillPremiumTypes);
-        var seconds = now.ToUnixTimeSeconds();
-        var expired = false;
-        foreach (var (premiumType, endTime) in premiums)
-        {
-            if (!overSkillPremiumTypes.Contains(premiumType))
-            {
-                continue;
-            }
-
-            if (endTime > seconds)
-            {
-                return false;
-            }
-
-            expired = true;
-        }
-
-        return expired;
-    }
-
-    /// <remarks>
     /// A skill the advancement cannot learn at all, and one whose level is fixed rather than
     /// bought, are both left alone. A free grant can hold a level up on its own, so it raises the
     /// ceiling rather than being capped by it. A ceiling of nothing removes the row: the level

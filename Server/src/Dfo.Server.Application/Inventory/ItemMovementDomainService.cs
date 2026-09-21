@@ -6,8 +6,11 @@ namespace Dfo.Server.Application.Inventory;
 /// <summary>Moving a piece between the bag and what the character is wearing.</summary>
 internal sealed class ItemMovementDomainService(
     IItemPlacementRuleService placementRules,
-    IItemSlotRuleService slotRules) : IItemMovementDomainService
+    IItemSlotRuleService slotRules, IEquipmentWearDomainService wearing) : IItemMovementDomainService
 {
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) =>
+        wearing.CanWearAsync(characterId, itemId, cancellationToken);
+
     public ValueTask<BusinessSlot?> WornSlotForAsync(
         int itemId, CancellationToken cancellationToken) =>
         placementRules.WornSlotForAsync(itemId, cancellationToken);

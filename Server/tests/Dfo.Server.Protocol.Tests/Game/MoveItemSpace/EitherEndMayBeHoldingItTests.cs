@@ -708,7 +708,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                    new ItemSlotRuleService())),
+                    new ItemSlotRuleService(), new EitherEndMayBeHoldingItTestsWearEligibility())),
             character);
     }
 
@@ -977,4 +977,9 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                 "The inventory is loaded only for a session that is published.");
     }
 
+}
+
+internal sealed class EitherEndMayBeHoldingItTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

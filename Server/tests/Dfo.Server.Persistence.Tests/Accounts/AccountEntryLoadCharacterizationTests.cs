@@ -157,7 +157,7 @@ public sealed class AccountEntryLoadCharacterizationTests
         return new AccountEntryAssembly(
             new SqliteAccountTable(database),
             new SqliteAccountSettingsTable(database),
-            new SqliteAccountPremiumTable(database),
+            new PremiumServiceDomainService(new SqliteAccountPremiumTable(database), new DomainTransactionScope(), TimeProvider.System),
             new SqliteAccountLotteryProgressTable(database),
             new SqliteCharacterTable(database),
             new SqliteCharacterConditionTable(database),

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Accounts;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -113,7 +114,7 @@ internal sealed class CharacterSide
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>
         new ExpertSkillContractReconciliationService(
-            new SqliteAccountPremiumTable(this.database),
+            new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
             new SqliteCharacterTable(this.database),
             new SqliteCharacterSkillTable(this.database),
             rules);

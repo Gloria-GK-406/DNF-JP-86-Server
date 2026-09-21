@@ -1,0 +1,56 @@
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Data.Accounts;
+
+namespace Dfo.Server.Application.Accounts;
+
+internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
+    IDomainTransactionAccessor transactions, TimeProvider clock) : IPremiumServiceDomainService
+{
+    public IAccountPremiumServices For(AccountId accountId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(accountId.Value);
+        return new AccountServices(accountId, table, transactions, clock);
+    }
+
+    private sealed class AccountServices(AccountId accountId, IAccountPremiumTable table,
+        IDomainTransactionAccessor transactions, TimeProvider clock) : IAccountPremiumServices
+    {
+        public async ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken) =>
+            (await table.ReadAsync(accountId, cancellationToken).ConfigureAwait(false))
+                .Select(row => new AccountPremiumEntryState(row.PremiumType, row.ExpiresAtUnixSeconds)).ToArray();
+
+        public async ValueTask<bool> IsActiveAsync(PremiumServiceType type, CancellationToken cancellationToken)
+        {
+            var rows = await ReadAsync(cancellationToken).ConfigureAwait(false);
+            var now = clock.GetUtcNow().ToUnixTimeSeconds();
+            return rows.Any(row => row.PremiumType == (int)type && row.ExpiresAtUnixSeconds > now);
+        }
+
+        public ValueTask<bool> HasBenefitAsync(PremiumBenefit benefit, CancellationToken cancellationToken) =>
+            IsActiveAsync(benefit switch
+            {
+                PremiumBenefit.LearnSkillsEarly => PremiumServiceType.ExpertSkillContract,
+                PremiumBenefit.EquipItemsEarly => PremiumServiceType.OverEquipmentContract,
+                _ => throw new ArgumentOutOfRangeException(nameof(benefit)),
+            }, cancellationToken);
+
+        public async ValueTask<AccountPremiumEntryState> ExtendAsync(PremiumServiceType type, TimeSpan duration,
+            CancellationToken cancellationToken)
+        {
+            if (transactions.Current is null) throw new InvalidOperationException("Premium extension requires a transaction.");
+            // Unknown legacy types remain round-trippable while their effects are migrated separately.
+            if ((int)type is <= 0 or > 127) throw new ArgumentOutOfRangeException(nameof(type));
+            if (duration.Ticks <= 0 || duration.Ticks % TimeSpan.TicksPerSecond != 0)
+                throw new ArgumentOutOfRangeException(nameof(duration));
+            var rows = await ReadAsync(cancellationToken).ConfigureAwait(false);
+            var old = rows.SingleOrDefault(row => row.PremiumType == (int)type)?.ExpiresAtUnixSeconds ?? 0;
+            var expiry = checked(Math.Max(clock.GetUtcNow().ToUnixTimeSeconds(), old)
+                + duration.Ticks / TimeSpan.TicksPerSecond);
+            if (await table.UpsertExpiryAsync(accountId, (int)type, expiry, cancellationToken).ConfigureAwait(false) != 1)
+                throw new InvalidOperationException("Premium extension affected no row.");
+            return new((int)type, expiry);
+        }
+    }
+}

@@ -536,6 +536,9 @@ public sealed class MoveItemSpaceCommandHandler(
         if (slot.Value != command.DestinationSlot)
             return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
+        if (!await moves.CanWearAsync(command.CharacterId, piece.ItemId, cancellationToken).ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
+
         await worn.Container.PutAsync(worn.StorageIndex, piece.Core, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is null)
@@ -691,6 +694,8 @@ public sealed class MoveItemSpaceCommandHandler(
             var displacedSlot = await moves
                 .WornSlotForAsync(displaced.ItemId, cancellationToken)
                 .ConfigureAwait(false);
+            if (!await moves.CanWearAsync(command.CharacterId, displaced.ItemId, cancellationToken).ConfigureAwait(false))
+                return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot, displaced.ItemId);
             if (displacedSlot != command.SourceSlot)
                 return ItemMoveResult.Refused(
                     ItemMoveStatus.DisplacedCannotOccupySlot, piece.ItemId);

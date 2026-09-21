@@ -66,6 +66,17 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         new NetworkConnectionContext(Connection, NetworkEndpointKind.Game, 10011));
 
     [Fact]
+    public async Task Expired_wear_qualification_refuses_equipping_but_allows_taking_off()
+    {
+        var equip = Build(inBagAt: BagSlot, canWear: false);
+        await equip.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+        Assert.NotNull(Assert.IsType<MoveItemSpaceResponse>(Assert.Single(equip.Sender.Sent)).ErrorCode);
+        var remove = Build(wornAt: WornCostumeSlot, canWear: false);
+        await remove.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Main, BagSlot);
+        Assert.Null(Assert.IsType<MoveItemSpaceResponse>(remove.Sender.Sent[0]).ErrorCode);
+    }
+
+    [Fact]
     public async Task Putting_a_costume_on_tells_the_client_what_the_character_now_wears()
     {
         var world = Build(inBagAt: BagSlot);
@@ -373,7 +384,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         int? sessionCopyWears = null,
         bool storeRefusesToLoad = false,
         bool sessionRefusesReplacement = false,
-        bool shouldPersistPosition = false)
+        bool shouldPersistPosition = false, bool canWear = true)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
@@ -393,7 +404,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                new ItemSlotRuleService()));
+                new ItemSlotRuleService(), new TheCharacterChangesAsYouDressItTestsWearEligibility(canWear)));
 
         var runtime = new RecordingRuntime(sessionCopyWears, sessionRefusesReplacement, shouldPersistPosition);
         var inventory = new StoreBackedInventory(worn, character);
@@ -726,4 +737,9 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             return ValueTask.CompletedTask;
         }
     }
+}
+
+internal sealed class TheCharacterChangesAsYouDressItTestsWearEligibility(bool allowed) : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(allowed);
 }

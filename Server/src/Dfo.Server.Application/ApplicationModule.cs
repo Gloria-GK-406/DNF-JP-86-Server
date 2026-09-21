@@ -173,6 +173,8 @@ public sealed class ApplicationModule : IServerModule
             ICharacterEntryPreparationRuleService, CharacterEntryPreparationRuleService>();
         services.TryAddSingleton<IGoldLimitRuleService, GoldLimitRuleService>();
         services.TryAddSingleton<ICarriedGoldRuleService, CarriedGoldRuleService>();
+        services.TryAddSingleton<IPremiumServiceDomainService, PremiumServiceDomainService>();
+        services.TryAddSingleton<IPremiumServiceRuleService, PremiumServiceRuleService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IWeaknessRuleService>(_ => new WeaknessRuleService(configuration));
@@ -238,6 +240,8 @@ public sealed class ApplicationModule : IServerModule
         // The seams the command handlers reach the rules through, so that none of them holds a
         // rule service of its own.
         services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
+        services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
+        services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
         services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();

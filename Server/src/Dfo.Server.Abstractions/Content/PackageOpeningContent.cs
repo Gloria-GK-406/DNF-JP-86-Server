@@ -12,7 +12,7 @@ public sealed record OpeningPackageDefinition(int ItemId, OpeningPackageKind Kin
     bool UsesSeriaLuck, ImmutableArray<string> Diagnostics);
 public sealed record OpeningRewardItemDefinition(int ItemId, ItemPlacement Placement, ushort Durability,
     bool Sealed, ImmutableArray<int> Abilities, int? CreatureStartLevel, bool Supported,
-    int DefaultPeriodDays = 0, int AbsoluteExpiration = 0, int PremiumType = 0, int PremiumDays = 0);
+    int DefaultPeriodDays = 0, int AbsoluteExpiration = 0, int PremiumType = 0, TimeSpan PremiumDuration = default);
 public interface IPackageOpeningDefinitionSource
 {
     ValueTask<OpeningPackageDefinition?> GetAsync(int itemId, CancellationToken cancellationToken);

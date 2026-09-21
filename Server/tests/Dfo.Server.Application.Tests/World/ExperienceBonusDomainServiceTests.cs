@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -134,7 +136,7 @@ public sealed class ExperienceBonusDomainServiceTests
         new ExperienceBonusDomainService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
-            new NoPremium(),
+            new PremiumServiceDomainService(new NoPremium(), new DomainTransactionScope(), TimeProvider.System),
             new OneChannel(channelId),
             new ExperienceRuleService(
                 new UnpricedKills(),

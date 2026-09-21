@@ -23,7 +23,7 @@ namespace Dfo.Server.Application.Accounts;
 internal sealed class AccountEntryAssembly(
     IAccountTable accounts,
     IAccountSettingsTable settings,
-    IAccountPremiumTable premiums,
+    IPremiumServiceDomainService premiums,
     IAccountLotteryProgressTable lotteryProgress,
     ICharacterTable roster,
     ICharacterConditionTable condition,
@@ -61,7 +61,7 @@ internal sealed class AccountEntryAssembly(
                 ?? new AccountSettingsStorageRecord(null, [], [], 0, []),
             new AccountWalletEntitlementStorageRecord(
                 wallet.Cera, wallet.TokenCera, wallet.HappyTokenCera, wallet.LuckyStar,
-                [.. (await premiums.ReadAsync(accountId, cancellationToken).ConfigureAwait(false))
+                [.. (await premiums.For(accountId).ReadAsync(cancellationToken).ConfigureAwait(false))
                     .Select(premium => (premium.PremiumType, premium.ExpiresAtUnixSeconds))]),
             new AccountProgressionStorageRecord(
                 wallet.HonorExperience,

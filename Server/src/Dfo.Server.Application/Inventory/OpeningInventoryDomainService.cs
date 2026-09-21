@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
@@ -19,7 +20,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     IOnlineUserQueryDomainService onlineUsers, ICharacterTable characters,
     ICharacterContainerDomainService containers, IItemArrivalRuleService arrivals,
     IItemDomainStore store, IDomainTransactionAccessor transactions,
-    ICharacterInventoryEntryDomainService inventory, IAccountPremiumTable premiums,
+    ICharacterInventoryEntryDomainService inventory, IPremiumServiceDomainService premiums,
     ICharacterCreatureTable creatures,
     ICharacterDomainService characterDomain, IItemUseJudgementService useRules,
     ICharacterItemCooldownDomainService cooldowns,
@@ -82,9 +83,6 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             }
         }
         var displayed = ImmutableArray.CreateBuilder<OpeningRewardDisplay>();
-        var oldPremiums = grants.Any(g => g.Item.PremiumType > 0)
-            ? await premiums.ReadAsync(session.AccountId, ct).ConfigureAwait(false) : [];
-        var premiumState = oldPremiums.ToDictionary(p => p.PremiumType, p => p.ExpiresAtUnixSeconds);
         var changedPremiums = new Dictionary<int, long>();
         var identity = (long)Random.Shared.Next(1, int.MaxValue);
         foreach (var grant in grants)
@@ -92,10 +90,10 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             if (grant.Item.PremiumType > 0)
             {
                 var typeId = grant.Item.PremiumType;
-                var seconds = checked((long)grant.Item.PremiumDays * grant.Reward.Count * 86400);
-                if (seconds <= 0) throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Invalid premium duration.");
-                var expiry = checked(Math.Max(now.ToUnixTimeSeconds(), premiumState.GetValueOrDefault(typeId)) + seconds);
-                premiumState[typeId] = changedPremiums[typeId] = expiry;
+                var duration = TimeSpan.FromTicks(checked(grant.Item.PremiumDuration.Ticks * grant.Reward.Count));
+                if (duration <= TimeSpan.Zero) throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Invalid premium duration.");
+                var changed = await premiums.For(session.AccountId).ExtendAsync((PremiumServiceType)typeId, duration, ct).ConfigureAwait(false);
+                changedPremiums[typeId] = changed.ExpiresAtUnixSeconds;
                 displayed.Add(new(-1, grant.Reward.ItemId, grant.Reward.Count, 0, 0, 0));
                 continue;
             }
@@ -174,9 +172,6 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             else await bags[key.Bag].PutAsync(key.Slot, write.Core, ct).ConfigureAwait(false);
         }
         await store.SessionIn(transaction).ApplyDecidedWritesAsync(ct).ConfigureAwait(false);
-        foreach (var (type, expiry) in changedPremiums)
-            if (await premiums.UpsertExpiryAsync(session.AccountId, type, expiry, ct).ConfigureAwait(false) != 1)
-                throw new OpeningRejectedException(OpeningRejection.StateChanged, "Premium settlement affected no row.");
         if (useRule.CooldownMilliseconds > 0)
             transaction.Enlist(new object(), () => new OpeningCooldown(sessions, cooldowns, session,
                 useRules.CooldownKeyFor(consumed[0].ItemId, useRule), TimeSpan.FromMilliseconds(useRule.CooldownMilliseconds)));

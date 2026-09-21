@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
@@ -93,7 +94,7 @@ internal sealed class PvpSkillProfileService(
 /// read and in what order to act is this one's. Neither of them opens a connection.
 /// </remarks>
 internal sealed class ExpertSkillContractReconciliationService(
-    IAccountPremiumTable premiums,
+    IPremiumServiceDomainService premiums,
     ICharacterTable characters,
     ICharacterSkillTable skills,
     IExpertSkillContractRuleService rules) : IExpertSkillContractReconciliationRepository
@@ -111,14 +112,14 @@ internal sealed class ExpertSkillContractReconciliationService(
             return false;
         }
 
-        var held = await premiums.ReadAsync(accountId, cancellationToken).ConfigureAwait(false);
-        if (!rules.HasRunOut(
-                [.. held.Select(premium => (premium.PremiumType, premium.ExpiresAtUnixSeconds))],
-                overSkillPremiumTypes,
-                DateTimeOffset.UtcNow))
-        {
-            return false;
-        }
+        var account = premiums.For(accountId);
+        var held = await account.ReadAsync(cancellationToken).ConfigureAwait(false);
+        var types = held.Where(row => overSkillPremiumTypes.Contains(row.PremiumType))
+            .Select(row => row.PremiumType).Distinct().ToArray();
+        if (types.Length == 0) return false;
+        foreach (var type in types)
+            if (await account.IsActiveAsync((PremiumServiceType)type, cancellationToken).ConfigureAwait(false))
+                return false;
 
         if (await characters.FindOwnerAsync(characterId, cancellationToken).ConfigureAwait(false)
             != accountId)

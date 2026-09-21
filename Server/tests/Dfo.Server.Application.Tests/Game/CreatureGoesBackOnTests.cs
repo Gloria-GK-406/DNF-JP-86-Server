@@ -194,7 +194,7 @@ public sealed class CreatureGoesBackOnTests
                 move: new MoveItemSpaceCommandHandler(
                     new BusinessInventorySlotDomainService(containers, mappings),
                     new ItemMovementDomainService(
-                        rules, new ItemSlotRuleService())),
+                        rules, new ItemSlotRuleService(), new CreatureGoesBackOnTestsWearEligibility())),
                 scope: this.scope);
         }
 
@@ -265,4 +265,9 @@ public sealed class CreatureGoesBackOnTests
             command.Parameters.AddWithValue("@slot", slotIndex);
         }
     }
+}
+
+internal sealed class CreatureGoesBackOnTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

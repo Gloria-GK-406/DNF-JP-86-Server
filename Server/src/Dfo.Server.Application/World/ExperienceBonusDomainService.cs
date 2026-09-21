@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
@@ -24,7 +25,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class ExperienceBonusDomainService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
-    IAccountPremiumTable premiums,
+    IPremiumServiceDomainService premiums,
     IChannelEntryPolicy channels,
     IExperienceRuleService experienceRules,
     TimeProvider clock) : IExperienceBonusDomainService
@@ -41,7 +42,7 @@ internal sealed class ExperienceBonusDomainService(
             return [];
         }
 
-        var currentPremiums = await premiums.ReadAsync(occasion.Account, cancellationToken)
+        var currentPremiums = await premiums.For(occasion.Account).ReadAsync(cancellationToken)
             .ConfigureAwait(false);
         var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken)
             .ConfigureAwait(false);

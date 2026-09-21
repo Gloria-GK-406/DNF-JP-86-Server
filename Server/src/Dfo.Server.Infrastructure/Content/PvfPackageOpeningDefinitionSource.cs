@@ -13,7 +13,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
     private readonly Lock gate = new();
     private readonly Dictionary<int, OpeningPackageDefinition?> cache = [];
     private Dictionary<int, string>? paths;
-    private Dictionary<int, (int Type, int Days)>? premiums;
+    private Dictionary<int, (int Type, TimeSpan Duration)>? premiums;
 
     public async ValueTask<OpeningPackageDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 return new(itemId, new(0, 1,
                     new(BusinessInventorySpace.VirtualResource, premium.Type, premium.Type)),
                     0, false, [], null,
-                    premium.Type is > 0 and <= sbyte.MaxValue && premium.Days > 0, PremiumType: premium.Type, PremiumDays: premium.Days);
+                    premium.Type is > 0 and <= sbyte.MaxValue && premium.Duration > TimeSpan.Zero, PremiumType: premium.Type, PremiumDuration: premium.Duration);
         }
         var item = await items.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
         var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
@@ -100,23 +100,37 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             item.Avatar?.SelectableAbilities ?? [], item.Creature?.StartLevel, supported, period, expiration);
     }
 
-    private Dictionary<int, (int Type, int Days)> Premiums()
+    private Dictionary<int, (int Type, TimeSpan Duration)> Premiums()
     {
-        var result = new Dictionary<int, (int, int)>();
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc");
+        return ParsePremiums(PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"));
+    }
+
+    internal static Dictionary<int, (int Type, TimeSpan Duration)> ParsePremiums(
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+    {
+        var result = new Dictionary<int, (int, TimeSpan)>();
         var type = 0;
         for (var i = 0; i < sections.Count; i++)
         {
             var section = sections[i];
-            if (section.Name == "[type]")
-                type = section.Values.Count == 1 && section.Values[0].Kind == PvfTokenKind.Int32 ? section.Values[0].Value : 0;
-            if (type <= 0 || section.Name != "[item]" || section.Values.Count != 1
-                || section.Values[0].Kind != PvfTokenKind.Int32 || i + 1 >= sections.Count) continue;
-            var term = sections[i + 1];
-            if (term.Name == "[term]" && term.Values.Count == 1 && term.Values[0].Kind == PvfTokenKind.Int32)
-                result[section.Values[0].Value] = (type, term.Values[0].Value);
+            if (section.Name == "[type]") type = Number(section);
+            if (type <= 0 || section.Name != "[item]") continue;
+            var item = Number(section);
+            var term = 0; var minutes = false;
+            for (var j = i + 1; j < sections.Count; j++)
+            {
+                var next = sections[j];
+                if (next.Name is "[/item]" or "[item]" or "[type]") break;
+                if (next.Name == "[term]") term = Number(next);
+                if (next.Name == "[is term unit minute]") minutes = Number(next) == 1;
+            }
+            if (item > 0 && term > 0)
+                result[item] = (type, minutes ? TimeSpan.FromMinutes(term) : TimeSpan.FromDays(term));
         }
         return result;
+
+        static int Number(PvfNpcShopDefinitionSource.Section value) =>
+            value.Values.Count == 1 && value.Values[0].Kind == PvfTokenKind.Int32 ? value.Values[0].Value : 0;
     }
 
     internal static OpeningPackageDefinition Parse(int id, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections,

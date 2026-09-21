@@ -358,7 +358,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                    new ItemSlotRuleService())),
+                    new ItemSlotRuleService(), new TheAvatarBagIsServedTestsWearEligibility())),
             character);
     }
 
@@ -499,4 +499,9 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         private static NotSupportedException Unused() =>
             new("This container answers slot reads, writes and moves and nothing else.");
     }
+}
+
+internal sealed class TheAvatarBagIsServedTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
+{
+    public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

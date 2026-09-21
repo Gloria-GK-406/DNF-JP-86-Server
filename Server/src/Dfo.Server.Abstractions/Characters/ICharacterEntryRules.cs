@@ -51,15 +51,6 @@ public sealed record ExpertSkillCap(byte Page, short Slot, int? Level);
 /// <summary>What an over-skill contract running out does to the levels it was holding up.</summary>
 public interface IExpertSkillContractRuleService
 {
-    /// <summary>
-    /// Whether the contracts among these premiums have all run out. A single one still running
-    /// means nothing comes down, and no contract at all means there was nothing to run out.
-    /// </summary>
-    bool HasRunOut(
-        IReadOnlyList<(int PremiumType, long EndTimeUnixSeconds)> premiums,
-        IReadOnlySet<int> overSkillPremiumTypes,
-        DateTimeOffset now);
-
     /// <summary>The levels that must come down once the contracts have run out.</summary>
     /// <remarks>
     /// The page and slot arrive as they were read, not already narrowed. Narrowing every row would

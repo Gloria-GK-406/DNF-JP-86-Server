@@ -43,29 +43,6 @@ public sealed class CharacterEntryRuleServiceTests
 
     public sealed class ExpertSkillContracts
     {
-        private static readonly DateTimeOffset Now = DateTimeOffset.UnixEpoch.AddDays(1000);
-
-        private static readonly IReadOnlySet<int> OverSkill = new HashSet<int> { 580 };
-
-        [Fact]
-        public void OneContractStillRunningLeavesEverythingAlone() =>
-            Assert.False(new ExpertSkillContractRuleService().HasRunOut(
-                [(580, Now.AddHours(1).ToUnixTimeSeconds()), (580, 1)], OverSkill, Now));
-
-        [Fact]
-        public void EveryContractHavingRunOutBringsLevelsDown() =>
-            Assert.True(new ExpertSkillContractRuleService().HasRunOut(
-                [(580, 1), (580, 2)], OverSkill, Now));
-
-        /// <remarks>
-        /// Never having held a contract is not the same as one running out. Premiums of other
-        /// kinds are not contracts and are passed over whatever their end times say.
-        /// </remarks>
-        [Fact]
-        public void NeverHavingHeldOneIsNotTheSameAsItRunningOut() =>
-            Assert.False(new ExpertSkillContractRuleService().HasRunOut(
-                [(999, 1), (1000, Now.AddHours(1).ToUnixTimeSeconds())], OverSkill, Now));
-
         [Fact]
         public void OnlyLevelsAboveTheirOrdinaryCeilingComeDown()
         {
