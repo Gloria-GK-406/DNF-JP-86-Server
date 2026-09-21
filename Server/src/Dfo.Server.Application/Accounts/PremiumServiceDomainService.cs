@@ -41,7 +41,7 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
         {
             if (transactions.Current is null) throw new InvalidOperationException("Premium extension requires a transaction.");
             // Unknown legacy types remain round-trippable while their effects are migrated separately.
-            if ((int)type is <= 0 or > 127) throw new ArgumentOutOfRangeException(nameof(type));
+            if (((int)type is <= 0 or > 127) && !Enum.IsDefined(type)) throw new ArgumentOutOfRangeException(nameof(type));
             if (duration.Ticks <= 0 || duration.Ticks % TimeSpan.TicksPerSecond != 0)
                 throw new ArgumentOutOfRangeException(nameof(duration));
             var rows = await ReadAsync(cancellationToken).ConfigureAwait(false);

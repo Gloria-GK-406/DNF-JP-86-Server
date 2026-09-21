@@ -155,7 +155,12 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             Error("UnknownPackageConditions", "Nondefault package fields need interpretation.");
         if (!package && !isAvatar && !service && (N(7) != 0 || N(8) != 0))
             Error("UnknownCatalogConditions", "Nonzero catalog tail fields need interpretation.");
-        return new(N(0), N(1), count, category, price, service, false, false, errors.ToImmutable(), CatalogPath + category);
+        if (category == "[selectable character premium]" &&
+            (N(2) is < 0 or > 7 || N(3) is not (7 or 30) || N(4) != 0 || N(7) != 0 || N(8) != -1))
+            Error("UnsupportedService", "Unknown service slot, duration or catalog flags.");
+        return new(N(0), N(1), count, category, price, service, false, false, errors.ToImmutable(), CatalogPath + category,
+            category == "[selectable character premium]" ? N(2) : null,
+            category == "[selectable character premium]" ? N(3) : 0);
     }
 
     private CeraShopItemDefinition? ReadItem(int id)

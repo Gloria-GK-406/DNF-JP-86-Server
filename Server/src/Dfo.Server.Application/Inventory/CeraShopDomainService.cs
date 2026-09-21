@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -18,7 +19,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
     ICharacterTable characterRows, IAccountTable accounts, ICharacterContainerDomainService containers,
     ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
-    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures) : ICeraShopDomainService
+    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -62,6 +63,9 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (plan.GoldCost > 0)
             gold = await character.TrySpendGoldAsync(plan.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new CeraShopPurchaseRejectedException(CeraShopRejection.InsufficientFunds, "Gold changed before settlement.");
+        foreach (var subscription in quote.Subscriptions)
+            await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
+                cancellationToken).ConfigureAwait(false);
         foreach (var write in plan.Writes)
         {
             if (write.CreationFacts is { } facts)

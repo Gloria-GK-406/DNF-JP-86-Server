@@ -12,7 +12,7 @@ public sealed record CeraShopPrice(int Gold, int OtherPayment, int Cera, int Per
 
 public sealed record CeraShopProductDefinition(int ProductId, int ItemId, int Count,
     string Category, CeraShopPrice? Price, bool IsService, bool BuyOnlyCera,
-    bool BuyOnlyCeraPoint, ImmutableArray<CeraShopDiagnostic> Diagnostics, string Source);
+    bool BuyOnlyCeraPoint, ImmutableArray<CeraShopDiagnostic> Diagnostics, string Source, int? ServiceSlot = null, int ServiceDays = 0);
 
 public sealed record CeraShopComponent(int ItemId, int Count, int UsablePeriod);
 public sealed record CeraShopSelectionGroup(ImmutableArray<CeraShopComponent> Choices);

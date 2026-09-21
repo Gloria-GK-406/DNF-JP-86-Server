@@ -229,6 +229,13 @@ public sealed class SelectCharacterAcceptedTranscriptTests
     public void AcceptedEntryTranscript_AllStaticFrameBytesMatchAcceptedBaseline()
     {
         var source = SelectCharacterPayloadTestData.CreateComplete();
+        // The pinned ACK contains ordinary wire type 69. The old fixture represented
+        // it as internal key 581 and depended on byte truncation; use the wire type
+        // explicitly so the captured baseline remains unchanged.
+        source = source with { Account = source.Account with
+        {
+            Entitlements = new([new Dfo.Server.Data.Accounts.AccountPremiumEntryState(69, 1_700_001_000)]),
+        }};
         var result = source with
         {
             Character = source.Character with

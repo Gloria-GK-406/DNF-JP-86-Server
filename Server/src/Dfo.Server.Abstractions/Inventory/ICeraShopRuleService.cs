@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Content;
@@ -11,7 +12,11 @@ public sealed record CeraShopCharge(int ProductId, int Gold, int Cera, CeraShopP
 public sealed record CeraShopGrant(CeraShopItemDefinition Item, ItemPlacement Placement, int Count,
     byte Ability, int ExpireDate);
 public sealed record CeraShopQuote(ImmutableArray<int> ProductIds, ImmutableArray<CeraShopCharge> Charges,
-    ImmutableArray<CeraShopGrant> Grants);
+    ImmutableArray<CeraShopGrant> Grants)
+{
+    public ImmutableArray<CeraShopSubscriptionGrant> Subscriptions { get; init; } = [];
+}
+public sealed record CeraShopSubscriptionGrant(PremiumServiceType Service, TimeSpan Duration);
 public sealed record CeraShopQuoteResult(CeraShopRejection Rejection, CeraShopQuote? Quote, string? Detail);
 public sealed record CeraShopSlotWrite(InventoryContainerType Container, int SlotIndex,
     InventoryItemCoreState Core, InventoryItemCreationFacts? CreationFacts);

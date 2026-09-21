@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Accounts;
@@ -22,6 +23,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         var products = ImmutableArray.CreateBuilder<int>();
         var charges = ImmutableArray.CreateBuilder<CeraShopCharge>();
         var grants = ImmutableArray.CreateBuilder<CeraShopGrant>();
+        var subscriptions = ImmutableArray.CreateBuilder<CeraShopSubscriptionGrant>();
         try
         {
             foreach (var entry in input.Entries)
@@ -31,10 +33,33 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     throw Refuse(CeraShopRejection.InvalidRequest, "Unsupported purchase entry or coupon.");
                 var product = await content.GetProductAsync(entry.ProductId, cancellationToken).ConfigureAwait(false)
                     ?? throw Refuse(CeraShopRejection.UnknownProduct, $"Unknown product {entry.ProductId}.");
-                if (product.IsService || !product.Diagnostics.IsEmpty || product.Price is not { } price)
+                if (!product.Diagnostics.IsEmpty || product.Price is not { } price)
                     throw Refuse(CeraShopRejection.UnsupportedProduct, $"Product {entry.ProductId}: service or {Diagnostics(product.Diagnostics)}.");
                 if (product.ItemId <= 0 || product.Count <= 0 || price.Cera < 0 || price.Gold < 0 || price.OtherPayment != 0)
                     throw Refuse(CeraShopRejection.UnsupportedProduct, $"Product {entry.ProductId}: invalid quantity or price.");
+                if (product.IsService)
+                {
+                    if (product.Category != "[selectable character premium]" || product.ServiceSlot is not (>= 0 and < 8)
+                        || product.ServiceDays is not (7 or 30) || product.Count != 1)
+                        throw Refuse(CeraShopRejection.UnsupportedProduct, "Unsupported subscription declaration.");
+                    if (!entry.AvatarChoices.IsEmpty || !entry.Selections.IsEmpty
+                        || entry.Attribute is not (0 or 255) || entry.Variant is not (0 or 255))
+                        throw Refuse(CeraShopRejection.InvalidChoice, "Unexpected subscription options.");
+                    var service = product.ServiceSlot.Value switch
+                    {
+                        0 => PremiumServiceType.FreeGoldCard, 1 => PremiumServiceType.DoublePot,
+                        2 => PremiumServiceType.QuestHelper, 3 => PremiumServiceType.DungeonBuff,
+                        4 => PremiumServiceType.AutoHpMpRecovery, 5 => PremiumServiceType.FreeWeaknessRecovery,
+                        6 => PremiumServiceType.AutoRepair, 7 => PremiumServiceType.FastPot,
+                        _ => throw new InvalidOperationException(),
+                    };
+                    subscriptions.Add(new(service, TimeSpan.FromDays(product.ServiceDays)));
+                    products.Add(product.ProductId);
+                    charges.Add(new(product.ProductId, price.Gold, price.Cera,
+                        product.BuyOnlyCera ? CeraShopPaymentMode.CeraOnly : product.BuyOnlyCeraPoint
+                            ? CeraShopPaymentMode.PointsOnly : CeraShopPaymentMode.Ordinary));
+                    continue;
+                }
                 var choices = new Choices(entry);
                 var root = await content.GetItemAsync(product.ItemId, cancellationToken).ConfigureAwait(false)
                     ?? throw Refuse(CeraShopRejection.UnsupportedProduct, $"Missing item {product.ItemId}.");
@@ -49,7 +74,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     product.BuyOnlyCera ? CeraShopPaymentMode.CeraOnly : product.BuyOnlyCeraPoint
                         ? CeraShopPaymentMode.PointsOnly : CeraShopPaymentMode.Ordinary));
             }
-            return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable()), null);
+            return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable()) { Subscriptions = subscriptions.ToImmutable() }, null);
         }
         catch (QuoteRefusal failure) { return new(failure.Reason, null, failure.Message); }
         catch (OverflowException) { return new(CeraShopRejection.UnsupportedProduct, null, "Purchase quantity or expiration cannot be represented."); }

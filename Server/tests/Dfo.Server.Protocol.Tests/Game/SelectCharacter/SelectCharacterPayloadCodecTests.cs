@@ -21,6 +21,18 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 public sealed class SelectCharacterPayloadCodecTests
 {
+    [Fact]
+    public void Internal_service_records_are_not_truncated_to_ordinary_contract_types()
+    {
+        var result = SelectCharacterPayloadTestData.Create();
+        var changed = result with { Account = result.Account with
+        {
+            Entitlements = new AccountEntitlementEntryState([.. result.Account.Entitlements.Premiums,
+                .. Enumerable.Range(580,8).Select(type => new AccountPremiumEntryState(type,1700000600))]),
+        }};
+        Assert.Equal(EncodeAcknowledgement(result),EncodeAcknowledgement(changed));
+    }
+
     [Theory]
     [InlineData(1699999999L)]
     [InlineData(1700000000L)]
@@ -459,12 +471,12 @@ public sealed class SelectCharacterPayloadCodecTests
     }
 
     [Fact]
-    public void SelectCharacterPayload_AcknowledgementUsesObservedLowBytePremiumType()
+    public void SelectCharacterPayload_AcknowledgementOmitsLegacyInternalServiceKey()
     {
         var body = EncodeAcknowledgement(
             SelectCharacterPayloadTestData.CreateComplete());
 
-        Assert.Equal(unchecked((byte)581), body[18]);
+        Assert.Equal(0, body[17]);
     }
 
     [Fact]

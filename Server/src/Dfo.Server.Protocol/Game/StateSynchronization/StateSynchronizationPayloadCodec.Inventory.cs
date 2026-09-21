@@ -38,7 +38,7 @@ internal static partial class StateSynchronizationPayloadCodec
         // contract countdown at zero. The entry list contains active services only.
         var now = preparedAt.ToUnixTimeSeconds();
         var activePremiums = account.Entitlements.Premiums
-            .Where(premium => premium.ExpiresAtUnixSeconds > now).ToArray();
+            .Where(premium => premium.ExpiresAtUnixSeconds > now && premium.PremiumType is not (>= 580 and <= 587)).ToArray();
         if (activePremiums.Length > byte.MaxValue)
             throw new InvalidDataException("Premium count cannot be represented as u8.");
 

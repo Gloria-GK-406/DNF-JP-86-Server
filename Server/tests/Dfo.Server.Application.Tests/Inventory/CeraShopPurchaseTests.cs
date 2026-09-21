@@ -20,6 +20,90 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class CeraShopPurchaseTests
 {
+    [SkippableFact]
+    public async Task All_eight_services_purchase_and_renew_without_inventory_items()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        int[] seven = [100542,100539,100540,100541,100537,100538,100817,100882];
+        int[] thirty = [100550,100547,100548,100549,100545,100546,100818,100883];
+        var before = shop.Host.Services.GetRequiredService<TimeProvider>().GetUtcNow().ToUnixTimeSeconds();
+        var first = await shop.Buy(seven.Select(id => CeraShopTestContent.Entry(id)).ToArray());
+        Assert.True(first.Receipt is not null, first.Detail);
+        Assert.Equal(98250, shop.Cera);
+        Assert.Empty(first.Receipt!.Updates);
+        Assert.Equal(8, shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums WHERE account_id=1"));
+        var initial = Enumerable.Range(580,8).Select(type => shop.Host.Scalar($"SELECT end_time FROM account_premiums WHERE account_id=1 AND premium_type={type}")).ToArray();
+        Assert.All(initial, end => Assert.InRange((long)end-before, 604800, 604830));
+        var second = await shop.Buy(thirty.Select(id => CeraShopTestContent.Entry(id)).ToArray());
+        Assert.True(second.Receipt is not null, second.Detail);
+        Assert.Equal(95050, shop.Cera);
+        for (var slot=0;slot<8;slot++)
+            Assert.Equal(initial[slot]+2592000,shop.Host.Scalar($"SELECT end_time FROM account_premiums WHERE account_id=1 AND premium_type={580+slot}"));
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM items"));
+    }
+
+    [SkippableFact]
+    public async Task Subscription_write_failure_rolls_back_wallet_and_earlier_entitlements()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        shop.Host.Sql("CREATE TRIGGER fail_subscription BEFORE INSERT ON account_premiums WHEN NEW.premium_type=585 BEGIN SELECT RAISE(ABORT,'forced'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => shop.Buy(CeraShopTestContent.Entry(100817),CeraShopTestContent.Entry(100538)));
+        Assert.Equal(100000,shop.Cera);
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+    }
+
+    [SkippableFact]
+    public async Task Service_cart_rejects_insufficient_funds_and_unknown_products_without_granting()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        shop.Host.Sql("UPDATE accounts SET cera=199,token_cera=0,happy_token_cera=0 WHERE account_id=1");
+        Assert.Equal(CeraShopRejection.InsufficientFunds,(await shop.Buy(CeraShopTestContent.Entry(100538))).Rejection);
+        shop.Host.Sql("UPDATE accounts SET cera=100000 WHERE account_id=1");
+        Assert.Null((await shop.Buy(CeraShopTestContent.Entry(100538),CeraShopTestContent.Entry(int.MaxValue))).Receipt);
+        Assert.Equal(100000,shop.Cera);
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+    }
+
+    [SkippableFact]
+    public async Task Concurrent_service_renewals_accumulate_all_purchased_days()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        var before=shop.Host.Services.GetRequiredService<TimeProvider>().GetUtcNow().ToUnixTimeSeconds();
+        var results=await Task.WhenAll(Enumerable.Range(0,4).Select(_=>Task.Run(()=>shop.Buy(CeraShopTestContent.Entry(100538)))));
+        Assert.All(results,result=>Assert.NotNull(result.Receipt));
+        Assert.Equal(before+28*86400,shop.Host.Scalar("SELECT end_time FROM account_premiums WHERE account_id=1 AND premium_type=585"));
+        Assert.Equal(99200,shop.Cera);
+    }
+
+    [SkippableFact]
+    public async Task Mixed_item_failure_rolls_back_subscription_and_all_charges()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        shop.Host.Sql("CREATE TRIGGER fail_items BEFORE INSERT ON items BEGIN SELECT RAISE(ABORT,'forced'); END;");
+        await Assert.ThrowsAsync<SqliteException>(()=>shop.Buy(CeraShopTestContent.Entry(100538),CeraShopTestContent.Entry(102925)));
+        Assert.Equal(100000,shop.Cera);
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM items"));
+    }
+
+    [SkippableFact]
+    public async Task Pure_subscription_plan_does_not_require_inventory_space()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        var rules=shop.Host.Services.GetRequiredService<ICeraShopRuleService>();
+        var quote=await rules.QuoteAsync(CeraShopTestContent.Input(CeraShopTestContent.Entry(100538)),20,CeraShopTestContent.Now,default);
+        Assert.NotNull(quote.Quote);
+        var plan=rules.Plan(quote.Quote,new Dictionary<InventoryContainerType,IReadOnlyList<ContainerSlotItem>>(),0,new(1000,0,0),1);
+        Assert.NotNull(plan.Plan);
+        Assert.Empty(plan.Plan.Writes);
+    }
+
     [SkippableTheory]
     [InlineData(102925, 10007472, 1, 300)]
     [InlineData(102926, 10007473, 5, 1200)]

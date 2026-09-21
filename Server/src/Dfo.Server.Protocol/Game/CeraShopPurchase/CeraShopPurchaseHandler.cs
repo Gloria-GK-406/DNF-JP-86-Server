@@ -17,6 +17,8 @@ public sealed class CeraShopPurchaseHandler(IOnlineUserQueryDomainService online
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         CeraShopPurchaseRequest message, CancellationToken cancellationToken)
     {
+        logger.LogInformation("CERA cart {ConnectionId} payload={Cart}", context.Connection.ConnectionId,
+            System.Text.Json.JsonSerializer.Serialize(message.Input));
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         CeraShopPurchaseResult result;
         if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
