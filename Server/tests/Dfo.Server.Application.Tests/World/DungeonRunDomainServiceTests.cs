@@ -26,6 +26,66 @@ public sealed class DungeonRunDomainServiceTests
     private static readonly CharacterId Character = new(1);
 
     [Fact]
+    public void Party_wipe_waits_for_last_death_and_ten_seconds_then_ends_every_member_once()
+    {
+        var service = new DungeonRunDomainService();
+        var leader = new DungeonRunParticipant(new AccountId(1), new CharacterId(1), 0, true);
+        var member = new DungeonRunParticipant(new AccountId(2), new CharacterId(2), 1, false);
+        var run = service.PreparePartyEntry([leader, member], Tutorial, DungeonDifficulty.Normal).Run;
+        service.TryMarkParticipantReady(leader.CharacterId, run.RunId, run.RoomVersion);
+        service.TryMarkParticipantReady(member.CharacterId, run.RunId, run.RoomVersion);
+        var now = DateTimeOffset.UnixEpoch;
+        service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion);
+        Assert.Empty(service.FindExpiredPartyWipes(now));
+        Assert.Empty(service.FindExpiredPartyWipes(now.AddSeconds(20)));
+        service.TryMarkParticipantDead(member.CharacterId, run.RunId, run.RoomVersion);
+        Assert.Empty(service.FindExpiredPartyWipes(now.AddSeconds(20)));
+        Assert.Null(service.TryEndPartyWipe(run.RunId, now.AddSeconds(29)));
+        Assert.Empty(service.FindExpiredPartyWipes(now.AddSeconds(29)));
+        Assert.Equal([run.RunId], service.FindExpiredPartyWipes(now.AddSeconds(30)));
+        var ended = service.TryEndPartyWipe(run.RunId, now.AddSeconds(30));
+        Assert.NotNull(ended);
+        Assert.Equal(2, ended.Participants.Count);
+        Assert.Null(service.Find(leader.CharacterId));
+        Assert.Null(service.Find(member.CharacterId));
+        Assert.Null(service.TryEndPartyWipe(run.RunId, now.AddSeconds(31)));
+        Assert.Empty(service.FindExpiredPartyWipes(now.AddSeconds(31)));
+    }
+
+    [Fact]
+    public void Old_wipe_cannot_end_a_replacement_run()
+    {
+        var service = new DungeonRunDomainService();
+        var leader = new DungeonRunParticipant(new AccountId(1), Character, 0, true);
+        var old = service.PreparePartyEntry([leader], Tutorial, DungeonDifficulty.Normal).Run;
+        service.TryMarkParticipantReady(Character, old.RunId, old.RoomVersion);
+        service.TryMarkParticipantDead(Character, old.RunId, old.RoomVersion);
+        service.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
+        var next = service.PreparePartyEntry([leader], Tutorial, DungeonDifficulty.Normal).Run;
+        Assert.Null(service.TryEndPartyWipe(old.RunId, DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        Assert.Empty(service.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        Assert.Equal(next.RunId, service.Find(Character)!.RunId);
+    }
+
+    [Fact]
+    public void Leaving_alive_member_starts_wipe_for_remaining_dead_member()
+    {
+        var service = new DungeonRunDomainService();
+        var leader = new DungeonRunParticipant(new AccountId(1), Character, 0, true);
+        var member = new DungeonRunParticipant(new AccountId(2), new CharacterId(2), 1, false);
+        var run = service.PreparePartyEntry([leader, member], Tutorial, DungeonDifficulty.Normal).Run;
+        service.TryMarkParticipantReady(Character, run.RunId, run.RoomVersion);
+        service.TryMarkParticipantDead(Character, run.RunId, run.RoomVersion);
+        Assert.Empty(service.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch));
+        service.End(member.CharacterId, run.RunId);
+        Assert.Empty(service.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(20)));
+        var ended = service.TryEndPartyWipe(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(30));
+        Assert.NotNull(ended);
+        Assert.Equal(Character, Assert.Single(ended.Participants).CharacterId);
+    }
+
+
+    [Fact]
     public void Death_is_shared_idempotent_and_rejects_stale_or_unloaded_reports()
     {
         var leader = new DungeonRunParticipant(new AccountId(101), new CharacterId(1), 0, true);

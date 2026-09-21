@@ -15,6 +15,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
     private readonly object gate = new();
+    private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<CharacterId, DungeonRunAggregate> runsByCharacter = new();
     private readonly Dictionary<DungeonRunId, DungeonRunAggregate> runsById = new();
     private readonly Dictionary<DeathClaimKey, long> deathClaims = new();
@@ -115,6 +116,51 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 DungeonEntryChangeKind.Prepared,
                 aggregate.Leader.CharacterId);
         }
+    }
+
+    public IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now)
+    {
+        lock (this.gate)
+        {
+            foreach (var aggregate in this.runsById.Values)
+            {
+                if (!IsPartyWiped(aggregate))
+                    this.wipeDeadlines.Remove(aggregate.RunId);
+                else
+                    this.wipeDeadlines.TryAdd(aggregate.RunId, now.AddSeconds(10));
+            }
+            return this.wipeDeadlines.Where(pair => pair.Value <= now).Select(pair => pair.Key).ToArray();
+        }
+    }
+
+    public DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsById.TryGetValue(runId, out var aggregate)
+                || !this.wipeDeadlines.TryGetValue(runId, out var deadline)
+                || now < deadline)
+                return null;
+            if (!IsPartyWiped(aggregate))
+            {
+                this.wipeDeadlines.Remove(runId);
+                return null;
+            }
+            var members = aggregate.Participants.Where(member => aggregate.ActiveParticipants.Contains(member.CharacterId)).ToArray();
+            var snapshot = aggregate.ViewFor(members[0].CharacterId) with { Participants = members };
+            foreach (var member in aggregate.ActiveParticipants.ToArray())
+                this.DetachParticipant(member);
+            return snapshot;
+        }
+    }
+
+    private static bool IsPartyWiped(DungeonRunAggregate aggregate)
+    {
+        var members = aggregate.Participants.Where(member => aggregate.ActiveParticipants.Contains(member.CharacterId)).ToArray();
+        return !aggregate.Cells[aggregate.CurrentCell].ClearOpen
+            && members.Length > 0
+            && members.All(member => !aggregate.ProgressFor(member.CharacterId).IsSettled
+                && aggregate.DeadParticipants.Contains(member.CharacterId));
     }
 
     public DungeonRunState? TryMarkParticipantDead(
@@ -1048,6 +1094,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         if (aggregate.ActiveParticipants.Count == 0)
         {
             this.runsById.Remove(aggregate.RunId);
+            this.wipeDeadlines.Remove(aggregate.RunId);
             this.ClearDeathClaims(aggregate.RunId);
             this.ClearParticipantEffectClaims(aggregate.RunId);
             this.ClearSettlementClaims(aggregate.RunId);

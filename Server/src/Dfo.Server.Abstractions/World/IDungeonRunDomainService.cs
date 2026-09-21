@@ -431,6 +431,9 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
+    IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now) => [];
+    DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now) => null;
+
     /// <summary>Commits one current member death; stale and duplicate reports return null.</summary>
     DungeonRunState? TryMarkParticipantDead(
         CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion) => null;
