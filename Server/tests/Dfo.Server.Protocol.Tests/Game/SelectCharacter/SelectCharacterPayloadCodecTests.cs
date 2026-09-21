@@ -22,6 +22,34 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 public sealed class SelectCharacterPayloadCodecTests
 {
     [Fact]
+    public void Premium_snapshot_preserves_all_eight_unsigned_expiries_and_single_byte_counts()
+    {
+        var now=DateTimeOffset.FromUnixTimeSeconds(1700000000);
+        var entries=Enumerable.Range(0,8).Select(slot=>new AccountPremiumEntryState(580+slot,2200000000L+slot)).ToArray();
+        var usage=Enumerable.Range(0,8).Select(slot=>new CharacterPremiumUsageSlotState((byte)slot,slot==7?255:slot)).ToArray();
+        var body=new PremiumServiceStateMessage(new(entries),usage,now).EncodeBody();
+        Assert.Equal(77,body.Length);
+        Assert.Equal(new byte[]{1,1,0},body[..3]);
+        for(var slot=0;slot<8;slot++)
+        {
+            Assert.Equal(2200000000U+(uint)slot,BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(9+slot*9,4)));
+            Assert.Equal((byte)(slot==7?255:slot),body[13+slot*9]);
+            if(slot<7) Assert.Equal(new byte[4],body.AsSpan(14+slot*9,4).ToArray());
+        }
+    }
+
+    [Fact]
+    public void Premium_snapshot_clears_expired_missing_slots_and_rejects_invalid_counts()
+    {
+        var now=DateTimeOffset.FromUnixTimeSeconds(1700000000);
+        var entitlements=new AccountEntitlementEntryState([new(585,1700000000),new(586,1699999999)]);
+        var body=new PremiumServiceStateMessage(entitlements,[new(5,10),new(6,20)],now).EncodeBody();
+        Assert.Equal(new byte[74],body[3..]);
+        Assert.Equal(body,new PremiumServiceStateMessage(new([]),[],now).EncodeBody());
+        Assert.Throws<InvalidDataException>(()=>new PremiumServiceStateMessage(new([]),[new(7,256)],now).EncodeBody());
+    }
+
+    [Fact]
     public void Internal_service_records_are_not_truncated_to_ordinary_contract_types()
     {
         var result = SelectCharacterPayloadTestData.Create();
@@ -804,7 +832,7 @@ public sealed class SelectCharacterPayloadCodecTests
     private static byte[] EncodePremiumService(SelectCharacterResult result) =>
         new PremiumServiceStateMessage(
             result.Account.Entitlements,
-            result.CharacterEntry.Progression.PremiumUsageSlots).EncodeBody();
+            result.CharacterEntry.Progression.PremiumUsageSlots, result.World.PreparedAt).EncodeBody();
 
     private static InventoryItemCoreState CoreForTest(byte kind, int itemId, int value) => new(
         kind, itemId, value, 4, 50, 1, 6, 7, 8, 9, -1,

@@ -22,7 +22,11 @@ public enum CeraShopRejection
 
 public sealed record CeraShopPurchaseReceipt(SelectedSessionIdentity Session, ImmutableArray<int> ProductIds,
     AccountCeraBalances Balances, int Gold, bool GoldSpent, ImmutableArray<CommittedInventoryUpdateState> Updates,
-    ImmutableArray<CharacterPetRuntimeState> Pets, bool CreaturesChanged, DateTimeOffset PreparedAt);
+    ImmutableArray<CharacterPetRuntimeState> Pets, bool CreaturesChanged, DateTimeOffset PreparedAt)
+{
+    public AccountEntitlementEntryState? PremiumEntitlements { get; init; }
+    public IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsageSlots { get; init; } = [];
+}
 
 public sealed record CeraShopPurchaseResult(CeraShopRejection Rejection, CeraShopPurchaseReceipt? Receipt, string? Detail)
 {

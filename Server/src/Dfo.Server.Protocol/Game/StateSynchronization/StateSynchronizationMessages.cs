@@ -383,13 +383,13 @@ internal sealed record CubeProgressionStateMessage(byte CubeType, byte CubeGrade
 
 internal sealed record PremiumServiceStateMessage(
     AccountEntitlementEntryState Entitlements,
-    IReadOnlyList<CharacterPremiumUsageSlotState> UsageSlots) : GameStateSynchronizationMessage, IGameCmdMessage
+    IReadOnlyList<CharacterPremiumUsageSlotState> UsageSlots, DateTimeOffset PreparedAt) : GameStateSynchronizationMessage, IGameCmdMessage
 {
     // PREMIUM_SERVICE on A21. The older client numbered it 0x0312, which A21 gives to CHANGE_GUILD_MARK --
     // sending it there hands this body to the wrong handler.
     internal override ushort Type => 0x036F;
     internal override byte[] EncodeBody() =>
-        StateSynchronizationPayloadCodec.EncodePremiumService(Entitlements, UsageSlots);
+        StateSynchronizationPayloadCodec.EncodePremiumService(Entitlements, UsageSlots, PreparedAt);
 }
 
 internal sealed record LotteryProgressStateMessage(

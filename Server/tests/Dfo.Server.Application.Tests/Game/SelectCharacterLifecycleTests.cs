@@ -53,7 +53,7 @@ public sealed partial class SelectCharacterLifecycleTests
         // the honour level.
         Assert.Equal(
             ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                "plan-pvp", "x11", "quest", "pet"],
+                "plan-pvp", "x11", "quest", "pet", "premium"],
             fixture.Ledger);
         Assert.Equal(
             [
@@ -92,7 +92,7 @@ public sealed partial class SelectCharacterLifecycleTests
 
         Assert.Equal(
             ["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
-                "plan-pvp", "x11", "quest", "pet"],
+                "plan-pvp", "x11", "quest", "pet", "premium"],
             fixture.Ledger);
     }
 
@@ -476,7 +476,7 @@ public sealed partial class SelectCharacterLifecycleTests
 
         Assert.Equal(
             ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet"],
+                "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "premium"],
             fixture.Ledger);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
         Assert.Empty(fixture.Closer.Closed);
@@ -1324,6 +1324,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 && delivery.BestEffortTargets.Count == 0)
                 return ValueTask.CompletedTask;
             var messageName = delivery.RequiredDirectMessages.FirstOrDefault()?.GetType().Name;
+            var premium = messageName == "PremiumServiceStateMessage";
             var trailing = messageName == "TrailingEquipmentLockSnapshotMessage";
             // The bag change the refill produced. Named apart from the rest because it is the one
             // frame two protocols now share, and "it still goes out here" is what says the lift did
@@ -1336,6 +1337,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 : pvp ? "pvp"
                 : target ? "target"
                 : trailing ? "x11"
+                : premium ? "premium"
                 : delta ? "delta"
                 : "pre");
             if (pvp && failPvp)

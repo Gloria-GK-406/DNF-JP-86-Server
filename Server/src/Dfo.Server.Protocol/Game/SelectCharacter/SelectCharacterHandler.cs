@@ -391,6 +391,12 @@ public sealed class SelectCharacterHandler(
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && weaknessProjection is not null)
             await weaknessProjection.SendCurrentAsync(session, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker)
+            await sender.SendExplicitAsync(session.ConnectionId,
+                new GameExplicitMessageDelivery([new PremiumServiceStateMessage(prepared.Account.Entitlements,
+                    prepared.CharacterEntry.Progression.PremiumUsageSlots, prepared.World.PreparedAt)], []),
+                cancellationToken).ConfigureAwait(false);
 
     }
 

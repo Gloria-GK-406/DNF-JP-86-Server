@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -23,6 +24,8 @@ public sealed class CeraShopPurchaseCompletedHandler(ISelectedSessionDomainServi
         if (receipt.GoldSpent) messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));
         messages.AddRange(GameInventoryDelivery.Notifications(receipt.Updates));
         if (receipt.CreaturesChanged) messages.Add(GameInstanceDelivery.Creatures(receipt.Pets));
+        if (receipt.PremiumEntitlements is { } entitlements)
+            messages.Add(new PremiumServiceStateMessage(entitlements, receipt.PremiumUsageSlots, receipt.PreparedAt));
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }
 }

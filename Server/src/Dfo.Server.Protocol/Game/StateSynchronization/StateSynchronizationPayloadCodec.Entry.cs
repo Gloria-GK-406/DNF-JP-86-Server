@@ -13,21 +13,22 @@ internal static partial class StateSynchronizationPayloadCodec
 {
     public static byte[] EncodePremiumService(
         AccountEntitlementEntryState entitlements,
-        IReadOnlyList<CharacterPremiumUsageSlotState> usageSlots)
+        IReadOnlyList<CharacterPremiumUsageSlotState> usageSlots, DateTimeOffset preparedAt)
     {
         var data = new byte[74];
         foreach (var premium in entitlements.Premiums)
         {
             var slot = premium.PremiumType - 580;
-            if (slot is < 0 or >= 8) continue;
-            WriteInt32(data, 6 + slot * 9,
-                checked((int)Math.Min(premium.ExpiresAtUnixSeconds, int.MaxValue)));
+            if (slot is < 0 or >= 8 || premium.ExpiresAtUnixSeconds <= preparedAt.ToUnixTimeSeconds()) continue;
+            BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(6 + slot * 9, 4),
+                checked((uint)premium.ExpiresAtUnixSeconds));
         }
         foreach (var usage in usageSlots)
         {
-            if (usage.SlotIndex >= 8 || usage.UsedCount < 0)
+            if (usage.SlotIndex >= 8 || usage.UsedCount is < 0 or > byte.MaxValue)
                 throw new InvalidDataException("Premium usage slot is outside the observed 8-slot layout.");
-            WriteInt32(data, 10 + usage.SlotIndex * 9, usage.UsedCount);
+            if (BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(6 + usage.SlotIndex * 9, 4)) != 0)
+                data[10 + usage.SlotIndex * 9] = checked((byte)usage.UsedCount);
         }
         using var stream = new MemoryStream(77);
         using var writer = new BinaryWriter(stream);

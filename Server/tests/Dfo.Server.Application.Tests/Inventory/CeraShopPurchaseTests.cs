@@ -21,6 +21,25 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class CeraShopPurchaseTests
 {
     [SkippableFact]
+    public async Task Service_purchase_sends_complete_snapshot_after_committed_ack_and_wallet()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop=new CeraShopFixture(useArchive:true);
+        await shop.Buy(CeraShopTestContent.Entry(100817));
+        shop.Host.Sender.BeforeSend=()=>Assert.Equal(2,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums WHERE account_id=1"));
+        await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(100538)));
+        Assert.Equal(3,shop.Host.Sender.Messages.Count);
+        Assert.IsType<CeraShopPurchaseResponse>(shop.Host.Sender.Messages[0]);
+        var frame=shop.Encode(shop.Host.Sender.Messages[2]);
+        Assert.Equal((ushort)0x036F,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1,2)));
+        // Encode returns a full 15-byte server frame; service data starts after its 3-byte prefix.
+        Assert.Equal(92,frame.Length);
+        foreach(var slot in new[]{5,6})
+            Assert.Equal((uint)shop.Host.Scalar($"SELECT end_time FROM account_premiums WHERE account_id=1 AND premium_type={580+slot}"),
+                BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(24+9*slot,4)));
+    }
+
+    [SkippableFact]
     public async Task All_eight_services_purchase_and_renew_without_inventory_items()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
