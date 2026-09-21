@@ -433,6 +433,10 @@ public interface IDungeonRunDomainService
 {
     bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId) => false;
 
+    void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }
+    IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now) => [];
+    DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now) => null;
+
     IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now) => [];
     DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now) => null;
 

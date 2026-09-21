@@ -477,9 +477,16 @@ public sealed class SetPlayResultHandlerTests
         var leader = new DungeonRunParticipant(
             new AccountId(2), new CharacterId(61), 0, IsLeader: true);
 
-        await Settle(cards: cards, leader: leader);
+        var sent = await Settle(cards: cards, leader: leader);
 
-        Assert.Equal(2, Assert.Single(cards.Settlements).PartyMemberCount);
+        Assert.Equal(2, cards.Settlements.Count);
+        Assert.All(cards.Settlements, value => Assert.Equal(2, value.PartyMemberCount));
+        Assert.Equal(new[] { new CharacterId(60), new CharacterId(61) },
+            cards.Settlements.Select(value => value.CharacterId).OrderBy(value => value.Value));
+        var board = Assert.Single(sent.OfType<ClearDungeonRewardNotification>()).PartyCards;
+        Assert.NotNull(board);
+        Assert.Equal(new byte[] { 0, 1 }, board.Select(value => value.Seat));
+        Assert.All(board, value => Assert.Equal(RecordingCards.FreeFace.Slots, value.Cards));
     }
 
     [Fact]

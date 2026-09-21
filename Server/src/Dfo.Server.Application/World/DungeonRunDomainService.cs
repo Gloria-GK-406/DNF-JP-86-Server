@@ -16,6 +16,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IPartyService? parties;
     private readonly object gate = new();
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
+    private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
     private readonly Dictionary<CharacterId, DungeonRunAggregate> runsByCharacter = new();
     private readonly Dictionary<DungeonRunId, DungeonRunAggregate> runsById = new();
     private readonly Dictionary<DeathClaimKey, long> deathClaims = new();
@@ -165,6 +166,41 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             return ValueTask.CompletedTask;
         }
         public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    public void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsById.TryGetValue(runId, out var run)
+                || !run.IsActiveMember(characterId) || run.Participants.Length < 2
+                || !run.Cells[run.CurrentCell].ClearOpen
+                || !run.ProgressFor(characterId).CardLayoutOpen) return;
+            // A21 ordinary party result UI starts a 60 second return countdown.
+            this.clearReturnDeadlines.TryAdd(runId, now.AddSeconds(60));
+        }
+    }
+
+    public IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now)
+    {
+        lock (this.gate)
+            return this.clearReturnDeadlines.Where(pair => pair.Value <= now)
+                .Select(pair => pair.Key).ToArray();
+    }
+
+    public DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsById.TryGetValue(runId, out var run)
+                || !this.clearReturnDeadlines.TryGetValue(runId, out var deadline)
+                || now < deadline || !run.Cells[run.CurrentCell].ClearOpen) return null;
+            var members = run.Participants.Where(member => run.IsActiveMember(member.CharacterId)).ToArray();
+            if (members.Length == 0) return null;
+            var snapshot = run.ViewFor(members[0].CharacterId) with { Participants = members };
+            foreach (var member in members) this.DetachParticipant(member.CharacterId);
+            return snapshot;
+        }
     }
 
     public IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now)
@@ -1143,6 +1179,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         if (aggregate.ActiveParticipants.Count == 0)
         {
             this.runsById.Remove(aggregate.RunId);
+            this.clearReturnDeadlines.Remove(aggregate.RunId);
             this.wipeDeadlines.Remove(aggregate.RunId);
             this.ClearDeathClaims(aggregate.RunId);
             this.ClearParticipantEffectClaims(aggregate.RunId);

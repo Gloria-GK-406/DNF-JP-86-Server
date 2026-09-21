@@ -21,6 +21,15 @@ public sealed class EndPartyWipeCommandHandler(IDungeonRunDomainService runs)
         ValueTask.FromResult(new EndPartyWipeResult(runs.TryEndPartyWipe(command.RunId, command.Now)));
 }
 
+public sealed record EndClearReturnCommand(DungeonRunId RunId, DateTimeOffset Now) : ICommand<EndPartyWipeResult>;
+public sealed class EndClearReturnCommandHandler(IDungeonRunDomainService runs)
+    : ICommandHandler<EndClearReturnCommand, EndPartyWipeResult>
+{
+    public ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
+        EndClearReturnCommand command, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(new EndPartyWipeResult(runs.TryEndClearReturn(command.RunId, command.Now)));
+}
+
 /// <summary>Observes shared life state, then returns only the exact generations admitted to an expired run.</summary>
 public sealed class DungeonPartyWipeService(
     IDungeonRunDomainService runs,
@@ -43,6 +52,12 @@ public sealed class DungeonPartyWipeService(
         {
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
             {
+                foreach (var runId in runs.FindExpiredClearReturns(clock.GetUtcNow()))
+                {
+                    try { await ReturnAsync(runId, stoppingToken, cleared: true).ConfigureAwait(false); }
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+                    catch (Exception exception) { logger.LogError(exception, "Clear timeout return failed run={RunId}", runId); }
+                }
                 foreach (var runId in runs.FindExpiredPartyWipes(clock.GetUtcNow()))
                 {
                     try { await ReturnAsync(runId, stoppingToken).ConfigureAwait(false); }
@@ -54,7 +69,7 @@ public sealed class DungeonPartyWipeService(
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }
 
-    internal async ValueTask ReturnAsync(DungeonRunId runId, CancellationToken cancellationToken)
+    internal async ValueTask ReturnAsync(DungeonRunId runId, CancellationToken cancellationToken, bool cleared = false)
     {
         await using var projection = await projectionGate.AcquireAsync(
             runId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
@@ -78,7 +93,9 @@ public sealed class DungeonPartyWipeService(
                     throw new InvalidOperationException($"Cannot prepare party wipe return for {session.CharacterId}.");
                 entries.Add(new TownAreaEntry(session, view, position));
             }
-            var result = await commands.SendAsync(new EndPartyWipeCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
+            var result = cleared
+                ? await commands.SendAsync(new EndClearReturnCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false)
+                : await commands.SendAsync(new EndPartyWipeCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
             if (result.Ended is not { } ended) return;
             foreach (var session in frozen)
             {
@@ -92,7 +109,7 @@ public sealed class DungeonPartyWipeService(
                 try
                 {
                     await towns.EnterAsync([entry], cancellationToken).ConfigureAwait(false);
-                    logger.LogInformation("Party wipe returned character={CharacterId} run={RunId}", entry.Session.CharacterId, runId);
+                    logger.LogInformation("Dungeon returned character={CharacterId} run={RunId} reason={Reason}", entry.Session.CharacterId, runId, cleared ? "clear-timeout" : "party-wipe");
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                 catch (Exception exception)

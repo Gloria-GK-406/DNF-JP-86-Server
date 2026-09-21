@@ -89,12 +89,15 @@ internal sealed record PlayResultNotification(
 /// <see cref="DungeonClearPayloadCodec.UnpricedPaidFlipCost"/> such a clear is reported with is a
 /// decision, made by the settlement that knows which case it is in rather than defaulted here.
 /// </param>
+internal sealed record PartyCardReward(byte Seat, IReadOnlyList<ClearRewardCardSlot> Cards, int Gold);
+
 internal sealed record ClearDungeonRewardNotification(
     uint ClearBase,
     uint RankBonus,
     IReadOnlyList<ClearRewardCardSlot> FreeCards,
     int CardGold,
-    int PaidFlipCost)
+    int PaidFlipCost,
+    IReadOnlyList<PartyCardReward>? PartyCards = null)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
@@ -316,7 +319,8 @@ internal static class DungeonClearPayloadCodec
         uint rankBonus,
         IReadOnlyList<ClearRewardCardSlot>? freeCards = null,
         int cardGold = 0,
-        int paidFlipCost = NoPaidFlipCost)
+        int paidFlipCost = NoPaidFlipCost,
+        IReadOnlyList<PartyCardReward>? partyCards = null)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
         using var writer = new BinaryWriter(stream);
@@ -352,7 +356,7 @@ internal static class DungeonClearPayloadCodec
         // clear's reward goes on the free row and the other two rows are declared empty.
         var cards = freeCards ?? [];
         writer.Write((byte)0); // no item-acquisition records
-        WriteFreeRow(writer, cards, cardGold);
+        WriteFreeRow(writer, cards, cardGold, partyCards);
         writer.Write(paidFlipCost); // paid-card cost
         WriteUnturnedRow(writer); // the gold row
         WriteUnturnedRow(writer); // the black-diamond row
@@ -368,7 +372,8 @@ internal static class DungeonClearPayloadCodec
         writer.Write(0);
 
         var body = stream.ToArray();
-        var expected = ClearRewardBodyLengthFor(freeCards);
+        var expected = partyCards is null ? ClearRewardBodyLengthFor(freeCards)
+            : ClearRewardBodyLength + partyCards.Count(card => RewardOf(card.Cards) is not null) * CardEntryLength;
         if (body.Length != expected)
         {
             throw new InvalidDataException(
@@ -397,11 +402,13 @@ internal static class DungeonClearPayloadCodec
     /// third entry never appeared. See <c>protocol/game/server-to-client/NOTI-0x0023.md</c>.
     /// </remarks>
     private static void WriteFreeRow(
-        BinaryWriter writer, IReadOnlyList<ClearRewardCardSlot> cards, int cardGold)
+        BinaryWriter writer, IReadOnlyList<ClearRewardCardSlot> cards, int cardGold,
+        IReadOnlyList<PartyCardReward>? partyCards)
     {
         for (var column = 0; column < WireCardColumnCount; column++)
         {
-            if (column != RewardColumn)
+            var member = partyCards?.SingleOrDefault(card => card.Seat == column);
+            if (partyCards is null ? column != RewardColumn : member is null)
             {
                 // A column with nothing on it still declares its gold entry, which is none. This
                 // is the reference server's own shape for the seven columns it does not use.
@@ -411,10 +418,10 @@ internal static class DungeonClearPayloadCodec
                 continue;
             }
 
-            var reward = RewardOf(cards);
+            var reward = RewardOf(member?.Cards ?? cards);
             writer.Write((byte)(reward is null ? 1 : 2));
             writer.Write(0); // the gold entry's identifier is not read
-            writer.Write(cardGold);
+            writer.Write(member?.Gold ?? cardGold);
             if (reward is { } piece)
             {
                 writer.Write(piece.ItemId);
@@ -619,7 +626,8 @@ internal sealed class ClearDungeonRewardEncoder
                 message.RankBonus,
                 message.FreeCards,
                 message.CardGold,
-                message.PaidFlipCost));
+                message.PaidFlipCost,
+                message.PartyCards));
 }
 
 /// <summary>
@@ -741,6 +749,27 @@ public sealed class SetPlayResultHandler(
                 runs.ReleaseSettlement(settlementClaim);
                 return;
             }
+            // Every client needs the same reward row indexed by party seat. Fixing the
+            // other faces is idempotent and does not grant their experience or inventory.
+            List<PartyCardReward>? partyCards = null;
+            if (run.Participants.Count > 1)
+            {
+                partyCards = [];
+                foreach (var participant in run.Participants.OrderBy(value => value.Slot))
+                {
+                    if (runs.Find(participant.CharacterId)?.RunId != run.RunId) continue;
+                    var participantProgress = await characters.Get(participant.CharacterId)
+                        .ProgressAsync(cancellationToken).ConfigureAwait(false);
+                    if (participantProgress is null) continue;
+                    var memberCards = participant.CharacterId == session.CharacterId ? settled
+                        : await cardRewards.SettleAsync(new ClearRewardSettlement(
+                            participant.CharacterId, participantProgress.Level, run.PartyMemberCount,
+                            run.RunId), cancellationToken).ConfigureAwait(false);
+                    if (memberCards is not null)
+                        partyCards.Add(new(participant.Slot, memberCards.Cards.Free.Slots,
+                            memberCards.Cards.Free.Gold));
+                }
+            }
             var freeCards = settled.Cards.Free.Slots;
             var cardGold = settled.Cards.Free.Gold;
 
@@ -788,7 +817,7 @@ public sealed class SetPlayResultHandler(
                                 message.ClientRankPoint,
                                 settlement.QuestMaze),
                             new ClearDungeonRewardNotification(
-                                0, 0, freeCards, cardGold, paidFlipCost),
+                                0, 0, freeCards, cardGold, paidFlipCost, partyCards),
                         ],
                         []),
                     cancellationToken).ConfigureAwait(false);
@@ -912,9 +941,9 @@ public sealed class SetPlayResultHandler(
             // result screen must report what landed. An award carries its base and its one
             // contribution, which are those same two figures whenever nothing was clamped.
             frames.Add(award is null
-                ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost)
+                ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost, partyCards)
                 : new ClearDungeonRewardNotification(
-                    award.Base, award.Gained - award.Base, freeCards, cardGold, paidFlipCost));
+                    award.Base, award.Gained - award.Base, freeCards, cardGold, paidFlipCost, partyCards));
 
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,

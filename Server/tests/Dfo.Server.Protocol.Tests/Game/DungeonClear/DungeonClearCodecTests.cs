@@ -25,6 +25,20 @@ public sealed class DungeonClearCodecTests
 {
     /// <summary>The exit opens on one byte, and the byte is zero.</summary>
     [Fact]
+    public void Party_reward_row_preserves_each_seats_gold_and_equipment()
+    {
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(7, 9,
+            partyCards: [new(0, [Holding(0, 31001, 1)], 39), new(2, [Holding(0, 31002, 2)], 57)]);
+        var tail = CardPanelFrameReader.ReadClearDungeonReward(body);
+        Assert.Equal(39, tail.FreeRow.Columns[0].Gold);
+        Assert.Equal(new CardEntry(31001, 1), tail.FreeRow.Columns[0].Piece);
+        Assert.Equal(0, tail.FreeRow.Columns[1].Gold);
+        Assert.Null(tail.FreeRow.Columns[1].Piece);
+        Assert.Equal(57, tail.FreeRow.Columns[2].Gold);
+        Assert.Equal(new CardEntry(31002, 2), tail.FreeRow.Columns[2].Piece);
+    }
+
+    [Fact]
     public void The_exit_opens_on_a_single_zero()
     {
         Assert.Equal([0x00], DungeonClearPayloadCodec.EncodeEnableClearDungeon());

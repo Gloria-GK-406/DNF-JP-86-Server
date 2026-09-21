@@ -163,6 +163,7 @@ public sealed class DungeonCardPresentationCoordinator(
                 cancellationToken).ConfigureAwait(false);
         }
 
+        runs.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
         var cancellation = this.Replace(session.CharacterId, runId);
         _ = this.RunAutoFlipAsync(session, runId, cancellation.Token);
     }

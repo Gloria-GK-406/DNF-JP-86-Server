@@ -184,6 +184,8 @@ public sealed class ProtocolModule : IServerModule
     {
         services.AddCommandHandler<UseRevivalCoinCommand, DungeonRevivalResult, UseRevivalCoinCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<EndClearReturnCommand, EndPartyWipeResult, EndClearReturnCommandHandler>(
+            CommandExecutionKind.Direct);
         services.AddCommandHandler<EndPartyWipeCommand, EndPartyWipeResult, EndPartyWipeCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<MarkDungeonParticipantDeadCommand, MarkDungeonParticipantDeadResult, MarkDungeonParticipantDeadCommandHandler>(

@@ -25,6 +25,45 @@ public sealed class DungeonRunDomainServiceTests
 {
     private static readonly CharacterId Character = new(1);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Clear_return_expires_once_and_never_ends_a_replacement(bool replace)
+    {
+        var service = new DungeonRunDomainService();
+        DungeonRunParticipant[] members = [new(new(1), new(1), 0, true), new(new(2), new(2), 1, false)];
+        var run = service.PreparePartyEntry(members, Tutorial, DungeonDifficulty.Normal).Run;
+        var now = DateTimeOffset.UnixEpoch;
+        service.ScheduleClearReturn(Character, run.RunId, now);
+        Assert.Empty(service.FindExpiredClearReturns(now.AddMinutes(2)));
+        service.TryOpenClear(Character, run.RunId, run.RoomVersion);
+        var free = new ClearRewardCardFace(ClearRewardCardKind.Free, [new(0, null)], 1);
+        var paid = new ClearRewardCardFace(ClearRewardCardKind.Paid, [new(0, null)], 2);
+        foreach (var member in members)
+        {
+            service.FixClearRewardCards(member.CharacterId, run.RunId, free, paid, 3);
+            service.CommitSettlement(service.TryClaimSettlement(member.CharacterId, run.RunId)!);
+            service.TryOpenCardLayout(member.CharacterId, run.RunId);
+        }
+        service.ScheduleClearReturn(Character, run.RunId, now);
+        service.ScheduleClearReturn(Character, run.RunId, now.AddSeconds(20));
+        Assert.Null(service.TryEndClearReturn(run.RunId, now.AddSeconds(59)));
+        if (replace)
+        {
+            var next = service.PreparePartyEntry(members, Tutorial, DungeonDifficulty.Normal).Run;
+            Assert.Null(service.TryEndClearReturn(run.RunId, now.AddSeconds(61)));
+            Assert.Equal(next.RunId, service.Find(Character)!.RunId);
+        }
+        else
+        {
+            Assert.Equal([run.RunId], service.FindExpiredClearReturns(now.AddSeconds(60)));
+            Assert.Equal(2, service.TryEndClearReturn(run.RunId, now.AddSeconds(60))!.Participants.Count);
+            Assert.Null(service.Find(Character));
+            Assert.Null(service.TryEndClearReturn(run.RunId, now.AddSeconds(61)));
+        }
+        Assert.Empty(service.FindExpiredClearReturns(now.AddMinutes(2)));
+    }
+
     [Fact]
     public void Party_wipe_waits_for_last_death_and_ten_seconds_then_ends_every_member_once()
     {
