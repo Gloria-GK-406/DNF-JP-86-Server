@@ -179,7 +179,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IWeaknessDomainService>(provider => new WeaknessDomainService(
             () => provider.GetRequiredService<ICharacterDomainService>(),
             provider.GetRequiredService<IWeaknessRuleService>(),
-            provider.GetService<Microsoft.Extensions.Logging.ILogger<WeaknessDomainService>>()));
+            provider.GetService<Microsoft.Extensions.Logging.ILogger<WeaknessDomainService>>(),
+            provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>()));
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
         services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
 

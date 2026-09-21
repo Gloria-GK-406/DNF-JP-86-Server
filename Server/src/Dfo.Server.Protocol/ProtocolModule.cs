@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions;
@@ -110,9 +111,12 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.TryAddSingleton<DungeonProjectionGate>();
         services.AddHostedService<DungeonPartyWipeService>();
+        services.AddCommandHandler<RecoverStaminaCommand, RecoverStaminaResult, RecoverStaminaCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>(retryLimit: 0);
         services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.AddHostedService<WeaknessRecoveryService>();
-        services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Direct);
+        services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Transactional);
         var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
@@ -394,6 +398,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
         services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
+        services.RegisterMessageHandler<RecoverStaminaHandler>(ClientMessageType.GameRecoverStamina);
         services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
         services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
             ClientMessageType.GameGetAccountCharacterRoster);
@@ -550,6 +555,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameCmdMessageDecoder<RecoverStaminaDecoder>(0x0009, ClientMessageType.GameRecoverStamina);
+        services.AddGameCmdMessageEncoder<RecoverStaminaResponse, RecoverStaminaEncoder>();
         services.AddGameNotiMessageEncoder<WeaknessProjectionNotification, WeaknessProjectionEncoder>();
         services.AddGameNotiMessageEncoder<CharacterLifeStateNotification, CharacterLifeStateEncoder>();
         services.AddGameCmdMessageEncoder<CharacterDeathResponse, CharacterDeathResponseEncoder>();

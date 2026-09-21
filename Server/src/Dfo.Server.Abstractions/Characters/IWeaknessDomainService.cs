@@ -5,6 +5,7 @@ namespace Dfo.Server.Abstractions.Characters;
 public interface IWeakness
 {
     byte Value { get; }
+    ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default);
     ValueTask SetWeakness();
     void Recover();
     void PauseRecovery();
@@ -24,5 +25,6 @@ public interface IWeaknessRuleService
 {
     byte? InitialValue(byte level);
     byte RecoverStep(byte value);
+    int RecoveryGoldCost(byte level, byte value);
     TimeSpan RecoveryInterval { get; }
 }

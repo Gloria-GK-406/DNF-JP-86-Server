@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
 
@@ -6,8 +7,12 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class WeaknessDomainService(
     Func<ICharacterDomainService> characters, IWeaknessRuleService rules,
-    ILogger<WeaknessDomainService>? logger = null) : IWeaknessDomainService
+    ILogger<WeaknessDomainService>? logger = null,
+    IDomainTransactionAccessor? transactions = null) : IWeaknessDomainService
 {
+    private readonly Func<ICharacterDomainService> characterSource = characters;
+    private readonly IWeaknessRuleService ruleSource = rules;
+    private readonly IDomainTransactionAccessor? transactionSource = transactions;
     private readonly object gate = new();
     private readonly Dictionary<CharacterId, Entry> entries = [];
     // A failed level read must survive connection cleanup until a later global tick.
@@ -28,8 +33,8 @@ internal sealed class WeaknessDomainService(
         byte? initial;
         try
         {
-            var progress = await characters().Get(id).ProgressAsync(token).ConfigureAwait(false);
-            initial = progress is null ? null : rules.InitialValue(progress.Level);
+            var progress = await characterSource().Get(id).ProgressAsync(token).ConfigureAwait(false);
+            initial = progress is null ? null : ruleSource.InitialValue(progress.Level);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception exception)
@@ -53,7 +58,7 @@ internal sealed class WeaknessDomainService(
     private sealed class PendingPenalty { public bool IsRecover { get; set; } = true; }
 
     public IWeakness For(CharacterId characterId) => new Weakness(this, characterId);
-    public TimeSpan RecoveryInterval => rules.RecoveryInterval;
+    public TimeSpan RecoveryInterval => ruleSource.RecoveryInterval;
 
     public IReadOnlyList<CharacterId> AdvanceRecovery()
     {
@@ -63,7 +68,7 @@ internal sealed class WeaknessDomainService(
             foreach (var (id, entry) in entries.ToArray())
             {
                 if (!entry.IsRecover) continue;
-                var value = rules.RecoverStep(entry.Value);
+                var value = ruleSource.RecoverStep(entry.Value);
                 if (value == 100) entries.Remove(id);
                 else entries[id] = entry with { Value = value };
                 changed.Add(id);
@@ -73,6 +78,20 @@ internal sealed class WeaknessDomainService(
     }
 
     private sealed record Entry(byte Value, bool IsRecover);
+
+    private sealed class RecoveryCommit(WeaknessDomainService owner) : ITransactionParticipant
+    {
+        public HashSet<CharacterId> Characters { get; } = [];
+        public bool CommitCanFail => false;
+        public ValueTask PrepareAsync(CancellationToken token) => ValueTask.CompletedTask;
+        public ValueTask RollbackAsync(CancellationToken token) => ValueTask.CompletedTask;
+        public ValueTask CommitAsync(CancellationToken token)
+        {
+            lock (owner.gate)
+                foreach (var id in Characters) { owner.entries.Remove(id); owner.pending.Remove(id); }
+            return ValueTask.CompletedTask;
+        }
+    }
 
     private sealed class Weakness(WeaknessDomainService owner, CharacterId id) : IWeakness
     {
@@ -88,8 +107,23 @@ internal sealed class WeaknessDomainService(
             await owner.TryApplyAsync(id, penalty, CancellationToken.None).ConfigureAwait(false);
         }
 
+        public async ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default)
+        {
+            if (Value == 100) return 0;
+            // Free-recovery entitlement belongs here when the bonus-service domain is added.
+            // Neither the caller nor the wire request can claim that entitlement.
+            var progress = await owner.characterSource().Get(id).ProgressAsync(cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Cannot quote weakness recovery without character progression.");
+            return owner.ruleSource.RecoveryGoldCost(progress.Level, Value);
+        }
+
         public void Recover()
         {
+            if (owner.transactionSource?.Current is { } transaction)
+            {
+                transaction.Enlist(owner, () => new RecoveryCommit(owner)).Characters.Add(id);
+                return;
+            }
             lock (owner.gate) { owner.entries.Remove(id); owner.pending.Remove(id); }
         }
         public void PauseRecovery() => SetRecovery(false);

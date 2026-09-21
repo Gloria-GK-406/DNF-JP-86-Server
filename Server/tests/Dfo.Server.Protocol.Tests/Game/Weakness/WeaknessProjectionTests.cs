@@ -45,6 +45,7 @@ public sealed class WeaknessProjectionTests
     private sealed class State : IWeaknessDomainService, IWeakness
     {
         public byte Value { get; set; }
+        public ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public IWeakness For(CharacterId id) => this;
         public TimeSpan RecoveryInterval => TimeSpan.FromMinutes(1);
         public IReadOnlyList<CharacterId> AdvanceRecovery() => [];
