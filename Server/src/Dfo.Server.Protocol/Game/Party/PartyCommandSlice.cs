@@ -312,7 +312,7 @@ public sealed class LeavePartyCommandHandler(
     IDungeonRunDomainService? runs = null)
     : ICommandHandler<LeavePartyCommand, PartyOperationResult>
 {
-    public ValueTask<PartyOperationResult> HandleAsync(
+    public async ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         LeavePartyCommand command,
         CancellationToken cancellationToken)
@@ -322,8 +322,8 @@ public sealed class LeavePartyCommandHandler(
         var run = runs?.Find(command.CharacterId);
         var result = parties.LeaveParty(command.CharacterId);
         if (result.Succeeded && run is not null)
-            _ = runs!.End(command.CharacterId, run.RunId);
-        return ValueTask.FromResult(result);
+            _ = await runs!.EndAsync(command.CharacterId, run.RunId);
+        return result;
     }
 }
 
@@ -352,7 +352,7 @@ public sealed class RemovePartyMemberCommandHandler(
     IDungeonRunDomainService? runs = null)
     : ICommandHandler<RemovePartyMemberCommand, PartyOperationResult>
 {
-    public ValueTask<PartyOperationResult> HandleAsync(
+    public async ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         RemovePartyMemberCommand command,
         CancellationToken cancellationToken)
@@ -362,8 +362,8 @@ public sealed class RemovePartyMemberCommandHandler(
             command.CurrentLeaderCharacterId,
             command.TargetCharacterId);
         if (result.Succeeded && run is not null)
-            _ = runs!.End(command.TargetCharacterId, run.RunId);
-        return ValueTask.FromResult(result);
+            _ = await runs!.EndAsync(command.TargetCharacterId, run.RunId);
+        return result;
     }
 }
 

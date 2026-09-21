@@ -1,9 +1,6 @@
 using Dfo.Server.Data.Networking;
 
-namespace Dfo.Server.Protocol.Game.SelectCharacter;
-
-/// <summary>Opt-in live experiment; never persists or changes server attributes.</summary>
-public sealed record WeaknessProjectionTestOptions(byte? Value);
+namespace Dfo.Server.Protocol.Game.Weakness;
 
 internal sealed record WeaknessProjectionNotification(byte Value) : IGameNotiMessage
 {

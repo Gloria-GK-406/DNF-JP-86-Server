@@ -110,7 +110,7 @@ internal sealed class SelectedSessionCleanupService(
             if (run is not null)
             {
                 var ended = false;
-                Run(() => ended = dungeonRuns.End(session.CharacterId, run.RunId));
+                await RunAsync(async () => { ended = await dungeonRuns.EndAsync(session.CharacterId, run.RunId).ConfigureAwait(false); });
                 if (ended)
                 {
                     foreach (var departure in dungeonDepartures)

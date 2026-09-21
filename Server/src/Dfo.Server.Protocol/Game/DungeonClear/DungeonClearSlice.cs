@@ -191,7 +191,7 @@ public sealed class GiveUpGameHandler(
             var currentRun = runs.Find(session.CharacterId);
             if (currentRun is not null)
                 cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
-            ended = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
+            ended = currentRun is not null && await runs.EndAsync(session.CharacterId, currentRun.RunId).ConfigureAwait(false);
             if (ended && currentRun is not null)
                 deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
             if (ended && townAreas is not null && commands is not null)

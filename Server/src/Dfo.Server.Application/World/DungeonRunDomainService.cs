@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
@@ -14,6 +15,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
+    private readonly IWeaknessDomainService? weakness;
     private readonly object gate = new();
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
@@ -38,10 +40,12 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunDomainService(
         IDomainTransactionAccessor transactions,
-        IPartyService parties)
+        IPartyService parties,
+        IWeaknessDomainService? weakness = null)
     {
         this.transactions = transactions;
         this.parties = parties;
+        this.weakness = weakness;
     }
 
     internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
@@ -111,7 +115,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
             this.runsById.Add(aggregate.RunId, aggregate);
             foreach (var participant in frozen)
+                {
                 this.runsByCharacter.Add(participant.CharacterId, aggregate);
+                this.weakness?.For(participant.CharacterId).PauseRecovery();
+            }
 
             return aggregate.EntryChange(
                 DungeonEntryChangeKind.Prepared,
@@ -1134,6 +1141,31 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    // Callers retain the admitted-session transition lease through this async exit.
+    public async ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId)
+    {
+        bool failed;
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId) return false;
+            failed = !aggregate.Cells[aggregate.CurrentCell].ClearOpen;
+            if (!this.DetachParticipant(characterId)) return false;
+        }
+        if (failed && this.weakness is not null)
+            await this.weakness.For(characterId).SetWeakness().ConfigureAwait(false);
+        return true;
+    }
+
+    public async ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now)
+    {
+        var ended = TryEndPartyWipe(runId, now);
+        if (ended is not null && this.weakness is not null)
+            foreach (var member in ended.Participants)
+                await this.weakness.For(member.CharacterId).SetWeakness().ConfigureAwait(false);
+        return ended;
+    }
+
     public bool End(CharacterId characterId)
     {
         lock (this.gate)
@@ -1157,6 +1189,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         if (!this.runsByCharacter.Remove(characterId, out var aggregate))
             return false;
 
+        this.weakness?.For(characterId).ResumeRecovery();
         aggregate.ActiveParticipants.Remove(characterId);
         aggregate.ReadyParticipants.Remove(characterId);
         aggregate.DeadParticipants.Remove(characterId);

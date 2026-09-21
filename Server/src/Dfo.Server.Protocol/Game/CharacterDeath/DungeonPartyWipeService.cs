@@ -16,9 +16,9 @@ public sealed record EndPartyWipeResult(DungeonRunState? Ended);
 public sealed class EndPartyWipeCommandHandler(IDungeonRunDomainService runs)
     : ICommandHandler<EndPartyWipeCommand, EndPartyWipeResult>
 {
-    public ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
+    public async ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
         EndPartyWipeCommand command, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(new EndPartyWipeResult(runs.TryEndPartyWipe(command.RunId, command.Now)));
+        new(await runs.TryEndPartyWipeAsync(command.RunId, command.Now).ConfigureAwait(false));
 }
 
 public sealed record EndClearReturnCommand(DungeonRunId RunId, DateTimeOffset Now) : ICommand<EndPartyWipeResult>;

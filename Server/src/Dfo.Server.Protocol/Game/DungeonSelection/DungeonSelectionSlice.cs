@@ -260,7 +260,7 @@ public sealed class BackToVillageHandler(
             {
                 var currentRun = runs.Find(member.Session.CharacterId);
                 var ended = currentRun is not null
-                    && runs.End(member.Session.CharacterId, currentRun.RunId);
+                    && await runs.EndAsync(member.Session.CharacterId, currentRun.RunId).ConfigureAwait(false);
                 if (ended && currentRun is not null)
                 {
                     deliveries.RemoveParticipant(currentRun.RunId, member.Session.CharacterId);

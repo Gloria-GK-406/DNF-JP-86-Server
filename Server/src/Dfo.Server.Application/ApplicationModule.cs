@@ -175,6 +175,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICarriedGoldRuleService, CarriedGoldRuleService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
+        services.TryAddSingleton<IWeaknessRuleService>(_ => new WeaknessRuleService(configuration));
+        services.TryAddSingleton<IWeaknessDomainService>(provider => new WeaknessDomainService(
+            () => provider.GetRequiredService<ICharacterDomainService>(),
+            provider.GetRequiredService<IWeaknessRuleService>(),
+            provider.GetService<Microsoft.Extensions.Logging.ILogger<WeaknessDomainService>>()));
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
         services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
 

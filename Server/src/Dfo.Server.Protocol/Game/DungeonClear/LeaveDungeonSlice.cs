@@ -206,7 +206,7 @@ public sealed class EplpCommandHandler(
                         || runs.Find(participant.CharacterId)?.RunId != currentRun.RunId)
                         continue;
                     cardPresentation?.Cancel(participant.CharacterId, currentRun.RunId);
-                    if (!runs.End(participant.CharacterId, currentRun.RunId))
+                    if (!await runs.EndAsync(participant.CharacterId, currentRun.RunId).ConfigureAwait(false))
                         continue;
                     deliveries.RemoveParticipant(currentRun.RunId, participant.CharacterId);
                     endedCharacters.Add(participant.CharacterId);

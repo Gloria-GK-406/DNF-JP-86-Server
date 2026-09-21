@@ -49,6 +49,7 @@ public sealed class TownAreaProjectionDelivery
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameMessageSender sender;
     private readonly TownAreaProjectionGate projectionGate;
+    private readonly Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection;
 
     public TownAreaProjectionDelivery(
         ITownAreaDomainService townAreas,
@@ -58,7 +59,8 @@ public sealed class TownAreaProjectionDelivery
         IPartyTownProjectionDelivery partyTownProjection,
         IGameMessageSender sender,
         ITownMovementDomainService towns,
-        TownAreaProjectionGate? projectionGate = null)
+        TownAreaProjectionGate? projectionGate = null,
+        Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null)
     {
         this.townAreas = townAreas;
         this.selectedSessions = selectedSessions;
@@ -68,6 +70,7 @@ public sealed class TownAreaProjectionDelivery
         this.partyTownProjection = partyTownProjection;
         this.sender = sender;
         this.projectionGate = projectionGate ?? new TownAreaProjectionGate();
+        this.weaknessProjection = weaknessProjection;
     }
 
     public async ValueTask<bool> TransferAsync(
@@ -416,6 +419,8 @@ public sealed class TownAreaProjectionDelivery
                 delivery.Admission.Entry.Session.ConnectionId,
                 new GameExplicitMessageDelivery(delivery.Frames, []),
                 cancellationToken).ConfigureAwait(false);
+            if (weaknessProjection is not null)
+                await weaknessProjection.SendCurrentAsync(delivery.Admission.Entry.Session, cancellationToken).ConfigureAwait(false);
         }
 
         foreach (var previousArea in admissions

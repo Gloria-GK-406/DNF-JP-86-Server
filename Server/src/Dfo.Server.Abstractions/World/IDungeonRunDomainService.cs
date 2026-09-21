@@ -431,6 +431,12 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
+    ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>
+        ValueTask.FromResult(End(characterId, expectedRunId));
+
+    ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now) =>
+        ValueTask.FromResult(TryEndPartyWipe(runId, now));
+
     bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId) => false;
 
     void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }
