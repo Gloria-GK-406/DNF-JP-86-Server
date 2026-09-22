@@ -66,7 +66,8 @@ public sealed class SelectCharacterHandler(
     INetworkConnectionCloser closer,
     ILogger<SelectCharacterHandler> logger,
     SelectCharacterDeliveryOptions delivery,
-    Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null) : ClientMessageHandler<SelectCharacterRequest>
+    Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null,
+    LotteryCounterExperimentOptions? lotteryCounterExperiment = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -397,6 +398,16 @@ public sealed class SelectCharacterHandler(
                 new GameExplicitMessageDelivery([new PremiumServiceStateMessage(prepared.Account.Entitlements,
                     prepared.CharacterEntry.Progression.PremiumUsageSlots, prepared.World.PreparedAt)], []),
                 cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && lotteryCounterExperiment is { Enabled: true } experiment)
+        {
+            await sender.SendExplicitAsync(session.ConnectionId,
+                new GameExplicitMessageDelivery([new LotteryCounterStateMessage(experiment.Current, experiment.Threshold)], []),
+                cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Lottery counter experiment character={CharacterId}: current={Current} threshold={Threshold}",
+                session.CharacterId, experiment.Current, experiment.Threshold);
+        }
+
 
     }
 

@@ -616,6 +616,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddCmd<PremiumServiceStateMessage>(services);
         AddCmd<MercenarySupportStateMessage>(services);
         AddNoti<LotteryProgressStateMessage>(services);
+        AddNoti<LotteryCounterStateMessage>(services);
         AddNoti<LuckyStarStateMessage>(services);
         AddNoti<ChampionBreakStateMessage>(services);
         AddNoti<GoldLimitStateMessage>(services);

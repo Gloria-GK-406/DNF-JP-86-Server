@@ -121,6 +121,13 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<ConsumeDungeonBuffCommand, PremiumSnapshotResult, ConsumeDungeonBuffCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult, ReadPremiumSnapshotCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Transactional);
+        var lotteryCounterExperiment = new LotteryCounterExperimentOptions(
+            configuration.GetValue<bool>("LotteryCounterExperiment:Enabled"),
+            configuration.GetValue<byte>("LotteryCounterExperiment:Current", 0),
+            configuration.GetValue<byte>("LotteryCounterExperiment:Threshold", 30));
+        if (lotteryCounterExperiment.Current > 127 || lotteryCounterExperiment.Threshold > 127)
+            throw new InvalidOperationException("LotteryCounterExperiment values must be in 0..127.");
+        services.TryAddSingleton(lotteryCounterExperiment);
         var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
