@@ -50,7 +50,11 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         writer.Write(core.Attribute); writer.Write(core.AmplifyType); writer.Write(core.AmplifyValue);
         // A21 0x0113F780 reads these fields unconditionally, including two length-prefixed values.
         // Empty optional properties; absolute inventory projection follows this native result.
-        writer.Write(new byte[15]);
+        writer.Write(0); // unknown item scalar
+        writer.Write((byte)0); // extra u32 array count (0x01637A80)
+        writer.Write((ushort)0); // nested reader 0x012612F0
+        writer.Write((byte)0); // nested list count (0x01088BC0)
+        writer.Write(new byte[10]); // u8 x3, u16, u8 x5
         writer.Write(4); writer.Write(0); // destination constructor initializes a 4-byte scalar
         writer.Write(8); writer.Write(0L); // second destination initializes an 8-byte scalar
         writer.Write((byte)0); writer.Write(0);

@@ -77,10 +77,10 @@ public sealed class LotteryOpeningTests
         var result = Assert.IsType<LotteryOpeningResponse>(shop.Host.Sender.Messages[0]);
         Assert.NotNull(result.Result); Assert.Equal(0, shop.Host.Count(7110));
         var frame = shop.Encode(result);
-        Assert.Equal(74, frame.Length); // 15-byte frame + 59-byte A21 success body.
-        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 34)));
-        Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 42)));
-        Assert.All(frame.Skip(15 + 54), value => Assert.Equal((byte)0, value));
+        Assert.Equal(77, frame.Length); // 15-byte frame + 62-byte A21 success body.
+        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 37)));
+        Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 45)));
+        Assert.All(frame.Skip(15 + 57), value => Assert.Equal((byte)0, value));
         await handler.HandleAsync(new(shop.Host.Connection), new LotteryOpeningRequest(GameMessageMetadata.Empty, 0, 65), default);
         Assert.Null(Assert.IsType<LotteryOpeningResponse>(shop.Host.Sender.Messages.Last()).Result);
         Assert.Equal(1, shop.Host.Count(20002));

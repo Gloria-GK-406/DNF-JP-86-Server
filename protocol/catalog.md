@@ -646,4 +646,4 @@ CMD036F category1/slot3（BUFF）、slot4（HP/MP恢复）使用上报已接入�
 
 ## 2026-09-22 普通袖珍罐崩溃纠正
 
-原13B开始包造成A21越界，撤回两阶段/00D9设计。现普通模式0一次事务并返回静态与离线模拟核对的59B结果，修复后待实机。[请求](game/client-to-server/0x001B.md)、[响应](game/server-to-client/CMD-0x001B.md)。不标ClientVerified。
+原13B开始包造成A21越界，撤回两阶段/00D9设计。普通模式0一次事务并返回62B结果；补齐两个嵌套读取字段（3B），真实读取载荷61/61。三种普通装备罐的显示、入包、数量及重登已由用户验收。[请求](game/client-to-server/0x001B.md)、[响应](game/server-to-client/CMD-0x001B.md)。固定样本7110/7120/7150基础闭环标ClientVerified；概率算法仍待#121。
