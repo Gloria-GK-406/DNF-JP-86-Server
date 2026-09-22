@@ -15,7 +15,7 @@
 > 四层分界见 [README](README.md#四层每种事实各有一个归处)。
 
 > 2026-09-22 拾取残留修正：掉落编号改为地下城实例内唯一，跨房间不复用；
-> [0x0027 编号作用域证据](game/server-to-client/NOTI-0x0027.md#掉落编号作用域2026-09-22)。修复后实机复验待完成。
+> [0x0027 编号作用域证据](game/server-to-client/NOTI-0x0027.md#掉落编号作用域2026-09-22)。2026-09-22 跨房间保留旧掉落后在新房间拾取，用户实机验收通过。
 
 ## 阶段
 
@@ -540,7 +540,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x02B5` | `CheckCharacterNameResponse` | 仅证明 encoder 可产生该 identity | [0x02B5](game/client-to-server/0x02B5.md) |
 | `0x01` CMD | `0x02C1` | `ContentsPlayInfoResponse` | 仅证明 encoder 可产生该 identity | [0x02C1](game/client-to-server/0x02C1.md) |
 | `0x01` CMD | `0x02CC` | `ShopPurchaseCountResponse` | 仅证明 encoder 可产生该 identity | [0x02CC](game/client-to-server/0x02CC.md) |
-| `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 续期及重登期限显示ClientVerified；次数/效果未验收 | [CMD-0x036F](game/server-to-client/CMD-0x036F.md) |
+| `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 续期及重登期限显示、槽0黄金翻牌次数边界ClientVerified；其他范围见记录 | [CMD-0x036F](game/server-to-client/CMD-0x036F.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
 | `0x00` NOTI | `0x0001` | `GameInitialConnectionNotice` | 仅证明 encoder 可产生该 identity | [0x0001](game/server-to-client/NOTI-0x0001.md) |
@@ -637,3 +637,5 @@ CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B
 [NOTI 0x0021](game/server-to-client/NOTI-0x0021.md)：登录 32/100 单值实验经用户实机确认；已接内存虚弱与自然恢复，完整生命周期待用户实机验收。CMD 0009 付费恢复仍未实现。
 
 - 2026-09-21：`0x0022` 转职任务奖励实现与候选17B特殊ACK，规则/事务测试通过；A21实机验收待完成，详见 [FINISH_QUEST](game/client-to-server/0x0022.md)。
+
+- 2026-09-22：黄金翻牌第10次免费及额度用尽后的付费入口经用户验收；服务日志扣费0，持久化已用次数9→10，见 [SELECT_CARD](game/client-to-server/0x0047.md)。
