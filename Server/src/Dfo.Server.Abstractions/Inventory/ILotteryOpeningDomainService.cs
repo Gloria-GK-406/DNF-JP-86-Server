@@ -6,11 +6,16 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface ILotteryResultSelector
 {
-    OpeningReward Select(OpeningPackageDefinition definition);
+    OpeningReward Roll(int potItemId);
 }
 public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, int SourceSlot, int GoldAfter);
 public interface ILotteryOpeningDomainService
 {
     ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, int slot,
         ushort mode, ushort sequence, CancellationToken token);
+}
+
+public interface ILotteryRandomSource
+{
+    long NextInt64(long exclusiveUpperBound);
 }

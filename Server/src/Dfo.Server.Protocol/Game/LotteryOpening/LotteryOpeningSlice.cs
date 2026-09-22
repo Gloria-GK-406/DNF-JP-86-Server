@@ -91,8 +91,8 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
         catch (OpeningRejectedException ex) { logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
         catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError(ex, "Lottery transaction failed character={Character}", session.CharacterId); }
         var response = new LotteryOpeningResponse(result);
-        logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed}",
-            session.CharacterId, mode, sequence, slot, result is not null);
+        logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed} reward={Reward}",
+            session.CharacterId, mode, sequence, slot, result is not null, result?.Receipt.Rewards.Single().ItemId);
         if (result?.Receipt is { } receipt)
         {
             // State was committed by the command; native result precedes absolute inventory updates.

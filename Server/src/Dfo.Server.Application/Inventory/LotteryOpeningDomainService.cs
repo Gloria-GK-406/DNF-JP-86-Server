@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
@@ -10,21 +9,37 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
-// Temporary deterministic adapter. Unconfigured pots fail closed; production randomness is a separate policy.
-internal sealed class ConfiguredLotteryResultSelector(IServerConfigService config) : ILotteryResultSelector
+internal sealed class LotteryRandomSource : ILotteryRandomSource
 {
-    public OpeningReward Select(OpeningPackageDefinition definition)
+    public long NextInt64(long exclusiveUpperBound) => Random.Shared.NextInt64(exclusiveUpperBound);
+}
+
+internal sealed class WeightedLotteryResultSelector(ILotteryDefinitionCache cache, ILotteryRandomSource random) : ILotteryResultSelector
+{
+    public OpeningReward Roll(int potItemId)
     {
-        var id = config.GetConfig<int>($"LotteryOpening:FixedRewards:{definition.ItemId}");
-        var matches = definition.Pools.SelectMany(x => x.Choices).Where(x => x.Weight > 0 && x.Reward.ItemId == id).ToArray();
-        if (matches.Length != 1) throw new OpeningRejectedException(OpeningRejection.UnsupportedContent,
-            "No unique configured lottery test reward in this pot's pool.");
-        return matches[0].Reward;
+        var definition = cache.GetRequired(potItemId);
+        var ends = definition.CumulativeWeights;
+        if (!definition.Diagnostics.IsEmpty || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1
+            || ends.IsEmpty || ends.Length != definition.Pools[0].Choices.Length || ends[^1] <= 0)
+            throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, $"Pot {potItemId} has no valid weighted pool.");
+        var ticket = random.NextInt64(ends[^1]);
+        if (ticket < 0 || ticket >= ends[^1]) throw new InvalidOperationException("Lottery random source returned an out-of-range ticket.");
+        // First cumulative bound strictly greater than ticket; repeated bounds skip zero weights.
+        var low = 0;
+        var high = ends.Length - 1;
+        while (low < high)
+        {
+            var mid = low + (high - low) / 2;
+            if (ticket < ends[mid]) high = mid;
+            else low = mid + 1;
+        }
+        return definition.Pools[0].Choices[low].Reward;
     }
 }
 
 internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService inventory,
-    IPackageOpeningRuleService rules, ILotteryResultSelector selector, ICharacterDomainService characters,
+    IPackageOpeningRuleService rules, ILotteryResultSelector selector, ILotteryDefinitionCache cache, ICharacterDomainService characters,
     ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock)
     : ILotteryOpeningDomainService
 {
@@ -43,10 +58,11 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         if (completed.TryGetValue(session.CharacterId, out var previous) && previous.Session == session && previous.Sequence == sequence)
             throw Reject("Duplicate lottery request.");
         var source = await inventory.SourceAsync(session, slot, now, token).ConfigureAwait(false);
+        _ = cache.GetRequired(source.ItemId); // No on-demand PVF fallback for an unknown pot.
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
         if (definition.MaterialCount != 0 || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
             throw Reject("Unsupported lottery layout.");
-        var reward = selector.Select(definition);
+        var reward = selector.Roll(source.ItemId);
         if (reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
         var grants = await rules.PrepareAsync([reward], now, token).ConfigureAwait(false);
         if (grants[0].Item.Placement.WorldClass != ItemWorldClass.Equipment || grants[0].Item.Placement.ItemKind != 1

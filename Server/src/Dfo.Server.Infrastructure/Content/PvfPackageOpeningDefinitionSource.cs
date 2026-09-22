@@ -13,6 +13,17 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
 {
     private FrozenDictionary<int, OpeningPackageDefinition>? lotteryDefinitions;
 
+    public OpeningPackageDefinition GetRequired(int itemId)
+    {
+        lock (gate)
+        {
+            if (lotteryDefinitions is null)
+                throw new InvalidOperationException($"Lottery cache is not initialized (pot {itemId}).");
+            return lotteryDefinitions.TryGetValue(itemId, out var definition) ? definition
+                : throw new OpeningRejectedException(OpeningRejection.WrongItem, $"Pot {itemId} is not in the lottery cache.");
+        }
+    }
+
     public ValueTask<int> InitializeAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -43,8 +54,17 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 }
                 if (!isLottery) continue;
                 // Keep diagnostics: loading a definition does not authorize unsupported content.
-                definitions.Add(id, Parse(id, PvfNpcShopDefinitionSource.Sections(provider.Archive, path),
-                    token => provider.Archive.ResolveString(token.Value)));
+                var definition = Parse(id, PvfNpcShopDefinitionSource.Sections(provider.Archive, path),
+                    token => provider.Archive.ResolveString(token.Value));
+                if (definition.Diagnostics.IsEmpty && definition.Pools.Length == 1 && definition.Pools[0].Draws == 1)
+                {
+                    long total = 0;
+                    var ends = ImmutableArray.CreateBuilder<long>(definition.Pools[0].Choices.Length);
+                    foreach (var choice in definition.Pools[0].Choices)
+                        ends.Add(total = checked(total + choice.Weight));
+                    definition = definition with { CumulativeWeights = ends.MoveToImmutable() };
+                }
+                definitions.Add(id, definition);
             }
             cancellationToken.ThrowIfCancellationRequested();
             // Publish only a complete snapshot; a failed/cancelled attempt is safe to retry.

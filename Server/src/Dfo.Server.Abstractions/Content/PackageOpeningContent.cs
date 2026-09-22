@@ -12,6 +12,7 @@ public sealed record OpeningPackageDefinition(int ItemId, OpeningPackageKind Kin
     bool UsesSeriaLuck, ImmutableArray<string> Diagnostics)
 {
     public int GoldCost { get; init; }
+    public ImmutableArray<long> CumulativeWeights { get; init; } = [];
 }
 public sealed record OpeningRewardItemDefinition(int ItemId, ItemPlacement Placement, ushort Durability,
     bool Sealed, ImmutableArray<int> Abilities, int? CreatureStartLevel, bool Supported,
@@ -26,4 +27,5 @@ public interface IPackageOpeningDefinitionSource
 public interface ILotteryDefinitionCache
 {
     ValueTask<int> InitializeAsync(CancellationToken cancellationToken = default);
+    OpeningPackageDefinition GetRequired(int itemId);
 }

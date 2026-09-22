@@ -14,11 +14,16 @@ public sealed class LotteryOpeningTests
     private sealed class Fixed : ILotteryResultSelector
     {
         public int Calls;
-        public OpeningReward Select(OpeningPackageDefinition definition)
-        { Calls++; return definition.Pools.Single().Choices.First(x => x.Weight > 0).Reward; }
+        public OpeningReward Roll(int id)
+        { Calls++; return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
     }
-    private static CeraShopFixture Fixture(Fixed? selector = null) => new(useArchive: true,
-        configure: s => s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()));
+    private static CeraShopFixture Fixture(Fixed? selector = null)
+    {
+        var shop = new CeraShopFixture(useArchive: true,
+            configure: s => s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()));
+        shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync().GetAwaiter().GetResult();
+        return shop;
+    }
     private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort sequence = 10, ushort mode = 0, int slot = 65) =>
         shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new LotteryOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, slot, mode, sequence)).AsTask();
 
@@ -108,6 +113,7 @@ public sealed class LotteryOpeningTests
                     ?? source.ImplementationFactory?.Invoke(provider)
                     ?? ActivatorUtilities.CreateInstance(provider, source.ImplementationType!))));
         });
+        await shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
         await shop.Host.Seed(65, 7110, 3);
         shop.Host.Sql("CREATE TRIGGER reject_reward BEFORE INSERT ON items BEGIN SELECT RAISE(ABORT,'reward blocked'); END");
         await Assert.ThrowsAnyAsync<Exception>(() => Command(shop));
@@ -119,10 +125,27 @@ public sealed class LotteryOpeningTests
     }
 
     [Fact]
-    public async Task No_fixed_test_configuration_refuses_before_consumption()
+    public async Task Source_id_outside_pot_cache_throws_without_consumption()
+    {
+        using var shop = Fixture();
+        await shop.Host.Seed(65, 201, 3);
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop));
+        Assert.Contains("201", error.Message);
+        Assert.Contains("cache", error.Message);
+        Assert.Equal(3, shop.Host.Count(201));
+        Assert.Equal(100000, shop.Host.Gold);
+    }
+
+    [Fact]
+    public async Task Production_selector_opens_without_fixed_configuration()
     {
         using var shop = new CeraShopFixture(useArchive: true); await shop.Host.Seed(65, 7110, 1);
-        await Assert.ThrowsAnyAsync<Exception>(() => Command(shop)); Assert.Equal(1, shop.Host.Count(7110));
+        await shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
+        var result = await Command(shop);
+        var reward = Assert.Single(result.Receipt.Rewards);
+        Assert.Contains(shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().GetRequired(7110).Pools[0].Choices,
+            row => row.Weight > 0 && row.Reward.ItemId == reward.ItemId);
+        Assert.Equal(0, shop.Host.Count(7110));
     }
     private sealed class CostSource(IPackageOpeningDefinitionSource inner) : IPackageOpeningDefinitionSource
     {

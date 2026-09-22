@@ -38,10 +38,15 @@ public sealed class PvfLotteryDefinitionCacheTests
         foreach (var id in ids) definitions.Add(id, Assert.IsType<OpeningPackageDefinition>(await source.GetAsync(id, default)));
         provider.Dispose();
         Assert.Equal(ids.Count, await source.InitializeAsync());
+        Assert.Contains("-999", Assert.Throws<Dfo.Server.Data.Inventory.OpeningRejectedException>(() => source.GetRequired(-999)).Message);
+        Assert.Equal(98002, source.GetRequired(7110).CumulativeWeights[^1]);
         foreach (var id in ids)
         {
             var definition = await source.GetAsync(id, default);
             Assert.Same(definitions[id], definition);
+            Assert.Same(definition, source.GetRequired(id));
+            if (!definition!.CumulativeWeights.IsEmpty)
+                Assert.Equal(definition.Pools[0].Choices.Sum(x => (long)x.Weight), definition.CumulativeWeights[^1]);
             Assert.Equal(OpeningPackageKind.Lottery, definition!.Kind);
         }
     }
