@@ -228,7 +228,8 @@ public sealed class SetUserAreaHandler(
     ITownMovementDomainService towns,
     SelectedSessionTransitionGate transitionGate,
     TownAreaProjectionDelivery townAreaProjection,
-    ILogger<SetUserAreaHandler> logger) : ClientMessageHandler<SetUserAreaRequest>
+    ILogger<SetUserAreaHandler> logger,
+    ISelectedSessionPositionPersistence persistence) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -302,8 +303,17 @@ public sealed class SetUserAreaHandler(
         var sharesTownPresence = await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
-        // Reported rather than assembled here and written back: the destination is what this
-        // command carries, and the facing it keeps is the service's to hold.
+        // Persist accepted area crossings before publishing memory state or client projections.
+        // A failed write leaves the old town intact; transient channels retain the home position.
+        if (!channel.IsTransient && (standing.TownId != message.TownId || standing.AreaId != message.AreaId))
+        {
+            var destination = standing with
+            {
+                TownId = message.TownId, AreaId = message.AreaId, X = message.X, Y = message.Y,
+            };
+            await persistence.PersistAsync(session.AccountId, session.CharacterId, destination, cancellationToken)
+                .ConfigureAwait(false);
+        }
         var moved = positions.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
         if (!await townAreaProjection.TransferAsync(

@@ -94,7 +94,8 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         AccountId accountId, int slotIndex, CancellationToken cancellationToken) =>
         database.ReadFirstAsync(
             $"""
-            SELECT character_id, slot_index, {Name}, job, grow_type, level, created_at
+            SELECT character_id, slot_index, {Name}, job, grow_type, level, created_at,
+                   town_id, area_id, pos_x, pos_y, direction
             FROM characters
             WHERE account_id = @aid AND slot_index = @slot AND delete_flag = 0
             LIMIT 1;
@@ -110,7 +111,13 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
             reader => new CharacterSummaryRow(
                 reader.GetInt32(0), reader.GetInt32(1), NameOf(reader, 2),
                 reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0, [],
-                reader.GetInt32(6)),
+                reader.GetInt32(6))
+            {
+                Position = new CharacterPositionState(
+                    checked((byte)reader.GetInt32(7)), checked((byte)reader.GetInt32(8)),
+                    checked((short)reader.GetInt32(9)), checked((short)reader.GetInt32(10)),
+                    checked((byte)reader.GetInt32(11))),
+            },
             cancellationToken);
 
     public async ValueTask<bool> NameIsTakenAsync(

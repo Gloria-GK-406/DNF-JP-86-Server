@@ -49,11 +49,17 @@ public sealed class TownProjectionHandlerTests
     /// so the direction the client is told belongs to whoever holds the character's position; the
     /// stale snapshot's copy still says whatever entry placed them at.
     /// </remarks>
-    [Fact]
-    public async Task A_crossing_moves_the_character_the_service_owns()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task A_crossing_moves_the_character_the_service_owns(bool transient, bool refuseWrite)
     {
         var positions = Standing();
+        var before = positions.Find(Identity.CharacterId);
+        var persistence = new RecordingPersistence { Refuse = refuseWrite };
         var presenceRegistry = Presence();
+        var previousMember = ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId);
         var sender = new RecordingSender();
         var notifications = new RecordingNotifications();
         var sessions = new OneSession(Identity);
@@ -63,7 +69,7 @@ public sealed class TownProjectionHandlerTests
             runtimes,
             positions,
             presenceRegistry,
-            new OneChannel(),
+            new OneChannel(transient),
             new EveryTownDeclared(),
             new SelectedSessionTransitionGate(),
             new TownAreaProjectionDelivery(
@@ -74,14 +80,25 @@ public sealed class TownProjectionHandlerTests
                 new NoopPartyTownProjectionDelivery(),
                 sender,
                 new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance);
+            NullLogger<SetUserAreaHandler>.Instance, persistence);
 
+        if (refuseWrite)
+        {
+            await Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(Dispatch(),
+                new SetUserAreaRequest(GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
+                CancellationToken.None).AsTask());
+            Assert.Equal(before, positions.Find(Identity.CharacterId));
+            Assert.Equal(previousMember, ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId));
+            Assert.Empty(sender.Sent);
+            return;
+        }
         await handler.HandleAsync(
             Dispatch(),
             new SetUserAreaRequest(
                 GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
             CancellationToken.None);
 
+        Assert.Equal(transient ? null : positions.Find(Identity.CharacterId), persistence.Saved);
         var area = sender.Sent.OfType<UserAreaNotification>().Single();
         Assert.Equal(CrossedAreaId, area.AreaId);
         Assert.Equal(CrossedTownId, area.Spawn.TownId);
@@ -132,7 +149,7 @@ public sealed class TownProjectionHandlerTests
                 new NoopPartyTownProjectionDelivery(),
                 sender,
                 new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance);
+            NullLogger<SetUserAreaHandler>.Instance, new RecordingPersistence());
 
         var pending = handler.HandleAsync(
                 Dispatch(),
@@ -274,7 +291,7 @@ public sealed class TownProjectionHandlerTests
                 partyProjection,
                 sender,
                 new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance);
+            NullLogger<SetUserAreaHandler>.Instance, new RecordingPersistence());
 
         await handler.HandleAsync(
             Dispatch(),
@@ -702,12 +719,24 @@ public sealed class TownProjectionHandlerTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class OneChannel : IChannelEntryPolicy
+    private sealed class RecordingPersistence : ISelectedSessionPositionPersistence
+    {
+        public CharacterPositionState? Saved { get; private set; }
+        public bool Refuse { get; init; }
+        public ValueTask PersistAsync(AccountId account, CharacterId character, CharacterPositionState position, CancellationToken token)
+        {
+            if (Refuse) throw new IOException("position write failed");
+            Saved = position;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class OneChannel(bool transient = false) : IChannelEntryPolicy
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
-                new ChannelEntryIdentity(10, listenerPort, ChannelEntryKind.General));
+                new ChannelEntryIdentity(10, listenerPort, transient ? ChannelEntryKind.LevelRestricted : ChannelEntryKind.General));
 
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) =>
             throw new NotSupportedException("Crossing an area does not re-admit anyone.");

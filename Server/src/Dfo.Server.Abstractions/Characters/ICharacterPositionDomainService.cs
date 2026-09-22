@@ -15,7 +15,7 @@ namespace Dfo.Server.Abstractions.Characters;
 /// carry rather than a new snapshot.
 /// <para>
 /// What it holds is the live position, not the stored one. The stored one is a row, written when
-/// the character enters and again when their session is torn down; those two writes are the
+/// the character enters, crosses an area, and when their session is torn down; these writes are the
 /// persistence seam's business and this service does not perform them. Nothing is prepared for a
 /// character who is not being played and asking about one answers nothing.
 /// </para>
