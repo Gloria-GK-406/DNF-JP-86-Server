@@ -5,6 +5,15 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource
 {
+    public DoublePotRules ReadDoublePotRules()
+    {
+        var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
+            .Single(s => s.Name == "[lottery_onemore]");
+        if (section.Values.Count < 3 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
+            || section.Values[1].Value is < 1 or > 255 || section.Values.Skip(2).Any(v => v.Value <= 0))
+            throw new InvalidDataException("Invalid double pot rules.");
+        return new(section.Values[1].Value, section.Values.Skip(2).Select(v => v.Value).ToHashSet());
+    }
     public int ReadFreeWeaknessDailyLimit() => ReadDailyLimit("[free_stamina]");
     public int ReadFreeGoldCardDailyLimit() => ReadDailyLimit("[plus_goldcard]");
     public int ReadDungeonBuffDailyLimit() => ReadDailyLimit("[buff_service]", 23);

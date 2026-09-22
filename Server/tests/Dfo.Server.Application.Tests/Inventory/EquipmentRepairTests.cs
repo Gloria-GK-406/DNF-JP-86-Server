@@ -156,6 +156,7 @@ public sealed class EquipmentRepairTests
 
     private sealed class PremiumRules : IPremiumServiceDefinitionSource
     {
+        public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadFreeWeaknessDailyLimit() => 10;
         public int ReadFreeGoldCardDailyLimit() => 10;

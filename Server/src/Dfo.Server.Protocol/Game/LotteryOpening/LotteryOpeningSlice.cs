@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -28,7 +29,7 @@ internal sealed class LotteryOpeningDecoder : IGameMessageDecoder
         return new LotteryOpeningRequest(metadata, BinaryPrimitives.ReadUInt16LittleEndian(body), BinaryPrimitives.ReadInt16LittleEndian(body[2..]));
     }
 }
-public sealed record LotteryOpeningResponse(LotteryOpeningResult? Result) : IGameCmdMessage
+public sealed record LotteryOpeningResponse(LotteryOpeningResult? Result, byte Error = 0) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameLotteryOpening;
 }
@@ -41,12 +42,12 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         using var writer = new BinaryWriter(stream);
         var result = message.Result;
         writer.Write(result is null ? (byte)0 : (byte)1);
-        if (result is null) { writer.Write((byte)0); return stream.ToArray(); }
+        if (result is null) { writer.Write(message.Error); return stream.ToArray(); }
         var receipt = result.Receipt;
-        var reward = receipt.Rewards.Single();
+        var reward = receipt.Rewards[0];
         var core = receipt.Updates.Single(x => x.ContainerType == InventoryContainerType.Main).Items.Single(x => x.SlotIndex == reward.Slot).Core;
         writer.Write(checked((short)result.SourceSlot)); writer.Write(checked((short)reward.Slot));
-        writer.Write(reward.ItemId); writer.Write(reward.Count); writer.Write(core.Durability);
+        writer.Write(reward.ItemId); writer.Write(receipt.Rewards.Sum(x => x.Count)); writer.Write(core.Durability);
         writer.Write(core.Attribute); writer.Write(core.AmplifyType); writer.Write(core.AmplifyValue);
         // A21 0x0113F780 reads these fields unconditionally, including two length-prefixed values.
         // Empty optional properties; absolute inventory projection follows this native result.
@@ -84,20 +85,27 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
         await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
         if (sessions.FindByConnection(connection) != session || !users.TryGetByConnection(connection, out var user) || user is null) return;
         LotteryOpeningResult? result = null;
+        byte error = 0;
         try
         {
             result = await commands.SendAsync(new LotteryOpeningCommand(user.OnlineUserId, session, slot, mode, sequence), token).ConfigureAwait(false);
         }
-        catch (OpeningRejectedException ex) { logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
+        catch (OpeningRejectedException ex) { error = ex.Reason switch { OpeningRejection.PremiumUnavailable => 0x73, OpeningRejection.NoRoom => 0x7E, _ => (byte)0 }; logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
         catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError(ex, "Lottery transaction failed character={Character}", session.CharacterId); }
-        var response = new LotteryOpeningResponse(result);
-        logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed} reward={Reward}",
-            session.CharacterId, mode, sequence, slot, result is not null, result?.Receipt.Rewards.Single().ItemId);
+        var response = new LotteryOpeningResponse(result, error);
+        logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed} reward={Reward} quantity={Quantity} error={Error}",
+            session.CharacterId, mode, sequence, slot, result is not null, result?.Receipt.Rewards[0].ItemId, result?.Receipt.Rewards.Sum(x => x.Count), error);
         if (result?.Receipt is { } receipt)
         {
             // State was committed by the command; native result precedes absolute inventory updates.
             IReadOnlyList<IGameCmdMessage> replies = [response];
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new OpeningCompleted(receipt, replies, result.GoldAfter), token).ConfigureAwait(false);
+            IReadOnlyList<IServerNetworkMessage> following = [];
+            if (mode == 1)
+            {
+                var snapshot = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
+                following = [new PremiumServiceStateMessage(snapshot.Entitlements, snapshot.Usage, snapshot.PreparedAt)];
+            }
+            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new OpeningCompleted(receipt, replies, result.GoldAfter, following), token).ConfigureAwait(false);
         }
         else await sender.SendCmdAsync(connection, response, token).ConfigureAwait(false);
     }

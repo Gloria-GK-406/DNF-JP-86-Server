@@ -7,19 +7,20 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Accounts;
 
 internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainService premiums,
-    IPremiumServiceUsageTable counters, ICharacterDailyCounterValueTable legacyCounters,
+    IPremiumServiceUsageTable counters,
     ICharacterTable characters, IPremiumServiceRuleService rules, IDailyResetRuleService days,
     IDomainTransactionAccessor transactions, TimeProvider clock) : IPremiumServiceUsageDomainService
 {
     public DateTimeOffset CurrentPeriodStart => days.PeriodStart(clock.GetUtcNow());
+    private const string DoublePot = "lottery_double_reward_used";
     private const string FreeGoldCard = "premium_free_gold_card_used";
     private const string DungeonBuff = "premium_dungeon_buff_used";
     private const string AutoRepair = "premium_auto_repair_used";
     private const string FreeWeakness = "premium_free_weakness_used";
     public async ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAsync(CharacterId id, CancellationToken token)
     {
-        var lottery = await legacyCounters.FindValueAsync(id, "lottery_double_reward_used", token).ConfigureAwait(false) ?? 0;
         var now = clock.GetUtcNow();
+        var lottery = CurrentUsage(await counters.ReadAsync(id, DoublePot, token).ConfigureAwait(false), now);
         var row = await counters.ReadAsync(id, FreeWeakness, token).ConfigureAwait(false);
         var weakness = CurrentUsage(row, now);
         if (lottery is < 0 or > 255 || weakness is < 0 or > 255)
@@ -29,6 +30,8 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
         var buff = CurrentUsage(await counters.ReadAsync(id, DungeonBuff, token).ConfigureAwait(false), now);
         return [new(0, goldCard), new(1, lottery), new(3, buff), new(5, weakness), new(6, repair)];
     }
+    public ValueTask<bool> TryUseDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
+        TryUseAsync(accountId, id, DoublePot, PremiumBenefit.DoublePot, rules.DoublePotDailyLimit, token);
     public ValueTask<bool> TryUseFreeWeaknessRecoveryAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
         TryUseAsync(accountId, id, FreeWeakness, PremiumBenefit.FreeWeaknessRecovery, rules.FreeWeaknessDailyLimit, token);
     public ValueTask<bool> TryUseFreeGoldCardAsync(AccountId accountId, CharacterId id, CancellationToken token) =>

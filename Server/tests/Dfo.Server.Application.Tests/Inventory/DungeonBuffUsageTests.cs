@@ -14,6 +14,7 @@ public sealed class DungeonBuffUsageTests
 {
     private sealed class Rules : IPremiumServiceDefinitionSource
     {
+        public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadDungeonBuffDailyLimit() => 10;
         public int ReadFreeWeaknessDailyLimit() => 10;
@@ -86,7 +87,7 @@ public sealed class DungeonBuffUsageTests
     {
         using var shop = Fixture();
         var run = Enter(shop);
-        shop.Sql("INSERT INTO character_daily_counters(character_id,counter_key,period,value) VALUES(1,'lottery_double_reward_used','old',-1)");
+        shop.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',NULL,-1,{shop.Clock.GetUtcNow().ToUnixTimeMilliseconds()})");
         await Assert.ThrowsAsync<InvalidDataException>(() => shop.Services.GetRequiredService<ICommandBus>()
             .SendAsync(new ConsumeDungeonBuffCommand(shop.Session, run)).AsTask());
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));

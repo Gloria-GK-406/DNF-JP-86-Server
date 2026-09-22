@@ -14,6 +14,7 @@ public sealed class FreeGoldCardTests
 {
     private sealed class Rules : IPremiumServiceDefinitionSource
     {
+        public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadFreeWeaknessDailyLimit() => 10;
         public int ReadDungeonBuffDailyLimit() => 10;

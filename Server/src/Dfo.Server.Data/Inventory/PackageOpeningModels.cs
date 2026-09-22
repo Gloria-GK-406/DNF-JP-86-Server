@@ -11,7 +11,7 @@ public sealed record MagicBoxOpeningInput(byte ListType, int SourceSlot, int Exp
 public sealed record PackageOpeningInput(int SourceSlot, ImmutableArray<int> SelectedItems);
 public sealed record AvatarPackageChoice(int ItemId, byte Ability);
 public sealed record AvatarPackageOpeningInput(int SourceSlot, ImmutableArray<AvatarPackageChoice> Choices);
-public enum OpeningRejection { None, NoSession, InvalidRequest, WrongItem, MissingMaterial, UnsupportedContent, InvalidChoice, NoRoom, StateChanged, StorageFailure, ItemUnusable }
+public enum OpeningRejection { None, NoSession, InvalidRequest, WrongItem, MissingMaterial, UnsupportedContent, InvalidChoice, NoRoom, StateChanged, StorageFailure, ItemUnusable, PremiumUnavailable }
 public sealed record OpeningReward(int ItemId, int Count, byte Ability = 0, int PeriodDays = 0);
 public sealed record OpeningRewardDisplay(int Slot, int ItemId, int Count, ushort Durability, byte Ability, int Expiration);
 public sealed record OpeningInventoryReceipt(SelectedSessionIdentity Session,

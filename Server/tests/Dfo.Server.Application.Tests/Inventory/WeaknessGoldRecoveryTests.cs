@@ -18,6 +18,7 @@ public sealed class WeaknessGoldRecoveryTests
 {
     private sealed class PremiumRules : IPremiumServiceDefinitionSource
     {
+        public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadFreeWeaknessDailyLimit() => 10;
         public int ReadFreeGoldCardDailyLimit() => 10;
@@ -181,7 +182,7 @@ public sealed class WeaknessGoldRecoveryTests
         using var shop = PremiumShop();
         shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,585,4000000000)");
         var state = await Weaken(shop);
-        shop.Sql("INSERT INTO character_daily_counters(character_id,counter_key,period,value) VALUES(1,'lottery_double_reward_used','old',-1)");
+        shop.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',NULL,-1,{shop.Clock.GetUtcNow().ToUnixTimeMilliseconds()})");
         await Recover(shop, 1);
         Assert.Equal(10, state.Value);
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_free_weakness_used'"));

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -40,7 +41,8 @@ internal sealed class WeightedLotteryResultSelector(ILotteryDefinitionCache cach
 
 internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService inventory,
     IPackageOpeningRuleService rules, ILotteryResultSelector selector, ILotteryDefinitionCache cache, ICharacterDomainService characters,
-    ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock)
+    ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock,
+    IPremiumServiceRuleService premiumRules, IPremiumServiceUsageDomainService usage)
     : ILotteryOpeningDomainService
 {
     private sealed record Completed(SelectedSessionIdentity Session, ushort Sequence, DateTimeOffset Expires);
@@ -54,7 +56,7 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         // The transactional command pipeline serializes this state with the inventory transaction.
         foreach (var stale in completed.Where(p => p.Value.Expires <= now || sessions.FindByCharacter(p.Key) != p.Value.Session).Select(p => p.Key).ToArray())
             completed.Remove(stale);
-        if (mode != 0) throw Reject("Premium lottery mode is not implemented.");
+        if (mode > 1) throw Reject("Invalid lottery mode.");
         if (completed.TryGetValue(session.CharacterId, out var previous) && previous.Session == session && previous.Sequence == sequence)
             throw Reject("Duplicate lottery request.");
         var source = await inventory.SourceAsync(session, slot, now, token).ConfigureAwait(false);
@@ -62,16 +64,23 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
         if (definition.MaterialCount != 0 || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
             throw Reject("Unsupported lottery layout.");
+        if (mode == 1)
+        {
+            if (!premiumRules.SupportsDoublePot(source.ItemId))
+                throw Reject("Pot is not eligible for double rewards.");
+            if (!await usage.TryUseDoublePotAsync(session.AccountId, session.CharacterId, token).ConfigureAwait(false))
+                throw new OpeningRejectedException(OpeningRejection.PremiumUnavailable, "Double pot subscription or daily quota unavailable.");
+        }
         var reward = selector.Roll(source.ItemId);
         if (reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
-        var grants = await rules.PrepareAsync([reward], now, token).ConfigureAwait(false);
+        var grants = await rules.PrepareAsync([reward with { Count = mode == 1 ? 2 : 1 }], now, token).ConfigureAwait(false);
         if (grants[0].Item.Placement.WorldClass != ItemWorldClass.Equipment || grants[0].Item.Placement.ItemKind != 1
             || grants[0].Item.PremiumType != 0 || grants[0].Item.Placement.Destination.Space != BusinessInventorySpace.CarriedEquipment)
             throw Reject("This lottery result variant is not supported yet.");
         var gold = await characters.Get(session.CharacterId).TrySpendGoldAsync(definition.GoldCost, token).ConfigureAwait(false);
         if (gold is null) throw Reject("Insufficient lottery gold.");
         var receipt = await inventory.SettleAsync(session, [new(slot, source.ItemId, definition.SourceCount)], grants, now, token).ConfigureAwait(false);
-        if (receipt.Rewards.Length != 1 || receipt.Updates.Count(x => x.ContainerType == InventoryContainerType.Main) != 1)
+        if (receipt.Rewards.Length != (mode == 1 ? 2 : 1) || receipt.Updates.Count(x => x.ContainerType == InventoryContainerType.Main) != 1)
             throw Reject("Unexpected lottery receipt layout.");
         tx.Enlist((this, session.CharacterId), () => new CompletedChange(this, session.CharacterId, new(session, sequence, now.AddMinutes(1))));
         return new(receipt, slot, gold.Value);

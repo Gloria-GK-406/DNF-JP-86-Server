@@ -145,6 +145,7 @@ internal sealed class CharacterSide
     }
     private sealed class UsageRules : IPremiumServiceDefinitionSource
     {
+        public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadFreeWeaknessDailyLimit() => 10;
         public int ReadFreeGoldCardDailyLimit() => 10;
@@ -194,7 +195,7 @@ internal sealed class CharacterSide
             new SqliteMailboxAttachmentTable(this.database),
             goldLimits, new PremiumServiceUsageDomainService(
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
-                new SqlitePremiumServiceUsageTable(this.database), new SqliteCharacterDailyCounterValueTable(this.database),
+                new SqlitePremiumServiceUsageTable(this.database),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
                 new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System));
 

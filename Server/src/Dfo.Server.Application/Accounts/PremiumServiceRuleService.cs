@@ -5,6 +5,9 @@ namespace Dfo.Server.Application.Accounts;
 
 internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource source) : IPremiumServiceRuleService
 {
+    private readonly Lazy<DoublePotRules> doublePot = new(source.ReadDoublePotRules);
+    public int DoublePotDailyLimit => doublePot.Value.DailyLimit;
+    public bool SupportsDoublePot(int itemId) => doublePot.Value.PotIds.Contains(itemId);
     private readonly Lazy<int> freeGoldCardLimit = new(source.ReadFreeGoldCardDailyLimit);
     public int FreeGoldCardDailyLimit => freeGoldCardLimit.Value;
     private readonly Lazy<int> dungeonBuffLimit = new(source.ReadDungeonBuffDailyLimit);
