@@ -143,6 +143,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         var type = typeToken is { IsString: true } token ? text(token).ToLowerInvariant() : "";
         var kind = type switch
         {
+            "[upgradable legacy]" => OpeningPackageKind.Lottery,
             "[random upgradable legacy]" => OpeningPackageKind.MagicBox,
             "[usable cera package]" => OpeningPackageKind.AvatarPackage,
             "[booster selection]" => OpeningPackageKind.Selection,
@@ -154,11 +155,37 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (section.Values.Any(t => t.Kind != PvfTokenKind.Int32)) errors.Add("Noninteger " + section.Name);
             return section.Values.Where(t => t.Kind == PvfTokenKind.Int32).Select(t => t.Value).ToArray();
         }
+        var goldCost = 0;
         var material = 0; var materialCount = 0; var sourceCount = 1; var selectionCount = 0;
         var random = false; var booster = false; var selection = false;
         foreach (var section in sections)
         {
             var name = section.Name.ToLowerInvariant();
+            if (kind == OpeningPackageKind.Lottery && name == "[lottery use cost]")
+            {
+                var values = Numbers(section);
+                if (values.Length != 1 || values[0] < 0) errors.Add("Invalid lottery cost");
+                else goldCost = values[0];
+                continue;
+            }
+            if (kind == OpeningPackageKind.Lottery && name == "[lottery use need item]")
+            {
+                errors.Add("Lottery material costs are not supported by this opening entry yet");
+                continue;
+            }
+            if (kind == OpeningPackageKind.Lottery && name == "[int data]")
+            {
+                var values = Numbers(section);
+                var entries = ImmutableArray.CreateBuilder<OpeningWeightedReward>();
+                if (values.Length == 0 || values.Length % 3 != 0) errors.Add("Invalid lottery reward triples");
+                else for (var i = 0; i < values.Length; i += 3)
+                {
+                    if (values[i] <= 0 || values[i + 1] < 0 || values[i + 2] <= 0) errors.Add("Invalid lottery reward");
+                    entries.Add(new(new(values[i], values[i + 2]), values[i + 1]));
+                }
+                pools.Add(new(1, entries.ToImmutable()));
+                continue;
+            }
             if (name == "[randombox]") { random = true; continue; }
             if (name == "[/randombox]") { random = false; continue; }
             if (name == "[booster info]") { booster = true; continue; }
@@ -236,6 +263,6 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         if (fixedRewards.Any(r => r.ItemId <= 0 || r.Count <= 0 || r.PeriodDays < 0)) errors.Add("Invalid fixed reward");
         if (fixedRewards.Count == 0 && pools.Count == 0) errors.Add("No rewards");
         return new(id, kind, fixedRewards.ToImmutable(), pools.ToImmutable(), selectionCount,
-            material, materialCount, sourceCount, id == 2682272, errors.ToImmutable());
+            material, materialCount, sourceCount, id == 2682272, errors.ToImmutable()) { GoldCost = goldCost };
     }
 }

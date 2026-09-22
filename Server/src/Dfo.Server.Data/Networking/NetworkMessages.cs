@@ -5,6 +5,7 @@ public enum ClientMessageType
     GamePremiumServiceUsageReport = 0x0001_036F,
     GameMagicBoxBatchOpening = 0x0001_0450,
     GameMagicBoxSingleOpening = 0x0001_00D0,
+    GameLotteryOpening = 0x0001_001B,
     GamePackageOpening = 0x0001_00A0,
     GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,
@@ -154,8 +155,10 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameLotteryOverflow = 0x0001_00D9,
     GameMagicBoxBatchOpening = 0x0001_0450,
     GameMagicBoxSingleOpening = 0x0001_00D0,
+    GameLotteryOpening = 0x0001_001B,
     GamePackageOpening = 0x0001_00A0,
     GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,

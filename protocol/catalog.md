@@ -643,3 +643,7 @@ CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B
 ### 2026-09-22 PREMIUM_SERVICE 使用上报
 
 CMD036F category1/slot3（BUFF）、slot4（HP/MP恢复）使用上报已接入完整权威快照应答。slot3按PVF每日10次、同角色同实例最多消费一次；234已实测9→10、下一图无BUFF且保持10，ClientVerified。slot4不额外回血、不新增每日用量，回包后及再次入图恢复已用户验收；到期/跨日刷新仍为自动化验证。见[上报与应答](game/client-to-server/0x036F.md)。
+
+## 2026-09-22 普通袖珍罐接入
+
+CMD001B阶段0请求已实帧观察；阶段1/00D9确认、原生开罐结果及事务闭环已实现，待A21实机验收。概率算法延后，测试用配置池内固定结果。参见 [请求](game/client-to-server/0x001B.md)、[响应](game/server-to-client/CMD-0x001B.md)、[确认分支](game/client-to-server/0x00D9.md)。本条不升级为ClientVerified。
