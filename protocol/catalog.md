@@ -540,7 +540,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x02B5` | `CheckCharacterNameResponse` | 仅证明 encoder 可产生该 identity | [0x02B5](game/client-to-server/0x02B5.md) |
 | `0x01` CMD | `0x02C1` | `ContentsPlayInfoResponse` | 仅证明 encoder 可产生该 identity | [0x02C1](game/client-to-server/0x02C1.md) |
 | `0x01` CMD | `0x02CC` | `ShopPurchaseCountResponse` | 仅证明 encoder 可产生该 identity | [0x02CC](game/client-to-server/0x02CC.md) |
-| `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 续期及重登期限显示、槽0黄金翻牌次数边界ClientVerified；其他范围见记录 | [CMD-0x036F](game/server-to-client/CMD-0x036F.md) |
+| `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 续期及重登期限显示、槽0黄金翻牌及槽3BUFF次数边界ClientVerified；其他范围见记录 | [CMD-0x036F](game/server-to-client/CMD-0x036F.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
 | `0x00` NOTI | `0x0001` | `GameInitialConnectionNotice` | 仅证明 encoder 可产生该 identity | [0x0001](game/server-to-client/NOTI-0x0001.md) |
@@ -642,4 +642,4 @@ CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B
 
 ### 2026-09-22 PREMIUM_SERVICE 使用上报
 
-CMD036F category1/slot3（BUFF）、slot4（HP/MP恢复）使用上报已接入完整权威快照应答；不额外回血、不新增每日用量。客户端首次恢复及第二次不恢复已有用户实测，新增应答后的效果待实机。见[上报与应答](game/client-to-server/0x036F.md)。
+CMD036F category1/slot3（BUFF）、slot4（HP/MP恢复）使用上报已接入完整权威快照应答。slot3按PVF每日10次、同角色同实例最多消费一次；234已实测9→10、下一图无BUFF且保持10，ClientVerified。slot4不额外回血、不新增每日用量，回包后及再次入图恢复已用户验收；到期/跨日刷新仍为自动化验证。见[上报与应答](game/client-to-server/0x036F.md)。
