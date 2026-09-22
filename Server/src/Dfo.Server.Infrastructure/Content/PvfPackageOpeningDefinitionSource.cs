@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Collections.Frozen;
 using System.Globalization;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -8,8 +9,51 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provider,
-    ICeraShopDefinitionSource items, IItemPlacementDefinitionSource placements) : IPackageOpeningDefinitionSource
+    ICeraShopDefinitionSource items, IItemPlacementDefinitionSource placements) : IPackageOpeningDefinitionSource, ILotteryDefinitionCache
 {
+    private FrozenDictionary<int, OpeningPackageDefinition>? lotteryDefinitions;
+
+    public ValueTask<int> InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (lotteryDefinitions is not null) return ValueTask.FromResult(lotteryDefinitions.Count);
+            paths ??= PvfListFile.Read(provider.Archive, "stackable/stackable.lst")
+                .ToDictionary(row => row.Id, row => "stackable/" + row.RelativePath);
+            var definitions = new Dictionary<int, OpeningPackageDefinition>();
+            foreach (var (id, path) in paths)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var index = provider.Archive.FindFile(path);
+                if (index < 0) continue;
+                var script = provider.Archive.OpenScript(index);
+                var typeFollows = false;
+                var isLottery = false;
+                while (script.Read(out var token))
+                {
+                    if (typeFollows)
+                    {
+                        isLottery = token.IsString && string.Equals(provider.Archive.ResolveString(token.Value),
+                            "[upgradable legacy]", StringComparison.OrdinalIgnoreCase);
+                        break;
+                    }
+                    typeFollows = token.Kind == PvfTokenKind.Identifier
+                        && provider.Archive.ResolveString(token.Value) == "[stackable type]";
+                }
+                if (!isLottery) continue;
+                // Keep diagnostics: loading a definition does not authorize unsupported content.
+                definitions.Add(id, Parse(id, PvfNpcShopDefinitionSource.Sections(provider.Archive, path),
+                    token => provider.Archive.ResolveString(token.Value)));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            // Publish only a complete snapshot; a failed/cancelled attempt is safe to retry.
+            lotteryDefinitions = definitions.ToFrozenDictionary();
+            foreach (var id in definitions.Keys) cache.Remove(id);
+            return ValueTask.FromResult(lotteryDefinitions.Count);
+        }
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, OpeningPackageDefinition?> cache = [];
     private Dictionary<int, string>? paths;
@@ -21,6 +65,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         OpeningPackageDefinition? result;
         lock (gate)
         {
+            if (lotteryDefinitions is not null && lotteryDefinitions.TryGetValue(itemId, out result)) return result;
             if (cache.TryGetValue(itemId, out result)) return result;
             paths ??= PvfListFile.Read(provider.Archive, "stackable/stackable.lst")
                 .ToDictionary(row => row.Id, row => "stackable/" + row.RelativePath);

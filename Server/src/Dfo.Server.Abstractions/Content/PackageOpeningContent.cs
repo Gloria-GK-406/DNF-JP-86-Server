@@ -21,3 +21,9 @@ public interface IPackageOpeningDefinitionSource
     ValueTask<OpeningPackageDefinition?> GetAsync(int itemId, CancellationToken cancellationToken);
     ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int itemId, CancellationToken cancellationToken);
 }
+
+/// <summary>Prepares all ordinary-pot definitions before accepting game traffic.</summary>
+public interface ILotteryDefinitionCache
+{
+    ValueTask<int> InitializeAsync(CancellationToken cancellationToken = default);
+}

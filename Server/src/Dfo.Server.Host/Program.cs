@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application;
@@ -101,7 +102,12 @@ logger.LogInformation(
 // Missing content keeps the existing startup behavior; content requests still fail explicitly.
 // When present, prepare all shared stats before any network hosted service accepts a client.
 if (archive is not null)
+{
     await host.Services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync();
+    var timer = System.Diagnostics.Stopwatch.StartNew();
+    var count = await host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
+    logger.LogInformation("Lottery definitions initialized: {Count} pots in {ElapsedMs} ms", count, timer.ElapsedMilliseconds);
+}
 
 await host.RunAsync();
 }
