@@ -10,7 +10,7 @@ public sealed class LotteryOpeningCodecTests
     {
         var request = Assert.IsType<LotteryOpeningRequest>(new LotteryOpeningDecoder().Decode(
             GameMessageMetadata.Empty, Convert.FromHexString("00004100")));
-        Assert.Equal((ushort)0, request.Phase);
+        Assert.Equal((ushort)0, request.Mode);
         Assert.Equal((short)65, request.Slot);
     }
 
@@ -26,11 +26,8 @@ public sealed class LotteryOpeningCodecTests
             GameMessageMetadata.Empty, Convert.FromHexString(hex)));
 
     [Fact]
-    public void Upstream_start_and_failure_keep_the_thirteen_byte_layout()
+    public void Failure_uses_only_result_and_reason_without_a_success_payload()
     {
-        Assert.Equal(Convert.FromHexString("01FFFF00000000000000000000"),
-            LotteryOpeningEncoder.Encode(new(new(true))));
-        Assert.Equal(Convert.FromHexString("00FFFF00000000000000000000"),
-            LotteryOpeningEncoder.Encode(new(null)));
+        Assert.Equal(new byte[] {0, 0}, LotteryOpeningEncoder.Encode(new(null)));
     }
 }

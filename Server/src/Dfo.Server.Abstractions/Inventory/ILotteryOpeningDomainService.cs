@@ -8,10 +8,9 @@ public interface ILotteryResultSelector
 {
     OpeningReward Select(OpeningPackageDefinition definition);
 }
-public sealed record LotteryOpeningResult(bool Started, OpeningInventoryReceipt? Receipt = null,
-    int SourceSlot = -1, int? GoldAfter = null);
+public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, int SourceSlot, int GoldAfter);
 public interface ILotteryOpeningDomainService
 {
-    ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, int? slot,
-        bool start, CancellationToken token);
+    ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, int slot,
+        ushort mode, ushort sequence, CancellationToken token);
 }

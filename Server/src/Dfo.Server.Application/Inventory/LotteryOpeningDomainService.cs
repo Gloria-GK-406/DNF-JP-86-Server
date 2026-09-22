@@ -28,65 +28,44 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
     ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock)
     : ILotteryOpeningDomainService
 {
-    private sealed record Pending(SelectedSessionIdentity Session, int Slot, InventoryItemCoreState Source,
-        OpeningReward Reward, OpeningPackageDefinition Definition, DateTimeOffset Expires);
-    private readonly Dictionary<CharacterId, Pending> pending = [];
+    private sealed record Completed(SelectedSessionIdentity Session, ushort Sequence, DateTimeOffset Expires);
+    private readonly Dictionary<CharacterId, Completed> completed = [];
 
-    public async ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, int? slot,
-        bool start, CancellationToken token)
+    public async ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, int slot,
+        ushort mode, ushort sequence, CancellationToken token)
     {
         var tx = transactions.Current ?? throw new InvalidOperationException("Lottery requires a transaction.");
         var now = clock.GetUtcNow();
-        // Transactional commands are serialized by the command pipeline. Remove stale session-owned state.
-        foreach (var stale in pending.Where(p => p.Value.Expires <= now || sessions.FindByCharacter(p.Key) != p.Value.Session).Select(p => p.Key).ToArray())
-            pending.Remove(stale);
-        pending.TryGetValue(session.CharacterId, out var current);
-        if (start)
-        {
-            if (slot is null) throw Reject("Missing start slot.");
-            var source = await inventory.SourceAsync(session, slot.Value, now, token).ConfigureAwait(false);
-            var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
-            if (definition.MaterialCount != 0 || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
-                throw Reject("Unsupported lottery layout.");
-            if (await characters.Get(session.CharacterId).GoldAsync(token).ConfigureAwait(false) < definition.GoldCost)
-                throw Reject("Insufficient lottery gold.");
-            if (current is null || current.Session != session || current.Slot != slot || current.Source != source.Core)
-            {
-                var reward = selector.Select(definition);
-                if (reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
-                var prepared = await rules.PrepareAsync([reward], now, token).ConfigureAwait(false);
-                // Native ordinary result format only: avatar/pet result variants require their own evidence.
-                if (prepared[0].Item.Placement.WorldClass != ItemWorldClass.Equipment || prepared[0].Item.Placement.ItemKind != 1
-                    || prepared[0].Item.PremiumType != 0 || prepared[0].Item.Placement.Destination.Space != BusinessInventorySpace.CarriedEquipment)
-                    throw Reject("This lottery result variant is not supported yet.");
-                var next = new Pending(session, slot.Value, source.Core, reward, definition, now.AddMinutes(5));
-                tx.Enlist((this, session.CharacterId), () => new PendingChange(this, session.CharacterId, next));
-            }
-            return new(true);
-        }
-        if (current is null || current.Session != session || slot is { } requested && requested != current.Slot)
-            throw Reject("No matching pending lottery opening.");
-        var actual = await inventory.SourceAsync(session, current.Slot, now, token).ConfigureAwait(false);
-        if (actual.Core != current.Source) throw Reject("Lottery source changed after preview.");
-        var grants = await rules.PrepareAsync([current.Reward], now, token).ConfigureAwait(false);
-        var gold = await characters.Get(session.CharacterId).TrySpendGoldAsync(current.Definition.GoldCost, token).ConfigureAwait(false);
+        // The transactional command pipeline serializes this state with the inventory transaction.
+        foreach (var stale in completed.Where(p => p.Value.Expires <= now || sessions.FindByCharacter(p.Key) != p.Value.Session).Select(p => p.Key).ToArray())
+            completed.Remove(stale);
+        if (mode != 0) throw Reject("Premium lottery mode is not implemented.");
+        if (completed.TryGetValue(session.CharacterId, out var previous) && previous.Session == session && previous.Sequence == sequence)
+            throw Reject("Duplicate lottery request.");
+        var source = await inventory.SourceAsync(session, slot, now, token).ConfigureAwait(false);
+        var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
+        if (definition.MaterialCount != 0 || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
+            throw Reject("Unsupported lottery layout.");
+        var reward = selector.Select(definition);
+        if (reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
+        var grants = await rules.PrepareAsync([reward], now, token).ConfigureAwait(false);
+        if (grants[0].Item.Placement.WorldClass != ItemWorldClass.Equipment || grants[0].Item.Placement.ItemKind != 1
+            || grants[0].Item.PremiumType != 0 || grants[0].Item.Placement.Destination.Space != BusinessInventorySpace.CarriedEquipment)
+            throw Reject("This lottery result variant is not supported yet.");
+        var gold = await characters.Get(session.CharacterId).TrySpendGoldAsync(definition.GoldCost, token).ConfigureAwait(false);
         if (gold is null) throw Reject("Insufficient lottery gold.");
-        var receipt = await inventory.SettleAsync(session, [new(current.Slot, actual.ItemId, current.Definition.SourceCount)], grants, now, token).ConfigureAwait(false);
+        var receipt = await inventory.SettleAsync(session, [new(slot, source.ItemId, definition.SourceCount)], grants, now, token).ConfigureAwait(false);
         if (receipt.Rewards.Length != 1 || receipt.Updates.Count(x => x.ContainerType == InventoryContainerType.Main) != 1)
             throw Reject("Unexpected lottery receipt layout.");
-        tx.Enlist((this, session.CharacterId), () => new PendingChange(this, session.CharacterId, null));
-        return new(false, receipt, current.Slot, gold);
+        tx.Enlist((this, session.CharacterId), () => new CompletedChange(this, session.CharacterId, new(session, sequence, now.AddMinutes(1))));
+        return new(receipt, slot, gold.Value);
     }
     private static OpeningRejectedException Reject(string message) => new(OpeningRejection.StateChanged, message);
-    private sealed class PendingChange(LotteryOpeningDomainService owner, CharacterId id, Pending? next) : ITransactionParticipant
+    private sealed class CompletedChange(LotteryOpeningDomainService owner, CharacterId id, Completed value) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
         public ValueTask PrepareAsync(CancellationToken token) => ValueTask.CompletedTask;
-        public ValueTask CommitAsync(CancellationToken token)
-        {
-            if (next is null) owner.pending.Remove(id); else owner.pending[id] = next;
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask CommitAsync(CancellationToken token) { owner.completed[id] = value; return ValueTask.CompletedTask; }
         public ValueTask RollbackAsync(CancellationToken token) => ValueTask.CompletedTask;
     }
 }

@@ -11,12 +11,11 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.UnansweredReports;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.LotteryOpening;
 
-public sealed record LotteryOpeningRequest(GameMessageMetadata Metadata, ushort Phase, short Slot) : IClientNetworkMessage
+public sealed record LotteryOpeningRequest(GameMessageMetadata Metadata, ushort Mode, short Slot) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameLotteryOpening;
 }
@@ -42,31 +41,23 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         using var writer = new BinaryWriter(stream);
         var result = message.Result;
         writer.Write(result is null ? (byte)0 : (byte)1);
-        if (result?.Receipt is not { } receipt)
-        {
-            writer.Write((short)-1); writer.Write((ushort)0); writer.Write(0); writer.Write(0);
-            return stream.ToArray();
-        }
+        if (result is null) { writer.Write((byte)0); return stream.ToArray(); }
+        var receipt = result.Receipt;
         var reward = receipt.Rewards.Single();
         var core = receipt.Updates.Single(x => x.ContainerType == InventoryContainerType.Main).Items.Single(x => x.SlotIndex == reward.Slot).Core;
         writer.Write(checked((short)result.SourceSlot)); writer.Write(checked((short)reward.Slot));
         writer.Write(reward.ItemId); writer.Write(reward.Count); writer.Write(core.Durability);
         writer.Write(core.Attribute); writer.Write(core.AmplifyType); writer.Write(core.AmplifyValue);
-        // Upstream ordinary equipment native result; A21 effect awaits the controlled client test.
-        writer.Write((byte)0xEF); writer.Write(25); writer.Write(new byte[25]);
-        writer.Write(new byte[3]);
+        // A21 0x0113F780 reads these fields unconditionally, including two length-prefixed values.
+        // Empty optional properties; absolute inventory projection follows this native result.
+        writer.Write(new byte[15]);
+        writer.Write(4); writer.Write(0); // destination constructor initializes a 4-byte scalar
+        writer.Write(8); writer.Write(0L); // second destination initializes an 8-byte scalar
+        writer.Write((byte)0); writer.Write(0);
         return stream.ToArray();
     }
 }
-public sealed record LotteryOverflowResponse : IGameCmdMessage
-{
-    public ServerMessageType MessageType => ServerMessageType.GameLotteryOverflow;
-}
-internal sealed class LotteryOverflowEncoder : GameCmdMessageEncoder<LotteryOverflowResponse>
-{
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(LotteryOverflowResponse message) => OnePayload(0x00D9, new byte[] {1, 0x1B, 0});
-}
-public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int? Slot, bool Start)
+public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int Slot, ushort Mode, ushort Sequence)
     : ICommand<LotteryOpeningResult>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
@@ -74,14 +65,14 @@ public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSe
 public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService opening) : ICommandHandler<LotteryOpeningCommand, LotteryOpeningResult>
 {
     public ValueTask<LotteryOpeningResult> HandleAsync(CommandExecutionContext context, LotteryOpeningCommand command, CancellationToken token) =>
-        opening.ExecuteAsync(command.Session, command.Slot, command.Start, token);
+        opening.ExecuteAsync(command.Session, command.Slot, command.Mode, command.Sequence, token);
 }
 
 public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
     ILogger<LotteryOpeningDelivery> logger)
 {
-    public async ValueTask HandleAsync(NetworkDispatchContext context, int? slot, bool start, bool overflow, CancellationToken token)
+    public async ValueTask HandleAsync(NetworkDispatchContext context, int slot, ushort mode, ushort sequence, CancellationToken token)
     {
         var connection = context.Connection.ConnectionId;
         var session = sessions.FindByConnection(connection);
@@ -91,17 +82,17 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
         LotteryOpeningResult? result = null;
         try
         {
-            result = await commands.SendAsync(new LotteryOpeningCommand(user.OnlineUserId, session, slot, start), token).ConfigureAwait(false);
+            result = await commands.SendAsync(new LotteryOpeningCommand(user.OnlineUserId, session, slot, mode, sequence), token).ConfigureAwait(false);
         }
         catch (OpeningRejectedException ex) { logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
         catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError(ex, "Lottery transaction failed character={Character}", session.CharacterId); }
         var response = new LotteryOpeningResponse(result);
-        logger.LogInformation("Lottery character={Character} start={Start} overflow={Overflow} slot={Slot} committed={Committed}",
-            session.CharacterId, start, overflow, slot, result?.Receipt is not null);
+        logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed}",
+            session.CharacterId, mode, sequence, slot, result is not null);
         if (result?.Receipt is { } receipt)
         {
             // State was committed by the command; native result precedes absolute inventory updates.
-            IReadOnlyList<IGameCmdMessage> replies = overflow ? [new LotteryOverflowResponse(), response] : [response];
+            IReadOnlyList<IGameCmdMessage> replies = [response];
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new OpeningCompleted(receipt, replies, result.GoldAfter), token).ConfigureAwait(false);
         }
         else await sender.SendCmdAsync(connection, response, token).ConfigureAwait(false);
@@ -110,12 +101,5 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
 public sealed class LotteryOpeningHandler(LotteryOpeningDelivery delivery) : ClientMessageHandler<LotteryOpeningRequest>
 {
     protected override ValueTask HandleMessageAsync(NetworkDispatchContext context, LotteryOpeningRequest message, CancellationToken token) =>
-        delivery.HandleAsync(context, message.Slot, message.Phase == 0, false, token);
-}
-public sealed class LotteryOverflowHandler(LotteryOpeningDelivery delivery, UnansweredReportHandler fallback) : ClientMessageHandler<OverflowInfoReport>
-{
-    protected override ValueTask HandleMessageAsync(NetworkDispatchContext context, OverflowInfoReport message, CancellationToken token) =>
-        message.Body.AsSpan().SequenceEqual(new byte[] { 1, 0x1B, 0 })
-            ? delivery.HandleAsync(context, null, false, true, token)
-            : fallback.HandleAsync(context, message, token);
+        delivery.HandleAsync(context, message.Slot, message.Mode, message.Metadata.Sequence, token);
 }

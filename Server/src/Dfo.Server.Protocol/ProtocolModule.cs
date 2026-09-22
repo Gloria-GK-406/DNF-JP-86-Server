@@ -474,7 +474,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
-        services.RegisterMessageHandler<LotteryOverflowHandler>(ClientMessageType.GameOverflowInfo);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
@@ -789,7 +789,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();
         services.AddGameCmdMessageEncoder<MagicBoxSingleOpeningResponse, MagicBoxSingleOpeningEncoder>();
         services.AddGameCmdMessageEncoder<LotteryOpeningResponse, LotteryOpeningEncoder>();
-        services.AddGameCmdMessageEncoder<LotteryOverflowResponse, LotteryOverflowEncoder>();
         services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();

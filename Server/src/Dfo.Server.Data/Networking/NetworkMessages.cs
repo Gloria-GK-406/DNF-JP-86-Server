@@ -155,7 +155,6 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
-    GameLotteryOverflow = 0x0001_00D9,
     GameMagicBoxBatchOpening = 0x0001_0450,
     GameMagicBoxSingleOpening = 0x0001_00D0,
     GameLotteryOpening = 0x0001_001B,
