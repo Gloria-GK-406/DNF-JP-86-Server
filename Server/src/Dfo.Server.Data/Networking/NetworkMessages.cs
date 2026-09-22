@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GamePremiumServiceUsageReport = 0x0001_036F,
     GameMagicBoxBatchOpening = 0x0001_0450,
     GameMagicBoxSingleOpening = 0x0001_00D0,
     GamePackageOpening = 0x0001_00A0,

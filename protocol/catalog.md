@@ -639,3 +639,7 @@ CMD [0029 USE_COIN](game/client-to-server/0x0029.md)：请求 2B，成功 ACK 4B
 - 2026-09-21：`0x0022` 转职任务奖励实现与候选17B特殊ACK，规则/事务测试通过；A21实机验收待完成，详见 [FINISH_QUEST](game/client-to-server/0x0022.md)。
 
 - 2026-09-22：黄金翻牌第10次免费及额度用尽后的付费入口经用户验收；服务日志扣费0，持久化已用次数9→10，见 [SELECT_CARD](game/client-to-server/0x0047.md)。
+
+### 2026-09-22 PREMIUM_SERVICE 使用上报
+
+CMD036F category1/slot3（BUFF）、slot4（HP/MP恢复）使用上报已接入完整权威快照应答；不额外回血、不新增每日用量。客户端首次恢复及第二次不恢复已有用户实测，新增应答后的效果待实机。见[上报与应答](game/client-to-server/0x036F.md)。
