@@ -5,6 +5,7 @@ namespace Dfo.Server.Abstractions.Accounts;
 public interface IPremiumServiceUsageDomainService
 {
     DateTimeOffset CurrentPeriodStart { get; }
+    ValueTask<bool> TryUseAutoRepairAsync(AccountId accountId, CharacterId characterId, CancellationToken token);
     ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAsync(CharacterId characterId, CancellationToken token);
     ValueTask<bool> TryUseFreeWeaknessRecoveryAsync(AccountId accountId, CharacterId characterId, CancellationToken token);
 }

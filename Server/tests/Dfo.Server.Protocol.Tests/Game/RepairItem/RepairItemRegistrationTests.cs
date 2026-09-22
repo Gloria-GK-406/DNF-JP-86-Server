@@ -11,6 +11,23 @@ namespace Dfo.Server.Protocol.Tests.Game.RepairItem;
 public sealed class RepairItemRegistrationTests
 {
     [Fact]
+    public void Automatic_repair_accepts_only_the_verified_seven_byte_shape()
+    {
+        var decoder = new RepairItemMessageDecoder();
+        var body = Convert.FromHexString("00FFFFFFFF0100");
+        var request = Assert.IsType<RepairItemRequest>(decoder.Decode(GameMessageMetadata.Empty, body));
+        Assert.Null(request.Slot);
+        Assert.Equal(1, request.AutoRepair);
+        Assert.Equal(0, request.QuickRepair);
+        for (var index = 0; index < body.Length; index++)
+        {
+            var invalid = body.ToArray();
+            invalid[index] ^= 1;
+            Assert.Throws<InvalidDataException>(() => decoder.Decode(GameMessageMetadata.Empty, invalid));
+        }
+    }
+
+    [Fact]
     public void Repair_command_is_decoded_as_a_game_command()
     {
         var services = new ServiceCollection();

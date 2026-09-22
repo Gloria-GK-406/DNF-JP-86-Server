@@ -5,10 +5,12 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource
 {
-    public int ReadFreeWeaknessDailyLimit()
+    public int ReadFreeWeaknessDailyLimit() => ReadDailyLimit("[free_stamina]");
+    public int ReadAutoRepairDailyLimit() => ReadDailyLimit("[auto_repair]");
+    private int ReadDailyLimit(string name)
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
-            .Single(s => s.Name == "[free_stamina]");
+            .Single(s => s.Name == name);
         if (section.Values.Count != 2 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
             || section.Values[1].Value is < 1 or > 255)
             throw new InvalidDataException("Invalid free stamina daily limit.");

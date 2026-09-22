@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.RepairItem;
 
 public sealed record RepairItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot? Slot)
+    BusinessSlot? Slot, bool AutoRepair = false)
     : ICommand<EquipmentRepairResult>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
@@ -19,5 +19,7 @@ public sealed class RepairItemCommandHandler(IEquipmentRepairDomainService repai
 {
     public ValueTask<EquipmentRepairResult> HandleAsync(CommandExecutionContext context, RepairItemCommand command,
         CancellationToken cancellationToken) =>
-        repairs.RepairAsync(command.Session, command.Slot, cancellationToken);
+        command.AutoRepair
+            ? repairs.AutoRepairAsync(command.Session, cancellationToken)
+            : repairs.RepairAsync(command.Session, command.Slot, cancellationToken);
 }

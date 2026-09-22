@@ -9,8 +9,10 @@ internal sealed class RepairItemMessageDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        if (body.Length != 8)
-            throw new InvalidDataException($"REPAIR_ITEM requires 8 body bytes; received {body.Length}.");
+        if (body.SequenceEqual(new byte[] { 0, 255, 255, 255, 255, 1, 0 }))
+            return new RepairItemRequest(metadata, null, -1, 1, 0, 0);
+        if (body.Length != 8 || body[5] != 0)
+            throw new InvalidDataException($"REPAIR_ITEM requires an ordinary 8-byte body or the verified automatic 7-byte body; received {body.Length}.");
         var index = BinaryPrimitives.ReadInt16LittleEndian(body[1..]);
         GameSlot? slot = index == -1 ? null : new GameSlot((InventoryContainerType)body[0], index);
         return new RepairItemRequest(metadata, slot, BinaryPrimitives.ReadInt16LittleEndian(body[3..]),

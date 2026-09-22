@@ -4,6 +4,8 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
@@ -12,7 +14,7 @@ namespace Dfo.Server.Protocol.Game.RepairItem;
 public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands, INotificationBus notifications,
-    IGameMessageSender sender) : ClientMessageHandler<RepairItemRequest>
+    IGameMessageSender sender, SelectedSessionTransitionGate transitions, TimeProvider clock, ILogger<RepairItemHandler> logger) : ClientMessageHandler<RepairItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         RepairItemRequest message, CancellationToken cancellationToken)
@@ -21,23 +23,30 @@ public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
             ? slotMappings.ToBusinessSlot(gameSlot)
             : null;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null) return;
+        await using var transition = await transitions.AcquireAsync(session.AccountId,
+            UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
+        if (sessions.FindByConnection(context.Connection.ConnectionId) != session) return;
+        var automatic = message.AutoRepair == 1 && message.Slot is null
+            && message.RepairAllSpace == InventoryContainerType.Main;
         EquipmentRepairResult result;
-        // The observed NPC commands use only the ordinary repair mode. Do not silently charge a
-        // quick/auto/material request as an ordinary repair until those variants are verified.
-        if (message.MaterialSlot != -1 || message.AutoRepair != 0 || message.Reserved != 0
+        // Only the verified automatic all-repair shape may bypass the ordinary gold path.
+        if (message.MaterialSlot != -1 || (message.AutoRepair != 0 && !automatic) || message.Reserved != 0
             || message.QuickRepair != 0)
             result = new(EquipmentRepairRejection.InvalidRequest);
-        else if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
+        else if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
             result = new(EquipmentRepairRejection.NoSession);
         else
             result = await commands.SendAsync(new RepairItemCommand(online.OnlineUserId, session,
-                slot),
+                slot, automatic),
                 cancellationToken).ConfigureAwait(false);
 
+        if (automatic)
+            logger.LogInformation("Automatic repair character={CharacterId} result={Result}", session.CharacterId, result.Rejection);
         if (result.Receipt is { } receipt)
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
-                new EquipmentRepairCompleted(receipt, message.RepairAllSpace), cancellationToken)
+                new EquipmentRepairCompleted(receipt, message.RepairAllSpace, result.Entitlements, result.Usage, clock.GetUtcNow()), cancellationToken)
                 .ConfigureAwait(false);
         else
             await sender.SendCmdAsync(context.Connection.ConnectionId,
@@ -52,6 +61,8 @@ public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
         EquipmentRepairRejection.NoSession or EquipmentRepairRejection.InvalidRequest
             or EquipmentRepairRejection.ItemUnavailable or EquipmentRepairRejection.CannotRepair
             or EquipmentRepairRejection.InsufficientGold => 10,
+        EquipmentRepairRejection.DailyLimitReached => 0x73,
+        EquipmentRepairRejection.MissingEntitlement or EquipmentRepairRejection.NoBrokenEquipment => 4,
         _ => throw new ArgumentOutOfRangeException(nameof(reason)),
     };
 }

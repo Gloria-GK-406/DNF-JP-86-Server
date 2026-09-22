@@ -138,7 +138,10 @@ public sealed class EquipmentRepairTests
     }
 
     private static ShopFixture Fixture() => new(services =>
-        services.AddSingleton<IEquipmentRepairDefinitionSource>(new Prices()));
+        {
+        services.AddSingleton<IEquipmentRepairDefinitionSource>(new Prices());
+        services.AddSingleton<IPremiumServiceDefinitionSource>(new PremiumRules());
+    });
 
     private static InventoryItemCoreState Piece(ushort durability) =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = durability };
@@ -150,6 +153,109 @@ public sealed class EquipmentRepairTests
                 slot == -1 ? null : new GameSlot(container, slot), -1, 0, 0, 0,
                 container),
             default);
+
+    private sealed class PremiumRules : IPremiumServiceDefinitionSource
+    {
+        public PremiumContractLevels ReadContractLevels() => new(5, 10);
+        public int ReadFreeWeaknessDailyLimit() => 10;
+        public int ReadAutoRepairDailyLimit() => 6;
+    }
+
+    private static ValueTask AutoRepair(ShopFixture shop) =>
+        shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
+            new RepairItemRequest(GameMessageMetadata.Empty, null, -1, 1, 0, 0), default);
+
+    [Fact]
+    public async Task Automatic_repair_is_free_repairs_worn_and_quick_slots_once_and_preserves_bag()
+    {
+        using var shop = Fixture();
+        shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,586,4000000000)");
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        await shop.SeedCore(14, Piece(20), InventoryContainerType.Equipment);
+        await shop.SeedCore(3, Piece(0));
+        await shop.SeedCore(9, Piece(7));
+        await AutoRepair(shop);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 14));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 3));
+        Assert.Equal((ushort)7, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_auto_repair_used'"));
+        Assert.IsType<RepairItemResponse>(shop.Sender.Messages[0]);
+        Assert.Equal("PremiumServiceStateMessage", shop.Sender.Messages[1].GetType().Name);
+        await AutoRepair(shop);
+        Assert.Equal(4, Assert.IsType<RepairItemResponse>(shop.Sender.Messages.Last()).ErrorCode);
+        Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_auto_repair_used'"));
+    }
+
+    [Fact]
+    public async Task Automatic_repair_rejects_without_broken_equipment_or_valid_subscription()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        await AutoRepair(shop);
+        Assert.Equal(4, Assert.IsType<RepairItemResponse>(shop.Sender.Messages.Last()).ErrorCode);
+        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
+        shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,586,1)");
+        await AutoRepair(shop);
+        Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+        shop.Sql("UPDATE account_premiums SET end_time=4000000000");
+        await shop.SeedCore(12, Piece(1), InventoryContainerType.Equipment);
+        await AutoRepair(shop);
+        Assert.Equal((ushort)1, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+        Assert.Equal(100000, shop.Gold);
+    }
+
+    [Fact]
+    public async Task Sixth_auto_repair_succeeds_seventh_is_rejected_and_next_period_recovers_quota()
+    {
+        using var shop = Fixture();
+        shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,586,4000000000)");
+        for (var i = 1; i <= 6; i++)
+        {
+            await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+            await AutoRepair(shop);
+            Assert.Equal(i, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_auto_repair_used'"));
+        }
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        await AutoRepair(shop);
+        Assert.Equal(0x73, Assert.IsType<RepairItemResponse>(shop.Sender.Messages.Last()).ErrorCode);
+        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
+        shop.Clock.Advance(TimeSpan.FromDays(1));
+        await AutoRepair(shop);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_auto_repair_used'"));
+    }
+
+    [Fact]
+    public async Task Auto_repair_write_failure_rolls_back_usage_and_durability()
+    {
+        using var shop = Fixture();
+        shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,586,4000000000)");
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        shop.Sql("CREATE TRIGGER refuse_repair BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'auto repair failure'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => AutoRepair(shop).AsTask());
+        Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
+        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal(100000, shop.Gold);
+        Assert.Empty(shop.Sender.Messages);
+    }
+
+    [Fact]
+    public async Task Concurrent_automatic_requests_consume_one_use_and_do_not_share_character_quota()
+    {
+        using var shop = Fixture();
+        shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,586,4000000000)");
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        await Task.WhenAll(AutoRepair(shop).AsTask(), AutoRepair(shop).AsTask());
+        Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE character_id=1 AND counter_key='premium_auto_repair_used'"));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
+        shop.Select(2);
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        await AutoRepair(shop);
+        Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE character_id=2 AND counter_key='premium_auto_repair_used'"));
+    }
 
     private sealed class Prices : IEquipmentRepairDefinitionSource
     {

@@ -147,6 +147,7 @@ internal sealed class CharacterSide
     {
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadFreeWeaknessDailyLimit() => 10;
+        public int ReadAutoRepairDailyLimit() => 6;
     }
 
     /// <summary>

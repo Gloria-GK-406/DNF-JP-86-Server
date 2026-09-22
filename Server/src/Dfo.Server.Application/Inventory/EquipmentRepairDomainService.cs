@@ -6,14 +6,68 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentRepairDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
-    IEquipmentRepairDefinitionSource definitions) : IEquipmentRepairDomainService
+    IEquipmentRepairDefinitionSource definitions, IPremiumServiceDomainService premiums,
+    IPremiumServiceUsageDomainService usage) : IEquipmentRepairDomainService
 {
+    // A21 repair ACK excludes title, accessories, support and magic stone. These business
+    // indices project to weapon 12 and armor 14..18; ordinary NPC repair remains unchanged.
+    private static readonly IReadOnlyList<BusinessSlot> AutoRepairSlots =
+    [
+        .. Enumerable.Range(0, 6).Select(i => new BusinessSlot(BusinessInventorySpace.QuickSlot, i)),
+        .. new[] { 1, 3, 4, 5, 6, 7 }.Select(i => new BusinessSlot(BusinessInventorySpace.WornEquipment, i)),
+    ];
+
+    public async ValueTask<EquipmentRepairResult> AutoRepairAsync(SelectedSessionIdentity session,
+        CancellationToken cancellationToken)
+    {
+        if (sessions.Find(session.AccountId) != session
+            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
+            || online is not { State: OnlineUserState.CharacterActive }
+            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+            return new(EquipmentRepairRejection.NoSession);
+        var entitlement = premiums.For(session.AccountId);
+        if (!await entitlement.HasBenefitAsync(PremiumBenefit.AutoRepair, cancellationToken).ConfigureAwait(false))
+            return new(EquipmentRepairRejection.MissingEntitlement);
+
+        var candidates = new List<(BoundInventorySlot Slot, InventoryItemCoreState Core)>();
+        var broken = false;
+        foreach (var repairSlot in AutoRepairSlots)
+        {
+            var bound = slots.Find(session.CharacterId, repairSlot);
+            if (bound is null) continue;
+            var item = await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
+            if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
+            var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
+            if (definition is null) return new(EquipmentRepairRejection.CannotRepair);
+            if (definition.MaxDurability == 0) continue;
+            if (item.Core.Durability > definition.MaxDurability) return new(EquipmentRepairRejection.CannotRepair);
+            broken |= item.Core.Durability == 0;
+            if (item.Core.Durability < definition.MaxDurability)
+                candidates.Add((bound, item.Core with { Durability = definition.MaxDurability }));
+        }
+        // Do not trust the client's in-flight flag: stale/duplicate or forged requests must
+        // not consume another use, nor turn automatic repair into discounted manual repair.
+        if (!broken) return new(EquipmentRepairRejection.NoBrokenEquipment);
+        if (!await usage.TryUseAutoRepairAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false))
+            return new(EquipmentRepairRejection.DailyLimitReached);
+        foreach (var (bound, core) in candidates)
+            await bound.Container.PutAsync(bound.StorageIndex, core, cancellationToken).ConfigureAwait(false);
+        var gold = await characters.Get(session.CharacterId).GoldAsync(cancellationToken).ConfigureAwait(false);
+        return new(EquipmentRepairRejection.None, new(session, null, gold))
+        {
+            Entitlements = new AccountEntitlementEntryState(await entitlement.ReadAsync(cancellationToken).ConfigureAwait(false)),
+            Usage = await usage.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false),
+        };
+    }
+
     private static readonly IReadOnlyList<BusinessSlot> RepairAllSlots =
     [
         .. Enumerable.Range(0, 6)
