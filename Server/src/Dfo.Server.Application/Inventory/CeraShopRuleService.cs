@@ -39,21 +39,28 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     throw Refuse(CeraShopRejection.UnsupportedProduct, $"Product {entry.ProductId}: invalid quantity or price.");
                 if (product.IsService)
                 {
-                    if (product.Category != "[selectable character premium]" || product.ServiceSlot is not (>= 0 and < 8)
-                        || product.ServiceDays is not (7 or 30) || product.Count != 1)
-                        throw Refuse(CeraShopRejection.UnsupportedProduct, "Unsupported subscription declaration.");
                     if (!entry.AvatarChoices.IsEmpty || !entry.Selections.IsEmpty
                         || entry.Attribute is not (0 or 255) || entry.Variant is not (0 or 255))
                         throw Refuse(CeraShopRejection.InvalidChoice, "Unexpected subscription options.");
-                    var service = product.ServiceSlot.Value switch
+                    if (product.Category == "[premium]" && product.Count == 1
+                        && product.Premium is { PremiumType: 22 or 27 } contract && contract.Duration > TimeSpan.Zero)
                     {
-                        0 => PremiumServiceType.FreeGoldCard, 1 => PremiumServiceType.DoublePot,
-                        2 => PremiumServiceType.QuestHelper, 3 => PremiumServiceType.DungeonBuff,
-                        4 => PremiumServiceType.AutoHpMpRecovery, 5 => PremiumServiceType.FreeWeaknessRecovery,
-                        6 => PremiumServiceType.AutoRepair, 7 => PremiumServiceType.FastPot,
-                        _ => throw new InvalidOperationException(),
-                    };
-                    subscriptions.Add(new(service, TimeSpan.FromDays(product.ServiceDays)));
+                        subscriptions.Add(new((PremiumServiceType)contract.PremiumType, contract.Duration));
+                    }
+                    else if (product.Category == "[selectable character premium]" && product.ServiceSlot is >= 0 and < 8
+                        && product.ServiceDays is 7 or 30 && product.Count == 1)
+                    {
+                        var service = product.ServiceSlot.Value switch
+                        {
+                            0 => PremiumServiceType.FreeGoldCard, 1 => PremiumServiceType.DoublePot,
+                            2 => PremiumServiceType.QuestHelper, 3 => PremiumServiceType.DungeonBuff,
+                            4 => PremiumServiceType.AutoHpMpRecovery, 5 => PremiumServiceType.FreeWeaknessRecovery,
+                            6 => PremiumServiceType.AutoRepair, 7 => PremiumServiceType.FastPot,
+                            _ => throw new InvalidOperationException(),
+                        };
+                        subscriptions.Add(new(service, TimeSpan.FromDays(product.ServiceDays)));
+                    }
+                    else throw Refuse(CeraShopRejection.UnsupportedProduct, "Unsupported subscription declaration.");
                     products.Add(product.ProductId);
                     charges.Add(new(product.ProductId, price.Gold, price.Cera,
                         product.BuyOnlyCera ? CeraShopPaymentMode.CeraOnly : product.BuyOnlyCeraPoint

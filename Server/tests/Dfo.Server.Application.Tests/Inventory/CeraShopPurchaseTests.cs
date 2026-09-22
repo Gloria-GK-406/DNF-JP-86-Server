@@ -20,6 +20,59 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class CeraShopPurchaseTests
 {
+    [SkippableTheory]
+    [InlineData(100039,22,3,780)]
+    [InlineData(100041,22,7,1180)]
+    [InlineData(100058,27,3,1080)]
+    [InlineData(100059,27,7,1680)]
+    public async Task Ordinary_contract_purchase_and_renewal_persist_and_notify_current_total(int product, int type, int days, int cost)
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        var now = shop.Host.Clock.GetUtcNow().ToUnixTimeSeconds();
+        // Expired subscriptions restart from now, not from their previous expiration.
+        shop.Host.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,{type},1)");
+        var entry = CeraShopTestContent.Entry(product) with { Attribute = 255, Variant = 255 };
+        await shop.Handle(CeraShopTestContent.Input(entry));
+        Assert.Equal(100000-cost,shop.Cera);
+        Assert.Equal(now+days*86400,shop.Host.Scalar($"SELECT end_time FROM account_premiums WHERE premium_type={type}"));
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM items"));
+        var frame = shop.Encode(Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "PremiumGrantedMessage"));
+        Assert.Equal((ushort)0x0042,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1,2)));
+        Assert.Equal(26,frame.Length);
+        Assert.Equal((byte)type,frame[17]);
+        Assert.Equal(days*86400L,BinaryPrimitives.ReadInt64LittleEndian(frame.AsSpan(18,8)));
+        var renewal=await shop.Buy(entry);
+        Assert.NotNull(renewal.Receipt);
+        Assert.Equal(now+days*2*86400,Assert.Single(renewal.Receipt!.GrantedPremiums).ExpiresAtUnixSeconds);
+        Assert.Equal(100000-cost*2,shop.Cera);
+    }
+
+    [SkippableFact]
+    public async Task Ordinary_contract_cart_rolls_back_both_contracts_and_payment_on_failure()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        shop.Host.Sql("CREATE TRIGGER fail_expert BEFORE INSERT ON account_premiums WHEN NEW.premium_type=27 BEGIN SELECT RAISE(ABORT,'forced'); END;");
+        await Assert.ThrowsAsync<SqliteException>(()=>shop.Buy(CeraShopTestContent.Entry(100039),CeraShopTestContent.Entry(100059)));
+        Assert.Equal(100000,shop.Cera);
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+    }
+
+    [SkippableFact]
+    public async Task Ordinary_contract_refuses_insufficient_payment_and_catalog_placeholders()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive:true);
+        shop.Host.Sql("UPDATE accounts SET cera=779,token_cera=0,happy_token_cera=0");
+        Assert.Equal(CeraShopRejection.InsufficientFunds,(await shop.Buy(CeraShopTestContent.Entry(100039))).Rejection);
+        shop.Host.Sql("UPDATE accounts SET cera=100000");
+        foreach(var product in new[]{100043,100061})
+            Assert.Null((await shop.Buy(CeraShopTestContent.Entry(product))).Receipt);
+        Assert.Equal(100000,shop.Cera);
+        Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+    }
+
     [SkippableFact]
     public async Task Service_purchase_sends_complete_snapshot_after_committed_ack_and_wallet()
     {

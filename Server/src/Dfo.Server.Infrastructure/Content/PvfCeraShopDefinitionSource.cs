@@ -19,6 +19,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     private Dictionary<int, string>? equipment, stackables, creatures;
     private IReadOnlyList<Section>? avatarAbilityCases;
     private bool loaded;
+    private Dictionary<int, (int Type, TimeSpan Duration)> premiumTerms = [];
 
     public ValueTask<CeraShopProductDefinition?> GetProductAsync(int productId, CancellationToken cancellationToken)
     {
@@ -92,6 +93,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             if (section.Name is "[target item]" or "[item]") AddIntegers(serviceItems, section);
         foreach (var section in Sections("etc/accountcargo.etc"))
             if (section.Name == "[upgrade info]") AddColumn(serviceProducts, section, 6, 5);
+        premiumTerms = PvfPackageOpeningDefinitionSource.ParsePremiums(Sections("etc/premiumlist_new.etc"));
         loaded = true;
     }
 
@@ -108,6 +110,8 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (item is null) diagnostics.Add(new("MissingItem", CatalogPath, $"Item {itemId} is not readable."));
         return result with
         {
+            Premium = row.Category == "[premium]" && premiumTerms.TryGetValue(itemId, out var premium)
+                && premium.Type is 22 or 27 ? new(premium.Type, premium.Duration) : null,
             IsService = result.IsService || serviceProducts.Contains(id) || item?.Kind == CeraShopItemKind.Service,
             BuyOnlyCera = onlyCera.Contains(itemId), BuyOnlyCeraPoint = onlyPoint.Contains(itemId),
             Diagnostics = diagnostics.ToImmutable(),
