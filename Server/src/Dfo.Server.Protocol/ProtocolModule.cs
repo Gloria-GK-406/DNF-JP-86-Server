@@ -117,6 +117,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.AddHostedService<WeaknessRecoveryService>();
         services.AddHostedService<PremiumDailyRefreshService>();
+        services.AddCommandHandler<ConsumeDungeonBuffCommand, PremiumSnapshotResult, ConsumeDungeonBuffCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult, ReadPremiumSnapshotCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Transactional);
         var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);

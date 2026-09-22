@@ -33,13 +33,14 @@ public sealed class ReadPremiumSnapshotCommandHandler(ISelectedSessionDomainServ
     }
 }
 
-// One server timer refreshes online UI after the day changes; period-aware counters reset lazily.
+// One server timer refreshes day and entitlement changes; counters reset lazily.
+// A21 effect gates only test nonzero end, so expired slots must be projected as zero.
 public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery directory,
     ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
     IPremiumServiceUsageDomainService usage, ICommandBus commands, IGameMessageSender sender, TimeProvider clock,
     ILogger<PremiumDailyRefreshService> logger) : BackgroundService
 {
-    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
+    private readonly Dictionary<SelectedSessionIdentity, (DateTimeOffset Period, string Active)> delivered = [];
     public async Task RefreshAsync(CancellationToken token)
     {
         var current = directory.Snapshot();
@@ -47,16 +48,19 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
         foreach (var session in current)
         {
             var period = usage.CurrentPeriodStart;
-            if (delivered.GetValueOrDefault(session) == period) continue;
             try
             {
                 await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
                 if (sessions.FindByCharacter(session.CharacterId) != session) continue;
                 var state = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
                 if (!state.IsCurrent) continue;
+                var active = string.Join(";", state.Entitlements.Premiums
+                    .Where(x => x.ExpiresAtUnixSeconds > state.PreparedAt.ToUnixTimeSeconds())
+                    .OrderBy(x => x.PremiumType).Select(x => $"{x.PremiumType}:{x.ExpiresAtUnixSeconds}"));
+                if (delivered.TryGetValue(session, out var previous) && previous == (period, active)) continue;
                 await sender.SendCmdAsync(session.ConnectionId,
                     new PremiumServiceStateMessage(state.Entitlements, state.Usage, state.PreparedAt), token).ConfigureAwait(false);
-                delivered[session] = period;
+                delivered[session] = (period, active);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception ex) { logger.LogWarning(ex, "Premium daily projection failed character={CharacterId}", session.CharacterId); }

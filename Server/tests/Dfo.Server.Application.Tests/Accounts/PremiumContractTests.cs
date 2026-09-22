@@ -88,6 +88,7 @@ public sealed class PremiumContractTests
     {
         public int ReadFreeWeaknessDailyLimit() => 10;
         public int ReadFreeGoldCardDailyLimit() => 10;
+        public int ReadDungeonBuffDailyLimit() => 10;
         public int ReadAutoRepairDailyLimit() => 6;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
     }

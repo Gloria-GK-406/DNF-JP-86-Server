@@ -5,6 +5,7 @@ public interface IPremiumServiceDefinitionSource
 {
     PremiumContractLevels ReadContractLevels();
     int ReadFreeWeaknessDailyLimit();
+    int ReadDungeonBuffDailyLimit();
     int ReadAutoRepairDailyLimit();
     int ReadFreeGoldCardDailyLimit();
 }

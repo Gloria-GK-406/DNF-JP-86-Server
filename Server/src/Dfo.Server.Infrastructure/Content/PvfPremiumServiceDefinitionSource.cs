@@ -7,12 +7,13 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
 {
     public int ReadFreeWeaknessDailyLimit() => ReadDailyLimit("[free_stamina]");
     public int ReadFreeGoldCardDailyLimit() => ReadDailyLimit("[plus_goldcard]");
+    public int ReadDungeonBuffDailyLimit() => ReadDailyLimit("[buff_service]", 23);
     public int ReadAutoRepairDailyLimit() => ReadDailyLimit("[auto_repair]");
-    private int ReadDailyLimit(string name)
+    private int ReadDailyLimit(string name, int valueCount = 2)
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
             .Single(s => s.Name == name);
-        if (section.Values.Count != 2 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
+        if (section.Values.Count != valueCount || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
             || section.Values[1].Value is < 1 or > 255)
             throw new InvalidDataException("Invalid free stamina daily limit.");
         return section.Values[1].Value;

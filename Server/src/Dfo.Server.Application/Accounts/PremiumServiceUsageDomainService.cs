@@ -13,6 +13,7 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
 {
     public DateTimeOffset CurrentPeriodStart => days.PeriodStart(clock.GetUtcNow());
     private const string FreeGoldCard = "premium_free_gold_card_used";
+    private const string DungeonBuff = "premium_dungeon_buff_used";
     private const string AutoRepair = "premium_auto_repair_used";
     private const string FreeWeakness = "premium_free_weakness_used";
     public async ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAsync(CharacterId id, CancellationToken token)
@@ -25,12 +26,15 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
             throw new InvalidDataException("Premium usage is outside the one-byte projection range.");
         var repair = CurrentUsage(await counters.ReadAsync(id, AutoRepair, token).ConfigureAwait(false), now);
         var goldCard = CurrentUsage(await counters.ReadAsync(id, FreeGoldCard, token).ConfigureAwait(false), now);
-        return [new(0, goldCard), new(1, lottery), new(5, weakness), new(6, repair)];
+        var buff = CurrentUsage(await counters.ReadAsync(id, DungeonBuff, token).ConfigureAwait(false), now);
+        return [new(0, goldCard), new(1, lottery), new(3, buff), new(5, weakness), new(6, repair)];
     }
     public ValueTask<bool> TryUseFreeWeaknessRecoveryAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
         TryUseAsync(accountId, id, FreeWeakness, PremiumBenefit.FreeWeaknessRecovery, rules.FreeWeaknessDailyLimit, token);
     public ValueTask<bool> TryUseFreeGoldCardAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
         TryUseAsync(accountId, id, FreeGoldCard, PremiumBenefit.FreeGoldCard, rules.FreeGoldCardDailyLimit, token);
+    public ValueTask<bool> TryUseDungeonBuffAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
+        TryUseAsync(accountId, id, DungeonBuff, PremiumBenefit.DungeonBuff, rules.DungeonBuffDailyLimit, token);
     public ValueTask<bool> TryUseAutoRepairAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
         TryUseAsync(accountId, id, AutoRepair, PremiumBenefit.AutoRepair, rules.AutoRepairDailyLimit, token);
     private async ValueTask<bool> TryUseAsync(AccountId accountId, CharacterId id, string key, PremiumBenefit benefit, int limit, CancellationToken token)

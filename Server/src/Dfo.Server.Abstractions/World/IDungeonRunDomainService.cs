@@ -437,6 +437,9 @@ public interface IDungeonRunDomainService
     ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now) =>
         ValueTask.FromResult(TryEndPartyWipe(runId, now));
 
+    bool HasUsedDungeonBuff(CharacterId characterId, DungeonRunId runId) => true;
+    bool StageDungeonBuff(CharacterId characterId, DungeonRunId runId) => false;
+
     bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId) => false;
 
     void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }

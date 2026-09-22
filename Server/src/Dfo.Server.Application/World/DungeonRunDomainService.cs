@@ -126,6 +126,44 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public bool HasUsedDungeonBuff(CharacterId characterId, DungeonRunId runId)
+    {
+        lock (this.gate)
+            return !this.runsById.TryGetValue(runId, out var run)
+                || !run.IsActiveMember(characterId) || run.BuffParticipants.Contains(characterId);
+    }
+
+    public bool StageDungeonBuff(CharacterId characterId, DungeonRunId runId)
+    {
+        lock (this.gate)
+        {
+            if (HasUsedDungeonBuff(characterId, runId)) return false;
+            var transaction = this.transactions?.Current
+                ?? throw new InvalidOperationException("Dungeon buff consumption requires a transaction.");
+            transaction.Enlist((this, runId, characterId, "premium-buff"),
+                () => new BuffCommitParticipant(this, this.runsById[runId], characterId));
+            return true;
+        }
+    }
+
+    private sealed class BuffCommitParticipant(DungeonRunDomainService owner,
+        DungeonRunAggregate run, CharacterId characterId) : ITransactionParticipant
+    {
+        public bool CommitCanFail => false;
+        public ValueTask PrepareAsync(CancellationToken token)
+        {
+            if (owner.HasUsedDungeonBuff(characterId, run.RunId))
+                throw new InvalidOperationException("Dungeon buff participant changed before commit.");
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask CommitAsync(CancellationToken token)
+        {
+            lock (owner.gate) run.BuffParticipants.Add(characterId);
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask RollbackAsync(CancellationToken token) => ValueTask.CompletedTask;
+    }
+
     public bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId)
     {
         lock (this.gate)
@@ -1565,6 +1603,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
         public HashSet<CharacterId> ActiveParticipants { get; }
+        public HashSet<CharacterId> BuffParticipants { get; } = [];
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
 
         public HashSet<CharacterId> DeadParticipants { get; } = [];

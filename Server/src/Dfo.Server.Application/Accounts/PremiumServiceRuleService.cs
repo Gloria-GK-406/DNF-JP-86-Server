@@ -7,6 +7,8 @@ internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource 
 {
     private readonly Lazy<int> freeGoldCardLimit = new(source.ReadFreeGoldCardDailyLimit);
     public int FreeGoldCardDailyLimit => freeGoldCardLimit.Value;
+    private readonly Lazy<int> dungeonBuffLimit = new(source.ReadDungeonBuffDailyLimit);
+    public int DungeonBuffDailyLimit => dungeonBuffLimit.Value;
     private readonly Lazy<int> autoRepairLimit = new(source.ReadAutoRepairDailyLimit);
     public int AutoRepairDailyLimit => autoRepairLimit.Value;
     private readonly Lazy<int> freeWeaknessLimit = new(source.ReadFreeWeaknessDailyLimit);

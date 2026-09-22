@@ -8,6 +8,19 @@ namespace Dfo.Server.Protocol.Tests.Game.Weakness;
 
 public sealed class PremiumServiceUsageReportTests
 {
+    [Fact]
+    public void Buff_quota_is_in_slot_three_and_expiry_clears_its_entire_projection()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(1000);
+        var active = new PremiumServiceStateMessage(new([new(583, 1001)]), [new(3, 10)], now).EncodeBody();
+        Assert.Equal(77, active.Length);
+        Assert.Equal(1, active[0]);
+        Assert.Equal(1001u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(active.AsSpan(3 + 6 + 3 * 9, 4)));
+        Assert.Equal(10, active[3 + 10 + 3 * 9]);
+        var expired = new PremiumServiceStateMessage(new([new(583, 1001)]), [new(3, 10)], now.AddSeconds(1)).EncodeBody();
+        Assert.Equal(new PremiumServiceStateMessage(new([]), [], now.AddSeconds(1)).EncodeBody(), expired);
+    }
+
     [Theory]
     [InlineData(3)]
     [InlineData(4)]

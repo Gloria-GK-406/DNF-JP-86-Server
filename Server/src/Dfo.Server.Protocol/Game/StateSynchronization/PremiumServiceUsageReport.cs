@@ -1,4 +1,6 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
@@ -29,6 +31,7 @@ internal sealed class PremiumServiceUsageReportDecoder : IGameMessageDecoder
 }
 
 public sealed class PremiumServiceUsageReportHandler(ISelectedSessionDomainService sessions,
+    IDungeonRunDomainService runs, DungeonProjectionGate projectionGate,
     SelectedSessionTransitionGate transitions, ICommandBus commands, IGameMessageSender sender,
     ILogger<PremiumServiceUsageReportHandler> logger) : ClientMessageHandler<PremiumServiceUsageReport>
 {
@@ -38,14 +41,19 @@ public sealed class PremiumServiceUsageReportHandler(ISelectedSessionDomainServi
         var connection = context.Connection.ConnectionId;
         var session = sessions.FindByConnection(connection);
         if (session is null || message.Slot is not (3 or 4)) return;
+        var runId = message.Slot == 3 ? runs.Find(session.CharacterId)?.RunId : null;
+        await using var projection = runId is { } id
+            ? await projectionGate.AcquireAsync(id, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false)
+            : null;
         await using var lease = await transitions.AcquireAsync(session.AccountId,
             UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         if (sessions.FindByConnection(connection) != session
             || sessions.FindByCharacter(session.CharacterId) != session) return;
-        var state = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), cancellationToken)
-            .ConfigureAwait(false);
+        var state = message.Slot == 3
+            ? await commands.SendAsync(new ConsumeDungeonBuffCommand(session, runId), cancellationToken).ConfigureAwait(false)
+            : await commands.SendAsync(new ReadPremiumSnapshotCommand(session), cancellationToken).ConfigureAwait(false);
         if (!state.IsCurrent) return;
-        // Local effects have already run. Do not heal again or charge daily usage.
+        // Effects already ran locally. Only slot3 consumes daily usage; never apply effects again.
         await sender.SendCmdAsync(connection,
             new PremiumServiceStateMessage(state.Entitlements, state.Usage, state.PreparedAt), cancellationToken)
             .ConfigureAwait(false);

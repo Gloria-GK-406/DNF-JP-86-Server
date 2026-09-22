@@ -35,6 +35,7 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
                 PremiumBenefit.EquipItemsEarly => PremiumServiceType.OverEquipmentContract,
                 PremiumBenefit.FreeWeaknessRecovery => PremiumServiceType.FreeWeaknessRecovery,
                 PremiumBenefit.FreeGoldCard => PremiumServiceType.FreeGoldCard,
+                PremiumBenefit.DungeonBuff => PremiumServiceType.DungeonBuff,
                 PremiumBenefit.AutoRepair => PremiumServiceType.AutoRepair,
                 _ => throw new ArgumentOutOfRangeException(nameof(benefit)),
             }, cancellationToken);

@@ -130,7 +130,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             Assert.Equal([70], result.Features.ExpertJob.RecipeIds);
             Assert.Equal([20, 10], result.Profile.HotkeySlots);
             Assert.Equal(-1234, result.Progression.ChampionBreakKey);
-            Assert.Equal(new[] { ((byte)1, 6), ((byte)5, 0) }, result.Progression.PremiumUsageSlots);
+            Assert.Equal(new[] { ((byte)0, 0), ((byte)1, 6), ((byte)3, 0), ((byte)5, 0), ((byte)6, 0) }, result.Progression.PremiumUsageSlots);
             Assert.Equal(1, result.Features.Mailbox.TotalCount);
             var message = Assert.Single(result.Features.Mailbox.PageMessages);
             Assert.Equal(800L, message.MessageId);
