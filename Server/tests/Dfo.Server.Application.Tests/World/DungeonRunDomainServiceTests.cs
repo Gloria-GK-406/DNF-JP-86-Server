@@ -620,7 +620,8 @@ public sealed class DungeonRunDomainServiceTests
 
         Assert.NotNull(moved);
         Assert.Single(moved.CurrentCellState.GroundItems);
-        Assert.NotNull(Take(service, moved, 1));
+        Assert.Equal((ushort)2, Assert.Single(moved.CurrentCellState.GroundItems).Number);
+        Assert.NotNull(Take(service, moved, 2));
     }
 
     /// <summary>
@@ -1191,7 +1192,8 @@ public sealed class DungeonRunDomainServiceTests
             target,
             CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
         Assert.Equal(target, moved.CurrentCell);
-        Assert.NotNull(moved.CurrentCellState.FindGroundItem(1));
+        Assert.Null(moved.CurrentCellState.FindGroundItem(1));
+        Assert.NotNull(moved.CurrentCellState.FindGroundItem(2));
     }
 
     [Fact]
@@ -1825,6 +1827,63 @@ public sealed class DungeonRunDomainServiceTests
         Assert.True(runs.Find(Character)!.ClearOpen);
         Assert.True(runs.Find(helper)!.ClearOpen);
         Assert.Null(runs.TryOpenClear(helper, started.RunId, started.RoomVersion));
+    }
+
+    [Fact]
+    public void Ground_numbers_are_shared_across_rooms_sources_and_party_views()
+    {
+        var service = new DungeonRunDomainService();
+        var helper = new CharacterId(2);
+        var run = BeginPartyWithCell(service,
+            [new(new AccountId(1), Character, 0, true), new(new AccountId(2), helper, 1, false)],
+            groundItems: [DeclaredItem(1)]);
+        _ = Take(service, run, 1);
+        var target = new MazeCell(1, 1);
+        var moved = Assert.IsType<DungeonRunState>(service.TryMove(
+            Character, run.RunId, run.RoomVersion, target,
+            CellSeed(target, Tutorial.Rooms[target],
+                actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0),
+                    pendingLoot: [new RolledDrop(99, 1, DropRarity.Common, DropItemKind.Stackable)])],
+                groundItems: [DeclaredItem(1)])));
+        Assert.Equal((ushort)2, Assert.Single(moved.CurrentCellState.GroundItems).Number);
+        Assert.Null(service.TryClaimGroundDrop(Character, run.RunId, moved.RoomVersion, 1));
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var death = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(claim));
+        Assert.Equal((ushort)3, Assert.Single(death.AddedGroundItems).Number);
+        var addition = Assert.IsType<DungeonGroundItemsAddedChange>(service.TryAddGroundItems(
+            helper, run.RunId, moved.RoomVersion, death.CellRevision,
+            [new DungeonGroundItemDraft(3020, 1, 0, false, DungeonGroundItemSource.FromPlayer())]));
+        Assert.Equal((ushort)4, Assert.Single(addition.AddedGroundItems).Number);
+        Assert.Equal(new ushort[] { 2, 3, 4 }, service.Find(helper)!.CurrentCellState.GroundItems.Select(x => x.Number));
+        var back = Assert.IsType<DungeonRunState>(service.TryMove(Character, Tutorial.StartCell));
+        Assert.Empty(back.CurrentCellState.GroundItems);
+        var returned = Assert.IsType<DungeonRunState>(service.TryMove(Character, target));
+        Assert.Equal(new ushort[] { 2, 3, 4 }, returned.CurrentCellState.GroundItems.Select(x => x.Number));
+        var fresh = BeginPartyWithCell(service,
+            [new(new AccountId(3), new CharacterId(3), 0, true)],
+            groundItems: [DeclaredItem(1)]);
+        Assert.Equal((ushort)1, Assert.Single(fresh.CurrentCellState.GroundItems).Number);
+    }
+
+    [Fact]
+    public void Exhausted_run_numbers_do_not_wrap_or_partially_publish_a_new_room()
+    {
+        var service = new DungeonRunDomainService();
+        var items = Enumerable.Range(0, ushort.MaxValue)
+            .Select(_ => DeclaredItem(1)).ToArray();
+        var run = BeginWithCell(service, groundItems: items);
+        Assert.Equal(ushort.MaxValue, run.CurrentCellState.GroundItems[^1].Number);
+        var target = new MazeCell(1, 1);
+        Assert.Throws<InvalidOperationException>(() => service.TryMove(
+            Character, run.RunId, run.RoomVersion, target,
+            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+        Assert.Equal(run.CurrentCell, service.Find(Character)!.CurrentCell);
+        _ = Take(service, run, 1);
+        Assert.Throws<InvalidOperationException>(() => service.TryMove(
+            Character, run.RunId, run.RoomVersion, target,
+            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+        Assert.NotNull(MoveToEmptyCell(service, service.Find(Character)!, target));
     }
 
     private static DungeonRunState BeginWithCell(

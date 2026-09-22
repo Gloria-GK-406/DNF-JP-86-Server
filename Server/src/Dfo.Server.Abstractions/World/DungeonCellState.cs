@@ -94,6 +94,7 @@ public sealed record DungeonCellState(
 
 /// <summary>
 /// A complete, unpublished cell prepared from content and rules before a run makes it visible.
+/// Ground-item numbers are provisional; the run assigns their shared wire identities on adoption.
 /// </summary>
 public sealed record DungeonCellSeed(
     MazeCell Cell,

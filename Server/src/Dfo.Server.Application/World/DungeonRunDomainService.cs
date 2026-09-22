@@ -420,7 +420,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
             aggregate.Cells.Add(
                 target,
-                new DungeonCellAggregate(preparedCell));
+                aggregate.CreateCell(preparedCell));
         }
         aggregate.CurrentCell = target;
         aggregate.VisitedCells = aggregate.VisitedCells.Add(target);
@@ -1482,6 +1482,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         private readonly Dictionary<CharacterId, DungeonRunParticipant> participantsByCharacter;
         private readonly Dictionary<CharacterId, ParticipantProgress> progressByCharacter;
         private readonly List<DungeonKillRecord> kills = [];
+        private int nextGroundItemNumber = 1;
 
         public DungeonRunAggregate(
             DungeonRunId runId,
@@ -1503,7 +1504,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             this.CurrentCell = layout.StartCell;
             this.Cells = new Dictionary<MazeCell, DungeonCellAggregate>
             {
-                [initialCell.Cell] = new DungeonCellAggregate(initialCell),
+                [initialCell.Cell] = this.CreateCell(initialCell),
             };
             this.VisitedCells = ImmutableHashSet.Create(layout.StartCell);
             this.participantsByCharacter = participants.ToDictionary(
@@ -1512,6 +1513,21 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 participant => participant.CharacterId,
                 _ => new ParticipantProgress());
             this.ActiveParticipants = [.. this.participantsByCharacter.Keys];
+        }
+
+        // A21 resolves ground objects across retained rooms by number alone.
+        // Keep the wire identity unique for this run, even after pickup or a room revisit.
+        public DungeonCellAggregate CreateCell(DungeonCellSeed seed) =>
+            new(seed, this.AllocateGroundItemNumbers);
+
+        private int AllocateGroundItemNumbers(int count)
+        {
+            if (count > ushort.MaxValue - this.nextGroundItemNumber + 1)
+                throw new InvalidOperationException(
+                    "The dungeon run exhausted its stable ground-item number space.");
+            var first = this.nextGroundItemNumber;
+            this.nextGroundItemNumber += count;
+            return first;
         }
 
         public DungeonRunId RunId { get; }
@@ -1620,21 +1636,30 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
-    private sealed class DungeonCellAggregate(DungeonCellSeed seed)
+    private sealed class DungeonCellAggregate
     {
-        private readonly Dictionary<ushort, DungeonCellActorState> actors =
-            seed.Actors.ToDictionary(
+        private readonly Dictionary<ushort, DungeonCellActorState> actors;
+        private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
+        private readonly Func<int, int> allocateGroundItemNumbers;
+
+        public DungeonCellAggregate(DungeonCellSeed seed, Func<int, int> allocateGroundItemNumbers)
+        {
+            this.actors = seed.Actors.ToDictionary(
                 actor => actor.Sequence,
                 actor => actor with { PendingLoot = actor.PendingLoot.ToArray() });
-        private readonly Dictionary<ushort, DungeonGroundItem> groundItems =
-            seed.GroundItems.ToDictionary(item => item.Number);
-        private int nextGroundItemNumber = seed.GroundItems.Count == 0
-            ? 1
-            : seed.GroundItems.Max(item => item.Number) + 1;
+            this.allocateGroundItemNumbers = allocateGroundItemNumbers;
+            var first = allocateGroundItemNumbers(seed.GroundItems.Count);
+            this.groundItems = seed.GroundItems
+                .Select((item, index) => item with { Number = checked((ushort)(first + index)) })
+                .ToDictionary(item => item.Number);
+            this.Cell = seed.Cell;
+            this.MapId = seed.MapId;
+            this.FirstActorSequence = seed.FirstActorSequence;
+        }
 
-        public MazeCell Cell { get; } = seed.Cell;
-        public int MapId { get; } = seed.MapId;
-        public ushort FirstActorSequence { get; } = seed.FirstActorSequence;
+        public MazeCell Cell { get; }
+        public int MapId { get; }
+        public ushort FirstActorSequence { get; }
         public long Revision { get; set; }
         public bool ClearOpen { get; set; }
 
@@ -1697,21 +1722,16 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public IReadOnlyList<DungeonGroundItem> AppendGroundItems(
             IReadOnlyList<DungeonGroundItemDraft> items)
         {
-            if (items.Count > 0
-                && this.nextGroundItemNumber + items.Count - 1 > ushort.MaxValue)
-            {
-                throw new InvalidOperationException(
-                    "The dungeon cell exhausted its stable ground-item number space.");
-            }
+            if (items.Any(draft => draft.Count <= 0))
+                throw new ArgumentOutOfRangeException(nameof(items), "Ground item count must be positive.");
+            var first = this.allocateGroundItemNumbers(items.Count);
 
             var added = new List<DungeonGroundItem>(items.Count);
             for (var index = 0; index < items.Count; index++)
             {
                 var draft = items[index];
-                if (draft.Count <= 0)
-                    throw new ArgumentOutOfRangeException(nameof(items), "Ground item count must be positive.");
                 added.Add(new DungeonGroundItem(
-                    checked((ushort)(this.nextGroundItemNumber + index)),
+                    checked((ushort)(first + index)),
                     draft.ItemId,
                     draft.Count,
                     draft.Durability,
@@ -1724,7 +1744,6 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
             foreach (var item in added)
                 this.groundItems.Add(item.Number, item);
-            this.nextGroundItemNumber += added.Count;
             return added;
         }
 
