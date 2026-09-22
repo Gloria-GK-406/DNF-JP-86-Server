@@ -6,6 +6,8 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
 
+using Dfo.Server.Protocol.Game.StateSynchronization;
+
 namespace Dfo.Server.Protocol.Game.CardReward;
 
 /// <summary>Projects one committed shared card snapshot and the actor's private durable deltas.</summary>
@@ -63,6 +65,8 @@ public sealed class DungeonCardSelectionProjectionDelivery(
             actorFrames.Add(GameInventoryDelivery.CarriedGoldNotification(
                 result.GoldCarried, preparedAt));
         }
+
+        actorFrames.Add(new PremiumServiceStateMessage(result.Entitlements, result.Usage, preparedAt));
 
         IReadOnlyList<IGameServerMessage> required = targets.Any(target => target == actor)
             ? actorFrames

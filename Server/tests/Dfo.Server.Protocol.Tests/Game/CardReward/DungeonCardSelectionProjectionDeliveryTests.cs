@@ -40,7 +40,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
             DateTimeOffset.UnixEpoch,
             default);
 
-        Assert.Empty(world.Sender.For(Leader.ConnectionId));
+        Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(Assert.Single(world.Sender.For(Leader.ConnectionId)));
         Assert.Empty(world.Sender.For(Helper.ConnectionId));
     }
 
@@ -73,7 +73,8 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
         Assert.Equal(
             change.Selections,
             Assert.IsType<SelectCardResponse>(Assert.Single(
-                world.Sender.For(Leader.ConnectionId))).Selections);
+                world.Sender.For(Leader.ConnectionId).OfType<SelectCardResponse>())).Selections);
+        Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(world.Sender.For(Leader.ConnectionId).Last());
         Assert.Equal(
             change.Selections,
             Assert.IsType<SelectCardResponse>(Assert.Single(
@@ -109,7 +110,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
             DateTimeOffset.UnixEpoch,
             default);
 
-        Assert.Single(world.Sender.For(Leader.ConnectionId));
+        Assert.Equal(2, world.Sender.For(Leader.ConnectionId).Count);
         Assert.Empty(world.Sender.For(Helper.ConnectionId));
         Assert.Empty(world.Sender.For(replacement.ConnectionId));
     }

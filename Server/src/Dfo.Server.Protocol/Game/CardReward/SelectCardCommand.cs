@@ -107,6 +107,8 @@ public sealed record SelectCardResult(
     DungeonCardSelectionCommit? SelectionCommit = null,
     AccountMaterialChange? AccountMaterial = null)
 {
+    public AccountEntitlementEntryState Entitlements { get; init; } = new([]);
+    public IReadOnlyList<CharacterPremiumUsageSlotState> Usage { get; init; } = [];
     public DungeonCardSelectionChange? Change => this.SelectionCommit?.Change ?? this.StaticChange;
 
     public static SelectCardResult Refused(
@@ -160,7 +162,8 @@ public sealed class SelectCardCommandHandler(
     ICharacterContainerDomainService containers,
     ICharacterDomainService characters,
     TimeProvider clock,
-    IItemGrantDomainService itemGrants) : ICommandHandler<SelectCardCommand, SelectCardResult>
+    IItemGrantDomainService itemGrants,
+    ICardFlipCostDomainService flipCosts) : ICommandHandler<SelectCardCommand, SelectCardResult>
 {
     public async ValueTask<SelectCardResult> HandleAsync(
         CommandExecutionContext context,
@@ -243,7 +246,8 @@ public sealed class SelectCardCommandHandler(
                 carried,
                 StaticChange: null,
                 SelectionCommit: commit,
-                AccountMaterial: delivery?.AccountMaterial);
+                AccountMaterial: delivery?.AccountMaterial)
+            { Entitlements = charge.Settlement!.Entitlements, Usage = charge.Settlement.Usage };
         }
         catch
         {
@@ -252,59 +256,26 @@ public sealed class SelectCardCommandHandler(
         }
     }
 
-    /// <summary>
-    /// Takes what this flip costs, or says why it cannot be taken.
-    /// </summary>
-    /// <remarks>
-    /// A free flip costs nothing and asks nothing: the price is the paid flip's, and going to the
-    /// settlement for one on every flip would put a question about this clear on a path that has
-    /// none.
-    /// <para>
-    /// <b>The price taken here is the one the clear settled at, not the one this moment would be
-    /// quoted.</b> It was fixed with the faces and travels with them, so what is charged is what
-    /// the result screen announced -- including when the clear's own experience moved the
-    /// character across a band of the cost table between the announcement and the click.
-    /// </para>
-    /// <para>
-    /// <b>It comes from the settlement, which is the only thing that may read it.</b> A command
-    /// handler asking the rule service itself would be a second reader of the table that service
-    /// owns. Settling again is safe here and is not what fixes this clear's cards: the caller has
-    /// already established that they are fixed, and a settlement that finds them fixed hands back
-    /// the ones it finds -- and the price fixed beside them, without reaching the archive at all.
-    /// That order is the whole of why this is neither a redraw nor a re-quote.
-    /// </para>
-    /// </remarks>
-    private async ValueTask<(SelectCardStatus? Refusal, int Price, int Carried)> ChargeAsync(
-        SelectCardCommand command,
-        DungeonRunId runId,
-        CancellationToken cancellationToken)
+    /// <summary>Uses the clear's fixed base price and settles the actor's discount in the award transaction.</summary>
+    private async ValueTask<(SelectCardStatus? Refusal, int Price, int Carried, CardFlipCostSettlement? Settlement)> ChargeAsync(
+        SelectCardCommand command, DungeonRunId runId, CancellationToken cancellationToken)
     {
-        if (command.Kind is not ClearRewardCardKind.Paid)
+        int? basePrice = 0;
+        if (command.Kind == ClearRewardCardKind.Paid)
         {
-            return (null, 0,
-                await characters.Get(command.CharacterId).GoldAsync(cancellationToken)
-                    .ConfigureAwait(false));
+            var current = await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
+            if (current is null) return (SelectCardStatus.NotPriced, 0, 0, null);
+            var settled = await cards.SettleAsync(
+                new ClearRewardSettlement(command.CharacterId, current.Level, RunId: runId), cancellationToken).ConfigureAwait(false);
+            basePrice = settled?.PaidFlipCost;
         }
-
-        var current = await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
-        if (current is null)
-            return (SelectCardStatus.NotPriced, 0, 0);
-        var settled = await cards.SettleAsync(
-            new ClearRewardSettlement(command.CharacterId, current.Level, RunId: runId),
-            cancellationToken).ConfigureAwait(false);
-
-        if (settled?.PaidFlipCost is not { } price || price < 0)
-            return (SelectCardStatus.NotPriced, 0, 0);
-
-        var left = await characters.Get(command.CharacterId)
-            .TrySpendGoldAsync(price, cancellationToken)
-            .ConfigureAwait(false);
-
-        // Null is the store refusing, and a refusal there changed nothing -- which is what makes
-        // this a refusal here too rather than a flip the player was let off paying for.
-        return left is null
-            ? (SelectCardStatus.NotEnoughGold, 0, 0)
-            : (null, price, left.Value);
+        var cost = await flipCosts.SettleAsync(command.AccountId, command.CharacterId, command.Kind,
+            basePrice, cancellationToken).ConfigureAwait(false);
+        if (cost is null) return (SelectCardStatus.NotPriced, 0, 0, null);
+        int? left = cost.Gold == 0
+            ? await characters.Get(command.CharacterId).GoldAsync(cancellationToken).ConfigureAwait(false)
+            : await characters.Get(command.CharacterId).TrySpendGoldAsync(cost.Gold, cancellationToken).ConfigureAwait(false);
+        return left is null ? (SelectCardStatus.NotEnoughGold, 0, 0, null) : (null, cost.Gold, left.Value, cost);
     }
 
     /// <summary>

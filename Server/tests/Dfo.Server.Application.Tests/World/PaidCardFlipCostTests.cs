@@ -434,7 +434,7 @@ public sealed class PaidCardFlipCostTests
                 new OneBag(this.Bag),
                 new OneCharacter(new RealCarriedGold(this._carried)),
                 TimeProvider.System,
-                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
+                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new BaseCost());
         }
 
         /// <summary>
@@ -649,4 +649,12 @@ public sealed class PaidCardFlipCostTests
         public void Clear(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
     }
+    private sealed class BaseCost : ICardFlipCostDomainService
+    {
+        public ValueTask<CardFlipCostSettlement?> SettleAsync(AccountId account, CharacterId character,
+            ClearRewardCardKind kind, int? price, CancellationToken token) =>
+            ValueTask.FromResult<CardFlipCostSettlement?>(kind == ClearRewardCardKind.Paid && (price is null || price < 0)
+                ? null : new(kind == ClearRewardCardKind.Free ? 0 : price!.Value, new([]), []));
+    }
+
 }

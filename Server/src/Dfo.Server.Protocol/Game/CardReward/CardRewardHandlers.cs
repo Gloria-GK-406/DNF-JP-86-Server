@@ -8,6 +8,8 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Protocol.Game.StateSynchronization;
+
 namespace Dfo.Server.Protocol.Game.CardReward;
 
 /// <summary>
@@ -190,6 +192,8 @@ public sealed class SelectCardHandler(
 
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
             frames.Add(GameInventoryDelivery.CarriedGoldNotification(result.GoldCarried, preparedAt));
+
+        frames.Add(new PremiumServiceStateMessage(result.Entitlements, result.Usage, preparedAt));
 
         return frames;
     }

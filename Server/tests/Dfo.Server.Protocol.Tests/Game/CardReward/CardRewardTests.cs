@@ -564,7 +564,7 @@ public sealed class CardRewardTests
 
         var answer = Assert.IsType<SelectCardResponse>(sender.Sent[0]);
         Assert.Equal(0, answer.TurnedColumn);
-        AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
+        AssertCarriedGold(sender.Sent[^2], StartingGold + FaceGold);
     }
 
     /// <summary>A second flip of the same position is answered with nothing at all.</summary>
@@ -678,7 +678,8 @@ public sealed class CardRewardTests
             exchange,
             first => Assert.IsType<SelectCardResponse>(first),
             second => Assert.IsType<InventoryDeltaMessage>(second),
-            third => AssertCarriedGold(third, StartingGold + FaceGold));
+            third => AssertCarriedGold(third, StartingGold + FaceGold),
+            fourth => Assert.IsType<Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceStateMessage>(fourth));
     }
 
     /// <summary>
@@ -743,7 +744,7 @@ public sealed class CardRewardTests
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
 
         Assert.IsType<SelectCardResponse>(sender.Sent[0]);
-        AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
+        AssertCarriedGold(sender.Sent[^2], StartingGold + FaceGold);
         Assert.Equal(FirstItemId, world.Bag.Slots[Bag.OpenedSlot].ItemId);
     }
 
@@ -769,7 +770,7 @@ public sealed class CardRewardTests
 
         var told = Assert.IsType<SelectCardResponse>(sender.Sent[0]);
         Assert.Equal(0, told.TurnedColumn);
-        AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
+        AssertCarriedGold(sender.Sent[^2], StartingGold + FaceGold);
     }
 
     /// <summary>
@@ -1178,7 +1179,7 @@ public sealed class CardRewardTests
                 new StubContainers(bagBound ? this.Bag : null),
                 new OnePlayingCharacter(this.Gold),
                 new FixedClock(Flipped),
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new BaseCost());
 
             if (!inARun)
                 return;
@@ -1641,4 +1642,12 @@ public sealed class CardRewardTests
     {
         public override DateTimeOffset GetUtcNow() => now;
     }
+    private sealed class BaseCost : ICardFlipCostDomainService
+    {
+        public ValueTask<CardFlipCostSettlement?> SettleAsync(AccountId account, CharacterId character,
+            ClearRewardCardKind kind, int? price, CancellationToken token) =>
+            ValueTask.FromResult<CardFlipCostSettlement?>(kind == ClearRewardCardKind.Paid && (price is null || price < 0)
+                ? null : new(kind == ClearRewardCardKind.Free ? 0 : price!.Value, new([]), []));
+    }
+
 }

@@ -227,6 +227,7 @@ public sealed class ApplicationModule : IServerModule
         // above the rules because how many faces a clear has, and which facts each is drawn from,
         // is a question about the world -- which the rules are not allowed to ask.
         services.TryAddSingleton<ICardRewardDomainService, CardRewardDomainService>();
+        services.TryAddSingleton<ICardFlipCostDomainService, CardFlipCostDomainService>();
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();

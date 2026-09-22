@@ -13,6 +13,7 @@ public sealed class PvfPremiumDurationTests
         var levels = new PvfPremiumServiceDefinitionSource(provider).ReadContractLevels();
         Assert.Equal(10, new PvfPremiumServiceDefinitionSource(provider).ReadFreeWeaknessDailyLimit());
         Assert.Equal(6, new PvfPremiumServiceDefinitionSource(provider).ReadAutoRepairDailyLimit());
+        Assert.Equal(10, new PvfPremiumServiceDefinitionSource(provider).ReadFreeGoldCardDailyLimit());
         Assert.Equal(5, levels.ExpertSkill);
         Assert.Equal(10, levels.OverEquipment);
         var terms = PvfPackageOpeningDefinitionSource.ParsePremiums(

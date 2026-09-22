@@ -87,6 +87,7 @@ public sealed class PremiumContractTests
     private sealed class Levels : IPremiumServiceDefinitionSource
     {
         public int ReadFreeWeaknessDailyLimit() => 10;
+        public int ReadFreeGoldCardDailyLimit() => 10;
         public int ReadAutoRepairDailyLimit() => 6;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
     }

@@ -6,6 +6,7 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource
 {
     public int ReadFreeWeaknessDailyLimit() => ReadDailyLimit("[free_stamina]");
+    public int ReadFreeGoldCardDailyLimit() => ReadDailyLimit("[plus_goldcard]");
     public int ReadAutoRepairDailyLimit() => ReadDailyLimit("[auto_repair]");
     private int ReadDailyLimit(string name)
     {
