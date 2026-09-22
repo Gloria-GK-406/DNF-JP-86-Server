@@ -90,6 +90,7 @@ public sealed class WeaknessGoldRecoveryTests
             await Recover(shop, 1);
             Assert.Equal(100, state.Value);
             Assert.Equal(100000, shop.Gold);
+            Assert.Equal(shop.Gold, shop.Sender.Messages.OfType<RecoverStaminaResponse>().Last().Gold);
             Assert.Equal(i, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_free_weakness_used'"));
             Assert.Equal(i, (await shop.Services.GetRequiredService<IPremiumServiceUsageDomainService>()
                 .ReadAsync(shop.Session.CharacterId, default)).Single(x => x.SlotIndex == 5).UsedCount);
@@ -228,6 +229,7 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Sender.BeforeSend = () => { Assert.Equal(43470, shop.Gold); Assert.Equal(100, state.Value); };
         await Recover(shop);
         Assert.Equal(3, shop.Sender.Messages.Count);
+        Assert.Equal(shop.Gold, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).Gold);
         Assert.Equal(0, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).ErrorCode);
         await Recover(shop);
         Assert.Equal(18, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).ErrorCode);

@@ -24,7 +24,7 @@ public sealed record RecoverStaminaRequest(GameMessageMetadata Metadata, ushort 
     public ClientMessageType MessageType => ClientMessageType.GameRecoverStamina;
 }
 
-public sealed record RecoverStaminaResponse(byte ErrorCode = 0) : IGameCmdMessage
+public sealed record RecoverStaminaResponse(byte ErrorCode = 0, int Gold = 0) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameRecoverStamina;
 }
@@ -40,8 +40,16 @@ internal sealed class RecoverStaminaDecoder : IGameMessageDecoder
 
 internal sealed class RecoverStaminaEncoder : GameCmdMessageEncoder<RecoverStaminaResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(RecoverStaminaResponse message) =>
-        OnePayload(0x0009, message.ErrorCode == 0 ? new byte[] { 1 } : new byte[] { 0, message.ErrorCode });
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(RecoverStaminaResponse message)
+    {
+        if (message.ErrorCode != 0)
+            return OnePayload(0x0009, new byte[] { 0, message.ErrorCode });
+        // A21 reads the authoritative balance after the success byte, even for free recovery.
+        var body = new byte[5];
+        body[0] = 1;
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(1), checked((uint)message.Gold));
+        return OnePayload(0x0009, body);
+    }
 }
 
 public sealed record RecoverStaminaCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, ushort Mode)
@@ -84,8 +92,9 @@ public sealed class RecoverStaminaCommandHandler(
             var entitlements = new AccountEntitlementEntryState(await premiums.For(session.AccountId)
                 .ReadAsync(cancellationToken).ConfigureAwait(false));
             var usage = await premiumUsage.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+            var currentGold = await characters.Get(session.CharacterId).GoldAsync(cancellationToken).ConfigureAwait(false);
             state.Recover();
-            return new(0) { Entitlements = entitlements, Usage = usage };
+            return new(0, currentGold) { Entitlements = entitlements, Usage = usage };
         }
         var cost = await state.RecoveryGoldCost(cancellationToken).ConfigureAwait(false);
         var gold = await characters.Get(session.CharacterId).TrySpendGoldAsync(cost, cancellationToken)
@@ -112,10 +121,10 @@ public sealed class StaminaRecoveredHandler(ISelectedSessionDomainService sessio
             && recipient.ConnectionId == notification.Session.ConnectionId
             && sessions.FindByCharacter(notification.Session.CharacterId) == notification.Session
                 ? notification.Entitlements is { } entitlements
-                    ? [new WeaknessProjectionNotification(100), new RecoverStaminaResponse(),
+                    ? [new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold),
                         new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt)]
                     : [GameInventoryDelivery.CarriedGoldNotification(notification.Gold, notification.PreparedAt),
-                        new WeaknessProjectionNotification(100), new RecoverStaminaResponse()]
+                        new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold)]
                 : []);
 }
 

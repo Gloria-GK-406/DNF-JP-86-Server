@@ -27,7 +27,16 @@ public sealed class RecoverStaminaProtocolTests
     }
 
     [Theory]
-    [InlineData(0, "01")]
+    [InlineData(1391, "016F050000")]
+    [InlineData(100000, "01A0860100")]
+    public void Success_carries_the_balance_read_by_the_client(int gold, string body)
+    {
+        var frame = Assert.Single(new RecoverStaminaEncoder().Encode(new RecoverStaminaResponse(Gold: gold)));
+        Assert.Equal(Convert.FromHexString(body), frame[15..]);
+    }
+
+    [Theory]
+    [InlineData(0, "0100000000")]
     [InlineData(18, "0012")]
     [InlineData(22, "0016")]
     [InlineData(4, "0004")]

@@ -150,7 +150,7 @@
 | `0x00` NOTI | `0x03C1` | `EQUIPMENT_RENTAL_LIST`（A21 号，A12 为 `0x0357`） | Notification | 实现服务端功能 | [NOTI-0x03C1.md](game/server-to-client/NOTI-0x03C1.md) |
 | `0x00` NOTI | `0x0465` | `EPIC_BOOK_INFO` | Notification | 实现服务端功能 | [NOTI-0x0465.md](game/server-to-client/NOTI-0x0465.md) |
 | `0x01` CMD | `0x0239` | `SET_CLONE_TITLE`（闸点之后） | Notification-shaped CMD | 实现服务端功能 | [0x0239.md](game/client-to-server/0x0239.md) |
-| `0x01` CMD | `0x0009` | `RECOVER_STAMINA` | Request / response | 金币恢复ClientVerified；契约模式已实现每日10次、待实机（2026-09-22） | [0x0009.md](game/client-to-server/0x0009.md) |
+| `0x01` CMD | `0x0009` | `RECOVER_STAMINA` | Request / response | 恢复与契约额度已有实机；成功ACK补齐u32金币余额，修复待实机（2026-09-22） | [0x0009.md](game/client-to-server/0x0009.md) |
 | `0x01` CMD | `0x036F` | `PREMIUM_SERVICE`（A21 号，A12 为 `0x0312`） | Notification-shaped CMD | 购买提交后及正常入场结束发送完整快照；续期/重登期限显示ClientVerified（2026-09-22用户实测） | [CMD-0x036F.md](game/server-to-client/CMD-0x036F.md) |
 
 角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
