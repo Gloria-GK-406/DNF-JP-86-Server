@@ -3,6 +3,8 @@ namespace Dfo.Server.Abstractions.Accounts;
 public interface IPremiumServiceRuleService
 {
     int DoublePotDailyLimit { get; }
+    int DoublePotTotalDailyLimit { get; }
+    int DoublePotRenewedUsage(int totalUsed);
     bool SupportsDoublePot(int itemId);
     int FreeWeaknessDailyLimit { get; }
     int DungeonBuffDailyLimit { get; }

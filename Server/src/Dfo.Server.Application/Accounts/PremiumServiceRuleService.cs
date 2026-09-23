@@ -7,6 +7,9 @@ internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource 
 {
     private readonly Lazy<DoublePotRules> doublePot = new(source.ReadDoublePotRules);
     public int DoublePotDailyLimit => doublePot.Value.DailyLimit;
+    public int DoublePotTotalDailyLimit => 30;
+    public int DoublePotRenewedUsage(int totalUsed) => DoublePotDailyLimit
+        - Math.Clamp(DoublePotTotalDailyLimit - totalUsed, 0, DoublePotDailyLimit);
     public bool SupportsDoublePot(int itemId) => doublePot.Value.PotIds.Contains(itemId);
     private readonly Lazy<int> freeGoldCardLimit = new(source.ReadFreeGoldCardDailyLimit);
     public int FreeGoldCardDailyLimit => freeGoldCardLimit.Value;

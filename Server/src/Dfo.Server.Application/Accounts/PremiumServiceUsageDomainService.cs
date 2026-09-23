@@ -12,6 +12,7 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
     IDomainTransactionAccessor transactions, TimeProvider clock) : IPremiumServiceUsageDomainService
 {
     public DateTimeOffset CurrentPeriodStart => days.PeriodStart(clock.GetUtcNow());
+    private const string DoublePotTotal = "lottery_double_reward_total_used";
     private const string DoublePot = "lottery_double_reward_used";
     private const string FreeGoldCard = "premium_free_gold_card_used";
     private const string DungeonBuff = "premium_dungeon_buff_used";
@@ -30,8 +31,44 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
         var buff = CurrentUsage(await counters.ReadAsync(id, DungeonBuff, token).ConfigureAwait(false), now);
         return [new(0, goldCard), new(1, lottery), new(3, buff), new(5, weakness), new(6, repair)];
     }
-    public ValueTask<bool> TryUseDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
-        TryUseAsync(accountId, id, DoublePot, PremiumBenefit.DoublePot, rules.DoublePotDailyLimit, token);
+    public async ValueTask<bool> TryUseDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token)
+    {
+        if (transactions.Current is null) throw new InvalidOperationException("Premium consumption requires a transaction.");
+        if (!await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false)
+            || !await premiums.For(accountId).HasBenefitAsync(PremiumBenefit.DoublePot, token).ConfigureAwait(false))
+            return false;
+        var now = clock.GetUtcNow();
+        var round = await counters.ReadAsync(id, DoublePot, token).ConfigureAwait(false);
+        var total = await counters.ReadAsync(id, DoublePotTotal, token).ConfigureAwait(false);
+        var used = CurrentUsage(round, now);
+        // Before the cumulative counter existed, the round count was the day's actual usage.
+        var totalUsed = CurrentUsage(total ?? round, now);
+        if (used >= rules.DoublePotDailyLimit || totalUsed >= rules.DoublePotTotalDailyLimit) return false;
+        await WriteRequiredAsync(id, DoublePot, round, used + 1, now, token).ConfigureAwait(false);
+        await WriteRequiredAsync(id, DoublePotTotal, total, totalUsed + 1, now, token).ConfigureAwait(false);
+        return true;
+    }
+
+    public async ValueTask RenewDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token)
+    {
+        if (transactions.Current is null) throw new InvalidOperationException("Premium renewal requires a transaction.");
+        if (!await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false))
+            throw new InvalidOperationException("Premium renewal character does not belong to the account.");
+        var now = clock.GetUtcNow();
+        var round = await counters.ReadAsync(id, DoublePot, token).ConfigureAwait(false);
+        var total = await counters.ReadAsync(id, DoublePotTotal, token).ConfigureAwait(false);
+        var totalUsed = CurrentUsage(total ?? round, now);
+        // Persist the legacy baseline before replacing the round with a quota projection.
+        await WriteRequiredAsync(id, DoublePotTotal, total, totalUsed, now, token).ConfigureAwait(false);
+        await WriteRequiredAsync(id, DoublePot, round, rules.DoublePotRenewedUsage(totalUsed), now, token).ConfigureAwait(false);
+    }
+
+    private async ValueTask WriteRequiredAsync(CharacterId id, string key, PremiumServiceUsageRow? expected,
+        int used, DateTimeOffset now, CancellationToken token)
+    {
+        if (await counters.TryWriteAsync(id, key, expected, used, now, token).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("Premium usage changed during settlement.");
+    }
     public ValueTask<bool> TryUseFreeWeaknessRecoveryAsync(AccountId accountId, CharacterId id, CancellationToken token) =>
         TryUseAsync(accountId, id, FreeWeakness, PremiumBenefit.FreeWeaknessRecovery, rules.FreeWeaknessDailyLimit, token);
     public ValueTask<bool> TryUseFreeGoldCardAsync(AccountId accountId, CharacterId id, CancellationToken token) =>

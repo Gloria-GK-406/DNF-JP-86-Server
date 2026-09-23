@@ -66,6 +66,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         foreach (var subscription in quote.Subscriptions)
             await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
                 cancellationToken).ConfigureAwait(false);
+        if (quote.Subscriptions.Any(subscription => subscription.Service == PremiumServiceType.DoublePot))
+            await premiumUsage.RenewDoublePotAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         foreach (var write in plan.Writes)
         {
             if (write.CreationFacts is { } facts)

@@ -231,6 +231,82 @@ public sealed class LotteryOpeningTests
         Assert.Equal(0, Used(shop)); Assert.Equal(1, shop.Host.Count(other)); Assert.Equal(3, shop.Host.Count(7110));
     }
 
+    private static int TotalUsed(CeraShopFixture shop) => shop.Host.Scalar(
+        "SELECT COALESCE(MAX(value),0) FROM character_daily_counters WHERE counter_key='lottery_double_reward_total_used'");
+
+    private static void SeedUsage(CeraShopFixture shop, int total, int round = 8)
+    {
+        var timestamp = shop.Host.Clock.GetUtcNow().ToUnixTimeMilliseconds();
+        shop.Host.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',{round},{timestamp}),(1,'lottery_double_reward_total_used',{total},{timestamp})");
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(8, 0)]
+    [InlineData(22, 0)]
+    [InlineData(24, 2)]
+    [InlineData(29, 7)]
+    [InlineData(30, 8)]
+    [InlineData(31, 8)]
+    public async Task Purchase_recalculates_round_projection_without_erasing_total(int total, int projected)
+    {
+        using var shop = Fixture(); Subscribe(shop); SeedUsage(shop, total);
+        var result = await shop.Buy(CeraShopTestContent.Entry(100539));
+        Assert.NotNull(result.Receipt);
+        Assert.Equal(projected, Used(shop)); Assert.Equal(total, TotalUsed(shop));
+        Assert.Equal(projected, result.Receipt!.PremiumUsageSlots.Single(x => x.SlotIndex == 1).UsedCount);
+        await shop.Buy(CeraShopTestContent.Entry(100539));
+        Assert.Equal(projected, Used(shop)); Assert.Equal(total, TotalUsed(shop));
+    }
+
+    [Fact]
+    public async Task Final_round_grants_six_then_renewal_cannot_bypass_thirty_and_next_day_resets_both()
+    {
+        using var shop = Fixture(); Subscribe(shop); SeedUsage(shop, 24);
+        await shop.Host.Seed(65, 7110, 10);
+        await shop.Buy(CeraShopTestContent.Entry(100539));
+        for (ushort seq = 1; seq <= 6; seq++) await Command(shop, seq, 1);
+        Assert.Equal(8, Used(shop)); Assert.Equal(30, TotalUsed(shop));
+        await shop.Buy(CeraShopTestContent.Entry(100539));
+        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, 7, 1));
+        // Even a stale or corrupted round projection cannot bypass the cumulative guard.
+        shop.Host.Sql("UPDATE character_daily_counters SET value=0 WHERE counter_key='lottery_double_reward_used'");
+        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, 8, 1));
+        await Command(shop, 9, 0);
+        Assert.Equal(30, TotalUsed(shop));
+        shop.Host.Clock.Advance(TimeSpan.FromDays(1));
+        await Command(shop, 10, 1);
+        Assert.Equal(1, Used(shop)); Assert.Equal(1, TotalUsed(shop));
+    }
+
+    [Fact]
+    public async Task First_renewal_preserves_legacy_usage_and_failed_purchase_rolls_everything_back()
+    {
+        using var shop = Fixture(); Subscribe(shop);
+        var timestamp = shop.Host.Clock.GetUtcNow().ToUnixTimeMilliseconds();
+        shop.Host.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',8,{timestamp})");
+        shop.Host.Sql("CREATE TRIGGER reject_round BEFORE UPDATE ON character_daily_counters WHEN NEW.counter_key='lottery_double_reward_used' BEGIN SELECT RAISE(ABORT,'blocked'); END");
+        await Assert.ThrowsAnyAsync<Exception>(() => shop.Buy(CeraShopTestContent.Entry(100539)));
+        Assert.Equal(100000, shop.Cera); Assert.Equal(8, Used(shop)); Assert.Equal(0, TotalUsed(shop));
+        Assert.Equal(0, shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums WHERE end_time<>4000000000"));
+        shop.Host.Sql("DROP TRIGGER reject_round");
+        await shop.Buy(CeraShopTestContent.Entry(100539));
+        Assert.Equal(0, Used(shop)); Assert.Equal(8, TotalUsed(shop));
+    }
+
+    [Fact]
+    public async Task Cumulative_write_failure_rolls_back_round_pot_and_reward()
+    {
+        using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 2);
+        shop.Host.Sql("CREATE TRIGGER reject_total BEFORE INSERT ON character_daily_counters WHEN NEW.counter_key='lottery_double_reward_total_used' BEGIN SELECT RAISE(ABORT,'blocked'); END");
+        await Assert.ThrowsAnyAsync<Exception>(() => Command(shop, 1, 1));
+        Assert.Equal(0, Used(shop)); Assert.Equal(0, TotalUsed(shop));
+        Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(0, shop.Host.Count(20002));
+        shop.Host.Sql("DROP TRIGGER reject_total");
+        await Command(shop, 1, 1);
+        Assert.Equal(1, Used(shop)); Assert.Equal(1, TotalUsed(shop));
+    }
+
     private sealed class CostSource(IPackageOpeningDefinitionSource inner) : IPackageOpeningDefinitionSource
     {
         public async ValueTask<OpeningPackageDefinition?> GetAsync(int id, CancellationToken token)

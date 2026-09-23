@@ -4,6 +4,7 @@ namespace Dfo.Server.Abstractions.Accounts;
 
 public interface IPremiumServiceUsageDomainService
 {
+    ValueTask RenewDoublePotAsync(AccountId accountId, CharacterId characterId, CancellationToken token);
     ValueTask<bool> TryUseDoublePotAsync(AccountId accountId, CharacterId characterId, CancellationToken token);
     ValueTask<bool> TryUseFreeGoldCardAsync(AccountId accountId, CharacterId characterId, CancellationToken token);
     ValueTask<bool> TryUseDungeonBuffAsync(AccountId accountId, CharacterId characterId, CancellationToken token);
