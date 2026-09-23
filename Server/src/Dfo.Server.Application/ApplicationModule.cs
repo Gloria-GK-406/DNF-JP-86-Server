@@ -197,7 +197,10 @@ public sealed class ApplicationModule : IServerModule
         // DropRules. The compensation seam below stays outside it, because what a character is
         // owed is state that crosses runs.
         services.TryAddSingleton<IDropRuleService, DropRuleService>();
-        services.TryAddSingleton<IIndependentDropRuleService, IndependentDropRuleService>();
+        services.TryAddSingleton<IIndependentDropRuleService>(provider => new IndependentDropRuleService(
+            provider.GetRequiredService<IIndependentDropTableSource>(),
+            () => provider.GetRequiredService<ICharacterDomainService>(),
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IndependentDropRuleService>>()));
         services.TryAddSingleton<IExtraDropRuleService, ExtraDropRuleService>();
         services.TryAddSingleton<IWorldDropRuleService, WorldDropRuleService>();
         services.TryAddSingleton<IMonsterDeclaredDropRuleService, MonsterDeclaredDropRuleService>();

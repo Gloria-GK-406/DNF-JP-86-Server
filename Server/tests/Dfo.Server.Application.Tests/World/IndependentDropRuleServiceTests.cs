@@ -13,6 +13,18 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class IndependentDropRuleServiceTests
 {
+    [Fact]
+    public void Production_registration_prewarms_without_resolving_character_runtime()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IIndependentDropTableSource>(new Source(Row()));
+        new ApplicationModule().ConfigureServices(services,
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        using var provider = services.BuildServiceProvider();
+        Assert.Equal(1, provider.GetRequiredService<IIndependentDropRuleService>().Initialize());
+    }
+
     private static IndependentDropRow Row(int source = 0, int item = 100, int ordinal = 0,
         int min = 0, int max = 0, int mode = 0, ImmutableArray<IndependentDropChoice> choices = default) =>
         new(ordinal, [source, 17, item, 0, 1000000, 3500000, 1000000, 1000000,
