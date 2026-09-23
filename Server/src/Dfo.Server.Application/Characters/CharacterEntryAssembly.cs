@@ -57,7 +57,7 @@ internal sealed class CharacterEntryAssembly(
     IMailboxRecipientTable mailboxRecipients,
     IMailboxMessageTable mailboxMessages,
     IMailboxAttachmentTable mailboxAttachments,
-    IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices) : ICharacterEntryStateRepository
+    IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices, ICharacterSkillBuildTable skillBuilds) : ICharacterEntryStateRepository
 {
     /// <summary>How many of the inbox a character is shown on entry.</summary>
     private const int InboxPageSize = 20;
@@ -178,8 +178,10 @@ internal sealed class CharacterEntryAssembly(
             throw new InvalidDataException("Character hotkey state is out of range.");
         }
 
+        var builds = await skillBuilds.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var projectedTree = builds.IsUnlocked(new(1)) ? builds.Active.Value : -1;
         RequireProfileInRange(conditionState, settingsState, pvpState, expertJobState,
-            statsState, guildState, row.SkillTreeIndex,
+            statsState, guildState, projectedTree,
             row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel);
         var dimensionRows = new List<(int, long, int, int)>();
         foreach (var dimension in await dimensions.ReadAsync(characterId, cancellationToken)
@@ -208,7 +210,7 @@ internal sealed class CharacterEntryAssembly(
             checked((byte)row.Job), checked((byte)row.Level),
             checked((uint)row.CloneTitleItemId), row.Appearance,
             conditionState, settingsState, pvpState, expertJobState, statsState, guildState,
-            row.SkillTreeIndex, row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel,
+            projectedTree, row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel,
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
             row.Experience, row.ExtraEquipSlotStat, dimensionRows, flagValues,
             checked((byte)pvpRow.PvpGrade), checked((byte)pvpRow.PvpRatingGrade),

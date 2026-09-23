@@ -197,7 +197,7 @@ internal sealed class CharacterSide
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
                 new SqlitePremiumServiceUsageTable(this.database),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
-                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System));
+                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System), new SqliteCharacterSkillBuildTable(this.database));
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

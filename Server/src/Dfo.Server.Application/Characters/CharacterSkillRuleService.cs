@@ -213,7 +213,7 @@ internal static class SkillPointLedgerRules
         var grants = definitions.FreeGrants.GroupBy(grant => grant.SkillId)
             .ToDictionary(group => group.Key, group => (int)group.Max(grant => grant.Level));
         var missing = new HashSet<int>();
-        (long Sp, long Tp) Balance(byte pageIndex)
+        CharacterSkillPointBudget Balance(int pageIndex)
         {
             long sp = (long)definitions.TotalSp + basis.BonusSp;
             long tp = (long)definitions.TotalTp + basis.BonusTp;
@@ -231,10 +231,10 @@ internal static class SkillPointLedgerRules
                 sp = checked(sp - Math.Max(0, rule.GetSP(learned.Level) - rule.GetSP(free)));
                 tp = checked(tp - Math.Max(0, rule.GetTP(learned.Level) - rule.GetTP(free)));
             }
-            return (sp, tp);
+            return new(sp, tp);
         }
-        var first = Balance(0);
-        var second = Balance(1);
-        return new(first.Sp, second.Sp, first.Tp, second.Tp, missing);
+        var balances = pages.Select(page => page.PageIndex).Append(0).Append(1).Distinct()
+            .ToDictionary(id => id, Balance);
+        return new(balances, missing);
     }
 }

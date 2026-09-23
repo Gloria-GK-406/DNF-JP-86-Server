@@ -48,7 +48,7 @@ public sealed class CurrentCharacterStateTests
         var rolledBack = await ReadAsync(character);
         Assert.Same(baselineStat, rolledBack.Stats);
         Assert.Equal(baseline.Progress, rolledBack.Progress);
-        Assert.Equal(baseline.Ledger.Page0Sp, rolledBack.Ledger!.Page0Sp);
+        Assert.Equal(baseline.Ledger.For(new(0)).Sp, rolledBack.Ledger!.For(new(0)).Sp);
         Assert.Equal(2, Assert.Single(rolledBack.Learned![0].Skills).Level);
         Assert.True(rolledBack.Ledger.IsComplete);
         Assert.Equal(1, (await fixture.Entry.LoadAsync(Account, Id, default)).Public.Extras.SkillTreeIndex);
@@ -65,10 +65,10 @@ public sealed class CurrentCharacterStateTests
         var afterCommit = await ReadAsync(character);
         Assert.Equal(afterCommit.Stats, afterReload.Stats);
         Assert.Equal(afterCommit.Progress, afterReload.Progress);
-        Assert.Equal(afterCommit.Ledger!.Page0Sp, afterReload.Ledger!.Page0Sp);
-        Assert.Equal(afterCommit.Ledger.Page1Tp, afterReload.Ledger.Page1Tp);
+        Assert.Equal(afterCommit.Ledger!.For(new(0)).Sp, afterReload.Ledger!.For(new(0)).Sp);
+        Assert.Equal(afterCommit.Ledger.For(new(1)).Tp, afterReload.Ledger.For(new(1)).Tp);
         Assert.Equal([999999], afterReload.Ledger.MissingSkillIds);
-        Assert.Equal(70002, afterReload.Ledger.Page0Tp);
+        Assert.Equal(70002, afterReload.Ledger.For(new(0)).Tp);
         Assert.Equal(65535, (await reloaded.Character.RemainingSkillPointsAsync(default))!.Page0Tp);
         var stored = await reloaded.Services.GetRequiredService<ICharacterEntryStateRepository>().LoadAsync(Account, Id, default);
         Assert.Equal(17, stored.Profile.DerivedStats.HpMaximum);
@@ -152,8 +152,8 @@ public sealed class CurrentCharacterStateTests
         Assert.Contains(state.Learned[0].Skills, skill => skill.SkillId == 999999 && skill.Level == 2);
         Assert.False(state.Ledger!.IsComplete);
         Assert.Equal([999999], state.Ledger.MissingSkillIds);
-        Assert.True(state.Ledger.Page0Sp < 0);
-        Assert.True(state.Ledger.Page0Tp > ushort.MaxValue);
+        Assert.True(state.Ledger.For(new(0)).Sp < 0);
+        Assert.True(state.Ledger.For(new(0)).Tp > ushort.MaxValue);
         Assert.Equal(0, (await character.RemainingSkillPointsAsync(default))!.Page0Sp);
         var pages = (await fixture.Services.GetRequiredService<ICharacterSkillStateDomainService>().ReadAsync(Id, default))!.Pages;
         Assert.Equal([9, 8], pages[0].Skills.Single(skill => skill.SkillId == 1).ExtraValues);

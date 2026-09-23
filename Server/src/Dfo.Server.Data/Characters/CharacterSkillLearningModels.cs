@@ -7,12 +7,12 @@ public sealed record CharacterSkillLearningChange(ushort SkillId, byte Refund, b
 public enum CharacterSkillLearningRejection
 {
     None, NoSession, InvalidRequest, UnsupportedScenario, PageUnavailable,
-    SkillUnavailable, InsufficientPoints, NoSlot, IncompleteLedger,
+    SkillUnavailable, InsufficientPoints, NoSlot, IncompleteLedger, ResetItemRequired,
 }
 
 public sealed record CharacterSkillLearningReceipt(
-    SelectedSessionIdentity Session, byte PageIndex,
-    IReadOnlyList<CharacterSkillState> Skills, CharacterSkillPointLedger Ledger);
+    SelectedSessionIdentity Session, int PageIndex,
+    IReadOnlyList<CharacterSkillState> Skills, CharacterSkillPointLedger Ledger, Dfo.Server.Data.Inventory.OpeningInventoryReceipt? Inventory = null);
 
 public sealed record CharacterSkillLearningResult(
     CharacterSkillLearningRejection Rejection, CharacterSkillLearningReceipt? Receipt = null);

@@ -359,7 +359,7 @@ public sealed record CharacterSkillState(
     IReadOnlyList<byte> ExtraValues);
 
 public sealed record CharacterSkillPageState(
-    byte PageIndex,
+    int PageIndex,
     IReadOnlyList<CharacterSkillState> Skills);
 
 public sealed record CharacterSkillPointSlotState(byte SlotIndex, int Value);

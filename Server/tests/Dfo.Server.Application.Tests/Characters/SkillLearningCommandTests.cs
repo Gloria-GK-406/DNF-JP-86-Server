@@ -27,7 +27,7 @@ public sealed class SkillLearningCommandTests
         await Handle(fixture, [new(1, 0, 2), new(2, 0, 3)]);
         var response = Assert.IsType<LearnSkillResponse>(Assert.Single(sender.Messages));
         Assert.NotNull(response.Receipt);
-        Assert.Equal(855, response.Receipt.Ledger.Page0Sp);
+        Assert.Equal(855, response.Receipt.Ledger.For(new(0)).Sp);
         Assert.Equal([4, 3], response.Receipt.Skills.Select(skill => (int)skill.Level));
     }
 

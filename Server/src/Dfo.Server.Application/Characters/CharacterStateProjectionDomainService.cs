@@ -19,6 +19,7 @@ internal sealed class CharacterStateProjectionDomainService(
             ?? throw new InvalidDataException("Character skills are unavailable.");
         var ledger = await points.LedgerAsync(character.Id, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("Character skill ledger is unavailable.");
+        var builds = await skills.BuildsAsync(character.Id, cancellationToken).ConfigureAwait(false);
         return result with
         {
             Character = result.Character with { Identity = identity, Progression = progress },
@@ -27,7 +28,7 @@ internal sealed class CharacterStateProjectionDomainService(
                 Public = result.CharacterEntry.Public with
                 {
                     DerivedStats = CharacterBaseStatProjection.Apply(result.CharacterEntry.Public.DerivedStats, stats),
-                    Extras = result.CharacterEntry.Public.Extras with { CharacterExperience = progress.Experience },
+                    Extras = result.CharacterEntry.Public.Extras with { CharacterExperience = progress.Experience, SkillTreeIndex = builds.IsUnlocked(new(1)) ? builds.Active.Value : -1 },
                 },
                 Skills = result.CharacterEntry.Skills with
                 {

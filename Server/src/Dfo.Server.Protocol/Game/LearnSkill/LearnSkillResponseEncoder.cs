@@ -14,7 +14,7 @@ internal sealed class LearnSkillResponseEncoder : GameCmdMessageEncoder<LearnSki
         using var writer = new BinaryWriter(stream);
         var points = receipt.Ledger.ToProtocolMirror();
         writer.Write((byte)1);
-        writer.Write(receipt.PageIndex);
+        writer.Write(checked((byte)receipt.PageIndex));
         writer.Write(receipt.PageIndex == 0 ? points.Page0Sp : points.Page1Sp);
         writer.Write(receipt.PageIndex == 0 ? points.Page0Tp : points.Page1Tp);
         writer.Write(checked((byte)receipt.Skills.Count));

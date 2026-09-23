@@ -247,6 +247,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_mercenary_support(owner_character_id INTEGER NOT NULL,slot INTEGER NOT NULL,support_character_id INTEGER NOT NULL,skill_id INTEGER NOT NULL,striker_skill_id INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_character_id,slot));
         CREATE TABLE IF NOT EXISTS character_pvp ( character_id INTEGER PRIMARY KEY, pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0, pvp_rank_point INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0, pvp_win_streak INTEGER NOT NULL DEFAULT 0, skills_initialized INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_pvp_missions(character_id INTEGER, sort_order INTEGER, mission_id INTEGER, progress_value INTEGER, PRIMARY KEY(character_id,sort_order));
+        CREATE TABLE IF NOT EXISTS character_skill_builds(character_id INTEGER NOT NULL,build_id INTEGER NOT NULL CHECK(build_id >= 0),unlocked INTEGER NOT NULL CHECK(unlocked IN (0,1)),PRIMARY KEY(character_id,build_id),FOREIGN KEY(character_id) REFERENCES characters(character_id) ON DELETE CASCADE);
         CREATE TABLE IF NOT EXISTS character_skills ( character_id INTEGER NOT NULL, mode TEXT NOT NULL CHECK (mode IN ('pve', 'pvp')), page_index INTEGER NOT NULL, slot INTEGER NOT NULL, skill_id INTEGER NOT NULL, level INTEGER NOT NULL, extra_values BLOB, PRIMARY KEY (character_id, mode, page_index, slot), UNIQUE (character_id, mode, page_index, skill_id), CHECK (mode <> 'pvp' OR page_index BETWEEN 0 AND 1), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_quest_notify_selections(character_id INTEGER, slot_index INTEGER, quest_id INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_settings ( character_id INTEGER PRIMARY KEY, character_option_blob BLOB, user_state_bits INTEGER NOT NULL DEFAULT 3 );
@@ -417,6 +418,7 @@ internal static class CharacterDatabaseSchema
         characters|name_tag_item_id|INTEGER NOT NULL DEFAULT 0
         characters|pos_x|INTEGER NOT NULL DEFAULT 0
         characters|pos_y|INTEGER NOT NULL DEFAULT 0
+        characters|active_skill_build|INTEGER
         characters|skill_tree_index|INTEGER NOT NULL DEFAULT -1
         characters|slot_index|INTEGER NOT NULL DEFAULT 0
         characters|town_id|INTEGER NOT NULL DEFAULT 0

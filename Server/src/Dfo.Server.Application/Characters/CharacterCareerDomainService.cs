@@ -25,6 +25,6 @@ internal sealed class CharacterCareerDomainService(
         if (await characters.SetGrowTypeAsync(characterId, before.PackedGrowType, after.PackedGrowType,
                 cancellationToken).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Career changed during advancement.");
-        await skills.ReconcileAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await skills.ResetAllAsync(characterId, cancellationToken).ConfigureAwait(false);
     }
 }

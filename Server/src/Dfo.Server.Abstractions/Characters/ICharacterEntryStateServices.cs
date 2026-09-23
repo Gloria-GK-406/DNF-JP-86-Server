@@ -29,7 +29,7 @@ public sealed record CharacterProfileStorageRecord(
     byte UserState = 0);
 
 public sealed record CharacterSkillStorageRow(
-    byte PageIndex,
+    int PageIndex,
     short Slot,
     int SkillId,
     int Level,

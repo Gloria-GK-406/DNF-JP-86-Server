@@ -33,15 +33,15 @@ public sealed class CharacterSkillLearningTests
         Assert.Equal([7, 0], result.Receipt.Skills.Select(skill => (int)skill.Slot));
         Assert.Equal([9, 8], result.Receipt.Skills[0].ExtraValues);
         Assert.Empty(result.Receipt.Skills[1].ExtraValues);
-        Assert.Equal(1005 - 90 - 60, result.Receipt.Ledger.Page0Sp);
+        Assert.Equal(1005 - 90 - 60, result.Receipt.Ledger.For(new(0)).Sp);
         await using var reloaded = new LearningFixture(fixture.Path);
         var facts = (await reloaded.State.ReadAsync(new(71), default))!;
         Assert.Equal(4, facts.Pages[0].Skills.Single(skill => skill.SkillId == 1).Level);
         Assert.Equal([9, 8], facts.Pages[0].Skills.Single(skill => skill.SkillId == 1).ExtraValues);
         Assert.Equal(1, Assert.Single(facts.Pages[1].Skills).Level);
         Assert.Equal([7], Assert.Single(facts.Pages[1].Skills).ExtraValues);
-        Assert.Equal(result.Receipt.Ledger.Page0Sp,
-            reloaded.Rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).Page0Sp);
+        Assert.Equal(result.Receipt.Ledger.For(new(0)).Sp,
+            reloaded.Rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).For(new(0)).Sp);
         Assert.Equal(8, reloaded.Scalar("SELECT level FROM character_skills WHERE character_id=72"));
     }
 
@@ -57,12 +57,12 @@ public sealed class CharacterSkillLearningTests
         Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
         Assert.Equal(3, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=2"));
         Assert.Equal(2, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=3"));
-        Assert.Equal(875, result.Receipt!.Ledger.Page0Sp);
+        Assert.Equal(875, result.Receipt!.Ledger.For(new(0)).Sp);
     }
 
     [Theory]
     [InlineData(0, 0, 1)]
-    [InlineData(1, 1, 1)]
+    [InlineData(1, 2, 1)]
     [InlineData(1, 0, 0)]
     public async Task Invalid_changes_leave_all_skills_unchanged(ushort skill, byte refund, byte increment)
     {
@@ -125,8 +125,8 @@ public sealed class CharacterSkillLearningTests
         var result = await fixture.LearnAsync([new(6, 0, 3)]);
         Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
         Assert.Equal(0, Assert.Single(result.Receipt!.Skills).Slot);
-        Assert.Equal(975, result.Receipt.Ledger.Page0Sp);
-        Assert.Equal(34, result.Receipt.Ledger.Page0Tp);
+        Assert.Equal(975, result.Receipt.Ledger.For(new(0)).Sp);
+        Assert.Equal(34, result.Receipt.Ledger.For(new(0)).Tp);
     }
 
     [Theory]
@@ -238,8 +238,8 @@ public sealed class CharacterSkillLearningTests
         fixture.Sql("UPDATE character_skills SET level=255 WHERE character_id=71 AND page_index=1");
         var result = await fixture.LearnAsync([new(1, 0, 1)]);
         Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
-        Assert.True(result.Receipt!.Ledger.Page1Sp < 0);
-        Assert.Equal(945, result.Receipt.Ledger.Page0Sp);
+        Assert.True(result.Receipt!.Ledger.For(new(1)).Sp < 0);
+        Assert.Equal(945, result.Receipt.Ledger.For(new(0)).Sp);
         Assert.Equal(255, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=1"));
     }
 
@@ -328,12 +328,12 @@ public sealed class CharacterSkillLearningTests
         Assert.Equal(3, Assert.Single(result.Receipt!.Skills).Level);
         Assert.True(result.Receipt.Ledger.IsComplete);
         var skillRule = fixture.Rules.Get(12, 1)!;
-        Assert.Equal(oldLedger.Page0Sp - (skillRule.GetSP(3) - skillRule.GetSP(1)), result.Receipt.Ledger.Page0Sp);
+        Assert.Equal(oldLedger.For(new(0)).Sp - (skillRule.GetSP(3) - skillRule.GetSP(1)), result.Receipt.Ledger.For(new(0)).Sp);
         await using var independent = new LearningFixture(fixture.Path, useArchive: true);
         var reloaded = (await independent.State.ReadAsync(new(71), default))!;
         Assert.Equal(3, reloaded.Pages[0].Skills.Single(skill => skill.SkillId == 1).Level);
-        Assert.Equal(result.Receipt.Ledger.Page0Sp,
-            independent.Rules.GetLedger(reloaded.Career, reloaded.Level, reloaded.Pages, reloaded.PointBasis).Page0Sp);
+        Assert.Equal(result.Receipt.Ledger.For(new(0)).Sp,
+            independent.Rules.GetLedger(reloaded.Career, reloaded.Level, reloaded.Pages, reloaded.PointBasis).For(new(0)).Sp);
     }
 
     private static void AssertBaseline(LearningFixture fixture)

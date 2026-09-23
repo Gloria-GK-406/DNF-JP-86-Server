@@ -55,7 +55,7 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(44, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(45, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
         Assert.Contains("items(", shape, StringComparison.Ordinal);
         Assert.Contains("item_slots(", shape, StringComparison.Ordinal);

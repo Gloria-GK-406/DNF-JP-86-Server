@@ -61,7 +61,7 @@ public sealed class PremiumContractTests
         f.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,27,{expiry})");
         var result = await f.LearnAsync([new(5, 0, 1)]);
         Assert.Equal(allowed, result.Receipt is not null);
-        if (allowed) Assert.Equal(1005 - 30 - 20, result.Receipt!.Ledger.Page0Sp);
+        if (allowed) Assert.Equal(1005 - 30 - 20, result.Receipt!.Ledger.For(new(0)).Sp);
     }
 
     [Theory]

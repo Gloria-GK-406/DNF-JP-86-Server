@@ -33,14 +33,14 @@ internal static class CharacterSkillPages
         var rows = new List<CharacterSkillStorageRow>(stored.Count);
         foreach (var skill in stored)
         {
-            if (skill.PageIndex is < 0 or > 1 || skill.Slot is < 0 or > short.MaxValue
+            if (skill.PageIndex < 0 || skill.Slot is < 0 or > short.MaxValue
                 || skill.SkillId <= 0 || skill.Level is < 0 or > byte.MaxValue)
             {
                 throw new InvalidDataException("Character skill state is out of range.");
             }
 
             rows.Add(new CharacterSkillStorageRow(
-                checked((byte)skill.PageIndex), checked((short)skill.Slot), skill.SkillId,
+                skill.PageIndex, checked((short)skill.Slot), skill.SkillId,
                 skill.Level, skill.ExtraValues));
         }
 

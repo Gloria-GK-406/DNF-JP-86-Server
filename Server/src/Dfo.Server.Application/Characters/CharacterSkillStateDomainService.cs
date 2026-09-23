@@ -6,10 +6,64 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillStateDomainService(
     ICharacterTable characters, ICharacterSkillTable skills, ICharacterEntryTable entries,
-    ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions)
+    ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds)
     : ICharacterSkillStateDomainService
 {
-    public async ValueTask ReconcileAsync(CharacterId characterId, CancellationToken cancellationToken)
+    public ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId id, CancellationToken ct) => builds.ReadAsync(id, ct);
+
+    public async ValueTask UnlockAsync(CharacterId id, SkillBuildId build, CancellationToken ct)
+    {
+        RequireTransaction();
+        await builds.AddAsync(id, build, ct);
+        await ReconcileAsync(id, ct);
+    }
+
+    public async ValueTask ActivateAsync(CharacterId id, SkillBuildId build, CancellationToken ct)
+    {
+        RequireTransaction();
+        await builds.SetActiveAsync(id, build, ct);
+    }
+
+    public async ValueTask ResetAsync(CharacterId id, SkillBuildId build, CancellationToken ct)
+    {
+        RequireTransaction();
+        var current = await builds.ReadAsync(id, ct);
+        if (!current.IsUnlocked(build)) throw new InvalidOperationException("Skill build is locked or unavailable.");
+        await ResetPagesAsync(id, new HashSet<int> { build.Value }, ct);
+    }
+
+    public async ValueTask ResetAllAsync(CharacterId id, CancellationToken ct)
+    {
+        RequireTransaction();
+        var current = await builds.ReadAsync(id, ct);
+        // Include allocated locked pages so unlocking cannot resurrect pre-reset learning.
+        await ResetPagesAsync(id, current.Builds.Select(build => build.Id.Value).ToHashSet(), ct);
+    }
+
+    private async ValueTask ResetPagesAsync(CharacterId id, IReadOnlySet<int> pages, CancellationToken ct)
+    {
+        await builds.EnsureAsync(id, ct);
+        var facts = await ReadAsync(id, ct) ?? throw new InvalidOperationException("Character is unavailable.");
+        var definitions = rules.GetAll(facts.Career.Job);
+        // Resolve/validate before the first destructive write.
+        _ = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
+        foreach (var rule in definitions) _ = rule.GetFreeLevel(facts.Career, facts.Level);
+        foreach (var page in facts.Pages.Where(page => pages.Contains(page.PageIndex)))
+            foreach (var skill in page.Skills)
+                if (await skills.RemoveAsync(id, page.PageIndex, skill.Slot, ct) != 1)
+                    throw new InvalidOperationException("Skill row changed during reset.");
+        await ReconcilePagesAsync(id, pages, ct);
+    }
+
+    private void RequireTransaction()
+    {
+        if (transactions.Current is null) throw new InvalidOperationException("Skill mutation requires a domain transaction.");
+    }
+
+    public ValueTask ReconcileAsync(CharacterId characterId, CancellationToken cancellationToken) =>
+        ReconcilePagesAsync(characterId, null, cancellationToken);
+
+    private async ValueTask ReconcilePagesAsync(CharacterId characterId, IReadOnlySet<int>? selected, CancellationToken cancellationToken)
     {
         if (transactions.Current is null)
             throw new InvalidOperationException("Skill reconciliation requires a domain transaction.");
@@ -18,8 +72,10 @@ internal sealed class CharacterSkillStateDomainService(
         var available = rules.GetAll(facts.Career.Job).ToDictionary(rule => rule.SkillId);
         // Validate the career even for an empty stored skill tree.
         _ = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
-        for (var page = 0; page < 2; page++)
+        await builds.EnsureAsync(characterId, cancellationToken).ConfigureAwait(false);
+        foreach (var page in (await builds.ReadAsync(characterId, cancellationToken)).Builds.Select(build => build.Id.Value))
         {
+            if (selected is not null && !selected.Contains(page)) continue;
             var retained = new Dictionary<int, CharacterSkillState>();
             foreach (var learned in facts.Pages.SingleOrDefault(value => value.PageIndex == page)?.Skills ?? [])
             {
@@ -63,8 +119,13 @@ internal sealed class CharacterSkillStateDomainService(
     {
         if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
             return null;
-        var pages = CharacterSkillPages.Pages(CharacterSkillPages.Rows(
+        var stored = CharacterSkillPages.Pages(CharacterSkillPages.Rows(
             await skills.ReadEntryAsync(characterId, cancellationToken).ConfigureAwait(false)));
+        var configurations = await builds.ReadAsync(characterId, cancellationToken);
+        var pages = configurations.Builds.Select(build => stored.SingleOrDefault(page => page.PageIndex == build.Id.Value)
+            ?? new CharacterSkillPageState(build.Id.Value, [])).ToArray();
+        if (stored.Any(page => configurations.Builds.All(build => build.Id.Value != page.PageIndex)))
+            throw new InvalidDataException("Skill rows reference an unknown build.");
         var bonus = await entries.FindBonusPointsAsync(characterId, cancellationToken).ConfigureAwait(false);
         return new CharacterSkillFacts(
             CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)),

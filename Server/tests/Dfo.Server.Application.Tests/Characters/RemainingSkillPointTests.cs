@@ -132,13 +132,21 @@ public sealed class RemainingSkillPointTests
             0);
     }
 
+    private sealed class BuildTable : ICharacterSkillBuildTable
+    {
+        public ValueTask<CharacterSkillBuilds> ReadAsync(CharacterId id, CancellationToken ct) => ValueTask.FromResult(new CharacterSkillBuilds(new(0), [new(new(0),true),new(new(1),false)]));
+        public ValueTask EnsureAsync(CharacterId id, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask AddAsync(CharacterId id, SkillBuildId build, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask SetActiveAsync(CharacterId id, SkillBuildId build, CancellationToken ct) => throw new NotSupportedException();
+    }
+
     /// <summary>The character, over the stand-ins, reached the way business reaches one.</summary>
     private static (ICharacter Character, LevelPricedArchive Archive) Ledger(
         MovableCharacterRow row)
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope()),
+            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(), new BuildTable()),
             archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(

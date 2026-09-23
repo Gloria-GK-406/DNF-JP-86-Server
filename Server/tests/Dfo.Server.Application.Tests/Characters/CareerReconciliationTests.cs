@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 public sealed class CareerReconciliationTests
 {
     [Fact]
-    public async Task Advancement_reconciles_both_pages_without_losing_paid_levels_or_configuration()
+    public async Task Advancement_resets_all_allocated_pages_and_rebuilds_new_career_grants()
     {
         await using var f = Fixture();
         await f.SeedAsync();
@@ -32,12 +32,8 @@ public sealed class CareerReconciliationTests
             Assert.Equal(3, page.Skills.Single(s => s.SkillId == 7).Level);
             Assert.Equal(1, page.Skills.Single(s => s.SkillId == 4).Level);
         }
-        var kept = facts.Pages[0].Skills.Single(s => s.SkillId == 1);
-        Assert.Equal(2, kept.Level);
-        Assert.Equal(7, kept.Slot);
-        Assert.Equal(new byte[] {9,8}, kept.ExtraValues);
-        Assert.Equal(1, facts.Pages[0].Skills.Single(s => s.SkillId == 5).Level);
-        Assert.Equal(1000 + 5 - (10 + 20) - 20, f.Rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).Page0Sp);
+        Assert.All(facts.Pages, page => Assert.DoesNotContain(page.Skills, skill => skill.SkillId is 1 or 5));
+        Assert.Equal(1005, f.Rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).For(new(0)).Sp);
         var count = f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71");
         await using (var tx = f.Scope.Begin()) { await f.State.ReconcileAsync(new(71), default); await tx.CommitAsync(default); }
         Assert.Equal(count, f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71"));
@@ -45,7 +41,7 @@ public sealed class CareerReconciliationTests
     }
 
     [Fact]
-    public async Task Unmodelled_learned_skills_keep_their_level_slot_and_configuration()
+    public async Task Career_reset_removes_unmodelled_learning_instead_of_retaining_old_allocations()
     {
         await using var f = Fixture(); await f.SeedAsync();
         f.Sql("INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(71,'pve',0,0,999,3,X'0102')");
@@ -56,12 +52,8 @@ public sealed class CareerReconciliationTests
             await tx.CommitAsync(default);
         }
         var facts = (await f.State.ReadAsync(new(71), default))!;
-        var unknown = Assert.Single(facts.Pages[0].Skills, s => s.SkillId == 999);
-        Assert.Equal(0, unknown.Slot);
-        Assert.Equal(3, unknown.Level);
-        Assert.Equal(new byte[] {1,2}, unknown.ExtraValues);
-        Assert.Equal(facts.Pages[0].Skills.Count, facts.Pages[0].Skills.Select(s => s.Slot).Distinct().Count());
-        Assert.False(f.Rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).IsComplete);
+        Assert.DoesNotContain(facts.Pages.SelectMany(page => page.Skills), skill => skill.SkillId == 999);
+        Assert.True(f.Rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).IsComplete);
     }
 
     [Fact]

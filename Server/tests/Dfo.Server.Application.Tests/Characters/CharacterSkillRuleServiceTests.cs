@@ -43,8 +43,8 @@ public sealed class CharacterSkillRuleServiceTests
         Assert.Equal(4, skill.GetFreeLevel(Career, 30));
         Assert.False(skill.CanLearn(Career, 30, 5));
         var ledger = rules.GetLedger(Career, 30, Pages((0, 1, 5), (1, 1, 2)), new(7, 0));
-        Assert.Equal(107 - (120 - 90), ledger.Page0Sp);
-        Assert.Equal(107, ledger.Page1Sp);
+        Assert.Equal(107 - (120 - 90), ledger.For(new(0)).Sp);
+        Assert.Equal(107, ledger.For(new(1)).Sp);
         Assert.True(ledger.IsComplete);
     }
 
@@ -54,9 +54,9 @@ public sealed class CharacterSkillRuleServiceTests
         var rules = Service([Definition(1) with { Costs = [int.MaxValue] }]);
         var pages = Pages((0, 1, 3), (0, 999, 4));
         var ledger = rules.GetLedger(Career, 50, pages, new(int.MaxValue, int.MaxValue));
-        Assert.Equal(100L + int.MaxValue - 3L * int.MaxValue, ledger.Page0Sp);
-        Assert.Equal(100L + int.MaxValue, ledger.Page1Sp);
-        Assert.Equal(1L + int.MaxValue, ledger.Page0Tp);
+        Assert.Equal(100L + int.MaxValue - 3L * int.MaxValue, ledger.For(new(0)).Sp);
+        Assert.Equal(100L + int.MaxValue, ledger.For(new(1)).Sp);
+        Assert.Equal(1L + int.MaxValue, ledger.For(new(0)).Tp);
         Assert.False(ledger.IsComplete);
         Assert.Equal([999], ledger.MissingSkillIds);
         Assert.Equal(2, pages[0].Skills.Count);
@@ -72,9 +72,9 @@ public sealed class CharacterSkillRuleServiceTests
     {
         var rules = Service([Definition(1) with { UsesTp = true, Costs = [1, 2] }]);
         var ledger = rules.GetLedger(Career, level, Pages((0, 1, 3)), new(0, 4));
-        Assert.Equal(100, ledger.Page0Sp);
-        Assert.Equal(totalTp + 4 - 5, ledger.Page0Tp);
-        Assert.Equal(totalTp + 4, ledger.Page1Tp);
+        Assert.Equal(100, ledger.For(new(0)).Sp);
+        Assert.Equal(totalTp + 4 - 5, ledger.For(new(0)).Tp);
+        Assert.Equal(totalTp + 4, ledger.For(new(1)).Tp);
     }
 
     [Fact]

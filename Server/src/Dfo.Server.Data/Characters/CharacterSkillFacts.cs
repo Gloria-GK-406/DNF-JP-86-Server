@@ -1,7 +1,7 @@
 namespace Dfo.Server.Data.Characters;
 
 public sealed record CharacterLearnedSkill(int SkillId, int Level);
-public sealed record CharacterLearnedSkillPage(byte PageIndex, IReadOnlyList<CharacterLearnedSkill> Skills);
+public sealed record CharacterLearnedSkillPage(int PageIndex, IReadOnlyList<CharacterLearnedSkill> Skills);
 
 // Pages retain slot/extra configuration for protocol projection; learned facts expose only ID/level.
 public sealed record CharacterSkillFacts(
