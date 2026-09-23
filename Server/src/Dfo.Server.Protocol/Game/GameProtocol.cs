@@ -267,6 +267,7 @@ internal static class GameProtocol
     public const ushort ShopPurchaseCountType = 0x02CC;
 
     public const ushort UseStackableType = 0x002C;
+    public const ushort QuestClearCouponType = 0x0204;
 
     public const ushort StoryPauseType = 0x00BF;
 

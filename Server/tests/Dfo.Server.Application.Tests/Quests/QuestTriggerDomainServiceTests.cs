@@ -111,6 +111,9 @@ public sealed class QuestTriggerDomainServiceTests
                 throw new NotSupportedException();
             public ValueTask<bool> CompleteAsync(int questId, byte mark, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
+            public ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
+                IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
+                throw new NotSupportedException();
             public ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
             public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>

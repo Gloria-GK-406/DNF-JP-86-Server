@@ -279,6 +279,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
+        services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
+        services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
         services.TryAddSingleton<

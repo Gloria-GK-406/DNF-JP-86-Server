@@ -167,6 +167,27 @@ public sealed class QuestProgressDomainServiceTests
     }
 
     [Fact]
+    public async Task Multiple_clears_recompute_each_dependent_once_from_one_log_read()
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [Character.Value] = [new CarriedQuest(0, 2003, 2)] },
+            Cleared = { [Character.Value] = [new ClearedQuest(101, 1), new ClearedQuest(1776, 1)] },
+        };
+        var service = Service(logs, new FixedClientReport(QuestAdvance.Refused));
+
+        var result = await service.ReportAsync(Account, Character,
+            [new QuestCleared(101), new QuestCleared(1776), new QuestCleared(101)],
+            CancellationToken.None);
+
+        Assert.Equal([new QuestProgressChange(2003, 2, 0)], result.Changes);
+        Assert.Equal(0, Assert.Single(result.NotificationSnapshot!.Quests).TriggerValue);
+        Assert.Single(logs.ProgressWrites);
+        Assert.Equal(2, logs.CarriedReads); // one evaluation, one final snapshot
+        Assert.Equal(1, logs.ClearedReads);
+    }
+
+    [Fact]
     public async Task Holdings_change_recomputes_progress_and_requests_one_private_snapshot()
     {
         var logs = new RecordingQuestLogs
@@ -214,6 +235,11 @@ public sealed class QuestProgressDomainServiceTests
                     2002, "", null, null, null, null, null, null, [], "clear quest", "",
                     null, null, null, null, null, null, null, [], [], [], [],
                     ClearedQuestRequirements: [1776])
+                : questId == 2003
+                ? new QuestDefinition(
+                    2003, "", null, null, null, null, null, null, [], "clear quest", "",
+                    null, null, null, null, null, null, null, [], [], [], [],
+                    ClearedQuestRequirements: [101, 1776])
                 : questId == 1781
                 ? new QuestDefinition(
                     1781, "", null, null, null, null, null, null, [],

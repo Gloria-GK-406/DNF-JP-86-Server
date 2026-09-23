@@ -141,6 +141,7 @@ public enum ClientMessageType
 
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
+    GameQuestClearCoupon = 0x0001_0204,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
@@ -243,6 +244,7 @@ public enum ServerMessageType
 
     // Whether the item was consumed. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
+    GameQuestClearCoupon = 0x0001_0204,
 
     // Where a moved item ended up, or why it did not move. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,

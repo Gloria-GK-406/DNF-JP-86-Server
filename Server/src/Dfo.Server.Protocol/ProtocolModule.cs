@@ -1,6 +1,7 @@
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -59,6 +60,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
+using Dfo.Server.Protocol.Game.QuestClearCoupon;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.ReturnToSelection;
@@ -319,6 +321,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<LearnSkillCommand, CharacterSkillLearningResult, LearnSkillCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
@@ -494,6 +498,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
+        services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
         services.RegisterMessageHandler<MagicBoxBatchOpeningHandler>(ClientMessageType.GameMagicBoxBatchOpening);
@@ -714,6 +719,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
             GameProtocol.UseStackableType, ClientMessageType.GameUseStackable);
+        services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
+            GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
             GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
@@ -791,6 +798,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
+        services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
         services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();

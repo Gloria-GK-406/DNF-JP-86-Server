@@ -240,6 +240,18 @@ public interface IQuestLog
     ValueTask<bool> CompleteAsync(int questId, byte mark, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Marks the supplied quests cleared without granting rewards or requiring them to be carried.
+    /// Removes every matching carried and tracked row. Existing non-zero clear marks are preserved.
+    /// </summary>
+    /// <returns>The quest IDs that gained a clear mark in this call, once each.</returns>
+    /// <remarks>
+    /// This is only a state mutation. The caller selects eligible IDs, runs the call within a
+    /// transaction, consumes any cost in that same transaction, and sends notifications afterward.
+    /// </remarks>
+    ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
+        IReadOnlyCollection<int> questIds, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Hands a carried quest in, if what it asked for has been done.
     /// </summary>
     /// <remarks>

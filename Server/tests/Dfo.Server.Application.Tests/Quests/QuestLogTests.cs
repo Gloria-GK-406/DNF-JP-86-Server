@@ -271,6 +271,66 @@ public sealed class QuestLogTests
     }
 
     [Fact]
+    public async Task RewardlessBatchClearsCarriedAndUncarriedQuestsAndRemovesEveryTrackedMatch()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016), CancellationToken.None);
+        await log.AcceptAsync(Quest(102), CancellationToken.None);
+        await log.TrackAsync([1016, 101, 102, 1016, 103], CancellationToken.None);
+        await fixture.SettleAsync();
+
+        var added = await log.CompleteWithoutRewardsAsync([1016, 101, 1016], CancellationToken.None);
+
+        Assert.Equal([101, 1016], added);
+        Assert.Equal([102], (await log.CarriedAsync(CancellationToken.None)).Select(row => row.QuestId));
+        Assert.Equal([101, 1016], (await log.ClearedAsync(CancellationToken.None)).Select(row => row.QuestId));
+        Assert.Equal([102, 103], await log.TrackedAsync(CancellationToken.None));
+        await fixture.SettleAsync();
+        Assert.Equal(1, await fixture.CountRowsAsync());
+        Assert.Equal(2, await fixture.CountRowsAsync("character_invisible_flags"));
+        Assert.Equal(2, await fixture.CountRowsAsync("character_quest_notify_selections"));
+    }
+
+    [Fact]
+    public async Task RewardlessBatchPreservesExistingClearMarksAndIsIdempotent()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016), CancellationToken.None);
+        await log.CompleteAsync(1016, 2, CancellationToken.None);
+        await log.TrackAsync([1016, 101], CancellationToken.None);
+        await fixture.SettleAsync();
+
+        Assert.Empty(await log.CompleteWithoutRewardsAsync([1016, 1016], CancellationToken.None));
+        Assert.Equal([new ClearedQuest(1016, 2)], await log.ClearedAsync(CancellationToken.None));
+        Assert.Equal([101], await log.TrackedAsync(CancellationToken.None));
+        await fixture.SettleAsync();
+        Assert.Empty(await log.CompleteWithoutRewardsAsync([1016], CancellationToken.None));
+        Assert.Equal([new ClearedQuest(1016, 2)], await log.ClearedAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RollingBackRewardlessBatchRestoresCarriedTrackedAndClearedState()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016), CancellationToken.None);
+        await log.TrackAsync([1016, 102], CancellationToken.None);
+        await fixture.SettleAsync();
+
+        Assert.Equal([101, 1016], await log.CompleteWithoutRewardsAsync(
+            [1016, 101], CancellationToken.None));
+        Assert.Empty(await log.CarriedAsync(CancellationToken.None));
+        Assert.Equal([102], await log.TrackedAsync(CancellationToken.None));
+        await fixture.RollBackAsync();
+
+        Assert.Equal([1016], (await log.CarriedAsync(CancellationToken.None)).Select(row => row.QuestId));
+        Assert.Equal([1016, 102], await log.TrackedAsync(CancellationToken.None));
+        Assert.Empty(await log.ClearedAsync(CancellationToken.None));
+    }
+
+    [Fact]
     public async Task AQuestGivenUpIsInNeitherList()
     {
         await using var fixture = await Fixture.CreateAsync();

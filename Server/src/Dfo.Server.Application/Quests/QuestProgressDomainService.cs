@@ -34,6 +34,9 @@ public sealed class QuestProgressDomainService(
         }
 
         var log = logs.LogOf(accountId, characterId);
+        var clearedInReport = facts.OfType<QuestCleared>()
+            .Select(fact => fact.QuestId).ToHashSet();
+        var clearedProcessed = false;
         QuestAdvance? clientResponse = null;
         var changes = new List<QuestProgressChange>();
         var serverProgressChanged = false;
@@ -73,9 +76,12 @@ public sealed class QuestProgressDomainService(
                         accountId, characterId, cancellationToken).ConfigureAwait(false) is not null;
                     break;
 
-                case QuestCleared cleared:
+                case QuestCleared:
+                    if (clearedProcessed)
+                        break;
+                    clearedProcessed = true;
                     var dependents = await AdvanceClearedQuestDependentsAsync(
-                        log, cleared, cancellationToken).ConfigureAwait(false);
+                        log, clearedInReport, cancellationToken).ConfigureAwait(false);
                     changes.AddRange(dependents);
                     serverProgressChanged |= dependents.Count != 0;
                     break;
@@ -230,7 +236,7 @@ public sealed class QuestProgressDomainService(
 
     private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceClearedQuestDependentsAsync(
         IQuestLog log,
-        QuestCleared cleared,
+        IReadOnlySet<int> clearedInReport,
         CancellationToken cancellationToken)
     {
         var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
@@ -244,7 +250,7 @@ public sealed class QuestProgressDomainService(
             var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
                 .ConfigureAwait(false);
             if (definition?.ClearedQuestRequirements is not { Count: > 0 } requirements
-                || !requirements.Contains(cleared.QuestId))
+                || !requirements.Any(clearedInReport.Contains))
                 continue;
 
             var before = new QuestTrigger(unchecked((uint)active.TriggerValue));

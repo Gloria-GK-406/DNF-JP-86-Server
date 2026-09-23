@@ -26,6 +26,9 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
 
     public Dictionary<int, List<ClearedQuest>> Cleared { get; } = [];
 
+    public int CarriedReads { get; private set; }
+    public int ClearedReads { get; private set; }
+
     /// <summary>Every progress change asked for, whole, in the order it was asked for.</summary>
     public List<(CarriedQuest AsLastSeen, int TriggerValue)> ProgressWrites { get; } = [];
 
@@ -59,9 +62,12 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
         public CharacterId CharacterId => characterId;
 
         public ValueTask<IReadOnlyList<CarriedQuest>> CarriedAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<CarriedQuest>>(
+            CancellationToken cancellationToken)
+        {
+            logs.CarriedReads++;
+            return ValueTask.FromResult<IReadOnlyList<CarriedQuest>>(
                 [.. logs.Held(characterId).OrderBy(quest => quest.Slot)]);
+        }
 
         public ValueTask<CarriedQuest?> FindCarriedAsync(
             int questId, CancellationToken cancellationToken) =>
@@ -69,9 +75,12 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
                 logs.Held(characterId).FirstOrDefault(quest => quest.QuestId == questId));
 
         public ValueTask<IReadOnlyList<ClearedQuest>> ClearedAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ClearedQuest>>(
+            CancellationToken cancellationToken)
+        {
+            logs.ClearedReads++;
+            return ValueTask.FromResult<IReadOnlyList<ClearedQuest>>(
                 [.. logs.Finished(characterId)]);
+        }
 
         public ValueTask<IReadOnlyList<int>> TrackedAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<int>>([]);
@@ -116,6 +125,10 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
             int questId, byte mark, CancellationToken cancellationToken) =>
             throw new NotSupportedException(
                 "Finishing a quest writes two lists at once; no test has needed that in memory.");
+
+        public ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
+            IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Rewardless batch completion requires the real log.");
 
         public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException(
