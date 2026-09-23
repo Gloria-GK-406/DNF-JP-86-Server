@@ -525,7 +525,7 @@ public sealed class DungeonEntryCodecTests
     /// being a monster, and the number a room's first actor takes. Neither reads a source.
     /// </summary>
     private static readonly IDungeonRoomRuleService Rooms =
-        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops());
+        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops(), new ObjectDropRuleService(null!, null!, null!, new()));
 
     private static DungeonCellCreationContext CreationContext(DungeonRunState run) => new(
         run.RunId,
@@ -633,9 +633,9 @@ public sealed class DungeonEntryCodecTests
     /// <summary>A room declaring nothing on its floor.</summary>
     private sealed class NoRoomDrops : IDungeonRoomDropSource
     {
-        public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
+        public ValueTask<IReadOnlyList<ObjectDropDefinition>> GetAsync(
             int dungeonId, int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
+            ValueTask.FromResult<IReadOnlyList<ObjectDropDefinition>>([]);
     }
 
     /// <summary>An arbitrary sequence base; these tests are about the fields around it.</summary>

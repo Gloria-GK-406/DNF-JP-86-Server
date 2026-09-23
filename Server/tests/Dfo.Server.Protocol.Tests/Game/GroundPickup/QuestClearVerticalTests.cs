@@ -354,9 +354,9 @@ public sealed class QuestClearVerticalTests
 
     private sealed class NoRoomDrops : IDungeonRoomDropSource
     {
-        public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
+        public ValueTask<IReadOnlyList<ObjectDropDefinition>> GetAsync(
             int dungeonId, int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
+            ValueTask.FromResult<IReadOnlyList<ObjectDropDefinition>>([]);
     }
 
     private sealed class SeekingFactAdapter(ISeekingQuestProgressDomainService seeking)

@@ -32,35 +32,20 @@ public interface IDungeonRoomActorSource
         int mapId, CancellationToken cancellationToken);
 }
 
-/// <summary>What a room's breakable object is declared to yield.</summary>
-/// <param name="ObjectIndex">
-/// Which of the room's breakable objects this belongs to, counted in declaration order. The
-/// client identifies the object it broke by this number.
-/// </param>
-/// <param name="Count">
-/// How many the object declares. It is the stack count for anything that stacks, and the client
-/// reads it off the floor: a material announced without one is drawn with whatever number happened
-/// to be in that field, which on 2026-08-29 was a pseudo-random discriminator and read as hundreds
-/// of thousands. Equipment does not stack and this stays at one for it.
-/// </param>
+/// <summary>One generated reward, associated with its original map object index.</summary>
 public readonly record struct DungeonRoomDrop(
     byte ObjectIndex, int ItemId, ushort Durability, int Count = 1);
 
-/// <summary>Reads what a room's breakable objects yield.</summary>
-/// <remarks>
-/// Two declarations meet here. The room's map names its breakable objects and, for each, which
-/// group of the dungeon's reward table it draws from; the dungeon's own file holds those groups.
-/// Neither alone says what a room gives.
-/// <para>
-/// It matters because the tutorial gates on it. Its second room declares one breakable object with
-/// an item in it, and a client told the room yields nothing has nothing to break open: the step
-/// waits, the scripted pause it opened is never resumed, and the run stops there with the room
-/// already cleared. The same dungeon's rooms that declare no such object are unaffected, which is
-/// why an empty list is a normal answer rather than a failure.
-/// </para>
-/// </remarks>
+public sealed record ObjectDropEntry(int ItemId, int Weight, ushort Durability);
+
+/// <summary>Static item action. Counts mean independent attempts, not stack quantities.</summary>
+public sealed record ObjectDropDefinition(
+    byte ObjectIndex, int ObjectCode, int ActionIndex, int LevelOverride,
+    int SpecificAttempts, int RandomAttempts, IReadOnlyList<ObjectDropEntry> Entries);
+
+/// <summary>Reads and caches declarations only. Runtime draws belong to the rule service.</summary>
 public interface IDungeonRoomDropSource
 {
-    ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
+    ValueTask<IReadOnlyList<ObjectDropDefinition>> GetAsync(
         int dungeonId, int mapId, CancellationToken cancellationToken);
 }

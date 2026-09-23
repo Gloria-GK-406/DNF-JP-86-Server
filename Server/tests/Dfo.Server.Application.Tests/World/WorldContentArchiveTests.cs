@@ -31,7 +31,9 @@ public sealed class WorldContentArchiveTests
         using var scope = ContentArchive.CreateContentProvider();
         var rooms = new DungeonRoomRuleService(
             scope.GetRequiredService<IDungeonRoomActorSource>(),
-            scope.GetRequiredService<IDungeonRoomDropSource>());
+            scope.GetRequiredService<IDungeonRoomDropSource>(),
+            new ObjectDropRuleService(scope.GetRequiredService<IDropRateTableSource>(),
+                scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()));
         var dungeon = await scope.GetRequiredService<IDungeonDefinitionSource>()
             .GetAsync(146, CancellationToken.None);
         Assert.NotNull(dungeon);

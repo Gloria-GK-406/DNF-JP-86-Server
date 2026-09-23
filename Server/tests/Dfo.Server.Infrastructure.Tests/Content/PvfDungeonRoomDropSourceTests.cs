@@ -1,109 +1,99 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Pvf.Tokens;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
-/// <summary>
-/// What a room's breakable objects are declared to yield.
-/// </summary>
-/// <remarks>
-/// The tutorial covers both answers and is the reason this exists: its second room holds one
-/// breakable object with an item in it, and its first holds none. A room told to yield nothing
-/// when it should yield something stops the run there -- the room clears, the scripted pause the
-/// step opens is never resumed, and nothing else on the wire looks wrong.
-/// </remarks>
 public sealed class PvfDungeonRoomDropSourceTests
 {
-    private const int TutorialDungeon = 10000;
-    private const int DemonicTutorialDungeon = 10005;
-
     [SkippableFact]
-    public async Task The_tutorials_second_room_yields_the_shoulder_its_dungeon_table_names()
+    public void All_A21_map_action_sections_parse_without_losing_object_boundaries()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var archive = provider.Archive;
+        var count = 0;
+        for (var file = 0; file < archive.FileCount; file++)
+        {
+            var entry = archive.GetEntry(file);
+            if (!entry.IsScript || !archive.ResolveString(entry.NameOffset).EndsWith(".map", StringComparison.Ordinal)) continue;
+            var reader = archive.OpenScript(file);
+            var values = new List<string>();
+            var active = false;
+            while (reader.Read(out var token))
+            {
+                if (token.Kind == PvfTokenKind.Identifier)
+                {
+                    if (archive.ResolveString(token.Value) == "[special passive object]") { active = true; count++; continue; }
+                    if (active) break;
+                }
+                else if (active) values.Add(token.IsString ? archive.ResolveString(token.Value)
+                    : token.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            PvfDungeonRoomDropSource.ParseActions(values, file);
+        }
+        Assert.Equal(5473, count);
+    }
+
+    [SkippableTheory]
+    [InlineData(10000, 61001)]
+    [InlineData(10005, 61032)]
+    public async Task Tutorial_declaration_preserves_guaranteed_shoulder(int dungeon, int map)
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         var source = new PvfDungeonRoomDropSource(provider);
-
-        var drops = await source.GetAsync(TutorialDungeon, 61001, CancellationToken.None);
-
-        // The room names group zero; the dungeon's table gives that group item 14400, whose own
-        // definition declares durability 25. A working A21 session's equivalent room sends exactly
-        // this item.
-        Assert.Equal([new DungeonRoomDrop(0, 14400, 25)], drops);
+        var action = Assert.Single(await source.GetAsync(dungeon, map, CancellationToken.None));
+        Assert.Equal(0, action.ObjectIndex);
+        Assert.Equal(1, action.SpecificAttempts);
+        Assert.Equal(0, action.RandomAttempts);
+        var entry = Assert.Single(action.Entries);
+        Assert.Equal(14400, entry.ItemId);
+        Assert.Equal(25, entry.Durability);
+        Assert.Equal(10000, entry.Weight);
     }
 
-    /// <summary>
-    /// The declared count is read, and it is not always one.
-    /// </summary>
-    /// <remarks>
-    /// The count is the second integer after the kind, and it is what a stackable piece is drawn
-    /// with on the floor. Every object the tutorial declares says one, so a reader that ignored
-    /// the field entirely and returned one would satisfy every other test here -- and would put a
-    /// wrong number under every material in the game. Room 55611 is the one this was checked
-    /// against because it declares three:
-    /// <code>
-    /// [special passive object]
-    /// 49014 780 341 0 1 [item] 1 3 -1 -1 -1
-    /// [/special passive object]
-    /// </code>
-    /// </remarks>
     [SkippableFact]
-    public async Task A_declared_count_is_read_rather_than_assumed_to_be_one()
+    public async Task Three_in_map_means_three_attempts_and_the_full_pool_is_retained()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         var source = new PvfDungeonRoomDropSource(provider);
-
-        var drops = await source.GetAsync(CountingDungeon, CountingRoom, CancellationToken.None);
-
-        var drop = Assert.Single(drops);
-        Assert.Equal(3, drop.Count);
+        var drops = await source.GetAsync(144, 55611, CancellationToken.None);
+        var action = Assert.Single(drops);
+        Assert.Equal(3, action.SpecificAttempts);
+        Assert.NotEmpty(action.Entries);
+        Assert.Same(drops, await source.GetAsync(144, 55611, CancellationToken.None));
     }
 
-    /// <summary>The dungeon and room whose declaration carries a count above one.</summary>
-    private const int CountingDungeon = 144;
-
-    private const int CountingRoom = 55611;
-
-    [SkippableFact]
-    public async Task A_room_with_nothing_breakable_yields_nothing()
+    [SkippableTheory]
+    [InlineData(10000, 61000)] [InlineData(10005, 61030)] [InlineData(10005, 61031)]
+    [InlineData(10000, int.MaxValue)]
+    public async Task Rooms_without_item_actions_are_empty(int dungeon, int map)
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var source = new PvfDungeonRoomDropSource(provider);
-
-        // The tutorial's own first room, and the demonic tutorial's first two -- the rooms a
-        // working A21 session walked through while its server sent no drops at all.
-        Assert.Empty(await source.GetAsync(TutorialDungeon, 61000, CancellationToken.None));
-        Assert.Empty(await source.GetAsync(DemonicTutorialDungeon, 61030, CancellationToken.None));
-        Assert.Empty(await source.GetAsync(DemonicTutorialDungeon, 61031, CancellationToken.None));
+        Assert.Empty(await new PvfDungeonRoomDropSource(provider).GetAsync(dungeon, map, CancellationToken.None));
     }
 
-    /// <remarks>
-    /// The demonic tutorial's third room is the one a working A21 session did send a drop for, and
-    /// the item it sent was 14400. Both tutorials reach the same item through their own tables,
-    /// which is what makes this a check on the lookup rather than on one file.
-    /// </remarks>
-    [SkippableFact]
-    public async Task The_demonic_tutorials_third_room_reaches_the_same_item_through_its_own_table()
+    [Fact]
+    public void Zero_actions_multiple_actions_and_hellparty_keep_original_object_indices()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateProvider();
-        var source = new PvfDungeonRoomDropSource(provider);
-
-        var drops = await source.GetAsync(DemonicTutorialDungeon, 61032, CancellationToken.None);
-
-        Assert.Equal([new DungeonRoomDrop(0, 14400, 25)], drops);
+        var values = ("7 1 2 3 0 " +
+            "8 1 2 3 2 [trap] 1 2 3 4 5 [item] 0 3 2 -1 -1 " +
+            "9 1 2 3 2 [hellparty] 10 50 1 11 50 1 [/hellparty] [item] 1 -1 1 -1 -1").Split(' ');
+        var actions = PvfDungeonRoomDropSource.ParseActions(values, 1);
+        Assert.Equal(2, actions.Count);
+        Assert.Equal(new(1, 8, 1, 0, 3, 2), actions[0]);
+        Assert.Equal(new(2, 9, 1, 1, 0, 1), actions[1]);
     }
 
-    [SkippableFact]
-    public async Task A_dungeon_or_map_the_archive_does_not_declare_yields_nothing()
-    {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateProvider();
-        var source = new PvfDungeonRoomDropSource(provider);
-
-        Assert.Empty(await source.GetAsync(TutorialDungeon, int.MaxValue, CancellationToken.None));
-        Assert.Empty(await source.GetAsync(int.MaxValue, 61001, CancellationToken.None));
-    }
+    [Theory]
+    [InlineData("1 2 3 4 1 [item] 0 1")]
+    [InlineData("1 2 3 4 1 [unknown] 0 1 1 -1 -1")]
+    [InlineData("1 2 3 4 1 [item] 0 -2 1 -1 -1")]
+    [InlineData("1 2 3 4 1 [hellparty] 1 2 3")]
+    public void Malformed_actions_are_not_silently_reinterpreted(string values) =>
+        Assert.Contains("123", Assert.Throws<InvalidDataException>(() =>
+            PvfDungeonRoomDropSource.ParseActions(values.Split(' '), 123)).Message);
 }
