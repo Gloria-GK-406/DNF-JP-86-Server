@@ -37,7 +37,7 @@ public sealed class DungeonCellFactoryTests
             new OneActorRoom(actorType),
             new NoPlacement(),
             loot,
-            new MonsterBoundary());
+            new MonsterBoundary(), new RecordingQuestLoot());
 
         var seed = await factory.CreateAsync(
             new DungeonCellCreationContext(
@@ -78,6 +78,60 @@ public sealed class DungeonCellFactoryTests
             Assert.Equal(new CharacterId(10), context.CharacterId);
             Assert.Equal(participants.Select(p => new MonsterDropParticipant(p.AccountId, p.CharacterId)),
                 context.Participants);
+        }
+    }
+
+    [Fact]
+    public async Task Duplicate_object_templates_bind_separate_personal_loot_without_monster_or_ground_effects()
+    {
+        var questLoot = new RecordingQuestLoot();
+        var cell = new MazeCell(0, 0);
+        var layout = new DungeonLayout(84, 0, 1, 1, cell, cell, 123, 456,
+            new Dictionary<MazeCell, int> { [cell] = 123 });
+        DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
+        var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
+            new MonsterBoundary(), questLoot);
+        var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
+            DateTimeOffset.UnixEpoch, members), CancellationToken.None);
+        Assert.Empty(seed.Actors);
+        Assert.Empty(seed.GroundItems);
+        Assert.True(seed.Snapshot().IsCleared);
+        Assert.Equal(3, seed.Objects.Count);
+        Assert.Equal(3, seed.Objects.Select(o => o.Object.Id).Distinct().Count());
+        Assert.Equal(3, questLoot.Requests.Select(r => r.InstanceId).Distinct().Count());
+        Assert.All(questLoot.Requests, r => Assert.Equal(QuestEnemyType.PassiveObject, r.EnemyType));
+        Assert.All(seed.Objects, obj => Assert.Equal(members.Select(m => (CharacterId?)m.CharacterId),
+            obj.PendingLoot.Select(drop => drop.OwnerCharacterId)));
+        var run = new DungeonRunDomainService().PreparePartyEntry(members, layout, 0, initialCell: seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+        Assert.Equal(3, run.CurrentCellState!.Objects.Count);
+        // A caller cannot mutate the run through the unpublished seed's pending array.
+        ((RolledDrop[])seed.Objects[0].PendingLoot)[0] = default;
+        Assert.Equal(10149153, run.CurrentCellState.Objects[0].PendingLoot[0].ItemId);
+    }
+
+    private sealed class ObjectRoom : IDungeonRoomRuleService
+    {
+        public ValueTask<DungeonRoomContents> DescribeAsync(DungeonCellCreationContext context, CancellationToken ct) =>
+            ValueTask.FromResult(new DungeonRoomContents([], [], 1)
+            {
+                Objects = [new(new(DungeonObjectSection.Passive, 0), 8961, 1, 2, 0),
+                    new(new(DungeonObjectSection.Passive, 1), 8961, 3, 4, 0),
+                    new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 5, 6, 0)],
+            });
+        public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> actors) => [];
+        public ushort FirstActorSequenceFor(DungeonCellCreationContext context) => 1;
+    }
+
+    private sealed class RecordingQuestLoot : IQuestEnemyDropDomainService
+    {
+        public List<QuestEnemyDropRequest> Requests { get; } = [];
+        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(QuestEnemyDropRequest request,
+            MonsterDropParticipant participant, CancellationToken cancellationToken)
+        {
+            Requests.Add(request);
+            return ValueTask.FromResult<IReadOnlyList<RolledDrop>>([new(10149153, 1,
+                DropRarity.Common, DropItemKind.Stackable, OwnerCharacterId: participant.CharacterId,
+                Delivery: RolledDropDelivery.DirectQuestItem, QuestId: 2201, GrantLimit: 10)]);
         }
     }
 

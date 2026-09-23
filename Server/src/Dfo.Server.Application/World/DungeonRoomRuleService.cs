@@ -16,7 +16,8 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonRoomRuleService(
     IDungeonRoomActorSource roomActors,
     IDungeonRoomDropSource roomDrops,
-    IObjectDropRuleService objectDrops) : IDungeonRoomRuleService
+    IObjectDropRuleService objectDrops,
+    IDungeonRoomObjectSource roomObjects) : IDungeonRoomRuleService
 {
     /// <summary>Where an actor type stops being a monster and starts being an AI character.</summary>
     /// <remarks>
@@ -48,7 +49,10 @@ internal sealed class DungeonRoomRuleService(
                     context.Layout.DungeonId, context.MapId, cancellationToken)
                 .ConfigureAwait(false), context)
                 .Select((drop, index) => new GroundDrop(checked((ushort)(index + 1)), drop))],
-            this.FirstActorSequenceFor(context));
+            this.FirstActorSequenceFor(context))
+        {
+            Objects = await roomObjects.GetObjectsAsync(context.MapId, cancellationToken).ConfigureAwait(false),
+        };
     }
 
     public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> declared)

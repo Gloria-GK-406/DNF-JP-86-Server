@@ -5,14 +5,18 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.World;
 
-/// <summary>Reads quest-owned monster item declarations without changing ordinary drop rules.</summary>
-internal sealed class QuestMonsterDropDomainService(
-    IQuestMonsterDropRuleService rules,
+/// <summary>Reads current recipient facts for quest rewards, independently of ground drops.</summary>
+internal sealed class QuestEnemyDropDomainService(
+    IQuestEnemyDropRuleService rules,
     ICharacterQuestLogDomainService logs,
-    ICharacterContainerDomainService containers) : IQuestMonsterDropDomainService
+    ICharacterContainerDomainService containers) : IQuestEnemyDropDomainService
 {
+    internal ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
+        MonsterDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken) =>
+        this.DrawAsync(QuestEnemyDropRequest.FromMonster(request), participant, cancellationToken);
+
     public async ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterDropRequest kill,
+        QuestEnemyDropRequest kill,
         MonsterDropParticipant participant,
         CancellationToken cancellationToken)
     {

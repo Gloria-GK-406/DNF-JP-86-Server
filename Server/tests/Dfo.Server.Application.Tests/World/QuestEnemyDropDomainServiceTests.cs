@@ -13,7 +13,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.World;
 
-public sealed class QuestMonsterDropDomainServiceTests
+public sealed class QuestEnemyDropDomainServiceTests
 {
     private static readonly AccountId Account = new(7);
     private static readonly CharacterId Leader = new(70);
@@ -253,6 +253,23 @@ public sealed class QuestMonsterDropDomainServiceTests
         Assert.InRange(total / 10000d, 0.93, 1.00);
     }
 
+    [Theory]
+    [InlineData(true, 0, 1)]
+    [InlineData(true, 15, 0)]
+    [InlineData(false, 0, 0)]
+    public async Task Object_query_uses_recipient_quest_and_inventory_facts(bool carried, int held, int expected)
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary, held: held, carriesQuest: carried,
+            enemyType: QuestEnemyType.PassiveObject);
+        var request = QuestEnemyDropRequest.FromMonster(Kill(fixture.Run, 65601)) with
+        { EnemyType = QuestEnemyType.PassiveObject, InstanceId = 0 };
+        var drops = await fixture.Service.DrawAsync(request, new(Account, Leader), CancellationToken.None);
+        Assert.Equal(expected, drops.Count);
+        Assert.All(drops, drop => Assert.Equal(Leader, drop.OwnerCharacterId));
+        Assert.Empty(await fixture.Service.DrawAsync(request with { EnemyType = QuestEnemyType.Monster },
+            new(Account, Leader), CancellationToken.None));
+    }
+
     private static Fixture Build(
         DungeonRunPurpose purpose,
         int dungeonId = 145,
@@ -262,9 +279,12 @@ public sealed class QuestMonsterDropDomainServiceTests
         int rewardCount = 1,
         int rewardDifficulty = -1,
         bool carriesQuest = true,
-        bool memberCarriesQuest = false)
+        bool memberCarriesQuest = false,
+        QuestEnemyType enemyType = QuestEnemyType.Monster)
     {
         var definition = Definition(rewardCount, maxStack, rewardDifficulty);
+        definition = definition with { EnemyRewardItems = definition.EnemyRewardItems
+            .Select(row => row with { EnemyType = enemyType }).ToArray() };
         var logs = new RecordingQuestLogs();
         if (carriesQuest)
             logs.Carried[Leader.Value] = [new CarriedQuest(0, 1779, 15)];
@@ -276,8 +296,8 @@ public sealed class QuestMonsterDropDomainServiceTests
         containers.Register(Leader, bag);
         if (memberCarriesQuest)
             containers.Register(Member, new Bag(10149163, 0));
-        var service = new QuestMonsterDropDomainService(
-            new QuestMonsterDropRuleService(new QuestRules(definition)), logs, containers);
+        var service = new QuestEnemyDropDomainService(
+            new QuestEnemyDropRuleService(new QuestRules(definition)), logs, containers);
         var layout = Layout(dungeonId, purpose);
         var run = new DungeonCellCreationContext(
             DungeonRunId.New(),
@@ -324,7 +344,7 @@ public sealed class QuestMonsterDropDomainServiceTests
             Purpose: purpose);
 
     private sealed record Fixture(
-        QuestMonsterDropDomainService Service,
+        QuestEnemyDropDomainService Service,
         DungeonCellCreationContext Run,
         RecordingQuestLogs Logs,
         Bag Bag);

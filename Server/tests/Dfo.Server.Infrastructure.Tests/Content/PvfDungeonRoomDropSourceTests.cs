@@ -6,6 +6,51 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfDungeonRoomDropSourceTests
 {
+    [Fact]
+    public void Object_identity_keeps_duplicate_templates_and_zero_action_objects()
+    {
+        var objects = PvfDungeonRoomDropSource.ParseOrdinaryObjects(
+            ["8961", "1", "2", "0", "8961", "3", "4", "0"], 1).ToList();
+        var actions = PvfDungeonRoomDropSource.ParseActions(
+            ["8961", "5", "6", "0", "0", "8961", "7", "8", "0", "1",
+                "[quest]", "1", "0", "0", "0", "0"], 1, objects);
+        Assert.Empty(actions);
+        Assert.Equal(4, objects.Count);
+        Assert.Equal(4, objects.Select(o => o.Id).Distinct().Count());
+        Assert.Equal([1, 3, 5, 7], objects.Select(o => o.X));
+        Assert.Throws<InvalidDataException>(() => PvfDungeonRoomDropSource.ParseOrdinaryObjects(["8961"], 1));
+    }
+
+    [SkippableFact]
+    public void All_A21_ordinary_object_sections_preserve_four_field_records()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var archive = provider.Archive;
+        var count = 0;
+        for (var file = 0; file < archive.FileCount; file++)
+        {
+            var entry = archive.GetEntry(file);
+            if (!entry.IsScript || !archive.ResolveString(entry.NameOffset).EndsWith(".map", StringComparison.Ordinal)) continue;
+            var reader = archive.OpenScript(file);
+            var values = new List<string>();
+            var active = false;
+            while (reader.Read(out var token))
+            {
+                if (token.Kind == PvfTokenKind.Identifier)
+                {
+                    if (archive.ResolveString(token.Value) == "[passive object]") { active = true; count++; continue; }
+                    if (active) break;
+                }
+                else if (active) values.Add(token.IsString ? archive.ResolveString(token.Value)
+                    : token.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            var objects = PvfDungeonRoomDropSource.ParseOrdinaryObjects(values, file);
+            Assert.Equal(values.Count / 4, objects.Count);
+        }
+        Assert.True(count > 0);
+    }
+
     [SkippableFact]
     public void All_A21_map_action_sections_parse_without_losing_object_boundaries()
     {

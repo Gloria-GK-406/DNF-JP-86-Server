@@ -59,7 +59,7 @@ public sealed class MonsterDropDomainServiceTests
         (100, 110));
 
     private static MonsterDropDomainService Build(
-        DropRateTable table, IQuestMonsterDropDomainService? quests = null,
+        DropRateTable table, IQuestEnemyDropDomainService? quests = null,
         IWorldDropRuleService? world = null, IExtraDropRuleService? extra = null,
         IIndependentDropRuleService? independent = null) => new(
         new DropRuleService(
@@ -251,7 +251,7 @@ public sealed class MonsterDropDomainServiceTests
         Assert.Equal(covered ? 2 : 0, ground.Count);
         var result = await service.GeneratePersonalAsync(65601, Character, context, CancellationToken.None);
 
-        Assert.Equal(new MonsterDropRequest(65601, context), quests.Asked);
+        Assert.Equal(QuestEnemyDropRequest.FromMonster(new MonsterDropRequest(65601, context)), quests.Asked);
         Assert.Single(result);
         Assert.Equal(Character, quests.Recipient.CharacterId);
         Assert.Equal(RecordingQuestDrops.Drop, result[^1]);
@@ -298,15 +298,15 @@ public sealed class MonsterDropDomainServiceTests
         Assert.Equal(new MonsterDropParticipant(new AccountId(2), new CharacterId(2)), quests.Recipient);
     }
 
-    private sealed class RecordingQuestDrops : IQuestMonsterDropDomainService
+    private sealed class RecordingQuestDrops : IQuestEnemyDropDomainService
     {
         public static readonly RolledDrop Drop = new(9001, 1, DropRarity.Common,
             DropItemKind.Stackable, OwnerCharacterId: Character,
             Delivery: RolledDropDelivery.DirectQuestItem, QuestId: 17, GrantLimit: 5);
-        public MonsterDropRequest? Asked { get; private set; }
+        public QuestEnemyDropRequest? Asked { get; private set; }
         public MonsterDropParticipant Recipient { get; private set; }
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-            MonsterDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken)
+            QuestEnemyDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken)
         {
             this.Asked = request;
             this.Recipient = participant;
@@ -356,10 +356,10 @@ public sealed class MonsterDropDomainServiceTests
         public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates, bool includeItems = true, int attempt = 0) => [];
     }
 
-    private sealed class NoQuestDrops : IQuestMonsterDropDomainService
+    private sealed class NoQuestDrops : IQuestEnemyDropDomainService
     {
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-            MonsterDropRequest kill, MonsterDropParticipant participant, CancellationToken cancellationToken) =>
+            QuestEnemyDropRequest kill, MonsterDropParticipant participant, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
     }
     private sealed class NoWorldDrops : IWorldDropRuleService

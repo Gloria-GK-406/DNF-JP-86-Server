@@ -94,13 +94,6 @@ public sealed record MonsterDropRequest(int MonsterCode, MonsterDropContext Cont
     public int PartyMemberCount => this.Context.PartyMemberCount;
 }
 
-/// <summary>Reads current quest and inventory facts for the identified participants.</summary>
-public interface IQuestMonsterDropDomainService
-{
-    ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken);
-}
-
 /// <summary>
 /// Generates unnumbered monster drops. Ground generation runs once per monster; personal
 /// generation runs once per recipient. Neither entry writes inventory or sends messages.

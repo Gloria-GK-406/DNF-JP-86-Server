@@ -24,7 +24,10 @@ public readonly record struct RoomActorDescription(DungeonRoomActor Actor, bool 
 public sealed record DungeonRoomContents(
     IReadOnlyList<RoomActorDescription> Actors,
     IReadOnlyList<GroundDrop> GroundDrops,
-    ushort FirstActorSequence);
+    ushort FirstActorSequence)
+{
+    public IReadOnlyList<DungeonRoomObject> Objects { get; init; } = [];
+}
 
 /// <summary>
 /// Which of a room's declared actors a running number names, and how many the room declares.

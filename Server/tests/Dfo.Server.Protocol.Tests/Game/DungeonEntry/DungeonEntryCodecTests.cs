@@ -525,7 +525,7 @@ public sealed class DungeonEntryCodecTests
     /// being a monster, and the number a room's first actor takes. Neither reads a source.
     /// </summary>
     private static readonly IDungeonRoomRuleService Rooms =
-        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops(), new ObjectDropRuleService(null!, null!, null!, new()));
+        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops(), new ObjectDropRuleService(null!, null!, null!, new()), new NoRoomObjects());
 
     private static DungeonCellCreationContext CreationContext(DungeonRunState run) => new(
         run.RunId,
@@ -623,6 +623,12 @@ public sealed class DungeonEntryCodecTests
     }
 
     /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>
+    private sealed class NoRoomObjects : IDungeonRoomObjectSource
+    {
+        public ValueTask<IReadOnlyList<DungeonRoomObject>> GetObjectsAsync(int mapId, CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonRoomObject>>([]);
+    }
+
     private sealed class NoRoomActors : IDungeonRoomActorSource
     {
         public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(

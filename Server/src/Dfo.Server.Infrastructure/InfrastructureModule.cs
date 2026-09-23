@@ -67,7 +67,9 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInitialEquipmentDefinitionSource,
             PvfInitialEquipmentDefinitionSource>();
         services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
-        services.TryAddSingleton<IDungeonRoomDropSource, PvfDungeonRoomDropSource>();
+        services.TryAddSingleton<PvfDungeonRoomDropSource>();
+        services.TryAddSingleton<IDungeonRoomDropSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
+        services.TryAddSingleton<IDungeonRoomObjectSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
 
         // One object behind both seams, because both read the same files and the rate table is
         // where two of the three gold sections live.

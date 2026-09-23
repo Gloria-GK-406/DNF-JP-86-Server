@@ -15,7 +15,7 @@ namespace Dfo.Server.Application.World;
 internal sealed partial class MonsterDropDomainService(
     IDropRuleService dropRules,
     IDropRateAdjuster adjuster,
-    IQuestMonsterDropDomainService questDrops,
+    IQuestEnemyDropDomainService questDrops,
     ILogger<MonsterDropDomainService> logger,
     IWorldDropRuleService worldDrops,
     IMonsterDeclaredDropRuleService declaredDrops,
@@ -46,7 +46,7 @@ internal sealed partial class MonsterDropDomainService(
         var matches = context.Participants.Where(p => p.CharacterId == characterId).ToArray();
         if (matches.Length != 1)
             throw new ArgumentException("Personal drop recipient must belong to the run.", nameof(characterId));
-        return questDrops.DrawAsync(new MonsterDropRequest(monsterId, context), matches[0], cancellationToken);
+        return questDrops.DrawAsync(QuestEnemyDropRequest.FromMonster(new MonsterDropRequest(monsterId, context)), matches[0], cancellationToken);
     }
 
     private static void Validate(MonsterDropContext context, CancellationToken cancellationToken)

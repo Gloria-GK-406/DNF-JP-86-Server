@@ -4,11 +4,11 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class QuestMonsterDropRuleService(
-    IQuestContentRuleService quests) : IQuestMonsterDropRuleService
+internal sealed class QuestEnemyDropRuleService(
+    IQuestContentRuleService quests) : IQuestEnemyDropRuleService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterDropRequest request, MonsterDropParticipant participant,
+        QuestEnemyDropRequest request, MonsterDropParticipant participant,
         IReadOnlyList<int> questIds, IReadOnlyDictionary<int, long> held,
         CancellationToken cancellationToken)
     {

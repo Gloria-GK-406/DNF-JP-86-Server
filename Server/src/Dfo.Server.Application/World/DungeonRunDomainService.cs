@@ -1677,12 +1677,14 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     private sealed class DungeonCellAggregate
     {
+        private readonly IReadOnlyList<DungeonCellObjectState> objects;
         private readonly Dictionary<ushort, DungeonCellActorState> actors;
         private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
         private readonly Func<int, int> allocateGroundItemNumbers;
 
         public DungeonCellAggregate(DungeonCellSeed seed, Func<int, int> allocateGroundItemNumbers)
         {
+            this.objects = seed.Objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray();
             this.actors = seed.Actors.ToDictionary(
                 actor => actor.Sequence,
                 actor => actor with { PendingLoot = actor.PendingLoot.ToArray() });
@@ -1794,7 +1796,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             [.. this.actors.Values.OrderBy(actor => actor.Sequence)
                 .Select(actor => actor with { PendingLoot = actor.PendingLoot.ToArray() })],
             [.. this.groundItems.Values.OrderBy(item => item.Number)],
-            this.ClearOpen);
+            this.ClearOpen)
+        {
+            Objects = this.objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray(),
+        };
     }
 
     private sealed class ParticipantProgress

@@ -10,7 +10,8 @@ internal sealed class DungeonCellFactory(
     IDungeonRoomRuleService rooms,
     IItemPlacementRuleService placementRules,
     IMonsterDropDomainService loot,
-    IExperienceRuleService experienceRules) : IDungeonCellFactory
+    IExperienceRuleService experienceRules,
+    IQuestEnemyDropDomainService questLoot) : IDungeonCellFactory
 {
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
@@ -81,11 +82,23 @@ internal sealed class DungeonCellFactory(
                 isMonster));
         }
 
+        var objects = new List<DungeonCellObjectState>(contents.Objects.Count);
+        foreach (var declared in contents.Objects)
+        {
+            var request = new QuestEnemyDropRequest(QuestEnemyType.PassiveObject, declared.Code,
+                declared.Id.RandomIdentity, context.Layout.DungeonId, context.Difficulty,
+                context.Layout.Seed, context.Cell, context.MapId);
+            var pending = new List<RolledDrop>();
+            foreach (var participant in participants)
+                pending.AddRange(await questLoot.DrawAsync(request, participant, cancellationToken).ConfigureAwait(false));
+            objects.Add(new(declared, pending.ToArray()));
+        }
+
         return new DungeonCellSeed(
             context.Cell,
             context.MapId,
             contents.FirstActorSequence,
             actors,
-            groundItems);
+            groundItems) { Objects = objects.ToArray() };
     }
 }

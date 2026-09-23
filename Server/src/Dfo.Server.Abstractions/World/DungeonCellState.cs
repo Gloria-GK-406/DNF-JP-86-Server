@@ -71,6 +71,9 @@ public sealed record DungeonCellActorState(
     IReadOnlyList<RolledDrop> PendingLoot,
     bool IsMonster = true);
 
+public sealed record DungeonCellObjectState(
+    DungeonRoomObject Object, IReadOnlyList<RolledDrop> PendingLoot);
+
 /// <summary>An immutable mirror of one fully-created dungeon cell.</summary>
 public sealed record DungeonCellState(
     MazeCell Cell,
@@ -81,6 +84,8 @@ public sealed record DungeonCellState(
     IReadOnlyList<DungeonGroundItem> GroundItems,
     bool ClearOpen = false)
 {
+    public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
+
     public bool IsCleared => this.Actors
         .Where(actor => actor.IsMonster)
         .All(actor => actor.IsDead);
@@ -104,13 +109,15 @@ public sealed record DungeonCellSeed(
     IReadOnlyList<DungeonGroundItem> GroundItems,
     bool IsComplete = true)
 {
+    public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
+
     public DungeonCellState Snapshot() => new(
         this.Cell,
         this.MapId,
         Revision: 0,
         this.FirstActorSequence,
         this.Actors,
-        this.GroundItems);
+        this.GroundItems) { Objects = this.Objects };
 
     public static DungeonCellSeed CompleteEmpty(MazeCell cell, int mapId) =>
         new(cell, mapId, FirstActorSequence: 1, [], []);

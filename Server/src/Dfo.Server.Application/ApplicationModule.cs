@@ -287,8 +287,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IMonsterDropDomainService>(services =>
             services.GetRequiredService<MonsterDropDomainService>());
         services.TryAddSingleton<IDungeonCellFactory, DungeonCellFactory>();
-        services.TryAddSingleton<IQuestMonsterDropDomainService, QuestMonsterDropDomainService>();
-        services.TryAddSingleton<IQuestMonsterDropRuleService, QuestMonsterDropRuleService>();
+        services.TryAddSingleton<IQuestEnemyDropDomainService, QuestEnemyDropDomainService>();
+        services.TryAddSingleton<IQuestEnemyDropRuleService, QuestEnemyDropRuleService>();
         // What a character has left to spend, asked by identifier and worked out on the spot. The
         // arithmetic belongs to the shared skill rules; the state service supplies current facts.
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();

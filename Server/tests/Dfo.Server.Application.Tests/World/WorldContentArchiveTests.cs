@@ -33,7 +33,7 @@ public sealed class WorldContentArchiveTests
             scope.GetRequiredService<IDungeonRoomActorSource>(),
             scope.GetRequiredService<IDungeonRoomDropSource>(),
             new ObjectDropRuleService(scope.GetRequiredService<IDropRateTableSource>(),
-                scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()));
+                scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()), scope.GetRequiredService<IDungeonRoomObjectSource>());
         var dungeon = await scope.GetRequiredService<IDungeonDefinitionSource>()
             .GetAsync(146, CancellationToken.None);
         Assert.NotNull(dungeon);

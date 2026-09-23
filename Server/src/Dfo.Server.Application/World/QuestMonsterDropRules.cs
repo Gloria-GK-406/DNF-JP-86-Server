@@ -15,24 +15,28 @@ internal static class QuestMonsterDropRules
             _ => throw new ArgumentOutOfRangeException(nameof(kill)),
         });
 
-    // Passive objects may use the same rules once their authoritative destruction event exists.
     internal static IReadOnlyList<RolledDrop> Draw(
         MonsterDropRequest kill, MonsterDropParticipant participant,
         IReadOnlyList<QuestDefinition> definitions, IReadOnlyDictionary<int, long> held,
-        QuestEnemyType enemyType)
+        QuestEnemyType enemyType) =>
+        Draw(QuestEnemyDropRequest.FromMonster(kill) with { EnemyType = enemyType }, participant, definitions, held);
+
+    internal static IReadOnlyList<RolledDrop> Draw(
+        QuestEnemyDropRequest kill, MonsterDropParticipant participant,
+        IReadOnlyList<QuestDefinition> definitions, IReadOnlyDictionary<int, long> held)
     {
         var result = new List<RolledDrop>();
         var planned = new Dictionary<int, int>();
         foreach (var definition in definitions)
         {
-            var random = new DropRandom(DropRandom.SeedFor(kill.Context.Seed, kill.Context.MapId,
-                kill.Context.Cell.X, kill.Context.Cell.Y, kill.ActorSequence)
+            var random = new DropRandom(DropRandom.SeedFor(kill.Seed, kill.MapId,
+                kill.Cell.X, kill.Cell.Y, kill.InstanceId)
                 ^ 0x5155_4553_5444_524FUL ^ (ulong)(uint)participant.CharacterId.Value
                 ^ ((ulong)(uint)definition.QuestId << 32));
             var candidates = definition.EnemyRewardItems.Where(source =>
-                source.EnemyType == enemyType && source.EnemyCode == kill.MonsterCode
-                && (source.DungeonId == -1 || source.DungeonId == kill.Context.DungeonId)
-                && (source.Difficulty == -1 || source.Difficulty == (int)kill.Context.Difficulty)).ToList();
+                source.EnemyType == kill.EnemyType && source.EnemyCode == kill.EnemyCode
+                && (source.DungeonId == -1 || source.DungeonId == kill.DungeonId)
+                && (source.Difficulty == -1 || source.Difficulty == (int)kill.Difficulty)).ToList();
             while (candidates.Count > 0)
             {
                 var selected = random.Next(candidates.Count) - 1;

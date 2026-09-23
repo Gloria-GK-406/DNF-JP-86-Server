@@ -6,8 +6,9 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Caches declarations, never a random result shared by different dungeon runs.</summary>
-internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : IDungeonRoomDropSource
+internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : IDungeonRoomDropSource, IDungeonRoomObjectSource
 {
+    private readonly Dictionary<int, IReadOnlyList<DungeonRoomObject>> objects = [];
     private readonly Lock gate = new();
     private readonly Dictionary<(int Dungeon, int Map), IReadOnlyList<ObjectDropDefinition>> cache = [];
     private readonly Dictionary<int, IReadOnlyDictionary<int, Group>> groups = [];
@@ -43,6 +44,35 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             cache[(dungeonId, mapId)] = answer;
             return ValueTask.FromResult(answer);
         }
+    }
+
+    public ValueTask<IReadOnlyList<DungeonRoomObject>> GetObjectsAsync(int mapId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!objects.TryGetValue(mapId, out var result))
+            {
+                var declared = ParseOrdinaryObjects(ReadSection("map", mapId, "[passive object]"), mapId).ToList();
+                ParseActions(ReadSection("map", mapId, "[special passive object]"), mapId, declared);
+                objects[mapId] = result = declared.ToImmutableArray();
+            }
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    internal static IReadOnlyList<DungeonRoomObject> ParseOrdinaryObjects(IReadOnlyList<string> values, int mapId)
+    {
+        if (values.Count % 4 != 0)
+            throw new InvalidDataException($"Map {mapId}: truncated passive object.");
+        var result = new List<DungeonRoomObject>();
+        for (var at = 0; at < values.Count; at += 4)
+        {
+            var row = values.Skip(at).Take(4).Select(value => int.Parse(value,
+                System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            result.Add(new(new(DungeonObjectSection.Passive, at / 4), row[0], row[1], row[2], row[3]));
+        }
+        return result.ToImmutableArray();
     }
 
     private IReadOnlyDictionary<int, string> Paths(string folder)
@@ -81,7 +111,8 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
         return result;
     }
 
-    internal static IReadOnlyList<Action> ParseActions(IReadOnlyList<string> values, int mapId)
+    internal static IReadOnlyList<Action> ParseActions(IReadOnlyList<string> values, int mapId,
+        ICollection<DungeonRoomObject>? declaredObjects = null)
     {
         var result = ImmutableArray.CreateBuilder<Action>();
         var at = 0;
@@ -104,10 +135,11 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
                 break;
             }
             var code = ReadInt();
-            ReadInt(); ReadInt(); ReadInt(); // Position, not drop operands.
+            var x = ReadInt(); var y = ReadInt(); var z = ReadInt();
             var actionCount = ReadInt();
             if (objectIndex > byte.MaxValue || actionCount < 0 || actionCount > values.Count - at)
                 throw new InvalidDataException($"Map {mapId}: invalid object/action count.");
+            declaredObjects?.Add(new(new(DungeonObjectSection.SpecialPassive, objectIndex), code, x, y, z));
             for (var actionIndex = 0; actionIndex < actionCount; actionIndex++)
             {
                 if (at >= values.Count) throw new InvalidDataException($"Map {mapId}: missing action.");
