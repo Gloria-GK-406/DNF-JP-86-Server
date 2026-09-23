@@ -672,8 +672,10 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
     }
 
-    [Fact]
-    public void Committing_actor_death_moves_its_pending_loot_into_the_same_cell()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Committing_actor_death_moves_its_pending_loot_into_the_same_cell(bool apc)
     {
         var service = new DungeonRunDomainService();
         var participant = new DungeonRunParticipant(
@@ -693,10 +695,10 @@ public sealed class DungeonRunDomainServiceTests
             FirstSequence,
             [new DungeonCellActorState(
                 FirstSequence,
-                new DungeonRoomActor(61670, 1, 0),
-                IsAiCharacter: false,
+                new DungeonRoomActor(61670, 1, apc ? (byte)5 : (byte)0),
+                IsAiCharacter: apc,
                 IsDead: false,
-                [pending])],
+                [pending], IsMonster: !apc)],
             [initial]);
         var runId = DungeonRunId.New();
         service.PreparePartyEntry(

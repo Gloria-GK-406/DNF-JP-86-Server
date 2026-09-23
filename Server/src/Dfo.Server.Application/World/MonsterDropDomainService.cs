@@ -19,20 +19,23 @@ internal sealed partial class MonsterDropDomainService(
     ILogger<MonsterDropDomainService> logger,
     IWorldDropRuleService worldDrops,
     IMonsterDeclaredDropRuleService declaredDrops,
-    IExtraDropRuleService extraDrops) : IMonsterDropDomainService
+    IExtraDropRuleService extraDrops,
+    IIndependentDropRuleService independentDrops) : IMonsterDropDomainService
 {
-    public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
+    public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
     {
         Validate(context, cancellationToken);
         var request = new MonsterDropRequest(monsterId, context);
         var result = new List<RolledDrop>();
+        if (context.SourceType == IndependentDropSourceType.APC)
+            return await independentDrops.DrawAsync(request, cancellationToken).ConfigureAwait(false);
         result.AddRange(this.GenerateRandomDrops(request));
         result.AddRange(GenerateMonsterDeclared(request));
-        result.AddRange(GenerateIndependent(request));
+        result.AddRange(await independentDrops.DrawAsync(request, cancellationToken).ConfigureAwait(false));
         result.AddRange(worldDrops.Draw(request));
         result.AddRange(GenerateSpecialMode(request));
-        return ValueTask.FromResult<IReadOnlyList<RolledDrop>>(result);
+        return result;
     }
 
     public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
@@ -50,6 +53,8 @@ internal sealed partial class MonsterDropDomainService(
     {
         ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
+        if (!Enum.IsDefined(context.SourceType))
+            throw new ArgumentOutOfRangeException(nameof(context), "Unknown drop source type.");
         if (context.RandomDropCount is < 0 or > 127)
             throw new ArgumentOutOfRangeException(nameof(context), "Random drop count must be 0..127.");
         if (context.Participants.IsDefaultOrEmpty

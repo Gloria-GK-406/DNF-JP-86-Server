@@ -532,7 +532,7 @@ public sealed class MonsterDeathHandler(
                     "The actor-death claim was no longer current after its durable effects.");
             run = deathChange.Run;
             autoKilled = deathChange.AutoKilledActorSequences;
-            if (verifiedKill.IsMonster)
+            if (verifiedKill.IsMonster || deathChange.AddedGroundItems.Count > 0)
             {
                 dropped = [.. deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop())];
                 instance = GameDropIdentity.ForKill(run, message.ActorSequence);
@@ -804,10 +804,10 @@ public sealed class MonsterDeathHandler(
             ?? throw new InvalidOperationException(
                 "The actor-death claim was no longer current after its durable effects.");
         var run = deathChange.Run;
-        var dropped = killed is { IsMonster: true }
+        var dropped = killed is { IsMonster: true } || deathChange.AddedGroundItems.Count > 0
             ? deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop()).ToArray()
             : [];
-        var instance = killed is { IsMonster: true }
+        var instance = killed is { IsMonster: true } || dropped.Length > 0
             ? GameDropIdentity.ForKill(run, message.ActorSequence)
             : 0u;
 

@@ -37,9 +37,6 @@ internal sealed partial class MonsterDropDomainService
     // One fixed-basis draw per monster, independent of party size.
     private IReadOnlyList<RolledDrop> GenerateMonsterDeclared(MonsterDropRequest request) => declaredDrops.Draw(request);
 
-    // Quantity axis and embedded-list sampling remain unresolved; external pools are absent.
-    private static IReadOnlyList<RolledDrop> GenerateIndependent(MonsterDropRequest request) => [];
-
     // Hell/event rewards need their own trigger and replacement rules, not one payout per actor.
     private static IReadOnlyList<RolledDrop> GenerateSpecialMode(MonsterDropRequest request) => [];
 }

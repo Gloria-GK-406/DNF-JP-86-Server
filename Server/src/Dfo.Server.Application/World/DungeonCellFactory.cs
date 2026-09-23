@@ -44,7 +44,7 @@ internal sealed class DungeonCellFactory(
             var sequence = checked((ushort)(contents.FirstActorSequence + index));
             var isMonster = experienceRules.IsMonster(described.Actor.ActorType);
             IReadOnlyList<RolledDrop> pending = [];
-            if (isMonster)
+            if (isMonster || described.IsAiCharacter)
             {
                 var dropContext = new MonsterDropContext(
                     context.RunId,
@@ -57,13 +57,21 @@ internal sealed class DungeonCellFactory(
                     context.Layout.LevelOf(described.Actor.Level),
                     described.Actor.ActorType,
                     leader.CharacterId,
-                    participants) { RandomDropCount = described.Actor.RandomDropCount };
+                    participants)
+                {
+                    RandomDropCount = described.Actor.RandomDropCount,
+                    SourceType = described.IsAiCharacter
+                        ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster,
+                };
                 var generated = new List<RolledDrop>(await loot.GenerateGroundAsync(
                     described.Actor.Code, dropContext, cancellationToken).ConfigureAwait(false));
-                foreach (var participant in participants)
-                    generated.AddRange(await loot.GeneratePersonalAsync(
-                        described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
-                        .ConfigureAwait(false));
+                if (isMonster)
+                {
+                    foreach (var participant in participants)
+                        generated.AddRange(await loot.GeneratePersonalAsync(
+                            described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
+                            .ConfigureAwait(false));
+                }
                 pending = generated;
             }
 

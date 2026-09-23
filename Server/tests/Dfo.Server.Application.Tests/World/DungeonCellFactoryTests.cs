@@ -14,6 +14,7 @@ public sealed class DungeonCellFactoryTests
     [InlineData(3, true, 1)]
     [InlineData(3, true, 2)]
     [InlineData(4, false, 2)]
+    [InlineData(5, false, 2)]
     public async Task Cell_creation_freezes_monster_clear_and_loot_semantics(
         byte actorType,
         bool isMonster, int memberCount)
@@ -51,8 +52,8 @@ public sealed class DungeonCellFactoryTests
 
         var actor = Assert.Single(seed.Actors);
         Assert.Equal(isMonster, actor.IsMonster);
-        Assert.Equal(isMonster ? 1 : 0, loot.CallCount);
-        Assert.Equal(isMonster ? 1 + memberCount : 0, actor.PendingLoot.Count);
+        Assert.Equal(isMonster || actorType >= 5 ? 1 : 0, loot.CallCount);
+        Assert.Equal(isMonster ? 1 + memberCount : actorType >= 5 ? 1 : 0, actor.PendingLoot.Count);
         Assert.Equal(isMonster ? memberCount : 0, loot.PersonalCalls.Count);
         if (isMonster)
         {
@@ -62,6 +63,8 @@ public sealed class DungeonCellFactoryTests
                 .Where(drop => drop.Delivery == RolledDropDelivery.DirectQuestItem)
                 .Select(drop => drop.OwnerCharacterId));
         }
+        if (actorType >= 5)
+            Assert.Equal(IndependentDropSourceType.APC, loot.Context!.SourceType);
         Assert.Equal(!isMonster, seed.Snapshot().IsCleared);
         if (isMonster)
         {

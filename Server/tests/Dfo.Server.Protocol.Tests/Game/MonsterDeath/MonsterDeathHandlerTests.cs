@@ -240,6 +240,17 @@ public sealed class MonsterDeathHandlerTests
     }
 
     [Fact]
+    public async Task AnAPCDeathProjectsItsCommittedIndependentDropWithoutMonsterExperience()
+    {
+        var bus = new FixedKillAward(leveledUp: false, awarded: false);
+        var sent = await Kill(bus: bus, run: new OneRun(apcDrop: true),
+            killRules: new OneDeclaredAiCharacter());
+        var death = Assert.Single(sent.OfType<MonsterDeathNotification>());
+        Assert.Equal(1001, Assert.Single(death.Drops).ItemId);
+        Assert.Equal(HuntEnemyTargetTypes.AiCharacter, bus.LastKillCommand?.EnemyType);
+    }
+
+    [Fact]
     public async Task APartyKillPaysEachFrozenExactParticipantAndBroadcastsOneSharedDeath()
     {
         var leader = SelectedSessionIdentity.Create(
@@ -875,7 +886,7 @@ public sealed class MonsterDeathHandlerTests
     /// room opens the exit, which is a different decision with frames of its own; what is checked
     /// here is the kill itself.
     /// </remarks>
-    private sealed class OneRun : IDungeonRunDomainService
+    private sealed class OneRun(bool apcDrop = false) : IDungeonRunDomainService
     {
         private bool _reported;
         private bool _committed;
@@ -924,12 +935,14 @@ public sealed class MonsterDeathHandlerTests
                 [
                     new DungeonCellActorState(
                         DeadActor,
-                        new DungeonRoomActor(3001, 4, 0),
-                        IsAiCharacter: false,
+                        new DungeonRoomActor(3001, 4, apcDrop ? (byte)5 : (byte)0),
+                        IsAiCharacter: apcDrop,
                         IsDead: this._committed,
-                        PendingLoot: []),
+                        PendingLoot: [], IsMonster: !apcDrop),
                 ],
-                GroundItems: []));
+                GroundItems: apcDrop && this._committed
+                    ? [new DungeonGroundItem(1, 1001, 1, 0, false, DungeonGroundItemSource.FromActor(DeadActor))]
+                    : []));
 
         public DungeonActorDeathClaim? TryClaimActorDeath(
             CharacterId characterId,

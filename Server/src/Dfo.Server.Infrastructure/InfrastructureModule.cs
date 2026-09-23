@@ -80,6 +80,7 @@ public sealed class InfrastructureModule : IServerModule
         // parallel rates, so it gets its own reader rather than another path into the one above.
         services.TryAddSingleton<IClearRewardRateSource, PvfClearRewardRateSource>();
         services.TryAddSingleton<IDropItemPoolSource, PvfDropItemPoolSource>();
+        services.TryAddSingleton<IIndependentDropTableSource, PvfIndependentDropTableSource>();
         services.TryAddSingleton<IExtraDropContentSource, PvfExtraDropContentSource>();
         services.TryAddSingleton<IWorldDropTableSource, PvfWorldDropTableSource>();
         services.TryAddSingleton<IMonsterDeclaredDropTableSource, PvfMonsterDeclaredDropTableSource>();
