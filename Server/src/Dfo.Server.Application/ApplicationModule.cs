@@ -196,6 +196,12 @@ public sealed class ApplicationModule : IServerModule
         // DropRules. The compensation seam below stays outside it, because what a character is
         // owed is state that crosses runs.
         services.TryAddSingleton<IDropRuleService, DropRuleService>();
+        services.TryAddSingleton<IWorldDropRuleService, WorldDropRuleService>();
+        services.TryAddSingleton(new WorldDropOptions
+        {
+            ProbabilityBasis = configuration["WorldDrops:ProbabilityBasis"] is { } configuredWorldBasis
+                ? int.Parse(configuredWorldBasis, System.Globalization.CultureInfo.InvariantCulture) : 100000,
+        });
         services.TryAddSingleton<IDropRateAdjuster, NoDropRateAdjustment>();
         // The one number the archive does not declare. See DropRateOptions for the two candidate
         // readings and why neither could be chosen from the files.

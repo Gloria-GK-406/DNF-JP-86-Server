@@ -29,9 +29,6 @@ internal sealed partial class MonsterDropDomainService
     // Quantity axis and embedded-list sampling remain unresolved; external pools are absent.
     private static IReadOnlyList<RolledDrop> GenerateIndependent(MonsterDropRequest request) => [];
 
-    // Do not normalize world weights into a guaranteed item: the empty-outcome model is unknown.
-    private static IReadOnlyList<RolledDrop> GenerateWorld(MonsterDropRequest request) => [];
-
     // Hell/event rewards need their own trigger and replacement rules, not one payout per actor.
     private static IReadOnlyList<RolledDrop> GenerateSpecialMode(MonsterDropRequest request) => [];
 }

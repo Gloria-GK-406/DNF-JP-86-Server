@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
@@ -103,6 +104,9 @@ logger.LogInformation(
 // When present, prepare all shared stats before any network hosted service accepts a client.
 if (archive is not null)
 {
+    var worldTimer = System.Diagnostics.Stopwatch.StartNew();
+    var worldCount = host.Services.GetRequiredService<IWorldDropRuleService>().Initialize();
+    logger.LogInformation("World drop tables initialized: {Count} levels in {ElapsedMs} ms", worldCount, worldTimer.ElapsedMilliseconds);
     await host.Services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync();
     var timer = System.Diagnostics.Stopwatch.StartNew();
     var count = await host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();

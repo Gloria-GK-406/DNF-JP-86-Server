@@ -59,7 +59,8 @@ public sealed class MonsterDropDomainServiceTests
         (100, 110));
 
     private static MonsterDropDomainService Build(
-        DropRateTable table, IQuestMonsterDropDomainService? quests = null) => new(
+        DropRateTable table, IQuestMonsterDropDomainService? quests = null,
+        IWorldDropRuleService? world = null) => new(
         new DropRuleService(
             new StubRateTables(table),
             new StubGoldTables(Gold),
@@ -67,7 +68,7 @@ public sealed class MonsterDropDomainServiceTests
             new DropRateOptions { RateBasis = Basis }),
         new NoDropRateAdjustment(),
         quests ?? new NoQuestDrops(),
-        NullLogger<MonsterDropDomainService>.Instance);
+        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops());
 
     private static DungeonCellCreationContext Run() => new(
         DungeonRunId.New(),
@@ -98,7 +99,7 @@ public sealed class MonsterDropDomainServiceTests
             rules,
             new NoDropRateAdjustment(),
             new NoQuestDrops(),
-            NullLogger<MonsterDropDomainService>.Instance);
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops());
 
         await service.GenerateGroundAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
@@ -147,6 +148,33 @@ public sealed class MonsterDropDomainServiceTests
             var expected = rules.DrawFor(request, rules.RatesFor(request)!);
             var actual = await service.GenerateGroundAsync(65601, sample, CancellationToken.None);
             Assert.Equal(expected.ToArray(), actual.ToArray());
+        }
+    }
+
+    [Fact]
+    public async Task World_items_append_once_without_changing_ordinary_items_or_needing_a_rate_band()
+    {
+        var context = Kill(Run());
+        var world = new CertainWorldDrop();
+        var ordinary = await Build(Certain()).GenerateGroundAsync(65601, context, CancellationToken.None);
+        var combined = await Build(Certain(), world: world).GenerateGroundAsync(65601, context, CancellationToken.None);
+        Assert.Equal(ordinary.ToArray(), combined.Take(ordinary.Count).ToArray());
+        Assert.Equal(3030, combined[^1].ItemId);
+        Assert.Equal(ordinary.Count + 1, combined.Count);
+        var uncovered = await Build(Certain() with { LevelBands = [] }, world: world)
+            .GenerateGroundAsync(65601, context, CancellationToken.None);
+        Assert.Equal(3030, Assert.Single(uncovered).ItemId);
+        Assert.Equal(2, world.Calls);
+    }
+
+    private sealed class CertainWorldDrop : IWorldDropRuleService
+    {
+        public int Calls { get; private set; }
+        public int Initialize() => 1;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request)
+        {
+            Calls++;
+            return [new(3030, 1, DropRarity.Uncommon, DropItemKind.Stackable)];
         }
     }
 
@@ -233,7 +261,7 @@ public sealed class MonsterDropDomainServiceTests
     {
         var rules = new RecordingDropRules();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(),
-            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance);
+            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops());
         var context = Kill(Run());
         MonsterDropParticipant participant = new(new AccountId(1), Character);
         foreach (var invalid in new[]
@@ -262,7 +290,7 @@ public sealed class MonsterDropDomainServiceTests
         var rules = new RecordingDropRules();
         var quests = new RecordingQuestDrops();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(), quests,
-            NullLogger<MonsterDropDomainService>.Instance);
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops());
         await service.GeneratePersonalAsync(65601, new CharacterId(2),
             Kill(Run(), partyMemberCount: 2), CancellationToken.None);
         Assert.Null(rules.Asked);
@@ -332,5 +360,10 @@ public sealed class MonsterDropDomainServiceTests
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
             MonsterDropRequest kill, MonsterDropParticipant participant, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
+    }
+    private sealed class NoWorldDrops : IWorldDropRuleService
+    {
+        public int Initialize() => 0;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request) => [];
     }
 }

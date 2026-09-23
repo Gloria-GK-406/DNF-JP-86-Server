@@ -15,7 +15,8 @@ internal sealed partial class MonsterDropDomainService(
     IDropRuleService dropRules,
     IDropRateAdjuster adjuster,
     IQuestMonsterDropDomainService questDrops,
-    ILogger<MonsterDropDomainService> logger) : IMonsterDropDomainService
+    ILogger<MonsterDropDomainService> logger,
+    IWorldDropRuleService worldDrops) : IMonsterDropDomainService
 {
     public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -27,7 +28,7 @@ internal sealed partial class MonsterDropDomainService(
         result.AddRange(GenerateExtra(request));
         result.AddRange(GenerateMonsterDeclared(request));
         result.AddRange(GenerateIndependent(request));
-        result.AddRange(GenerateWorld(request));
+        result.AddRange(worldDrops.Draw(request));
         result.AddRange(GenerateSpecialMode(request));
         return ValueTask.FromResult<IReadOnlyList<RolledDrop>>(result);
     }
