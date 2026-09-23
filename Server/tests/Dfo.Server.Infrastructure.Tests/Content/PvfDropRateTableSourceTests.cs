@@ -378,7 +378,7 @@ public sealed class PvfDropRateTableSourceTests
     /// <remarks>
     /// Avatars live in <c>equipment.lst</c> beside ordinary gear, so "the avatar pool is empty" is
     /// a claim about the archive rather than about the code, and this is where it is checked.
-    /// <c>MonsterLootRuleService</c> declines the avatar slot on the strength of it.
+    /// <c>MonsterDropDomainService</c> declines the avatar slot on the strength of it.
     /// <para>
     /// Named pieces here, but what pins the universal is the count in
     /// <c>PvfDropItemPoolSourceTests.The_equipment_pool_comes_from_the_equipment_files</c>: the

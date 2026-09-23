@@ -1,5 +1,8 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.World;
 
@@ -55,36 +58,53 @@ public readonly record struct MonsterDrop(ushort Number, RolledDrop Rolled)
     public bool IsGold => this.Rolled.IsGold;
 }
 
-/// <summary>One kill, as much of it as deciding its drops depends on.</summary>
-/// <param name="ActorSequence">
-/// Which actor of the room died. It is part of what makes this occasion this occasion, so the
-/// same kill asked about twice answers the same way.
-/// </param>
-/// <param name="PartyMemberCount">
-/// How many frozen participants entered this run. It is part of the Cell creation input because
-/// the archive declares a party multiplier for it.
-/// </param>
-public sealed record MonsterKill(
-    CharacterId CharacterId,
-    DungeonCellCreationContext Context,
+/// <summary>Participant identity frozen at entry; no inventory or quest snapshot.</summary>
+public readonly record struct MonsterDropParticipant(AccountId AccountId, CharacterId CharacterId);
+
+/// <summary>
+/// Values that identify this generation occasion. Mutable character facts are read inside the
+/// domain service. Participants are frozen run members, not the current town party.
+/// </summary>
+public sealed record MonsterDropContext(
+    DungeonRunId RunId,
+    int DungeonId,
+    int Seed,
+    MazeCell Cell,
+    int MapId,
+    DungeonDifficulty Difficulty,
     ushort ActorSequence,
     int MonsterLevel,
     int MonsterRank,
-    int PartyMemberCount = 1,
-    int MonsterCode = 0);
+    CharacterId CharacterId,
+    ImmutableArray<MonsterDropParticipant> Participants)
+{
+    public int PartyMemberCount => this.Participants.Length;
+}
 
-/// <summary>Quest-declared automatic grants for each participant of this Cell.</summary>
-public interface IQuestMonsterDropRuleService
+/// <summary>Input shared by drop sources behind the generation boundary.</summary>
+public sealed record MonsterDropRequest(int MonsterCode, MonsterDropContext Context)
+{
+    public CharacterId CharacterId => this.Context.CharacterId;
+    public ushort ActorSequence => this.Context.ActorSequence;
+    public int MonsterLevel => this.Context.MonsterLevel;
+    public int MonsterRank => this.Context.MonsterRank;
+    public int PartyMemberCount => this.Context.PartyMemberCount;
+}
+
+/// <summary>Reads current quest and inventory facts for the identified participants.</summary>
+public interface IQuestMonsterDropDomainService
 {
     ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterKill kill, CancellationToken cancellationToken);
+        MonsterDropRequest request, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Resolves the deterministic loot attached to an actor while its cell is being constructed.
+/// Generates the unnumbered drops attached to a monster at cell creation. Reads current facts,
+/// but never writes inventory, quest progress, ground state or protocol messages. Ordinary and
+/// quest sources run in that order; new sources belong behind this boundary.
 /// </summary>
-public interface IMonsterLootRuleService
+public interface IMonsterDropDomainService
 {
-    ValueTask<IReadOnlyList<RolledDrop>> ResolveAsync(
-        MonsterKill kill, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<RolledDrop>> GenerateAsync(
+        int monsterId, MonsterDropContext context, CancellationToken cancellationToken);
 }

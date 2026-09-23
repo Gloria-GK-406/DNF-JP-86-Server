@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -12,7 +13,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.World;
 
-public sealed class QuestMonsterDropRuleServiceTests
+public sealed class QuestMonsterDropDomainServiceTests
 {
     private static readonly AccountId Account = new(7);
     private static readonly CharacterId Leader = new(70);
@@ -101,6 +102,21 @@ public sealed class QuestMonsterDropRuleServiceTests
         Assert.All(drops, drop => Assert.Equal(RolledDropDelivery.DirectQuestItem, drop.Delivery));
     }
 
+    [Fact]
+    public async Task Reusing_identity_context_reads_current_quest_and_inventory_facts()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var request = Kill(fixture.Run, 65601);
+        Assert.Single(await fixture.Service.DrawAsync(request, CancellationToken.None));
+
+        fixture.Logs.Carried[Leader.Value] = [];
+        Assert.Empty(await fixture.Service.DrawAsync(request, CancellationToken.None));
+
+        fixture.Logs.Carried[Leader.Value] = [new CarriedQuest(0, 1779, 15)];
+        fixture.Bag.SetCount(10149163, 15);
+        Assert.Empty(await fixture.Service.DrawAsync(request, CancellationToken.None));
+    }
+
     private static Fixture Build(
         DungeonRunPurpose purpose,
         int dungeonId = 145,
@@ -120,10 +136,11 @@ public sealed class QuestMonsterDropRuleServiceTests
             logs.Carried[Member.Value] = [new CarriedQuest(0, 1779, 15)];
 
         var containers = new CharacterContainerDomainService();
-        containers.Register(Leader, new Bag(10149163, held));
+        var bag = new Bag(10149163, held);
+        containers.Register(Leader, bag);
         if (memberCarriesQuest)
             containers.Register(Member, new Bag(10149163, 0));
-        var service = new QuestMonsterDropRuleService(
+        var service = new QuestMonsterDropDomainService(
             new QuestRules(definition), logs, containers);
         var layout = Layout(dungeonId, purpose);
         var run = new DungeonCellCreationContext(
@@ -137,11 +154,15 @@ public sealed class QuestMonsterDropRuleServiceTests
                 ? [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true),
                     new DungeonRunParticipant(new AccountId(8), Member, 1, IsLeader: false)]
                 : [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true)]);
-        return new Fixture(service, run);
+        return new Fixture(service, run, logs, bag);
     }
 
-    private static MonsterKill Kill(DungeonCellCreationContext run, int monsterCode) =>
-        new(Leader, run, 30001, 5, 0, 1, monsterCode);
+    private static MonsterDropRequest Kill(DungeonCellCreationContext run, int monsterCode) =>
+        new(monsterCode, new MonsterDropContext(
+            run.RunId, run.Layout.DungeonId, run.Layout.Seed, run.Cell, run.MapId,
+            run.Difficulty, 30001, 5, 0, Leader,
+            run.Participants.Select(participant => new MonsterDropParticipant(
+                participant.AccountId, participant.CharacterId)).ToImmutableArray()));
 
     private static QuestDefinition Definition(
         int rewardCount, int maxStack, int rewardDifficulty) =>
@@ -167,8 +188,10 @@ public sealed class QuestMonsterDropRuleServiceTests
             Purpose: purpose);
 
     private sealed record Fixture(
-        QuestMonsterDropRuleService Service,
-        DungeonCellCreationContext Run);
+        QuestMonsterDropDomainService Service,
+        DungeonCellCreationContext Run,
+        RecordingQuestLogs Logs,
+        Bag Bag);
 
     private sealed class QuestRules(QuestDefinition definition) : IQuestContentRuleService
     {
@@ -189,9 +212,11 @@ public sealed class QuestMonsterDropRuleServiceTests
 
     private sealed class Bag : IItemContainer
     {
-        private readonly IReadOnlyList<ContainerSlotItem> items;
+        private IReadOnlyList<ContainerSlotItem> items = [];
 
-        public Bag(int itemId, int count) =>
+        public Bag(int itemId, int count) => this.SetCount(itemId, count);
+
+        public void SetCount(int itemId, int count) =>
             this.items = count <= 0
                 ? []
                 : [new ContainerSlotItem(

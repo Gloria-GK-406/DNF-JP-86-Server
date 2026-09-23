@@ -19,7 +19,7 @@ internal sealed class DropRuleService(
     IDropItemPoolSource pools,
     DropRateOptions options) : IDropRuleService
 {
-    public DropRates? RatesFor(MonsterKill kill)
+    public DropRates? RatesFor(MonsterDropRequest kill)
     {
         ArgumentNullException.ThrowIfNull(kill);
 
@@ -35,14 +35,14 @@ internal sealed class DropRuleService(
                 options.RateBasis);
     }
 
-    public IReadOnlyList<RolledDrop> DrawFor(MonsterKill kill, DropRates rates)
+    public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates)
     {
         ArgumentNullException.ThrowIfNull(kill);
         ArgumentNullException.ThrowIfNull(rates);
 
         var table = rateTables.Load(DropRateTables.Monster);
         var random = new DropRandom(DropRandom.SeedFor(
-            kill.Context.Layout.Seed,
+            kill.Context.Seed,
             kill.Context.MapId,
             kill.Context.Cell.X,
             kill.Context.Cell.Y,
@@ -81,7 +81,7 @@ internal sealed class DropRuleService(
     /// </para>
     /// </remarks>
     private RolledDrop? Draw(
-        DropRateTable table, MonsterKill kill, DropRateSlot slot, DropRandom random)
+        DropRateTable table, MonsterDropRequest kill, DropRateSlot slot, DropRandom random)
     {
         var kind = DropRules.KindOf(slot);
         if (kind == DropItemKind.Gold)

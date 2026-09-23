@@ -54,6 +54,18 @@ public sealed class DungeonCellFactoryTests
         Assert.Equal(isMonster ? 1 : 0, loot.CallCount);
         Assert.Equal(isMonster ? 1 : 0, actor.PendingLoot.Count);
         Assert.Equal(!isMonster, seed.Snapshot().IsCleared);
+        if (isMonster)
+        {
+            Assert.Equal(61670, loot.MonsterId);
+            var context = Assert.IsType<MonsterDropContext>(loot.Context);
+            Assert.Equal(layout.DungeonId, context.DungeonId);
+            Assert.Equal(layout.Seed, context.Seed);
+            Assert.Equal((ushort)100, context.ActorSequence);
+            Assert.Equal(actorType, context.MonsterRank);
+            Assert.Equal(new CharacterId(10), context.CharacterId);
+            Assert.Equal(new MonsterDropParticipant(new AccountId(1), new CharacterId(10)),
+                Assert.Single(context.Participants));
+        }
     }
 
     private sealed class OneActorRoom(byte actorType) : IDungeonRoomRuleService
@@ -74,15 +86,19 @@ public sealed class DungeonCellFactoryTests
         public ushort FirstActorSequenceFor(DungeonCellCreationContext context) => 100;
     }
 
-    private sealed class RecordingLoot : IMonsterLootRuleService
+    private sealed class RecordingLoot : IMonsterDropDomainService
     {
         public int CallCount { get; private set; }
+        public int MonsterId { get; private set; }
+        public MonsterDropContext? Context { get; private set; }
 
-        public ValueTask<IReadOnlyList<RolledDrop>> ResolveAsync(
-            MonsterKill kill,
+        public ValueTask<IReadOnlyList<RolledDrop>> GenerateAsync(
+            int monsterId, MonsterDropContext context,
             CancellationToken cancellationToken)
         {
             this.CallCount++;
+            this.MonsterId = monsterId;
+            this.Context = context;
             return ValueTask.FromResult<IReadOnlyList<RolledDrop>>(
                 [new RolledDrop(1001, 1, DropRarity.Common, DropItemKind.Stackable)]);
         }

@@ -24,7 +24,7 @@ namespace Dfo.Server.Abstractions.World;
 /// </param>
 /// <param name="PartyMemberCount">
 /// How many were in the party, counted from one. A parameter rather than a constant for the reason
-/// <see cref="MonsterKill.PartyMemberCount"/> is one.
+/// <see cref="MonsterDropRequest.PartyMemberCount"/> is one.
 /// </param>
 public sealed record ClearRewardSettlement(
     CharacterId CharacterId,

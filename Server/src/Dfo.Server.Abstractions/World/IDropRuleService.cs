@@ -26,12 +26,12 @@ public interface IDropRuleService
     /// the table does not reach is a gap in the reading, and a caller has a warning to write about
     /// it. Rates that are simply all zero are an ordinary answer.
     /// </remarks>
-    DropRates? RatesFor(MonsterKill kill);
+    DropRates? RatesFor(MonsterDropRequest kill);
 
     /// <summary>What this kill draws at these rates.</summary>
     /// <param name="rates">
     /// The rates to draw at, which the caller may have had raised on the character's behalf. Passed
     /// in rather than fetched, so that whatever raised them stays outside the rules.
     /// </param>
-    IReadOnlyList<RolledDrop> DrawFor(MonsterKill kill, DropRates rates);
+    IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates);
 }

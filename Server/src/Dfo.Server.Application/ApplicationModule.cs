@@ -272,11 +272,11 @@ public sealed class ApplicationModule : IServerModule
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
-        services.TryAddSingleton<MonsterLootRuleService>();
-        services.TryAddSingleton<IMonsterLootRuleService>(services =>
-            services.GetRequiredService<MonsterLootRuleService>());
+        services.TryAddSingleton<MonsterDropDomainService>();
+        services.TryAddSingleton<IMonsterDropDomainService>(services =>
+            services.GetRequiredService<MonsterDropDomainService>());
         services.TryAddSingleton<IDungeonCellFactory, DungeonCellFactory>();
-        services.TryAddSingleton<IQuestMonsterDropRuleService, QuestMonsterDropRuleService>();
+        services.TryAddSingleton<IQuestMonsterDropDomainService, QuestMonsterDropDomainService>();
         // What a character has left to spend, asked by identifier and worked out on the spot. The
         // arithmetic belongs to the shared skill rules; the state service supplies current facts.
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();

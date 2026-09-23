@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
@@ -8,7 +9,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonCellFactory(
     IDungeonRoomRuleService rooms,
     IItemPlacementRuleService placementRules,
-    IMonsterLootRuleService loot,
+    IMonsterDropDomainService loot,
     IExperienceRuleService experienceRules) : IDungeonCellFactory
 {
     public async ValueTask<DungeonCellSeed> CreateAsync(
@@ -17,6 +18,9 @@ internal sealed class DungeonCellFactory(
     {
         ArgumentNullException.ThrowIfNull(context);
         var leader = context.Participants.Single(participant => participant.IsLeader);
+        var participants = context.Participants
+            .Select(participant => new MonsterDropParticipant(participant.AccountId, participant.CharacterId))
+            .ToImmutableArray();
         var contents = await rooms.DescribeAsync(context, cancellationToken)
             .ConfigureAwait(false);
 
@@ -42,15 +46,20 @@ internal sealed class DungeonCellFactory(
             IReadOnlyList<RolledDrop> pending = [];
             if (isMonster)
             {
-                pending = await loot.ResolveAsync(
-                    new MonsterKill(
-                        leader.CharacterId,
-                        context,
+                pending = await loot.GenerateAsync(
+                    described.Actor.Code,
+                    new MonsterDropContext(
+                        context.RunId,
+                        context.Layout.DungeonId,
+                        context.Layout.Seed,
+                        context.Cell,
+                        context.MapId,
+                        context.Difficulty,
                         sequence,
                         context.Layout.LevelOf(described.Actor.Level),
                         described.Actor.ActorType,
-                        Math.Max(1, context.Participants.Count),
-                        described.Actor.Code),
+                        leader.CharacterId,
+                        participants),
                     cancellationToken).ConfigureAwait(false);
             }
 

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Dfo.Server.Application.Tests.World;
 
 /// <summary>What is frozen onto an actor while its cell is created.</summary>
-public sealed class MonsterLootRuleServiceTests
+public sealed class MonsterDropDomainServiceTests
 {
     private const int Basis = 10000;
     private static readonly CharacterId Character = new(1);
@@ -57,15 +58,16 @@ public sealed class MonsterLootRuleServiceTests
         [1, 2, 4, 6],
         (100, 110));
 
-    private static MonsterLootRuleService Build(DropRateTable table) => new(
+    private static MonsterDropDomainService Build(
+        DropRateTable table, IQuestMonsterDropDomainService? quests = null) => new(
         new DropRuleService(
             new StubRateTables(table),
             new StubGoldTables(Gold),
             new StubPools(),
             new DropRateOptions { RateBasis = Basis }),
         new NoDropRateAdjustment(),
-        new NoQuestDrops(),
-        NullLogger<MonsterLootRuleService>.Instance);
+        quests ?? new NoQuestDrops(),
+        NullLogger<MonsterDropDomainService>.Instance);
 
     private static DungeonCellCreationContext Run() => new(
         DungeonRunId.New(),
@@ -77,39 +79,43 @@ public sealed class MonsterLootRuleServiceTests
         [new DungeonRunParticipant(
             new AccountId(1), Character, Slot: 0, IsLeader: true)]);
 
-    private static MonsterKill Kill(
+    private static MonsterDropContext Kill(
         DungeonCellCreationContext run,
         ushort actor = ActorSequence,
         int rank = 0,
         int partyMemberCount = 1) =>
-        new(Character, run, actor, MonsterLevel, rank, partyMemberCount);
+        new(run.RunId, run.Layout.DungeonId, run.Layout.Seed, run.Cell, run.MapId,
+            run.Difficulty, actor, MonsterLevel, rank, Character,
+            Enumerable.Range(1, partyMemberCount)
+                .Select(id => new MonsterDropParticipant(new AccountId(id), new CharacterId(id)))
+                .ToImmutableArray());
 
     [Fact]
     public async Task Drop_rules_receive_the_party_size_frozen_by_cell_creation()
     {
         var rules = new RecordingDropRules();
-        var service = new MonsterLootRuleService(
+        var service = new MonsterDropDomainService(
             rules,
             new NoDropRateAdjustment(),
             new NoQuestDrops(),
-            NullLogger<MonsterLootRuleService>.Instance);
+            NullLogger<MonsterDropDomainService>.Instance);
 
-        await service.ResolveAsync(Kill(Run(), partyMemberCount: 2), CancellationToken.None);
+        await service.GenerateAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
-        Assert.Equal(2, Assert.IsType<MonsterKill>(rules.Asked).PartyMemberCount);
+        Assert.Equal(2, Assert.IsType<MonsterDropRequest>(rules.Asked).PartyMemberCount);
     }
 
     [Fact]
     public async Task A_plan_that_hits_no_rate_contains_no_loot()
     {
-        Assert.Empty(await Build(Never()).ResolveAsync(Kill(Run()), CancellationToken.None));
+        Assert.Empty(await Build(Never()).GenerateAsync(65601, Kill(Run()), CancellationToken.None));
     }
 
     [Fact]
     public async Task Gold_and_equipment_are_both_frozen_on_the_actor()
     {
         var planned = await Build(GoldAndEquipment())
-            .ResolveAsync(Kill(Run()), CancellationToken.None);
+            .GenerateAsync(65601, Kill(Run()), CancellationToken.None);
 
         Assert.Equal(2, planned.Count);
         Assert.Contains(planned, drop => drop.IsGold && drop.Count >= 1357);
@@ -119,8 +125,8 @@ public sealed class MonsterLootRuleServiceTests
     [Fact]
     public async Task One_occasion_resolves_one_deterministic_answer()
     {
-        var once = await Build(Certain()).ResolveAsync(Kill(Run()), CancellationToken.None);
-        var again = await Build(Certain()).ResolveAsync(Kill(Run()), CancellationToken.None);
+        var once = await Build(Certain()).GenerateAsync(65601, Kill(Run()), CancellationToken.None);
+        var again = await Build(Certain()).GenerateAsync(65601, Kill(Run()), CancellationToken.None);
 
         Assert.NotEmpty(once);
         Assert.Equal(once, again);
@@ -132,8 +138,8 @@ public sealed class MonsterLootRuleServiceTests
         var service = Build(Certain());
         var run = Run();
 
-        var first = await service.ResolveAsync(Kill(run), CancellationToken.None);
-        var second = await service.ResolveAsync(
+        var first = await service.GenerateAsync(65601, Kill(run), CancellationToken.None);
+        var second = await service.GenerateAsync(65601,
             Kill(run, actor: ActorSequence + 1), CancellationToken.None);
 
         Assert.NotEqual(first.Select(drop => drop.Count), second.Select(drop => drop.Count));
@@ -147,7 +153,7 @@ public sealed class MonsterLootRuleServiceTests
             LevelBands = [new DropRateBand(1, 50, [Basis, 0, 0, 0, 0])],
         });
 
-        Assert.Empty(await service.ResolveAsync(Kill(Run()), CancellationToken.None));
+        Assert.Empty(await service.GenerateAsync(65601, Kill(Run()), CancellationToken.None));
     }
 
     [Fact]
@@ -156,8 +162,8 @@ public sealed class MonsterLootRuleServiceTests
         var service = Build(Table([Basis, 0, 0, 0, 0]));
         var run = Run();
 
-        var ordinary = await service.ResolveAsync(Kill(run), CancellationToken.None);
-        var boss = await service.ResolveAsync(Kill(run, actor: ActorSequence + 1, rank: 3),
+        var ordinary = await service.GenerateAsync(65601, Kill(run), CancellationToken.None);
+        var boss = await service.GenerateAsync(65601, Kill(run, actor: ActorSequence + 1, rank: 3),
             CancellationToken.None);
 
         Assert.InRange(ordinary.Single().Count, 1357, 1492);
@@ -168,18 +174,68 @@ public sealed class MonsterLootRuleServiceTests
     public async Task The_avatar_slot_resolves_no_loot()
     {
         Assert.Empty(await Build(Table([0, 0, 0, 0, Basis]))
-            .ResolveAsync(Kill(Run()), CancellationToken.None));
+            .GenerateAsync(65601, Kill(Run()), CancellationToken.None));
     }
 
     [Fact]
     public async Task Each_item_slot_uses_its_mapped_family()
     {
         var planned = await Build(Table([0, Basis, Basis, Basis, 0]))
-            .ResolveAsync(Kill(Run()), CancellationToken.None);
+            .GenerateAsync(65601, Kill(Run()), CancellationToken.None);
 
         Assert.Equal(3, planned.Count);
         Assert.Equal(2, planned.Count(drop => drop.ItemId == 10087807));
         Assert.Single(planned, drop => drop.ItemId == 114000088);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Quest_source_is_composed_even_when_ordinary_table_does_not_cover_level(bool covered)
+    {
+        var table = GoldAndEquipment();
+        if (!covered)
+            table = table with { LevelBands = [] };
+        var quests = new RecordingQuestDrops();
+        var context = Kill(Run(), partyMemberCount: 2);
+        var result = await Build(table, quests).GenerateAsync(65601, context, CancellationToken.None);
+
+        Assert.Equal(new MonsterDropRequest(65601, context), quests.Asked);
+        Assert.Equal(covered ? 3 : 1, result.Count);
+        Assert.Equal(RecordingQuestDrops.Drop, result[^1]);
+    }
+
+    [Fact]
+    public async Task An_invalid_participant_context_is_rejected_before_querying_sources()
+    {
+        var rules = new RecordingDropRules();
+        var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(),
+            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance);
+        var context = Kill(Run());
+        MonsterDropParticipant participant = new(new AccountId(1), Character);
+        foreach (var invalid in new[]
+        {
+            context with { Participants = [] },
+            context with { Participants = [participant, participant] },
+            context with { CharacterId = new CharacterId(999) },
+        })
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await service.GenerateAsync(65601, invalid, CancellationToken.None));
+        Assert.Null(rules.Asked);
+    }
+
+    private sealed class RecordingQuestDrops : IQuestMonsterDropDomainService
+    {
+        public static readonly RolledDrop Drop = new(9001, 1, DropRarity.Common,
+            DropItemKind.Stackable, OwnerCharacterId: Character,
+            Delivery: RolledDropDelivery.DirectQuestItem, QuestId: 17, GrantLimit: 5);
+        public MonsterDropRequest? Asked { get; private set; }
+        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
+            MonsterDropRequest request, CancellationToken cancellationToken)
+        {
+            this.Asked = request;
+            return ValueTask.FromResult<IReadOnlyList<RolledDrop>>([Drop]);
+        }
     }
 
     private static DropItemPool EquipmentPool() => OnePool(
@@ -213,21 +269,21 @@ public sealed class MonsterLootRuleServiceTests
 
     private sealed class RecordingDropRules : IDropRuleService
     {
-        public MonsterKill? Asked { get; private set; }
+        public MonsterDropRequest? Asked { get; private set; }
 
-        public DropRates? RatesFor(MonsterKill kill)
+        public DropRates? RatesFor(MonsterDropRequest kill)
         {
             this.Asked = kill;
             return null;
         }
 
-        public IReadOnlyList<RolledDrop> DrawFor(MonsterKill kill, DropRates rates) => [];
+        public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates) => [];
     }
 
-    private sealed class NoQuestDrops : IQuestMonsterDropRuleService
+    private sealed class NoQuestDrops : IQuestMonsterDropDomainService
     {
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-            MonsterKill kill, CancellationToken cancellationToken) =>
+            MonsterDropRequest kill, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
     }
 }

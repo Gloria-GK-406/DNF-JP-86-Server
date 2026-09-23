@@ -7,13 +7,13 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.World;
 
 /// <summary>Reads quest-owned monster item declarations without changing ordinary drop rules.</summary>
-internal sealed class QuestMonsterDropRuleService(
+internal sealed class QuestMonsterDropDomainService(
     IQuestContentRuleService quests,
     ICharacterQuestLogDomainService logs,
-    ICharacterContainerDomainService containers) : IQuestMonsterDropRuleService
+    ICharacterContainerDomainService containers) : IQuestMonsterDropDomainService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterKill kill,
+        MonsterDropRequest kill,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(kill);
@@ -38,7 +38,7 @@ internal sealed class QuestMonsterDropRuleService(
                     continue;
                 var random = new DropRandom(
                     DropRandom.SeedFor(
-                        kill.Context.Layout.Seed,
+                        kill.Context.Seed,
                         kill.Context.MapId,
                         kill.Context.Cell.X,
                         kill.Context.Cell.Y,
@@ -49,7 +49,7 @@ internal sealed class QuestMonsterDropRuleService(
                 foreach (var source in definition.MonsterRewardItems)
                 {
                     if (source.MonsterCode != kill.MonsterCode
-                        || (source.DungeonId >= 0 && source.DungeonId != kill.Context.Layout.DungeonId)
+                        || (source.DungeonId >= 0 && source.DungeonId != kill.Context.DungeonId)
                         || (source.Difficulty >= 0 && source.Difficulty != (int)kill.Context.Difficulty))
                         continue;
 
