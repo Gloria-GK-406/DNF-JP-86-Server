@@ -197,6 +197,7 @@ public sealed class ApplicationModule : IServerModule
         // owed is state that crosses runs.
         services.TryAddSingleton<IDropRuleService, DropRuleService>();
         services.TryAddSingleton<IWorldDropRuleService, WorldDropRuleService>();
+        services.TryAddSingleton<IMonsterDeclaredDropRuleService, MonsterDeclaredDropRuleService>();
         services.TryAddSingleton(new WorldDropOptions
         {
             ProbabilityBasis = configuration["WorldDrops:ProbabilityBasis"] is { } configuredWorldBasis

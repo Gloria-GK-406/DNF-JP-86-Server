@@ -23,8 +23,8 @@ internal sealed partial class MonsterDropDomainService
     // Disabled until extra-table replacement/append conditions are established.
     private static IReadOnlyList<RolledDrop> GenerateExtra(MonsterDropRequest request) => [];
 
-    // The monster [item] declaration may be a pool rather than an additional drop gate.
-    private static IReadOnlyList<RolledDrop> GenerateMonsterDeclared(MonsterDropRequest request) => [];
+    // One fixed-basis draw per monster, independent of party size.
+    private IReadOnlyList<RolledDrop> GenerateMonsterDeclared(MonsterDropRequest request) => declaredDrops.Draw(request);
 
     // Quantity axis and embedded-list sampling remain unresolved; external pools are absent.
     private static IReadOnlyList<RolledDrop> GenerateIndependent(MonsterDropRequest request) => [];

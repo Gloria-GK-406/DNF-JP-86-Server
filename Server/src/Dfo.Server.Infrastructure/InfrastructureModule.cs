@@ -81,6 +81,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IClearRewardRateSource, PvfClearRewardRateSource>();
         services.TryAddSingleton<IDropItemPoolSource, PvfDropItemPoolSource>();
         services.TryAddSingleton<IWorldDropTableSource, PvfWorldDropTableSource>();
+        services.TryAddSingleton<IMonsterDeclaredDropTableSource, PvfMonsterDeclaredDropTableSource>();
         services.TryAddSingleton<IEquipmentSlotDefinitionSource, PvfEquipmentSlotDefinitionSource>();
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
             PvfDungeonExperienceProgressionPolicySource>();

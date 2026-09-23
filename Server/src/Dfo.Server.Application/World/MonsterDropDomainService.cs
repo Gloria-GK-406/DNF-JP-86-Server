@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +17,8 @@ internal sealed partial class MonsterDropDomainService(
     IDropRateAdjuster adjuster,
     IQuestMonsterDropDomainService questDrops,
     ILogger<MonsterDropDomainService> logger,
-    IWorldDropRuleService worldDrops) : IMonsterDropDomainService
+    IWorldDropRuleService worldDrops,
+    IMonsterDeclaredDropRuleService declaredDrops) : IMonsterDropDomainService
 {
     public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
