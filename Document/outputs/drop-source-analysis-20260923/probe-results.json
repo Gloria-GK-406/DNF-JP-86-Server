@@ -1,0 +1,635 @@
+{
+  "archive": "E:\\Project\\DNF\\DNFClient-A21-debug\\Script.pvf",
+  "sha256": "19F5FA85FF73CCE94E299E0902269DE2F0164934128F15B8A7B99249C881BE1A",
+  "interpretation": "Structure only; mode meanings, count axis and probability bases require separate evidence.",
+  "independent": {
+    "rows": 3046,
+    "mode_counts": {
+      "1": 516,
+      "0": 2530
+    },
+    "variable_count_rows": 1330,
+    "samples": [
+      {
+        "fields": [
+          0,
+          20,
+          0,
+          1000000,
+          1000000,
+          1000000,
+          1000000,
+          1000000,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          -1,
+          1
+        ],
+        "list": [
+          14400,
+          1000
+        ]
+      },
+      {
+        "fields": [
+          0,
+          907,
+          3610,
+          6000,
+          6000,
+          6000,
+          6000,
+          6000,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          907,
+          3015,
+          80000,
+          80000,
+          80000,
+          80000,
+          80000,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          19,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          3205,
+          500000,
+          750000,
+          1000000,
+          1000000,
+          1000000,
+          1,
+          2,
+          3,
+          4,
+          4,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          10000327,
+          900000,
+          900000,
+          900000,
+          900000,
+          900000,
+          1,
+          2,
+          3,
+          4,
+          4,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          0,
+          92,
+          112,
+          137,
+          157,
+          157,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          -1,
+          1
+        ],
+        "list": [
+          104020450,
+          100,
+          100290300,
+          100,
+          104010449,
+          100,
+          100200490,
+          100,
+          100312196,
+          100
+        ]
+      },
+      {
+        "fields": [
+          0,
+          17,
+          3229,
+          300000,
+          400000,
+          500000,
+          600000,
+          600000,
+          1,
+          3,
+          5,
+          8,
+          4,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          3330,
+          325000,
+          375000,
+          400000,
+          0,
+          0,
+          1,
+          2,
+          3,
+          5,
+          2,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          3330,
+          0,
+          0,
+          0,
+          800000,
+          800000,
+          1,
+          2,
+          3,
+          5,
+          4,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          3331,
+          25000,
+          75000,
+          100000,
+          125000,
+          125000,
+          1,
+          1,
+          2,
+          2,
+          1,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      },
+      {
+        "fields": [
+          0,
+          17,
+          3679,
+          500,
+          500,
+          500,
+          500,
+          500,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          -1,
+          0
+        ],
+        "list": []
+      }
+    ],
+    "empty_external_files": [
+      "etc/independentdrop/0_job_mapping_table.etc",
+      "etc/independentdrop/100_golgo_king_recipe.etc",
+      "etc/independentdrop/101_bakal_normal.etc",
+      "etc/independentdrop/102_bakal_expert.etc",
+      "etc/independentdrop/103_bakal_master.etc",
+      "etc/independentdrop/104_bakal_king.etc",
+      "etc/independentdrop/105_dark_dragon_nagor_normal.etc",
+      "etc/independentdrop/106_dark_dragon_nagor_expert.etc",
+      "etc/independentdrop/107_dark_dragon_nagor_master.etc",
+      "etc/independentdrop/108_dark_dragon_nagor_king.etc",
+      "etc/independentdrop/109_gold_dragon_normal.etc",
+      "etc/independentdrop/10_megaira_expert.etc",
+      "etc/independentdrop/110_gold_dragon_expert.etc",
+      "etc/independentdrop/111_gold_dragon_master.etc",
+      "etc/independentdrop/112_gold_dragon_king.etc",
+      "etc/independentdrop/113_itrenog_normal.etc",
+      "etc/independentdrop/114_itrenog_expert.etc",
+      "etc/independentdrop/115_itrenog_master.etc",
+      "etc/independentdrop/116_itrenog_king.etc",
+      "etc/independentdrop/117_red_dragon_normal.etc",
+      "etc/independentdrop/118_red_dragon_expert.etc",
+      "etc/independentdrop/119_red_dragon_master.etc",
+      "etc/independentdrop/11_megaira_master.etc",
+      "etc/independentdrop/120_red_dragon_king.etc",
+      "etc/independentdrop/121_astaroth_normal.etc",
+      "etc/independentdrop/122_astaroth_expert.etc",
+      "etc/independentdrop/123_astaroth_master.etc",
+      "etc/independentdrop/124_astaroth_king.etc",
+      "etc/independentdrop/125_berias_normal.etc",
+      "etc/independentdrop/126_beriasexpert.etc",
+      "etc/independentdrop/127_berias_master.etc",
+      "etc/independentdrop/128_berias_king.etc",
+      "etc/independentdrop/129_michaela_normal.etc",
+      "etc/independentdrop/12_megaira_king.etc",
+      "etc/independentdrop/130_michaela_expert.etc",
+      "etc/independentdrop/131_michaela_master.etc",
+      "etc/independentdrop/132_michaela_king.etc",
+      "etc/independentdrop/133_ozma_normal.etc",
+      "etc/independentdrop/134_ozma_expert.etc",
+      "etc/independentdrop/135_ozma_master.etc",
+      "etc/independentdrop/136_ozma_king.etc",
+      "etc/independentdrop/137_tiamat_normal.etc",
+      "etc/independentdrop/138_tiamat_expert.etc",
+      "etc/independentdrop/139_tiamat_master.etc",
+      "etc/independentdrop/13_megaira_normal2.etc",
+      "etc/independentdrop/140_tiamat_king.etc",
+      "etc/independentdrop/141_check_trap_normal.etc",
+      "etc/independentdrop/142_check_trap_expert.etc",
+      "etc/independentdrop/143_check_trap_master.etc",
+      "etc/independentdrop/144_check_trap_king.etc",
+      "etc/independentdrop/145_gaunis_normal.etc",
+      "etc/independentdrop/146_gaunis_expert.etc",
+      "etc/independentdrop/147_gaunis_master.etc",
+      "etc/independentdrop/148_gaunis_king.etc",
+      "etc/independentdrop/149_insent_normal.etc",
+      "etc/independentdrop/14_megaira_expert2.etc",
+      "etc/independentdrop/150_insent_expert.etc",
+      "etc/independentdrop/151_insent_master.etc",
+      "etc/independentdrop/152_insent_king.etc",
+      "etc/independentdrop/153_swaycle_normal.etc",
+      "etc/independentdrop/154_swaycle_expert.etc",
+      "etc/independentdrop/155_swaycle_master.etc",
+      "etc/independentdrop/156_swaycle_king.etc",
+      "etc/independentdrop/157_vanish_normal.etc",
+      "etc/independentdrop/158_vanish_expert.etc",
+      "etc/independentdrop/159_vanish_master.etc",
+      "etc/independentdrop/15_megaira_master2.etc",
+      "etc/independentdrop/160_vanish_king.etc",
+      "etc/independentdrop/16_megaira_king2.etc",
+      "etc/independentdrop/17_basilisk_normal.etc",
+      "etc/independentdrop/18_basilisk_expert.etc",
+      "etc/independentdrop/19_basilisk_master.etc",
+      "etc/independentdrop/1_magneus_normal.etc",
+      "etc/independentdrop/20_basilisk_king.etc",
+      "etc/independentdrop/21_basilisk_normal2.etc",
+      "etc/independentdrop/22_basilisk_expert2.etc",
+      "etc/independentdrop/23_basilisk_master2.etc",
+      "etc/independentdrop/24_basilisk_king2.etc",
+      "etc/independentdrop/25_dragon_man_normal.etc",
+      "etc/independentdrop/26_dragon_man_expert.etc",
+      "etc/independentdrop/27_dragon_man_master.etc",
+      "etc/independentdrop/28_dragon_man_king.etc",
+      "etc/independentdrop/29_dragon_man_normal2.etc",
+      "etc/independentdrop/2_magneus_expert.etc",
+      "etc/independentdrop/30_dragon_man_expert2.etc",
+      "etc/independentdrop/31_dragon_man_master2.etc",
+      "etc/independentdrop/32_dragon_man_king2.etc",
+      "etc/independentdrop/33_bitbusty_normal.etc",
+      "etc/independentdrop/34_bitbusty_expert.etc",
+      "etc/independentdrop/35_bitbusty_master.etc",
+      "etc/independentdrop/36_bitbusty_king.etc",
+      "etc/independentdrop/37_bitbusty_normal2.etc",
+      "etc/independentdrop/38_bitbusty_expert2.etc",
+      "etc/independentdrop/39_bitbusty_master2.etc",
+      "etc/independentdrop/3_magneus_master.etc",
+      "etc/independentdrop/40_bitbusty_king2.etc",
+      "etc/independentdrop/41_gashengrigun_normal.etc",
+      "etc/independentdrop/42_gashengrigun_expert.etc",
+      "etc/independentdrop/43_gashengrigun_master.etc",
+      "etc/independentdrop/44_gashengrigun_king.etc",
+      "etc/independentdrop/45_gashengrigun_normal2.etc",
+      "etc/independentdrop/46_gashengrigun_expert2.etc",
+      "etc/independentdrop/47_gashengrigun_master2.etc",
+      "etc/independentdrop/48_gashengrigun_king2.etc",
+      "etc/independentdrop/49_jeff_normal.etc",
+      "etc/independentdrop/4_magneus_king.etc",
+      "etc/independentdrop/50_jeff_expert.etc",
+      "etc/independentdrop/51_jeff_master.etc",
+      "etc/independentdrop/52_jeff_king.etc",
+      "etc/independentdrop/53_jeff_normal2.etc",
+      "etc/independentdrop/54_jeff_expert2.etc",
+      "etc/independentdrop/55_jeff_master2.etc",
+      "etc/independentdrop/56_jeff_king2.etc",
+      "etc/independentdrop/57_guardianmaster_normal.etc",
+      "etc/independentdrop/58_guardianmaster_expert.etc",
+      "etc/independentdrop/59_guardianmaster_master.etc",
+      "etc/independentdrop/5_magneus_normal2.etc",
+      "etc/independentdrop/60_guardianmaster_king.etc",
+      "etc/independentdrop/61_guardianmaster_normal2.etc",
+      "etc/independentdrop/62_guardianmaster_expert2.etc",
+      "etc/independentdrop/63_guardianmaster_master2.etc",
+      "etc/independentdrop/64_guardianmaster_king2.etc",
+      "etc/independentdrop/65_glig_normal.etc",
+      "etc/independentdrop/66_glig_expert.etc",
+      "etc/independentdrop/67_glig_master.etc",
+      "etc/independentdrop/68_glig_king.etc",
+      "etc/independentdrop/69_glig_normal2.etc",
+      "etc/independentdrop/6_magneus_expert2.etc",
+      "etc/independentdrop/70_glig_expert2.etc",
+      "etc/independentdrop/71_glig_master2.etc",
+      "etc/independentdrop/72_glig_king2.etc",
+      "etc/independentdrop/73_goblincannon_normal.etc",
+      "etc/independentdrop/74_goblincannon_expert.etc",
+      "etc/independentdrop/75_goblincannon_master.etc",
+      "etc/independentdrop/76_goblincannon_king.etc",
+      "etc/independentdrop/77_goblincannon_normal2.etc",
+      "etc/independentdrop/78_goblincannon_expert2.etc",
+      "etc/independentdrop/79_goblincannon_master2.etc",
+      "etc/independentdrop/7_magneus_master2.etc",
+      "etc/independentdrop/80_goblincannon_king2.etc",
+      "etc/independentdrop/81_golgo_normal.etc",
+      "etc/independentdrop/82_golgo_expert.etc",
+      "etc/independentdrop/83_golgo_master.etc",
+      "etc/independentdrop/84_golgo_king.etc",
+      "etc/independentdrop/85_golgo_normal2.etc",
+      "etc/independentdrop/86_golgo_expert2.etc",
+      "etc/independentdrop/87_golgo_master2.etc",
+      "etc/independentdrop/88_golgo_king2.etc",
+      "etc/independentdrop/89_basilisk_normal_recipe.etc",
+      "etc/independentdrop/8_magneus_king2.etc",
+      "etc/independentdrop/90_basilisk_expert_recipe.etc",
+      "etc/independentdrop/91_basilisk_master_recipe.etc",
+      "etc/independentdrop/92_basilisk_king_recipe.etc",
+      "etc/independentdrop/93_gashengrigun_normal_recipe.etc",
+      "etc/independentdrop/94_gashengrigun_expert_recipe.etc",
+      "etc/independentdrop/95_gashengrigun_master_recipe.etc",
+      "etc/independentdrop/96_gashengrigun_king_recipe.etc",
+      "etc/independentdrop/97_golgo_normal_recipe.etc",
+      "etc/independentdrop/98_golgo_expert_recipe.etc",
+      "etc/independentdrop/99_golgo_master_recipe.etc",
+      "etc/independentdrop/9_megaira_normal.etc",
+      "etc/independentdrop.lst"
+    ]
+  },
+  "world": {
+    "groups": 200,
+    "second_field_values": {
+      "0": 200
+    },
+    "samples": [
+      {
+        "level": 1,
+        "second_field": 0,
+        "sum": 310,
+        "positive_examples": [
+          [
+            2610001,
+            1
+          ],
+          [
+            2610002,
+            1
+          ],
+          [
+            2610003,
+            1
+          ],
+          [
+            2610004,
+            1
+          ],
+          [
+            2610005,
+            1
+          ],
+          [
+            2610006,
+            2
+          ],
+          [
+            2610007,
+            2
+          ],
+          [
+            2600065,
+            1
+          ],
+          [
+            7454,
+            300
+          ]
+        ]
+      },
+      {
+        "level": 20,
+        "second_field": 0,
+        "sum": 8960,
+        "positive_examples": [
+          [
+            3053,
+            1000
+          ],
+          [
+            3030,
+            850
+          ],
+          [
+            3028,
+            830
+          ],
+          [
+            3027,
+            830
+          ],
+          [
+            3142,
+            830
+          ],
+          [
+            3151,
+            830
+          ],
+          [
+            3156,
+            830
+          ],
+          [
+            3021,
+            100
+          ],
+          [
+            3020,
+            100
+          ],
+          [
+            3019,
+            100
+          ]
+        ]
+      },
+      {
+        "level": 70,
+        "second_field": 0,
+        "sum": 13434,
+        "positive_examples": [
+          [
+            3052,
+            1000
+          ],
+          [
+            3030,
+            850
+          ],
+          [
+            3028,
+            830
+          ],
+          [
+            3027,
+            830
+          ],
+          [
+            3142,
+            830
+          ],
+          [
+            3151,
+            830
+          ],
+          [
+            3156,
+            830
+          ],
+          [
+            3021,
+            100
+          ],
+          [
+            3020,
+            100
+          ],
+          [
+            3019,
+            100
+          ]
+        ]
+      },
+      {
+        "level": 85,
+        "second_field": 0,
+        "sum": 8947,
+        "positive_examples": [
+          [
+            3052,
+            1000
+          ],
+          [
+            3030,
+            850
+          ],
+          [
+            3028,
+            830
+          ],
+          [
+            3027,
+            830
+          ],
+          [
+            3142,
+            830
+          ],
+          [
+            3151,
+            830
+          ],
+          [
+            3156,
+            830
+          ],
+          [
+            3021,
+            100
+          ],
+          [
+            3020,
+            100
+          ],
+          [
+            3019,
+            100
+          ]
+        ]
+      }
+    ]
+  },
+  "quest_tag_scan": [
+    "tag vocabulary over 7799 files:",
+    "815  [monster reward item]",
+    "455  [enemy reward item]",
+    "114  [reward item trade instance]",
+    "50  [clear reward item]",
+    "10  [reward item equipgrade]"
+  ]
+}
