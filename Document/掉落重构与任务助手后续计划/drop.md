@@ -6,7 +6,7 @@
 ## 现有基础（代码核对）
 已有IDropRuleService/DropRuleService、DropRules、DropRandom、PVF掉率表与物品池；第一阶段将总入口改为IMonsterDropDomainService，读取任务与背包的部分归入QuestMonsterDropDomainService。IDropRateAdjuster当前默认无调整。不得以“从零实现”忽略现有能力和已验收行为。
 
-第一阶段接口与后续改造边界见[掉落生成边界](../掉落生成边界.md)。普通与任务来源已通过统一入口组合；上下文仅携带身份和场景值，业务事实内部查询。PVF independent_drop与个人独立可见性是不同维度，不以#23替代前者的实现。
+第一阶段接口与后续改造边界见[掉落生成边界](../掉落生成边界.md)。普通与任务来源分别通过同一服务的 Ground/Personal 入口生成；上下文仅携带身份和场景值，业务事实内部查询。PVF independent_drop与个人独立可见性是不同维度，不以#23替代前者的实现。
 
 ## 范围与顺序
 - [ ] 先盘点PVF、上游与本服所有生成入口：怪物普通/精英/Boss、金币、装备/道具、任务物、场景物件及明确存在的特殊来源；形成覆盖矩阵，未知或依赖特殊副本项显式列出，不把“全掉落”作为无边界承诺。

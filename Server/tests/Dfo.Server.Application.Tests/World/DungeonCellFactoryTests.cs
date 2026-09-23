@@ -11,11 +11,12 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class DungeonCellFactoryTests
 {
     [Theory]
-    [InlineData(3, true)]
-    [InlineData(4, false)]
+    [InlineData(3, true, 1)]
+    [InlineData(3, true, 2)]
+    [InlineData(4, false, 2)]
     public async Task Cell_creation_freezes_monster_clear_and_loot_semantics(
         byte actorType,
-        bool isMonster)
+        bool isMonster, int memberCount)
     {
         var loot = new RecordingLoot();
         var layout = new DungeonLayout(
@@ -28,10 +29,9 @@ public sealed class DungeonCellFactoryTests
             StartRoomMapId: 61000,
             Seed: 123,
             Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
-        DungeonRunParticipant[] participants =
-        [
-            new(new AccountId(1), new CharacterId(10), Slot: 0, IsLeader: true),
-        ];
+        var participants = Enumerable.Range(0, memberCount)
+            .Select(index => new DungeonRunParticipant(new AccountId(index + 1),
+                new CharacterId(index + 10), Slot: (byte)index, IsLeader: index == 0)).ToArray();
         var factory = new DungeonCellFactory(
             new OneActorRoom(actorType),
             new NoPlacement(),
@@ -52,7 +52,16 @@ public sealed class DungeonCellFactoryTests
         var actor = Assert.Single(seed.Actors);
         Assert.Equal(isMonster, actor.IsMonster);
         Assert.Equal(isMonster ? 1 : 0, loot.CallCount);
-        Assert.Equal(isMonster ? 1 : 0, actor.PendingLoot.Count);
+        Assert.Equal(isMonster ? 1 + memberCount : 0, actor.PendingLoot.Count);
+        Assert.Equal(isMonster ? memberCount : 0, loot.PersonalCalls.Count);
+        if (isMonster)
+        {
+            Assert.Equal(participants.Select(p => p.CharacterId), loot.PersonalCalls);
+            Assert.Single(actor.PendingLoot, drop => drop.Delivery == RolledDropDelivery.Ground);
+            Assert.Equal(participants.Select(p => (CharacterId?)p.CharacterId), actor.PendingLoot
+                .Where(drop => drop.Delivery == RolledDropDelivery.DirectQuestItem)
+                .Select(drop => drop.OwnerCharacterId));
+        }
         Assert.Equal(!isMonster, seed.Snapshot().IsCleared);
         if (isMonster)
         {
@@ -63,8 +72,8 @@ public sealed class DungeonCellFactoryTests
             Assert.Equal((ushort)100, context.ActorSequence);
             Assert.Equal(actorType, context.MonsterRank);
             Assert.Equal(new CharacterId(10), context.CharacterId);
-            Assert.Equal(new MonsterDropParticipant(new AccountId(1), new CharacterId(10)),
-                Assert.Single(context.Participants));
+            Assert.Equal(participants.Select(p => new MonsterDropParticipant(p.AccountId, p.CharacterId)),
+                context.Participants);
         }
     }
 
@@ -89,10 +98,19 @@ public sealed class DungeonCellFactoryTests
     private sealed class RecordingLoot : IMonsterDropDomainService
     {
         public int CallCount { get; private set; }
+        public List<CharacterId> PersonalCalls { get; } = [];
+        public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
+            int monsterId, CharacterId characterId, MonsterDropContext context, CancellationToken ct)
+        {
+            this.PersonalCalls.Add(characterId);
+            return ValueTask.FromResult<IReadOnlyList<RolledDrop>>(
+                [new RolledDrop(9001, 1, DropRarity.Common, DropItemKind.Stackable,
+                    OwnerCharacterId: characterId, Delivery: RolledDropDelivery.DirectQuestItem)]);
+        }
         public int MonsterId { get; private set; }
         public MonsterDropContext? Context { get; private set; }
 
-        public ValueTask<IReadOnlyList<RolledDrop>> GenerateAsync(
+        public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
             int monsterId, MonsterDropContext context,
             CancellationToken cancellationToken)
         {

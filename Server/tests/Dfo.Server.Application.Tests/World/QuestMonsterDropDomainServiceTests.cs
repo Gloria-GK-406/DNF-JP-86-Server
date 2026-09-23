@@ -26,7 +26,7 @@ public sealed class QuestMonsterDropDomainServiceTests
             1779, DungeonQuestConnectionState.Active));
 
         var drops = await fixture.Service.DrawAsync(
-            Kill(fixture.Run, monsterCode: 65601), CancellationToken.None);
+            Kill(fixture.Run, monsterCode: 65601), new MonsterDropParticipant(Account, Leader), CancellationToken.None);
 
         var drop = Assert.Single(drops);
         Assert.Equal(10149163, drop.ItemId);
@@ -42,7 +42,7 @@ public sealed class QuestMonsterDropDomainServiceTests
         var fixture = Build(DungeonRunPurpose.Ordinary);
 
         var drop = Assert.Single(await fixture.Service.DrawAsync(
-            Kill(fixture.Run, monsterCode: 65601), CancellationToken.None));
+            Kill(fixture.Run, monsterCode: 65601), new MonsterDropParticipant(Account, Leader), CancellationToken.None));
         Assert.Equal(10149163, drop.ItemId);
         Assert.Equal(Leader, drop.OwnerCharacterId);
     }
@@ -61,7 +61,7 @@ public sealed class QuestMonsterDropDomainServiceTests
             rewardDifficulty: difficulty == DungeonDifficulty.Tier2 ? 1 : -1);
 
         Assert.Empty(await fixture.Service.DrawAsync(
-            Kill(fixture.Run, monsterCode), CancellationToken.None));
+            Kill(fixture.Run, monsterCode), new MonsterDropParticipant(Account, Leader), CancellationToken.None));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class QuestMonsterDropDomainServiceTests
             rewardCount: 3);
 
         var drop = Assert.Single(await fixture.Service.DrawAsync(
-            Kill(fixture.Run, monsterCode: 65601), CancellationToken.None));
+            Kill(fixture.Run, monsterCode: 65601), new MonsterDropParticipant(Account, Leader), CancellationToken.None));
 
         Assert.Equal(1, drop.Count);
     }
@@ -87,7 +87,7 @@ public sealed class QuestMonsterDropDomainServiceTests
             carriesQuest: false);
 
         Assert.Empty(await fixture.Service.DrawAsync(
-            Kill(fixture.Run, monsterCode: 65601), CancellationToken.None));
+            Kill(fixture.Run, monsterCode: 65601), new MonsterDropParticipant(Account, Leader), CancellationToken.None));
     }
 
     [Fact]
@@ -96,9 +96,12 @@ public sealed class QuestMonsterDropDomainServiceTests
         var fixture = Build(DungeonRunPurpose.Ordinary, memberCarriesQuest: true);
 
         var drops = await fixture.Service.DrawAsync(
-            Kill(fixture.Run, monsterCode: 65601), CancellationToken.None);
+            Kill(fixture.Run, monsterCode: 65601), new MonsterDropParticipant(Account, Leader), CancellationToken.None);
 
-        Assert.Equal([Leader, Member], drops.Select(drop => drop.OwnerCharacterId));
+        Assert.Equal(Leader, Assert.Single(drops).OwnerCharacterId);
+        var memberDrops = await fixture.Service.DrawAsync(Kill(fixture.Run, 65601),
+            new MonsterDropParticipant(new AccountId(8), Member), CancellationToken.None);
+        Assert.Equal(Member, Assert.Single(memberDrops).OwnerCharacterId);
         Assert.All(drops, drop => Assert.Equal(RolledDropDelivery.DirectQuestItem, drop.Delivery));
     }
 
@@ -107,14 +110,14 @@ public sealed class QuestMonsterDropDomainServiceTests
     {
         var fixture = Build(DungeonRunPurpose.Ordinary);
         var request = Kill(fixture.Run, 65601);
-        Assert.Single(await fixture.Service.DrawAsync(request, CancellationToken.None));
+        Assert.Single(await fixture.Service.DrawAsync(request, new MonsterDropParticipant(Account, Leader), CancellationToken.None));
 
         fixture.Logs.Carried[Leader.Value] = [];
-        Assert.Empty(await fixture.Service.DrawAsync(request, CancellationToken.None));
+        Assert.Empty(await fixture.Service.DrawAsync(request, new MonsterDropParticipant(Account, Leader), CancellationToken.None));
 
         fixture.Logs.Carried[Leader.Value] = [new CarriedQuest(0, 1779, 15)];
         fixture.Bag.SetCount(10149163, 15);
-        Assert.Empty(await fixture.Service.DrawAsync(request, CancellationToken.None));
+        Assert.Empty(await fixture.Service.DrawAsync(request, new MonsterDropParticipant(Account, Leader), CancellationToken.None));
     }
 
     private static Fixture Build(

@@ -100,7 +100,7 @@ public sealed class MonsterDropDomainServiceTests
             new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance);
 
-        await service.GenerateAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
+        await service.GenerateGroundAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
         Assert.Equal(2, Assert.IsType<MonsterDropRequest>(rules.Asked).PartyMemberCount);
     }
@@ -108,14 +108,14 @@ public sealed class MonsterDropDomainServiceTests
     [Fact]
     public async Task A_plan_that_hits_no_rate_contains_no_loot()
     {
-        Assert.Empty(await Build(Never()).GenerateAsync(65601, Kill(Run()), CancellationToken.None));
+        Assert.Empty(await Build(Never()).GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None));
     }
 
     [Fact]
     public async Task Gold_and_equipment_are_both_frozen_on_the_actor()
     {
         var planned = await Build(GoldAndEquipment())
-            .GenerateAsync(65601, Kill(Run()), CancellationToken.None);
+            .GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None);
 
         Assert.Equal(2, planned.Count);
         Assert.Contains(planned, drop => drop.IsGold && drop.Count >= 1357);
@@ -125,8 +125,8 @@ public sealed class MonsterDropDomainServiceTests
     [Fact]
     public async Task One_occasion_resolves_one_deterministic_answer()
     {
-        var once = await Build(Certain()).GenerateAsync(65601, Kill(Run()), CancellationToken.None);
-        var again = await Build(Certain()).GenerateAsync(65601, Kill(Run()), CancellationToken.None);
+        var once = await Build(Certain()).GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None);
+        var again = await Build(Certain()).GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None);
 
         Assert.NotEmpty(once);
         Assert.Equal(once, again);
@@ -138,8 +138,8 @@ public sealed class MonsterDropDomainServiceTests
         var service = Build(Certain());
         var run = Run();
 
-        var first = await service.GenerateAsync(65601, Kill(run), CancellationToken.None);
-        var second = await service.GenerateAsync(65601,
+        var first = await service.GenerateGroundAsync(65601, Kill(run), CancellationToken.None);
+        var second = await service.GenerateGroundAsync(65601,
             Kill(run, actor: ActorSequence + 1), CancellationToken.None);
 
         Assert.NotEqual(first.Select(drop => drop.Count), second.Select(drop => drop.Count));
@@ -153,7 +153,7 @@ public sealed class MonsterDropDomainServiceTests
             LevelBands = [new DropRateBand(1, 50, [Basis, 0, 0, 0, 0])],
         });
 
-        Assert.Empty(await service.GenerateAsync(65601, Kill(Run()), CancellationToken.None));
+        Assert.Empty(await service.GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None));
     }
 
     [Fact]
@@ -162,8 +162,8 @@ public sealed class MonsterDropDomainServiceTests
         var service = Build(Table([Basis, 0, 0, 0, 0]));
         var run = Run();
 
-        var ordinary = await service.GenerateAsync(65601, Kill(run), CancellationToken.None);
-        var boss = await service.GenerateAsync(65601, Kill(run, actor: ActorSequence + 1, rank: 3),
+        var ordinary = await service.GenerateGroundAsync(65601, Kill(run), CancellationToken.None);
+        var boss = await service.GenerateGroundAsync(65601, Kill(run, actor: ActorSequence + 1, rank: 3),
             CancellationToken.None);
 
         Assert.InRange(ordinary.Single().Count, 1357, 1492);
@@ -174,14 +174,14 @@ public sealed class MonsterDropDomainServiceTests
     public async Task The_avatar_slot_resolves_no_loot()
     {
         Assert.Empty(await Build(Table([0, 0, 0, 0, Basis]))
-            .GenerateAsync(65601, Kill(Run()), CancellationToken.None));
+            .GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None));
     }
 
     [Fact]
     public async Task Each_item_slot_uses_its_mapped_family()
     {
         var planned = await Build(Table([0, Basis, Basis, Basis, 0]))
-            .GenerateAsync(65601, Kill(Run()), CancellationToken.None);
+            .GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None);
 
         Assert.Equal(3, planned.Count);
         Assert.Equal(2, planned.Count(drop => drop.ItemId == 10087807));
@@ -191,17 +191,22 @@ public sealed class MonsterDropDomainServiceTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Quest_source_is_composed_even_when_ordinary_table_does_not_cover_level(bool covered)
+    public async Task Personal_generation_is_separate_from_ordinary_table_coverage(bool covered)
     {
         var table = GoldAndEquipment();
         if (!covered)
             table = table with { LevelBands = [] };
         var quests = new RecordingQuestDrops();
         var context = Kill(Run(), partyMemberCount: 2);
-        var result = await Build(table, quests).GenerateAsync(65601, context, CancellationToken.None);
+        var service = Build(table, quests);
+        var ground = await service.GenerateGroundAsync(65601, context, CancellationToken.None);
+        Assert.Null(quests.Asked);
+        Assert.Equal(covered ? 2 : 0, ground.Count);
+        var result = await service.GeneratePersonalAsync(65601, Character, context, CancellationToken.None);
 
         Assert.Equal(new MonsterDropRequest(65601, context), quests.Asked);
-        Assert.Equal(covered ? 3 : 1, result.Count);
+        Assert.Single(result);
+        Assert.Equal(Character, quests.Recipient.CharacterId);
         Assert.Equal(RecordingQuestDrops.Drop, result[^1]);
     }
 
@@ -220,8 +225,30 @@ public sealed class MonsterDropDomainServiceTests
             context with { CharacterId = new CharacterId(999) },
         })
             await Assert.ThrowsAsync<ArgumentException>(async () =>
-                await service.GenerateAsync(65601, invalid, CancellationToken.None));
+                await service.GenerateGroundAsync(65601, invalid, CancellationToken.None));
         Assert.Null(rules.Asked);
+    }
+
+    [Fact]
+    public async Task Personal_generation_rejects_outsiders_without_reading_any_source()
+    {
+        var quests = new RecordingQuestDrops();
+        await Assert.ThrowsAsync<ArgumentException>(async () => await Build(Certain(), quests)
+            .GeneratePersonalAsync(65601, new CharacterId(999), Kill(Run()), CancellationToken.None));
+        Assert.Null(quests.Asked);
+    }
+
+    [Fact]
+    public async Task Personal_generation_queries_only_the_requested_identity_and_never_ordinary_rules()
+    {
+        var rules = new RecordingDropRules();
+        var quests = new RecordingQuestDrops();
+        var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(), quests,
+            NullLogger<MonsterDropDomainService>.Instance);
+        await service.GeneratePersonalAsync(65601, new CharacterId(2),
+            Kill(Run(), partyMemberCount: 2), CancellationToken.None);
+        Assert.Null(rules.Asked);
+        Assert.Equal(new MonsterDropParticipant(new AccountId(2), new CharacterId(2)), quests.Recipient);
     }
 
     private sealed class RecordingQuestDrops : IQuestMonsterDropDomainService
@@ -230,10 +257,12 @@ public sealed class MonsterDropDomainServiceTests
             DropItemKind.Stackable, OwnerCharacterId: Character,
             Delivery: RolledDropDelivery.DirectQuestItem, QuestId: 17, GrantLimit: 5);
         public MonsterDropRequest? Asked { get; private set; }
+        public MonsterDropParticipant Recipient { get; private set; }
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-            MonsterDropRequest request, CancellationToken cancellationToken)
+            MonsterDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken)
         {
             this.Asked = request;
+            this.Recipient = participant;
             return ValueTask.FromResult<IReadOnlyList<RolledDrop>>([Drop]);
         }
     }
@@ -283,7 +312,7 @@ public sealed class MonsterDropDomainServiceTests
     private sealed class NoQuestDrops : IQuestMonsterDropDomainService
     {
         public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-            MonsterDropRequest kill, CancellationToken cancellationToken) =>
+            MonsterDropRequest kill, MonsterDropParticipant participant, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
     }
 }

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World;
@@ -16,8 +17,25 @@ internal sealed class MonsterDropDomainService(
     IQuestMonsterDropDomainService questDrops,
     ILogger<MonsterDropDomainService> logger) : IMonsterDropDomainService
 {
-    public async ValueTask<IReadOnlyList<RolledDrop>> GenerateAsync(
+    public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
+    {
+        Validate(context, cancellationToken);
+        return ValueTask.FromResult(this.Roll(new MonsterDropRequest(monsterId, context)));
+    }
+
+    public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
+        int monsterId, CharacterId characterId, MonsterDropContext context,
+        CancellationToken cancellationToken)
+    {
+        Validate(context, cancellationToken);
+        var matches = context.Participants.Where(p => p.CharacterId == characterId).ToArray();
+        if (matches.Length != 1)
+            throw new ArgumentException("Personal drop recipient must belong to the run.", nameof(characterId));
+        return questDrops.DrawAsync(new MonsterDropRequest(monsterId, context), matches[0], cancellationToken);
+    }
+
+    private static void Validate(MonsterDropContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
@@ -27,10 +45,6 @@ internal sealed class MonsterDropDomainService(
         if (context.Participants.Select(participant => participant.CharacterId).Distinct().Count()
             != context.Participants.Length)
             throw new ArgumentException("Drop participants must have unique character identities.", nameof(context));
-        var kill = new MonsterDropRequest(monsterId, context);
-        var rolled = new List<RolledDrop>(this.Roll(kill));
-        rolled.AddRange(await questDrops.DrawAsync(kill, cancellationToken).ConfigureAwait(false));
-        return rolled.ToArray();
     }
 
     /// <summary>

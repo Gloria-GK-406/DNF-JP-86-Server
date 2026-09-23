@@ -95,16 +95,20 @@ public sealed record MonsterDropRequest(int MonsterCode, MonsterDropContext Cont
 public interface IQuestMonsterDropDomainService
 {
     ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterDropRequest request, CancellationToken cancellationToken);
+        MonsterDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Generates the unnumbered drops attached to a monster at cell creation. Reads current facts,
-/// but never writes inventory, quest progress, ground state or protocol messages. Ordinary and
-/// quest sources run in that order; new sources belong behind this boundary.
+/// Generates unnumbered monster drops. Ground generation runs once per monster; personal
+/// generation runs once per recipient. Neither entry writes inventory or sends messages.
 /// </summary>
 public interface IMonsterDropDomainService
 {
-    ValueTask<IReadOnlyList<RolledDrop>> GenerateAsync(
+    ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken);
+
+    /// <summary>Generates only this participant's outcomes; ownership and delivery stay separate.</summary>
+    ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
+        int monsterId, CharacterId characterId, MonsterDropContext context,
+        CancellationToken cancellationToken);
 }
