@@ -192,7 +192,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var objectiveType = string.Empty;
         var objectiveSubType = new List<int>();
         var objectiveIntData = new List<int>();
-        var monsterRewardItemValues = new List<int>();
+        var enemyRewardValues = new List<int>();
+        IReadOnlyList<QuestEnemyRewardItem> enemyRewards = [];
         var eventItemValues = new List<int>();
         var fixedItemRewardOperands = new List<ItemRewardOperand>();
         var selectableItemRewardOperands = new List<ItemRewardOperand>();
@@ -213,6 +214,11 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
+                if (section >= 0 && (section == tags.MonsterRewardItem || section == tags.EnemyRewardItem))
+                {
+                    enemyRewards = ProjectEnemyRewardItems(enemyRewardValues, questId, section == tags.MonsterRewardItem);
+                    enemyRewardValues.Clear();
+                }
                 section = token.Value;
                 if (section == tags.SpecialRewardStatus)
                     hasSpecialRewardStatus = true;
@@ -256,8 +262,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 AddInteger(objectiveSubType, token, questId, "sub type");
             else if (section == tags.IntData)
                 AddInteger(objectiveIntData, token, questId, "int data");
-            else if (section == tags.MonsterRewardItem)
-                AddInteger(monsterRewardItemValues, token, questId, "monster reward item");
+            else if (section == tags.MonsterRewardItem || section == tags.EnemyRewardItem)
+                AddInteger(enemyRewardValues, token, questId, "enemy reward item");
             else if (section == tags.DependGiveItem)
                 AddInteger(eventItemValues, token, questId, "depend give item");
             else if (section == tags.Difficulty)
@@ -305,6 +311,9 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             else if (section == tags.GoldMultiplier)
                 AddInteger(goldMultiplierValues, token, questId, "gold multiple");
         }
+
+        if (section >= 0 && (section == tags.MonsterRewardItem || section == tags.EnemyRewardItem))
+            enemyRewards = ProjectEnemyRewardItems(enemyRewardValues, questId, section == tags.MonsterRewardItem);
 
         var grade = gradeText is null
             ? (QuestGrade?)null
@@ -358,7 +367,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 selectableItemRewardOperands,
                 questId),
             OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
-            ProjectMonsterRewardItems(monsterRewardItemValues, questId),
+            enemyRewards,
             ProjectHuntMonsterRequirements(objectiveType, objectiveIntData),
             ProjectClearedQuestRequirements(objectiveType, objectiveIntData),
             ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData));
@@ -471,46 +480,31 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         return result;
     }
 
-    internal static IReadOnlyList<QuestMonsterRewardItem> ProjectMonsterRewardItems(
-        IReadOnlyList<int> values,
-        int questId)
+    internal static IReadOnlyList<QuestEnemyRewardItem> ProjectMonsterRewardItems(
+        IReadOnlyList<int> values, int questId) => ProjectEnemyRewardItems(values, questId, legacyMonster: true);
+
+    internal static IReadOnlyList<QuestEnemyRewardItem> ProjectEnemyRewardItems(
+        IReadOnlyList<int> values, int questId, bool legacyMonster = false)
     {
-        if (values.Count == 0)
-            return [];
-        if (values.Count % 7 != 0)
-            throw Invalid(questId, "monster reward item must contain seven-field groups");
-
-        var result = new List<QuestMonsterRewardItem>(values.Count / 7);
-        for (var index = 0; index < values.Count; index += 7)
+        var width = legacyMonster ? 7 : 8;
+        if (values.Count % width != 0)
+            throw Invalid(questId, $"enemy reward item must contain {width}-field groups");
+        var result = new List<QuestEnemyRewardItem>(values.Count / width);
+        for (var index = 0; index < values.Count;)
         {
-            var monsterCode = values[index];
-            var dungeonId = values[index + 1];
-            var difficulty = values[index + 2];
-            var itemId = values[index + 3];
-            var count = values[index + 4];
-            var dropRate = values[index + 5];
-            var maxStack = values[index + 6];
-            if (monsterCode <= 0
-                || dungeonId < -1
-                || difficulty < -1
-                || itemId <= 0
-                || count <= 0
-                || dropRate is < 0 or > 100
-                || maxStack < -1)
-            {
-                throw Invalid(questId, "monster reward item contains an invalid field");
-            }
-
-            result.Add(new QuestMonsterRewardItem(
-                monsterCode,
-                dungeonId,
-                difficulty,
-                itemId,
-                count,
-                dropRate,
-                maxStack));
+            var enemyCode = values[index++];
+            var type = legacyMonster ? QuestEnemyType.Monster : (QuestEnemyType)values[index++];
+            var dungeonId = values[index++];
+            var difficulty = values[index++];
+            var itemId = values[index++];
+            var count = values[index++];
+            var dropRate = values[index++];
+            var maxStack = values[index++];
+            if (enemyCode <= 0 || !Enum.IsDefined(type) || dungeonId < -1 || difficulty < -1
+                || itemId <= 0 || count <= 0 || dropRate is < 0 or > 100 || maxStack < -1)
+                throw Invalid(questId, "enemy reward item contains an invalid field");
+            result.Add(new(enemyCode, type, dungeonId, difficulty, itemId, count, dropRate, maxStack));
         }
-
         return result;
     }
 
@@ -1038,6 +1032,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             SubType = Offset(archive, "[sub type]");
             IntData = Offset(archive, "[int data]");
             MonsterRewardItem = Offset(archive, "[monster reward item]");
+            EnemyRewardItem = Offset(archive, "[enemy reward item]");
             DependGiveItem = Offset(archive, "[depend give item]");
             Difficulty = Offset(archive, "[difficulty]");
             RewardType = Offset(archive, "[reward type]");
@@ -1071,6 +1066,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int SubType { get; }
         public int IntData { get; }
         public int MonsterRewardItem { get; }
+        public int EnemyRewardItem { get; }
 
         public int DependGiveItem { get; }
         public int Difficulty { get; }

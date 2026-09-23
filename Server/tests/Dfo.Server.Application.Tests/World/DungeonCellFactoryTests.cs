@@ -53,9 +53,9 @@ public sealed class DungeonCellFactoryTests
         var actor = Assert.Single(seed.Actors);
         Assert.Equal(isMonster, actor.IsMonster);
         Assert.Equal(isMonster || actorType >= 5 ? 1 : 0, loot.CallCount);
-        Assert.Equal(isMonster ? 1 + memberCount : actorType >= 5 ? 1 : 0, actor.PendingLoot.Count);
-        Assert.Equal(isMonster ? memberCount : 0, loot.PersonalCalls.Count);
-        if (isMonster)
+        Assert.Equal(isMonster || actorType >= 5 ? 1 + memberCount : 0, actor.PendingLoot.Count);
+        Assert.Equal(isMonster || actorType >= 5 ? memberCount : 0, loot.PersonalCalls.Count);
+        if (isMonster || actorType >= 5)
         {
             Assert.Equal(participants.Select(p => p.CharacterId), loot.PersonalCalls);
             Assert.Single(actor.PendingLoot, drop => drop.Delivery == RolledDropDelivery.Ground);
@@ -66,7 +66,7 @@ public sealed class DungeonCellFactoryTests
         if (actorType >= 5)
             Assert.Equal(IndependentDropSourceType.APC, loot.Context!.SourceType);
         Assert.Equal(!isMonster, seed.Snapshot().IsCleared);
-        if (isMonster)
+        if (isMonster || actorType >= 5)
         {
             Assert.Equal(61670, loot.MonsterId);
             var context = Assert.IsType<MonsterDropContext>(loot.Context);

@@ -54,8 +54,8 @@ public sealed class PvfQuestDefinitionSourceTests
     {
         Assert.Equal(
         [
-            new QuestMonsterRewardItem(65601, 145, -1, 10149163, 1, 100, 15),
-            new QuestMonsterRewardItem(65305, 145, -1, 10149163, 1, 100, 15),
+            new QuestEnemyRewardItem(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15),
+            new QuestEnemyRewardItem(65305, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15),
         ],
             PvfQuestDefinitionSource.ProjectMonsterRewardItems(
                 [65601, 145, -1, 10149163, 1, 100, 15,
@@ -273,10 +273,10 @@ public sealed class PvfQuestDefinitionSourceTests
         Assert.NotNull(quest);
         Assert.Equal(
         [
-            new QuestMonsterRewardItem(65601, 145, -1, 10149163, 1, 100, 15),
-            new QuestMonsterRewardItem(65305, 145, -1, 10149163, 1, 100, 15),
+            new QuestEnemyRewardItem(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15),
+            new QuestEnemyRewardItem(65305, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15),
         ],
-            quest.MonsterRewardItems);
+            quest.EnemyRewardItems);
         Assert.Equal([new SeekingItemRequirement(10149163, 15)], quest.SeekingItems);
     }
 

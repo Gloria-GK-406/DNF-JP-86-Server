@@ -193,9 +193,13 @@ public sealed record HuntMonsterRequirement(
 /// <summary>One verified dungeon clear required by a subtype-6 clear objective.</summary>
 public sealed record DungeonClearRequirement(int DungeonId, int Difficulty);
 
-/// <summary>One seven-field <c>[monster reward item]</c> declaration.</summary>
-public sealed record QuestMonsterRewardItem(
-    int MonsterCode,
+/// <summary>Quest enemy types; distinct from independent-drop source codes.</summary>
+public enum QuestEnemyType { Monster = 1, APC = 2, PassiveObject = 3 }
+
+/// <summary>Normalized seven/eight-field quest enemy item declaration.</summary>
+public sealed record QuestEnemyRewardItem(
+    int EnemyCode,
+    QuestEnemyType EnemyType,
     int DungeonId,
     int Difficulty,
     int ItemId,
@@ -234,7 +238,7 @@ public sealed record QuestDefinition(
     IReadOnlyList<HuntEnemyRequirement>? HuntEnemyRequirements = null,
     QuestItemRewardDefinition? ItemRewards = null,
     int GoldMultiplier = 0,
-    IReadOnlyList<QuestMonsterRewardItem>? MonsterRewardItems = null,
+    IReadOnlyList<QuestEnemyRewardItem>? EnemyRewardItems = null,
     IReadOnlyList<HuntMonsterRequirement>? HuntMonsterRequirements = null,
     IReadOnlyList<int>? ClearedQuestRequirements = null,
     DungeonClearRequirement? DungeonClearRequirement = null)
@@ -250,8 +254,8 @@ public sealed record QuestDefinition(
     public QuestItemRewardDefinition ItemRewards { get; init; }
         = ItemRewards ?? QuestItemRewardDefinition.Empty;
 
-    public IReadOnlyList<QuestMonsterRewardItem> MonsterRewardItems { get; init; }
-        = MonsterRewardItems ?? [];
+    public IReadOnlyList<QuestEnemyRewardItem> EnemyRewardItems { get; init; }
+        = EnemyRewardItems ?? [];
 
     public IReadOnlyList<HuntMonsterRequirement> HuntMonsterRequirements { get; init; }
         = HuntMonsterRequirements ?? [];

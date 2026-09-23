@@ -127,7 +127,7 @@ public sealed class QuestMonsterDropDomainServiceTests
         var first = Definition(3, 15, -1);
         var second = first with { QuestId = 1780 };
         var held = new Dictionary<int, long> { [10149163] = 11 };
-        var drops = QuestMonsterDropRules.DrawMonsterRewards(Kill(fixture.Run, 65601),
+        var drops = QuestMonsterDropRules.Draw(Kill(fixture.Run, 65601),
             new MonsterDropParticipant(Account, Leader), [first, second], held);
 
         Assert.Equal(new[] { 3, 1 }, drops.Select(drop => drop.Count));
@@ -145,16 +145,112 @@ public sealed class QuestMonsterDropDomainServiceTests
         var fixture = Build(DungeonRunPurpose.Ordinary);
         var definition = Definition(10, 15, -1) with
         {
-            MonsterRewardItems = [new QuestMonsterRewardItem(65601, 145, -1, 10149163, 10, rate, 15)]
+            EnemyRewardItems = [new QuestEnemyRewardItem(65601, QuestEnemyType.Monster, 145, -1, 10149163, 10, rate, 15)]
         };
         var request = Kill(fixture.Run, 65601);
         var participant = new MonsterDropParticipant(Account, Leader);
         var held = new Dictionary<int, long>();
-        var first = QuestMonsterDropRules.DrawMonsterRewards(request, participant, [definition], held);
-        var second = QuestMonsterDropRules.DrawMonsterRewards(request, participant, [definition], held);
+        var first = QuestMonsterDropRules.Draw(request, participant, [definition], held);
+        var second = QuestMonsterDropRules.Draw(request, participant, [definition], held);
         Assert.Equal(first.ToArray(), second.ToArray());
         if (rate == 0) Assert.Empty(first);
         if (rate == 100) Assert.Equal(10, Assert.Single(first).Count);
+    }
+
+    [Fact]
+    public void A_task_selects_one_matching_candidate_instead_of_rolling_all_rows()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(1, 15, -1) with
+        {
+            EnemyRewardItems = [new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15),
+                new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 2, 100, 15)],
+        };
+        var drops = QuestMonsterDropRules.Draw(Kill(fixture.Run, 65601),
+            new MonsterDropParticipant(Account, Leader), [definition], new Dictionary<int, long>());
+        Assert.InRange(Assert.Single(drops).Count, 1, 2);
+    }
+
+    [Fact]
+    public void Failed_selected_candidate_does_not_retry_a_certain_candidate()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(1, 15, -1) with
+        {
+            EnemyRewardItems = [new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 0, 15),
+                new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15)],
+        };
+        var request = Kill(fixture.Run, 65601);
+        var total = Enumerable.Range(0, 1000).Sum(seed => QuestMonsterDropRules.Draw(
+            request with { Context = request.Context with { Seed = seed } },
+            new MonsterDropParticipant(Account, Leader), [definition], new Dictionary<int, long>()).Sum(d => d.Count));
+        Assert.InRange(total, 430, 570);
+    }
+
+    [Fact]
+    public void Full_candidate_is_removed_and_another_candidate_can_be_used()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(1, 15, -1) with
+        {
+            SeekingItems = [new(10149163, 15), new(100, 10)],
+            EnemyRewardItems = [new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 100, 15),
+                new(65601, QuestEnemyType.Monster, 145, -1, 100, 1, 100, 10)],
+        };
+        var request = Kill(fixture.Run, 65601);
+        for (var seed = 0; seed < 30; seed++)
+            Assert.Equal(100, Assert.Single(QuestMonsterDropRules.Draw(
+                request with { Context = request.Context with { Seed = seed } },
+                new MonsterDropParticipant(Account, Leader), [definition],
+                new Dictionary<int, long> { [10149163] = 15 })).ItemId);
+    }
+
+    [Fact]
+    public void Monster_APC_and_object_with_same_code_do_not_cross_match()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(1, 15, -1) with
+        {
+            SeekingItems = [new(101, 10), new(102, 10), new(103, 10)],
+            EnemyRewardItems = Enum.GetValues<QuestEnemyType>().Select(t =>
+                new QuestEnemyRewardItem(65601, t, 145, -1, 100 + (int)t, 1, 100, 10)).ToArray(),
+        };
+        var request = Kill(fixture.Run, 65601);
+        var participant = new MonsterDropParticipant(Account, Leader);
+        var held = new Dictionary<int, long>();
+        Assert.Equal(101, Assert.Single(QuestMonsterDropRules.Draw(request, participant, [definition], held)).ItemId);
+        Assert.Equal(102, Assert.Single(QuestMonsterDropRules.Draw(request with { Context = request.Context with {
+            SourceType = IndependentDropSourceType.APC } }, participant, [definition], held)).ItemId);
+        Assert.Equal(103, Assert.Single(QuestMonsterDropRules.Draw(request, participant, [definition], held,
+            QuestEnemyType.PassiveObject)).ItemId);
+    }
+
+    [Fact]
+    public void First_insertion_is_still_capped_by_required_count_and_declared_maximum()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(30, 2, -1);
+        var drop = Assert.Single(QuestMonsterDropRules.Draw(Kill(fixture.Run, 65601),
+            new MonsterDropParticipant(Account, Leader), [definition], new Dictionary<int, long>()));
+        Assert.Equal(2, drop.Count);
+        Assert.Equal(2, drop.GrantLimit);
+    }
+
+    [Fact]
+    public void Three_real_candidate_patterns_have_single_selection_expectation()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(1, 15, -1) with
+        {
+            EnemyRewardItems = [new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 1, 80, 15),
+                new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 2, 60, 15),
+                new(65601, QuestEnemyType.Monster, 145, -1, 10149163, 3, 30, 15)],
+        };
+        var request = Kill(fixture.Run, 65601);
+        var total = Enumerable.Range(0, 10000).Sum(seed => QuestMonsterDropRules.Draw(
+            request with { Context = request.Context with { Seed = seed } },
+            new MonsterDropParticipant(Account, Leader), [definition], new Dictionary<int, long>()).Sum(d => d.Count));
+        Assert.InRange(total / 10000d, 0.93, 1.00);
     }
 
     private static Fixture Build(
@@ -210,9 +306,9 @@ public sealed class QuestMonsterDropDomainServiceTests
             1779, "quest", null, null, null, null, null, null, [], "seeking", "",
             null, null, null, null, null, null, null, [], [], [], [],
             SeekingItems: [new SeekingItemRequirement(10149163, 15)],
-            MonsterRewardItems:
-            [new QuestMonsterRewardItem(
-                65601, 145, rewardDifficulty, 10149163, rewardCount, 100, maxStack)]);
+            EnemyRewardItems:
+            [new QuestEnemyRewardItem(
+                65601, QuestEnemyType.Monster, 145, rewardDifficulty, 10149163, rewardCount, 100, maxStack)]);
 
     private static DungeonLayout Layout(int dungeonId, DungeonRunPurpose purpose) =>
         new(

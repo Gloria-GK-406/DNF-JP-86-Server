@@ -19,9 +19,6 @@ internal sealed class QuestMonsterDropRuleService(
             if (await quests.FindAsync(questId, cancellationToken).ConfigureAwait(false) is { } definition)
                 definitions.Add(definition);
         }
-        var result = new List<RolledDrop>();
-        result.AddRange(QuestMonsterDropRules.DrawMonsterRewards(request, participant, definitions, held));
-        result.AddRange(QuestMonsterDropRules.DrawEnemyRewards(request, participant, definitions, held));
-        return result;
+        return QuestMonsterDropRules.Draw(request, participant, definitions, held);
     }
 }

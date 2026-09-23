@@ -65,13 +65,10 @@ internal sealed class DungeonCellFactory(
                 };
                 var generated = new List<RolledDrop>(await loot.GenerateGroundAsync(
                     described.Actor.Code, dropContext, cancellationToken).ConfigureAwait(false));
-                if (isMonster)
-                {
-                    foreach (var participant in participants)
-                        generated.AddRange(await loot.GeneratePersonalAsync(
-                            described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
-                            .ConfigureAwait(false));
-                }
+                foreach (var participant in participants)
+                    generated.AddRange(await loot.GeneratePersonalAsync(
+                        described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
+                        .ConfigureAwait(false));
                 pending = generated;
             }
 
