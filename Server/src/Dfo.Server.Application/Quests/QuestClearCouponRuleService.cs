@@ -25,55 +25,18 @@ internal sealed class QuestClearCouponRuleService(
     internal static IReadOnlyList<int> Select(IReadOnlyList<QuestDefinition> definitions,
         byte level, byte job, byte growType, IReadOnlyList<ClearedQuest> cleared)
     {
-        var catalog = definitions.ToDictionary(q => q.QuestId);
-        var marks = cleared.Where(q => q.Mark != 0).ToDictionary(q => q.QuestId, q => q.Mark);
+        var completed = cleared.Where(q => q.Mark != 0).Select(q => q.QuestId).ToHashSet();
         var family = CharacterJobFamilies.Resolve(job);
-        var selected = new HashSet<int>();
-        foreach (var root in definitions.Where(q => q.Grade is QuestGrade.Epic or QuestGrade.Normal)
-                     .OrderBy(q => q.QuestId))
-        {
-            var candidate = new HashSet<int>(selected);
-            if (Include(root.QuestId, candidate, [])) selected = candidate;
-        }
-        return selected.Order().ToArray();
+        // A catch-up coupon completes eligible stories directly, not by accepting each quest.
+        // Dialogue choices and prerequisite branches must not leave old stories behind.
+        return definitions.Where(Eligible).Select(q => q.QuestId).Distinct().Order().ToArray();
 
-        bool Include(int id, HashSet<int> candidate, HashSet<int> visiting)
-        {
-            if (marks.ContainsKey(id) || candidate.Contains(id)) return true;
-            if (!catalog.TryGetValue(id, out var quest) || !Safe(quest) || !visiting.Add(id)) return false;
-            // OR groups are alternatives; never union unrelated or mutually exclusive branches.
-            if (quest.CompletedQuestPrerequisiteGroups.Count > 0)
-            {
-                HashSet<int>? viable = null;
-                foreach (var group in quest.CompletedQuestPrerequisiteGroups
-                             .OrderBy(g => g.Count(q => !marks.ContainsKey(q) && !candidate.Contains(q))))
-                {
-                    if (group.Count == 0) continue;
-                    var branch = new HashSet<int>(candidate);
-                    if (!group.All(q => Include(q, branch, new HashSet<int>(visiting)))) continue;
-                    viable = branch;
-                    break;
-                }
-                if (viable is null) return false;
-                candidate.UnionWith(viable);
-            }
-            candidate.Add(id);
-            return true;
-        }
-
-        bool Safe(QuestDefinition quest) => quest.QuestId is > 0 and < 30_000
-            && quest.Grade is (QuestGrade.Epic or QuestGrade.Normal or QuestGrade.Side or QuestGrade.CommonUnique)
+        bool Eligible(QuestDefinition quest) => quest.QuestId is > 0 and < 30_000
+            && !completed.Contains(quest.QuestId)
+            && quest.Grade == QuestGrade.Epic
             && quest.RequiredLevel is { Minimum: >= 0 } range && range.Minimum <= level
-            // Historical prerequisites remain eligible after their old offer-level ceiling.
+            // Old offer-level ceilings do not exclude historical stories.
             && range.Maximum >= range.Minimum
-            && quest.IsExposedByNpc != false && quest.IsEventOnly != true
-            && quest.JobChangeQuestCode is null or 0 && !quest.HasSpecialRewardStatus
-            && quest.Rewards.All(r => r.Kind == QuestRewardKind.Item)
-            && quest.ExpertJobRequirement is null && quest.CreatureKindRequirement is null
-            && quest.CreatureLevelRequirement is null
-            && quest.ObjectiveTypeCode is not ("question" or "[question]")
-            && quest.AccountCollisionQuestIds.Count == 0 && quest.CollisionQuestIds.Count == 0
-            && quest.RequiredQuestAnswers.All(a => marks.TryGetValue(a.QuestId, out var mark) && mark == a.AnswerIndex + 1)
             && (quest.JobRestriction is null || quest.JobRestriction.IsValid
                 && (quest.JobRestriction.IsExactAll || quest.JobRestriction.JobFamilies.Contains(family)))
             && (quest.TargetCharacterRestriction is null || quest.TargetCharacterRestriction.IsValid
