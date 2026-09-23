@@ -18,7 +18,8 @@ internal sealed partial class MonsterDropDomainService(
     IQuestMonsterDropDomainService questDrops,
     ILogger<MonsterDropDomainService> logger,
     IWorldDropRuleService worldDrops,
-    IMonsterDeclaredDropRuleService declaredDrops) : IMonsterDropDomainService
+    IMonsterDeclaredDropRuleService declaredDrops,
+    IExtraDropRuleService extraDrops) : IMonsterDropDomainService
 {
     public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -26,8 +27,7 @@ internal sealed partial class MonsterDropDomainService(
         Validate(context, cancellationToken);
         var request = new MonsterDropRequest(monsterId, context);
         var result = new List<RolledDrop>();
-        result.AddRange(this.GenerateOrdinary(request));
-        result.AddRange(GenerateExtra(request));
+        result.AddRange(this.GenerateRandomDrops(request));
         result.AddRange(GenerateMonsterDeclared(request));
         result.AddRange(GenerateIndependent(request));
         result.AddRange(worldDrops.Draw(request));
@@ -50,6 +50,8 @@ internal sealed partial class MonsterDropDomainService(
     {
         ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
+        if (context.RandomDropCount is < 0 or > 127)
+            throw new ArgumentOutOfRangeException(nameof(context), "Random drop count must be 0..127.");
         if (context.Participants.IsDefaultOrEmpty
             || !context.Participants.Any(participant => participant.CharacterId == context.CharacterId))
             throw new ArgumentException("Drop context must include its generating character.", nameof(context));

@@ -11,8 +11,9 @@ namespace Dfo.Server.Abstractions.Content;
 /// When set, the map requests the dungeon basis level plus this signed adjustment instead of an
 /// absolute level. Cleared when the room is materialized so its Cell holds a concrete level.
 /// </param>
+/// <param name="RandomDropCount">Seventh monster integer: number of random drop attempts.</param>
 public readonly record struct DungeonRoomActor(
-    int Code, byte Level, byte ActorType, int? BasisLevelOffset = null);
+    int Code, byte Level, byte ActorType, int? BasisLevelOffset = null, int RandomDropCount = 1);
 
 /// <summary>Reads a room's actors out of the map the room resolves to.</summary>
 /// <remarks>

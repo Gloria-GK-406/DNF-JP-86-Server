@@ -5,7 +5,21 @@ namespace Dfo.Server.Application.World;
 
 internal sealed partial class MonsterDropDomainService
 {
-    private IReadOnlyList<RolledDrop> GenerateOrdinary(MonsterDropRequest kill)
+    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request)
+    {
+        if (request.MonsterRank is < 0 or > 3 || request.Context.RandomDropCount == 0)
+            return [];
+        var result = new List<RolledDrop>();
+        // One shared success flag across the entire Extra phase, not per-attempt fallback.
+        for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
+            result.AddRange(extraDrops.Draw(request, attempt));
+        var includeOrdinaryItems = result.Count == 0;
+        for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
+            result.AddRange(this.GenerateOrdinary(request, includeOrdinaryItems, attempt));
+        return result;
+    }
+
+    private IReadOnlyList<RolledDrop> GenerateOrdinary(MonsterDropRequest kill, bool includeItems, int attempt)
     {
         if (dropRules.RatesFor(kill) is not { } rates)
         {
@@ -17,11 +31,8 @@ internal sealed partial class MonsterDropDomainService
             return [];
         }
 
-        return dropRules.DrawFor(kill, adjuster.Adjust(kill.CharacterId, rates));
+        return dropRules.DrawFor(kill, adjuster.Adjust(kill.CharacterId, rates), includeItems, attempt);
     }
-
-    // Disabled until extra-table replacement/append conditions are established.
-    private static IReadOnlyList<RolledDrop> GenerateExtra(MonsterDropRequest request) => [];
 
     // One fixed-basis draw per monster, independent of party size.
     private IReadOnlyList<RolledDrop> GenerateMonsterDeclared(MonsterDropRequest request) => declaredDrops.Draw(request);

@@ -35,7 +35,7 @@ internal sealed class DropRuleService(
                 options.RateBasis);
     }
 
-    public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates)
+    public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates, bool includeItems = true, int attempt = 0)
     {
         ArgumentNullException.ThrowIfNull(kill);
         ArgumentNullException.ThrowIfNull(rates);
@@ -46,12 +46,13 @@ internal sealed class DropRuleService(
             kill.Context.MapId,
             kill.Context.Cell.X,
             kill.Context.Cell.Y,
-            kill.ActorSequence));
+            kill.ActorSequence) ^ ((ulong)(uint)attempt * 0x9E3779B97F4A7C15UL));
 
         var rolled = new List<RolledDrop>();
         foreach (var slot in DropRules.Gate(rates, random))
         {
-            if (this.Draw(table, kill, slot, random) is { } drop)
+            if ((includeItems || slot == DropRateSlot.Gold)
+                && this.Draw(table, kill, slot, random) is { } drop)
                 rolled.Add(drop);
         }
 

@@ -78,6 +78,8 @@ public sealed record MonsterDropContext(
     CharacterId CharacterId,
     ImmutableArray<MonsterDropParticipant> Participants)
 {
+    /// <summary>Map monster's seventh integer; zero disables both random channels.</summary>
+    public int RandomDropCount { get; init; } = 1;
     public int PartyMemberCount => this.Participants.Length;
 }
 

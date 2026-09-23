@@ -104,6 +104,8 @@ logger.LogInformation(
 // When present, prepare all shared stats before any network hosted service accepts a client.
 if (archive is not null)
 {
+    var extraCount = host.Services.GetRequiredService<Dfo.Server.Abstractions.Content.IExtraDropRuleService>().Initialize();
+    logger.LogInformation("Extra drop content initialized: {Count} tagged candidates", extraCount);
     var declaredCount = host.Services.GetRequiredService<Dfo.Server.Abstractions.Content.IMonsterDeclaredDropRuleService>().Initialize();
     logger.LogInformation("Monster declared drops initialized: {Count} tables", declaredCount);
     var worldTimer = System.Diagnostics.Stopwatch.StartNew();

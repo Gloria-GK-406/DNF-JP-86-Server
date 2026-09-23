@@ -60,7 +60,7 @@ public sealed class MonsterDropDomainServiceTests
 
     private static MonsterDropDomainService Build(
         DropRateTable table, IQuestMonsterDropDomainService? quests = null,
-        IWorldDropRuleService? world = null) => new(
+        IWorldDropRuleService? world = null, IExtraDropRuleService? extra = null) => new(
         new DropRuleService(
             new StubRateTables(table),
             new StubGoldTables(Gold),
@@ -68,7 +68,7 @@ public sealed class MonsterDropDomainServiceTests
             new DropRateOptions { RateBasis = Basis }),
         new NoDropRateAdjustment(),
         quests ?? new NoQuestDrops(),
-        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops());
+        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops());
 
     private static DungeonCellCreationContext Run() => new(
         DungeonRunId.New(),
@@ -99,7 +99,7 @@ public sealed class MonsterDropDomainServiceTests
             rules,
             new NoDropRateAdjustment(),
             new NoQuestDrops(),
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops());
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops());
 
         await service.GenerateGroundAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
@@ -261,7 +261,7 @@ public sealed class MonsterDropDomainServiceTests
     {
         var rules = new RecordingDropRules();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(),
-            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops());
+            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops());
         var context = Kill(Run());
         MonsterDropParticipant participant = new(new AccountId(1), Character);
         foreach (var invalid in new[]
@@ -290,7 +290,7 @@ public sealed class MonsterDropDomainServiceTests
         var rules = new RecordingDropRules();
         var quests = new RecordingQuestDrops();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(), quests,
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops());
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops());
         await service.GeneratePersonalAsync(65601, new CharacterId(2),
             Kill(Run(), partyMemberCount: 2), CancellationToken.None);
         Assert.Null(rules.Asked);
@@ -352,7 +352,7 @@ public sealed class MonsterDropDomainServiceTests
             return null;
         }
 
-        public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates) => [];
+        public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates, bool includeItems = true, int attempt = 0) => [];
     }
 
     private sealed class NoQuestDrops : IQuestMonsterDropDomainService
@@ -365,6 +365,58 @@ public sealed class MonsterDropDomainServiceTests
     {
         public int Initialize() => 0;
         public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request) => [];
+    }
+    [Fact]
+    public async Task Extra_success_suppresses_ordinary_items_but_keeps_gold_and_world()
+    {
+        var drops = await Build(GoldAndEquipment(), world: new CertainWorldDrop(), extra: new CertainExtra())
+            .GenerateGroundAsync(65601, Kill(Run()), CancellationToken.None);
+        Assert.Contains(drops, d => d.IsGold);
+        Assert.Contains(drops, d => d.ItemId == 7001);
+        Assert.Contains(drops, d => d.ItemId == 3030);
+        Assert.DoesNotContain(drops, d => d.ItemId == 114000088);
+    }
+    [Fact]
+    public async Task One_late_extra_hit_suppresses_every_ordinary_item_attempt()
+    {
+        var context = Kill(Run()) with { RandomDropCount = 3 };
+        var drops = await Build(GoldAndEquipment(), extra: new LateExtra())
+            .GenerateGroundAsync(65601, context, CancellationToken.None);
+        Assert.Equal(3, drops.Count(d => d.IsGold));
+        Assert.Single(drops, d => d.ItemId == 7001);
+        Assert.DoesNotContain(drops, d => d.ItemId == 114000088);
+    }
+    [Fact]
+    public async Task No_extra_hit_preserves_all_ordinary_attempts()
+    {
+        var drops = await Build(GoldAndEquipment()).GenerateGroundAsync(65601,
+            Kill(Run()) with { RandomDropCount = 3 }, CancellationToken.None);
+        Assert.Equal(3, drops.Count(d => d.IsGold));
+        Assert.Equal(3, drops.Count(d => d.ItemId == 114000088));
+    }
+    [Fact]
+    public async Task Zero_random_count_disables_both_channels_but_not_world()
+    {
+        var drops = await Build(Certain(), world: new CertainWorldDrop(), extra: new CertainExtra())
+            .GenerateGroundAsync(65601, Kill(Run()) with { RandomDropCount = 0 }, CancellationToken.None);
+        Assert.Equal(3030, Assert.Single(drops).ItemId);
+    }
+    private sealed class LateExtra : IExtraDropRuleService
+    {
+        public int Initialize() => 1;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int attempt) => attempt == 2
+            ? [new(7001, 1, DropRarity.Common, DropItemKind.Equipment)] : [];
+    }
+    private sealed class CertainExtra : IExtraDropRuleService
+    {
+        public int Initialize() => 1;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int attempt) =>
+            [new(7001, 1, DropRarity.Common, DropItemKind.Equipment)];
+    }
+    private sealed class NoExtraDrops : IExtraDropRuleService
+    {
+        public int Initialize() => 0;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int attempt) => [];
     }
     private sealed class NoDeclaredDrops : IMonsterDeclaredDropRuleService
     {

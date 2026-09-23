@@ -57,7 +57,7 @@ internal sealed class DungeonCellFactory(
                     context.Layout.LevelOf(described.Actor.Level),
                     described.Actor.ActorType,
                     leader.CharacterId,
-                    participants);
+                    participants) { RandomDropCount = described.Actor.RandomDropCount };
                 var generated = new List<RolledDrop>(await loot.GenerateGroundAsync(
                     described.Actor.Code, dropContext, cancellationToken).ConfigureAwait(false));
                 foreach (var participant in participants)

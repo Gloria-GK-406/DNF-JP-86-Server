@@ -224,8 +224,12 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
             ? RankOf(words[MonsterRankWordPosition])
             : (byte)0;
         return new DungeonRoomActor(
-            record[0], level, rank, relative ? record[2] : null);
+            record[0], level, rank, relative ? record[2] : null,
+            ValidateRandomDropCount(record[6]));
     }
+
+    private static int ValidateRandomDropCount(int count) => count is >= 0 and <= 127
+        ? count : throw new InvalidDataException($"Invalid map monster random drop count {count}.");
 
     /// <summary>The map's word for how big a monster is, as the number the client draws it by.</summary>
     /// <remarks>

@@ -71,6 +71,7 @@ public sealed class DungeonCellFactoryTests
             Assert.Equal(layout.Seed, context.Seed);
             Assert.Equal((ushort)100, context.ActorSequence);
             Assert.Equal(actorType, context.MonsterRank);
+            Assert.Equal(3, context.RandomDropCount);
             Assert.Equal(new CharacterId(10), context.CharacterId);
             Assert.Equal(participants.Select(p => new MonsterDropParticipant(p.AccountId, p.CharacterId)),
                 context.Participants);
@@ -84,7 +85,7 @@ public sealed class DungeonCellFactoryTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(new DungeonRoomContents(
                 [new RoomActorDescription(
-                    new DungeonRoomActor(61670, 1, actorType),
+                    new DungeonRoomActor(61670, 1, actorType, RandomDropCount: 3),
                     IsAiCharacter: actorType >= 5)],
                 [],
                 FirstActorSequence: 100));

@@ -33,5 +33,7 @@ public interface IDropRuleService
     /// The rates to draw at, which the caller may have had raised on the character's behalf. Passed
     /// in rather than fetched, so that whatever raised them stays outside the rules.
     /// </param>
-    IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates);
+    /// <param name="includeItems">False retains gold but suppresses ordinary items after an Extra hit.</param>
+    /// <param name="attempt">Zero-based map-declared attempt; each has an independent deterministic stream.</param>
+    IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates, bool includeItems = true, int attempt = 0);
 }
