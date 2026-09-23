@@ -133,6 +133,24 @@ public sealed class MonsterDropDomainServiceTests
     }
 
     [Fact]
+    public async Task Source_composition_preserves_ordinary_draws_across_seeds()
+    {
+        var table = Table([4300, 2500, 6100, 1800, 1700]);
+        var rules = new DropRuleService(new StubRateTables(table), new StubGoldTables(Gold),
+            new StubPools(), new DropRateOptions { RateBasis = Basis });
+        var service = Build(table);
+        var context = Kill(Run());
+        for (var seed = 1; seed <= 64; seed++)
+        {
+            var sample = context with { Seed = seed };
+            var request = new MonsterDropRequest(65601, sample);
+            var expected = rules.DrawFor(request, rules.RatesFor(request)!);
+            var actual = await service.GenerateGroundAsync(65601, sample, CancellationToken.None);
+            Assert.Equal(expected.ToArray(), actual.ToArray());
+        }
+    }
+
+    [Fact]
     public async Task Two_actor_identities_are_rolled_apart()
     {
         var service = Build(Certain());

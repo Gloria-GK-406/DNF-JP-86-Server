@@ -84,18 +84,25 @@ internal sealed class DropRuleService(
         DropRateTable table, MonsterDropRequest kill, DropRateSlot slot, DropRandom random)
     {
         var kind = DropRules.KindOf(slot);
-        if (kind == DropItemKind.Gold)
-        {
-            var amount = DropRules.GoldAmount(
-                goldTables.Load(DropRateTables.Monster),
-                kill.MonsterLevel,
-                kill.MonsterRank,
-                random);
-            return amount > 0
-                ? new RolledDrop(RolledDrop.GoldItemId, amount, DropRarity.Common, kind)
-                : null;
-        }
+        return kind == DropItemKind.Gold
+            ? this.DrawGold(kill, random)
+            : this.DrawItem(table, kill, slot, kind, random);
+    }
 
+    private RolledDrop? DrawGold(MonsterDropRequest kill, DropRandom random)
+    {
+        var amount = DropRules.GoldAmount(
+            goldTables.Load(DropRateTables.Monster),
+            kill.MonsterLevel, kill.MonsterRank, random);
+        return amount > 0
+            ? new RolledDrop(RolledDrop.GoldItemId, amount, DropRarity.Common, DropItemKind.Gold)
+            : null;
+    }
+
+    private RolledDrop? DrawItem(
+        DropRateTable table, MonsterDropRequest kill, DropRateSlot slot,
+        DropItemKind kind, DropRandom random)
+    {
         if (kind == DropItemKind.Avatar)
             return null;
 

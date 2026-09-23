@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.World;
 /// Numbering and floor ownership belong to the dungeon run. This service reads rules and
 /// current character facts, then freezes their result before the cell is published.
 /// </remarks>
-internal sealed class MonsterDropDomainService(
+internal sealed partial class MonsterDropDomainService(
     IDropRuleService dropRules,
     IDropRateAdjuster adjuster,
     IQuestMonsterDropDomainService questDrops,
@@ -21,7 +21,15 @@ internal sealed class MonsterDropDomainService(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
     {
         Validate(context, cancellationToken);
-        return ValueTask.FromResult(this.Roll(new MonsterDropRequest(monsterId, context)));
+        var request = new MonsterDropRequest(monsterId, context);
+        var result = new List<RolledDrop>();
+        result.AddRange(this.GenerateOrdinary(request));
+        result.AddRange(GenerateExtra(request));
+        result.AddRange(GenerateMonsterDeclared(request));
+        result.AddRange(GenerateIndependent(request));
+        result.AddRange(GenerateWorld(request));
+        result.AddRange(GenerateSpecialMode(request));
+        return ValueTask.FromResult<IReadOnlyList<RolledDrop>>(result);
     }
 
     public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
@@ -47,27 +55,4 @@ internal sealed class MonsterDropDomainService(
             throw new ArgumentException("Drop participants must have unique character identities.", nameof(context));
     }
 
-    /// <summary>
-    /// What this kill produced, before anything is numbered.
-    /// </summary>
-    /// <remarks>
-    /// The rates are asked for, raised on the character's behalf if anything is owed, and handed
-    /// back to be drawn at. The raising happens here rather than inside the rules because what a
-    /// character is owed is state that crosses runs, and the rules are not allowed to go and find
-    /// it.
-    /// </remarks>
-    private IReadOnlyList<RolledDrop> Roll(MonsterDropRequest kill)
-    {
-        if (dropRules.RatesFor(kill) is not { } rates)
-        {
-            logger.LogWarning(
-                "Monster drop character={CharacterId}: the rate table covers no level "
-                    + "{Level}, so no ordinary loot was generated",
-                kill.CharacterId.Value,
-                kill.MonsterLevel);
-            return [];
-        }
-
-        return dropRules.DrawFor(kill, adjuster.Adjust(kill.CharacterId, rates));
-    }
 }

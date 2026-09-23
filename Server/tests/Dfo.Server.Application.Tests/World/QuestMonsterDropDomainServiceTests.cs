@@ -120,6 +120,43 @@ public sealed class QuestMonsterDropDomainServiceTests
         Assert.Empty(await fixture.Service.DrawAsync(request, new MonsterDropParticipant(Account, Leader), CancellationToken.None));
     }
 
+    [Fact]
+    public void Multiple_quests_keep_order_ownership_and_shared_item_cap()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var first = Definition(3, 15, -1);
+        var second = first with { QuestId = 1780 };
+        var held = new Dictionary<int, long> { [10149163] = 11 };
+        var drops = QuestMonsterDropRules.DrawMonsterRewards(Kill(fixture.Run, 65601),
+            new MonsterDropParticipant(Account, Leader), [first, second], held);
+
+        Assert.Equal(new[] { 3, 1 }, drops.Select(drop => drop.Count));
+        Assert.Equal(new[] { 1779, 1780 }, drops.Select(drop => drop.QuestId));
+        Assert.All(drops, drop => Assert.Equal(Leader, drop.OwnerCharacterId));
+        Assert.Equal(11, held[10149163]);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(37)]
+    [InlineData(100)]
+    public void Quest_sampling_is_replayable_and_preserves_probability_boundaries(int rate)
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var definition = Definition(10, 15, -1) with
+        {
+            MonsterRewardItems = [new QuestMonsterRewardItem(65601, 145, -1, 10149163, 10, rate, 15)]
+        };
+        var request = Kill(fixture.Run, 65601);
+        var participant = new MonsterDropParticipant(Account, Leader);
+        var held = new Dictionary<int, long>();
+        var first = QuestMonsterDropRules.DrawMonsterRewards(request, participant, [definition], held);
+        var second = QuestMonsterDropRules.DrawMonsterRewards(request, participant, [definition], held);
+        Assert.Equal(first.ToArray(), second.ToArray());
+        if (rate == 0) Assert.Empty(first);
+        if (rate == 100) Assert.Equal(10, Assert.Single(first).Count);
+    }
+
     private static Fixture Build(
         DungeonRunPurpose purpose,
         int dungeonId = 145,
@@ -144,7 +181,7 @@ public sealed class QuestMonsterDropDomainServiceTests
         if (memberCarriesQuest)
             containers.Register(Member, new Bag(10149163, 0));
         var service = new QuestMonsterDropDomainService(
-            new QuestRules(definition), logs, containers);
+            new QuestMonsterDropRuleService(new QuestRules(definition)), logs, containers);
         var layout = Layout(dungeonId, purpose);
         var run = new DungeonCellCreationContext(
             DungeonRunId.New(),
