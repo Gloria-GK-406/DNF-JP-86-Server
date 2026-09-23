@@ -32,7 +32,11 @@ internal sealed class WorldDropRuleService(IWorldDropTableSource source, WorldDr
         var random = new DropRandom(DropRandom.SeedFor(context.Seed, context.MapId,
             context.Cell.X, context.Cell.Y, request.ActorSequence) ^ 0x574F_524C_4444_524FUL);
         var entry = distribution.Select(random.Next(options.ProbabilityBasis) - 1);
-        return entry is null ? [] : [new RolledDrop(entry.ItemId, 1, entry.Rarity, entry.Kind, entry.Durability)];
+        if (entry is not null)
+            return [new RolledDrop(entry.ItemId, 1, entry.Rarity, entry.Kind, entry.Durability)];
+        // A21 stackable/material/cubepiece_clear.stk: item 3037, rarity 1.
+        return options.DebugClearCubeOnMiss
+            ? [new RolledDrop(3037, 1, DropRarity.Uncommon, DropItemKind.Stackable)] : [];
     }
 }
 

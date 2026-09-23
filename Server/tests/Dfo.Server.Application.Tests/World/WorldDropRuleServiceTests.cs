@@ -49,6 +49,43 @@ public sealed class WorldDropRuleServiceTests
         Assert.Equal(1, source.Reads);
     }
 
+    [Fact]
+    public void Debug_cube_only_replaces_a_miss_and_leaves_hits_and_missing_levels_unchanged()
+    {
+        var source = new Source();
+        var normal = new WorldDropRuleService(source, new WorldDropOptions { ProbabilityBasis = 100 });
+        var debug = new WorldDropRuleService(source, new WorldDropOptions
+            { ProbabilityBasis = 100, DebugClearCubeOnMiss = true });
+        normal.Initialize();
+        debug.Initialize();
+        var character = new CharacterId(1);
+        var context = new MonsterDropContext(DungeonRunId.New(), 1, 0, new MazeCell(0, 0), 1,
+            0, 30001, 20, 0, character, [new(new AccountId(1), character)]);
+        var hits = 0;
+        var misses = 0;
+        for (var seed = 0; seed < 100; seed++)
+        {
+            var request = new MonsterDropRequest(17, context with { Seed = seed });
+            var ordinary = normal.Draw(request);
+            var observed = Assert.Single(debug.Draw(request));
+            if (ordinary.Count != 0)
+            {
+                hits++;
+                Assert.Equal(ordinary[0], observed);
+            }
+            else
+            {
+                misses++;
+                Assert.Equal(3037, observed.ItemId);
+                Assert.Equal(1, observed.Count);
+                Assert.Equal(DropRarity.Uncommon, observed.Rarity);
+                Assert.Equal(RolledDropDelivery.Ground, observed.Delivery);
+            }
+        }
+        Assert.True(hits > 0 && misses > 0);
+        Assert.Empty(debug.Draw(new(17, context with { MonsterLevel = 201 })));
+    }
+
     private sealed class Source : IWorldDropTableSource
     {
         public int Reads { get; private set; }

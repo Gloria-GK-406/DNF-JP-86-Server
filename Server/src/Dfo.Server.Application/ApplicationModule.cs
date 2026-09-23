@@ -201,6 +201,7 @@ public sealed class ApplicationModule : IServerModule
         {
             ProbabilityBasis = configuration["WorldDrops:ProbabilityBasis"] is { } configuredWorldBasis
                 ? int.Parse(configuredWorldBasis, System.Globalization.CultureInfo.InvariantCulture) : 100000,
+            DebugClearCubeOnMiss = bool.Parse(configuration["WorldDrops:DebugClearCubeOnMiss"] ?? "false"),
         });
         services.TryAddSingleton<IDropRateAdjuster, NoDropRateAdjustment>();
         // The one number the archive does not declare. See DropRateOptions for the two candidate
