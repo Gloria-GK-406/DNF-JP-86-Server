@@ -1,0 +1,1373 @@
+
+### 081cc3da _ZN23Dispatcher_MailBox_Send4readER9PacketBufR8MSG_BASE
+081cc3da push    ebp
+081cc3db mov     ebp, esp
+081cc3dd sub     esp, 0x28
+081cc3e0 mov     eax, dword ptr [ebp + 0x10]
+081cc3e3 mov     dword ptr [ebp - 0xc], eax
+081cc3e6 mov     eax, dword ptr [ebp - 0xc]
+081cc3e9 add     eax, 0xd
+081cc3ec mov     dword ptr [esp + 4], eax
+081cc3f0 mov     eax, dword ptr [ebp + 0xc]
+081cc3f3 mov     dword ptr [esp], eax
+081cc3f6 call    0x858d0f0                                    _ZN9PacketBuf7get_intERi
+081cc3fb xor     eax, 1
+081cc3fe test    al, al
+081cc400 je      0x81cc42b
+081cc402 mov     dword ptr [esp + 0xc], 0
+081cc40a mov     dword ptr [esp + 8], 0
+081cc412 mov     dword ptr [esp + 4], 0x8bd4ba0
+081cc41a mov     dword ptr [esp], 0x2309
+081cc421 call    0x85908d7                                    _Z8LineFunciPKcij
+081cc426 jmp     0x81cc634
+081cc42b mov     eax, dword ptr [ebp - 0xc]
+081cc42e mov     eax, dword ptr [eax + 0xd]
+081cc431 mov     edx, dword ptr [ebp - 0xc]
+081cc434 add     edx, 0x11
+081cc437 mov     dword ptr [esp + 0xc], eax
+081cc43b mov     dword ptr [esp + 8], 0x1d
+081cc443 mov     dword ptr [esp + 4], edx
+081cc447 mov     eax, dword ptr [ebp + 0xc]
+081cc44a mov     dword ptr [esp], eax
+081cc44d call    0x858d2bc                                    _ZN9PacketBuf7get_strEPcii
+081cc452 xor     eax, 1
+081cc455 test    al, al
+081cc457 jne     0x81cc4e9
+081cc45d mov     eax, dword ptr [ebp - 0xc]
+081cc460 add     eax, 0x2e
+081cc463 mov     dword ptr [esp + 4], eax
+081cc467 mov     eax, dword ptr [ebp + 0xc]
+081cc46a mov     dword ptr [esp], eax
+081cc46d call    0x858d240                                    _ZN9PacketBuf7get_intERj
+081cc472 xor     eax, 1
+081cc475 test    al, al
+081cc477 jne     0x81cc4e9
+081cc479 mov     eax, dword ptr [ebp - 0xc]
+081cc47c add     eax, 0x36
+081cc47f mov     dword ptr [esp + 4], eax
+081cc483 mov     eax, dword ptr [ebp + 0xc]
+081cc486 mov     dword ptr [esp], eax
+081cc489 call    0x858cf70                                    _ZN9PacketBuf8get_byteERh
+081cc48e xor     eax, 1
+081cc491 test    al, al
+081cc493 jne     0x81cc4e9
+081cc495 mov     eax, dword ptr [ebp - 0xc]
+081cc498 add     eax, 0x37
+081cc49b mov     dword ptr [esp + 4], eax
+081cc49f mov     eax, dword ptr [ebp + 0xc]
+081cc4a2 mov     dword ptr [esp], eax
+081cc4a5 call    0x858d0b0                                    _ZN9PacketBuf9get_shortERt
+081cc4aa xor     eax, 1
+081cc4ad test    al, al
+081cc4af jne     0x81cc4e9
+081cc4b1 mov     eax, dword ptr [ebp - 0xc]
+081cc4b4 add     eax, 0x39
+081cc4b7 mov     dword ptr [esp + 4], eax
+081cc4bb mov     eax, dword ptr [ebp + 0xc]
+081cc4be mov     dword ptr [esp], eax
+081cc4c1 call    0x858d27e                                    _ZN9PacketBuf7get_intERm
+081cc4c6 xor     eax, 1
+081cc4c9 test    al, al
+081cc4cb jne     0x81cc4e9
+081cc4cd mov     eax, dword ptr [ebp - 0xc]
+081cc4d0 add     eax, 0x3d
+081cc4d3 mov     dword ptr [esp + 4], eax
+081cc4d7 mov     eax, dword ptr [ebp + 0xc]
+081cc4da mov     dword ptr [esp], eax
+081cc4dd call    0x858d0f0                                    _ZN9PacketBuf7get_intERi
+081cc4e2 xor     eax, 1
+081cc4e5 test    al, al
+081cc4e7 je      0x81cc4f0
+081cc4e9 mov     eax, 1
+081cc4ee jmp     0x81cc4f5
+081cc4f0 mov     eax, 0
+081cc4f5 test    al, al
+081cc4f7 je      0x81cc522
+081cc4f9 mov     dword ptr [esp + 0xc], 0
+081cc501 mov     dword ptr [esp + 8], 0
+081cc509 mov     dword ptr [esp + 4], 0x8bd4ba0
+081cc511 mov     dword ptr [esp], 0x2315
+081cc518 call    0x85908d7                                    _Z8LineFunciPKcij
+081cc51d jmp     0x81cc634
+081cc522 mov     eax, dword ptr [ebp - 0xc]
+081cc525 mov     dword ptr [eax + 0x41], 0
+081cc52c mov     eax, dword ptr [ebp - 0xc]
+081cc52f mov     dword ptr [eax + 0x32], 0
+081cc536 mov     eax, dword ptr [ebp - 0xc]
+081cc539 add     eax, 0x45
+081cc53c mov     dword ptr [esp + 8], 0x100
+081cc544 mov     dword ptr [esp + 4], 0
+081cc54c mov     dword ptr [esp], eax
+081cc54f call    0x807dcc0
+081cc554 mov     eax, dword ptr [ebp - 0xc]
+081cc557 add     eax, 0x41
+081cc55a mov     dword ptr [esp + 4], eax
+081cc55e mov     eax, dword ptr [ebp + 0xc]
+081cc561 mov     dword ptr [esp], eax
+081cc564 call    0x858d0f0                                    _ZN9PacketBuf7get_intERi
+081cc569 xor     eax, 1
+081cc56c test    al, al
+081cc56e je      0x81cc599
+081cc570 mov     dword ptr [esp + 0xc], 0
+081cc578 mov     dword ptr [esp + 8], 0
+081cc580 mov     dword ptr [esp + 4], 0x8bd4ba0
+081cc588 mov     dword ptr [esp], 0x231b
+081cc58f call    0x85908d7                                    _Z8LineFunciPKcij
+081cc594 jmp     0x81cc634
+081cc599 mov     eax, dword ptr [ebp - 0xc]
+081cc59c mov     eax, dword ptr [eax + 0x41]
+081cc59f mov     edx, dword ptr [ebp - 0xc]
+081cc5a2 add     edx, 0x45
+081cc5a5 mov     dword ptr [esp + 0xc], eax
+081cc5a9 mov     dword ptr [esp + 8], 0x100
+081cc5b1 mov     dword ptr [esp + 4], edx
+081cc5b5 mov     eax, dword ptr [ebp + 0xc]
+081cc5b8 mov     dword ptr [esp], eax
+081cc5bb call    0x858d2bc                                    _ZN9PacketBuf7get_strEPcii
+081cc5c0 xor     eax, 1
+081cc5c3 test    al, al
+081cc5c5 je      0x81cc5ed
+081cc5c7 mov     dword ptr [esp + 0xc], 0
+081cc5cf mov     dword ptr [esp + 8], 0
+081cc5d7 mov     dword ptr [esp + 4], 0x8bd4ba0
+081cc5df mov     dword ptr [esp], 0x231e
+081cc5e6 call    0x85908d7                                    _Z8LineFunciPKcij
+081cc5eb jmp     0x81cc634
+081cc5ed mov     eax, dword ptr [ebp - 0xc]
+081cc5f0 add     eax, 0x32
+081cc5f3 mov     dword ptr [esp + 4], eax
+081cc5f7 mov     eax, dword ptr [ebp + 0xc]
+081cc5fa mov     dword ptr [esp], eax
+081cc5fd call    0x858d240                                    _ZN9PacketBuf7get_intERj
+081cc602 xor     eax, 1
+081cc605 test    al, al
+081cc607 je      0x81cc62f
+081cc609 mov     dword ptr [esp + 0xc], 0
+081cc611 mov     dword ptr [esp + 8], 0
+081cc619 mov     dword ptr [esp + 4], 0x8bd4ba0
+081cc621 mov     dword ptr [esp], 0x2321
+081cc628 call    0x85908d7                                    _Z8LineFunciPKcij
+081cc62d jmp     0x81cc634
+081cc62f mov     eax, 0
+081cc634 leave
+081cc635 ret
+
+### 081cc636 _ZN23Dispatcher_MailBox_Send11check_errorEP5CUserR8MSG_BASE
+081cc636 push    ebp
+081cc637 mov     ebp, esp
+081cc639 push    esi
+081cc63a push    ebx
+081cc63b sub     esp, 0x30
+081cc63e mov     eax, dword ptr [ebp + 0xc]
+081cc641 mov     dword ptr [esp], eax
+081cc644 call    0x80da38c                                    _ZN5CUser9get_stateEv
+081cc649 cmp     eax, 3
+081cc64c jne     0x81cc65d
+081cc64e mov     eax, dword ptr [ebp + 0xc]
+081cc651 mov     dword ptr [esp], eax
+081cc654 call    0x8120432                                    _ZNK15CUserCharacInfo13getCurCharacREv
+081cc659 test    eax, eax
+081cc65b jne     0x81cc664
+081cc65d mov     eax, 1
+081cc662 jmp     0x81cc669
+081cc664 mov     eax, 0
+081cc669 test    al, al
+081cc66b je      0x81cc677
+081cc66d mov     ebx, 0xffffffff
+081cc672 jmp     0x81cc8b9
+081cc677 call    0x81625e6                                    _ZN4ARAD9SingletonI22ServiceRestrictManagerE3GetEv
+081cc67c mov     dword ptr [esp + 0xc], 4
+081cc684 mov     dword ptr [esp + 8], 1
+081cc68c mov     edx, dword ptr [ebp + 0xc]
+081cc68f mov     dword ptr [esp + 4], edx
+081cc693 mov     dword ptr [esp], eax
+081cc696 call    0x816e6b8                                    _ZN22ServiceRestrictManager12isRestrictedEP5CUserN16RestrictCategory4EnumEi
+081cc69b test    al, al
+081cc69d je      0x81cc6a9
+081cc69f mov     ebx, 0xd1
+081cc6a4 jmp     0x81cc8b9
+081cc6a9 mov     eax, dword ptr [0x941f7cc]
+081cc6ae mov     dword ptr [esp + 8], 0x3f
+081cc6b6 mov     edx, dword ptr [ebp + 0xc]
+081cc6b9 mov     dword ptr [esp + 4], edx
+081cc6bd mov     dword ptr [esp], eax
+081cc6c0 call    0x8288a02                                    _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+081cc6c5 mov     dword ptr [ebp - 0x14], eax
+081cc6c8 cmp     dword ptr [ebp - 0x14], 0
+081cc6cc je      0x81cc6d6
+081cc6ce mov     ebx, dword ptr [ebp - 0x14]
+081cc6d1 jmp     0x81cc8b9
+081cc6d6 mov     eax, dword ptr [ebp + 0x10]
+081cc6d9 mov     dword ptr [ebp - 0x10], eax
+081cc6dc mov     eax, dword ptr [ebp - 0x10]
+081cc6df movzx   eax, word ptr [eax + 0x37]
+081cc6e3 movzx   ebx, ax
+081cc6e6 mov     eax, dword ptr [ebp - 0x10]
+081cc6e9 movzx   eax, byte ptr [eax + 0x36]
+081cc6ed movzx   eax, al
+081cc6f0 mov     dword ptr [esp], eax
+081cc6f3 call    0x80f7845                                    _Z25GetInvenTypeFromItemSpace14ENUM_ITEMSPACE
+081cc6f8 mov     dword ptr [esp + 8], ebx
+081cc6fc mov     dword ptr [esp + 4], eax
+081cc700 mov     eax, dword ptr [ebp + 0xc]
+081cc703 mov     dword ptr [esp], eax
+081cc706 call    0x8646942                                    _ZNK5CUser13CheckItemLockEii
+081cc70b test    al, al
+081cc70d je      0x81cc719
+081cc70f mov     ebx, 0xd5
+081cc714 jmp     0x81cc8b9
+081cc719 mov     byte ptr [ebp - 0x16], 1
+081cc71d mov     eax, dword ptr [ebp - 0x10]
+081cc720 movzx   eax, word ptr [eax + 0x37]
+081cc724 movzx   ebx, ax
+081cc727 mov     eax, dword ptr [ebp - 0x10]
+081cc72a movzx   eax, byte ptr [eax + 0x36]
+081cc72e movzx   eax, al
+081cc731 mov     dword ptr [esp], eax
+081cc734 call    0x80f7845                                    _Z25GetInvenTypeFromItemSpace14ENUM_ITEMSPACE
+081cc739 lea     edx, [ebp - 0x16]
+081cc73c mov     dword ptr [esp + 0xc], edx
+081cc740 mov     dword ptr [esp + 8], ebx
+081cc744 mov     dword ptr [esp + 4], eax
+081cc748 mov     eax, dword ptr [ebp + 0xc]
+081cc74b mov     dword ptr [esp], eax
+081cc74e call    0x812032e                                    _Z36CheckItemTradeLimitCountToMoveByUserR5CUseriiRb
+081cc753 movzx   eax, byte ptr [ebp - 0x16]
+081cc757 xor     eax, 1
+081cc75a test    al, al
+081cc75c je      0x81cc768
+081cc75e mov     ebx, 0x72
+081cc763 jmp     0x81cc8b9
+081cc768 lea     eax, [ebp - 0x15]
+081cc76b mov     dword ptr [esp], eax
+081cc76e call    0x86e00d0                                    _ZNSaIcEC2Ev
+081cc773 mov     eax, dword ptr [ebp - 0x10]
+081cc776 lea     edx, [eax + 0x45]
+081cc779 lea     eax, [ebp - 0x15]
+081cc77c mov     dword ptr [esp + 8], eax
+081cc780 mov     dword ptr [esp + 4], edx
+081cc784 lea     eax, [ebp - 0x1c]
+081cc787 mov     dword ptr [esp], eax
+081cc78a call    0x8707630                                    _ZNSsC2EPKcRKSaIcE
+081cc78f jmp     0x81cc7ac
+081cc791 mov     ebx, edx
+081cc793 mov     esi, eax
+081cc795 lea     eax, [ebp - 0x15]
+081cc798 mov     dword ptr [esp], eax
+081cc79b call    0x86e00f0                                    _ZNSaIcED2Ev
+081cc7a0 mov     eax, esi
+081cc7a2 mov     edx, ebx
+081cc7a4 mov     dword ptr [esp], eax
+081cc7a7 call    0x8ae3750                                    _Unwind_Resume
+081cc7ac lea     eax, [ebp - 0x15]
+081cc7af mov     dword ptr [esp], eax
+081cc7b2 call    0x86e00f0                                    _ZNSaIcED2Ev
+081cc7b7 call    0x8235001                                    _ZN16CSyncSlangFilter11GetInstanceEv
+081cc7bc lea     edx, [ebp - 0x1c]
+081cc7bf mov     dword ptr [esp + 4], edx
+081cc7c3 mov     dword ptr [esp], eax
+081cc7c6 call    0x862e622                                    _ZN16CSyncSlangFilter8HasSlangERKSs
+081cc7cb test    al, al
+081cc7cd je      0x81cc7d9
+081cc7cf mov     ebx, 0x9f
+081cc7d4 jmp     0x81cc8ae
+081cc7d9 mov     eax, dword ptr [ebp - 0x10]
+081cc7dc add     eax, 0x45
+081cc7df mov     dword ptr [esp], eax
+081cc7e2 call    0x807e3b0                                    realloc@@GLIBC_2.0
+081cc7e7 mov     edx, dword ptr [ebp - 0x10]
+081cc7ea mov     edx, dword ptr [edx + 0x41]
+081cc7ed cmp     eax, edx
+081cc7ef je      0x81cc7fb
+081cc7f1 mov     ebx, 0xfffffffd
+081cc7f6 jmp     0x81cc8ae
+081cc7fb mov     eax, dword ptr [ebp - 0x10]
+081cc7fe mov     eax, dword ptr [eax + 0x39]
+081cc801 test    eax, eax
+081cc803 jne     0x81cc826
+081cc805 mov     eax, dword ptr [ebp - 0x10]
+081cc808 mov     eax, dword ptr [eax + 0x2e]
+081cc80b test    eax, eax
+081cc80d jne     0x81cc826
+081cc80f mov     eax, dword ptr [ebp - 0x10]
+081cc812 add     eax, 0x45
+081cc815 movzx   eax, byte ptr [eax]
+081cc818 test    al, al
+081cc81a jne     0x81cc826
+081cc81c mov     ebx, 0x16
+081cc821 jmp     0x81cc8ae
+081cc826 mov     eax, dword ptr [ebp - 0x10]
+081cc829 mov     eax, dword ptr [eax + 0x32]
+081cc82c test    eax, eax
+081cc82e je      0x81cc857
+081cc830 mov     eax, dword ptr [ebp + 0x10]
+081cc833 mov     dword ptr [esp + 8], eax
+081cc837 mov     eax, dword ptr [ebp + 0xc]
+081cc83a mov     dword ptr [esp + 4], eax
+081cc83e mov     eax, dword ptr [ebp + 8]
+081cc841 mov     dword ptr [esp], eax
+081cc844 call    0x81cc8c2                                    _ZN23Dispatcher_MailBox_Send14GuildMailCheckEP5CUserR8MSG_BASE
+081cc849 mov     dword ptr [ebp - 0xc], eax
+081cc84c cmp     dword ptr [ebp - 0xc], 0
+081cc850 je      0x81cc857
+081cc852 mov     ebx, dword ptr [ebp - 0xc]
+081cc855 jmp     0x81cc8ae
+081cc857 mov     eax, dword ptr [ebp + 0xc]
+081cc85a mov     dword ptr [esp], eax
+081cc85d call    0x822f380                                    _ZN15CUserCharacInfo17GetReliablePersonEv
+081cc862 xor     eax, 1
+081cc865 test    al, al
+081cc867 je      0x81cc88c
+081cc869 mov     eax, dword ptr [ebp - 0x10]
+081cc86c mov     edx, dword ptr [eax + 0x2e]
+081cc86f mov     eax, dword ptr [ebp + 0xc]
+081cc872 mov     dword ptr [esp + 4], edx
+081cc876 mov     dword ptr [esp], eax
+081cc879 call    0x8646496                                    _ZN15CUserCharacInfo34IsAvailableCurCharacTradeGoldDailyEj
+081cc87e xor     eax, 1
+081cc881 test    al, al
+081cc883 je      0x81cc88c
+081cc885 mov     ebx, 0x46
+081cc88a jmp     0x81cc8ae
+081cc88c mov     ebx, 0
+081cc891 jmp     0x81cc8ae
+081cc893 mov     ebx, edx
+081cc895 mov     esi, eax
+081cc897 lea     eax, [ebp - 0x1c]
+081cc89a mov     dword ptr [esp], eax
+081cc89d call    0x8707be0                                    _ZNSsD2Ev
+081cc8a2 mov     eax, esi
+081cc8a4 mov     edx, ebx
+081cc8a6 mov     dword ptr [esp], eax
+081cc8a9 call    0x8ae3750                                    _Unwind_Resume
+081cc8ae lea     eax, [ebp - 0x1c]
+081cc8b1 mov     dword ptr [esp], eax
+081cc8b4 call    0x8707be0                                    _ZNSsD2Ev
+081cc8b9 mov     eax, ebx
+081cc8bb add     esp, 0x30
+081cc8be pop     ebx
+081cc8bf pop     esi
+081cc8c0 pop     ebp
+081cc8c1 ret
+
+### 081ccdb2 _ZN23Dispatcher_MailBox_Send4sendEP5CUserR9ParamBase
+081ccdb2 push    ebp
+081ccdb3 mov     ebp, esp
+081ccdb5 sub     esp, 0x28
+081ccdb8 mov     eax, dword ptr [ebp + 0x10]
+081ccdbb mov     dword ptr [ebp - 0xc], eax
+081ccdbe mov     eax, dword ptr [ebp - 0xc]
+081ccdc1 mov     eax, dword ptr [eax + 4]
+081ccdc4 cmp     eax, 0x7fffffff
+081ccdc9 je      0x81ccdf7
+081ccdcb mov     eax, dword ptr [ebp - 0xc]
+081ccdce mov     eax, dword ptr [eax + 4]
+081ccdd1 test    eax, eax
+081ccdd3 je      0x81ccdf8
+081ccdd5 mov     eax, dword ptr [ebp - 0xc]
+081ccdd8 mov     eax, dword ptr [eax + 4]
+081ccddb movzx   eax, al
+081ccdde mov     dword ptr [esp + 8], eax
+081ccde2 mov     dword ptr [esp + 4], 0x61
+081ccdea mov     eax, dword ptr [ebp + 0xc]
+081ccded mov     dword ptr [esp], eax
+081ccdf0 call    0x867bf42                                    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+081ccdf5 jmp     0x81ccdf8
+081ccdf7 nop
+081ccdf8 leave
+081ccdf9 ret
+
+### 08555b14 _ZN8WongWork14CMailBoxHelper16ReqDBSendNewMailEP5CUserP16MSG_MAILBOX_SENDjbji
+08555b14 push    ebp
+08555b15 mov     ebp, esp
+08555b17 push    esi
+08555b18 push    ebx
+08555b19 sub     esp, 0x120
+08555b1f mov     eax, dword ptr [ebp + 0x14]
+08555b22 mov     byte ptr [ebp - 0xac], al
+08555b28 mov     eax, dword ptr [ebp + 0xc]
+08555b2b mov     eax, dword ptr [eax + 0x3d]
+08555b2e test    eax, eax
+08555b30 jns     0x8555b3c
+08555b32 mov     eax, 0x11
+08555b37 jmp     0x85561a6
+08555b3c mov     dword ptr [ebp - 0x28], 0x3e8
+08555b43 mov     eax, dword ptr [ebp + 0xc]
+08555b46 mov     eax, dword ptr [eax + 0x39]
+08555b49 test    eax, eax
+08555b4b jne     0x8555b54
+08555b4d mov     dword ptr [ebp - 0x28], 0x64
+08555b54 mov     eax, dword ptr [ebp + 0xc]
+08555b57 mov     eax, dword ptr [eax + 0x2e]
+08555b5a test    eax, eax
+08555b5c je      0x8555bd2
+08555b5e mov     eax, dword ptr [ebp + 0xc]
+08555b61 mov     edx, dword ptr [eax + 0x2e]
+08555b64 mov     eax, edx
+08555b66 shl     eax, 2
+08555b69 add     eax, edx
+08555b6b mov     dword ptr [ebp - 0xfc], eax
+08555b71 mov     edx, 0x51eb851f
+08555b76 mov     eax, dword ptr [ebp - 0xfc]
+08555b7c mul     edx
+08555b7e shr     edx, 5
+08555b81 mov     eax, dword ptr [ebp - 0x28]
+08555b84 lea     eax, [edx + eax]
+08555b87 mov     dword ptr [ebp - 0x28], eax
+08555b8a mov     eax, dword ptr [ebp + 0xc]
+08555b8d mov     eax, dword ptr [eax + 0x39]
+08555b90 test    eax, eax
+08555b92 jne     0x8555bb4
+08555b94 mov     dword ptr [ebp - 0x24], 0x2774
+08555b9b lea     eax, [ebp - 0x28]
+08555b9e mov     dword ptr [esp + 4], eax
+08555ba2 lea     eax, [ebp - 0x24]
+08555ba5 mov     dword ptr [esp], eax
+08555ba8 call    0x80df90e                                    _ZSt3minIiERKT_S2_S2_
+08555bad mov     eax, dword ptr [eax]
+08555baf mov     dword ptr [ebp - 0x28], eax
+08555bb2 jmp     0x8555bd2
+08555bb4 mov     dword ptr [ebp - 0x20], 0x2af8
+08555bbb lea     eax, [ebp - 0x28]
+08555bbe mov     dword ptr [esp + 4], eax
+08555bc2 lea     eax, [ebp - 0x20]
+08555bc5 mov     dword ptr [esp], eax
+08555bc8 call    0x80df90e                                    _ZSt3minIiERKT_S2_S2_
+08555bcd mov     eax, dword ptr [eax]
+08555bcf mov     dword ptr [ebp - 0x28], eax
+08555bd2 mov     eax, dword ptr [ebp + 8]
+08555bd5 mov     dword ptr [esp], eax
+08555bd8 call    0x817a188                                    _ZNK15CUserCharacInfo17getCurCharacMoneyEv
+08555bdd mov     edx, dword ptr [ebp + 0xc]
+08555be0 mov     edx, dword ptr [edx + 0x2e]
+08555be3 mov     ecx, edx
+08555be5 mov     edx, dword ptr [ebp - 0x28]
+08555be8 lea     edx, [ecx + edx]
+08555beb cmp     eax, edx
+08555bed setl    al
+08555bf0 test    al, al
+08555bf2 je      0x8555bfe
+08555bf4 mov     eax, 0xa
+08555bf9 jmp     0x85561a6
+08555bfe mov     eax, dword ptr [ebp + 8]
+08555c01 mov     dword ptr [esp], eax
+08555c04 call    0x80da28e                                    _ZN15CUserCharacInfo18getCurCharacInvenWEv
+08555c09 mov     dword ptr [ebp - 0x1c], eax
+08555c0c mov     dword ptr [ebp - 0x18], 6
+08555c13 mov     dword ptr [ebp - 0x14], 0
+08555c1a lea     eax, [ebp - 0x65]
+08555c1d mov     dword ptr [esp], eax
+08555c20 call    0x80cb854                                    _ZN10Inven_ItemC2Ev
+08555c25 lea     eax, [ebp - 0xa2]
+08555c2b mov     dword ptr [esp], eax
+08555c2e call    0x80cb854                                    _ZN10Inven_ItemC2Ev
+08555c33 mov     eax, dword ptr [ebp + 0xc]
+08555c36 mov     eax, dword ptr [eax + 0x39]
+08555c39 test    eax, eax
+08555c3b je      0x8555f3d
+08555c41 mov     eax, dword ptr [ebp + 0xc]
+08555c44 movzx   eax, byte ptr [eax + 0x36]
+08555c48 movzx   eax, al
+08555c4b cmp     eax, 1
+08555c4e je      0x8555c62
+08555c50 cmp     eax, 7
+08555c53 je      0x8555c6b
+08555c55 test    eax, eax
+08555c57 jne     0x8555c74
+08555c59 mov     dword ptr [ebp - 0x18], 1
+08555c60 jmp     0x8555c7e
+08555c62 mov     dword ptr [ebp - 0x18], 2
+08555c69 jmp     0x8555c7e
+08555c6b mov     dword ptr [ebp - 0x18], 3
+08555c72 jmp     0x8555c7e
+08555c74 mov     eax, 0x17
+08555c79 jmp     0x85561a6
+08555c7e mov     eax, dword ptr [ebp + 0xc]
+08555c81 movzx   eax, word ptr [eax + 0x37]
+08555c85 movzx   edx, ax
+08555c88 lea     eax, [ebp - 0xf8]
+08555c8e mov     dword ptr [esp + 0xc], edx
+08555c92 mov     edx, dword ptr [ebp - 0x18]
+08555c95 mov     dword ptr [esp + 8], edx
+08555c99 mov     edx, dword ptr [ebp - 0x1c]
+08555c9c mov     dword ptr [esp + 4], edx
+08555ca0 mov     dword ptr [esp], eax
+08555ca3 call    0x84fb918                                    _ZNK10CInventory12GetInvenSlotEii
+08555ca8 sub     esp, 4
+08555cab mov     eax, dword ptr [ebp - 0xf8]
+08555cb1 mov     dword ptr [ebp - 0x65], eax
+08555cb4 mov     eax, dword ptr [ebp - 0xf4]
+08555cba mov     dword ptr [ebp - 0x61], eax
+08555cbd mov     eax, dword ptr [ebp - 0xf0]
+08555cc3 mov     dword ptr [ebp - 0x5d], eax
+08555cc6 mov     eax, dword ptr [ebp - 0xec]
+08555ccc mov     dword ptr [ebp - 0x59], eax
+08555ccf mov     eax, dword ptr [ebp - 0xe8]
+08555cd5 mov     dword ptr [ebp - 0x55], eax
+08555cd8 mov     eax, dword ptr [ebp - 0xe4]
+08555cde mov     dword ptr [ebp - 0x51], eax
+08555ce1 mov     eax, dword ptr [ebp - 0xe0]
+08555ce7 mov     dword ptr [ebp - 0x4d], eax
+08555cea mov     eax, dword ptr [ebp - 0xdc]
+08555cf0 mov     dword ptr [ebp - 0x49], eax
+08555cf3 mov     eax, dword ptr [ebp - 0xd8]
+08555cf9 mov     dword ptr [ebp - 0x45], eax
+08555cfc mov     eax, dword ptr [ebp - 0xd4]
+08555d02 mov     dword ptr [ebp - 0x41], eax
+08555d05 mov     eax, dword ptr [ebp - 0xd0]
+08555d0b mov     dword ptr [ebp - 0x3d], eax
+08555d0e mov     eax, dword ptr [ebp - 0xcc]
+08555d14 mov     dword ptr [ebp - 0x39], eax
+08555d17 mov     eax, dword ptr [ebp - 0xc8]
+08555d1d mov     dword ptr [ebp - 0x35], eax
+08555d20 mov     eax, dword ptr [ebp - 0xc4]
+08555d26 mov     dword ptr [ebp - 0x31], eax
+08555d29 mov     eax, dword ptr [ebp - 0xc0]
+08555d2f mov     dword ptr [ebp - 0x2d], eax
+08555d32 movzx   eax, byte ptr [ebp - 0xbc]
+08555d39 mov     byte ptr [ebp - 0x29], al
+08555d3c mov     edx, dword ptr [ebp - 0x63]
+08555d3f mov     eax, dword ptr [ebp + 0xc]
+08555d42 mov     eax, dword ptr [eax + 0x39]
+08555d45 cmp     edx, eax
+08555d47 je      0x8555d53
+08555d49 mov     eax, 0x11
+08555d4e jmp     0x85561a6
+08555d53 movzx   eax, byte ptr [ebp - 0x64]
+08555d57 cmp     al, 4
+08555d59 jne     0x8555d65
+08555d5b mov     eax, 0x17
+08555d60 jmp     0x85561a6
+08555d65 lea     eax, [ebp - 0x65]
+08555d68 mov     dword ptr [esp], eax
+08555d6b call    0x8150812                                    _ZNK10Inven_Item19isEquipableItemTypeEv
+08555d70 xor     eax, 1
+08555d73 test    al, al
+08555d75 je      0x8555d8e
+08555d77 mov     edx, dword ptr [ebp - 0x5e]
+08555d7a mov     eax, dword ptr [ebp + 0xc]
+08555d7d mov     eax, dword ptr [eax + 0x3d]
+08555d80 cmp     edx, eax
+08555d82 jge     0x8555d8e
+08555d84 mov     eax, 0x11
+08555d89 jmp     0x85561a6
+08555d8e mov     eax, dword ptr [ebp - 0x63]
+08555d91 mov     ebx, eax
+08555d93 call    0x80cc19b                                    _Z14G_CDataManagerv
+08555d98 mov     dword ptr [esp + 4], ebx
+08555d9c mov     dword ptr [esp], eax
+08555d9f call    0x835fa32                                    _ZNK12CDataManager9find_itemEi
+08555da4 mov     dword ptr [ebp - 0x10], eax
+08555da7 cmp     dword ptr [ebp - 0x10], 0
+08555dab jne     0x8555db7
+08555dad mov     eax, 1
+08555db2 jmp     0x85561a6
+08555db7 mov     eax, dword ptr [ebp - 0x10]
+08555dba mov     dword ptr [esp], eax
+08555dbd call    0x828b5b4                                    _ZNK5CItem12isPackagableEv
+08555dc2 xor     eax, 1
+08555dc5 test    al, al
+08555dc7 je      0x8555dd3
+08555dc9 mov     eax, 0x17
+08555dce jmp     0x85561a6
+08555dd3 mov     eax, dword ptr [ebp - 0x10]
+08555dd6 mov     dword ptr [esp], eax
+08555dd9 call    0x80f12e2                                    _ZNK5CItem13GetAttachTypeEv
+08555dde mov     dword ptr [ebp - 0xc], eax
+08555de1 mov     eax, dword ptr [ebp - 0xc]
+08555de4 cmp     eax, 7
+08555de7 ja      0x8555e73
+08555ded mov     eax, dword ptr [eax*4 + 0x8ca13bc]
+08555df4 jmp     eax
+08555df6 mov     eax, 0x17
+08555dfb jmp     0x85561a6
+08555e00 movzx   eax, byte ptr [ebp - 0x65]
+08555e04 xor     eax, 1
+08555e07 test    al, al
+08555e09 je      0x8555e72
+08555e0b mov     eax, 0x17
+08555e10 jmp     0x85561a6
+08555e15 lea     eax, [ebp - 0x65]
+08555e18 mov     dword ptr [esp], eax
+08555e1b call    0x812013c                                    _Z23DecreaseTradeLimitCountR10Inven_Item
+08555e20 xor     eax, 1
+08555e23 test    al, al
+08555e25 je      0x8555e31
+08555e27 mov     eax, 0x17
+08555e2c jmp     0x85561a6
+08555e31 mov     eax, dword ptr [ebp - 0x63]
+08555e34 mov     edx, eax
+08555e36 mov     eax, dword ptr [ebp + 0xc]
+08555e39 movzx   eax, word ptr [eax + 0x37]
+08555e3d movzx   eax, ax
+08555e40 mov     ecx, dword ptr [ebp + 8]
+08555e43 add     ecx, 0x79700
+08555e49 mov     dword ptr [esp + 0x14], 3
+08555e51 mov     dword ptr [esp + 0x10], 0xffffffff
+08555e59 mov     dword ptr [esp + 0xc], edx
+08555e5d mov     dword ptr [esp + 8], eax
+08555e61 mov     eax, dword ptr [ebp - 0x18]
+08555e64 mov     dword ptr [esp + 4], eax
+08555e68 mov     dword ptr [esp], ecx
+08555e6b call    0x8686d54                                    _ZN15cUserHistoryLog20ChangeItemLimitCountEiiiii
+08555e70 jmp     0x8555e73
+08555e72 nop
+08555e73 lea     eax, [ebp - 0x65]
+08555e76 add     eax, 0x33
+08555e79 mov     dword ptr [esp], eax
+08555e7c call    0x8110b0a                                    _ZNK19UpgradeSeparateInfo18IsTradeRestrictionEv
+08555e81 test    al, al
+08555e83 setne   al
+08555e86 test    al, al
+08555e88 je      0x8555e94
+08555e8a mov     eax, 0x17
+08555e8f jmp     0x85561a6
+08555e94 lea     eax, [ebp - 0x65]
+08555e97 mov     dword ptr [esp + 4], eax
+08555e9b lea     eax, [ebp - 0xa2]
+08555ea1 mov     dword ptr [esp], eax
+08555ea4 call    0x814a62e                                    _ZN10Inven_Item7setCopyERKS_
+08555ea9 lea     eax, [ebp - 0xa2]
+08555eaf mov     dword ptr [esp], eax
+08555eb2 call    0x8150812                                    _ZNK10Inven_Item19isEquipableItemTypeEv
+08555eb7 xor     eax, 1
+08555eba test    al, al
+08555ebc je      0x8555ed6
+08555ebe mov     eax, dword ptr [ebp + 0xc]
+08555ec1 mov     eax, dword ptr [eax + 0x3d]
+08555ec4 mov     dword ptr [esp + 4], eax
+08555ec8 lea     eax, [ebp - 0xa2]
+08555ece mov     dword ptr [esp], eax
+08555ed1 call    0x80cb884                                    _ZN10Inven_Item12set_add_infoEi
+08555ed6 mov     eax, dword ptr [ebp - 0x10]
+08555ed9 mov     eax, dword ptr [eax]
+08555edb add     eax, 0x10
+08555ede mov     edx, dword ptr [eax]
+08555ee0 mov     eax, dword ptr [ebp - 0x10]
+08555ee3 mov     dword ptr [esp], eax
+08555ee6 call    edx
+08555ee8 test    al, al
+08555eea je      0x8555f3d
+08555eec mov     eax, dword ptr [ebp - 0x1c]
+08555eef mov     dword ptr [esp], eax
+08555ef2 call    0x80dd576                                    _ZNK10CInventory17GetAvatarItemMgrREv
+08555ef7 mov     eax, dword ptr [ebp - 0x5e]
+08555efa mov     dword ptr [esp], eax
+08555efd call    0x822d20d                                    _ZN8WongWork14CAvatarItemMgr9IsTempKeyEi
+08555f02 test    al, al
+08555f04 je      0x8555f10
+08555f06 mov     eax, 0x11
+08555f0b jmp     0x85561a6
+08555f10 mov     ebx, dword ptr [ebp - 0x5e]
+08555f13 mov     eax, dword ptr [ebp - 0x1c]
+08555f16 mov     dword ptr [esp], eax
+08555f19 call    0x80dd576                                    _ZNK10CInventory17GetAvatarItemMgrREv
+08555f1e mov     dword ptr [esp + 4], ebx
+08555f22 mov     dword ptr [esp], eax
+08555f25 call    0x82f981a                                    _ZNK8WongWork14CAvatarItemMgr13GetExpireDateEi
+08555f2a test    eax, eax
+08555f2c setne   al
+08555f2f test    al, al
+08555f31 je      0x8555f3d
+08555f33 mov     eax, 0x11
+08555f38 jmp     0x85561a6
+08555f3d mov     eax, dword ptr [ebp - 0x28]
+08555f40 mov     dword ptr [esp + 0xc], 1
+08555f48 mov     dword ptr [esp + 8], 0x10
+08555f50 mov     dword ptr [esp + 4], eax
+08555f54 mov     eax, dword ptr [ebp - 0x1c]
+08555f57 mov     dword ptr [esp], eax
+08555f5a call    0x84ff54c                                    _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+08555f5f xor     eax, 1
+08555f62 test    al, al
+08555f64 je      0x8555f70
+08555f66 mov     eax, 0xa
+08555f6b jmp     0x85561a6
+08555f70 mov     eax, dword ptr [ebp + 0xc]
+08555f73 mov     eax, dword ptr [eax + 0x2e]
+08555f76 test    eax, eax
+08555f78 je      0x8555fcd
+08555f7a mov     eax, dword ptr [ebp + 0xc]
+08555f7d lea     ebx, [eax + 0x11]
+08555f80 mov     eax, dword ptr [ebp + 8]
+08555f83 mov     dword ptr [esp], eax
+08555f86 call    0x84ed008                                    _ZN5CUser14GetGoldControlEv
+08555f8b mov     dword ptr [esp + 4], ebx
+08555f8f mov     dword ptr [esp], eax
+08555f92 call    0x8287ee0                                    _ZN16Secu_GoldControl15SetMailCharNameEPKc
+08555f97 mov     eax, dword ptr [ebp + 0xc]
+08555f9a mov     eax, dword ptr [eax + 0x2e]
+08555f9d mov     dword ptr [esp + 0xc], 1
+08555fa5 mov     dword ptr [esp + 8], 0x11
+08555fad mov     dword ptr [esp + 4], eax
+08555fb1 mov     eax, dword ptr [ebp - 0x1c]
+08555fb4 mov     dword ptr [esp], eax
+08555fb7 call    0x84ff54c                                    _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+08555fbc xor     eax, 1
+08555fbf test    al, al
+08555fc1 je      0x8555fcd
+08555fc3 mov     eax, 0xa
+08555fc8 jmp     0x85561a6
+08555fcd mov     eax, dword ptr [ebp + 0xc]
+08555fd0 mov     eax, dword ptr [eax + 0x39]
+08555fd3 test    eax, eax
+08555fd5 je      0x855613b
+08555fdb movzx   eax, byte ptr [ebp - 0x64]
+08555fdf cmp     al, 8
+08555fe1 jne     0x85560b1
+08555fe7 mov     eax, dword ptr [ebp + 0xc]
+08555fea movzx   eax, word ptr [eax + 0x37]
+08555fee movzx   eax, ax
+08555ff1 mov     dword ptr [esp + 0x14], 1
+08555ff9 mov     dword ptr [esp + 0x10], 2
+08556001 mov     dword ptr [esp + 0xc], 1
+08556009 mov     dword ptr [esp + 8], eax
+0855600d mov     dword ptr [esp + 4], 2
+08556015 mov     eax, dword ptr [ebp - 0x1c]
+08556018 mov     dword ptr [esp], eax
+0855601b call    0x850400c                                    _ZN10CInventory11delete_itemE10INVEN_TYPEii14eItemDelReasonb
+08556020 xor     eax, 1
+08556023 test    al, al
+08556025 je      0x8556031
+08556027 mov     eax, 0x11
+0855602c jmp     0x85561a6
+08556031 mov     eax, dword ptr [ebp + 0xc]
+08556034 movzx   eax, word ptr [eax + 0x37]
+08556038 movzx   eax, ax
+0855603b lea     edx, [eax + 0xa]
+0855603e mov     eax, dword ptr [ebp - 0x5e]
+08556041 mov     dword ptr [esp + 0x14], 0
+08556049 mov     dword ptr [esp + 0x10], edx
+0855604d mov     dword ptr [esp + 0xc], 2
+08556055 mov     dword ptr [esp + 8], eax
+08556059 mov     dword ptr [esp + 4], 0x36
+08556061 mov     eax, dword ptr [ebp - 0x1c]
+08556064 mov     dword ptr [esp], eax
+08556067 call    0x8508c2e                                    _ZNK10CInventory15SendAvatarEventEiiiii
+0855606c mov     eax, dword ptr [ebp + 8]
+0855606f mov     dword ptr [esp], eax
+08556072 call    0x80cbc4e                                    _ZNK15CUserCharacInfo14getCurCharacNoEv
+08556077 mov     edx, dword ptr [ebp - 0x5e]
+0855607a mov     dword ptr [esp + 0xc], 0
+08556082 mov     ecx, dword ptr [ebp + 0x10]
+08556085 mov     dword ptr [esp + 8], ecx
+08556089 mov     dword ptr [esp + 4], eax
+0855608d mov     dword ptr [esp], edx
+08556090 call    0x840055c                                    _ZN20DB_AvatarChangeOwner11makeRequestEjjjh
+08556095 mov     ebx, dword ptr [ebp - 0x5e]
+08556098 mov     eax, dword ptr [ebp - 0x1c]
+0855609b mov     dword ptr [esp], eax
+0855609e call    0x8110c6c                                    _ZN10CInventory17GetAvatarItemMgrWEv
+085560a3 mov     dword ptr [esp + 4], ebx
+085560a7 mov     dword ptr [esp], eax
+085560aa call    0x82f9402                                    _ZN8WongWork14CAvatarItemMgr12UnRegistItemEi
+085560af jmp     0x85560fc
+085560b1 mov     eax, dword ptr [ebp + 0xc]
+085560b4 mov     ecx, dword ptr [eax + 0x3d]
+085560b7 mov     eax, dword ptr [ebp + 0xc]
+085560ba movzx   eax, word ptr [eax + 0x37]
+085560be movzx   edx, ax
+085560c1 mov     eax, dword ptr [ebp - 0x18]
+085560c4 mov     dword ptr [esp + 0x14], 1
+085560cc mov     dword ptr [esp + 0x10], 0xf
+085560d4 mov     dword ptr [esp + 0xc], ecx
+085560d8 mov     dword ptr [esp + 8], edx
+085560dc mov     dword ptr [esp + 4], eax
+085560e0 mov     eax, dword ptr [ebp - 0x1c]
+085560e3 mov     dword ptr [esp], eax
+085560e6 call    0x850400c                                    _ZN10CInventory11delete_itemE10INVEN_TYPEii14eItemDelReasonb
+085560eb xor     eax, 1
+085560ee test    al, al
+085560f0 je      0x85560fc
+085560f2 mov     eax, 0x11
+085560f7 jmp     0x85561a6
+085560fc lea     eax, [ebp - 0x65]
+085560ff mov     dword ptr [esp], eax
+08556102 call    0x8335b76                                    _ZNK10Inven_Item18IsCreatureItemTypeEv
+08556107 test    al, al
+08556109 je      0x855613b
+0855610b mov     eax, dword ptr [ebp + 0xc]
+0855610e movzx   eax, word ptr [eax + 0x37]
+08556112 movzx   ebx, ax
+08556115 mov     eax, dword ptr [ebp - 0x1c]
+08556118 mov     dword ptr [esp], eax
+0855611b call    0x80dd568                                    _ZN10CInventory15GetCreatureMgrWEv
+08556120 mov     dword ptr [esp + 0xc], 0xf
+08556128 mov     dword ptr [esp + 8], ebx
+0855612c lea     edx, [ebp - 0x65]
+0855612f mov     dword ptr [esp + 4], edx
+08556133 mov     dword ptr [esp], eax
+08556136 call    0x833aa32                                    _ZN13user_creature12CCreatureMgr8SendMailEP10Inven_Itemii
+0855613b mov     eax, dword ptr [ebp + 8]
+0855613e lea     edx, [eax + 0x79700]
+08556144 mov     eax, dword ptr [ebp + 0x18]
+08556147 mov     dword ptr [esp + 8], eax
+0855614b mov     eax, dword ptr [ebp + 0xc]
+0855614e mov     dword ptr [esp + 4], eax
+08556152 mov     dword ptr [esp], edx
+08556155 call    0x86847ea                                    _ZN15cUserHistoryLog8SendMailEP16MSG_MAILBOX_SENDj
+0855615a mov     eax, dword ptr [ebp + 0xc]
+0855615d mov     ecx, dword ptr [eax + 0x41]
+08556160 mov     eax, dword ptr [ebp + 0xc]
+08556163 lea     esi, [eax + 0x45]
+08556166 movzx   edx, byte ptr [ebp - 0xac]
+0855616d mov     eax, dword ptr [ebp + 0xc]
+08556170 mov     eax, dword ptr [eax + 0x2e]
+08556173 mov     ebx, dword ptr [ebp + 0x1c]
+08556176 mov     dword ptr [esp + 0x1c], ebx
+0855617a mov     dword ptr [esp + 0x18], ecx
+0855617e mov     dword ptr [esp + 0x14], esi
+08556182 mov     dword ptr [esp + 0x10], edx
+08556186 mov     edx, dword ptr [ebp + 0x10]
+08556189 mov     dword ptr [esp + 0xc], edx
+0855618d mov     dword ptr [esp + 8], eax
+08556191 lea     eax, [ebp - 0xa2]
+08556197 mov     dword ptr [esp + 4], eax
+0855619b mov     eax, dword ptr [ebp + 8]
+0855619e mov     dword ptr [esp], eax
+085561a1 call    0x8555916                                    _ZN8WongWork14CMailBoxHelper14_DoSendNewMailEP5CUserRK10Inven_ItemjjbPKcii
+085561a6 lea     esp, [ebp - 8]
+085561a9 add     esp, 0
+085561ac pop     ebx
+085561ad pop     esi
+085561ae pop     ebp
+085561af ret
+
+### 084cf95a _ZN31Inter_MailBox_Req_CheckReceiver12dispatch_sigEP5CUserPci
+084cf95a push    ebp
+084cf95b mov     ebp, esp
+084cf95d push    esi
+084cf95e push    ebx
+084cf95f sub     esp, 0x60
+084cf962 mov     eax, dword ptr [ebp + 0xc]
+084cf965 mov     dword ptr [esp], eax
+084cf968 call    0x80da38c                                    _ZN5CUser9get_stateEv
+084cf96d cmp     eax, 2
+084cf970 setle   al
+084cf973 test    al, al
+084cf975 je      0x84cf981
+084cf977 mov     eax, 0
+084cf97c jmp     0x84cff11
+084cf981 mov     eax, dword ptr [ebp + 0x10]
+084cf984 mov     dword ptr [ebp - 0x30], eax
+084cf987 mov     dword ptr [ebp - 0x2c], 0x61
+084cf98e mov     eax, dword ptr [ebp - 0x30]
+084cf991 mov     eax, dword ptr [eax + 0x31]
+084cf994 cmp     eax, 1
+084cf997 jne     0x84cf9a2
+084cf999 mov     dword ptr [ebp - 0x2c], 0x43
+084cf9a0 jmp     0x84cf9b4
+084cf9a2 mov     eax, dword ptr [ebp - 0x30]
+084cf9a5 mov     eax, dword ptr [eax + 0x31]
+084cf9a8 cmp     eax, 2
+084cf9ab jne     0x84cf9b4
+084cf9ad mov     dword ptr [ebp - 0x2c], 0x13c
+084cf9b4 mov     eax, dword ptr [ebp - 0x30]
+084cf9b7 mov     eax, dword ptr [eax + 0x1d]
+084cf9ba test    eax, eax
+084cf9bc jne     0x84cf9e9
+084cf9be mov     dword ptr [esp + 0xc], 3
+084cf9c6 mov     eax, dword ptr [ebp - 0x2c]
+084cf9c9 mov     dword ptr [esp + 8], eax
+084cf9cd mov     eax, dword ptr [ebp + 0xc]
+084cf9d0 mov     dword ptr [esp + 4], eax
+084cf9d4 mov     eax, dword ptr [ebp + 8]
+084cf9d7 mov     dword ptr [esp], eax
+084cf9da call    0x84d008a                                    _ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+084cf9df mov     eax, 0
+084cf9e4 jmp     0x84cff11
+084cf9e9 mov     eax, dword ptr [ebp - 0x30]
+084cf9ec mov     eax, dword ptr [eax + 0x25]
+084cf9ef test    eax, eax
+084cf9f1 je      0x84cfa1e
+084cf9f3 mov     dword ptr [esp + 0xc], 0x18
+084cf9fb mov     eax, dword ptr [ebp - 0x2c]
+084cf9fe mov     dword ptr [esp + 8], eax
+084cfa02 mov     eax, dword ptr [ebp + 0xc]
+084cfa05 mov     dword ptr [esp + 4], eax
+084cfa09 mov     eax, dword ptr [ebp + 8]
+084cfa0c mov     dword ptr [esp], eax
+084cfa0f call    0x84d008a                                    _ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+084cfa14 mov     eax, 0
+084cfa19 jmp     0x84cff11
+084cfa1e mov     eax, dword ptr [ebp - 0x30]
+084cfa21 mov     edx, dword ptr [eax + 0x29]
+084cfa24 mov     eax, dword ptr [0x941f710]
+084cfa29 mov     dword ptr [esp + 4], edx
+084cfa2d mov     dword ptr [esp], eax
+084cfa30 call    0x8109346                                    _ZN8WongWork11CGMAccounts4isGMEj
+084cfa35 test    al, al
+084cfa37 je      0x84cfa64
+084cfa39 mov     dword ptr [esp + 0xc], 0x5a
+084cfa41 mov     eax, dword ptr [ebp - 0x2c]
+084cfa44 mov     dword ptr [esp + 8], eax
+084cfa48 mov     eax, dword ptr [ebp + 0xc]
+084cfa4b mov     dword ptr [esp + 4], eax
+084cfa4f mov     eax, dword ptr [ebp + 8]
+084cfa52 mov     dword ptr [esp], eax
+084cfa55 call    0x84d008a                                    _ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+084cfa5a mov     eax, 0
+084cfa5f jmp     0x84cff11
+084cfa64 mov     eax, dword ptr [ebp - 0x30]
+084cfa67 mov     eax, dword ptr [eax + 0x3fb9]
+084cfa6d cmp     eax, 0x4d
+084cfa70 jne     0x84cfa9d
+084cfa72 mov     dword ptr [esp + 0xc], 0x4d
+084cfa7a mov     eax, dword ptr [ebp - 0x2c]
+084cfa7d mov     dword ptr [esp + 8], eax
+084cfa81 mov     eax, dword ptr [ebp + 0xc]
+084cfa84 mov     dword ptr [esp + 4], eax
+084cfa88 mov     eax, dword ptr [ebp + 8]
+084cfa8b mov     dword ptr [esp], eax
+084cfa8e call    0x84d008a                                    _ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+084cfa93 mov     eax, 0
+084cfa98 jmp     0x84cff11
+084cfa9d mov     dword ptr [ebp - 0x28], 0
+084cfaa4 mov     eax, dword ptr [ebp - 0x30]
+084cfaa7 mov     eax, dword ptr [eax + 0x31]
+084cfaaa cmp     eax, 1
+084cfaad jne     0x84cfafc
+084cfaaf mov     eax, dword ptr [ebp - 0x30]
+084cfab2 mov     eax, dword ptr [eax + 0x1d]
+084cfab5 mov     edx, eax
+084cfab7 mov     eax, dword ptr [ebp - 0x30]
+084cfaba mov     dword ptr [eax + 0x67], edx
+084cfabd mov     eax, dword ptr [ebp - 0x30]
+084cfac0 mov     edx, dword ptr [eax + 0x29]
+084cfac3 mov     eax, dword ptr [ebp - 0x30]
+084cfac6 mov     dword ptr [eax + 0x63], edx
+084cfac9 mov     eax, dword ptr [ebp - 0x30]
+084cfacc lea     edx, [eax + 0x35]
+084cfacf mov     eax, dword ptr [0x941f760]
+084cfad4 mov     dword ptr [esp + 8], edx
+084cfad8 mov     edx, dword ptr [ebp + 0xc]
+084cfadb mov     dword ptr [esp + 4], edx
+084cfadf mov     dword ptr [esp], eax
+084cfae2 call    0x854c4d0                                    _ZN18ItemVendingMachine7BuyItemEP5CUserRK21MSG_BUY_CERASHOP_ITEM
+084cfae7 test    al, al
+084cfae9 je      0x84cfaf2
+084cfaeb mov     eax, 0
+084cfaf0 jmp     0x84cfaf7
+084cfaf2 mov     eax, 0x2d12
+084cfaf7 jmp     0x84cff11
+084cfafc mov     eax, dword ptr [ebp - 0x30]
+084cfaff mov     eax, dword ptr [eax + 0x31]
+084cfb02 test    eax, eax
+084cfb04 jne     0x84cfd50
+084cfb0a mov     eax, dword ptr [ebp - 0x30]
+084cfb0d mov     eax, dword ptr [eax + 0x6e]
+084cfb10 mov     dword ptr [ebp - 0x24], eax
+084cfb13 cmp     dword ptr [ebp - 0x24], 0
+084cfb17 je      0x84cfbec
+084cfb1d mov     ebx, dword ptr [ebp - 0x24]
+084cfb20 call    0x80cc19b                                    _Z14G_CDataManagerv
+084cfb25 mov     dword ptr [esp + 4], ebx
+084cfb29 mov     dword ptr [esp], eax
+084cfb2c call    0x835fa32                                    _ZNK12CDataManager9find_itemEi
+084cfb31 mov     dword ptr [ebp - 0x20], eax
+084cfb34 cmp     dword ptr [ebp - 0x20], 0
+084cfb38 je      0x84cfbec
+084cfb3e mov     eax, dword ptr [0x941f738]
+084cfb43 mov     edx, dword ptr [ebp - 0x24]
+084cfb46 mov     dword ptr [esp + 8], edx
+084cfb4a mov     dword ptr [esp + 4], 1
+084cfb52 mov     dword ptr [esp], eax
+084cfb55 call    0x82702dc                                    _ZN20InstanceRentalSystem17CheckRentableItemEij
+084cfb5a test    al, al
+084cfb5c je      0x84cfb68
+084cfb5e mov     eax, 0x11
+084cfb63 jmp     0x84cff11
+084cfb68 mov     eax, dword ptr [0x941f738]
+084cfb6d mov     edx, dword ptr [ebp - 0x24]
+084cfb70 mov     dword ptr [esp + 8], edx
+084cfb74 mov     dword ptr [esp + 4], 2
+084cfb7c mov     dword ptr [esp], eax
+084cfb7f call    0x82702dc                                    _ZN20InstanceRentalSystem17CheckRentableItemEij
+084cfb84 test    al, al
+084cfb86 je      0x84cfb92
+084cfb88 mov     eax, 0x11
+084cfb8d jmp     0x84cff11
+084cfb92 mov     eax, dword ptr [ebp - 0x20]
+084cfb95 mov     dword ptr [esp], eax
+084cfb98 call    0x80f12e2                                    _ZNK5CItem13GetAttachTypeEv
+084cfb9d cmp     eax, 5
+084cfba0 jne     0x84cfbbe
+084cfba2 mov     eax, dword ptr [ebp + 0xc]
+084cfba5 mov     dword ptr [esp], eax
+084cfba8 call    0x80da36e                                    _ZNK5CUser10get_acc_idEv
+084cfbad mov     edx, dword ptr [ebp - 0x30]
+084cfbb0 mov     edx, dword ptr [edx + 0x29]
+084cfbb3 cmp     eax, edx
+084cfbb5 je      0x84cfbbe
+084cfbb7 mov     eax, 1
+084cfbbc jmp     0x84cfbc3
+084cfbbe mov     eax, 0
+084cfbc3 test    al, al
+084cfbc5 je      0x84cfbec
+084cfbc7 mov     dword ptr [esp + 8], 0xd8
+084cfbcf mov     dword ptr [esp + 4], 0x61
+084cfbd7 mov     eax, dword ptr [ebp + 0xc]
+084cfbda mov     dword ptr [esp], eax
+084cfbdd call    0x867bf42                                    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+084cfbe2 mov     eax, 0
+084cfbe7 jmp     0x84cff11
+084cfbec mov     eax, dword ptr [ebp - 0x30]
+084cfbef mov     eax, dword ptr [eax + 0x63]
+084cfbf2 test    eax, eax
+084cfbf4 je      0x84cfc5c
+084cfbf6 mov     dword ptr [ebp - 0x1c], 0x7fffffff
+084cfbfd mov     eax, dword ptr [ebp - 0x30]
+084cfc00 lea     esi, [eax + 0x46]
+084cfc03 mov     eax, dword ptr [ebp - 0x30]
+084cfc06 mov     eax, dword ptr [eax + 0x21]
+084cfc09 mov     ebx, eax
+084cfc0b call    0x80cc19b                                    _Z14G_CDataManagerv
+084cfc10 mov     dword ptr [esp + 8], esi
+084cfc14 mov     dword ptr [esp + 4], ebx
+084cfc18 mov     dword ptr [esp], eax
+084cfc1b call    0x8360ce0                                    _ZNK12CDataManager21GetMoneyLimitPerLevelEiPKc
+084cfc20 mov     dword ptr [ebp - 0x1c], eax
+084cfc23 mov     edx, dword ptr [ebp - 0x1c]
+084cfc26 mov     eax, dword ptr [ebp - 0x30]
+084cfc29 mov     eax, dword ptr [eax + 0x63]
+084cfc2c cmp     edx, eax
+084cfc2e jae     0x84cfc5c
+084cfc30 mov     dword ptr [esp + 0xc], 0xe
+084cfc38 mov     dword ptr [esp + 8], 0x61
+084cfc40 mov     eax, dword ptr [ebp + 0xc]
+084cfc43 mov     dword ptr [esp + 4], eax
+084cfc47 mov     eax, dword ptr [ebp + 8]
+084cfc4a mov     dword ptr [esp], eax
+084cfc4d call    0x84d008a                                    _ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+084cfc52 mov     eax, 0
+084cfc57 jmp     0x84cff11
+084cfc5c mov     eax, dword ptr [ebp - 0x30]
+084cfc5f mov     edx, dword ptr [eax + 0x29]
+084cfc62 mov     eax, dword ptr [ebp - 0x30]
+084cfc65 mov     eax, dword ptr [eax + 0x1d]
+084cfc68 mov     ecx, dword ptr [ebp - 0x30]
+084cfc6b add     ecx, 0x35
+084cfc6e mov     dword ptr [esp + 0x14], 0
+084cfc76 mov     dword ptr [esp + 0x10], edx
+084cfc7a mov     dword ptr [esp + 0xc], 0
+084cfc82 mov     dword ptr [esp + 8], eax
+084cfc86 mov     dword ptr [esp + 4], ecx
+084cfc8a mov     eax, dword ptr [ebp + 0xc]
+084cfc8d mov     dword ptr [esp], eax
+084cfc90 call    0x8555b14                                    _ZN8WongWork14CMailBoxHelper16ReqDBSendNewMailEP5CUserP16MSG_MAILBOX_SENDjbji
+084cfc95 mov     dword ptr [ebp - 0x28], eax
+084cfc98 cmp     dword ptr [ebp - 0x28], 0
+084cfc9c je      0x84cfcc6
+084cfc9e mov     eax, dword ptr [ebp - 0x28]
+084cfca1 movzx   eax, ax
+084cfca4 mov     dword ptr [esp + 0xc], eax
+084cfca8 mov     eax, dword ptr [ebp - 0x2c]
+084cfcab mov     dword ptr [esp + 8], eax
+084cfcaf mov     eax, dword ptr [ebp + 0xc]
+084cfcb2 mov     dword ptr [esp + 4], eax
+084cfcb6 mov     eax, dword ptr [ebp + 8]
+084cfcb9 mov     dword ptr [esp], eax
+084cfcbc call    0x84d008a                                    _ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+084cfcc1 jmp     0x84cff0c
+084cfcc6 lea     eax, [ebp - 0x3c]
+084cfcc9 mov     dword ptr [esp], eax
+084cfccc call    0x858dd4c                                    _ZN11PacketGuardC2Ev
+084cfcd1 mov     eax, dword ptr [ebp - 0x2c]
+084cfcd4 mov     dword ptr [esp + 8], eax
+084cfcd8 mov     dword ptr [esp + 4], 1
+084cfce0 lea     eax, [ebp - 0x3c]
+084cfce3 mov     dword ptr [esp], eax
+084cfce6 call    0x80cb8fc                                    _ZN18InterfacePacketBuf10put_headerEii
+084cfceb mov     dword ptr [esp + 4], 1
+084cfcf3 lea     eax, [ebp - 0x3c]
+084cfcf6 mov     dword ptr [esp], eax
+084cfcf9 call    0x80cb920                                    _ZN18InterfacePacketBuf8put_byteEi
+084cfcfe mov     dword ptr [esp + 4], 1
+084cfd06 lea     eax, [ebp - 0x3c]
+084cfd09 mov     dword ptr [esp], eax
+084cfd0c call    0x80cb958                                    _ZN18InterfacePacketBuf8finalizeEb
+084cfd11 lea     eax, [ebp - 0x3c]
+084cfd14 mov     dword ptr [esp + 4], eax
+084cfd18 mov     eax, dword ptr [ebp + 0xc]
+084cfd1b mov     dword ptr [esp], eax
+084cfd1e call    0x86485ba                                    _ZN5CUser4SendER11PacketGuard
+084cfd23 jmp     0x84cfd40
+084cfd25 mov     ebx, edx
+084cfd27 mov     esi, eax
+084cfd29 lea     eax, [ebp - 0x3c]
+084cfd2c mov     dword ptr [esp], eax
+084cfd2f call    0x858de80                                    _ZN11PacketGuardD2Ev
+084cfd34 mov     eax, esi
+084cfd36 mov     edx, ebx
+084cfd38 mov     dword ptr [esp], eax
+084cfd3b call    0x8ae3750                                    _Unwind_Resume
+084cfd40 lea     eax, [ebp - 0x3c]
+084cfd43 mov     dword ptr [esp], eax
+084cfd46 call    0x858de80                                    _ZN11PacketGuardD2Ev
+084cfd4b jmp     0x84cff0c
+084cfd50 mov     eax, dword ptr [ebp - 0x30]
+084cfd53 mov     eax, dword ptr [eax + 0x31]
+084cfd56 cmp     eax, 2
+084cfd59 jne     0x84cff0c
+084cfd5f mov     dword ptr [ebp - 0x18], 0
+084cfd66 jmp     0x84cfe65
+084cfd6b mov     edx, dword ptr [ebp - 0x18]
+084cfd6e mov     ecx, dword ptr [ebp - 0x30]
+084cfd71 mov     eax, edx
+084cfd73 shl     eax, 2
+084cfd76 add     eax, edx
+084cfd78 add     eax, eax
+084cfd7a add     eax, edx
+084cfd7c lea     eax, [ecx + eax]
+084cfd7f add     eax, 0x60
+084cfd82 mov     eax, dword ptr [eax + 0xc]
+084cfd85 mov     dword ptr [ebp - 0x14], eax
+084cfd88 cmp     dword ptr [ebp - 0x14], 0
+084cfd8c je      0x84cfe61
+084cfd92 mov     ebx, dword ptr [ebp - 0x14]
+084cfd95 call    0x80cc19b                                    _Z14G_CDataManagerv
+084cfd9a mov     dword ptr [esp + 4], ebx
+084cfd9e mov     dword ptr [esp], eax
+084cfda1 call    0x835fa32                                    _ZNK12CDataManager9find_itemEi
+084cfda6 mov     dword ptr [ebp - 0x10], eax
+084cfda9 cmp     dword ptr [ebp - 0x10], 0
+084cfdad je      0x84cfe61
+084cfdb3 mov     eax, dword ptr [0x941f738]
+084cfdb8 mov     edx, dword ptr [ebp - 0x14]
+084cfdbb mov     dword ptr [esp + 8], edx
+084cfdbf mov     dword ptr [esp + 4], 1
+084cfdc7 mov     dword ptr [esp], eax
+084cfdca call    0x82702dc                                    _ZN20InstanceRentalSystem17CheckRentableItemEij
+084cfdcf test    al, al
+084cfdd1 je      0x84cfddd
+084cfdd3 mov     eax, 0x11
+084cfdd8 jmp     0x84cff11
+084cfddd mov     eax, dword ptr [0x941f738]
+084cfde2 mov     edx, dword ptr [ebp - 0x14]
+084cfde5 mov     dword ptr [esp + 8], edx
+084cfde9 mov     dword ptr [esp + 4], 2
+084cfdf1 mov     dword ptr [esp], eax
+084cfdf4 call    0x82702dc                                    _ZN20InstanceRentalSystem17CheckRentableItemEij
+084cfdf9 test    al, al
+084cfdfb je      0x84cfe07
+084cfdfd mov     eax, 0x11
+084cfe02 jmp     0x84cff11
+084cfe07 mov     eax, dword ptr [ebp - 0x10]
+084cfe0a mov     dword ptr [esp], eax
+084cfe0d call    0x80f12e2                                    _ZNK5CItem13GetAttachTypeEv
+084cfe12 cmp     eax, 5
+084cfe15 jne     0x84cfe33
+084cfe17 mov     eax, dword ptr [ebp + 0xc]
+084cfe1a mov     dword ptr [esp], eax
+084cfe1d call    0x80da36e                                    _ZNK5CUser10get_acc_idEv
+084cfe22 mov     edx, dword ptr [ebp - 0x30]
+084cfe25 mov     edx, dword ptr [edx + 0x29]
+084cfe28 cmp     eax, edx
+084cfe2a je      0x84cfe33
+084cfe2c mov     eax, 1
+084cfe31 jmp     0x84cfe38
+084cfe33 mov     eax, 0
+084cfe38 test    al, al
+084cfe3a je      0x84cfe61
+084cfe3c mov     dword ptr [esp + 8], 0xd8
+084cfe44 mov     dword ptr [esp + 4], 0x13c
+084cfe4c mov     eax, dword ptr [ebp + 0xc]
+084cfe4f mov     dword ptr [esp], eax
+084cfe52 call    0x867bf42                                    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+084cfe57 mov     eax, 0
+084cfe5c jmp     0x84cff11
+084cfe61 add     dword ptr [ebp - 0x18], 1
+084cfe65 mov     eax, dword ptr [ebp - 0x30]
+084cfe68 movzx   eax, byte ptr [eax + 0x68]
+084cfe6c movzx   eax, al
+084cfe6f cmp     eax, dword ptr [ebp - 0x18]
+084cfe72 setg    al
+084cfe75 test    al, al
+084cfe77 jne     0x84cfd6b
+084cfe7d mov     eax, dword ptr [ebp - 0x30]
+084cfe80 mov     eax, dword ptr [eax + 0x64]
+084cfe83 test    eax, eax
+084cfe85 je      0x84cfee5
+084cfe87 mov     dword ptr [ebp - 0xc], 0x7fffffff
+084cfe8e mov     eax, dword ptr [ebp - 0x30]
+084cfe91 add     eax, 0x46
+084cfe94 mov     esi, eax
+084cfe96 mov     eax, dword ptr [ebp - 0x30]
+084cfe99 mov     eax, dword ptr [eax + 0x21]
+084cfe9c mov     ebx, eax
+084cfe9e call    0x80cc19b                                    _Z14G_CDataManagerv
+084cfea3 mov     dword ptr [esp + 8], esi
+084cfea7 mov     dword ptr [esp + 4], ebx
+084cfeab mov     dword ptr [esp], eax
+084cfeae call    0x8360ce0                                    _ZNK12CDataManager21GetMoneyLimitPerLevelEiPKc
+084cfeb3 mov     dword ptr [ebp - 0xc], eax
+084cfeb6 mov     edx, dword ptr [ebp - 0xc]
+084cfeb9 mov     eax, dword ptr [ebp - 0x30]
+084cfebc mov     eax, dword ptr [eax + 0x64]
+084cfebf cmp     edx, eax
+084cfec1 jae     0x84cfee5
+084cfec3 mov     dword ptr [esp + 8], 0xe
+084cfecb mov     dword ptr [esp + 4], 0x13c
+084cfed3 mov     eax, dword ptr [ebp + 0xc]
+084cfed6 mov     dword ptr [esp], eax
+084cfed9 call    0x867bf42                                    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+084cfede mov     eax, 0
+084cfee3 jmp     0x84cff11
+084cfee5 mov     eax, dword ptr [ebp - 0x30]
+084cfee8 mov     dword ptr [esp + 8], eax
+084cfeec mov     eax, dword ptr [ebp + 0xc]
+084cfeef mov     dword ptr [esp + 4], eax
+084cfef3 mov     eax, dword ptr [ebp + 8]
+084cfef6 mov     dword ptr [esp], eax
+084cfef9 call    0x84cff18                                    _ZN31Inter_MailBox_Req_CheckReceiver21SendDBThread_forchinaEP5CUserP26SIG_MAILBOX_CHECK_RECEIVER
+084cfefe xor     eax, 1
+084cff01 test    al, al
+084cff03 je      0x84cff0c
+084cff05 mov     eax, 0
+084cff0a jmp     0x84cff11
+084cff0c mov     eax, 0
+084cff11 add     esp, 0x60
+084cff14 pop     ebx
+084cff15 pop     esi
+084cff16 pop     ebp
+084cff17 ret
+
+### 084d0130 _ZN22Inter_MailBox_Req_Send12dispatch_sigEP5CUserPci
+084d0130 push    ebp
+084d0131 mov     ebp, esp
+084d0133 push    ebx
+084d0134 sub     esp, 0x24
+084d0137 mov     eax, dword ptr [ebp + 0x10]
+084d013a mov     dword ptr [ebp - 0xc], eax
+084d013d mov     eax, dword ptr [ebp - 0xc]
+084d0140 mov     eax, dword ptr [eax]
+084d0142 test    eax, eax
+084d0144 jne     0x84d0171
+084d0146 mov     eax, dword ptr [ebp - 0xc]
+084d0149 mov     ebx, dword ptr [eax + 4]
+084d014c mov     eax, dword ptr [ebp - 0xc]
+084d014f mov     eax, dword ptr [eax + 8]
+084d0152 mov     edx, eax
+084d0154 mov     eax, dword ptr [0x940be28]
+084d0159 mov     dword ptr [esp + 4], edx
+084d015d mov     dword ptr [esp], eax
+084d0160 call    0x811208a                                    _ZN15CServerProxyMgrI19CMonitorServerProxyE14GetServerProxyE17ENUM_SERVER_GROUP
+084d0165 mov     dword ptr [esp + 4], ebx
+084d0169 mov     dword ptr [esp], eax
+084d016c call    0x8471072                                    _ZN19CMonitorServerProxy17SendNotifyNewMailEj
+084d0171 mov     eax, 0
+084d0176 add     esp, 0x24
+084d0179 pop     ebx
+084d017a pop     ebp
+084d017b ret
+
+### 085568a6 _ZN8WongWork14CMailBoxHelper19ReqChangeLetterStatEP5CUserii
+085568a6 push    ebp
+085568a7 mov     ebp, esp
+085568a9 push    esi
+085568aa push    ebx
+085568ab sub     esp, 0x20
+085568ae mov     eax, dword ptr [ebp + 0x10]
+085568b1 cmp     eax, 2
+085568b4 je      0x855690b
+085568b6 cmp     eax, 3
+085568b9 je      0x85568c1
+085568bb test    eax, eax
+085568bd je      0x855690e
+085568bf jmp     0x8556901
+085568c1 mov     eax, dword ptr [ebp + 8]
+085568c4 mov     dword ptr [esp], eax
+085568c7 call    0x823020c                                    _ZN5CUser10GetMailBoxEv
+085568cc mov     dword ptr [ebp - 0x10], eax
+085568cf cmp     dword ptr [ebp - 0x10], 0
+085568d3 jne     0x85568df
+085568d5 mov     ebx, 0x15
+085568da jmp     0x8556a0b
+085568df mov     eax, dword ptr [ebp - 0x10]
+085568e2 mov     dword ptr [esp], eax
+085568e5 call    0x8557886                                    _ZN8WongWork8CMailBox18GetLetterKeepCountEv
+085568ea add     eax, 1
+085568ed cmp     eax, 0xa
+085568f0 setg    al
+085568f3 test    al, al
+085568f5 je      0x8556911
+085568f7 mov     ebx, 0x16
+085568fc jmp     0x8556a0b
+08556901 mov     ebx, 0x13
+08556906 jmp     0x8556a0b
+0855690b nop
+0855690c jmp     0x8556912
+0855690e nop
+0855690f jmp     0x8556912
+08556911 nop
+08556912 mov     eax, dword ptr [0x940bd6c]
+08556917 mov     dword ptr [esp + 8], 0x8f0
+0855691f mov     dword ptr [esp + 4], 0x8ca139c
+08556927 mov     dword ptr [esp], eax
+0855692a call    0x828fa86                                    _ZN10StreamPool7AcquireEPKci
+0855692f mov     dword ptr [esp + 8], 1
+08556937 mov     dword ptr [esp + 4], eax
+0855693b lea     eax, [ebp - 0x18]
+0855693e mov     dword ptr [esp], eax
+08556941 call    0x80c8c26                                    _ZN12CStreamGuardC2EP6Streamb
+08556946 lea     eax, [ebp - 0x18]
+08556949 mov     dword ptr [esp], eax
+0855694c call    0x80c8c46                                    _ZN12CStreamGuarddeEv
+08556951 mov     dword ptr [esp + 4], 0xc2
+08556959 mov     dword ptr [esp], eax
+0855695c call    0x80c8c56                                    _ZN12CStreamGuardlsEi
+08556961 mov     eax, dword ptr [ebp + 8]
+08556964 mov     dword ptr [esp], eax
+08556967 call    0x80c8c96                                    _ZNK5CUser6GetUIDEv
+0855696c mov     ebx, eax
+0855696e lea     eax, [ebp - 0x18]
+08556971 mov     dword ptr [esp], eax
+08556974 call    0x80c8c46                                    _ZN12CStreamGuarddeEv
+08556979 mov     dword ptr [esp + 4], ebx
+0855697d mov     dword ptr [esp], eax
+08556980 call    0x80c8c56                                    _ZN12CStreamGuardlsEi
+08556985 lea     eax, [ebp - 0x18]
+08556988 mov     dword ptr [esp], eax
+0855698b call    0x80c8c4e                                    _ZN12CStreamGuardptEv
+08556990 mov     dword ptr [esp], eax
+08556993 call    0x8452054                                    _ZN12CStreamGuard11GetInBufferI15SIG_LETTER_STATEEPT_v
+08556998 mov     dword ptr [ebp - 0xc], eax
+0855699b mov     eax, dword ptr [ebp + 8]
+0855699e mov     dword ptr [esp], eax
+085569a1 call    0x80cbc4e                                    _ZNK15CUserCharacInfo14getCurCharacNoEv
+085569a6 mov     edx, eax
+085569a8 mov     eax, dword ptr [ebp - 0xc]
+085569ab mov     dword ptr [eax], edx
+085569ad mov     edx, dword ptr [ebp + 0xc]
+085569b0 mov     eax, dword ptr [ebp - 0xc]
+085569b3 mov     dword ptr [eax + 4], edx
+085569b6 mov     eax, dword ptr [ebp + 0x10]
+085569b9 mov     edx, eax
+085569bb mov     eax, dword ptr [ebp - 0xc]
+085569be mov     word ptr [eax + 8], dx
+085569c2 mov     eax, dword ptr [0x940bd68]
+085569c7 lea     edx, [ebp - 0x18]
+085569ca mov     dword ptr [esp + 8], edx
+085569ce mov     dword ptr [esp + 4], 2
+085569d6 mov     dword ptr [esp], eax
+085569d9 call    0x8570fde                                    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+085569de mov     ebx, 0
+085569e3 lea     eax, [ebp - 0x18]
+085569e6 mov     dword ptr [esp], eax
+085569e9 call    0x861c8d2                                    _ZN12CStreamGuardD2Ev
+085569ee jmp     0x8556a0b
+085569f0 mov     ebx, edx
+085569f2 mov     esi, eax
+085569f4 lea     eax, [ebp - 0x18]
+085569f7 mov     dword ptr [esp], eax
+085569fa call    0x861c8d2                                    _ZN12CStreamGuardD2Ev
+085569ff mov     eax, esi
+08556a01 mov     edx, ebx
+08556a03 mov     dword ptr [esp], eax
+08556a06 call    0x8ae3750                                    _Unwind_Resume
+08556a0b mov     eax, ebx
+08556a0d add     esp, 0x20
+08556a10 pop     ebx
+08556a11 pop     esi
+08556a12 pop     ebp
+08556a13 ret

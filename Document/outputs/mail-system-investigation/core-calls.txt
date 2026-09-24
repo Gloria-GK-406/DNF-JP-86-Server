@@ -1,0 +1,655 @@
+
+### 081cc196 _ZN23Dispatcher_MailBox_Open7processEP5CUserR8MSG_BASER9ParamBase
+081cc1b7 -> 0x81cc2a2    _ZN23Dispatcher_MailBox_Open11check_errorEP5CUserR8MSG_BASE
+081cc1e8 -> 0x80da36e    _ZNK5CUser10get_acc_idEv
+081cc20a -> 0x85908d7    _Z8LineFunciPKcij
+081cc21a -> 0x823020c    _ZN5CUser10GetMailBoxEv
+081cc228 -> 0x823455a    _ZN8WongWork8CMailBox21GetNotLoadedMailCountEv
+081cc23c -> 0x8234566    _ZN8WongWork8CMailBox11GetRecvSizeEv
+081cc249 -> 0x823454c    _ZN8WongWork8CMailBox20GetLoadedLetterCountEv
+081cc261 -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+081cc270 -> 0x85552ac    _ZN8WongWork14CMailBoxHelper13ReqDBLoadMailEP5CUserj
+081cc28c -> 0x823455a    _ZN8WongWork8CMailBox21GetNotLoadedMailCountEv
+
+### 081cc2e6 _ZN23Dispatcher_MailBox_Open4sendEP5CUserR9ParamBase
+081cc32a -> 0x867bf42    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+081cc33a -> 0x858dd4c    _ZN11PacketGuardC2Ev
+081cc355 -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+081cc368 -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+081cc37d -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+081cc390 -> 0x80cb958    _ZN18InterfacePacketBuf8finalizeEb
+081cc3a2 -> 0x86485ba    _ZN5CUser4SendER11PacketGuard
+081cc3b3 -> 0x858de80    _ZN11PacketGuardD2Ev
+081cc3bf -> 0x8ae3750    _Unwind_Resume
+081cc3ca -> 0x858de80    _ZN11PacketGuardD2Ev
+
+### 081cc958 _ZN23Dispatcher_MailBox_Send7processEP5CUserR8MSG_BASER9ParamBase
+081cc97e -> 0x81cc636    _ZN23Dispatcher_MailBox_Send11check_errorEP5CUserR8MSG_BASE
+081cc9af -> 0x80da36e    _ZNK5CUser10get_acc_idEv
+081cc9d1 -> 0x85908d7    _Z8LineFunciPKcij
+081cc9ef -> 0x80cc19b    _Z14G_CDataManagerv
+081cca03 -> 0x80da28e    _ZN15CUserCharacInfo18getCurCharacInvenWEv
+081cca22 -> 0x84ff54c    _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+081cca3f -> 0x822f46c    _ZN15CUserCharacInfo19get_charac_guildkeyEv
+081cca4c -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+081cca59 -> 0x80cbc90    _ZNK5CUser14GetServerGroupEv
+081cca6b -> 0x811d3b8    _ZN15CServerProxyMgrI17CGuildServerProxyE14GetServerProxyE17ENUM_SERVER_GROUP
+081cca89 -> 0x846e084    _ZN17CGuildServerProxy13SendGuildMailEjjiPc
+081ccaa8 -> 0x868a51a    _ZN5CUser18reqSendMailCertifyEv
+081ccace -> 0x868a4b6    _ZN5CUser15set_MailMsgDataEP16MSG_MAILBOX_SEND
+081ccaed -> 0x8236e06    _ZN23MSG_CHECK_MAIL_RECEIVER3setILNS_22ENUM_MAILBOX_CHECKTYPEE0E16MSG_MAILBOX_SENDEEvRKT0_
+081ccb0c -> 0x8555464    _ZN8WongWork14CMailBoxHelper18ReqDBCheckReceiverEP5CUserPKcP23MSG_CHECK_MAIL_RECEIVER
+081ccb34 -> 0x80cc19b    _Z14G_CDataManagerv
+081ccb40 -> 0x835fa32    _ZNK12CDataManager9find_itemEi
+081ccb5e -> edx
+081ccb6d -> 0x80f12d6    _ZNK5CItem10get_rarityEv
+081ccbb1 -> 0x864658a    _ZN5CUser18IncrementTradeGoldEji
+081ccbbc -> 0x8110cba    _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+081ccbcc -> 0x86b1b87    _Z12get_rand_inti
+081ccbda -> 0x80da27e    _ZNK15CUserCharacInfo18getCurCharacInvenREv
+081ccbe2 -> 0x81347d6    _ZNK10CInventory9get_moneyEv
+081ccc75 -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+081ccc8c -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+081ccc97 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+081ccca7 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+081cccb2 -> 0x80c8c96    _ZNK5CUser6GetUIDEv
+081cccbf -> 0x80c8c46    _ZN12CStreamGuarddeEv
+081ccccb -> 0x80c8c56    _ZN12CStreamGuardlsEi
+081cccd6 -> 0x80c8c4e    _ZN12CStreamGuardptEv
+081cccde -> 0x8236e34    _ZN12CStreamGuard11GetInBufferI20SIG_FIND_FACTORY_HUBEEPT_v
+081cccfc -> 0x807dcc0
+081ccd07 -> 0x80da36e    _ZNK5CUser10get_acc_idEv
+081ccd2e -> 0x807d8d0
+081ccd41 -> 0x86b1b87    _Z12get_rand_inti
+081ccd75 -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+081ccd86 -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+081ccd92 -> 0x8ae3750    _Unwind_Resume
+081ccd9d -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+
+### 081cce50 _ZN26Dispatcher_MailBox_Extract7processEP5CUserR8MSG_BASER9ParamBase
+081cce70 -> 0x81cceea    _ZN26Dispatcher_MailBox_Extract11check_errorEP5CUserR8MSG_BASE
+081cce9e -> 0x80da36e    _ZNK5CUser10get_acc_idEv
+081ccec0 -> 0x85908d7    _Z8LineFunciPKcij
+081ccedd -> 0x85549de    _ZN8WongWork14CMailBoxHelper10GetPackegeEP5CUserj
+
+### 0841de4a _ZN19DB_MailBox_Req_List8dispatchEiiP6Stream
+0841de71 -> 0x83fbf7c    _ZN12DBDispatcher8dispatchEiiP6Stream
+0841de8d -> 0x84518fe    _ZN6Stream12GetOutBufferI16SIG_MAILBOX_LISTEEPT_v
+0841deb4 -> 0x807dcc0
+0841ded1 -> 0x83f523e    _ZN5DBMgr11GetDBHandleE18ENUM_DB_HANDLE_IDX17ENUM_SERVER_GROUP
+0841df0a -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+0841df1d -> 0x83f4326    _ZN5MySQL4execEb
+0841df6e -> 0x807e440    realloc@@GLIBC_2.0
+0841df9c -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+0841dfaf -> 0x83f4326    _ZN5MySQL4execEb
+0841dfd5 -> 0x84501c8    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEEC2Ev
+0841e01b -> 0x82ac1f6    _ZSt9make_pairIRjiESt4pairINSt17__decay_and_stripIT_E6__typeENS2_IT0_E6__typeEEOS3_OS6_
+0841e033 -> 0x82ac19a    _ZNSt4pairIKjiEC2IjiEEOS_IT_T0_E
+0841e055 -> 0x82ac1ca    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEE6insertERKS4_
+0841e094 -> 0x80e236c    _ZN5MySQL10get_n_rowsEv
+0841e0b2 -> 0x80df90e    _ZSt3minIiERKT_S2_S2_
+0841e0e8 -> 0x80e236c    _ZN5MySQL10get_n_rowsEv
+0841e148 -> 0x83f44bc    _ZN5MySQL5fetchEv
+0841e17b -> 0x80cb2d8    _ZN12RandomOption5resetEv
+0841e198 -> 0x811692c    _ZN5MySQL7get_intEiRi
+0841e1c0 -> 0x811692c    _ZN5MySQL7get_intEiRi
+0841e1e8 -> 0x811692c    _ZN5MySQL7get_intEiRi
+0841e210 -> 0x80fddec    _ZN5MySQL9get_shortEiRs
+0841e238 -> 0x844d66a    _ZN5MySQL9get_ulongEiRm
+0841e260 -> 0x811692c    _ZN5MySQL7get_intEiRi
+0841e288 -> 0x80fddec    _ZN5MySQL9get_shortEiRs
+0841e2b0 -> 0x80fde54    _ZN5MySQL8get_byteEiRc
+0841e2d8 -> 0x811692c    _ZN5MySQL7get_intEiRi
+0841e308 -> 0x80ecdea    _ZN5MySQL7get_strEiPci
+0841e330 -> 0x80fddec    _ZN5MySQL9get_shortEiRs
+0841e358 -> 0x80fddec    _ZN5MySQL9get_shortEiRs
+0841e380 -> 0x80fddec    _ZN5MySQL9get_shortEiRs
+0841e3d0 -> 0x80e22f2    _ZN5MySQL8get_uintEiRj
+0841e41d -> 0x844d66a    _ZN5MySQL9get_ulongEiRm
+0841e450 -> 0x812531a    _ZN5MySQL10get_binaryEiPvi
+0841e47b -> 0x844d73a    _ZN5MySQL8get_byteEiRi
+0841e4a6 -> 0x814201c    _ZN5MySQL9get_shortEiRi
+0841e4d9 -> 0x812531a    _ZN5MySQL10get_binaryEiPvi
+0841e50b -> 0x80fde54    _ZN5MySQL8get_byteEiRc
+0841e53d -> 0x80fde54    _ZN5MySQL8get_byteEiRc
+0841e575 -> 0x82ac1f6    _ZSt9make_pairIRjiESt4pairINSt17__decay_and_stripIT_E6__typeENS2_IT0_E6__typeEEOS3_OS6_
+0841e58a -> 0x82ac19a    _ZNSt4pairIKjiEC2IjiEEOS_IT_T0_E
+0841e5a6 -> 0x82ac1ca    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEE6insertERKS4_
+0841e869 -> 0x807d8d0
+0841e88a -> 0x807f531    _ZSt3maxIjERKT_S2_S2_
+0841e93a -> 0x83f44bc    _ZN5MySQL5fetchEv
+0841e968 -> 0x80e22f2    _ZN5MySQL8get_uintEiRj
+0841e9a3 -> 0x845026c    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEE4findERS3_
+0841e9bb -> 0x8450298    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEE3endEv
+0841e9d3 -> 0x84502be    _ZNKSt17_Rb_tree_iteratorISt4pairIKjiEEneERKS3_
+0841e9e5 -> 0x84502d2    _ZNKSt17_Rb_tree_iteratorISt4pairIKjiEEptEv
+0841ea2f -> 0x8451952    _ZNKSt3mapIjiSt4lessIjESaISt4pairIKjiEEE5emptyEv
+0841ea59 -> 0x8451966    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEE5beginEv
+0841ea6c -> 0x84502d2    _ZNKSt17_Rb_tree_iteratorISt4pairIKjiEEptEv
+0841ea9a -> 0x84502d2    _ZNKSt17_Rb_tree_iteratorISt4pairIKjiEEptEv
+0841eabb -> 0x845198c    _ZNSt17_Rb_tree_iteratorISt4pairIKjiEEppEv
+0841ead0 -> 0x8450298    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEE3endEv
+0841eae8 -> 0x84502be    _ZNKSt17_Rb_tree_iteratorISt4pairIKjiEEneERKS3_
+0841eb40 -> 0x841d52c    _ZN19DB_MailBox_Req_List12SelectLetterEP5MySQLiijP16SIG_MAILBOX_LIST
+0841eb73 -> 0x8ad3c0a    _ZN10LogManager9logFormatEiPKcS1_iS1_z
+0841ebad -> 0x841d470    _Z16DoChangeMailListP16SIG_MAILBOX_LISTPji
+0841ec82 -> 0x83ff968    _Z15getList2inQueryPjPc
+0841eca8 -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+0841ecbb -> 0x83f4326    _ZN5MySQL4execEb
+0841ecc6 -> 0x80e236c    _ZN5MySQL10get_n_rowsEv
+0841ece8 -> 0x83f44bc    _ZN5MySQL5fetchEv
+0841ed16 -> 0x811692c    _ZN5MySQL7get_intEiRi
+0841ed44 -> 0x80e22f2    _ZN5MySQL8get_uintEiRj
+0841ed72 -> 0x80e22f2    _ZN5MySQL8get_uintEiRj
+0841eda8 -> 0x80ecdea    _ZN5MySQL7get_strEiPci
+0841edc7 -> 0x81506e8    _ZN20stAvatarEmblemInfo_t4initEv
+0841edec -> 0x812531a    _ZN5MySQL10get_binaryEiPvi
+0841ee79 -> 0x807d8d0
+0841eee3 -> 0x80e236c    _ZN5MySQL10get_n_rowsEv
+0841ef34 -> 0x841dc84    _ZN19DB_MailBox_Req_List15setCreatureDataEP5MySQLjPjP16SIG_MAILBOX_LIST
+0841ef7f -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+0841ef99 -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+0841efa7 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+0841efb7 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+0841efc5 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+0841efd4 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+0841efe2 -> 0x80c8c4e    _ZN12CStreamGuardptEv
+0841eff9 -> 0x80de652    _ZN12CStreamGuard10put_binaryEPvi
+0841f018 -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+0841f02b -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+0841f03f -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+0841f057 -> 0x844d4bc    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEED2Ev
+0841f063 -> 0x8ae3750    _Unwind_Resume
+0841f071 -> 0x844d4bc    _ZNSt3mapIjiSt4lessIjESaISt4pairIKjiEEED2Ev
+
+### 0841f15a _ZN19DB_MailBox_Req_Send12InsertLetterEP5MySQLiiPKcS3_Ril16ENUM_LETTER_STAT
+0841f16b -> 0x807e3b0    realloc@@GLIBC_2.0
+0841f17d -> 0x807e3b0    realloc@@GLIBC_2.0
+0841f1bb -> 0x8ad3c0a    _ZN10LogManager9logFormatEiPKcS1_iS1_z
+0841f202 -> 0x83f48aa    _ZN5MySQL13escape_stringEPcPKc
+0841f273 -> 0x83f48aa    _ZN5MySQL13escape_stringEPcPKc
+0841f2b3 -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+0841f2c6 -> 0x83f4326    _ZN5MySQL4execEb
+0841f2df -> 0x83f9ad4    _ZN8WongWork8DBCommon11GetIdentityEP5MySQL
+
+### 0841f2fa _ZN19DB_MailBox_Req_Send14insertMailDataEP5MySQLPK25SIG_MAILBOX_SEND_NEW_MAIL
+0841f30d -> 0x80cbc9e    _ZN11CSystemTime9getCurSecEv
+0841f322 -> 0x807e360    realloc@@GLIBC_2.0
+0841f352 -> 0x807e820
+0841f413 -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+0841f426 -> 0x83f4326    _ZN5MySQL4execEb
+0841f4a3 -> 0x841f15a    _ZN19DB_MailBox_Req_Send12InsertLetterEP5MySQLiiPKcS3_Ril16ENUM_LETTER_STAT
+0841f4d6 -> 0x8ad3c0a    _ZN10LogManager9logFormatEiPKcS1_iS1_z
+0841f564 -> 0x807def0    free@@GLIBC_2.0
+0841f5a9 -> 0x83f452a    _ZN5MySQL11blob_to_strEiPvi
+0841f5d4 -> 0x83f452a    _ZN5MySQL11blob_to_strEiPvi
+0841f737 -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+0841f74a -> 0x83f4326    _ZN5MySQL4execEb
+
+### 0841f84e _ZN19DB_MailBox_Req_Send8dispatchEiiP6Stream
+0841f85a -> 0x84519fe    _ZN6Stream12GetOutBufferI25SIG_MAILBOX_SEND_NEW_MAILEEPT_v
+0841f87f -> 0x83f523e    _ZN5DBMgr11GetDBHandleE18ENUM_DB_HANDLE_IDX17ENUM_SERVER_GROUP
+0841f894 -> 0x841f2fa    _ZN19DB_MailBox_Req_Send14insertMailDataEP5MySQLPK25SIG_MAILBOX_SEND_NEW_MAIL
+0841f8cc -> 0x841f75a    _ZN19DB_MailBox_Req_Send10sendResultEiii17ENUM_SERVER_GROUP
+
+### 084272de _ZN31DB_MailBoxSendNewMailWithDBWork8dispatchEiiP6Stream
+08427301 -> 0x83f523e    _ZN5DBMgr11GetDBHandleE18ENUM_DB_HANDLE_IDX17ENUM_SERVER_GROUP
+0842730f -> 0x845213e    _ZN6Stream12GetOutBufferI37SIG_MAILBOX_SEND_NEW_MAIL_WITH_DBWORKEEPT_v
+08427330 -> 0x807dcc0
+08427350 -> 0x807d8d0
+084273dd -> 0x807d8d0
+084273f8 -> 0x83ffe0e    _ZN19DB_AvatarItemInsert16InsertAvatarItemEP17SIG_AVATAR_INSERT
+0842740b -> 0x8725800    __cxa_allocate_exception
+0842742b -> 0x8724c50    __cxa_throw
+08427436 -> 0x83f9ad4    _ZN8WongWork8DBCommon11GetIdentityEP5MySQL
+0842744b -> 0x8725800    __cxa_allocate_exception
+0842746b -> 0x8724c50    __cxa_throw
+084274da -> 0x841fa28    _ZN21DB_InsertCreatureItem18insertCreatureItemEP5MySQLPK17SIG_CREATURE_ITEM
+084274ed -> 0x8725800    __cxa_allocate_exception
+0842750d -> 0x8724c50    __cxa_throw
+08427518 -> 0x83f9ad4    _ZN8WongWork8DBCommon11GetIdentityEP5MySQL
+0842752d -> 0x8725800    __cxa_allocate_exception
+0842754d -> 0x8724c50    __cxa_throw
+0842759a -> 0x841f2fa    _ZN19DB_MailBox_Req_Send14insertMailDataEP5MySQLPK25SIG_MAILBOX_SEND_NEW_MAIL
+084275ad -> 0x8725800    __cxa_allocate_exception
+084275cd -> 0x8724c50    __cxa_throw
+084275f2 -> 0x841f75a    _ZN19DB_MailBox_Req_Send10sendResultEiii17ENUM_SERVER_GROUP
+08427609 -> 0x8725800    __cxa_allocate_exception
+08427629 -> 0x8724c50    __cxa_throw
+08427636 -> 0x8ae3750    _Unwind_Resume
+0842763e -> 0x8725ce0    __cxa_begin_catch
+08427666 -> 0x854f718    _ZN8cMyTraceC2EPKcii
+08427680 -> 0x854f788    _ZN8cMyTraceclEPKcz
+0842768b -> 0x8725c30    __cxa_end_catch
+08427697 -> 0x8ae3750    _Unwind_Resume
+0842769c -> 0x8725c30    __cxa_end_catch
+
+### 0844346a _ZN32DB_MailBox_Req_System_Multi_Mail8dispatchEiiP6Stream
+08443476 -> 0x8453f08    _ZN6Stream12GetOutBufferI34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAILEEPT_v
+0844349b -> 0x83f523e    _ZN5DBMgr11GetDBHandleE18ENUM_DB_HANDLE_IDX17ENUM_SERVER_GROUP
+084434aa -> 0x80cbc9e    _ZN11CSystemTime9getCurSecEv
+084434bf -> 0x807e360    realloc@@GLIBC_2.0
+084434ef -> 0x807e820
+0844356d -> 0x84435d4    _ZN32DB_MailBox_Req_System_Multi_Mail13_InsertLetterEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL
+08443594 -> 0x844372e    _ZN32DB_MailBox_Req_System_Multi_Mail13_InsertPostalEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL
+084435c7 -> 0x8443b6e    _ZN32DB_MailBox_Req_System_Multi_Mail10sendResultEi17ENUM_SERVER_GROUP
+
+### 084435d4 _ZN32DB_MailBox_Req_System_Multi_Mail13_InsertLetterEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL
+0844361a -> 0x83f48aa    _ZN5MySQL13escape_stringEPcPKc
+0844368b -> 0x83f48aa    _ZN5MySQL13escape_stringEPcPKc
+084436e5 -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+084436f8 -> 0x83f4326    _ZN5MySQL4execEb
+08443711 -> 0x83f9ad4    _ZN8WongWork8DBCommon11GetIdentityEP5MySQL
+
+### 0844372e _ZN32DB_MailBox_Req_System_Multi_Mail13_InsertPostalEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL
+08443740 -> 0x87065d0    _ZNSsC2Ev
+0844374b -> 0x8708dd0    _ZNSs5clearEv
+0844379b -> 0x844d490    _ZNK17stAmplifyOption_t9getValuesERhRt
+084437dd -> 0x811ed58    _ZNK19UpgradeSeparateInfo18GetUpgradeSeparateEv
+08443816 -> 0x83f452a    _ZN5MySQL11blob_to_strEiPvi
+0844384c -> 0x83f452a    _ZN5MySQL11blob_to_strEiPvi
+08443894 -> 0x8150800    _ZNK10Inven_Item16isAvatarItemTypeEv
+084438b6 -> 0x8335b76    _ZNK10Inven_Item18IsCreatureItemTypeEv
+0844390a -> 0x81507dc    _ZNK10Inven_Item11GetItemAttrEv
+08443a51 -> 0x807e440    realloc@@GLIBC_2.0
+08443a66 -> 0x8708000    _ZNSs6appendEPKc
+08443a8a -> 0x8708000    _ZNSs6appendEPKc
+08443ab0 -> 0x87064f0    _ZNKSs5c_strEv
+08443ac7 -> 0x83f41c0    _ZN5MySQL9set_queryEPKcz
+08443ada -> 0x83f4326    _ZN5MySQL4execEb
+08443aec -> 0x87064f0    _ZNKSs5c_strEv
+08443b11 -> 0x854f718    _ZN8cMyTraceC2EPKcii
+08443b28 -> 0x854f788    _ZN8cMyTraceclEPKcz
+08443b45 -> 0x8707be0    _ZNSsD2Ev
+08443b51 -> 0x8ae3750    _Unwind_Resume
+08443b5c -> 0x8707be0    _ZNSsD2Ev
+
+### 084cf7fa _ZN22Inter_MailBox_Req_List12dispatch_sigEP5CUserPci
+084cf809 -> 0x80da38c    _ZN5CUser9get_stateEv
+084cf819 -> 0x8120432    _ZNK15CUserCharacInfo13getCurCharacREv
+084cf851 -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+084cf86f -> 0x823020c    _ZN5CUser10GetMailBoxEv
+084cf896 -> 0x84ed216    _ZNK8WongWork8CMailBox16getMailLoadCountEv
+084cf8ba -> 0x84ed216    _ZNK8WongWork8CMailBox16getMailLoadCountEv
+084cf8c7 -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+084cf8d4 -> 0x80da36e    _ZNK5CUser10get_acc_idEv
+084cf8e4 -> 0x810904b    _Z14NumberToStringji
+084cf909 -> 0x854f718    _ZN8cMyTraceC2EPKcii
+084cf92f -> 0x854f788    _ZN8cMyTraceclEPKcz
+084cf948 -> 0x85525a6    _ZN8WongWork14CMailBoxHelper14SetMailBoxInfoEP5CUserPK16SIG_MAILBOX_LIST
+
+### 084d017c _ZN29Inter_Monitor_Notify_New_Mail12dispatch_sigEP5CUserPci
+084d0190 -> 0x8120432    _ZNK15CUserCharacInfo13getCurCharacREv
+084d019f -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+084d01ce -> 0x823020c    _ZN5CUser10GetMailBoxEv
+084d01d6 -> 0x84ed330    _ZN8WongWork8CMailBox21IncNotLoadedMailCountEv
+084d01e1 -> 0x858dd4c    _ZN11PacketGuardC2Ev
+084d01fc -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+084d0207 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+084d020f -> 0x823455a    _ZN8WongWork8CMailBox21GetNotLoadedMailCountEv
+084d021e -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+084d0231 -> 0x80cb958    _ZN18InterfacePacketBuf8finalizeEb
+084d0243 -> 0x86485ba    _ZN5CUser4SendER11PacketGuard
+084d0253 -> 0x858de80    _ZN11PacketGuardD2Ev
+084d0264 -> 0x858de80    _ZN11PacketGuardD2Ev
+084d0270 -> 0x8ae3750    _Unwind_Resume
+
+### 085525a6 _ZN8WongWork14CMailBoxHelper14SetMailBoxInfoEP5CUserPK16SIG_MAILBOX_LIST
+085525b8 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+085525d6 -> 0x85575dc    _ZN8WongWork8CMailBox16incMailLoadCountEv
+085525e1 -> 0x8557938    _ZN8WongWork8CMailBox8IsLoadedEv
+085525f5 -> 0x858dd4c    _ZN11PacketGuardC2Ev
+08552601 -> 0x80cbc9e    _ZN11CSystemTime9getCurSecEv
+08552612 -> 0x81ab6de    _ZNSt3setIjSt4lessIjESaIjEEC2Ev
+0855263c -> 0x8557676    _ZN8WongWork8CMailBox18SetPackageLoadLackEPKjiRSt3setIjSt4lessIjESaIjEE
+0855267a -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+08552688 -> 0x8110b4c    _ZN18InterfacePacketBuf9get_indexEv
+085526a9 -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+085526bf -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+085526d7 -> 0x85581cc    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5beginEv
+085526f2 -> 0x85586f8    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2ERKSt17_Rb_tree_iteratorIS6_E
+0855270f -> 0x8111278    _ZNKSt3setIjSt4lessIjESaIjEE3endEv
+08552720 -> 0x85586ea    _ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+0855272b -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+08552753 -> 0x8111332    _ZNSt3setIjSt4lessIjESaIjEE4findERKj
+0855276e -> 0x81ab76c    _ZNKSt23_Rb_tree_const_iteratorIjEeqERKS0_
+08552780 -> 0x85586ea    _ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+085527a3 -> 0x8551a36    _ZNK8WongWork8CMailBox5CMail10MakePacketEP11PacketGuardlPK5CUser
+085527b8 -> 0x8558708    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+085527d0 -> 0x85581a6    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+085527eb -> 0x85586f8    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2ERKSt17_Rb_tree_iteratorIS6_E
+08552803 -> 0x8558754    _ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEneERKS7_
+085528a3 -> 0x80da28e    _ZN15CUserCharacInfo18getCurCharacInvenWEv
+085528ab -> 0x8110c6c    _ZN10CInventory17GetAvatarItemMgrWEv
+085528e5 -> 0x82f901c    _ZN8WongWork14CAvatarItemMgr10RegistItemEiiiPKcRK20stAvatarEmblemInfo_tRK23stAvatarExpansionInfo_tb
+0855296e -> 0x80da28e    _ZN15CUserCharacInfo18getCurCharacInvenWEv
+08552976 -> 0x80dd568    _ZN10CInventory15GetCreatureMgrWEv
+0855298a -> 0x833d7de    _ZN13user_creature12CCreatureMgr16RegistTempPeriodEiii
+085529c5 -> 0x8557950    _ZN8WongWork8CMailBox12SetLoadStateEbl
+085529df -> 0x80cb854    _ZN10Inven_ItemC2Ev
+08552a78 -> 0x80cc19b    _Z14G_CDataManagerv
+08552a84 -> 0x835fa32    _ZNK12CDataManager9find_itemEi
+08552ab0 -> edx
+08552b1c -> 0x81507e8    _ZN10Inven_Item11SetItemAttrEh
+08552bbe -> 0x84b40e4    _ZN17stAmplifyOption_t6assignEht
+08552c1d -> 0x85574bc    _ZN19UpgradeSeparateInfo37SetUpgradeSeparateAndTradeRestrictionEh
+08552c41 -> 0x81201dc    _Z26IsTradeLimitAttachTypeItemRK10Inven_Item
+08552c63 -> 0x8120422    _ZNK10Inven_Item18GetTradeLimitCountEv
+08552c82 -> 0x81203f6    _ZN10Inven_Item18SetTradeLimitCountEh
+08552cbd -> 0x8686d54    _ZN15cUserHistoryLog20ChangeItemLimitCountEiiiii
+08552d0e -> 0x85578ae    _ZN8WongWork8CMailBox17stAddNewMailInputC2Ev
+08552dea -> 0x8551f5a    _ZN8WongWork8CMailBox10AddNewMailERKNS0_17stAddNewMailInputE
+08552e14 -> 0x85577ac    _ZN8WongWork8CMailBox19FindPackageLoadLackEj
+08552e4a -> 0x8551a36    _ZNK8WongWork8CMailBox5CMail10MakePacketEP11PacketGuardlPK5CUser
+08552e83 -> 0x8557914    _ZN8WongWork8CMailBox21SetNotLoadedMailCountEi
+08552e9e -> 0x8555118    _ZN8WongWork14CMailBoxHelper21MakeMailBoxListPacketEP5CUserP11PacketGuard
+08552eb6 -> 0x85523e2    _ZN8WongWork14CMailBoxHelper19SetPeriodCheckTimerEP5CUser
+08552ec1 -> 0x8557866    _ZN8WongWork8CMailBox20ClearLetterKeepCountEv
+08552ed4 -> 0x855789c    _ZN8WongWork8CMailBox20SetLoadedLetterCountEi
+08552ef5 -> 0x8110b28    _ZN18InterfacePacketBuf8put_byteERii
+08552f10 -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+08552f1b -> 0x823454c    _ZN8WongWork8CMailBox20GetLoadedLetterCountEv
+08552f35 -> 0x855789c    _ZN8WongWork8CMailBox20SetLoadedLetterCountEi
+08552f4a -> 0x8110b4c    _ZN18InterfacePacketBuf9get_indexEv
+08552f6b -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+08552f83 -> 0x8558768    _ZNKSt3setIjSt4lessIjESaIjEE5beginEv
+08552f99 -> 0x85587ac    _ZNKSt23_Rb_tree_const_iteratorIjEdeEv
+08552fb8 -> 0x85587ba    _ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE4findERS4_
+08552fd6 -> 0x85587e6    _ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE3endEv
+08552ff1 -> 0x855880c    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEneERKS4_
+08553007 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+0855301c -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+0855302a -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+0855303f -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+0855304d -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+08553058 -> 0x807e3b0    realloc@@GLIBC_2.0
+0855306a -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08553078 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+08553083 -> 0x807e3b0    realloc@@GLIBC_2.0
+08553093 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+085530ac -> 0x81b73e4    _ZN18InterfacePacketBuf7put_strEPci
+085530ba -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+085530c5 -> 0x807e3b0    realloc@@GLIBC_2.0
+085530d7 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+085530e5 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+085530f0 -> 0x807e3b0    realloc@@GLIBC_2.0
+08553100 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+08553119 -> 0x81b73e4    _ZN18InterfacePacketBuf7put_strEPci
+08553127 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+08553139 -> 0x855254c    _Z13isUnlimitMailPK16SIG_MAILBOX_LISTi
+08553153 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08553163 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+0855317b -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08553189 -> 0x8558820    _ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+085531a3 -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+085531c2 -> 0x855882e    _ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE5eraseESt17_Rb_tree_iteratorIS5_E
+085531d0 -> 0x855878e    _ZNSt23_Rb_tree_const_iteratorIjEppEv
+085531e8 -> 0x8111278    _ZNKSt3setIjSt4lessIjESaIjEE3endEv
+08553203 -> 0x811129e    _ZNKSt23_Rb_tree_const_iteratorIjEneERKS0_
+08553244 -> 0x85577ac    _ZN8WongWork8CMailBox19FindPackageLoadLackEj
+08553278 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+085532a1 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+085532bd -> 0x807e3b0    realloc@@GLIBC_2.0
+085532d5 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08553302 -> 0x822b770    _ZN18InterfacePacketBuf7put_strEPKci
+0855331e -> 0x807e3b0    realloc@@GLIBC_2.0
+08553336 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08553363 -> 0x822b770    _ZN18InterfacePacketBuf7put_strEPKci
+08553389 -> 0x855254c    _Z13isUnlimitMailPK16SIG_MAILBOX_LISTi
+085533a3 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+085533ce -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+085533f9 -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+08553440 -> 0x8558848    _ZSt9make_pairIRKjRK15SIG_LETTER_INFOESt4pairINSt17__decay_and_stripIT_E6__typeENS6_IT0_E6__typeEEOS7_OSA_
+0855345b -> 0x8558886    _ZNSt4pairIKj15SIG_LETTER_INFOEC2IjS1_EEOS_IT_T0_E
+08553480 -> 0x85588e2    _ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE6insertERKS5_
+085534a2 -> 0x855784c    _ZN8WongWork8CMailBox20GetLastLoadLetterIdxEv
+085534b4 -> 0x807f531    _ZSt3maxIjERKT_S2_S2_
+085534c5 -> 0x8557858    _ZN8WongWork8CMailBox20SetLastLoadLetterIdxEj
+08553509 -> 0x84ed222    _ZN8WongWork8CMailBox21InsertLetterKeepCountEj
+08553543 -> 0x8116908    _ZN18InterfacePacketBuf9put_shortERii
+08553559 -> 0x80cb958    _ZN18InterfacePacketBuf8finalizeEb
+0855356e -> 0x86485ba    _ZN5CUser4SendER11PacketGuard
+0855358b -> 0x80cb8e6    _ZN18InterfacePacketBuf5clearEv
+085535a9 -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+085535bf -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+085535ca -> 0x823455a    _ZN8WongWork8CMailBox21GetNotLoadedMailCountEv
+085535dc -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+085535f2 -> 0x80cb958    _ZN18InterfacePacketBuf8finalizeEb
+08553607 -> 0x86485ba    _ZN5CUser4SendER11PacketGuard
+0855361a -> 0x81ab6ca    _ZNSt3setIjSt4lessIjESaIjEED2Ev
+0855362e -> 0x81ab6ca    _ZNSt3setIjSt4lessIjESaIjEED2Ev
+08553646 -> 0x858de80    _ZN11PacketGuardD2Ev
+08553652 -> 0x8ae3750    _Unwind_Resume
+08553660 -> 0x858de80    _ZN11PacketGuardD2Ev
+
+### 085549de _ZN8WongWork14CMailBoxHelper10GetPackegeEP5CUserj
+085549f0 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+08554a14 -> 0x867bf42    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+08554a2b -> 0x85522c4    _ZNK8WongWork8CMailBox7GetMailEj
+08554a4f -> 0x867bf42    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+08554a5f -> 0x81349d6    _ZNSt6vectorISt4pairIiiESaIS1_EEC2Ev
+08554a8e -> 0x8554650    _ZN8WongWork14CMailBoxHelper13_DoGetPackageEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+08554ab2 -> 0x867bf42    _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+08554adf -> 0x8554650    _ZN8WongWork14CMailBoxHelper13_DoGetPackageEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+08554aea -> 0x858dd4c    _ZN11PacketGuardC2Ev
+08554afc -> 0x80dd5b2    _ZNSt6vectorISt4pairIiiESaIS1_EE5beginEv
+08554b11 -> 0x8387922    _ZN9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEC2IPS2_EERKNS0_IT_NS_11__enable_ifIXsrSt10__are_sameISB_SA_E7__valueES7_E6__typeEEE
+08554b23 -> 0x80dd5d6    _ZNSt6vectorISt4pairIiiESaIS1_EE3endEv
+08554b38 -> 0x8387922    _ZN9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEC2IPS2_EERKNS0_IT_NS_11__enable_ifIXsrSt10__are_sameISB_SA_E7__valueES7_E6__typeEEE
+08554b58 -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+08554b63 -> 0x8193912    _ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEptEv
+08554b74 -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+08554b87 -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+08554b92 -> 0x8193912    _ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEptEv
+08554ba9 -> 0x8193912    _ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEptEv
+08554bb7 -> 0x80da27e    _ZNK15CUserCharacInfo18getCurCharacInvenREv
+08554bd2 -> 0x84fc6bc    _ZNK10CInventory14MakeItemPacketE10INVEN_TYPEiR11PacketGuard
+08554be2 -> 0x8193912    _ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEptEv
+08554bf9 -> 0x8193912    _ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEptEv
+08554c07 -> 0x80da27e    _ZNK15CUserCharacInfo18getCurCharacInvenREv
+08554c22 -> 0x84fc6bc    _ZNK10CInventory14MakeItemPacketE10INVEN_TYPEiR11PacketGuard
+08554c2f -> 0x8193912    _ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEptEv
+08554c3d -> 0x80da27e    _ZNK15CUserCharacInfo18getCurCharacInvenREv
+08554c58 -> 0x84fc6bc    _ZNK10CInventory14MakeItemPacketE10INVEN_TYPEiR11PacketGuard
+08554c6b -> 0x80cb958    _ZN18InterfacePacketBuf8finalizeEb
+08554c7d -> 0x86485ba    _ZN5CUser4SendER11PacketGuard
+08554c88 -> 0x823dcd0    _ZN9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEppEv
+08554c9a -> 0x81938e5    _ZN9__gnu_cxxneIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T0_EESD_
+08554cad -> 0x8557516    _ZNK8WongWork8CMailBox5CMail15GetPackageMoneyEv
+08554ce6 -> 0x85574fe    _ZNK8WongWork8CMailBox5CMail13GetSenderNameEv
+08554cee -> 0x807e3b0    realloc@@GLIBC_2.0
+08554cfc -> 0x85574fe    _ZNK8WongWork8CMailBox5CMail13GetSenderNameEv
+08554d09 -> 0x8557516    _ZNK8WongWork8CMailBox5CMail15GetPackageMoneyEv
+08554d16 -> 0x80da36e    _ZNK5CUser10get_acc_idEv
+08554d23 -> 0x80c8c96    _ZNK5CUser6GetUIDEv
+08554d46 -> 0x843a13e    _ZN29DB_AccountHack_CheckMyAccount11makeRequestEjjjjPci
+08554d51 -> 0x8101072    _ZNK5CUser12get_acc_nameEv
+08554d5e -> 0x85574fe    _ZNK8WongWork8CMailBox5CMail13GetSenderNameEv
+08554d7e -> 0x86848a8    _ZN15cUserHistoryLog8RecvMailEjPKcS1_
+08554d89 -> 0x80cb8e6    _ZN18InterfacePacketBuf5clearEv
+08554da4 -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+08554db7 -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+08554dc9 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08554ddc -> 0x80cb958    _ZN18InterfacePacketBuf8finalizeEb
+08554dee -> 0x86485ba    _ZN5CUser4SendER11PacketGuard
+08554e23 -> 0x8556772    _ZN8WongWork14CMailBoxHelper15ReqDBRemoveMailEPK5CUserPjb
+08554e35 -> 0x8552138    _ZN8WongWork8CMailBox10RemoveMailEj
+08554e46 -> 0x858de80    _ZN11PacketGuardD2Ev
+08554e57 -> 0x858de80    _ZN11PacketGuardD2Ev
+08554e68 -> 0x81349ea    _ZNSt6vectorISt4pairIiiESaIS1_EED2Ev
+08554e74 -> 0x8ae3750    _Unwind_Resume
+08554e7f -> 0x81349ea    _ZNSt6vectorISt4pairIiiESaIS1_EED2Ev
+
+### 08554e90 _ZN8WongWork14CMailBoxHelper16CheckMailTimeoutEP5CUserP11PacketGuard
+08554ea1 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+08554ed3 -> 0x80cbc9e    _ZN11CSystemTime9getCurSecEv
+08554eeb -> 0x85581cc    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5beginEv
+08554f03 -> 0x85581a6    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+08554f18 -> 0x85586f8    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2ERKSt17_Rb_tree_iteratorIS6_E
+08554f28 -> 0x8558224    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+08554f39 -> 0x8557590    _ZNK8WongWork8CMailBox5CMail9isUnlimitEv
+08554f52 -> 0x85574e0    _ZNK8WongWork8CMailBox5CMail10IsTimeOverEl
+08554f75 -> 0x8558224    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+08554f88 -> 0x80cb93c    _ZN18InterfacePacketBuf7put_intEi
+08554f99 -> 0x8558224    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+08554fb9 -> 0x8558a76    _ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEi
+08554fd1 -> 0x855866a    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5eraseESt17_Rb_tree_iteratorIS8_E
+08554fe5 -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+0855500e -> 0x85581cc    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5beginEv
+08555027 -> 0x8558224    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+08555032 -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+0855503f -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+08555057 -> 0x8558206    _ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+0855506c -> 0x85581a6    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+08555081 -> 0x85581f2    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEneERKS7_
+085550b0 -> 0x85519fe    _ZN8WongWork8CMailBox5CMail12ResetPackageEv
+085550c5 -> 0x8558232    _ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE4FreeEPS2_
+085550d2 -> 0x8558206    _ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+085550e4 -> 0x8558725    _ZStneISt4pairIKjPN8WongWork8CMailBox5CMailEEEbRKSt17_Rb_tree_iteratorIT_ERKSt23_Rb_tree_const_iteratorIS8_E
+08555106 -> 0x8556772    _ZN8WongWork14CMailBoxHelper15ReqDBRemoveMailEPK5CUserPjb
+
+### 08555118 _ZN8WongWork14CMailBoxHelper21MakeMailBoxListPacketEP5CUserP11PacketGuard
+08555124 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+0855513d -> 0x80cbc9e    _ZN11CSystemTime9getCurSecEv
+0855515b -> 0x80cb8fc    _ZN18InterfacePacketBuf10put_headerEii
+0855516d -> 0x8110b4c    _ZN18InterfacePacketBuf9get_indexEv
+0855517b -> 0x8234566    _ZN8WongWork8CMailBox11GetRecvSizeEv
+0855518a -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+0855519d -> 0x80cb920    _ZN18InterfacePacketBuf8put_byteEi
+085551b2 -> 0x85581cc    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5beginEv
+085551c7 -> 0x85586f8    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2ERKSt17_Rb_tree_iteratorIS6_E
+085551dc -> 0x85581a6    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+085551f1 -> 0x85586f8    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2ERKSt17_Rb_tree_iteratorIS6_E
+085551fe -> 0x85586ea    _ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+08555209 -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+08555218 -> 0x85577ac    _ZN8WongWork8CMailBox19FindPackageLoadLackEj
+0855522b -> 0x85586ea    _ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+0855524b -> 0x8551a36    _ZNK8WongWork8CMailBox5CMail10MakePacketEP11PacketGuardlPK5CUser
+08555259 -> 0x8558708    _ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+0855526b -> 0x8558754    _ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEneERKS7_
+08555288 -> 0x8110b28    _ZN18InterfacePacketBuf8put_byteERii
+08555293 -> 0x823455a    _ZN8WongWork8CMailBox21GetNotLoadedMailCountEv
+085552a2 -> 0x80d9ea4    _ZN18InterfacePacketBuf9put_shortEi
+
+### 085552ac _ZN8WongWork14CMailBoxHelper13ReqDBLoadMailEP5CUserj
+085552ba -> 0x823020c    _ZN5CUser10GetMailBoxEv
+085552e4 -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+085552fb -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+08555306 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+08555316 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+08555321 -> 0x80c8c96    _ZNK5CUser6GetUIDEv
+0855532e -> 0x80c8c46    _ZN12CStreamGuarddeEv
+0855533a -> 0x80c8c56    _ZN12CStreamGuardlsEi
+08555345 -> 0x80c8c4e    _ZN12CStreamGuardptEv
+0855534d -> 0x8558ab4    _ZN12CStreamGuard11GetInBufferI16SIG_MAILBOX_LISTEEPT_v
+0855536b -> 0x807dcc0
+0855537e -> 0x8557944    _ZN8WongWork8CMailBox14GetLastLoadIdxEv
+0855538f -> 0x823454c    _ZN8WongWork8CMailBox20GetLoadedLetterCountEv
+085553ac -> 0x855789c    _ZN8WongWork8CMailBox20SetLoadedLetterCountEi
+085553b7 -> 0x8557922    _ZN8WongWork8CMailBox13GetRemainSizeEv
+085553c4 -> 0x823454c    _ZN8WongWork8CMailBox20GetLoadedLetterCountEv
+085553dd -> 0x855784c    _ZN8WongWork8CMailBox20GetLastLoadLetterIdxEv
+085553ee -> 0x84ed216    _ZNK8WongWork8CMailBox16getMailLoadCountEv
+08555411 -> 0x8557608    _ZN8WongWork8CMailBox18GetPackageLoadLackEPjj
+0855542d -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+0855543e -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+0855544a -> 0x8ae3750    _Unwind_Resume
+08555455 -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+
+### 085555e8 _ZN8WongWork14CMailBoxHelper22ReqDBSendNewSystemMailEPKcRK10Inven_ItemjjS2_ij17ENUM_SERVER_GROUPbb
+08555614 -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+0855562b -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+08555636 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+08555646 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+08555651 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+08555661 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+0855566c -> 0x80c8c4e    _ZN12CStreamGuardptEv
+08555674 -> 0x8197f8e    _ZN12CStreamGuard11GetInBufferI25SIG_MAILBOX_SEND_NEW_MAILEEPT_v
+08555692 -> 0x807dcc0
+085556de -> 0x8555756    _ZN8WongWork14CMailBoxHelper17_makeSendMailDataEP25SIG_MAILBOX_SEND_NEW_MAILPKciRK10Inven_ItemjjS4_iji
+0855571d -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+0855572d -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+08555745 -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+08555751 -> 0x8ae3750    _Unwind_Resume
+
+### 08555916 _ZN8WongWork14CMailBoxHelper14_DoSendNewMailEP5CUserRK10Inven_ItemjjbPKcii
+0855593c -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+08555953 -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+0855595e -> 0x80c8c46    _ZN12CStreamGuarddeEv
+0855596e -> 0x80c8c56    _ZN12CStreamGuardlsEi
+08555979 -> 0x80c8c96    _ZNK5CUser6GetUIDEv
+08555986 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+08555992 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+0855599d -> 0x80c8c4e    _ZN12CStreamGuardptEv
+085559a5 -> 0x8197f8e    _ZN12CStreamGuard11GetInBufferI25SIG_MAILBOX_SEND_NEW_MAILEEPT_v
+085559c3 -> 0x807dcc0
+085559ce -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+085559db -> 0x8101028    _ZNK15CUserCharacInfo16getCurCharacNameEv
+08555a20 -> 0x8555756    _ZN8WongWork14CMailBoxHelper17_makeSendMailDataEP25SIG_MAILBOX_SEND_NEW_MAILPKciRK10Inven_ItemjjS4_iji
+08555a2b -> 0x80cbc90    _ZNK5CUser14GetServerGroupEv
+08555a4a -> 0x8100ffa    _ZN12CStreamGuard3GetEv
+08555a58 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+08555a6a -> 0x8558aca    _ZNSt4listIP6StreamSaIS1_EE9push_backEOS1_
+08555a8d -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+08555aa3 -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+08555aaf -> 0x8ae3750    _Unwind_Resume
+08555aba -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+
+### 08556772 _ZN8WongWork14CMailBoxHelper15ReqDBRemoveMailEPK5CUserPjb
+08556798 -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+085567af -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+085567ba -> 0x80c8c46    _ZN12CStreamGuarddeEv
+085567ca -> 0x80c8c56    _ZN12CStreamGuardlsEi
+085567d5 -> 0x80c8c96    _ZNK5CUser6GetUIDEv
+085567e2 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+085567ee -> 0x80c8c56    _ZN12CStreamGuardlsEi
+085567f9 -> 0x80c8c4e    _ZN12CStreamGuardptEv
+08556801 -> 0x8558b26    _ZN12CStreamGuard11GetInBufferI20SIG_MAILBOX_DEL_MAILEEPT_v
+08556872 -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+08556883 -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+0855688f -> 0x8ae3750    _Unwind_Resume
+0855689a -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+
+### 085568a6 _ZN8WongWork14CMailBoxHelper19ReqChangeLetterStatEP5CUserii
+085568c7 -> 0x823020c    _ZN5CUser10GetMailBoxEv
+085568e5 -> 0x8557886    _ZN8WongWork8CMailBox18GetLetterKeepCountEv
+0855692a -> 0x828fa86    _ZN10StreamPool7AcquireEPKci
+08556941 -> 0x80c8c26    _ZN12CStreamGuardC2EP6Streamb
+0855694c -> 0x80c8c46    _ZN12CStreamGuarddeEv
+0855695c -> 0x80c8c56    _ZN12CStreamGuardlsEi
+08556967 -> 0x80c8c96    _ZNK5CUser6GetUIDEv
+08556974 -> 0x80c8c46    _ZN12CStreamGuarddeEv
+08556980 -> 0x80c8c56    _ZN12CStreamGuardlsEi
+0855698b -> 0x80c8c4e    _ZN12CStreamGuardptEv
+08556993 -> 0x8452054    _ZN12CStreamGuard11GetInBufferI15SIG_LETTER_STATEEPT_v
+085569a1 -> 0x80cbc4e    _ZNK15CUserCharacInfo14getCurCharacNoEv
+085569d9 -> 0x8570fde    _ZN11MsgQueueMgr3putENS_9QUEUE_IDXER12CStreamGuard
+085569e9 -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+085569fa -> 0x861c8d2    _ZN12CStreamGuardD2Ev
+08556a06 -> 0x8ae3750    _Unwind_Resume
+
+### 08551f5a _ZN8WongWork8CMailBox10AddNewMailERKNS0_17stAddNewMailInputE
+08551f6a -> 0x8558462    _ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE7AcquireEv
+08552020 -> 0x80cb854    _ZN10Inven_ItemC2Ev
+085520ad -> 0x807d8d0
+085520eb -> 0x855858f    _ZSt9make_pairIRKjRPN8WongWork8CMailBox5CMailEESt4pairINSt17__decay_and_stripIT_E6__typeENS8_IT0_E6__typeEEOS9_OSC_
+08552100 -> 0x85585ce    _ZNSt4pairIKjPN8WongWork8CMailBox5CMailEEC2IjS4_EEOS_IT_T0_E
+0855211c -> 0x85585fe    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE6insertERKS8_
+
+### 08552138 _ZN8WongWork8CMailBox10RemoveMailEj
+0855214c -> 0x8558198    _ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2Ev
+08552168 -> 0x855862a    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE4findERS7_
+08552186 -> 0x85581a6    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+0855219b -> 0x8558656    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEeqERKS7_
+085521b4 -> 0x8558224    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+085521cf -> 0x855866a    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5eraseESt17_Rb_tree_iteratorIS8_E
+085521da -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+08552200 -> 0x85581cc    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5beginEv
+08552216 -> 0x8558224    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+08552221 -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+0855222e -> 0x85574d4    _ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+08552246 -> 0x8558206    _ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+0855225b -> 0x85581a6    _ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+08552270 -> 0x85581f2    _ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEneERKS7_
+0855229f -> 0x85519fe    _ZN8WongWork8CMailBox5CMail12ResetPackageEv
+085522b4 -> 0x8558232    _ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE4FreeEPS2_

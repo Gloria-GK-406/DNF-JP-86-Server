@@ -1,0 +1,1252 @@
+ENUM_NOTIPACKET_MAILBOX_MAIL_LIST
+ENUM_NOTIPACKET_MAILBOX_REMOVE_MAIL
+ENUM_NOTIPACKET_MAILBOX_ALARM
+ENUM_CMDPACKET_RETURN_SELECT_CHARACTER
+ENUM_CMDPACKET_MAILBOX_SEND
+ENUM_CMDPACKET_MAILBOX_EXTRACT_ITEM
+ENUM_CMDPACKET_MAILBOX_OPEN
+ENUM_CMDPACKET_CHANGE_LETTER_STAT
+ENUM_CMDPACKET_MULTI_MAILBOX_SEND
+ENUM_CMDPACKET_QUERY_CHARAC_INFO_MAILBOX
+CExchangeRandomItemReward::deleteUsedMaterialItem, return_item failed , User ch =%d , %d %d
+seLect m_id, passwd,first_ssn, second_ssn, mid(from_unixtime(reg_date)+0,1,8),user_name,email, user_id, hangame_flag from member_info where m_id=%d
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_BASE, PARAM_TYPE = stMailboxOpenParam, ch_state STATE = (ch_state)0u]
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_MAILBOX_SEND, PARAM_TYPE = stMailboxSendParam, ch_state STATE = (ch_state)0u]
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_MAILBOX_EXTRACT_ITEM, PARAM_TYPE = stMailboxExtractParam, ch_state STATE = (ch_state)0u]
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_CHANGE_LETTER_STAT, PARAM_TYPE = stChangeLetterStatParam, ch_state STATE = (ch_state)3u]
+virtual int Dispatcher_QueryCharacInfoMailbox::dispatch_sig(CUser*, PacketBuf&)
+virtual int Dispatcher_MultiMailBoxSend::dispatch_sig(CUser*, PacketBuf&)
+virtual int Dispatcher_ChangeLetterStat::process(CUser*, MSG_BASE&, ParamBase&)
+virtual int Dispatcher_ChangeLetterStat::read(PacketBuf&, MSG_BASE&)
+virtual int Dispatcher_MailBox_Extract::process(CUser*, MSG_BASE&, ParamBase&)
+virtual int Dispatcher_MailBox_Extract::read(PacketBuf&, MSG_BASE&)
+virtual int Dispatcher_MailBox_Send::process(CUser*, MSG_BASE&, ParamBase&)
+virtual int Dispatcher_MailBox_Send::read(PacketBuf&, MSG_BASE&)
+virtual int Dispatcher_MailBox_Open::process(CUser*, MSG_BASE&, ParamBase&)
+33Dispatcher_QueryCharacInfoMailbox
+27Dispatcher_MultiMailBoxSend
+34DisPatcher_ReturnToSelectCharacter
+27Dispatcher_ChangeLetterStat
+17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE
+26Dispatcher_MailBox_Extract
+17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE
+23Dispatcher_MailBox_Send
+17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE
+23Dispatcher_MailBox_Open
+17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE
+23stChangeLetterStatParam
+21stMailboxExtractParam
+18stMailboxSendParam
+18stMailboxOpenParam
+Not selected character(a reason is fast returning to character screen on client)
+CGameManager::insert_game_world, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_ACCOUNT_CARGO ) return FAILED
+CGameManager::insert_game_world, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_INVENTORY ) return FAILED
+CGameManager::insert_game_world, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_AVATAR ) return FAILED
+CGameManager::insert_game_world, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_CARGO ) return FAILED
+CGameManager::insert_game_world, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_CREATURE ) return FAILED
+E_MAILBOX_CHECK_RECEIVER
+E_MAILBOX_REQ_MAIL_LIST
+E_MAILBOX_SEND_NEW_MAIL
+E_MAILBOX_REQ_DEL_MAIL
+E_CHANGE_LETTER_STAT
+E_MAILBOX_SEND_NEW_MAIL_WITH_DBWORK
+upDate user_items set expire_date = adddate(expire_date, interval %d day) where charac_no=%u and slot=%d
+[InsertAvatarItem] pContext->nExpireTime : %d
+inSert into user_items (charac_no,slot,it_id,expire_date,obtain_from,reg_date,ability_no,ipg_agency_no,stat,jewel_socket,hidden_option,emblem_endurance) values(%u,%d,%u,'%s',%d,now(),%d,'%s',%d,'%s',%d,%d)
+inSert into user_items (charac_no,slot,it_id,expire_date,obtain_from,reg_date,ability_no,ipg_agency_no,stat,jewel_socket,hidden_option,emblem_endurance) values(%u,%d,%u,from_unixtime('%s'),%d,now(),%d,'%s',%d,'%s',%d,%d)
+seLect slot,ui_id,it_id,unix_timestamp(reg_date),unix_timestamp(expire_date),ability_no,ipg_agency_no,jewel_socket,hidden_option,emblem_endurance from user_items where charac_no=%u and ui_id=%d
+seLect slot,it_id,unix_timestamp(expire_date),ability_no,ipg_agency_no,unix_timestamp(reg_date),ui_id,clear_avatar_id,jewel_socket,item_lock_key, hidden_option, emblem_endurance, color1, color2, trade_restrict from user_items where charac_no=%u and expire_date>now() and stat=0 limit %d
+seLect slot,it_id,name,stomach,exp,endurance,creature_type,ui_id,no_charge,stat,item_lock_key,unix_timestamp(expire_date) from creature_items where charac_no=%u and stat = 0 and expire_date>now()
+seLect unix_timestamp(expire_time), first_login from return_user where m_id=%s and expire_time > now()
+seLect m_id, passwd,first_ssn, second_ssn,DATE_FORMAT(from_unixtime(reg_date),'%%Y%%m%%d%%H'),user_name,email,hangame_flag,reg_date from member_info where user_id='%s' and hangame_flag=%d
+seLect m_id, passwd,first_ssn, second_ssn,DATE_FORMAT(from_unixtime(reg_date),'%%Y%%m%%d%%H'),user_name,email,hangame_flag,reg_date from  member_info  where  user_id='%s' and hangame_flag=%d
+seLect slot,it_id from user_items where charac_no=%u and expire_date>now() and stat=0 order by slot limit 8
+inSert into user_cera_ticket(m_id,ticket_id,ticketKey,expire_time,delete_flag,update_time) values(%s,'%s',%d,adddate(now(),interval %d hour), 0, now())
+upDate user_cera_ticket set ticket_id='%s',ticketKey=%d,expire_time=adddate(now(),interval %d hour), delete_flag=%d, update_time=now() where m_id=%s
+deLete from letter where charac_no=%d and reg_date<subdate(now(),interval %d day) and stat=%d
+seLect letter_id,send_charac_no,send_charac_name,letter_text,unix_timestamp(reg_date),stat from letter where (charac_no=%d and stat = 3) or (charac_no=%d and reg_date>subdate(now(),interval %d day)) order by letter_id
+seLect letter_id,send_charac_no,send_charac_name,letter_text,unix_timestamp(reg_date),stat from letter where (charac_no=%d and stat = 3) or (charac_no=%d and letter_id > %d and reg_date>subdate(now(),interval %d day)) order by letter_id
+seLect ui_id,unix_timestamp(expire_date),unix_timestamp(reg_date) from creature_items where ui_id %s and stat = 1
+upDate postal set delete_flag=%d where receive_charac_no=%d and unlimit_flag=0 and occ_time<subdate(now(),interval %d day) and delete_flag=0
+ and postal_id > %d
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name,unlimit_flag,avata_flag,creature_flag,letter_id,extend_info,item_guid,amplify_option,amplify_value,random_option,seperate_upgrade,type from postal where receive_charac_no=%d and delete_flag=0 %s and (unlimit_flag=1 or occ_time>subdate(now(),interval 15 day)) order by postal_id limit %d
+SelectLetter() error
+seLect ui_id,unix_timestamp(reg_date),unix_timestamp(expire_date),ipg_agency_no,jewel_socket from user_items where charac_no=%d and ui_id %s
+upDate postal set delete_flag=%d,receive_time=now() where postal_id=%d
+upDate postal set delete_flag=%d,receive_time=now() where postal_id %s
+send_charac_no : %d, recv_charac_no : %d, letter_size : %d
+inSert into letter(charac_no,send_charac_no,send_charac_name,letter_text,reg_date,stat) values(%d,%d,'%s','%s',from_unixtime(%d),%d)
+upDate letter set stat =%d where letter_id = %d
+InsertLetter() error
+inSert into postal(occ_time,send_charac_no,receive_charac_no,seal_flag,item_id,add_info,endurance,upgrade,amplify_option,amplify_value,gold,send_charac_name,creature_flag,avata_flag,letter_id,extend_info,item_guid,random_option,seperate_upgrade,unlimit_flag) values(from_unixtime(%d),%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,'%s',%d,%d,%d,%d,'%s','%s',%d,%d)
+inSert into creature_items(charac_no,slot,it_id,expire_date,delete_date,reg_date,name,stomach,exp,endurance,no_charge,stat,creature_type)values(%d,%d,%d,%s,%s,NOW(),'%s',%d,%d,%d,0,%d,%d)
+seLect slot,it_id,name,stomach,exp,endurance,creature_type,no_charge,unix_timestamp(expire_date) from creature_items where ui_id=%d
+deLete from letter where letter_id = %d
+upDate letter set stat=%d where letter_id=%d
+seLect * from guild_info where expire_flag=0 and guild_name='%s'
+inSert into member_punish_info_ars_mail (m_id, punish_type, apply_flag, occ_time) values(%s, %d, %d, now())
+inSert into log_gold_stat(channel_no,occ_time ,level,dungeon_drop,result_card,sell_store,quest_reward,death_tower_reward,illusion_tower_reward,war_area_drop,member_tax,blood_dungeon_reward,blood_dungeon_lotto,power_dungeon_drop,power_dungeon_result_card,buy_store,stamina_recovery,repair_item,private_store_commission,gold_card,gold_drop,upgrade,quest_use,mail_commission,punish_user,restrict_trade,guild_level_up,guild_skill,guild_mail,item_compound,blood_dungeon_enter,buy_cerashop,war_area_enter,assault_gold,upgrade_guild_agit,upgrade_guild_cargo) values(%d,from_unixtime(%d),%d,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u)
+seLect slot,it_id,clear_avatar_id from user_items where charac_no=%u and expire_date>now() and stat=0 limit %d
+upDate guild_info set expire_flag=1, expire_time=now() where guild_id=%d
+E_MULTI_MAILBOX_REQ_SEND : %d
+seLect guild_name,master_name,lev,member_count from guild_info where server_id=%d and expire_flag=0 and guild_name='%s'
+seLect guild_id,guild_name,master_name,lev,member_count from guild_info where server_id=%d and expire_flag=0 and guild_name='%s'
+seLect guild_name,master_name,lev,member_count from guild_info where expire_flag=0 and guild_id=%d
+inSert into return_user(m_id, expire_time, first_login) values(%s, from_unixtime(%d), %d)
+upDate return_user set expire_time = from_unixtime(%d), first_login=%d where m_id=%s
+seLect it_id,name from creature_items where slot=238 and charac_no=%u and expire_date > now()
+inSert into postal(occ_time,send_charac_no,receive_charac_no,seal_flag,item_id,add_info,endurance,upgrade ,amplify_option,amplify_value,gold,send_charac_name,creature_flag,avata_flag,letter_id,extend_info,item_guid,random_option,seperate_upgrade,unlimit_flag) values %s
+Insert Postal Fail - inQuery(%s)
+bool DB_MailBox_Req_System_Multi_Mail::_InsertPostal(MySQL*, SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL*)
+bool DB_Multi_MailBox_Req_Send::_sendResult(int, SIG_MAILBOX_CHECK_RECEIVER*)
+virtual bool DB_Multi_MailBox_Req_Send::dispatch(int, int, Stream*)
+virtual bool DB_MailBoxSendNewMailWithDBWork::dispatch(int, int, Stream*)
+static bool DB_MailBox_Req_Send::insertMailData(MySQL*, const SIG_MAILBOX_SEND_NEW_MAIL*)
+static bool DB_MailBox_Req_Send::InsertLetter(MySQL*, int, int, const char*, const char*, int&, time_t, ENUM_LETTER_STAT)
+virtual bool DB_MailBox_Req_List::dispatch(int, int, Stream*)
+32DB_MailBox_Req_System_Multi_Mail
+29DB_UpdateReturnUserFirstLogin
+28DB_ReqQueryCharacInfoMailbox
+25DB_Multi_MailBox_Req_Send
+31DB_MailBoxSendNewMailWithDBWork
+19DB_ChangeLetterStat
+19DB_MailBox_Req_Send
+21DB_MailBox_Req_Delete
+19DB_MailBox_Req_List
+28DB_MailBox_Req_CheckReceiver
+seLect guild_id, guild_name, lev , power_side, guild_agit_flag from guild_info where expire_flag = 0 and server_id = %d
+CClearAvatarInvenCmd::execute, pUser(%s)->getCurCharacInvenW()->delete_item return FAILED
+Postal loaded twice. %s(%d)(%d->%d)
+E_MULTI_MAILBOX_REQ_SEND : %d
+MEMBER : Inter_ReplyGuildLetter::dispatch_sig() : pUser->get_charac_no(%d) != recv->m_uCharID(%d)
+virtual int Inter_ReplyGuildLetter::dispatch_sig(CUser*, char*, int)
+void Inter_MailBox_Req_CheckReceiver::SendErrorPacket(CUser*, ENUM_CMDPACKET, short unsigned int)
+bool Inter_MailBox_Req_CheckReceiver::SendDBThread_forchina(CUser*, SIG_MAILBOX_CHECK_RECEIVER*)
+virtual int Inter_MailBox_Req_List::dispatch_sig(CUser*, char*, int)
+31Inter_ReqQueryCharacInfoMailbox
+25Inter_MultiMailBoxReqSend
+22Inter_ReplyGuildLetter
+22Inter_ChangeLetterStat
+22Inter_MailBox_Req_Send
+31Inter_MailBox_Req_CheckReceiver
+22Inter_MailBox_Req_List
+MailBox.cpp
+static bool WongWork::CMailBoxHelper::_DoGetPackageItem(CUser*, const WongWork::CMailBox::CMail*, WongWork::CMailBoxHelper::IntPairVector&, bool, ENUM_ERROR&)
+DisPatcher_DebugCommand::_debugCommandClearAvtInven, pUser(%s)->getCurCharacInvenW()->delete_item return FAILED
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_BASE, PARAM_TYPE = stMailboxOpenParam, ch_state STATE = (ch_state)0u]
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_MAILBOX_SEND, PARAM_TYPE = stMailboxSendParam, ch_state STATE = (ch_state)0u]
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_MAILBOX_EXTRACT_ITEM, PARAM_TYPE = stMailboxExtractParam, ch_state STATE = (ch_state)0u]
+int IPacketDispatcher<MSG_TYPE, PARAM_TYPE, STATE>::check_state(CUser*, PacketBuf&) [with MSG_TYPE = MSG_CHANGE_LETTER_STAT, PARAM_TYPE = stChangeLetterStatParam, ch_state STATE = (ch_state)3u]
+upDate user_items set expire_date = adddate(expire_date, interval %d day) where charac_no=%u and slot=%d
+inSert into user_items (charac_no,slot,it_id,expire_date,obtain_from,reg_date,ability_no,ipg_agency_no) values(%u,%d,%u,adddate(now(),interval %d day),%d,now(),%d,'%s')
+seLect ui_id from user_items where charac_no=%u and slot=%d and (expire_date='0000-00-00 00:00:00' or expire_date>now())
+seLect slot,it_id,unix_timestamp(expire_date),ability_no from user_items where charac_no=%u and (expire_date='0000-00-00 00:00:00' or expire_date>now()) limit %d
+seLect m_id, passwd,first_ssn, second_ssn, mid(from_unixtime(reg_date)+0,1,8),user_name,email from member_info where user_id='%s'
+seLect slot,it_id,unix_timestamp(expire_date),ability_no from user_items where charac_no=%u and (expire_date='0000-00-00 00:00:00' or expire_date>now()) and slot>=0 and slot<=%d
+inSert into user_cera_ticket(m_id,ticket_id,ticketKey,expire_time) values(%d,'%s',%d,adddate(now(),interval %d hour))
+upDate user_cera_ticket set ticket_id='%s',ticketKey=%d,expire_time=adddate(now(),interval %d hour) where m_id=%d
+upDate postal set delete_flag=%d where receive_charac_no=%d and occ_time<subdate(now(),interval %d day) and delete_flag=0
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,item_id,add_info,endurance,upgrade,gold,send_charac_name from postal where receive_charac_no=%d and delete_flag=0
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,item_id,add_info,endurance,upgrade,gold,send_charac_name from postal where receive_charac_no=%d and postal_id>%d and delete_flag=0
+upDate postal set delete_flag=%d,receive_time=now() where postal_id=%d
+upDate postal set delete_flag=%d,receive_time=now() where postal_id %s
+inSert into postal(occ_time,send_charac_no,receive_charac_no,item_id,add_info,endurance,upgrade,gold,send_charac_name) values(from_unixtime(%d),%d,%d,%d,%d,%d,%d,%d,'%s')
+seLect charac_no,slot,it_id,unix_timestamp(expire_date),ability_no from user_items where charac_no %s and (expire_date='0000-00-00 00:00:00' or expire_date>now()) and slot>=0 and slot<=%d order by charac_no asc
+inSert into user_items (charac_no,slot,it_id,expire_date,obtain_from,reg_date,ability_no,ipg_agency_no) values(%u,%d,%u,from_unixtime(%d),%d,now(),%d,'%s')
+seLect slot,ui_id,it_id,unix_timestamp(reg_date),unix_timestamp(expire_date),ability_no,ipg_agency_no from user_items where charac_no=%u and ui_id=%d
+seLect slot,it_id,unix_timestamp(expire_date),ability_no,ipg_agency_no,unix_timestamp(reg_date),ui_id from user_items where charac_no=%u and (expire_date='0000-00-00 00:00:00' or expire_date>now()) and stat=0 limit %d
+seLect m_id, passwd,first_ssn, second_ssn, mid(from_unixtime(reg_date)+0,1,8),user_name,email,hangame_flag,password('%s') from member_info where user_id='%s' and hangame_flag=%d
+seLect m_id, passwd,first_ssn, second_ssn, mid(from_unixtime(reg_date)+0,1,8),user_name,email,hangame_flag from member_info where user_id='%s' and hangame_flag=%d
+seLect m_id, passwd,first_ssn, second_ssn, mid(from_unixtime(reg_date)+0,1,8),user_name,email, slot from member_info where user_id='%s'
+seLect charac_no,slot,it_id,unix_timestamp(expire_date),ability_no from user_items where charac_no %s and (expire_date='0000-00-00 00:00:00' or expire_date>now()) and slot>=0 and slot<=%d and stat=0 order by charac_no asc
+upDate postal set delete_flag=%d where receive_charac_no=%d and unlimit_flag=0 and occ_time<subdate(now(),interval %d minute)
+upDate postal set delete_flag=%d where receive_charac_no=%d and unlimit_flag=0 and occ_time<subdate(now(),interval %d day) and delete_flag=0
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name,unlimit_flag,avata_flag,creature_flag from postal where receive_charac_no=%d and delete_flag=0
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name,unlimit_flag,avata_flag,creature_flag from postal where receive_charac_no=%d and postal_id>%d and delete_flag=0
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name,unlimit_flag,avata_flag from postal where receive_charac_no=%d and delete_flag=0
+seLect postal_id,unix_timestamp(occ_time),send_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name,unlimit_flag,avata_flag from postal where receive_charac_no=%d and postal_id>%d and delete_flag=0
+seLect ui_id,unix_timestamp(reg_date),unix_timestamp(expire_date),ipg_agency_no from user_items where charac_no=%d and ui_id %s
+inSert into postal(occ_time,send_charac_no,receive_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name,creature_flag) values(from_unixtime(%d),%d,%d,%d,%d,%d,%d,%d,%d,'%s',%d)
+inSert into postal(occ_time,send_charac_no,receive_charac_no,seal_flag,item_id,add_info,endurance,upgrade,gold,send_charac_name) values(from_unixtime(%d),%d,%d,%d,%d,%d,%d,%d,%d,'%s')
+upDate member_login set expire_time=unix_timestamp(now())+%d where m_id=%d
+seLect login_time,expire_time from member_login where m_id=%d
+inSert into auction_main(auction_id,occ_time,expire_time,owner_id,owner_name,buyer_id,buyer_name,price,instant_price,seal_flag,item_id,add_info,upgrade,seal_cnt,endurance,extend_info,amplify_option,amplify_value,owner_type,item_guid,unit_price,black_point,random_option) values(%llu,from_unixtime(%d),%d,%d,'%s',%d,'%s',%d,%d,%d,%u,%d,%hhu,%hhu,%hu,%hu,%hhu,%hu,%hhu,'%s',%d,%d,'%s')
+upDate %s set expire_time=%d,last_play_time=%d,report_cnt=%d,trade_gold_daily=%d,dungeon_gain_gold=%d,rating=%f,tutorial_skipable=%d where m_id=%s
+upDate %s set login_time=%d, expire_time=%d, last_play_time=%d where m_id=%s
+upDate %s set expire_time=%d where m_id=%s
+seLect login_time,expire_time,report_cnt,last_play_time,account_fail,total_account_fail,reliable_flag,trade_gold_daily,login_ip,security_flag,dungeon_gain_gold,school_id,rating,tutorial_skipable,event_charac_flag from %s where m_id=%s
+deleteGuildExpBook, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_INVENTORY ) return FAILED
+deleteGuildExpBook, pUser(%s)->send_itemspace( ENUM_ITEMSPACE_CARGO ) return FAILED
+rfc822Mailbox
+otherMailbox
+homePostalAddress
+janetMailbox
+postalCode
+postalAddress
+[postal title]
+[postal letter]
+[recieve postal message]
+[send postal]
+[send postal]
+_ZN31MercenaryHardCodingSettingValueL29MERCENARY_BASE_POSTAL_MESSAGEE
+_ZZN23Dispatcher_MailBox_Open7processEP5CUserR8MSG_BASER9ParamBaseE19__PRETTY_FUNCTION__
+_ZZN23Dispatcher_MailBox_Send4readER9PacketBufR8MSG_BASEE19__PRETTY_FUNCTION__
+_ZZN23Dispatcher_MailBox_Send7processEP5CUserR8MSG_BASER9ParamBaseE19__PRETTY_FUNCTION__
+_ZZN26Dispatcher_MailBox_Extract4readER9PacketBufR8MSG_BASEE19__PRETTY_FUNCTION__
+_ZZN26Dispatcher_MailBox_Extract7processEP5CUserR8MSG_BASER9ParamBaseE19__PRETTY_FUNCTION__
+_ZZN27Dispatcher_ChangeLetterStat4readER9PacketBufR8MSG_BASEE19__PRETTY_FUNCTION__
+_ZZN27Dispatcher_ChangeLetterStat7processEP5CUserR8MSG_BASER9ParamBaseE19__PRETTY_FUNCTION__
+_ZZN27Dispatcher_MultiMailBoxSend12dispatch_sigEP5CUserR9PacketBufE19__PRETTY_FUNCTION__
+_ZZN33Dispatcher_QueryCharacInfoMailbox12dispatch_sigEP5CUserR9PacketBufE19__PRETTY_FUNCTION__
+_ZZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE11check_stateEP5CUserR9PacketBufE19__PRETTY_FUNCTION__
+_ZZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE11check_stateEP5CUserR9PacketBufE19__PRETTY_FUNCTION__
+_ZZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE11check_stateEP5CUserR9PacketBufE19__PRETTY_FUNCTION__
+_ZZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE11check_stateEP5CUserR9PacketBufE19__PRETTY_FUNCTION__
+_ZZN19DB_MailBox_Req_List8dispatchEiiP6StreamE19__PRETTY_FUNCTION__
+_ZZN21DB_MailBox_Req_Delete8dispatchEiiP6StreamE8strQuery
+_ZZN19DB_MailBox_Req_Send12InsertLetterEP5MySQLiiPKcS3_Ril16ENUM_LETTER_STATE19__PRETTY_FUNCTION__
+_ZZN19DB_MailBox_Req_Send14insertMailDataEP5MySQLPK25SIG_MAILBOX_SEND_NEW_MAILE14last_letter_id
+_ZZN19DB_MailBox_Req_Send14insertMailDataEP5MySQLPK25SIG_MAILBOX_SEND_NEW_MAILE19__PRETTY_FUNCTION__
+_ZZN31DB_MailBoxSendNewMailWithDBWork8dispatchEiiP6StreamE19__PRETTY_FUNCTION__
+_ZZN25DB_Multi_MailBox_Req_Send8dispatchEiiP6StreamE19__PRETTY_FUNCTION__
+_ZZN25DB_Multi_MailBox_Req_Send11_sendResultEiP26SIG_MAILBOX_CHECK_RECEIVERE19__PRETTY_FUNCTION__
+_ZZN32DB_MailBox_Req_System_Multi_Mail13_InsertPostalEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAILE19__PRETTY_FUNCTION__
+_ZZN32DB_MailBox_Req_System_Multi_Mail8dispatchEiiP6StreamE9handleIdx
+_ZZN25DB_Multi_MailBox_Req_Send8dispatchEiiP6StreamE9handleIdx
+_ZZN31DB_MailBoxSendNewMailWithDBWork8dispatchEiiP6StreamE9handleIdx
+_ZZN19DB_ChangeLetterStat8dispatchEiiP6StreamE9handleIdx
+_ZZN19DB_MailBox_Req_Send8dispatchEiiP6StreamE9handleIdx
+_ZZN21DB_MailBox_Req_Delete8dispatchEiiP6StreamE9handleIdx
+_ZZN19DB_MailBox_Req_List8dispatchEiiP6StreamE9handleIdx
+_ZZN22Inter_MailBox_Req_List12dispatch_sigEP5CUserPciE19__PRETTY_FUNCTION__
+_ZZN31Inter_MailBox_Req_CheckReceiver21SendDBThread_forchinaEP5CUserP26SIG_MAILBOX_CHECK_RECEIVERE19__PRETTY_FUNCTION__
+_ZZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETtE19__PRETTY_FUNCTION__
+_ZZN22Inter_ReplyGuildLetter12dispatch_sigEP5CUserPciE19__PRETTY_FUNCTION__
+MailBox.cpp
+_ZN8WongWork8CMailBox5CMail5._398C2Ev
+_ZN8WongWork8CMailBox5CMail5._398C1Ev
+_ZZN8WongWork14CMailBoxHelper17_DoGetPackageItemEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERRORE19__PRETTY_FUNCTION__
+_ZZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EEC1EvE12__FUNCTION__
+_ZZN10StaticPoolIN8WongWork8CMailBoxELi600EEC1EvE12__FUNCTION__
+_ZZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE4FreeEPS2_E12__FUNCTION__
+_ZZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE7AcquireEvE12__FUNCTION__
+_GLOBAL__I__ZN8WongWork14CMailBoxHelper13g_MailBoxPoolE
+_ZZN10StaticPoolIN8WongWork8CMailBoxELi600EE7AcquireEvE12__FUNCTION__
+_ZZN10StaticPoolIN8WongWork8CMailBoxELi600EE4FreeEPS1_E12__FUNCTION__
+_ZTV19DB_ChangeLetterStat
+_ZNSt12__niter_baseIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEELb1EE3__bES7_
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED1Ev
+_ZSt7forwardIRSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEEOT_ONSt8identityISA_E4typeE
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEEC1EOS8_
+_ZNSt4pairIKjPN8WongWork8CMailBox5CMailEEC1IjS4_EEOS_IT_T0_E
+_ZNKSt6vectorI15SIG_LETTER_INFOSaIS0_EE8max_sizeEv
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE13_Rb_tree_implISA_Lb0EE13_M_initializeEv
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EEC1Ev
+_ZN8WongWork8CMailBox21IncNotLoadedMailCountEv
+_ZN32DB_MailBox_Req_System_Multi_Mail13_InsertLetterEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE17dispatch_templateEP5CUserR9PacketBuf
+_ZN25DB_Multi_MailBox_Req_Send11_sendResultEiP26SIG_MAILBOX_CHECK_RECEIVER
+_ZNSt6vectorI16stSPReturnInfo_tSaIS0_EE13_M_insert_auxIIS0_EEEvN9__gnu_cxx17__normal_iteratorIPS0_S2_EEDpOT_
+_ZTS21DB_MailBox_Req_Delete
+_ZN34DisPatcher_ReturnToSelectCharacter12dispatch_sigEP5CUserR9PacketBuf
+_ZSt14__copy_move_a2ILb1EP15SIG_LETTER_INFOS1_ET1_T0_S3_S2_
+_ZN19DB_MailBox_Req_List12SelectLetterEP5MySQLiijP16SIG_MAILBOX_LIST
+_ZSt9sort_heapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_T0_
+_ZSt13__adjust_heapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEiS2_PFbRKS2_S9_EEvT_T0_SD_T1_T2_
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeC2Ev
+_ZN6Stream11GetInBufferI26SIG_MAILBOX_CHECK_RECEIVEREEPT_v
+_ZN12PostalRewardD1Ev
+_ZSt10__pop_heapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_SC_T0_
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE5clearEv
+_ZN6Stream11GetInBufferI20SIG_MAILBOX_DEL_MAILEEPT_v
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE7_M_rootEv
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC2Ev
+_ZN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEmmEv
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EED1Ev
+_ZN32DB_MailBox_Req_System_Multi_MailD0Ev
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EED2Ev
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EEC1Ev
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEEC2Ev
+_ZSt22__copy_move_backward_aILb1EP15SIG_LETTER_INFOS1_ET1_T0_S3_S2_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE11_Deque_implC1Ev
+_ZNSt4pairIj15SIG_LETTER_INFOEC2ERKjRKS0_
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE3endEv
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE18_M_deallocate_nodeEPS6_
+_ZTI26Dispatcher_MailBox_Extract
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEEC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE11_M_put_nodeEPSt13_Rb_tree_nodeIS3_E
+_ZN8WongWork8CMailBox10AddNewMailERKNS0_17stAddNewMailInputE
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE11_Deque_implC1ERKS7_
+_ZN23stChangeLetterStatParamC1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC1Ev
+_ZSt14__copy_move_a2ILb0EPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeES8_ET1_T0_SA_S9_
+_ZSt23__copy_move_backward_a2ILb0EPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeES8_ET1_T0_SA_S9_
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeD1Ev
+_ZN8WongWork14CMailBoxHelper30ReqDBSendNewAvatarMailCashShopEP5CUseriiiccPKcS4_i
+_ZN26Dispatcher_MailBox_ExtractD0Ev
+_ZN23Dispatcher_MailBox_OpenC1Ev
+_ZTV31DB_MailBoxSendNewMailWithDBWork
+_ZSt4copyISt13move_iteratorIP15SIG_LETTER_INFOES2_ET0_T_S5_S4_
+_ZSt23__copy_move_backward_a2ILb0EPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeES7_ET1_T0_S9_S8_
+_ZN12PostalRewardC2Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE6_M_endEv
+_ZSt13__copy_move_aILb1EP15SIG_LETTER_INFOS1_ET1_T0_S3_S2_
+_ZN28DB_MailBox_Req_CheckReceiverD0Ev
+_ZNSt12__miter_baseIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEELb0EE3__bES7_
+_ZNSt20__copy_move_backwardILb1ELb1ESt26random_access_iterator_tagE13__copy_move_bI15SIG_LETTER_INFOEEPT_PKS4_S7_S5_
+_ZN31Inter_ReqQueryCharacInfoMailboxC1Ev
+_ZSt13copy_backwardIPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeES7_ET0_T_S9_S8_
+_ZN18stMailboxOpenParamD1Ev
+_ZN19DB_ChangeLetterStatD2Ev
+_ZNK9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE8max_sizeEv
+_ZN8WongWork14CMailBoxHelper19SetPeriodCheckTimerEP5CUser
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOE9constructIIS1_EEEvPS1_DpOT_
+_ZN18stMailboxOpenParamC2Ev
+_ZN6Stream11GetInBufferI16SIG_MAILBOX_LISTEEPT_v
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE12_M_rightmostEv
+_ZNSt12_Destroy_auxILb1EE9__destroyIP15SIG_LETTER_INFOEEvT_S4_
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE10_M_insert_EPKSt18_Rb_tree_node_baseSC_RKS3_
+_ZN22Inter_MailBox_Req_List12dispatch_sigEP5CUserPci
+_ZNSt11__copy_moveILb0ELb1ESt26random_access_iterator_tagE8__copy_mIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEEPT_PKSB_SE_SC_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE15_M_create_nodesEPPS6_SA_
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC1Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC1Ev
+_ZTS33Dispatcher_QueryCharacInfoMailbox
+_ZSt7forwardIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEOT_ONSt8identityIS7_E4typeE
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOE10deallocateEPS1_j
+_ZN19DB_MailBox_Req_ListD0Ev
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC1Ev
+_ZN34DisPatcher_ReturnToSelectCharacter4readER9PacketBufR8MSG_BASE
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE4sendEP5CUserR9ParamBase
+_ZN22Inter_ReplyGuildLetterD2Ev
+_ZSt7forwardISt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS7_EEEOT_ONSt8identityISA_E4typeE
+_ZN12PostalRewardC2ERKS_
+_ZN22Inter_MailBox_Req_ListD2Ev
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOEC1Ev
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED1Ev
+_ZN23stChangeLetterStatParamC2Ev
+_ZN8WongWork14CMailBoxHelper32ReqDBSendNewCreatureMailCashShopEP5CUseriRK10Inven_ItemPKci
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED2Ev
+_ZN26Dispatcher_MailBox_ExtractD2Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC2Ev
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EED1Ev
+_ZN26Dispatcher_MailBox_ExtractC2Ev
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EED2Ev
+_ZN8WongWork14CMailBoxHelper15IsCeraPointItemEm
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE19_M_get_Tp_allocatorEv
+_ZSt22__copy_move_backward_aILb0EPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeES7_ET1_T0_S9_S8_
+_ZN25Inter_MultiMailBoxReqSendC2Ev
+_ZSt8_DestroyIP15SIG_LETTER_INFOEvT_S2_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE9push_backERKS6_
+_ZN19DB_MailBox_Req_SendC1Ev
+_ZTI22Inter_MailBox_Req_Send
+_ZNSt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEED1Ev
+_ZN25DB_Multi_MailBox_Req_SendD1Ev
+_ZN34DisPatcher_ReturnToSelectCharacterC2Ev
+_ZN8WongWork10CSimpleSSO19updateSSOExpireTimeEjj
+_ZTS23stChangeLetterStatParam
+_ZTV23stChangeLetterStatParam
+_ZTI31Inter_ReqQueryCharacInfoMailbox
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEE5frontEv
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EEC2Ev
+_ZNKSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEE5emptyEv
+_ZN6Stream12GetOutBufferI37SIG_MAILBOX_SEND_NEW_MAIL_WITH_DBWORKEEPT_v
+_ZNK8WongWork8CMailBox5CMail15isAvatarPackageEv
+_Z13isUnlimitMailPK16SIG_MAILBOX_LISTi
+_ZNKSt6vectorI15SIG_LETTER_INFOSaIS0_EE4sizeEv
+_ZN8WongWork8CMailBox11GetRecvSizeEv
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE3endEv
+_ZN8WongWork14CMailBoxHelper16ReqDBSendNewMailEP5CUserP16MSG_MAILBOX_SENDjbji
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EEC1Ev
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE10deallocateEPS7_j
+_ZSt22__copy_move_backward_aILb0EPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeES8_ET1_T0_SA_S9_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EED1Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE4findERS1_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE7_S_leftEPSt18_Rb_tree_node_base
+_ZSt7forwardIRKSt4pairIKjPN8WongWork8CMailBox5CMailEEEOT_ONSt8identityIS9_E4typeE
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC2Ev
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC2Ev
+_ZN6Stream11GetInBufferI37SIG_MAILBOX_SEND_NEW_MAIL_WITH_DBWORKEEPT_v
+_ZN23Dispatcher_MailBox_OpenD0Ev
+_ZN22Inter_ChangeLetterStatC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE15_M_destroy_nodeEPSt13_Rb_tree_nodeIS6_E
+_ZSt7forwardI15SIG_LETTER_INFOEOT_ONSt8identityIS1_E4typeE
+_ZTS28DB_MailBox_Req_CheckReceiver
+_ZN27Dispatcher_ChangeLetterStatD2Ev
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EEC1Ev
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeC2Ev
+_ZN8WongWork14CMailBoxHelper10GetPackegeEP5CUserj
+_ZN8WongWork8CMailBox5resetEv
+_ZN8WongWork8CMailBoxD2Ev
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE12dispatch_sigEP5CUserR9PacketBuf
+_ZN27Dispatcher_ChangeLetterStat7processEP5CUserR8MSG_BASER9ParamBase
+_ZN34DisPatcher_ReturnToSelectCharacterD0Ev
+_ZN33Dispatcher_QueryCharacInfoMailbox12dispatch_sigEP5CUserR9PacketBuf
+_ZN8WongWork14CMailBoxHelper13g_MailBoxPoolE
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_S_valueEPKSt18_Rb_tree_node_base
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EED2Ev
+_ZN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEC1ERKS2_
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeD2Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE17_M_reallocate_mapEjb
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKjPN8WongWork8CMailBox5CMailEEEbEC1IS7_bEEOT_OT0_
+_ZN5CUser20set_MultimailMsgDataEP22MSG_MULTI_MAILBOX_SEND
+_ZTV28DB_ReqQueryCharacInfoMailbox
+_ZN8WongWork14CMailBoxHelper14SetMailBoxInfoEP5CUserPK16SIG_MAILBOX_LIST
+_ZNSt11__copy_moveILb1ELb1ESt26random_access_iterator_tagE8__copy_mI15SIG_LETTER_INFOEEPT_PKS4_S7_S5_
+_ZN8WongWork8CMailBox16incMailLoadCountEv
+_ZNKSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE5emptyEv
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE15_M_create_nodesEPPS5_S9_
+_ZN27Dispatcher_MultiMailBoxSendC1Ev
+_ZNSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEmmEv
+_ZN6Stream12GetOutBufferI34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAILEEPT_v
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE5eraseESt17_Rb_tree_iteratorIS5_E
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_M_eraseEPSt13_Rb_tree_nodeIS3_E
+_ZN8WongWork8CMailBox17stAddNewMailInputC1Ev
+_ZTV18stMailboxOpenParam
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC1EOS7_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE11_Deque_implC1Ev
+_ZN21stMailboxExtractParamC1Ev
+_ZN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEC2ERKS2_
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC1EPSt13_Rb_tree_nodeIS6_E
+_ZN22Inter_ReplyGuildLetterD1Ev
+_ZN23Dispatcher_MailBox_Send7processEP5CUserR8MSG_BASER9ParamBase
+_ZN6Stream12GetOutBufferI25SIG_MAILBOX_SEND_NEW_MAILEEPT_v
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EE5eraseEN9__gnu_cxx17__normal_iteratorIPS0_S2_EE
+_ZN8WongWork14CMailBoxHelper21_DoGetPackageCreatureEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+_ZTV17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EED2Ev
+_ZNKSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE4sizeEv
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED1Ev
+_ZN33Dispatcher_QueryCharacInfoMailboxD0Ev
+_ZNSt4pairIjPN8WongWork8CMailBox5CMailEEC2IRKjRS3_EEOT_OT0_
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EED1Ev
+_ZN25Inter_MultiMailBoxReqSendD2Ev
+_ZN23stChangeLetterStatParamD0Ev
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EED2Ev
+_ZTS22Inter_ChangeLetterStat
+_ZN28DB_ReqQueryCharacInfoMailboxD1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE16_M_allocate_nodeEv
+_ZN25DB_Multi_MailBox_Req_SendD2Ev
+_ZSt4moveIRPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEONSt16remove_referenceIT_E4typeEOS8_
+_ZN19DB_ChangeLetterStatD0Ev
+_ZTI31DB_MailBoxSendNewMailWithDBWork
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EEC2Ev
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EEC2Ev
+_ZTV22Inter_ChangeLetterStat
+_ZN19DB_ChangeLetterStatC1Ev
+_ZNK8WongWork8CMailBox5CMail9GetPeriodEv
+_ZN21DB_MailBox_Req_DeleteD2Ev
+_ZNSaISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEED2Ev
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOED1Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED2Ev
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EEC1Ev
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE11check_stateEP5CUserR9PacketBuf
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE11_Deque_implD2Ev
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED2Ev
+_ZSt13copy_backwardIPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeES8_ET0_T_SA_S9_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE13_Rb_tree_implISA_Lb0EED1Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE5beginEv
+_ZN19DB_MailBox_Req_SendD0Ev
+_ZTV28DB_MailBox_Req_CheckReceiver
+_ZTS31Inter_ReqQueryCharacInfoMailbox
+_ZN26Dispatcher_MailBox_Extract7processEP5CUserR8MSG_BASER9ParamBase
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EEC2Ev
+_ZTI27Dispatcher_ChangeLetterStat
+_ZNSt20__copy_move_backwardILb0ELb1ESt26random_access_iterator_tagE13__copy_move_bI15SIG_LETTER_INFOEEPT_PKS4_S7_S5_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE9push_backEOS6_
+_ZTV22Inter_MailBox_Req_Send
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE7_S_leftEPSt18_Rb_tree_node_base
+_ZN23stChangeLetterStatParamD1Ev
+_ZN8WongWork14CMailBoxHelper11FreeMailBoxEPNS_8CMailBoxE
+_ZN8WongWork8CMailBox5CMail4InitEv
+_ZN22Inter_ReplyGuildLetterC1Ev
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_E11_M_set_nodeEPS7_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEE3popEv
+_ZSt16__introsort_loopIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEiPFbRKS2_S9_EEvT_SC_T0_T1_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE11_Deque_implC2ERKS6_
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC1ERKSt17_Rb_tree_iteratorIS6_E
+_ZN25DB_Multi_MailBox_Req_Send8dispatchEiiP6Stream
+_ZN8WongWork14CMailBoxHelper22ReqDBSendNewAvatarMailEP5CUseriiiccPKcS4_i
+_ZN10CTitleBook17deleteTimeoutItemERKSt6vectorISt4pairIiiESaIS2_EE
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED1Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EED1Ev
+_ZNK9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE8max_sizeEv
+_ZN12CStreamGuard11GetInBufferI26SIG_MAILBOX_CHECK_RECEIVEREEPT_v
+_ZNKSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE4findERS1_
+_ZSt8__medianI15SIG_LETTER_INFOPFbRKS0_S2_EERKT_S7_S7_S7_T0_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEEC1EOS9_
+_ZN25Inter_MultiMailBoxReqSendD1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE17_M_deallocate_mapEPPS5_j
+_ZN18stMailboxSendParamD1Ev
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEE3popEv
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EED1Ev
+_ZTI18stMailboxSendParam
+_ZSteqIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_EbRKSt15_Deque_iteratorIT_T0_T1_ESE_
+_ZN19DB_MailBox_Req_SendD2Ev
+_ZN8WongWork14CMailBoxHelper27ReqDBSendNewSystemMultiMailEPKcPK10Inven_ItemjjjS2_ij17ENUM_SERVER_GROUPb
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOE9constructEPS1_RKS1_
+_ZTI27Dispatcher_MultiMailBoxSend
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE6_M_endEv
+_ZN5CUser10GetMailBoxEv
+_ZN6Stream12GetOutBufferI16SIG_MAILBOX_LISTEEPT_v
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE11check_stateEP5CUserR9PacketBuf
+_ZN31Inter_MailBox_Req_CheckReceiverC1Ev
+_ZNKSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE4sizeEv
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE4findERS1_
+_ZN8WongWork14CMailBoxHelper18ReqDBCheckReceiverEP5CUserPKcP23MSG_CHECK_MAIL_RECEIVER
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_S_rightEPKSt18_Rb_tree_node_base
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE12_Vector_implC2Ev
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+_ZN22Inter_ChangeLetterStatD1Ev
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC1IS5_EERKSaIT_E
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE14_M_create_nodeIIRKS6_EEEPSt13_Rb_tree_nodeIS6_EDpOT_
+_ZNKSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_M_beginEv
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EED2Ev
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEEC2EOS8_
+_ZN19DB_MailBox_Req_SendD1Ev
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEi
+_ZNKSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEE4sizeEv
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEED1Ev
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEEC1Ev
+_ZN28DB_ReqQueryCharacInfoMailboxC1Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE11_M_leftmostEv
+_ZTI23stChangeLetterStatParam
+_ZNSt13move_iteratorIP15SIG_LETTER_INFOEC2ES1_
+_ZSt8_DestroyIP15SIG_LETTER_INFOS0_EvT_S2_RSaIT0_E
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EEC1Ev
+_ZN8WongWork14CMailBoxHelper14_DoSendNewMailEP5CUserRK10Inven_ItemjjbPKcii
+_ZNK9UserQuest19get_mail_quest_infoERSt4listIiSaIiEERK18stSelectQuestParam
+_ZN15cUserHistoryLog8SendMailEP16MSG_MAILBOX_SENDj
+_ZN8WongWork8CMailBox4InitEv
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC2IS5_EERKSaIT_E
+_ZTS31Inter_MailBox_Req_CheckReceiver
+_ZNSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEC2EPSt13_Rb_tree_nodeIS3_E
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_EC2ERKS9_
+_ZTI19DB_ChangeLetterStat
+_ZNSt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEC1IIRKS6_EEEDpOT_
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE4sendEP5CUserR9ParamBase
+_ZNKSt10_Select1stISt4pairIKj15SIG_LETTER_INFOEEclERKS3_
+_ZTI17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC2EOS7_
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EED2Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE11_Deque_implD2Ev
+_ZN8WongWork8CMailBox5CMail12ResetPackageEv
+_ZN21stMailboxExtractParamD0Ev
+_ZN8WongWork8CMailBoxC1Ev
+_ZNSt12__niter_baseIP15SIG_LETTER_INFOLb0EE3__bES1_
+_ZTI19DB_MailBox_Req_List
+_ZNSt13move_iteratorIP15SIG_LETTER_INFOEC1ES1_
+_ZTI33Dispatcher_QueryCharacInfoMailbox
+_ZN8WongWork14CMailBoxHelper25MakeSystemMultiMailPostalERSt6vectorISt4pairIiiESaIS3_EEP10Inven_Itemj
+_ZN8WongWork14CMailBoxHelper13AssignMailBoxEv
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKj15SIG_LETTER_INFOEEbEC1IRS4_bEEOT_OT0_
+_ZTV18stMailboxSendParam
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EED2Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE17_M_initialize_mapEj
+_ZN8WongWork14CMailBoxHelper16CheckMailTimeoutEP5CUserP11PacketGuard
+_ZNKSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE19_M_get_Tp_allocatorEv
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EED1Ev
+_ZSt25__unguarded_linear_insertIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES2_PFbRKS2_S9_EEvT_T0_T1_
+_ZN8WongWork14CMailBoxHelper24ReqDBSendNewMailCashShopEP5CUserRK10Inven_ItemjjbPKci
+_ZN32DB_MailBox_Req_System_Multi_MailD1Ev
+_ZN12CAchievement16_getPostalRewardEP14stTitleSection
+_ZN14stRewardPostalC1Ev
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EEC2Ev
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EED1Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE9constructIIS7_EEEvPS7_DpOT_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE11_M_put_nodeEPSt13_Rb_tree_nodeIS6_E
+_ZN22Inter_MailBox_Req_SendD1Ev
+_ZSt14__copy_move_a2ILb1EN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES7_ET1_T0_S9_S8_
+_ZN9__gnu_cxxmiIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEENS_17__normal_iteratorIT_T0_E15difference_typeERKS9_SC_
+_ZN33Dispatcher_QueryCharacInfoMailboxC1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC2EOS8_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC2EOS8_
+_ZTI32DB_MailBox_Req_System_Multi_Mail
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE6_S_keyEPKSt13_Rb_tree_nodeIS6_E
+_ZN29DB_UpdateReturnUserFirstLogin11makeRequestEjii
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC2ERKS5_
+_ZN21DB_MailBox_Req_DeleteD0Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE11_Deque_implD1Ev
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKj15SIG_LETTER_INFOEEbEC1IS4_bEEOT_OT0_
+_ZN8WongWork8CMailBox12SetLoadStateEbl
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE9push_backEOS5_
+_ZN28DB_MailBox_Req_CheckReceiverC1Ev
+_ZTS18stMailboxSendParam
+_ZN12CStreamGuard11GetInBufferI16SIG_MAILBOX_LISTEEPT_v
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeC1Ev
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EED0Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE14_M_create_nodeIIRKS3_EEEPSt13_Rb_tree_nodeIS3_EDpOT_
+_ZN31DB_MailBoxSendNewMailWithDBWorkD1Ev
+_ZN28DB_ReqQueryCharacInfoMailboxD2Ev
+_ZN21stMailboxExtractParamD1Ev
+_ZN8WongWork8CMailBox21DeleteLetterKeepCountEj
+_ZN29DB_UpdateReturnUserFirstLoginC2Ev
+_ZNK8WongWork8CMailBox5CMail10getMailIdxEv
+_ZTV25Inter_MultiMailBoxReqSend
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKj15SIG_LETTER_INFOEEbEC2IRS4_bEEOT_OT0_
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKjPN8WongWork8CMailBox5CMailEEEbEC2IRS7_bEEOT_OT0_
+_ZNSaISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEEC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE21_M_get_Node_allocatorEv
+_ZN31Inter_MailBox_Req_CheckReceiver12dispatch_sigEP5CUserPci
+_ZN23Dispatcher_MailBox_Open11check_errorEP5CUserR8MSG_BASE
+_ZN28DB_MailBox_Req_CheckReceiverC2Ev
+_ZN8WongWork14CMailBoxHelper17_makeSendMailDataEP25SIG_MAILBOX_SEND_NEW_MAILPKciRK10Inven_ItemjjS4_iji
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEEC2EOS9_
+_ZN33Dispatcher_QueryCharacInfoMailboxC2Ev
+_ZN8WongWork8CMailBox20DecLoadedLetterCountEv
+_ZNK8WongWork8CMailBox5CMail17GetSenderCharacNoEv
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC1Ev
+_ZN27Dispatcher_ChangeLetterStat11check_errorEP5CUserR8MSG_BASE
+_ZSt23__copy_move_backward_a2ILb0EN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES7_ET1_T0_S9_S8_
+_Z16DoChangeMailListP16SIG_MAILBOX_LISTPji
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE12dispatch_sigEP5CUserR9PacketBuf
+_ZTS22Inter_MailBox_Req_List
+_ZTV22Inter_ReplyGuildLetter
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE16_M_pop_front_auxEv
+_ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEneERKS7_
+_ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEeqERKS7_
+_ZNSt4pairIKj15SIG_LETTER_INFOEC1IjS1_EEOS_IT_T0_E
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE17dispatch_templateEP5CUserR9PacketBuf
+_ZTV17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE
+_ZNSt11__copy_moveILb0ELb1ESt26random_access_iterator_tagE8__copy_mIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEEPT_PKSA_SD_SB_
+_ZTI17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE
+_ZN19DB_MailBox_Req_Send10sendResultEiii17ENUM_SERVER_GROUP
+_ZN27Dispatcher_MultiMailBoxSendD1Ev
+_ZTS27Dispatcher_ChangeLetterStat
+_ZN18stMailboxOpenParamC1Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE6_S_keyEPKSt18_Rb_tree_node_base
+_ZN17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE11check_stateEP5CUserR9PacketBuf
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_EC2Ev
+_ZNSaISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEED1Ev
+_ZTS21stMailboxExtractParam
+_ZN8WongWork8CMailBox14GetLastLoadIdxEv
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEED2Ev
+_ZNK9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEmiERKi
+_ZN8WongWork8CMailBox19FindPackageLoadLackEj
+_ZN8WongWork10CSimpleSSO19updateSSOExpireTimeEjRKNS0_23stUpdateSSOExpireTime_tE
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE5beginEv
+_ZTV19DB_MailBox_Req_List
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE16_M_destroy_nodesEPPS5_S9_
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_S_rightEPSt18_Rb_tree_node_base
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE9push_backERKS5_
+_Z18CompareLetterIndexRK15SIG_LETTER_INFOS1_
+_ZN8WongWork8CMailBox15setMailIteratorEv
+_ZN8WongWork14CMailBoxHelper17_DoGetPackageCoinEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+_Z20ArrangeMailAndLetterP16SIG_MAILBOX_LISTRSt6vectorI15SIG_LETTER_INFOSaIS2_EEiS5_
+_ZSt4swapISt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS6_PS6_EEvRT_SB_
+_ZN6Stream11GetInBufferI34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAILEEPT_v
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE6_S_keyEPKSt18_Rb_tree_node_base
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEED2Ev
+_ZNK8WongWork8CMailBox16getMailLoadCountEv
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EE9push_backERKS0_
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC2IS4_EERKSaIT_E
+_ZN31Inter_ReqQueryCharacInfoMailboxD2Ev
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_E14_S_buffer_sizeEv
+_ZNSaISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEEC1Ev
+_ZSt4moveIRSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS7_EEEONSt16remove_referenceIT_E4typeEOSC_
+_ZSt13copy_backwardIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES7_ET0_T_S9_S8_
+_ZN19DB_MailBox_Req_Send14insertMailDataEP5MySQLPK25SIG_MAILBOX_SEND_NEW_MAIL
+_ZN25Inter_MultiMailBoxReqSendD0Ev
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EE4FreeEPS1_
+_ZN31DB_MailBoxSendNewMailWithDBWork8dispatchEiiP6Stream
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE13_M_deallocateEPS0_j
+_ZSt14__copy_move_a2ILb0EPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeES7_ET1_T0_S9_S8_
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKjPN8WongWork8CMailBox5CMailEEEbEC2IS7_bEEOT_OT0_
+_ZSt7forwardIRPN8WongWork8CMailBox5CMailEEOT_ONSt8identityIS5_E4typeE
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEE9constructIIRKS8_EEEvPS9_DpOT_
+_ZN22Inter_ChangeLetterStatC1Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE5beginEv
+_ZSt4swapISt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS7_PS7_EEvRT_SC_
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE8allocateEjPKv
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEE5frontEv
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEmmEv
+_ZNKSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE19_M_get_Tp_allocatorEv
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOE8allocateEjPKv
+_ZN21DB_MailBox_Req_Delete8dispatchEiiP6Stream
+_ZNKSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE3endEv
+_ZNSt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEED2Ev
+_ZTS32DB_MailBox_Req_System_Multi_Mail
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5eraseESt17_Rb_tree_iteratorIS8_E
+_ZN27Dispatcher_ChangeLetterStatC2Ev
+_ZNK9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEE8max_sizeEv
+_ZTI28DB_ReqQueryCharacInfoMailbox
+_ZTV31Inter_MailBox_Req_CheckReceiver
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE12emplace_backIIS6_EEEvDpOT_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EED1Ev
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEEC2Ev
+_ZN19DB_MailBox_Req_List15setCreatureDataEP5MySQLjPjP16SIG_MAILBOX_LIST
+_ZNKSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE4sizeEv
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE13_Rb_tree_implISA_Lb0EEC2Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC2ERKS8_
+_ZN32DB_MailBox_Req_System_Multi_MailC1Ev
+_ZNKSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE20_M_get_map_allocatorEv
+_ZN18stMailboxSendParamD0Ev
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC1EPKSt13_Rb_tree_nodeIS6_E
+_ZTS17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE
+_ZNSt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEC1IIRKS3_EEEDpOT_
+_ZN31Inter_MailBox_Req_CheckReceiver15SendErrorPacketEP5CUser14ENUM_CMDPACKETt
+_ZNSaISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEEC2Ev
+_ZN21DB_MailBox_Req_DeleteC1Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE13_Rb_tree_implIS7_Lb0EE13_M_initializeEv
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_S_valueEPKSt13_Rb_tree_nodeIS3_E
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE4sendEP5CUserR9ParamBase
+_ZSt7forwardIRKPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEOT_ONSt8identityIS9_E4typeE
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE11check_stateEP5CUserR9PacketBuf
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE16_M_push_back_auxIIRKS5_EEEvDpOT_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE15_M_allocate_mapEj
+_ZN28DB_MailBox_Req_CheckReceiverD2Ev
+_ZN34DisPatcher_ReturnToSelectCharacterD1Ev
+_ZTS17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE
+_ZN31DB_MailBoxSendNewMailWithDBWorkC2Ev
+_ZSt22__uninitialized_move_aIP15SIG_LETTER_INFOS1_SaIS0_EET0_T_S4_S3_RT1_
+_ZN21stMailboxExtractParamC2Ev
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEE4pushEOS5_
+_ZN22Inter_MailBox_Req_Send12dispatch_sigEP5CUserPci
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE16_M_push_back_auxIIS6_EEEvDpOT_
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEE8allocateEjPKv
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEE7destroyEPS6_
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEE10deallocateEPS6_j
+_Z25ArrangeMailAndLetterIndexP16SIG_MAILBOX_LISTRSt6vectorI15SIG_LETTER_INFOSaIS2_EEiS5_
+_ZN19DB_MailBox_Req_ListD2Ev
+_ZNSt6vectorI22SPremiumReturnItemInfoSaIS0_EE13_M_insert_auxIIRKS0_EEEvN9__gnu_cxx17__normal_iteratorIPS0_S2_EEDpOT_
+_ZSt13__heap_selectIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_SC_T0_
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE9constructIIS6_EEEvPS6_DpOT_
+_ZN28DB_ReqQueryCharacInfoMailbox11_sendResultEiiPKciiiii
+_ZSt4moveIRPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEONSt16remove_referenceIT_E4typeEOS9_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EED2Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC2Ev
+_ZN31Inter_MailBox_Req_CheckReceiverD2Ev
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEED2Ev
+_ZTS17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE
+_ZN8WongWork8CMailBox13GetRemainSizeEv
+_ZNSt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEED1Ev
+_ZN25DB_Multi_MailBox_Req_SendD0Ev
+_Z11PrintLetter15SIG_LETTER_INFO
+_ZN27Dispatcher_MultiMailBoxSend4readER9PacketBufR8MSG_BASE
+_ZTS27Dispatcher_MultiMailBoxSend
+_ZSt9make_pairIRKjRK15SIG_LETTER_INFOESt4pairINSt17__decay_and_stripIT_E6__typeENS6_IT0_E6__typeEEOS7_OSA_
+_ZSt9make_heapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_T0_
+_ZN33Dispatcher_QueryCharacInfoMailboxD1Ev
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEED1Ev
+_ZSt7forwardIRK15SIG_LETTER_INFOEOT_ONSt8identityIS3_E4typeE
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEE8allocateEjPKv
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE11_M_leftmostEv
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE13_Rb_tree_implISA_Lb0EEC1Ev
+_ZN34DisPatcher_ReturnToSelectCharacter7processEP5CUserR8MSG_BASER9ParamBase
+_Z16GetOnlyMailCountP16SIG_MAILBOX_LIST
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE9constructEPS6_RKS6_
+_ZTI23Dispatcher_MailBox_Send
+_ZNKSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_EdeEv
+_ZTV32DB_MailBox_Req_System_Multi_Mail
+_ZTV21stMailboxExtractParam
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEEC1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE9pop_frontEv
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeD1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE5frontEv
+_ZN8WongWork8CMailBox20ClearLetterKeepCountEv
+_ZN31Inter_MailBox_Req_CheckReceiver21SendDBThread_forchinaEP5CUserP26SIG_MAILBOX_CHECK_RECEIVER
+_ZN9QuestList17select_mail_questERSt4listIiSaIiEERKN8WongWork11CQuestClearERK18stSelectQuestParam
+_ZSt7forwardIRSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEEOT_ONSt8identityIS7_E4typeE
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EED1Ev
+_ZN8WongWork14CMailBoxHelper17_DoGetPackageItemEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+_ZN28DB_MailBox_Req_CheckReceiverD1Ev
+_ZNKSt6vectorI15SIG_LETTER_INFOSaIS0_EE14_M_range_checkEj
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EED2Ev
+_ZN8WongWork14CMailBoxHelper24ReqDBSendNewCreatureMailEP5CUseriRK10Inven_ItemPKci
+_ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEptEv
+_ZN18stMailboxOpenParamD2Ev
+_ZNK8WongWork8CMailBox5CMail13GetSenderNameEv
+_ZN8WongWork8CMailBox20SetLoadedLetterCountEi
+_ZN31DB_MailBoxSendNewMailWithDBWorkD2Ev
+_ZTI22Inter_ChangeLetterStat
+_ZN8APSystem9CUserProc27GetTodayRewardAndSendPostalEP5CUserNS_22_SIG_LOAD_ACTION_POINT16_TodayRewardItemE
+_ZSt13__copy_move_aILb0EPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeES8_ET1_T0_SA_S9_
+_ZTS23Dispatcher_MailBox_Send
+_ZTS26Dispatcher_MailBox_Extract
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE3endEv
+_ZTI22Inter_MailBox_Req_List
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE13_Rb_tree_implISA_Lb0EED2Ev
+_ZTV19DB_MailBox_Req_Send
+_ZNSt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEC2IIRKS3_EEEDpOT_
+_ZTS22Inter_ReplyGuildLetter
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EED0Ev
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEEC1Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE10deallocateEPS7_j
+_ZN23Dispatcher_MailBox_Send4sendEP5CUserR9ParamBase
+_ZN8WongWork8CMailBox5CMailD1Ev
+_ZN27Dispatcher_ChangeLetterStatC1Ev
+_ZSt26__unguarded_insertion_sortIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_T0_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE21_M_get_Node_allocatorEv
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC1ERKS6_
+_ZSt4moveIRPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEONSt16remove_referenceIT_E4typeEOSA_
+_ZNSt20__uninitialized_copyILb1EE18uninitialized_copyISt13move_iteratorIP15SIG_LETTER_INFOES4_EET0_T_S7_S6_
+_ZNSaISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEED2Ev
+_ZN12PostalRewardaSERKS_
+_ZN25Inter_MultiMailBoxReqSendC1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE19_M_get_Tp_allocatorEv
+_ZN26Dispatcher_MailBox_ExtractD1Ev
+_ZTI19DB_MailBox_Req_Send
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC1Ev
+_Z23FindLastLetterIndexMailP16SIG_MAILBOX_LISTi
+_ZN23MSG_CHECK_MAIL_RECEIVER3setILNS_22ENUM_MAILBOX_CHECKTYPEE1E21MSG_BUY_CERASHOP_ITEMEEvRKT0_
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE10deallocateEPS8_j
+_ZSt7forwardIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEOT_ONSt8identityIS6_E4typeE
+_ZN25Inter_MultiMailBoxReqSend12dispatch_sigEP5CUserPci
+_ZSt13__copy_move_aILb0EPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeES7_ET1_T0_S9_S8_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEE4pushERKS6_
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE5clearEv
+_ZN22Inter_ChangeLetterStatD0Ev
+_ZTV33Dispatcher_QueryCharacInfoMailbox
+_Z17IsContainedLetterP16SIG_MAILBOX_LISTi
+_ZN27Dispatcher_MultiMailBoxSendD2Ev
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE8allocateEjPKv
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EED2Ev
+_ZSt22__final_insertion_sortIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_T0_
+_ZNSaISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEEC1Ev
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EEC2Ev
+_ZTI21stMailboxExtractParam
+_ZTS28DB_ReqQueryCharacInfoMailbox
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED2Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC1ERKS8_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE16_M_allocate_nodeEv
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EE5beginEv
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE6_S_keyEPKSt13_Rb_tree_nodeIS3_E
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEE9constructIIRKS5_EEEvPS6_DpOT_
+_ZSt4sortIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_T0_
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC2Ev
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEED2Ev
+_ZN22Inter_MailBox_Req_ListD0Ev
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EEC1Ev
+_ZN19DB_ChangeLetterStatC2Ev
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EEC1Ev
+_ZN22Inter_ReplyGuildLetter12dispatch_sigEP5CUserPci
+_ZN8WongWork14CMailBoxHelper15ReqDBRemoveMailEPK5CUserPjb
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE12_M_rightmostEv
+_ZN32DB_MailBox_Req_System_Multi_Mail10sendResultEi17ENUM_SERVER_GROUP
+_ZN22Inter_ReplyGuildLetterD0Ev
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EED0Ev
+_ZN32DB_MailBox_Req_System_Multi_MailC2Ev
+_ZNSt12__miter_baseIP15SIG_LETTER_INFOLb0EE3__bES1_
+_ZSt9iter_swapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES7_EvT_T0_
+_ZTS29DB_UpdateReturnUserFirstLogin
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKjPN8WongWork8CMailBox5CMailEEEbEC1IRS7_bEEOT_OT0_
+_ZNK8WongWork8CMailBox5CMail14GetPackageItemEv
+_ZSt12partial_sortIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_SC_T0_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE14_M_lower_boundEPSt13_Rb_tree_nodeIS6_ESF_RS1_
+_ZSt7forwardIRKPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEOT_ONSt8identityIS8_E4typeE
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE15_M_allocate_mapEj
+_ZN25DB_Multi_MailBox_Req_SendC1Ev
+_ZTI17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE
+_ZNSt6vectorISt4pairIN27PurchaseCashItemBonusScript17PurchaseBonusRuleE15Action_SendMailESaIS4_EE13_M_insert_auxIIS4_EEEvN9__gnu_cxx17__normal_iteratorIPS4_S6_EEDpOT_
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_EC2Ev
+_ZN8WongWork14CMailBoxHelper16ReqDBSendNewMailEP5CUserRK10Inven_ItemjjbPKci
+_ZN23Dispatcher_MailBox_Open4readER9PacketBufR8MSG_BASE
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_EC1ERKS9_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE11_Deque_implC2Ev
+_ZN29DB_UpdateReturnUserFirstLoginD2Ev
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE6RemainEv
+_ZN8WongWork8CMailBox10RemoveMailEj
+_ZN27Dispatcher_ChangeLetterStat4sendEP5CUserR9ParamBase
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEED2Ev
+_ZSt23__copy_move_backward_a2ILb1EP15SIG_LETTER_INFOS1_ET1_T0_S3_S2_
+_ZStmiIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_ENSt15_Deque_iteratorIT_T0_T1_E15difference_typeERKSD_SG_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE18_M_deallocate_nodeEPS5_
+_ZN31Inter_ReqQueryCharacInfoMailbox12dispatch_sigEP5CUserPci
+_ZNSt4pairIj15SIG_LETTER_INFOEC1ERKjRKS0_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE5beginEv
+_ZN6Stream12GetOutBufferI15SIG_LETTER_STATEEPT_v
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE7destroyEPS6_
+_ZTS25DB_Multi_MailBox_Req_Send
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE13_Rb_tree_implIS7_Lb0EED1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC1EOS7_
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED1Ev
+_ZN8WongWork14CMailBoxHelper22ReqDBSendNewSystemMailEPKcRK10Inven_ItemjjS2_ij17ENUM_SERVER_GROUPbb
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC1ERKS7_
+_ZNKSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+_ZN9__gnu_cxxeqIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE12emplace_backIIS5_EEEvDpOT_
+_ZTS19DB_MailBox_Req_List
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeC1Ev
+_ZN31Inter_MailBox_Req_CheckReceiverC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_S_rightEPSt18_Rb_tree_node_base
+_ZN22Inter_MailBox_Req_ListD1Ev
+_ZNKSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE6_M_endEv
+_ZNKSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE14_M_lower_boundEPKSt13_Rb_tree_nodeIS6_ESG_RS1_
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE9constructEPS7_RKS7_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEED1Ev
+_ZN23Dispatcher_MailBox_SendD1Ev
+_ZN12PostalRewardC1ERKS_
+_ZTI25Inter_MultiMailBoxReqSend
+_ZTV23Dispatcher_MailBox_Send
+_ZTV21DB_MailBox_Req_Delete
+_ZSt4moveIRPN8WongWork8CMailBox5CMailEEONSt16remove_referenceIT_E4typeEOS6_
+_ZNK8WongWork8CMailBox5CMail10IsTimeOverEl
+_ZTV17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE
+_ZNKSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE19_M_get_Tp_allocatorEv
+_ZN27Dispatcher_ChangeLetterStat4readER9PacketBufR8MSG_BASE
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC2Ev
+_ZN19DB_MailBox_Req_List8dispatchEiiP6Stream
+_ZN23Dispatcher_MailBox_Send4readER9PacketBufR8MSG_BASE
+_ZNSt6vectorISt4pairIS_IjSaIjEE15Action_SendMailESaIS4_EE13_M_insert_auxIIS4_EEEvN9__gnu_cxx17__normal_iteratorIPS4_S6_EEDpOT_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE7_S_leftEPKSt18_Rb_tree_node_base
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE4FreeEPS2_
+_ZTI22Inter_ReplyGuildLetter
+_ZN34DisPatcher_ReturnToSelectCharacterD2Ev
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EEC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_S_valueEPKSt18_Rb_tree_node_base
+_ZSt11__push_heapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEiS2_PFbRKS2_S9_EEvT_T0_SD_T1_T2_
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE16_M_insert_uniqueERKS3_
+_ZN23Dispatcher_MailBox_Open7processEP5CUserR8MSG_BASER9ParamBase
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED2Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED2Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_S_valueEPKSt13_Rb_tree_nodeIS6_E
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC1ERKS5_
+_ZNK9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE8max_sizeEv
+_ZTI34DisPatcher_ReturnToSelectCharacter
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE8allocateEjPKv
+_ZNK9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOE8max_sizeEv
+_ZN23Dispatcher_MailBox_SendC1Ev
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EEixEj
+_ZN21stMailboxExtractParamD2Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE3endEv
+_ZN27Dispatcher_MultiMailBoxSendD0Ev
+_ZSt18uninitialized_copyISt13move_iteratorIP15SIG_LETTER_INFOES2_ET0_T_S5_S4_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEED2Ev
+_ZN15SIG_LETTER_INFOD1Ev
+_ZN8WongWork8CMailBox8IsLoadedEv
+_ZTI25DB_Multi_MailBox_Req_Send
+_ZTI17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE
+_ZN32DB_MailBox_Req_System_Multi_MailD2Ev
+_ZSt22__copy_move_backward_aILb0EP15SIG_LETTER_INFOS1_ET1_T0_S3_S2_
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2EPSt13_Rb_tree_nodeIS6_E
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EED1Ev
+_ZN31Inter_ReqQueryCharacInfoMailboxD0Ev
+_ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEneERKS4_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE5frontEv
+_ZN8WongWork8CMailBox5CMailC1Ev
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED1Ev
+_ZN5CUser15set_MailMsgDataEP16MSG_MAILBOX_SEND
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE7_M_rootEv
+_ZN22Inter_MailBox_Req_ListC1Ev
+_ZN8WongWork14CMailBoxHelper19ReqChangeLetterStatEP5CUserii
+_ZTI31Inter_MailBox_Req_CheckReceiver
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE17_M_initialize_mapEj
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EED2Ev
+_ZN27Dispatcher_MultiMailBoxSendC2Ev
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC1Ev
+_ZN25DB_Multi_MailBox_Req_SendC2Ev
+_ZTS19DB_ChangeLetterStat
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE13_Rb_tree_implIS7_Lb0EEC2Ev
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC1IS4_EERKSaIT_E
+_ZN23Dispatcher_MailBox_SendD2Ev
+_ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEptEv
+_ZN22Inter_MailBox_Req_SendD0Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE10_M_insert_EPKSt18_Rb_tree_node_baseSF_RKS6_
+_ZSt16__insertion_sortIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEEPFbRKS2_S9_EEvT_SC_T0_
+_ZTS17IPacketDispatcherI24MSG_MAILBOX_EXTRACT_ITEM21stMailboxExtractParamL8ch_state0EE
+_ZN28DB_ReqQueryCharacInfoMailboxD0Ev
+_ZTS23Dispatcher_MailBox_Open
+_ZN15SIG_LETTER_INFOD2Ev
+_ZTI23Dispatcher_MailBox_Open
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5beginEv
+_ZN8WongWork14CMailBoxHelper13ReqDBLoadMailEP5CUserj
+_Z13CompareLetterRK15SIG_LETTER_INFOS1_
+_ZTV29DB_UpdateReturnUserFirstLogin
+_ZTV31Inter_ReqQueryCharacInfoMailbox
+_ZNSaI15SIG_LETTER_INFOEC2Ev
+_ZN8WongWork8CMailBox5CMailC2Ev
+_ZN12CStreamGuard11GetInBufferI34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAILEEPT_v
+_ZN8WongWork8CMailBox5CMail11GetLetterIdEv
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE8allocateEjPKv
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE16_M_insert_uniqueERKS6_
+_ZN23Dispatcher_MailBox_Send11check_errorEP5CUserR8MSG_BASE
+_ZNSt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2Ev
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2EPKSt13_Rb_tree_nodeIS6_E
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_EC1Ev
+_ZN31SIG_POSTAL_CREATURE_TEMP_PERIODC1Ev
+_ZN23Dispatcher_MailBox_SendC2Ev
+_ZNSt20__copy_move_backwardILb0ELb1ESt26random_access_iterator_tagE13__copy_move_bIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEEPT_PKSA_SD_SB_
+_ZN22Inter_MailBox_Req_ListC2Ev
+_ZNK8WongWork8CMailBox5CMail10MakePacketEP11PacketGuardlPK5CUser
+_ZN6Stream11GetInBufferI25SIG_MAILBOX_SEND_NEW_MAILEEPT_v
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOED2Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_M_eraseEPSt13_Rb_tree_nodeIS6_E
+_ZN23Dispatcher_MailBox_OpenD2Ev
+_ZN9__gnu_cxxneIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE11_M_get_nodeEv
+_ZN22Inter_MailBox_Req_SendD2Ev
+_ZTI28DB_MailBox_Req_CheckReceiver
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE8_M_beginEv
+_Z19FindLastOccTimeMailP16SIG_MAILBOX_LISTi
+_ZN19DB_MailBox_Req_Send8dispatchEiiP6Stream
+_ZN28DB_ReqQueryCharacInfoMailbox11makeRequestEiPKc
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE22_M_reserve_map_at_backEj
+_ZN8WongWork14CMailBoxHelper27ReqDBCheckReceiver_forchinaEP5CUserPKcP23MSG_CHECK_MAIL_RECEIVER
+_ZN31Inter_MailBox_Req_CheckReceiverD0Ev
+_ZNKSt13move_iteratorIP15SIG_LETTER_INFOE4baseEv
+_ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEneERKS7_
+_ZNSt11__iter_swapILb1EE9iter_swapIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS4_SaIS4_EEEES9_EEvT_T0_
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEE10deallocateEPS6_j
+_ZNSt20__copy_move_backwardILb0ELb1ESt26random_access_iterator_tagE13__copy_move_bIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEEPT_PKSB_SE_SC_
+_ZNSaIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEED2Ev
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOE7destroyEPS1_
+_ZTV25DB_Multi_MailBox_Req_Send
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_EC2ERKS8_
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE14_M_lower_boundEPSt13_Rb_tree_nodeIS3_ESC_RS1_
+_ZN26Dispatcher_MailBox_Extract11check_errorEP5CUserR8MSG_BASE
+_ZSteqIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_EbRKSt15_Deque_iteratorIT_T0_T1_ESF_
+_ZN26Dispatcher_MailBox_Extract4readER9PacketBufR8MSG_BASE
+_ZN8WongWork8CMailBox21InsertLetterKeepCountEj
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC1Ev
+_ZN18stMailboxOpenParamD0Ev
+_ZN6Stream12GetOutBufferI26SIG_MAILBOX_CHECK_RECEIVEREEPT_v
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE5eraseESt17_Rb_tree_iteratorIS3_E
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE4sendEP5CUserR9ParamBase
+_ZN19DB_ChangeLetterStat11makeRequestEiiiii
+_ZNK8WongWork8CMailBox7GetMailEj
+_ZN31Inter_ReqQueryCharacInfoMailboxC2Ev
+_ZSt22__uninitialized_copy_aISt13move_iteratorIP15SIG_LETTER_INFOES2_S1_ET0_T_S5_S4_RSaIT1_E
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED1Ev
+_ZN34DisPatcher_ReturnToSelectCharacterC1Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE3endEv
+_ZN28DB_MailBox_Req_CheckReceiver8dispatchEiiP6Stream
+_ZNSt4pairIKjPN8WongWork8CMailBox5CMailEEC2IjS4_EEOS_IT_T0_E
+_ZN23Dispatcher_MailBox_SendD0Ev
+_ZN8WongWork8CMailBox11getNextMailEv
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE12_Vector_implD1Ev
+_ZSt7forwardISt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS6_EEEOT_ONSt8identityIS9_E4typeE
+_ZSt4moveIRSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS6_PS6_EEONSt16remove_referenceIT_E4typeEOSC_
+_ZN27Dispatcher_ChangeLetterStatD0Ev
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_EC1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC2Ev
+_ZSt4moveIRSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS7_PS7_EEONSt16remove_referenceIT_E4typeEOSD_
+_ZN31Inter_MailBox_Req_CheckReceiverD1Ev
+_ZNKSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_EdeEv
+_ZN6Stream11GetInBufferI15SIG_LETTER_STATEEPT_v
+_ZNKSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE3endEv
+_ZN33Dispatcher_QueryCharacInfoMailboxD2Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE15_M_destroy_dataESt15_Deque_iteratorIS6_RS6_PS6_ESC_RKS7_
+_ZSt4swapI15SIG_LETTER_INFOEvRT_S2_
+_ZTS31DB_MailBoxSendNewMailWithDBWork
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE12dispatch_sigEP5CUserR9PacketBuf
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE13_Rb_tree_implIS7_Lb0EEC1Ev
+_ZN12CStreamGuard11GetInBufferI37SIG_MAILBOX_SEND_NEW_MAIL_WITH_DBWORKEEPT_v
+_ZN12CStreamGuard11GetInBufferI15SIG_LETTER_STATEEPT_v
+_ZNSt12__niter_baseIPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeELb0EE3__bES8_
+_ZNSt4pairIKj15SIG_LETTER_INFOEC2IjS1_EEOS_IT_T0_E
+_ZNKSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE5emptyEv
+_ZN12CStreamGuard11GetInBufferI20SIG_MAILBOX_DEL_MAILEEPT_v
+_ZN12PostalReward5clearEv
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE6insertERKS8_
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EEC2Ev
+_ZSt4swapIPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEvRT_SA_
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEEC2Ev
+_ZNKSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEeqERKS7_
+_ZN22Inter_MailBox_Req_SendC1Ev
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EE13_M_insert_auxIIRKS0_EEEvN9__gnu_cxx17__normal_iteratorIPS0_S2_EEDpOT_
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_E14_S_buffer_sizeEv
+_ZN14stRewardPostalC2Ev
+_ZN17IPacketDispatcherI22MSG_CHANGE_LETTER_STAT23stChangeLetterStatParamL8ch_state3EE17dispatch_templateEP5CUserR9PacketBuf
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEE10deallocateEPS9_j
+_ZN8WongWork8CMailBox20SetLastLoadLetterIdxEj
+_ZN22Inter_ChangeLetterStat12dispatch_sigEP5CUserPci
+_ZN28DB_ReqQueryCharacInfoMailboxC2Ev
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EEC2Ev
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEE7destroyEPS9_
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE5clearEv
+_ZSt9make_pairIRKjRPN8WongWork8CMailBox5CMailEESt4pairINSt17__decay_and_stripIT_E6__typeENS8_IT0_E6__typeEEOS9_OSC_
+_ZNK9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEE4baseEv
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE15_M_destroy_dataESt15_Deque_iteratorIS5_RS5_PS5_ESB_RKS6_
+_ZNK8WongWork8CMailBox5CMail17isCreaturePackageEv
+_ZNSaI15SIG_LETTER_INFOED2Ev
+_ZN23MSG_CHECK_MAIL_RECEIVER3setILNS_22ENUM_MAILBOX_CHECKTYPEE0E16MSG_MAILBOX_SENDEEvRKT0_
+_ZNSt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2IIRKS6_EEEDpOT_
+_ZN18stMailboxSendParamD2Ev
+_ZN8WongWork8CMailBox20GetLoadedLetterCountEv
+_ZSt4swapIPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEvRT_S9_
+_ZN29DB_UpdateReturnUserFirstLoginD0Ev
+_ZN23Dispatcher_MailBox_Send14GuildMailCheckEP5CUserR8MSG_BASE
+_ZN8WongWork14CMailBoxHelper13_DoGetPackageEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+_ZN19DB_MailBox_Req_Send12InsertLetterEP5MySQLiiPKcS3_Ril16ENUM_LETTER_STAT
+_ZSt4moveIRSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS6_EEEONSt16remove_referenceIT_E4typeEOSB_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE11_Deque_implC2ERKS7_
+_ZN8WongWork8CMailBoxC2Ev
+_ZN12CStreamGuard11GetInBufferI25SIG_MAILBOX_SEND_NEW_MAILEEPT_v
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE8_M_beginEv
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeEEC2ERKS7_
+_ZNSt12__miter_baseISt13move_iteratorIP15SIG_LETTER_INFOELb1EE3__bES3_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE16_M_destroy_nodesEPPS6_SA_
+_Z30importAvatarRouletteListDetailR14AvatarRouletteRSs17ENUM_CHARACTERJOB
+_ZNK8WongWork8CMailBox5CMail9isUnlimitEv
+_ZN22Inter_MailBox_Req_SendC2Ev
+_ZN31DB_MailBoxSendNewMailWithDBWorkD0Ev
+_ZTV26Dispatcher_MailBox_Extract
+_ZNSaISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEED1Ev
+_ZSt4moveIRPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEONSt16remove_referenceIT_E4typeEOSB_
+_ZN8WongWork8CMailBox21SetNotLoadedMailCountEi
+_ZN8WongWork14CMailBoxHelper21MakeMailBoxListPacketEP5CUserP11PacketGuard
+_ZTS34DisPatcher_ReturnToSelectCharacter
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC1Ev
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2ERKSt17_Rb_tree_iteratorIS6_E
+_ZTI29DB_UpdateReturnUserFirstLogin
+_ZNKSt6vectorI15SIG_LETTER_INFOSaIS0_EE12_M_check_lenEjPKc
+_ZN23Dispatcher_MailBox_Open4sendEP5CUserR9ParamBase
+_ZNKSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEE5emptyEv
+_ZSt7forwardIRKSt4pairIKj15SIG_LETTER_INFOEEOT_ONSt8identityIS6_E4typeE
+_ZN12PostalRewardC1Ev
+_ZTV17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE
+_ZN8WongWork8CMailBox18GetLetterKeepCountEv
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE11_Deque_implC2Ev
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE12_Vector_implC1Ev
+_ZSt4copyIPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeES7_ET0_T_S9_S8_
+_ZN8WongWork8CMailBoxD1Ev
+_ZN21DB_MailBox_Req_DeleteC2Ev
+_ZN18stMailboxSendParamC2Ev
+_ZNKSt10_Select1stISt4pairIKjPN8WongWork8CMailBox5CMailEEEclERKS6_
+_ZStneISt4pairIKjPN8WongWork8CMailBox5CMailEEEbRKSt17_Rb_tree_iteratorIT_ERKSt23_Rb_tree_const_iteratorIS8_E
+_ZNKSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEeqERKS4_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE17_M_deallocate_mapEPPS6_j
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEEC1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE19_M_get_Tp_allocatorEv
+_ZN9__gnu_cxxltIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_
+_ZN33Dispatcher_QueryCharacInfoMailbox7processEP5CUserR8MSG_BASER9ParamBase
+_ZNK9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE8max_sizeEv
+_ZN5CUser24ReturnToSelectCharacListEb
+_ZNSt8_Rb_treeIjSt4pairIKjPN8WongWork8CMailBox5CMailEESt10_Select1stIS6_ESt4lessIjESaIS6_EE5eraseESt17_Rb_tree_iteratorIS6_E
+_ZNKSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE4findERS7_
+_ZN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE7AcquireEv
+_ZN32DB_MailBox_Req_System_Multi_Mail13_InsertPostalEP5MySQLP34SIG_MAILBOX_SEND_SYSTEM_MULTI_MAIL
+_ZNSt12__miter_baseIPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeELb0EE3__bES7_
+_ZNK8WongWork8CMailBox5CMail15GetPackageMoneyEv
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESt5dequeIS6_SaIS6_EEE4pushEOS6_
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEED1Ev
+_ZTV23Dispatcher_MailBox_Open
+_ZN8WongWork8CMailBox20GetLastLoadLetterIdxEv
+_ZTV22Inter_MailBox_Req_List
+_ZNK9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEEE8max_sizeEv
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE11_M_get_nodeEv
+_ZTS18stMailboxOpenParam
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EED0Ev
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeERS5_PS5_EC1ERKS8_
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE4findERS4_
+_ZTS25Inter_MultiMailBoxReqSend
+_ZN26Dispatcher_MailBox_Extract4sendEP5CUserR9ParamBase
+_ZN19DB_ChangeLetterStatD1Ev
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EE7AcquireEv
+_ZN22Inter_ChangeLetterStatD2Ev
+_Z24RemoveMailByLatestLetterP16SIG_MAILBOX_LISTi
+_ZN19DB_MailBox_Req_ListC1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE17_M_reallocate_mapEjb
+_ZSt7forwardISt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEEOT_ONSt8identityIS6_E4typeE
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EEC2Ev
+_ZTI21DB_MailBox_Req_Delete
+_ZN27Dispatcher_MultiMailBoxSend7processEP5CUserR8MSG_BASER9ParamBase
+_ZN27Dispatcher_MultiMailBoxSend12dispatch_sigEP5CUserR9PacketBuf
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC1EOS8_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEE4pushERKS5_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE9pop_frontEv
+_ZTS22Inter_MailBox_Req_Send
+_ZTV27Dispatcher_ChangeLetterStat
+_ZN8WongWork14CMailBoxHelper19ReqDBSendStoredMailEP5CUser
+_ZSt4copyIPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeES8_ET0_T_SA_S9_
+_ZN22Inter_ReplyGuildLetterC2Ev
+_ZN23stChangeLetterStatParamD2Ev
+_ZNK23DeleteInvalidItemScript11GetMailInfoERSsS0_
+_ZSt7forwardISt17_Rb_tree_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEEOT_ONSt8identityIS9_E4typeE
+_ZN33Dispatcher_QueryCharacInfoMailbox4readER9PacketBufR8MSG_BASE
+_ZN9__gnu_cxx13new_allocatorISt13_Rb_tree_nodeISt4pairIKjPN8WongWork8CMailBox5CMailEEEED1Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEE7destroyEPS7_
+_ZN19DB_ChangeLetterStat8dispatchEiiP6Stream
+_ZN29DB_UpdateReturnUserFirstLogin8dispatchEiiP6Stream
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE13_Rb_tree_implIS7_Lb0EED2Ev
+_ZN9__gnu_cxx13new_allocatorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED1Ev
+_ZN8WongWork8CMailBox18SetPackageLoadLackEPKjiRSt3setIjSt4lessIjESaIjEE
+_ZN26Dispatcher_MailBox_ExtractC1Ev
+_ZNSt15_Deque_iteratorIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeERS6_PS6_E11_M_set_nodeEPS8_
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EE2atEj
+_ZSt4moveIR15SIG_LETTER_INFOEONSt16remove_referenceIT_E4typeEOS3_
+_ZSt4moveIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES7_ET0_T_S9_S8_
+_ZSt18make_move_iteratorIP15SIG_LETTER_INFOESt13move_iteratorIT_ERKS3_
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE5clearEv
+_ZN31Inter_ReqQueryCharacInfoMailboxD1Ev
+_ZN8WongWork8CMailBox21GetNotLoadedMailCountEv
+_ZN19DB_MailBox_Req_SendC2Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE22_M_reserve_map_at_backEj
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EE15_M_destroy_nodeEPSt13_Rb_tree_nodeIS3_E
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EED1Ev
+_ZSt13move_backwardIP15SIG_LETTER_INFOS1_ET0_T_S3_S2_
+_ZNSt13_Rb_tree_nodeISt4pairIKj15SIG_LETTER_INFOEED2Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EED2Ev
+_ZN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEppEv
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE11_Deque_implC1ERKS6_
+_ZN9__gnu_cxx13new_allocatorI15SIG_LETTER_INFOEC2Ev
+_ZNK9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEdeEv
+_ZSt21__unguarded_partitionIN9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS2_SaIS2_EEEES2_PFbRKS2_S9_EET_SC_SC_T0_T1_
+_ZNSaI15SIG_LETTER_INFOEC1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE16_M_pop_front_auxEv
+_ZN19DB_MailBox_Req_ListC2Ev
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE11_M_allocateEj
+_ZN28DB_ReqQueryCharacInfoMailbox8dispatchEiiP6Stream
+_ZN27Dispatcher_ChangeLetterStatD1Ev
+_ZN11eventReward16sendPostalRewardER5CUser9rewardKeyiPKcS4_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EE16_M_push_back_auxIIRKS6_EEEvDpOT_
+_ZN12PostalRewardD2Ev
+_Z21RemoveMailByMailIndexP16SIG_MAILBOX_LISTi
+_ZNK9__gnu_cxx17__normal_iteratorIP15SIG_LETTER_INFOSt6vectorIS1_SaIS1_EEEplERKi
+_ZN18stMailboxSendParamC1Ev
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EED2Ev
+_ZN12CAchievement11_sendPostalEiiSsSs
+_ZN8WongWork14CMailBoxHelper19_DoGetPackageAvatarEP5CUserPKNS_8CMailBox5CMailERSt6vectorISt4pairIiiESaIS9_EEbR10ENUM_ERROR
+_ZN8WongWork8CMailBox5CMailD2Ev
+_ZNSt6vectorISt4pairIN19ObjectBringUpScript17ObjectBringUpRuleE15Action_SendMailESaIS4_EE13_M_insert_auxIIS4_EEEvN9__gnu_cxx17__normal_iteratorIPS4_S6_EEDpOT_
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC2EOS7_
+_ZN8WongWork8CMailBox17stAddNewMailInputC2Ev
+_ZN6Stream12GetOutBufferI20SIG_MAILBOX_DEL_MAILEEPT_v
+_ZN32DB_MailBox_Req_System_Multi_Mail8dispatchEiiP6Stream
+_ZNSt12__niter_baseIPPPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeELb0EE3__bES7_
+_ZNSt5queueIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESt5dequeIS5_SaIS5_EEED1Ev
+_ZNSt4pairISt17_Rb_tree_iteratorIS_IKj15SIG_LETTER_INFOEEbEC2IS4_bEEOT_OT0_
+_ZNSt12__miter_baseIPPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeELb0EE3__bES8_
+_ZNSaI15SIG_LETTER_INFOED1Ev
+_ZNSt17_Rb_tree_iteratorISt4pairIKj15SIG_LETTER_INFOEEC1EPSt13_Rb_tree_nodeIS3_E
+_ZNSt3mapIjPN8WongWork8CMailBox5CMailESt4lessIjESaISt4pairIKjS3_EEE4findERS7_
+_ZNSaIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEEC2ERKS6_
+_ZNSt8_Rb_treeIjSt4pairIKj15SIG_LETTER_INFOESt10_Select1stIS3_ESt4lessIjESaIS3_EED1Ev
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EEC1Ev
+_ZN23Dispatcher_MailBox_OpenD1Ev
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EE17dispatch_templateEP5CUserR9PacketBuf
+_ZTS19DB_MailBox_Req_Send
+_ZN31DB_MailBoxSendNewMailWithDBWorkC1Ev
+_ZN29DB_UpdateReturnUserFirstLoginC1Ev
+_ZN8WongWork8CMailBox18GetPackageLoadLackEPjj
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EED1Ev
+_ZN17IPacketDispatcherI16MSG_MAILBOX_SEND18stMailboxSendParamL8ch_state0EE12dispatch_sigEP5CUserR9PacketBuf
+_ZN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeD2Ev
+_ZN23Dispatcher_MailBox_OpenC2Ev
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEC2Ev
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EE3endEv
+_ZTV34DisPatcher_ReturnToSelectCharacter
+_ZNSt23_Rb_tree_const_iteratorISt4pairIKjPN8WongWork8CMailBox5CMailEEEppEv
+_ZNSt4pairIjPN8WongWork8CMailBox5CMailEEC1IRKjRS3_EEOT_OT0_
+_ZN31SIG_POSTAL_CREATURE_TEMP_PERIODC2Ev
+_ZN23MSG_CHECK_MAIL_RECEIVER3setILNS_22ENUM_MAILBOX_CHECKTYPEE2E22MSG_MULTI_MAILBOX_SENDEEvRKT0_
+_ZN17IPacketDispatcherI8MSG_BASE18stMailboxOpenParamL8ch_state0EEC1Ev
+_ZTI18stMailboxOpenParam
+_ZNSt12_Vector_baseI15SIG_LETTER_INFOSaIS0_EE12_Vector_implD2Ev
+_ZNSt6vectorI15SIG_LETTER_INFOSaIS0_EEC1Ev
+_ZN21DB_MailBox_Req_DeleteD1Ev
+_ZNSt3mapIj15SIG_LETTER_INFOSt4lessIjESaISt4pairIKjS0_EEE6insertERKS5_
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE11_Deque_implD1Ev
+_ZTV27Dispatcher_MultiMailBoxSend
+_ZN19DB_MailBox_Req_ListD1Ev
+_ZNSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeESaIS6_EEC1EOS8_
+_ZN9__gnu_cxx13new_allocatorIPPN10StaticPoolIN8WongWork8CMailBox5CMailELi20EE5CNodeEED2Ev
+_ZNKSt11_Deque_baseIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE20_M_get_map_allocatorEv
+_ZN13user_creature12CCreatureMgr22LoadCreatureTempPeriodEP31SIG_POSTAL_CREATURE_TEMP_PERIOD
+_ZNSt5dequeIPN10StaticPoolIN8WongWork8CMailBoxELi600EE5CNodeESaIS5_EE16_M_push_back_auxIIS5_EEEvDpOT_
+_ZN29DB_UpdateReturnUserFirstLoginD1Ev
