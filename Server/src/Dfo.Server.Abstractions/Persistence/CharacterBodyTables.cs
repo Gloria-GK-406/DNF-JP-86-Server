@@ -176,6 +176,8 @@ public interface ICharacterPvpTable
 /// <summary>The <c>character_settings</c> table.</summary>
 public interface ICharacterSettingsTable
 {
+    ValueTask SaveOptionAsync(CharacterId characterId, byte[] body, CancellationToken cancellationToken);
+
     ValueTask<CharacterSettingsRow?> FindAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 

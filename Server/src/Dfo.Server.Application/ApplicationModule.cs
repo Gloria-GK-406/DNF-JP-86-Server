@@ -299,6 +299,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
         services.TryAddSingleton<ICharacterSkillResetRuleService, CharacterSkillResetRuleService>();
         services.TryAddSingleton<ICharacterCareerDomainService, CharacterCareerDomainService>();
+        services.TryAddSingleton<ICharacterOptionsDomainService, CharacterOptionsDomainService>();
         services.TryAddSingleton<ICharacterSkillLearningDomainService, CharacterSkillLearningDomainService>();
         services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();
         services.TryAddSingleton<

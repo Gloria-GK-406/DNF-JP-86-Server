@@ -668,3 +668,7 @@ CMD001B mode1双倍显示/发奖、CMD0040购买后036F slot1刷新、每日累�
 - [NOTI 0x000E](game/server-to-client/NOTI-0x000E.md)：最后一瓶遗忘河之水消耗后立即清槽，用户实机验收通过。
 
 上述具体路径标记 ClientVerified；未扩展到其他材料或容器场景。
+
+### 2026-09-24 角色设置原样持久化（过渡态）
+
+[CMD 0x01C0](game/client-to-server/0x01C0.md) 接入角色设置 blob 保存，NOTI 0187 登录回放。实现及自动化验证完成，待实机验收；内部逐字段语义解析由 [#129](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/129) 跟踪。

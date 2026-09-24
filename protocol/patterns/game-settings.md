@@ -236,3 +236,7 @@ GamePacketEnvelopeBuilder.Build(0x00, 0x01C7, BuildHotkeyOptionBody(keyType, acc
 
 这个技巧在 [`0x0001`](../game/server-to-client/CMD-0x0001.md) 判定 host 数组长度时也用过
 （`0x94C + 260×2 = 0xB54`），可以当成通用手法：**先找相邻成员，用偏移差反推数组上界**。
+
+## 2026-09-24 当前实现补记（覆盖上方历史状态表）
+
+CMD 01C0 已增加 516B 严格解码与角色级原样持久化，现有 NOTI 0187 在选角色时回放同一完整 blob。C5 目前有接收日志但不持久化；其他设置族不因本次修改而视为完成。原样存取仅为过渡态，逐字段语义解析见 [issue #129](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/129)。帮助页重复显示是否由此修复尚待实测。

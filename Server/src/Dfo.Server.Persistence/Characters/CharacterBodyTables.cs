@@ -187,6 +187,16 @@ internal sealed partial class SqliteCharacterPvpTable
 /// <summary>The <c>character_settings</c> table, written.</summary>
 internal sealed partial class SqliteCharacterSettingsTable
 {
+    public async ValueTask SaveOptionAsync(CharacterId characterId, byte[] body, CancellationToken ct)
+    {
+        if (body.Length != 516 || System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body) != 512)
+            throw new ArgumentException("A21 character options require a 512-byte payload.", nameof(body));
+        _ = await database.ExecuteAsync(
+            "INSERT INTO character_settings(character_id,character_option_blob) VALUES(@id,@body) "
+            + "ON CONFLICT(character_id) DO UPDATE SET character_option_blob=excluded.character_option_blob",
+            p => { p.AddWithValue("@id",characterId.Value); p.AddWithValue("@body",body); }, ct);
+    }
+
     public async ValueTask InsertIfAbsentAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         _ = await database.ExecuteAsync(
