@@ -31,7 +31,7 @@ internal sealed class LearnSkillMessageDecoder : IGameMessageDecoder
 
     // A21 RVA 01034D10 -> 00026A20, documented with image hash in protocol/0x001D.
     // MD5 is a wire compatibility checksum, not an authentication primitive.
-    private static bool HasValidChecksum(ReadOnlySpan<byte> body, ReadOnlySpan<byte> checksum)
+    internal static bool HasValidChecksum(ReadOnlySpan<byte> body, ReadOnlySpan<byte> checksum)
     {
         Span<byte> md5 = stackalloc byte[16];
         MD5.HashData(body, md5);

@@ -23,6 +23,26 @@ internal sealed class CharacterSkillLearningDomainService(
     IPremiumServiceRuleService premiumRules, ICharacterContainerDomainService containers,
     IOpeningInventoryDomainService inventory, ICharacterSkillResetRuleService resetRules, TimeProvider clock) : ICharacterSkillLearningDomainService
 {
+    public async ValueTask<bool> SwapSlotsAsync(SelectedSessionIdentity session, int pageIndex, int first, int second, CancellationToken ct)
+    {
+        if (transactions.Current is null) throw new InvalidOperationException("Skill slot changes require a transaction.");
+        if (pageIndex < 0 || first is < 0 or > 203 || second is < 0 or > 203
+            || sessions.Find(session.AccountId) != session
+            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
+            || online is not { State: OnlineUserState.CharacterActive } || online.AccountId != session.AccountId
+            || online.CurrentCharacterId != session.CharacterId
+            || await characters.FindOwnerAsync(session.CharacterId, ct) != session.AccountId) return false;
+        var view = await currentViews.TryLoadAsync(session, ct);
+        if (view is null || view.World.Channel.PvpSkillProfileApplies) return false;
+        var builds = await state.BuildsAsync(session.CharacterId, ct);
+        if (builds.Active.Value != pageIndex || !builds.IsUnlocked(new(pageIndex))) return false;
+        var rows = await skills.ReadLevelsAsync(session.CharacterId, ct);
+        if (rows.Any(r => r.PageIndex == pageIndex && r.Slot < 0)
+            || !rows.Any(r => r.PageIndex == pageIndex && (r.Slot == first || r.Slot == second))) return false;
+        await skills.SwapSlotsAsync(session.CharacterId, pageIndex, first, second, ct);
+        return true;
+    }
+
     public async ValueTask<int?> SwitchAsync(SelectedSessionIdentity session, int expectedCurrent, int target, CancellationToken ct)
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill switching requires a transaction.");

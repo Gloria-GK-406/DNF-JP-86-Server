@@ -185,6 +185,8 @@ public sealed record CharacterSkillEntryRow(
 /// </remarks>
 public interface ICharacterSkillTable
 {
+    ValueTask SwapSlotsAsync(CharacterId characterId, int pageIndex, int first, int second, CancellationToken cancellationToken);
+
     /// <summary>Every ordinary skill the character has, and at what level.</summary>
     ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
         CharacterId characterId, CancellationToken cancellationToken);

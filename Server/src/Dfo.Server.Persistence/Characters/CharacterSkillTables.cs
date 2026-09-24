@@ -24,6 +24,21 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
     /// </remarks>
     private const int ExtraValuesBound = 1024;
 
+    // Called under the command transaction. UPDATE preserves level and custom command bytes.
+    public async ValueTask SwapSlotsAsync(CharacterId characterId, int pageIndex, int first, int second, CancellationToken ct)
+    {
+        if (first == second) return;
+        if (first is < 0 or > 203 || second is < 0 or > 203) throw new ArgumentOutOfRangeException(nameof(first));
+        // A temporary out-of-wire slot avoids the immediate SQLite unique-key check.
+        await Move(first, -1);
+        await Move(second, first);
+        await Move(-1, second);
+        async ValueTask Move(int from, int to) => _ = await database.ExecuteAsync(
+            "UPDATE character_skills SET slot=@to WHERE character_id=@cid AND mode='pve' AND page_index=@page AND slot=@from",
+            p => { p.AddWithValue("@cid", characterId.Value); p.AddWithValue("@page", pageIndex); p.AddWithValue("@from", from); p.AddWithValue("@to", to); }, ct);
+    }
+
+
     public ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(

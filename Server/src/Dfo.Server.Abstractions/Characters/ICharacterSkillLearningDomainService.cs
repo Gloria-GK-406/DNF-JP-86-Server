@@ -5,6 +5,8 @@ namespace Dfo.Server.Abstractions.Characters;
 
 public interface ICharacterSkillLearningDomainService
 {
+    ValueTask<bool> SwapSlotsAsync(SelectedSessionIdentity session, int pageIndex, int first, int second, CancellationToken cancellationToken);
+
     ValueTask<int?> SwitchAsync(SelectedSessionIdentity session, int expectedCurrent, int target, CancellationToken cancellationToken);
     // The caller holds the online-user and account execution gates and an ambient transaction.
     ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session, int pageIndex,

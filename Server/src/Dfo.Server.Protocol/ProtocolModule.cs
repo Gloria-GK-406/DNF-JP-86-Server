@@ -323,6 +323,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ChangeSkillSlotCommand, bool, ChangeSkillSlotCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<ChangeSkillSlotHandler>(ClientMessageType.GameChangeSkillSlot);
+        services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);
+        services.AddGameCmdMessageEncoder<ChangeSkillSlotResponse, ChangeSkillSlotEncoder>();
         services.AddCommandHandler<SwitchSkillBuildCommand, SwitchSkillBuildResponse, SwitchSkillBuildCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.RegisterMessageHandler<SwitchSkillBuildHandler>(ClientMessageType.GameSwitchSkillBuild);
         services.AddGameCmdMessageDecoder<SwitchSkillBuildDecoder>(0x0104, ClientMessageType.GameSwitchSkillBuild);

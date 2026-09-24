@@ -244,6 +244,8 @@ public sealed class RemainingSkillPointTests
     /// </remarks>
     private sealed class OneLearnedSkill : ICharacterSkillTable
     {
+        public ValueTask SwapSlotsAsync(CharacterId c, int p, int a, int b, CancellationToken ct) => throw new NotSupportedException();
+
         public ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadEntryAsync(
             CharacterId characterId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<CharacterSkillEntryRow>>(
