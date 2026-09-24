@@ -47,6 +47,7 @@ public sealed class PersistenceModule : IServerModule
         // puts the file in shape.
         services.TryAddSingleton(provider => new SqliteDatabase(
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<INoticeStateTable, Dfo.Server.Persistence.Notices.NoticeStateTable>();
         services.TryAddSingleton<IAccountTable>(
             provider => new SqliteAccountTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IAuthenticationPersistence, SqliteAuthenticationPersistence>();

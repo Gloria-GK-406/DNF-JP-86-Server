@@ -75,7 +75,7 @@ NOTI	0x0185	g2:8	卡片记录尾部保留 u16（上游恒写 0）	High	上游 Ne
 NOTI	0x0185	g3:0	卡片奖励的物品 ID（金币奖励时写 0）；与 g2 同为卡片类型循环产生的记录	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:97 WriteInt32(reward.IsGold ? 0 : reward.ItemId)，外层按 CardTypeCount=2 循环
 NOTI	0x0185	g3:4	金币奖励时为金币数量 GoldAmount，物品奖励时为堆叠数 StackCount	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:98-100 WriteInt32(reward.IsGold ? reward.GoldAmount : reward.StackCount)
 NOTI	0x0185	g3:8	卡片记录尾部保留 u16（上游恒写 0）	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:101 WriteUInt16(0)
-CMD	0x01DE	0	副本场景唯一 ID（上游取低 16 位存为 Player.DungeonSceneUniqueId，为 0 时忽略）	Confirmed	上游 Network/Handlers/DungeonHandler.cs:249-255 BitConverter.ToUInt32(body, 0) & 0xFFFF；派发见 Network/Protocol/GameProtocolHandler.cs:941
+CMD	0x01DE	0	第一组已看过提示编号 noticeId（0..127；8=技能帮助）	Confirmed	A21 ClientStatic VA 013AB430 插入提示集合后发 CMD01DE；013D8936 查询8；Skillshop_Tip_R.img 资源及实帧08000000复核，撤回参照服副本场景ID语义
 CMD	0x00EE	0	配方物品 ID recipeItemId（上游校验 > 0）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobCompoundRequest.cs:14,17 BitConverter.ToInt32(body, 0)；消费见 Network/Handlers/ExpertJobCompoundHandler.cs:171
 CMD	0x00EE	4	请求合成数量 requestedCount（上游校验 != 0）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobCompoundRequest.cs:15,17 BitConverter.ToUInt16(body, 4)
 CMD	0x00EE	6	卡片槽位下标 cardSlotIndex（int16，上游校验 >= -1，-1 表示不使用卡片）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobCompoundRequest.cs:16,17 BitConverter.ToInt16(body, 6)

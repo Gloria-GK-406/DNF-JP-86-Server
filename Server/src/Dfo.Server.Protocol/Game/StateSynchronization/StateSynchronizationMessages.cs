@@ -244,11 +244,11 @@ internal sealed record CharacterOptionStateMessage(byte[]? OptionBitmap) : GameS
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeCharacterOption(OptionBitmap);
 }
 
-internal sealed record GrowthWeaponStateMessage(
-    IReadOnlyList<byte> Stages) : GameStateSynchronizationMessage, IGameNotiMessage
+internal sealed record SecondaryNoticeStateMessage(
+    IReadOnlyList<byte> NoticeIds) : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x01B9;
-    internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeGrowthWeapon(Stages);
+    internal override byte[] EncodeBody() => Dfo.Server.Protocol.Game.InformNotice.NoticeStateCodec.Encode(NoticeIds);
 }
 
 internal sealed record TitleBookStateMessage(
@@ -597,7 +597,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<ServerEventBaselineMessage>(services);
         AddNoti<DungeonPermissionStateMessage>(services);
         AddNoti<CharacterOptionStateMessage>(services);
-        AddNoti<GrowthWeaponStateMessage>(services);
+        AddNoti<SecondaryNoticeStateMessage>(services);
         AddNoti<TitleBookStateMessage>(services);
         AddNoti<AchievementStateMessage>(services);
         AddNoti<SkillPointSlotStateMessage>(services);

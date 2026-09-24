@@ -19,7 +19,10 @@ public sealed record AccountSettingsEntryState(
     byte[] QuickChatBank0,
     byte[] QuickChatBank1,
     byte HotkeyKeyType,
-    ushort? AccountHotkeySlot);
+    ushort? AccountHotkeySlot)
+{
+    public IReadOnlyList<byte> SeenNotices { get; init; } = [];
+}
 
 public sealed record AccountWalletEntryState(
     int Cera,

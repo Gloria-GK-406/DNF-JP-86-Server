@@ -129,7 +129,7 @@ public sealed class GameLoginHandler(
             new AuctionServiceStateNotice(0x00, Open: true),
             new AuctionServiceStateNotice(0x01, Open: true),
             new HonorLevelInfoNotice(AccountHonorLevel.Initial),
-            InformNoticeNotice.Empty,
+            new InformNoticeNotice(settings.SeenNotices),
         ];
     }
 

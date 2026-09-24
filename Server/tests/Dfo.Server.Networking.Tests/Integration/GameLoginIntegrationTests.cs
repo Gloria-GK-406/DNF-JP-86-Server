@@ -104,6 +104,12 @@ public sealed class GameLoginIntegrationTests
                     Assert.Equal(expectedType, BinaryPrimitives.ReadUInt16LittleEndian(state.AsSpan(1)));
                 }
 
+                // Real decoder -> command transaction -> seen-notice table. There is no ACK.
+                await client.GetStream().WriteAsync(EncodeClientFrame(1, 0x01DE, [8,0,0,0]), timeout.Token);
+                await client.GetStream().WriteAsync(EncodeClientFrame(1, 0x01DE, [8,0,0,0]), timeout.Token);
+                while (await ScalarAsync(databasePath, "SELECT COUNT(*) FROM notice_states WHERE owner_type=0 AND notice_group=0 AND notice_id=8;") != 1)
+                    await Task.Delay(10, timeout.Token);
+
                 // Returning from the roster itself is idempotent and preserves authentication.
                 await client.GetStream().WriteAsync(EncodeClientFrame(1, 7, []), timeout.Token);
                 var returned = await ReadFrameAsync(client.GetStream(), timeout.Token);
@@ -140,6 +146,23 @@ public sealed class GameLoginIntegrationTests
             await WaitUntilAsync(
                 () => !onlineUsers.TryGetByConnection(connectionId, out _),
                 timeout.Token);
+            // A new TCP login receives the saved set, rather than the previous empty baseline.
+            var reissued = await commands.SendAsync(
+                new AuthenticateAndIssueTicketCommand("10038", "integration password"), timeout.Token);
+            using (var reconnected = new TcpClient())
+            {
+                await reconnected.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                _ = await ReadFrameAsync(reconnected.GetStream(), timeout.Token);
+                await reconnected.GetStream().WriteAsync(EncodeClientFrame(1, 1,
+                    EncodeDStrings(reissued.MId!, reissued.Ticket!)), timeout.Token);
+                _ = await ReadFrameAsync(reconnected.GetStream(), timeout.Token);
+                foreach (var expectedType in new ushort[] { 0x00AD,0x01C7,0x00B7,0x00B7,0x0289,0x01A1 })
+                {
+                    var frame = await ReadFrameAsync(reconnected.GetStream(), timeout.Token);
+                    Assert.Equal(expectedType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+                    if (expectedType == 0x01A1) Assert.Equal(new byte[] { 1,8 }, frame[15..]);
+                }
+            }
             Assert.Equal(1L, await ScalarAsync(databasePath, "SELECT COUNT(*) FROM accounts;"));
             Assert.Equal(
                 0L,

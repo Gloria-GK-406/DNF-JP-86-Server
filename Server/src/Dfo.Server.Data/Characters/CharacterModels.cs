@@ -441,7 +441,10 @@ public sealed record CharacterProgressionEntryState(
 public sealed record CharacterSettingsEntryState(
     IReadOnlyList<ushort> HotkeySlots,
     byte[]? OptionBitmap,
-    long VisibilityBits);
+    long VisibilityBits)
+{
+    public IReadOnlyList<byte> SeenNotices { get; init; } = [];
+}
 
 public sealed record CharacterPetRuntimeState(
     long PetKey,

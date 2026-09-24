@@ -77,7 +77,7 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new HotkeyStateMessage(result.Account.Settings, result.CharacterEntry.Settings));
         messages.Add(new ServerEventBaselineMessage());
         messages.Add(new CharacterOptionStateMessage(result.CharacterEntry.Settings.OptionBitmap));
-        messages.Add(new GrowthWeaponStateMessage(result.CharacterEntry.Progression.GrowthWeaponStages));
+        messages.Add(new SecondaryNoticeStateMessage(result.CharacterEntry.Settings.SeenNotices));
         messages.Add(new SkillPointSlotStateMessage(result.CharacterEntry.Skills.SkillPointSlots));
         messages.Add(new ItemCooldownStateMessage(result.CharacterInventory.ItemValues.Cooldowns));
         messages.Add(new ItemEffectStateMessage(result.CharacterInventory.ItemValues.Effects));

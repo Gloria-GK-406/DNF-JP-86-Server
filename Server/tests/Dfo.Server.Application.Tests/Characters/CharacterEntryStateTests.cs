@@ -23,10 +23,11 @@ public sealed class CharacterEntryStateTests
             new CharacterProgressionEntryProjection(),
             new CharacterFeatureEntryProjection(),
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
-                new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }));
+                new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }), new Dfo.Server.Application.Tests.Support.NoticeStateStub());
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 
+        Assert.Equal(new byte[] { 15,16 }, result.Settings.SeenNotices);
         Assert.Equal(7, result.Public.Condition.Stamina);
         Assert.Equal(new CharacterPublicIdentityEntryState(8, 9, 10), result.Public.Identity);
         Assert.Equal(123, result.Public.DerivedStats.PhysicalAttack);

@@ -15,9 +15,10 @@ public sealed class AccountEntryStateTests
             new AccountSettingsEntryProjection(),
             new AccountWalletEntitlementEntryProjection(),
             new AccountProgressionEntryProjection(),
-            new AccountRelationCompatibilityEntryProjection());
+            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub());
 
         var result = await service.LoadAsync(accountId, CancellationToken.None);
+        Assert.Equal(new byte[] { 8 }, result.Settings.SeenNotices);
 
         Assert.Equal((ushort)0x1234, result.Settings.AccountHotkeySlot);
         Assert.Equal(2_147_483_647, result.Wallet.Cera);
@@ -41,7 +42,7 @@ public sealed class AccountEntryStateTests
             new AccountSettingsEntryProjection(),
             new AccountWalletEntitlementEntryProjection(),
             new AccountProgressionEntryProjection(),
-            new AccountRelationCompatibilityEntryProjection());
+            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await service.LoadAsync(new AccountId(71), CancellationToken.None));
@@ -89,7 +90,7 @@ public sealed class AccountEntryStateTests
             new AccountSettingsEntryProjection(),
             new AccountWalletEntitlementEntryProjection(),
             new AccountProgressionEntryProjection(),
-            new AccountRelationCompatibilityEntryProjection());
+            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await service.LoadAsync(accountId, CancellationToken.None));

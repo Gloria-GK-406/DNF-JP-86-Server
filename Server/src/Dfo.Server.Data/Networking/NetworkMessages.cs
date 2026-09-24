@@ -75,6 +75,8 @@ public enum ClientMessageType
     // The remaining map-entry report family: sent once the entry batch is accepted and the client
     // starts loading a town. None is answered. See Game/MapEntryReports.
     GameCeraQuery = 0x0001_003F,
+    // Persistent seen-notice sets, independent of the map-entry telemetry family.
+    GameNoticeSeen = 0x0001_01DE,
     GameInformNoticeSecond = 0x0001_01F8,
     GameSecurityStatus = 0x0001_0252,
     GameRuntimeTingStatistic = 0x0001_02B3,

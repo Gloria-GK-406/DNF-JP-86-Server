@@ -1,5 +1,15 @@
 # NOTI `0x01A1` `INFORM_NOTICE`
 
+## 2026-09-24 A21 修订：第一组已读提示全量回放
+
+body = u8 count + count × u8 noticeId；handler VA 0x0118B100 先清集合，再逐项插入。00 表示清空，不是无操作。登录定向发送当前账号记录。
+
+
+
+证据等级：ClientStatic（当前镜像 SHA-256 D7618A10…，VA 基址 0x00400000）；服务端已有编解码、持久化及 TCP 重登测试，**本次修复尚未实机验收**。账号/角色归属为用户确认的本服规则，不声称来自官方。
+
+完整证据与两组协议关系见[调查记录](../../../Document/outputs/notice-flags-20260924/investigation.md)。本修复不包含底部冒险团升级动画。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

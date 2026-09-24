@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Notices;
+using Dfo.Server.Data.Notices;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Characters;
@@ -262,7 +264,7 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterSkillQuestEntryProjection skillQuests,
     ICharacterProgressionEntryProjection progression,
     ICharacterFeatureEntryProjection features,
-    ICharacterDomainService characters) : ICharacterEntryStateDomainService
+    ICharacterDomainService characters, INoticeStateDomainService notices) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -301,7 +303,10 @@ internal sealed class CharacterEntryStateDomainService(
         return new CharacterEntryState(
             characterId,
             publicState,
-            profile.Settings,
+            profile.Settings with
+            {
+                SeenNotices = await notices.GetSeenAsync(NoticeOwner.ForCharacter(characterId), NoticeGroup.Secondary, cancellationToken),
+            },
             skillQuest.Skills,
             skillQuest.Quests,
             progression.Build(storage.Progression),

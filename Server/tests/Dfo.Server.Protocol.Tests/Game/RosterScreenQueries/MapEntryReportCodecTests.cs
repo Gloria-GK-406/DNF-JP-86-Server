@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MapEntryReports;
 

@@ -679,6 +679,7 @@ public sealed class SelectCharacterPayloadCodecTests
 
             var services = new ServiceCollection();
             services.AddSingleton(repository);
+            services.AddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService>(new Dfo.Server.Application.Tests.Support.NoticeStateStub());
             services.AddSingleton<ICharacterDomainService>(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
             services.AddSingleton<IQuestDefinitionSource>(new Row9QuestDefinitions(13502));
             // The quest rules read both declarations; nothing on this path asks what a quest pays.
@@ -977,7 +978,7 @@ internal static class SelectCharacterPayloadTestData
                 4,
                 5,
                 new CharacterPublicIdentityEntryState(6, 7, 8)),
-            new CharacterSettingsEntryState([1, 2], [9, 8], 4),
+            new CharacterSettingsEntryState([1, 2], [9, 8], 4) { SeenNotices = [1, 2] },
             new CharacterSkillsEntryState(
                 [new CharacterSkillPageState(0,
                     [new CharacterSkillState(1, 100, 2, [3])]), new CharacterSkillPageState(1, [])],

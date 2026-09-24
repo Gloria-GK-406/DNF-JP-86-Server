@@ -469,7 +469,11 @@ public sealed class ProtocolModule : IServerModule
 
         // One handler, the remaining wire keys in the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameInformNoticeSecond);
+        services.RegisterMessageHandler<NoticeSeenHandler>(ClientMessageType.GameInformNoticeSecond);
+        services.RegisterMessageHandler<NoticeSeenHandler>(ClientMessageType.GameNoticeSeen);
+        services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(0x01DE, ClientMessageType.GameNoticeSeen);
+        services.AddCommandHandler<MarkNoticeSeenCommand, bool, MarkNoticeSeenCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);

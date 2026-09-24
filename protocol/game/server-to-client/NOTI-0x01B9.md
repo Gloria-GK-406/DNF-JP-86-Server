@@ -1,5 +1,15 @@
 # NOTI `0x01B9` `INFORM_NOTICE_2ND`
 
+## 2026-09-24 A21 修订：第二组已读提示全量回放
+
+body = u8 count + count × u8 noticeId；handler VA 0x0118B160 清 manager+0x14 集合再插入。选角定向发送当前角色记录，包括空列表以隔离换角色状态。
+
+撤回服务端旧 GrowthWeaponStateMessage 命名及数据源；A21 此协议不是成长武器阶段。原有成长武器表不自动迁移成已读提示。
+
+证据等级：ClientStatic（当前镜像 SHA-256 D7618A10…，VA 基址 0x00400000）；服务端已有编解码、持久化及 TCP 重登测试，**本次修复尚未实机验收**。账号/角色归属为用户确认的本服规则，不声称来自官方。
+
+完整证据与两组协议关系见[调查记录](../../../Document/outputs/notice-flags-20260924/investigation.md)。本修复不包含底部冒险团升级动画。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

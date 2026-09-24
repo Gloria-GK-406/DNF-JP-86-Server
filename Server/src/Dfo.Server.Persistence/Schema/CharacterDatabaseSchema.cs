@@ -204,6 +204,13 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS notice_states (
+            owner_type INTEGER NOT NULL CHECK(owner_type IN (0,1)),
+            owner_id INTEGER NOT NULL CHECK(owner_id > 0),
+            notice_group INTEGER NOT NULL CHECK(notice_group IN (0,1)),
+            notice_id INTEGER NOT NULL CHECK(notice_id BETWEEN 0 AND 127),
+            PRIMARY KEY(owner_type,owner_id,notice_group,notice_id)
+        );
         CREATE TABLE IF NOT EXISTS npc_shop_purchase_counts (
             owner_scope TEXT NOT NULL CHECK(owner_scope IN ('account', 'character')),
             owner_id INTEGER NOT NULL CHECK(owner_id > 0),

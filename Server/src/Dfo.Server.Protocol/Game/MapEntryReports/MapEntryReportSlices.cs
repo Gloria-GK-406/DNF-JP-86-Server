@@ -48,14 +48,6 @@ internal static class MapEntryReportFamily
     }
 }
 
-/// <summary>CMD 0x01F8 <c>INFORM_NOTICE_2ND</c>: one <c>u32</c>, 16 in the capture.</summary>
-public sealed record InformNoticeSecondReport(
-    GameMessageMetadata Metadata,
-    uint Value) : IMapEntryReport
-{
-    public ClientMessageType MessageType => ClientMessageType.GameInformNoticeSecond;
-}
-
 /// <summary>CMD 0x003F <c>CERA</c>: an empty body. The type itself is the whole message.</summary>
 public sealed record CeraQueryReport(GameMessageMetadata Metadata) : IMapEntryReport
 {
@@ -83,16 +75,6 @@ public sealed record RuntimeTingStatisticReport(
     byte Value) : IMapEntryReport
 {
     public ClientMessageType MessageType => ClientMessageType.GameRuntimeTingStatistic;
-}
-
-internal sealed class InformNoticeSecondDecoder : IGameMessageDecoder
-{
-    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
-    {
-        MapEntryReportFamily.RequireExactly("INFORM_NOTICE_2ND", body, sizeof(uint));
-        return new InformNoticeSecondReport(
-            metadata, BinaryPrimitives.ReadUInt32LittleEndian(body));
-    }
 }
 
 internal sealed class CeraQueryDecoder : IGameMessageDecoder
@@ -147,7 +129,6 @@ public sealed class MapEntryReportHandler(
             context.Connection.ConnectionId, out var onlineUser) && onlineUser is not null;
         var detail = message switch
         {
-            InformNoticeSecondReport report => $"INFORM_NOTICE_2ND value={report.Value}",
             CeraQueryReport => "CERA (empty body)",
             RuntimeTingStatisticReport report => $"STATICS_RUNTIME_TING value={report.Value}",
             _ => message.GetType().Name,

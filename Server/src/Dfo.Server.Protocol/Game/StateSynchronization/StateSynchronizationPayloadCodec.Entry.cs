@@ -472,12 +472,6 @@ internal static partial class StateSynchronizationPayloadCodec
         return new byte[4];
     }
 
-    public static byte[] EncodeGrowthWeapon(IReadOnlyList<byte> values)
-    {
-        if (values.Count > byte.MaxValue) throw CountError("growth weapon", "u8");
-        return [checked((byte)values.Count), .. values];
-    }
-
     public static byte[] EncodeTitleBook(CharacterTitleBookCategoryState category)
     {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);

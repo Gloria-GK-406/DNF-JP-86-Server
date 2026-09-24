@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Notices;
+using Dfo.Server.Data.Notices;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Accounts;
@@ -142,7 +144,8 @@ internal sealed class AccountEntryStateDomainService(
     IAccountSettingsEntryProjection settings,
     IAccountWalletEntitlementEntryProjection walletEntitlements,
     IAccountProgressionEntryProjection progression,
-    IAccountRelationCompatibilityEntryProjection relations) : IAccountEntryStateDomainService
+    IAccountRelationCompatibilityEntryProjection relations,
+    INoticeStateDomainService notices) : IAccountEntryStateDomainService
 {
     public async ValueTask<AccountEntryState> LoadAsync(
         AccountId accountId,
@@ -154,7 +157,7 @@ internal sealed class AccountEntryStateDomainService(
         var commerce = walletEntitlements.Build(storage.WalletEntitlements);
         return new AccountEntryState(
             accountId,
-            settings.Build(storage.Settings),
+            await BuildSettingsAsync(accountId, storage.Settings, cancellationToken),
             commerce.Wallet,
             commerce.Entitlements,
             progression.Build(storage.Progression),
@@ -164,6 +167,13 @@ internal sealed class AccountEntryStateDomainService(
     public async ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
         AccountId accountId,
         CancellationToken cancellationToken) =>
-        settings.Build(
-            await repository.LoadSettingsAsync(accountId, cancellationToken).ConfigureAwait(false));
+        await BuildSettingsAsync(accountId,
+            await repository.LoadSettingsAsync(accountId, cancellationToken).ConfigureAwait(false), cancellationToken);
+
+    private async ValueTask<AccountSettingsEntryState> BuildSettingsAsync(AccountId accountId,
+        AccountSettingsStorageRecord storage, CancellationToken ct) =>
+        settings.Build(storage) with
+        {
+            SeenNotices = await notices.GetSeenAsync(NoticeOwner.ForAccount(accountId), NoticeGroup.Primary, ct),
+        };
 }
