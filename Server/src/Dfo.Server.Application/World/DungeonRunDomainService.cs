@@ -11,7 +11,7 @@ using Dfo.Server.Data.Parties;
 namespace Dfo.Server.Application.World;
 
 /// <summary>Keeps process-local dungeon runs as shared aggregates with participant views.</summary>
-internal sealed class DungeonRunDomainService : IDungeonRunDomainService
+internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
@@ -1677,7 +1677,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     private sealed class DungeonCellAggregate
     {
-        private readonly IReadOnlyList<DungeonCellObjectState> objects;
+        private readonly DungeonCellObjectState[] objects;
+        public readonly Dictionary<int, long> ObjectReservations = [];
+        public readonly Dictionary<int, Queue<int>> ObjectQueues;
         private readonly Dictionary<ushort, DungeonCellActorState> actors;
         private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
         private readonly Func<int, int> allocateGroundItemNumbers;
@@ -1685,6 +1687,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public DungeonCellAggregate(DungeonCellSeed seed, Func<int, int> allocateGroundItemNumbers)
         {
             this.objects = seed.Objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray();
+            this.ObjectQueues = this.objects.Select((value, index) => (value, index))
+                .Where(entry => !entry.value.IsConsumed)
+                .GroupBy(entry => entry.value.Object.Code)
+                .ToDictionary(group => group.Key, group => new Queue<int>(group.Select(entry => entry.index)));
             this.actors = seed.Actors.ToDictionary(
                 actor => actor.Sequence,
                 actor => actor with { PendingLoot = actor.PendingLoot.ToArray() });
@@ -1703,6 +1709,14 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public ushort FirstActorSequence { get; }
         public long Revision { get; set; }
         public bool ClearOpen { get; set; }
+
+        public DungeonCellObjectState ObjectAt(int index) => this.objects[index];
+
+        public void ConsumeObject(int index)
+        {
+            this.objects[index] = this.objects[index] with { IsConsumed = true, PendingLoot = [] };
+            this.Revision++;
+        }
 
         public DungeonCellActorState? FindActor(ushort sequence) =>
             this.actors.GetValueOrDefault(sequence);

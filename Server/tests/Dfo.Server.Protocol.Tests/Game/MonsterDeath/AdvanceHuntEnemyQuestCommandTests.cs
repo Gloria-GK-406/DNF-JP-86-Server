@@ -217,6 +217,60 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     }
 
     [Fact]
+    public async Task Object_claim_grants_only_its_owners_active_quest_item_and_commits_without_experience()
+    {
+        var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+        var runs = new Dfo.Server.Application.World.DungeonRunDomainService(scope);
+        var sessions = new Dfo.Server.Application.Sessions.SelectedSessionDomainService();
+        var session = SelectedSessionIdentity.Create(
+            Account, Character, new Dfo.Server.Data.Networking.NetworkConnectionId("object"), 1, 10010);
+        sessions.Select(session);
+        var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
+            new Dictionary<MazeCell, int> { [new(0, 0)] = 10 });
+        var seed = DungeonCellSeed.CompleteEmpty(new(0, 0), 10) with
+        {
+            Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0),
+                [new(10149163, 3, DropRarity.Common, DropItemKind.Stackable,
+                    OwnerCharacterId: Character, Delivery: RolledDropDelivery.DirectQuestItem,
+                    QuestId: 1776, GrantLimit: 15)])],
+        };
+        var run = runs.PreparePartyEntry([new(Account, Character, 0, true)], layout,
+            DungeonDifficulty.Normal, seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
+        var bag = new DirectGrantBag(14);
+        var containers = new CharacterContainerDomainService();
+        var log = new OneLog(new CarriedQuest(0, 1776, 1));
+        var seeking = new RecordingSeekingProgress();
+        var handler = new ApplyObjectDestructionCommandHandler(runs, sessions, new OneCharacterLog(log),
+            containers, new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(),
+            Progress(log, seeking: seeking));
+        var context = new CommandExecutionContext(Guid.Empty, typeof(ApplyObjectDestructionCommand),
+            typeof(ApplyObjectDestructionCommandHandler), CommandExecutionKind.Transactional);
+        var command = new ApplyObjectDestructionCommand(session, run.RunId, run.RoomVersion, 8961);
+
+        // An unavailable inventory must not eat the queued reward.
+        await using (var failed = scope.Begin())
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(context, command, default));
+        Assert.False(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
+        containers.Register(Character, bag);
+        await using (var tx = scope.Begin())
+        {
+            var result = await handler.HandleAsync(context, command, default);
+            Assert.Null(result.Effects!.Award);
+            Assert.Empty(result.Effects.QuestAdvances);
+            Assert.Single(result.Effects.QuestItems!.Items);
+            Assert.Equal(15, bag.Count);
+            Assert.False(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
+            await tx.CommitAsync(default);
+        }
+        Assert.True(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
+        Assert.Empty(runs.Find(Character)!.Kills);
+        Assert.Equal(1, seeking.TimesAsked);
+        await using var replay = scope.Begin();
+        Assert.Null((await handler.HandleAsync(context, command, default)).Effects);
+        Assert.Equal(15, bag.Count);
+    }
+
+    [Fact]
     public async Task A_departed_owner_does_not_receive_an_ungranted_direct_quest_item()
     {
         var bag = new DirectGrantBag(14);

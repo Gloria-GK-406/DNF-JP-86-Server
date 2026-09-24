@@ -604,6 +604,10 @@ public interface IDungeonRunDomainService
     /// Claims one actor death before its durable effects are attempted. A duplicate or pending
     /// report returns null.
     /// </summary>
+    /// <summary>Reserve the next object reward in the ambient transaction. Commit consumes it; rollback releases it.</summary>
+    DungeonObjectDestructionClaim? ClaimObjectDestruction(
+        CharacterId characterId, DungeonRunId runId, long roomVersion, int objectCode) => null;
+
     DungeonActorDeathClaim? TryClaimActorDeath(
         CharacterId characterId,
         ushort actorSequence) => null;

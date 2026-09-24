@@ -1,0 +1,213 @@
+_ZN15CClearCondition14ClearConditionE33ENUM_DUNGEON_CLEAR_CONDITION_TYPEi
+082fefce push ebp
+082fefcf mov ebp, esp
+082fefd1 sub esp, 0x38
+082fefd4 mov eax, dword ptr [ebp + 0xc]
+082fefd7 test eax, eax
+082fefd9 js 0x82fefe3
+082fefdb mov eax, dword ptr [ebp + 0xc]
+082fefde cmp eax, 4
+082fefe1 jle 0x82fefed
+082fefe3 mov eax, 0
+082fefe8 jmp 0x82ff126
+082fefed mov eax, dword ptr [ebp + 8]
+082feff0 mov edx, dword ptr [eax + 0x14]
+082feff3 lea eax, [ebp - 0x14]
+082feff6 mov dword ptr [esp + 4], edx
+082feffa mov dword ptr [esp], eax
+082feffd call 0x830f836 (137426998, 35, '_ZNSt6vectorI21DungeonClearConditionSaIS0_EE5beginEv')
+082ff002 sub esp, 4
+082ff005 mov eax, dword ptr [ebp + 8]
+082ff008 mov edx, dword ptr [eax + 0x14]
+082ff00b lea eax, [ebp - 0x18]
+082ff00e mov dword ptr [esp + 4], edx
+082ff012 mov dword ptr [esp], eax
+082ff015 call 0x830f85a (137427034, 38, '_ZNSt6vectorI21DungeonClearConditionSaIS0_EE3endEv')
+082ff01a sub esp, 4
+082ff01d mov eax, dword ptr [ebp + 8]
+082ff020 lea edx, [eax + 8]
+082ff023 lea eax, [ebp - 0x1c]
+082ff026 mov dword ptr [esp + 4], edx
+082ff02a mov dword ptr [esp], eax
+082ff02d call 0x808e248 (134799944, 35, '_ZNSt6vectorIiSaIiEE5beginEv')
+082ff032 sub esp, 4
+082ff035 mov eax, dword ptr [ebp + 8]
+082ff038 lea edx, [eax + 8]
+082ff03b lea eax, [ebp - 0x20]
+082ff03e mov dword ptr [esp + 4], edx
+082ff042 mov dword ptr [esp], eax
+082ff045 call 0x808e26c (134799980, 38, '_ZNSt6vectorIiSaIiEE3endEv')
+082ff04a sub esp, 4
+082ff04d jmp 0x82ff0cb
+082ff04f lea eax, [ebp - 0x14]
+082ff052 mov dword ptr [esp], eax
+082ff055 call 0x830f8c2 (137427138, 10, '_ZNK9__gnu_cxx17__normal_iteratorIP21DungeonClearConditionSt6vectorIS1_SaIS1_EEEdeEv')
+082ff05a mov dword ptr [ebp - 0x10], eax
+082ff05d lea eax, [ebp - 0x1c]
+082ff060 mov dword ptr [esp], eax
+082ff063 call 0x808e7cc (134801356, 10, '_ZNK9__gnu_cxx17__normal_iteratorIPiSt6vectorIiSaIiEEEdeEv')
+082ff068 mov dword ptr [ebp - 0xc], eax
+082ff06b mov eax, dword ptr [ebp - 0x10]
+082ff06e mov eax, dword ptr [eax]
+082ff070 cmp eax, dword ptr [ebp + 0xc]
+082ff073 jne 0x82ff0b5
+082ff075 mov eax, dword ptr [ebp - 0x10]
+082ff078 mov eax, dword ptr [eax + 4]
+082ff07b cmp eax, dword ptr [ebp + 0x10]
+082ff07e jne 0x82ff0b5
+082ff080 mov eax, dword ptr [ebp - 0x10]
+082ff083 mov edx, dword ptr [eax + 8]
+082ff086 mov eax, dword ptr [ebp - 0xc]
+082ff089 mov eax, dword ptr [eax]
+082ff08b cmp edx, eax
+082ff08d jg 0x82ff099
+082ff08f mov eax, 0
+082ff094 jmp 0x82ff126
+082ff099 mov eax, dword ptr [ebp - 0xc]
+082ff09c mov eax, dword ptr [eax]
+082ff09e lea edx, [eax + 1]
+082ff0a1 mov eax, dword ptr [ebp - 0xc]
+082ff0a4 mov dword ptr [eax], edx
+082ff0a6 mov eax, dword ptr [ebp + 8]
+082ff0a9 mov eax, dword ptr [eax + 4]
+082ff0ac lea edx, [eax + 1]
+082ff0af mov eax, dword ptr [ebp + 8]
+082ff0b2 mov dword ptr [eax + 4], edx
+082ff0b5 lea eax, [ebp - 0x14]
+082ff0b8 mov dword ptr [esp], eax
+082ff0bb call 0x830f8ac (137427116, 21, '_ZN9__gnu_cxx17__normal_iteratorIP21DungeonClearConditionSt6vectorIS1_SaIS1_EEEppEv')
+082ff0c0 lea eax, [ebp - 0x1c]
+082ff0c3 mov dword ptr [esp], eax
+082ff0c6 call 0x80ea98c (135178636, 21, '_ZN9__gnu_cxx17__normal_iteratorIPiSt6vectorIiSaIiEEEppEv')
+082ff0cb lea eax, [ebp - 0x18]
+082ff0ce mov dword ptr [esp + 4], eax
+082ff0d2 lea eax, [ebp - 0x14]
+082ff0d5 mov dword ptr [esp], eax
+082ff0d8 call 0x830f880 (137427072, 44, '_ZN9__gnu_cxxneIP21DungeonClearConditionSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_')
+082ff0dd test al, al
+082ff0df je 0x82ff0fe
+082ff0e1 lea eax, [ebp - 0x20]
+082ff0e4 mov dword ptr [esp + 4], eax
+082ff0e8 lea eax, [ebp - 0x1c]
+082ff0eb mov dword ptr [esp], eax
+082ff0ee call 0x80ea462 (135177314, 44, '_ZN9__gnu_cxxneIPiSt6vectorIiSaIiEEEEbRKNS_17__normal_iteratorIT_T0_EESA_')
+082ff0f3 test al, al
+082ff0f5 je 0x82ff0fe
+082ff0f7 mov eax, 1
+082ff0fc jmp 0x82ff103
+082ff0fe mov eax, 0
+082ff103 test al, al
+082ff105 jne 0x82ff04f
+082ff10b mov eax, dword ptr [ebp + 8]
+082ff10e mov edx, dword ptr [eax]
+082ff110 mov eax, dword ptr [ebp + 8]
+082ff113 mov eax, dword ptr [eax + 4]
+082ff116 cmp edx, eax
+082ff118 jg 0x82ff121
+082ff11a mov eax, 1
+082ff11f jmp 0x82ff126
+082ff121 mov eax, 0
+082ff126 leave
+082ff127 ret
+_ZN13CBattle_Field20DestroyPassiveObjectEi
+082ff3ec push ebp
+082ff3ed mov ebp, esp
+082ff3ef sub esp, 0x28
+082ff3f2 mov eax, dword ptr [ebp + 8]
+082ff3f5 mov eax, dword ptr [eax + 0x108]
+082ff3fb test eax, eax
+082ff3fd je 0x82ff47e
+082ff3ff mov eax, dword ptr [ebp + 8]
+082ff402 mov eax, dword ptr [eax + 0x108]
+082ff408 add eax, 0xa8
+082ff40d mov dword ptr [esp], eax
+082ff410 call 0x811c960 (135383392, 68, '_ZNKSt6vectorIiSaIiEE5emptyEv')
+082ff415 test al, al
+082ff417 je 0x82ff420
+082ff419 mov eax, 0
+082ff41e jmp 0x82ff483
+082ff420 mov dword ptr [ebp - 0xc], 0
+082ff427 jmp 0x82ff45e
+082ff429 mov eax, dword ptr [ebp + 8]
+082ff42c mov eax, dword ptr [eax + 0x108]
+082ff432 lea edx, [eax + 0xa8]
+082ff438 mov eax, dword ptr [ebp - 0xc]
+082ff43b mov dword ptr [esp + 4], eax
+082ff43f mov dword ptr [esp], edx
+082ff442 call 0x808e1dc (134799836, 18, '_ZNSt6vectorIiSaIiEEixEj')
+082ff447 mov eax, dword ptr [eax]
+082ff449 cmp eax, dword ptr [ebp + 0xc]
+082ff44c sete al
+082ff44f test al, al
+082ff451 je 0x82ff45a
+082ff453 mov eax, 1
+082ff458 jmp 0x82ff483
+082ff45a add dword ptr [ebp - 0xc], 1
+082ff45e mov eax, dword ptr [ebp + 8]
+082ff461 mov eax, dword ptr [eax + 0x108]
+082ff467 add eax, 0xa8
+082ff46c mov dword ptr [esp], eax
+082ff46f call 0x808e1c0 (134799808, 27, '_ZNKSt6vectorIiSaIiEE4sizeEv')
+082ff474 cmp eax, dword ptr [ebp - 0xc]
+082ff477 seta al
+082ff47a test al, al
+082ff47c jne 0x82ff429
+082ff47e mov eax, 0
+082ff483 leave
+082ff484 ret
+_ZN6CParty20DestroyPassiveObjectEi
+085b6540 push ebp
+085b6541 mov ebp, esp
+085b6543 sub esp, 0x28
+085b6546 mov byte ptr [ebp - 9], 0
+085b654a mov eax, dword ptr [ebp + 8]
+085b654d lea edx, [eax + 0xb24]
+085b6553 mov eax, dword ptr [ebp + 0xc]
+085b6556 mov dword ptr [esp + 4], eax
+085b655a mov dword ptr [esp], edx
+085b655d call 0x82ff3ec (137360364, 153, '_ZN13CBattle_Field20DestroyPassiveObjectEi')
+085b6562 mov byte ptr [ebp - 9], al
+085b6565 movzx eax, byte ptr [ebp - 9]
+085b6569 test al, al
+085b656b je 0x85b659c
+085b656d mov eax, dword ptr [ebp + 8]
+085b6570 lea edx, [eax + 0xb24]
+085b6576 mov eax, dword ptr [ebp + 0xc]
+085b6579 mov dword ptr [esp + 8], eax
+085b657d mov dword ptr [esp + 4], 0
+085b6585 mov dword ptr [esp], edx
+085b6588 call 0x85bf29a (140243610, 78, '_ZN13CBattle_Field14ClearConditionE33ENUM_DUNGEON_CLEAR_CONDITION_TYPEi')
+085b658d test al, al
+085b658f je 0x85b659c
+085b6591 mov eax, dword ptr [ebp + 8]
+085b6594 mov dword ptr [esp], eax
+085b6597 call 0x85a9330 (140153648, 4201, '_ZN6CParty12ClearDungeonEv')
+085b659c movzx eax, byte ptr [ebp - 9]
+085b65a0 leave
+085b65a1 ret
+_ZN13CBattle_Field14ClearConditionE33ENUM_DUNGEON_CLEAR_CONDITION_TYPEi
+085bf29a push ebp
+085bf29b mov ebp, esp
+085bf29d sub esp, 0x18
+085bf2a0 mov eax, dword ptr [ebp + 8]
+085bf2a3 add eax, 0xf0
+085bf2a8 mov dword ptr [esp], eax
+085bf2ab call 0x822cba8 (136498088, 22, '_ZN15CClearCondition5EmptyEv')
+085bf2b0 xor eax, 1
+085bf2b3 test al, al
+085bf2b5 je 0x85bf2e1
+085bf2b7 mov eax, dword ptr [ebp + 8]
+085bf2ba lea edx, [eax + 0xf0]
+085bf2c0 mov eax, dword ptr [ebp + 0x10]
+085bf2c3 mov dword ptr [esp + 8], eax
+085bf2c7 mov eax, dword ptr [ebp + 0xc]
+085bf2ca mov dword ptr [esp + 4], eax
+085bf2ce mov dword ptr [esp], edx
+085bf2d1 call 0x82fefce (137359310, 346, '_ZN15CClearCondition14ClearConditionE33ENUM_DUNGEON_CLEAR_CONDITION_TYPEi')
+085bf2d6 test al, al
+085bf2d8 je 0x85bf2e1
+085bf2da mov eax, 1
+085bf2df jmp 0x85bf2e6
+085bf2e1 mov eax, 0
+085bf2e6 leave
+085bf2e7 ret

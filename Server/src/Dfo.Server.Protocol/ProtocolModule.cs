@@ -232,6 +232,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<AdvanceHuntEnemyQuestCommand, AdvanceHuntEnemyQuestResult, AdvanceHuntEnemyQuestCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ApplyObjectDestructionCommand, ObjectDestructionResult, ApplyObjectDestructionCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult, ApplyMonsterKillCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(

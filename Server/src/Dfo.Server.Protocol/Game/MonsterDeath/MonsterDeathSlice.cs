@@ -28,9 +28,9 @@ namespace Dfo.Server.Protocol.Game.MonsterDeath;
 /// the server does not answer at all, and then reports the death here. The server's part is to
 /// acknowledge it and to say what the kill was worth -- not to adjudicate it.
 ///
-/// The body is a hundred-odd bytes of attack detail. Only the first four are read: the actor's
-/// running number, which is the one this server handed out in <c>NOTI 0x001D START_MAP</c>, and
-/// the user that killed it. The rest describes how it died, which nothing here acts on.
+/// A21 starts with a u32 actor number or passive-object template code and a u16 killer.
+/// The flag after the variable attack list distinguishes object destruction from monster death.
+/// Object reports carry no proven instance identifier and claim a pre-generated Cell queue entry.
 /// </remarks>
 public sealed record MonsterDeathRequest(
     GameMessageMetadata Metadata,
@@ -38,6 +38,8 @@ public sealed record MonsterDeathRequest(
     ushort WireUserId) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameMonsterDeath;
+    public int? ObjectCode { get; init; }
+
 }
 
 /// <summary>
@@ -131,8 +133,8 @@ internal sealed record MonsterDeathNotification(
 
 internal static class MonsterDeathPayloadCodec
 {
-    /// <summary>The actor number and the killing user; everything after is attack detail.</summary>
-    public const int MinimumBodyLength = 4;
+    /// <summary>A21 fixed business body before variable attack entries and the trailing checksum.</summary>
+    public const int MinimumBodyLength = 62;
 
     /// <summary>The length the client reads when no experience line is itemised.</summary>
     public const int ExperienceBodyLength = 83;
@@ -346,16 +348,21 @@ internal sealed class MonsterDeathDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
+        // A21: u32 actor/object code, u16 killer, four u32 values, then count x 10.
         if (body.Length < MonsterDeathPayloadCodec.MinimumBodyLength)
+            throw new InvalidDataException("DIE_MONSTER has a truncated A21 prefix.");
+        var tail = 23 + body[22] * 10;
+        if (body.Length < tail + 39)
+            throw new InvalidDataException("DIE_MONSTER has truncated attack records or suffix.");
+        var code = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body);
+        var killer = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(body[4..]);
+        var passive = body[tail + 6];
+        if (passive > 1 || code > int.MaxValue || (passive == 0 && code > ushort.MaxValue))
+            throw new InvalidDataException("DIE_MONSTER contains an invalid actor/object identity.");
+        return new MonsterDeathRequest(metadata, passive == 0 ? (ushort)code : (ushort)0, killer)
         {
-            throw new InvalidDataException(
-                $"DIE_MONSTER requires at least four body bytes; received '{body.Length}'.");
-        }
-
-        return new MonsterDeathRequest(
-            metadata,
-            System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(body),
-            System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(body[2..]));
+            ObjectCode = passive == 1 ? (int)code : null,
+        };
     }
 }
 
@@ -390,6 +397,26 @@ public sealed class MonsterDeathHandler(
                 "Monster death {ConnectionId}: no published session, ignoring actor={Actor}",
                 context.Connection.ConnectionId,
                 message.ActorSequence);
+            return;
+        }
+
+        if (message.ObjectCode is { } objectCode)
+        {
+            var objectRun = runs.Find(session.CharacterId);
+            if (objectRun is null) return;
+            var applied = await commandBus.SendAsync(new ApplyObjectDestructionCommand(
+                session, objectRun.RunId, objectRun.RoomVersion, objectCode), cancellationToken)
+                .ConfigureAwait(false);
+            if (applied.Effects is { } effects && selectedSessions.FindByConnection(session.ConnectionId) == session)
+            {
+                var objectFrames = new List<IGameServerMessage>();
+                AppendQuestGrantFrames(objectFrames, effects);
+                if (objectFrames.Count > 0)
+                    await sender.SendExplicitAsync(session.ConnectionId,
+                        new GameExplicitMessageDelivery(objectFrames, []), cancellationToken).ConfigureAwait(false);
+            }
+            logger.LogInformation("Object destruction character={CharacterId} code={Code} accepted={Accepted}",
+                session.CharacterId.Value, objectCode, applied.Effects is not null);
             return;
         }
 

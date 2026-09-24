@@ -77,7 +77,9 @@ public sealed class ApplyMonsterKillCommandHandler(
                     command.PartyMemberCount),
                 cancellationToken).ConfigureAwait(false)
             : null;
-        var granted = await GrantQuestItemsAsync(command, cancellationToken).ConfigureAwait(false);
+        var granted = await PendingQuestItemGrants.GrantAsync(
+            command.AccountId, command.CharacterId, command.PendingLoot, command.PartyKey,
+            questLogs, containers, itemGrants, parties, cancellationToken).ConfigureAwait(false);
         var facts = new List<QuestProgressFact>
         {
             new QuestEnemyDefeated(
@@ -102,97 +104,4 @@ public sealed class ApplyMonsterKillCommandHandler(
             AccountMaterials: granted.AccountMaterials);
     }
 
-    private async ValueTask<QuestItemGrant> GrantQuestItemsAsync(
-        ApplyMonsterKillCommand command,
-        CancellationToken cancellationToken)
-    {
-        if (command.PartyKey != default
-            && (parties?.FindByKey(command.PartyKey) is not { } current
-                || !current.Members.Any(member => member.CharacterId == command.CharacterId)))
-            return QuestItemGrant.Empty;
-        var candidates = command.PendingLoot?
-            .Where(drop => drop.Delivery == RolledDropDelivery.DirectQuestItem
-                && drop.OwnerCharacterId == command.CharacterId)
-            .ToArray() ?? [];
-        if (candidates.Length == 0)
-            return QuestItemGrant.Empty;
-
-        var bag = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
-        if (bag is null)
-            return QuestItemGrant.Empty;
-        var carried = await questLogs.LogOf(command.AccountId, command.CharacterId)
-            .CarriedAsync(cancellationToken).ConfigureAwait(false);
-        var active = carried.Select(quest => quest.QuestId).ToHashSet();
-        var changed = new HashSet<int>();
-        var accountChanges = new List<AccountMaterialChange>();
-        foreach (var drop in candidates)
-        {
-            if (drop.QuestId <= 0 || !active.Contains(drop.QuestId)
-                || drop.ItemId <= 0 || drop.Count <= 0 || drop.GrantLimit <= 0)
-                continue;
-
-            var held = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-                .Where(item => item.ItemId == drop.ItemId)
-                .Sum(item => (long)item.Count);
-            var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
-            if (count <= 0)
-                continue;
-            var remaining = count;
-            while (remaining > 0)
-            {
-                var granted = await itemGrants.GrantAsync(
-                        command.AccountId, bag, drop.ItemId, remaining,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-                switch (granted)
-                {
-                    case ItemGrantOutcome.CharacterItem
-                        { Placement: ItemPlacementOutcome.AddedToPile topped } when topped.Added > 0:
-                        changed.Add(topped.SlotIndex);
-                        remaining -= topped.Added;
-                        break;
-                    case ItemGrantOutcome.CharacterItem
-                        { Placement: ItemPlacementOutcome.PutInEmptySlot opened } when opened.Count > 0:
-                        changed.Add(opened.SlotIndex);
-                        remaining -= opened.Count;
-                        break;
-                    case ItemGrantOutcome.AccountMaterial account:
-                        accountChanges.Add(account.Change);
-                        remaining -= account.Change.AddedCount;
-                        break;
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
-                        remaining = 0;
-                        break;
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
-                        throw new InvalidDataException($"Quest item {drop.ItemId} has no inventory definition.");
-                    default:
-                        throw new InvalidDataException(
-                            $"Quest item {drop.ItemId} placement made no progress: {granted}.");
-                }
-            }
-        }
-
-        if (changed.Count == 0)
-            return new QuestItemGrant(null, accountChanges);
-        var items = new List<InventoryItemState>(changed.Count);
-        foreach (var slot in changed.Order())
-        {
-            var item = await bag.ReadSlotAsync(slot, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidDataException($"Quest item slot {slot} disappeared before commit.");
-            items.Add(new InventoryItemState(null, slot, item.Core));
-        }
-        return new QuestItemGrant(
-            new CommittedInventoryUpdateState(
-                InventoryContainerType.Main, items, DateTimeOffset.UtcNow),
-            accountChanges);
-    }
-
-    private sealed record QuestItemGrant(
-        CommittedInventoryUpdateState? CharacterItems,
-        IReadOnlyList<AccountMaterialChange> AccountMaterials)
-    {
-        public static QuestItemGrant Empty { get; } = new(null, []);
-
-        public bool HasChanges => this.CharacterItems is not null || this.AccountMaterials.Count > 0;
-    }
 }

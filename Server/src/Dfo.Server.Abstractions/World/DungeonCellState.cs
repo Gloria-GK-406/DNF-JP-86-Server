@@ -72,7 +72,7 @@ public sealed record DungeonCellActorState(
     bool IsMonster = true);
 
 public sealed record DungeonCellObjectState(
-    DungeonRoomObject Object, IReadOnlyList<RolledDrop> PendingLoot);
+    DungeonRoomObject Object, IReadOnlyList<RolledDrop> PendingLoot, bool IsConsumed = false);
 
 /// <summary>An immutable mirror of one fully-created dungeon cell.</summary>
 public sealed record DungeonCellState(
@@ -159,3 +159,7 @@ public interface IDungeonCellFactory
         DungeonCellCreationContext context,
         CancellationToken cancellationToken);
 }
+
+/// <summary>A server queue receipt; its position is not a client object instance identifier.</summary>
+public sealed record DungeonObjectDestructionClaim(
+    int ObjectCode, int QueueIndex, IReadOnlyList<RolledDrop> PendingLoot);
