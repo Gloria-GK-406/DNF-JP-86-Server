@@ -660,4 +660,4 @@ CMD001B mode1双倍显示/发奖、CMD0040购买后036F slot1刷新、每日累�
 
 ### 2026-09-24 技能槽位调整
 
-`CMD 0x001C CHANGE_SKILLSLOT` 已接入：11B 实帧、校验、活动技能配置内事务交换、持久化和提交后 ACK。见[协议记录](game/client-to-server/0x001C.md)。状态：服务端实现及自动化验证，四种拖放行为待客户端验收，不标 ClientVerified。
+`CMD 0x001C CHANGE_SKILLSLOT` 已接入：11B 实帧、校验、活动技能配置内事务交换、持久化和提交后 ACK。见[协议记录](game/client-to-server/0x001C.md)。状态：2026-09-24 用户确认四种拖放及重选角色后的布局持久化全部通过，普通 PVE 操作标记 ClientVerified。
