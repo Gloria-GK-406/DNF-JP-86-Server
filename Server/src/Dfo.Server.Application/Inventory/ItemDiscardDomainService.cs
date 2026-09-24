@@ -11,8 +11,20 @@ internal sealed class ItemDiscardDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
-    IItemDiscardRuleService rules) : IItemDiscardDomainService
+    IItemDiscardRuleService rules, IAccountMaterialBagDomainService materials, IAccountMaterialRuleService materialRules) : IItemDiscardDomainService
 {
+    public async ValueTask<AccountMaterialChange?> ConsumeMaterialAsync(SelectedSessionIdentity session,
+        AccountMaterialKind kind, int itemId, int count, byte entryCount, ushort operationType, CancellationToken ct)
+    {
+        if (sessions.Find(session.AccountId) != session
+            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
+            || online is not { State: OnlineUserState.CharacterActive }
+            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId
+            || entryCount != 1 || operationType != 1 || count <= 0
+            || materialRules.Get(kind).ItemId != itemId) return null;
+        return await materials.Get(session.AccountId).ConsumeAsync(kind, count, ct);
+    }
+
     public async ValueTask<ItemDiscardResult> DiscardAsync(
         SelectedSessionIdentity session,
         BusinessSlot slot,

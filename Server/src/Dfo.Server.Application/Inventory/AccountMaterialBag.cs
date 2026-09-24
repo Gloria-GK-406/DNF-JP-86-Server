@@ -73,6 +73,23 @@ internal sealed class AccountMaterialBag(
         return changes!;
     }
 
+    public async ValueTask<AccountMaterialChange?> ConsumeAsync(AccountMaterialKind kind, int count, CancellationToken ct)
+    {
+        if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
+        var definition = rules.Get(kind);
+        AccountMaterialChange? change = null;
+        await stores.ChangeAsync(store, async session =>
+        {
+            var current = await session.ReadAsync(AccountId, ct)
+                ?? throw new InvalidDataException($"Account {AccountId.Value} has no material bag.");
+            if (current.Count(kind) < count) return;
+            var final = current.Count(kind) - count;
+            session.Write(Set(current, kind, final));
+            change = new(kind, definition.ItemId, definition.VirtualSlotIndex, -count, final);
+        }, ct);
+        return change;
+    }
+
     private static AccountMaterialBagState Set(
         AccountMaterialBagState state,
         AccountMaterialKind kind,

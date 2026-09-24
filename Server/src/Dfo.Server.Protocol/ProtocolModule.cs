@@ -346,6 +346,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ConsumeAccountMaterialCommand, ConsumeAccountMaterialResult, ConsumeAccountMaterialCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DeleteItemCommand, DeleteItemOutcome, DeleteItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, BuyItemOutcome, BuyItemCommandHandler>(

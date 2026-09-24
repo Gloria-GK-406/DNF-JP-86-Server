@@ -5,6 +5,9 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IItemDiscardDomainService
 {
+    ValueTask<AccountMaterialChange?> ConsumeMaterialAsync(SelectedSessionIdentity session,
+        AccountMaterialKind kind, int itemId, int count, byte entryCount, ushort operationType, CancellationToken cancellationToken);
+
     ValueTask<ItemDiscardResult> DiscardAsync(
         SelectedSessionIdentity session,
         BusinessSlot slot,

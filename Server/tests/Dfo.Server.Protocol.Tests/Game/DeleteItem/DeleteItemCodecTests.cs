@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
@@ -17,6 +18,29 @@ namespace Dfo.Server.Protocol.Tests.Game.DeleteItem;
 
 public sealed class DeleteItemCodecTests
 {
+    [Theory]
+    [InlineData(352)]
+    [InlineData(365)]
+    [InlineData(65535)]
+    public async Task Unmapped_slot_is_rejected_without_throwing_or_touching_business_state(int slot)
+    {
+        var sender = new CmdSender();
+        var handler = new DeleteItemHandler(null!, null!, new InventorySlotMappingRuleService(), null!, null!, sender,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<DeleteItemHandler>.Instance);
+        await handler.HandleAsync(new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011)),
+            new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1),default);
+        var rejected=Assert.IsType<DeleteItemResponse>(Assert.Single(sender.Sent));
+        Assert.False(rejected.Success);
+        Assert.Equal(DeleteItemResponse.CannotDelete,rejected.ErrorCode);
+    }
+
+    [Fact]
+    public void Cube_debit_ack_preserves_virtual_slot_and_consumed_count()
+    {
+        Assert.Equal(Convert.FromHexString("0100016601010000000000"),
+            DeleteItemResponseEncoder.EncodeBody(new(new(InventoryContainerType.Main,358),1,Success:true)));
+    }
+
     [Fact]
     public async Task Discard_sends_the_corrected_quest_snapshot_after_its_success_answer()
     {
@@ -37,6 +61,15 @@ public sealed class DeleteItemCodecTests
         Assert.IsType<DeleteItemResponse>(messages[0]);
         var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[1]);
         Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+    }
+
+    private sealed class CmdSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+        public ValueTask SendCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken ct)
+        { Sent.Add(message); return ValueTask.CompletedTask; }
+        public ValueTask SendNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask SendExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken ct) => throw new NotSupportedException();
     }
 
     private sealed class SlotProjection : IInventorySlotProjectionDomainService

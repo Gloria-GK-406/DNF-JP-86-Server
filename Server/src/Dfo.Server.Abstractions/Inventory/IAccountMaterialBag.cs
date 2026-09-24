@@ -19,6 +19,8 @@ public interface IAccountMaterialBag
 {
     AccountId AccountId { get; }
 
+    ValueTask<AccountMaterialChange?> ConsumeAsync(AccountMaterialKind kind, int count, CancellationToken cancellationToken);
+
     ValueTask<AccountMaterialBagState> SnapshotAsync(CancellationToken cancellationToken);
 
     ValueTask<IReadOnlyList<AccountMaterialChange>> AddAsync(
