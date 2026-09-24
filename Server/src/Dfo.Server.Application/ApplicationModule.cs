@@ -131,6 +131,8 @@ public sealed class ApplicationModule : IServerModule
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
         services.TryAddSingleton<ISeekingQuestProgressDomainService, SeekingQuestProgressDomainService>();
+        services.TryAddSingleton<IQuestMaterialRequirementDomainService, QuestMaterialRequirementDomainService>();
+        services.TryAddSingleton<IQuestHelperGroundBonusDomainService, QuestHelperGroundBonusDomainService>();
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
         services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();

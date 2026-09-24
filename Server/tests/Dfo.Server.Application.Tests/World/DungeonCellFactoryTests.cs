@@ -37,7 +37,7 @@ public sealed class DungeonCellFactoryTests
             new OneActorRoom(actorType),
             new NoPlacement(),
             loot,
-            new MonsterBoundary(), new RecordingQuestLoot());
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus());
 
         var seed = await factory.CreateAsync(
             new DungeonCellCreationContext(
@@ -90,7 +90,7 @@ public sealed class DungeonCellFactoryTests
             new Dictionary<MazeCell, int> { [cell] = 123 });
         DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
         var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
-            new MonsterBoundary(), questLoot);
+            new MonsterBoundary(), questLoot, new NoQuestBonus());
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
             DateTimeOffset.UnixEpoch, members), CancellationToken.None);
         Assert.Empty(seed.Actors);
@@ -107,6 +107,12 @@ public sealed class DungeonCellFactoryTests
         // A caller cannot mutate the run through the unpublished seed's pending array.
         ((RolledDrop[])seed.Objects[0].PendingLoot)[0] = default;
         Assert.Equal(10149153, run.CurrentCellState.Objects[0].PendingLoot[0].ItemId);
+    }
+
+    private sealed class NoQuestBonus : IQuestHelperGroundBonusDomainService
+    {
+        public ValueTask<DungeonCellSeed> ApplyAsync(DungeonCellCreationContext context, DungeonCellSeed cell,
+            CancellationToken cancellationToken) => ValueTask.FromResult(cell);
     }
 
     private sealed class ObjectRoom : IDungeonRoomRuleService

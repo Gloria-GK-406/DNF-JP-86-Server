@@ -11,7 +11,8 @@ internal sealed class DungeonCellFactory(
     IItemPlacementRuleService placementRules,
     IMonsterDropDomainService loot,
     IExperienceRuleService experienceRules,
-    IQuestEnemyDropDomainService questLoot) : IDungeonCellFactory
+    IQuestEnemyDropDomainService questLoot,
+    IQuestHelperGroundBonusDomainService questBonus) : IDungeonCellFactory
 {
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
@@ -94,11 +95,12 @@ internal sealed class DungeonCellFactory(
             objects.Add(new(declared, pending.ToArray()));
         }
 
-        return new DungeonCellSeed(
+        var seed = new DungeonCellSeed(
             context.Cell,
             context.MapId,
             contents.FirstActorSequence,
             actors,
             groundItems) { Objects = objects.ToArray() };
+        return await questBonus.ApplyAsync(context, seed, cancellationToken).ConfigureAwait(false);
     }
 }

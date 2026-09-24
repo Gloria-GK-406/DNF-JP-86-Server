@@ -77,18 +77,54 @@ public sealed class SeekingQuestProgressDomainServiceTests
             result.Quests.Select(quest => (quest.QuestId, quest.TriggerValue)));
     }
 
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(14, true)]
+    [InlineData(15, false)]
+    [InlineData(20, false)]
+    public async Task Outstanding_materials_use_holdings_ignore_gold_and_do_not_write_progress(int held, bool needed)
+    {
+        var logs = new RecordingQuestLogs { Carried = { [Character.Value] = [new(0, 1779, 0)] } };
+        var containers = new CharacterContainerDomainService();
+        containers.Register(Character, new Bag(10149163, held));
+        var definition = Definition() with { SeekingItems = [new(10149163, 15), new(10149163, 10), new(0, 100)] };
+        var service = new QuestMaterialRequirementDomainService(new Rules(definition), logs, containers);
+        var result = await service.GetOutstandingMaterialIdsAsync(Account, Character, default);
+        Assert.Equal(needed, result.Contains(10149163));
+        Assert.Equal(needed ? 1 : 0, result.Count);
+        Assert.Empty(logs.ProgressWrites);
+        logs.Carried[Character.Value] = [];
+        Assert.Empty(await service.GetOutstandingMaterialIdsAsync(Account, Character, default));
+    }
+
+    [Fact]
+    public async Task Outstanding_union_includes_only_carried_unmet_requirements_without_summing_across_quests()
+    {
+        var logs = new RecordingQuestLogs { Carried = { [Character.Value] = [new(0, 1779, 15), new(1, 1780, 0)] } };
+        var containers = new CharacterContainerDomainService();
+        containers.Register(Character, new Bag(10149163, 15));
+        var first = Definition();
+        var second = first with { QuestId = 1780, SeekingItems = [new(10149163, 20), new(3205, 5)] };
+        var unaccepted = first with { QuestId = 1781, SeekingItems = [new(999, 10)] };
+        var service = new QuestMaterialRequirementDomainService(new Rules(first, second, unaccepted), logs, containers);
+        Assert.Equal(new[] { 3205, 10149163 }, (await service.GetOutstandingMaterialIdsAsync(Account, Character, default)).Order());
+        logs.Carried[Character.Value] = [new(0, 1779, 15)];
+        Assert.Empty(await service.GetOutstandingMaterialIdsAsync(Account, Character, default));
+        Assert.Empty(logs.ProgressWrites);
+    }
+
     private static QuestDefinition Definition() =>
         new(
             1779, "quest", null, null, null, null, null, null, [], "seeking", "",
             null, null, null, null, null, null, null, [], [], [], [],
             SeekingItems: [new SeekingItemRequirement(10149163, 15)]);
 
-    private sealed class Rules(QuestDefinition definition) : IQuestContentRuleService
+    private sealed class Rules(params QuestDefinition[] definitions) : IQuestContentRuleService
     {
         public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([definition]);
+            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>(definitions);
         public ValueTask<QuestDefinition?> FindAsync(int questId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<QuestDefinition?>(questId == definition.QuestId ? definition : null);
+            ValueTask.FromResult<QuestDefinition?>(definitions.FirstOrDefault(q => q.QuestId == questId));
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
         public QuestParameters Parameters() => throw new NotSupportedException();

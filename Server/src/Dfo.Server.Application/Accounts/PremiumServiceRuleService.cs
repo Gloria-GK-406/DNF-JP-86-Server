@@ -7,6 +7,14 @@ internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource 
 {
     private readonly Lazy<IReadOnlyList<int>> questHelperRates = new(source.ReadQuestHelperMinimumDropRates);
     public IReadOnlyList<int> QuestHelperMinimumDropRates => questHelperRates.Value;
+    public int DrawQuestHelperBonusCount(ulong seed)
+    {
+        var random = new Dfo.Server.Abstractions.World.DropRandom(seed);
+        var successes = 0;
+        foreach (var probability in questHelperRates.Value)
+            if (random.Hits(probability, 100)) successes++;
+        return successes;
+    }
     private readonly Lazy<DoublePotRules> doublePot = new(source.ReadDoublePotRules);
     public int DoublePotDailyLimit => doublePot.Value.DailyLimit;
     public int DoublePotTotalDailyLimit => 30;
