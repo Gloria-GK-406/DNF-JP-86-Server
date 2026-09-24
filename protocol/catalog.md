@@ -661,3 +661,10 @@ CMD001B mode1双倍显示/发奖、CMD0040购买后036F slot1刷新、每日累�
 ### 2026-09-24 技能槽位调整
 
 `CMD 0x001C CHANGE_SKILLSLOT` 已接入：11B 实帧、校验、活动技能配置内事务交换、持久化和提交后 ACK。见[协议记录](game/client-to-server/0x001C.md)。状态：2026-09-24 用户确认四种拖放及重选角色后的布局持久化全部通过，普通 PVE 操作标记 ClientVerified。
+
+### 2026-09-24 无色消耗与空槽投影验收
+
+- [CMD 0x0012](game/client-to-server/0x0012.md)：无色技能正常消费账号材料、不再断线，用户实机验收通过。
+- [NOTI 0x000E](game/server-to-client/NOTI-0x000E.md)：最后一瓶遗忘河之水消耗后立即清槽，用户实机验收通过。
+
+上述具体路径标记 ClientVerified；未扩展到其他材料或容器场景。

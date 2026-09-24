@@ -247,3 +247,7 @@ default                                       → CommonEntrySize  = 101
 用户实测：重置技能后物品仍显示，重选角色后消失。服务端日志证明重置成功 ACK 后已发 NOTI 000E（119B 整帧），故不是漏发，也不是未扣库。
 
 公共空槽投影原先复用了金币 core，itemId=0；参照服 `ItemListProtocolWriter.WriteEmptyEntry` 明确写 itemId=-1。现修正为 slot + `FFFFFFFF` + 零值，保持 A21 101B 条目宽度。真实金币槽仍使用 itemId=0。证据等级：用户确认持久化扣除，空槽标记来自参照服，修复后立即消失效果待实机验收。
+
+### 空槽投影实机验收通过（2026-09-24）
+
+部署 `94a64287` 后，用户确认最后一瓶遗忘河之水用于重置技能后立即从背包消失，无需重登。本路径的 `itemId=-1` 空槽投影标记 **ClientVerified**。
