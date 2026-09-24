@@ -6,7 +6,7 @@ public enum PremiumServiceType { OverEquipmentContract = 22, ExpertSkillContract
     // Legacy storage keys for independent services; never wire premium types.
     FreeGoldCard = 580, DoublePot = 581, QuestHelper = 582, DungeonBuff = 583,
     AutoHpMpRecovery = 584, FreeWeaknessRecovery = 585, AutoRepair = 586, FastPot = 587 }
-public enum PremiumBenefit { LearnSkillsEarly, EquipItemsEarly, FreeWeaknessRecovery, AutoRepair, FreeGoldCard, DungeonBuff, DoublePot }
+public enum PremiumBenefit { LearnSkillsEarly, EquipItemsEarly, FreeWeaknessRecovery, AutoRepair, FreeGoldCard, DungeonBuff, DoublePot, QuestItemDropBonus }
 
 public interface IPremiumServiceDomainService
 {

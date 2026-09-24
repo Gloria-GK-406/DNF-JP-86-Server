@@ -3,6 +3,12 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
+internal sealed record QuestHelperDropAdjustment(IReadOnlySet<int> ItemIds, IReadOnlyList<int> MinimumRates)
+{
+    public int RateFor(int itemId, int attempt, int original) =>
+        ItemIds.Contains(itemId) && attempt < MinimumRates.Count ? Math.Max(original, MinimumRates[attempt]) : original;
+}
+
 internal static class QuestMonsterDropRules
 {
     public static IReadOnlyList<RolledDrop> Draw(
@@ -23,7 +29,8 @@ internal static class QuestMonsterDropRules
 
     internal static IReadOnlyList<RolledDrop> Draw(
         QuestEnemyDropRequest kill, MonsterDropParticipant participant,
-        IReadOnlyList<QuestDefinition> definitions, IReadOnlyDictionary<int, long> held)
+        IReadOnlyList<QuestDefinition> definitions, IReadOnlyDictionary<int, long> held,
+        QuestHelperDropAdjustment? adjustment = null)
     {
         var result = new List<RolledDrop>();
         var planned = new Dictionary<int, int>();
@@ -44,7 +51,7 @@ internal static class QuestMonsterDropRules
                 candidates.RemoveAt(selected);
                 var count = 0;
                 for (var attempt = 0; attempt < source.Count; attempt++)
-                    if (random.Hits(source.DropRate, 100)) count++;
+                    if (random.Hits(adjustment?.RateFor(source.ItemId, attempt, source.DropRate) ?? source.DropRate, 100)) count++;
                 // A probability miss ends this task's attempt, not a retry of other rows.
                 if (count == 0) break;
 

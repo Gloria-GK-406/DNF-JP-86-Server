@@ -5,6 +5,19 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource
 {
+    public IReadOnlyList<int> ReadQuestHelperMinimumDropRates()
+    {
+        var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
+            .Single(s => s.Name == "[quest_helper]");
+        // A21 stores an unknown shared prefix, three effect values, then four doll IDs.
+        // Interpreting the effect values as per-attempt floors is our adopted server policy.
+        if (section.Values.Count != 8 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
+            || section.Values.Skip(1).Take(3).Any(v => v.Value is < 0 or > 100)
+            || section.Values.Skip(4).Any(v => v.Value <= 0))
+            throw new InvalidDataException("Invalid quest helper rules.");
+        return Array.AsReadOnly(section.Values.Skip(1).Take(3).Select(v => v.Value).ToArray());
+    }
+
     public DoublePotRules ReadDoublePotRules()
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")

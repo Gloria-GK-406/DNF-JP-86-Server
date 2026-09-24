@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Application.Accounts;
+using Dfo.Server.Application.Tests.Characters;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
@@ -270,6 +274,68 @@ public sealed class QuestEnemyDropDomainServiceTests
             new(Account, Leader), CancellationToken.None));
     }
 
+    [Theory]
+    [InlineData(QuestEnemyType.Monster)]
+    [InlineData(QuestEnemyType.APC)]
+    [InlineData(QuestEnemyType.PassiveObject)]
+    public async Task Helper_belongs_to_recipient_account_and_expiry_removes_the_bonus(QuestEnemyType type)
+    {
+        await using var storage = new LearningFixture();
+        await storage.SeedAsync();
+        storage.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(7,582,4000000000)");
+        var fixture = Build(DungeonRunPurpose.Ordinary, memberCarriesQuest: true, enemyType: type,
+            premiums: storage.Services.GetRequiredService<IPremiumServiceDomainService>(), rate: 0);
+        var request = QuestEnemyDropRequest.FromMonster(Kill(fixture.Run, 65601)) with { EnemyType = type };
+        Assert.Single(await fixture.Service.DrawAsync(request, new(Account, Leader), default));
+        Assert.Empty(await fixture.Service.DrawAsync(request, new(new(8), Member), default));
+        storage.Sql("UPDATE account_premiums SET end_time=1 WHERE account_id=7");
+        Assert.Empty(await fixture.Service.DrawAsync(request, new(Account, Leader), default));
+    }
+
+    [Fact]
+    public async Task Helper_does_not_raise_rates_for_ordinary_materials()
+    {
+        await using var storage = new LearningFixture();
+        await storage.SeedAsync();
+        storage.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(7,582,4000000000)");
+        var fixture = Build(DungeonRunPurpose.Ordinary, questItem: false,
+            premiums: storage.Services.GetRequiredService<IPremiumServiceDomainService>(), rate: 0);
+        Assert.Empty(await fixture.Service.DrawAsync(Kill(fixture.Run, 65601), new(Account, Leader), default));
+    }
+
+    [Theory]
+    [InlineData(1, 60, 1.0)]
+    [InlineData(3, 0, 2.0)]
+    [InlineData(3, 60, 2.3)]
+    [InlineData(3, 83, 2.66)]
+    [InlineData(5, 60, 3.5)]
+    [InlineData(3, 100, 3.0)]
+    public void Helper_floors_preserve_attempt_count_and_match_expected_yield(int attempts, int rate, double expected)
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary);
+        var request = QuestEnemyDropRequest.FromMonster(Kill(fixture.Run, 65601));
+        var definition = Definition(attempts, 99, -1);
+        definition = definition with { EnemyRewardItems = definition.EnemyRewardItems.Select(r => r with { DropRate = rate }).ToArray() };
+        var adjustment = new QuestHelperDropAdjustment(new HashSet<int> { 10149163 }, new[] { 100, 70, 30 });
+        var participant = new MonsterDropParticipant(Account, Leader);
+        var held = new Dictionary<int, long>();
+        var total = 0;
+        for (var seed = 0; seed < 10000; seed++)
+        {
+            var actual = QuestMonsterDropRules.Draw(request with { Seed = seed }, participant, [definition], held, adjustment);
+            var count = actual.Sum(d => d.Count);
+            Assert.InRange(count, 1, attempts);
+            total += count;
+        }
+        Assert.InRange(total / 10000.0, expected - .035, expected + .035);
+        Assert.Equal(QuestMonsterDropRules.Draw(request, participant, [definition], held, adjustment).ToArray(),
+            QuestMonsterDropRules.Draw(request, participant, [definition], held, adjustment).ToArray());
+        Assert.Equal(1, Assert.Single(QuestMonsterDropRules.Draw(request, participant, [definition],
+            new Dictionary<int, long> { [10149163] = 14 }, adjustment)).Count);
+        Assert.Empty(QuestMonsterDropRules.Draw(request, participant, [definition],
+            new Dictionary<int, long> { [10149163] = 15 }, adjustment));
+    }
+
     private static Fixture Build(
         DungeonRunPurpose purpose,
         int dungeonId = 145,
@@ -280,11 +346,12 @@ public sealed class QuestEnemyDropDomainServiceTests
         int rewardDifficulty = -1,
         bool carriesQuest = true,
         bool memberCarriesQuest = false,
-        QuestEnemyType enemyType = QuestEnemyType.Monster)
+        QuestEnemyType enemyType = QuestEnemyType.Monster,
+        IPremiumServiceDomainService? premiums = null, int rate = 100, bool questItem = true)
     {
         var definition = Definition(rewardCount, maxStack, rewardDifficulty);
         definition = definition with { EnemyRewardItems = definition.EnemyRewardItems
-            .Select(row => row with { EnemyType = enemyType }).ToArray() };
+            .Select(row => row with { EnemyType = enemyType, DropRate = rate }).ToArray() };
         var logs = new RecordingQuestLogs();
         if (carriesQuest)
             logs.Carried[Leader.Value] = [new CarriedQuest(0, 1779, 15)];
@@ -297,7 +364,8 @@ public sealed class QuestEnemyDropDomainServiceTests
         if (memberCarriesQuest)
             containers.Register(Member, new Bag(10149163, 0));
         var service = new QuestEnemyDropDomainService(
-            new QuestEnemyDropRuleService(new QuestRules(definition)), logs, containers);
+            new QuestEnemyDropRuleService(new QuestRules(definition), new PremiumServiceRuleService(new PremiumRules()),
+                new Placement(questItem)), logs, containers, premiums ?? new NoPremiums());
         var layout = Layout(dungeonId, purpose);
         var run = new DungeonCellCreationContext(
             DungeonRunId.New(),
@@ -348,6 +416,34 @@ public sealed class QuestEnemyDropDomainServiceTests
         DungeonCellCreationContext Run,
         RecordingQuestLogs Logs,
         Bag Bag);
+
+    private sealed class PremiumRules : IPremiumServiceDefinitionSource
+    {
+        public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
+        public DoublePotRules ReadDoublePotRules() => throw new NotSupportedException();
+        public PremiumContractLevels ReadContractLevels() => throw new NotSupportedException();
+        public int ReadFreeWeaknessDailyLimit() => throw new NotSupportedException();
+        public int ReadDungeonBuffDailyLimit() => throw new NotSupportedException();
+        public int ReadAutoRepairDailyLimit() => throw new NotSupportedException();
+        public int ReadFreeGoldCardDailyLimit() => throw new NotSupportedException();
+    }
+    private sealed class Placement(bool questItem) : IItemPlacementRuleService
+    {
+        public ValueTask<ItemPlacement?> PlacementForAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new(0, 999, new(
+                questItem ? BusinessInventorySpace.Quest : BusinessInventorySpace.Material, 0, 55)));
+        public ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ItemWorldClass> ClassifyAsync(int itemId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<bool> IsEquipmentAsync(int itemId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+    private sealed class NoPremiums : IPremiumServiceDomainService, IAccountPremiumServices
+    {
+        public IAccountPremiumServices For(AccountId accountId) => this;
+        public ValueTask<bool> HasBenefitAsync(PremiumBenefit benefit, CancellationToken cancellationToken) => ValueTask.FromResult(false);
+        public ValueTask<bool> IsActiveAsync(PremiumServiceType type, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<AccountPremiumEntryState> ExtendAsync(PremiumServiceType type, TimeSpan duration, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
 
     private sealed class QuestRules(QuestDefinition definition) : IQuestContentRuleService
     {

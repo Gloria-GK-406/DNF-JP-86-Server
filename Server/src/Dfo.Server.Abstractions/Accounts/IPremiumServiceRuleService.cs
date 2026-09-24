@@ -2,6 +2,7 @@ namespace Dfo.Server.Abstractions.Accounts;
 
 public interface IPremiumServiceRuleService
 {
+    IReadOnlyList<int> QuestHelperMinimumDropRates { get; }
     int DoublePotDailyLimit { get; }
     int DoublePotTotalDailyLimit { get; }
     int DoublePotRenewedUsage(int totalUsed);
