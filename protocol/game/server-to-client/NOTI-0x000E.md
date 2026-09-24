@@ -241,3 +241,9 @@ default                                       → CommonEntrySize  = 101
 内容，也不能把它标为 `WireCaptured`。换角色后的相同余额还同时经过入场 `NOTI 0x000D`，所以
 它证明的是 `0x000E` 运行时更新与 `0x000D` 重载最终收敛到同一账号状态，而不是仅凭换角色现象
 单独证明某一帧。跨协议顺序见[装备分解流程](../../patterns/flow-equipment-disjoint.md)。
+
+## 2026-09-24 消耗最后一瓶遗忘河之水的空槽投影修正
+
+用户实测：重置技能后物品仍显示，重选角色后消失。服务端日志证明重置成功 ACK 后已发 NOTI 000E（119B 整帧），故不是漏发，也不是未扣库。
+
+公共空槽投影原先复用了金币 core，itemId=0；参照服 `ItemListProtocolWriter.WriteEmptyEntry` 明确写 itemId=-1。现修正为 slot + `FFFFFFFF` + 零值，保持 A21 101B 条目宽度。真实金币槽仍使用 itemId=0。证据等级：用户确认持久化扣除，空槽标记来自参照服，修复后立即消失效果待实机验收。

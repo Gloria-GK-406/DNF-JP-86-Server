@@ -80,7 +80,7 @@ public sealed class DisjointItemCodecTests
         Assert.Equal(2, updates.Length);
         var cleared = Assert.Single(updates, update => update.Items.Count == 1
             && update.Items[0].SlotIndex == 9);
-        Assert.Equal(0, cleared.Items[0].Core.ItemId);
+        Assert.Equal(-1, cleared.Items[0].Core.ItemId);
         Assert.Equal(
             [(65, 2600469, 1), (121, 3037, 112)],
             Assert.Single(updates, update => update != cleared).Items
