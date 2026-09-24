@@ -97,6 +97,9 @@ public sealed class ItemIdentityArchitectureTests
     {
         var violations = Members()
             .Where(member => member.Type == typeof(ItemIdentity))
+            // Equipment-only custody references cannot describe a pile; their identity is required.
+            .Where(member => member.Owner != typeof(Dfo.Server.Data.Mail.MailAsset.Equipment)
+                && member.Owner != typeof(Dfo.Server.Abstractions.Inventory.EquipmentTransferItem))
             .Select(member => $"{member.Owner.FullName}.{member.Name}")
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();

@@ -3,6 +3,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Schema;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
@@ -31,6 +32,7 @@ public sealed class EntryLoadCharacterizationTests
         {
             var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await SeedAsync(path);
+            CharacterDatabaseSchema.Ensure($"Data Source={path}");
 
             var loaded = await repository.LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);

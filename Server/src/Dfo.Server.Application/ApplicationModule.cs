@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Application.Mail;
 using Dfo.Server.Application.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Authentication;
@@ -278,6 +280,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
+        services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
+        services.TryAddSingleton<MailStackTransfers>();
+        services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
+        services.TryAddSingleton<IMailboxQueryDomainService, MailboxQueryDomainService>();
+        services.TryAddSingleton<IMailboxDomainService, MailboxDomainService>();
         services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();

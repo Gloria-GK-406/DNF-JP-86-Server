@@ -76,7 +76,29 @@ internal static class CharacterDatabaseSchema
         RetireRuntimeTables(connection);
         Apply(connection, Tables);
         Reconcile(connection);
+        MigrateMailboxGold(connection);
         Apply(connection, Indexes);
+    }
+
+    // The old message-level gold is a receivable asset. Keep its original columns for
+    // legacy readers, but give it an independent attachment identity exactly once.
+    private static void MigrateMailboxGold(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO mailbox_attachments
+                (message_id, ordinal, item_template_id, asset_kind, gold_amount, claimed_flag)
+            SELECT m.message_id, COALESCE((SELECT MAX(a.ordinal) + 1 FROM mailbox_attachments a
+                    WHERE a.message_id = m.message_id), 0), 0, 'gold', m.gold,
+                   CASE WHEN EXISTS (SELECT 1 FROM mailbox_recipients r
+                       WHERE r.message_id=m.message_id AND r.character_id=m.receiver_character_id
+                         AND r.received_gold_flag<>0) THEN 1 ELSE 0 END
+            FROM mailbox_messages m
+            WHERE m.gold > 0 AND NOT EXISTS
+                (SELECT 1 FROM mailbox_attachments a
+                 WHERE a.message_id=m.message_id AND a.asset_kind='gold');
+            """;
+        command.ExecuteNonQuery();
     }
 
     private static void RetireRuntimeTables(SqliteConnection connection)
@@ -270,6 +292,7 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account';
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_mailbox_pending_equipment_uid ON mailbox_attachments(source_item_uid) WHERE asset_kind='equipment' AND claimed_flag=0 AND source_item_uid>0;
         """;
 
     /// <summary>Table, column and declaration, one per line.</summary>
@@ -388,6 +411,9 @@ internal static class CharacterDatabaseSchema
         mailbox_attachments|pet_serial_or_handle|INTEGER NOT NULL DEFAULT 0
         mailbox_attachments|item_core|BLOB
         mailbox_attachments|detail_json|TEXT NOT NULL DEFAULT ''
+        mailbox_attachments|asset_kind|TEXT NOT NULL DEFAULT 'legacy'
+        mailbox_attachments|claimed_flag|INTEGER NOT NULL DEFAULT 0
+        mailbox_attachments|gold_amount|INTEGER NOT NULL DEFAULT 0
         mailbox_messages|sender_character_id|INTEGER NOT NULL DEFAULT 0
         mailbox_messages|sender_name|TEXT NOT NULL DEFAULT ''
         mailbox_messages|title|TEXT NOT NULL DEFAULT ''

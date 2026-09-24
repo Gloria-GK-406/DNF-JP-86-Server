@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Data.Mail;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -54,7 +56,8 @@ internal sealed class CharacterEntryAssembly(
     ICharacterExpertJobTable expertJob,
     ICharacterExpertRecipeTable expertRecipes,
     ICharacterPvpMissionTable pvpMissions,
-    IMailboxRecipientTable mailboxRecipients,
+    IMailboxQueryDomainService mailbox,
+    TimeProvider time,
     IMailboxMessageTable mailboxMessages,
     IMailboxAttachmentTable mailboxAttachments,
     IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices, ICharacterSkillBuildTable skillBuilds) : ICharacterEntryStateRepository
@@ -495,59 +498,30 @@ internal sealed class CharacterEntryAssembly(
             inbox, missions);
     }
 
-    /// <summary>
-    /// The inbox: how much of it there is, and the page of it a character is shown.
-    /// </summary>
-    /// <remarks>
-    /// Which messages count is a rule about mail rather than about either table: folder zero, not
-    /// saved away, not deleted, and either unlimited or not yet expired. The oldest twenty of
-    /// those are the page, and it is shown newest first -- so the page is chosen by one order and
-    /// presented in its reverse, which is why both appear here.
-    ///
-    /// The two facts a row cannot settle for itself -- whether it is still live, and how long it
-    /// has left -- are measured against the database's clock and come back with the row.
-    ///
-    /// Which twenty is settled from headers alone, and only those twenty are then read in full.
-    /// An inbox has no size limit, so reading every letter's text to show twenty of them would
-    /// cost more the more mail a character has.
-    /// </remarks>
     private async ValueTask<CharacterMailboxStorageRecord> LoadInboxAsync(
         CharacterId characterId, CancellationToken cancellationToken)
     {
-        var recipients = await mailboxRecipients.ReadInboxAsync(characterId, cancellationToken)
-            .ConfigureAwait(false);
-        var live = (await mailboxMessages.ReadHeadersAsync(
-                [.. recipients.Select(value => value.MessageId).Distinct()], cancellationToken)
-                .ConfigureAwait(false))
-            .Where(header => header.Live)
-            .ToArray();
-        var chosen = live
-            .OrderBy(header => header.CreatedAtUnixSeconds).ThenBy(header => header.MessageId)
-            .Take(InboxPageSize)
-            .ToArray();
-        var page = (await mailboxMessages.ReadAsync(
-                [.. chosen.Select(header => header.MessageId)], cancellationToken)
-                .ConfigureAwait(false))
-            .OrderByDescending(message => message.CreatedAtUnixSeconds)
-            .ThenByDescending(message => message.MessageId)
-            .ToArray();
-
-        var byId = recipients.ToDictionary(value => value.MessageId);
-        var rows = new List<CharacterMailboxMessageStorageRow>(page.Length);
+        var inbox = await mailbox.PageAsync(characterId, InboxPageSize, cancellationToken);
+        var page = inbox.Messages;
+        var headers = (await mailboxMessages.ReadAsync(page.Select(x => x.Id).ToArray(), cancellationToken))
+            .ToDictionary(x => x.MessageId);
+        var now = time.GetUtcNow();
+        var rows = new List<CharacterMailboxMessageStorageRow>(page.Count);
         foreach (var message in page)
         {
-            var recipient = byId[message.MessageId];
+            var pending = message.Attachments.Where(x => !x.Claimed).ToArray();
+            var pendingIds = pending.Select(x => x.Id).ToHashSet();
+            var attachments = (await mailboxAttachments.ReadAsync(message.Id, cancellationToken))
+                .Where(x => pendingIds.Contains(x.AttachmentId)).ToArray();
+            var metadata = headers[message.Id];
             rows.Add(new CharacterMailboxMessageStorageRow(
-                message.MessageId, message.SenderCharacterId, message.SenderName,
-                message.MailType, message.SourceProtocol, message.Title, message.Body,
-                recipient.ReceivedGoldFlag == 0 ? message.Gold : 0,
-                message.RemainingSeconds, message.CreatedAtUnixSeconds,
-                recipient.SavedFlag != 0 ? 3 : recipient.ReadFlag != 0 ? 2 : 1,
-                await mailboxAttachments.ReadAsync(message.MessageId, cancellationToken)
-                    .ConfigureAwait(false)));
+                message.Id, message.SenderCharacterId, message.SenderName,
+                metadata.MailType, metadata.SourceProtocol, message.Title, message.Body,
+                checked((int)pending.Sum(x => x.Asset is MailAsset.Gold gold ? (long)gold.Amount : 0)),
+                message.ExpiresAt is { } end ? (int)Math.Clamp((end - now).TotalSeconds, 0, int.MaxValue) : 0,
+                checked((int)message.CreatedAt.ToUnixTimeSeconds()), message.Read ? 2 : 1, attachments));
         }
-
-        return new CharacterMailboxStorageRecord(live.Length, rows);
+        return new CharacterMailboxStorageRecord(inbox.TotalCount, rows);
     }
 
     private async ValueTask<int> CounterAsync(

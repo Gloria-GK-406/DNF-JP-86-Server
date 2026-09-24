@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Persistence.Mail;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Authentication;
@@ -152,6 +154,8 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteCharacterExpertRecipeTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterPvpMissionTable>(
             provider => new SqliteCharacterPvpMissionTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IMailboxRepository, SqliteMailboxRepository>();
+        services.TryAddSingleton<IEquipmentTransferDomainStore>(_ => new SqliteEquipmentTransferDomainStore(databasePath));
         services.TryAddSingleton<IMailboxRecipientTable>(
             provider => new SqliteMailboxRecipientTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxMessageTable>(

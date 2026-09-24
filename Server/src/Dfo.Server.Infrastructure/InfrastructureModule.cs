@@ -53,6 +53,7 @@ public sealed class InfrastructureModule : IServerModule
         });
         services.TryAddSingleton<PvfArchiveProvider>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
+        services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();

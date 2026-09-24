@@ -191,7 +191,8 @@ internal sealed class CharacterSide
             new SqliteCharacterExpertJobTable(this.database),
             new SqliteCharacterExpertRecipeTable(this.database),
             new SqliteCharacterPvpMissionTable(this.database),
-            new SqliteMailboxRecipientTable(this.database),
+            new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database), TimeProvider.System),
+            TimeProvider.System,
             new SqliteMailboxMessageTable(this.database),
             new SqliteMailboxAttachmentTable(this.database),
             goldLimits, new PremiumServiceUsageDomainService(

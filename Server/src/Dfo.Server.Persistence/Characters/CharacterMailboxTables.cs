@@ -134,7 +134,7 @@ internal sealed class SqliteMailboxAttachmentTable(SqliteDatabase database)
                    source_item_uid,item_template_id,item_kind,item_count,instance_value,
                    durability,seal_flag,option_value,expire_time,marker_16,
                    pet_serial_or_handle,COALESCE(item_core,X''),detail_json
-            FROM mailbox_attachments WHERE message_id=@messageId ORDER BY ordinal
+            FROM mailbox_attachments WHERE message_id=@messageId AND claimed_flag=0 AND asset_kind!='gold' ORDER BY ordinal
             """,
             parameters => parameters.AddWithValue("@messageId", messageId),
             reader => new CharacterMailboxAttachmentStorageRow(

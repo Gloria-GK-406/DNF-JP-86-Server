@@ -5,6 +5,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
+using Dfo.Server.Persistence.Schema;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
@@ -101,6 +102,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     item_core,detail_json) VALUES(800,0,2,1001,'equipment',3,@core,'detail');
                 INSERT INTO character_pvp_missions VALUES(22,0,900,12);
                 """, ("@core", core));
+            CharacterDatabaseSchema.Ensure($"Data Source={path}");
 
             var result = await repository.LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);
