@@ -39,6 +39,12 @@ public interface IAccountCommand : ICommand
     AccountId AccountId { get; }
 }
 
+/// <summary>Accounts whose state must remain protected for one shared transaction.</summary>
+public interface IMultiAccountCommand : ICommand
+{
+    IReadOnlyList<AccountId> AccountIds { get; }
+}
+
 public interface ICommandBus
 {
     ValueTask<TResult> SendAsync<TResult>(

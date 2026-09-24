@@ -255,9 +255,10 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         await using (var tx = scope.Begin())
         {
             var result = await handler.HandleAsync(context, command, default);
-            Assert.Null(result.Effects!.Award);
-            Assert.Empty(result.Effects.QuestAdvances);
-            Assert.Single(result.Effects.QuestItems!.Items);
+            var effects = Assert.Single(result.Rewards!).Effects;
+            Assert.Null(effects.Award);
+            Assert.Empty(effects.QuestAdvances);
+            Assert.Single(effects.QuestItems!.Items);
             Assert.Equal(15, bag.Count);
             Assert.False(runs.Find(Character)!.CurrentCellState.Objects[0].IsConsumed);
             await tx.CommitAsync(default);
@@ -266,8 +267,138 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         Assert.Empty(runs.Find(Character)!.Kills);
         Assert.Equal(1, seeking.TimesAsked);
         await using var replay = scope.Begin();
-        Assert.Null((await handler.HandleAsync(context, command, default)).Effects);
+        Assert.Null((await handler.HandleAsync(context, command, default)).Rewards);
         Assert.Equal(15, bag.Count);
+    }
+
+    [Theory]
+    [InlineData(1776, 5, 8)]
+    [InlineData(1776, 15, 15)]
+    [InlineData(9999, 5, 5)]
+    public async Task One_object_pays_each_active_quest_owner_with_independent_holding_caps(
+        int memberQuest, int before, int expected)
+    {
+        var fixture = new ObjectPartyFixture(memberQuest, before);
+        await using (var tx = fixture.Scope.Begin())
+        {
+            var result = await fixture.Apply();
+            Assert.Equal(2, result.Rewards!.Count);
+            Assert.Equal(15, fixture.FirstBag.Count);
+            Assert.Equal(expected, fixture.SecondBag.Count);
+            Assert.Equal(fixture.Command.Recipients, result.Rewards.Select(value => value.Session));
+            Assert.All(result.Rewards, value => Assert.Null(value.Effects.Award));
+            Assert.NotNull(result.Rewards[0].Effects.QuestItems);
+            Assert.Equal(expected != before, result.Rewards[1].Effects.QuestItems is not null);
+            await tx.CommitAsync(default);
+        }
+        Assert.True(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+        Assert.Empty(fixture.Run.Kills);
+        await using var again = fixture.Scope.Begin();
+        Assert.Null((await fixture.Apply()).Rewards);
+        Assert.Equal(expected, fixture.SecondBag.Count);
+    }
+
+    [Fact]
+    public async Task Failure_in_second_inventory_rolls_back_both_owners_and_releases_object()
+    {
+        var fixture = new ObjectPartyFixture(1776, 5);
+        fixture.SecondBag.FailAdd = true;
+        await using (var tx = fixture.Scope.Begin())
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await fixture.Apply());
+        Assert.Equal(14, fixture.FirstBag.Count);
+        Assert.Equal(5, fixture.SecondBag.Count);
+        Assert.False(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+        fixture.SecondBag.FailAdd = false;
+        await using (var tx = fixture.Scope.Begin())
+        {
+            Assert.Equal(2, (await fixture.Apply()).Rewards!.Count);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(15, fixture.FirstBag.Count);
+        Assert.Equal(8, fixture.SecondBag.Count);
+        Assert.True(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+    }
+
+    [Fact]
+    public async Task Replacement_session_or_incomplete_recipient_set_cannot_spend_object()
+    {
+        var fixture = new ObjectPartyFixture(1776, 5);
+        await using (var tx = fixture.Scope.Begin())
+            Assert.Null((await fixture.Apply(fixture.Command with
+                { Recipients = [fixture.Command.Session] })).Rewards);
+        var member = fixture.Command.Recipients[1];
+        fixture.Sessions.Select(member with
+            { ConnectionId = new("replacement"), ConnectionGeneration = member.ConnectionGeneration + 1 });
+        await using var stale = fixture.Scope.Begin();
+        Assert.Null((await fixture.Apply()).Rewards);
+        Assert.Equal(14, fixture.FirstBag.Count);
+        Assert.False(fixture.Run.CurrentCellState.Objects[0].IsConsumed);
+    }
+
+    private sealed class ObjectPartyFixture
+    {
+        public readonly Dfo.Server.Application.Transactions.DomainTransactionScope Scope = new();
+        public readonly Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions = new();
+        private readonly Dfo.Server.Application.World.DungeonRunDomainService runs;
+        private readonly ApplyObjectDestructionCommandHandler handler;
+        public readonly ApplyObjectDestructionCommand Command;
+        public readonly DirectGrantBag FirstBag;
+        public readonly DirectGrantBag SecondBag;
+        public DungeonRunState Run => this.runs.Find(Character)!;
+
+        public ObjectPartyFixture(int memberQuest, int count)
+        {
+            this.runs = new(this.Scope);
+            var first = SelectedSessionIdentity.Create(Account, Character, new("first"), 1, 10010);
+            var second = SelectedSessionIdentity.Create(new(7), new(61), new("second"), 1, 10011);
+            this.Sessions.Select(first);
+            this.Sessions.Select(second);
+            var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
+                new Dictionary<MazeCell, int> { [new(0, 0)] = 10 });
+            var loot = new[] { first, second }.Select(owner => new RolledDrop(
+                10149163, 3, DropRarity.Common, DropItemKind.Stackable,
+                OwnerCharacterId: owner.CharacterId, Delivery: RolledDropDelivery.DirectQuestItem,
+                QuestId: 1776, GrantLimit: 15)).ToArray();
+            var seed = DungeonCellSeed.CompleteEmpty(new(0, 0), 10) with
+            {
+                Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0), loot)],
+            };
+            var run = this.runs.PreparePartyEntry(
+                [new(first.AccountId, first.CharacterId, 0, true), new(second.AccountId, second.CharacterId, 1, false)],
+                layout, DungeonDifficulty.Normal, seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
+            this.FirstBag = new(14, this.Scope);
+            this.SecondBag = new(count, this.Scope);
+            var containers = new CharacterContainerDomainService();
+            containers.Register(first.CharacterId, this.FirstBag);
+            containers.Register(second.CharacterId, this.SecondBag);
+            var logs = new PartyLogs(new Dictionary<CharacterId, IQuestLog>
+            {
+                [first.CharacterId] = new OneLog(new(0, 1776, 1)),
+                [second.CharacterId] = new OneLog(new(0, memberQuest, 1)),
+            });
+            this.handler = new(this.runs, this.Sessions, logs, containers,
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new HoldingsOnlyProgress());
+            this.Command = new(first, run.RunId, run.RoomVersion, 8961, [first, second]);
+        }
+
+        public ValueTask<ObjectDestructionResult> Apply(ApplyObjectDestructionCommand? command = null) =>
+            this.handler.HandleAsync(new(Guid.Empty, typeof(ApplyObjectDestructionCommand),
+                typeof(ApplyObjectDestructionCommandHandler), CommandExecutionKind.Transactional), command ?? this.Command, default);
+    }
+
+    private sealed class PartyLogs(IReadOnlyDictionary<CharacterId, IQuestLog> logs) : ICharacterQuestLogDomainService
+    {
+        public IQuestLog LogOf(AccountId accountId, CharacterId characterId) => logs[characterId];
+    }
+
+    private sealed class HoldingsOnlyProgress : IQuestProgressDomainService
+    {
+        public ValueTask<QuestProgressReport> ReportAsync(AccountId accountId, CharacterId characterId,
+            IReadOnlyList<QuestProgressFact> facts, CancellationToken ct)
+        {
+            Assert.IsType<QuestHoldingsChanged>(Assert.Single(facts));
+            return ValueTask.FromResult(new QuestProgressReport(null, [], null));
+        }
     }
 
     [Fact]
@@ -499,8 +630,10 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         }
     }
 
-    private sealed class DirectGrantBag(int count) : IItemContainer
+    private sealed class DirectGrantBag(int count,
+        Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null) : IItemContainer
     {
+        public bool FailAdd { get; set; }
         public int Count { get; private set; } = count;
         public ContainerId Id => new("direct-quest-test");
         public InventoryContainerType Type => InventoryContainerType.Main;
@@ -526,9 +659,24 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             int itemId, int incoming, CancellationToken cancellationToken)
         {
             Assert.Equal(10149163, itemId);
+            if (this.FailAdd) throw new InvalidOperationException("simulated inventory failure");
+            transactions?.Current?.Enlist(this, () => new BagChange(this, this.Count));
             this.Count += incoming;
             return ValueTask.FromResult<ItemPlacementOutcome>(
                 new ItemPlacementOutcome.AddedToPile(0, incoming, this.Count));
+        }
+
+        private sealed class BagChange(DirectGrantBag bag, int before)
+            : Dfo.Server.Abstractions.Transactions.ITransactionParticipant
+        {
+            public bool CommitCanFail => false;
+            public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
+            public ValueTask CommitAsync(CancellationToken ct) => ValueTask.CompletedTask;
+            public ValueTask RollbackAsync(CancellationToken ct)
+            {
+                bag.Count = before;
+                return ValueTask.CompletedTask;
+            }
         }
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) =>

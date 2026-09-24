@@ -404,19 +404,31 @@ public sealed class MonsterDeathHandler(
         {
             var objectRun = runs.Find(session.CharacterId);
             if (objectRun is null) return;
+            var recipients = objectRun.PartyMemberCount > 1
+                ? partyRecipients?.Find(session, objectRun.RunId) ?? runDeliveries.Find(objectRun.RunId)
+                : [session];
             var applied = await commandBus.SendAsync(new ApplyObjectDestructionCommand(
-                session, objectRun.RunId, objectRun.RoomVersion, objectCode), cancellationToken)
+                session, objectRun.RunId, objectRun.RoomVersion, objectCode, recipients), cancellationToken)
                 .ConfigureAwait(false);
-            if (applied.Effects is { } effects && selectedSessions.FindByConnection(session.ConnectionId) == session)
+            if (applied.Rewards is { } rewards)
             {
-                var objectFrames = new List<IGameServerMessage>();
-                AppendQuestGrantFrames(objectFrames, effects);
-                if (objectFrames.Count > 0)
-                    await sender.SendExplicitAsync(session.ConnectionId,
-                        new GameExplicitMessageDelivery(objectFrames, []), cancellationToken).ConfigureAwait(false);
+                var secondary = new List<GameExplicitMessageTarget>();
+                IReadOnlyList<IGameServerMessage> reporterFrames = [];
+                foreach (var reward in rewards)
+                {
+                    if (selectedSessions.FindByConnection(reward.Session.ConnectionId) != reward.Session)
+                        continue;
+                    var objectFrames = new List<IGameServerMessage>();
+                    AppendQuestGrantFrames(objectFrames, reward.Effects);
+                    if (reward.Session == session) reporterFrames = objectFrames;
+                    else if (objectFrames.Count > 0) secondary.Add(new(reward.Session.ConnectionId, objectFrames));
+                }
+                await sender.SendExplicitAsync(session.ConnectionId,
+                    new GameExplicitMessageDelivery(reporterFrames, secondary), cancellationToken).ConfigureAwait(false);
             }
-            logger.LogInformation("Object destruction character={CharacterId} code={Code} accepted={Accepted}",
-                session.CharacterId.Value, objectCode, applied.Effects is not null);
+            logger.LogInformation("Object destruction character={CharacterId} code={Code} accepted={Accepted} recipients={Recipients}",
+                session.CharacterId.Value, objectCode, applied.Rewards is not null,
+                applied.Rewards is null ? "" : string.Join(',', applied.Rewards.Select(value => value.Session.CharacterId.Value)));
             return;
         }
 

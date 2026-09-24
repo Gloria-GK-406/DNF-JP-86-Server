@@ -316,6 +316,67 @@ public sealed class MonsterDeathHandlerTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Object_rewards_are_projected_only_to_each_owners_exact_session(bool replaceMember)
+    {
+        var leader = SelectedSessionIdentity.Create(new(1), new(60), new("leader"), 1, 10010);
+        var member = SelectedSessionIdentity.Create(new(2), new(61), new("member"), 1, 10011);
+        var sessions = new Dfo.Server.Application.Sessions.SelectedSessionDomainService();
+        sessions.Select(leader);
+        sessions.Select(member);
+        var run = new PartyRun([
+            new(leader.AccountId, leader.CharacterId, 0, true),
+            new(member.AccountId, member.CharacterId, 1, false)]);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, [leader, member]);
+        var sender = new PartyRecordingSender();
+        var kills = new OneDeclaredMonster();
+        var replacement = member with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
+        var bus = new ObjectRewardBus(() => { if (replaceMember) sessions.Select(replacement); });
+        var handler = new MonsterDeathHandler(sessions, new PartyRuntimeSessions([leader, member]),
+            new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
+            new DungeonClearDomainService(run, kills),
+            new DungeonClearProjectionDelivery(sessions, run, registry, sender), bus,
+            new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
+                new RecordingQuestLogs(), CurrentCharacterStub.Domain()), registry, sender,
+            ExperienceDiagnostics.None, NullLogger<MonsterDeathHandler>.Instance);
+        await handler.HandleAsync(ContextOf(leader),
+            new MonsterDeathRequest(GameMessageMetadata.Empty, 0, ushort.MaxValue) { ObjectCode = 8961 }, default);
+        Assert.Equal([leader, member], bus.Command!.Recipients);
+        foreach (var recipient in replaceMember ? new[] { leader } : new[] { leader, member })
+        {
+            var frames = sender.For(recipient.ConnectionId);
+            Assert.Equal(2, frames.Count);
+            var item = Assert.Single(Assert.IsType<InventoryDeltaMessage>(frames[0]).Items);
+            Assert.Equal(recipient.CharacterId.Value, item.Core.Value);
+            Assert.IsType<AcceptedQuestProgressMessage>(frames[1]);
+            Assert.Empty(frames.OfType<ExperienceNotification>());
+            Assert.Empty(frames.OfType<MonsterDeathNotification>());
+        }
+        Assert.Empty(sender.For(replacement.ConnectionId));
+        if (replaceMember) Assert.Empty(sender.For(member.ConnectionId));
+    }
+
+    private sealed class ObjectRewardBus(Action afterCommit) : ICommandBus
+    {
+        public ApplyObjectDestructionCommand? Command { get; private set; }
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct)
+            where TResult : notnull
+        {
+            this.Command = Assert.IsType<ApplyObjectDestructionCommand>(command);
+            var rewards = this.Command.Recipients.Select(session => new ObjectQuestReward(session,
+                new ApplyMonsterKillResult(null, [], new CommittedInventoryUpdateState(
+                    InventoryContainerType.Main,
+                    [new InventoryItemState(null, 0,
+                        StackableItemCore.Create(6, 10149163, session.CharacterId.Value))], DateTimeOffset.UtcNow),
+                    new QuestProgressSnapshot([new CarriedQuest(0, 2201, 8)]), []))).ToArray();
+            afterCommit();
+            return ValueTask.FromResult((TResult)(object)new ObjectDestructionResult(rewards));
+        }
+    }
+
     [Fact]
     public async Task AReplacementConnectionDoesNotInheritAnOlderRunsKillEffects()
     {
