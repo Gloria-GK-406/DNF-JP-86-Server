@@ -1,0 +1,21 @@
+Opened log file 'E:\Project\DNF\DNF-JP-86-Server\Document\outputs\pickup-retained-20260922\debugger-isolated-test.log'
+0:000> .time
+Debug session time: Tue Sep 22 14:07:24.942 2026 (UTC + 8:00)
+System Uptime: 3 days 4:52:39.400
+Process Uptime: 0 days 0:00:00.080
+  Kernel time: 0 days 0:00:00.000
+  User time: 0 days 0:00:00.000
+0:000> r $t0=0
+0:000> .if (1==1) { .echo GATE-TEST-PASS } .else { qd }
+GATE-TEST-PASS
+0:000> bp @$exentry "r $t0=@$t0+1; .printf \"ISOLATED-HIT seq=%x tid=%x pc=%p\\n\", @$t0, @$tid, @$ip; .time; qd"
+0:000> g
+ModLoad: 00000000`77d00000 00000000`77d0a000   C:\WINDOWS\System32\wow64cpu.dll
+ModLoad: 00000000`767e0000 00000000`768d0000   C:\WINDOWS\SysWOW64\KERNEL32.DLL
+ModLoad: 00000000`75d50000 00000000`7602a000   C:\WINDOWS\SysWOW64\KERNELBASE.dll
+ModLoad: 00000000`76d60000 00000000`76e70000   C:\WINDOWS\SysWOW64\ucrtbase.dll
+(7220.57e4): WOW64 breakpoint - code 4000001f (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+ntdll32!LdrInitShimEngineDynamic+0x6a8:
+77e28b88 cc              int     3

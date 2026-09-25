@@ -1,0 +1,41 @@
+016DC5A0 push ebp
+016DC5A1 mov ebp, esp
+016DC5A3 cmp dword ptr [ebp + 8], 0
+016DC5A7 je 0x16dc5f7
+016DC5A9 push esi
+016DC5AA mov esi, dword ptr [ebp + 0xc]
+016DC5AD test esi, esi
+016DC5AF je 0x16dc5f6
+016DC5B1 mov eax, dword ptr [esi]
+016DC5B3 mov edx, dword ptr [eax + 0xc4]
+016DC5B9 push ebx
+016DC5BA push edi
+016DC5BB mov ecx, esi
+016DC5BD call edx
+016DC5BF mov edi, eax
+016DC5C1 mov eax, dword ptr [esi]
+016DC5C3 mov edx, dword ptr [eax + 0xc8]
+016DC5C9 mov ecx, esi
+016DC5CB call edx
+016DC5CD mov ebx, eax
+016DC5CF mov eax, dword ptr [esi]
+016DC5D1 mov edx, dword ptr [eax + 0xcc]
+016DC5D7 mov ecx, esi
+016DC5D9 call edx
+016DC5DB mov ecx, dword ptr [ebp + 0x14]
+016DC5DE mov edx, dword ptr [ebp + 0x10]
+016DC5E1 push 0
+016DC5E3 push ecx
+016DC5E4 push edx
+016DC5E5 push eax
+016DC5E6 mov eax, dword ptr [ebp + 8]
+016DC5E9 push ebx
+016DC5EA push edi
+016DC5EB push eax
+016DC5EC call 0x16dc3e0
+016DC5F1 add esp, 0x1c
+016DC5F4 pop edi
+016DC5F5 pop ebx
+016DC5F6 pop esi
+016DC5F7 pop ebp
+016DC5F8 ret

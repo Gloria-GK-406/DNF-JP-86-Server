@@ -1,0 +1,173 @@
+
+E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r:	file format elf32-i386
+
+Disassembly of section .text:
+
+083535d6 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE>:
+ 83535d6:      	pushl	%ebp
+ 83535d7:      	movl	%esp, %ebp
+ 83535d9:      	subl	$0x48, %esp
+ 83535dc:      	movl	0x8(%ebp), %eax
+ 83535df:      	addl	$0x54, %eax
+ 83535e2:      	movl	%eax, (%esp)
+ 83535e5:      	calll	0x8390ebc <_ZNKSt6vectorI15MonsterKillItemSaIS0_EE5emptyEv>
+ 83535ea:      	testb	%al, %al
+ 83535ec:      	je	0x83535f8 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0x22>
+ 83535ee:      	movl	$0x0, %eax
+ 83535f3:      	jmp	0x83536f0 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0x11a>
+ 83535f8:      	movl	0x8(%ebp), %eax
+ 83535fb:      	addl	$0x54, %eax
+ 83535fe:      	movl	%eax, (%esp)
+ 8353601:      	calll	0x8390f00 <_ZNKSt6vectorI15MonsterKillItemSaIS0_EE4sizeEv>
+ 8353606:      	movl	%eax, 0x4(%esp)
+ 835360a:      	movl	0x1c(%ebp), %eax
+ 835360d:      	movl	%eax, (%esp)
+ 8353610:      	calll	0x8390f1c <_ZNSt6vectorI15MonsterKillItemSaIS0_EE7reserveEj>
+ 8353615:      	movl	$0x0, -0xc(%ebp)
+ 835361c:      	jmp	0x83536b4 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xde>
+ 8353621:      	movl	-0xc(%ebp), %eax
+ 8353624:      	movl	0x8(%ebp), %edx
+ 8353627:      	addl	$0x54, %edx
+ 835362a:      	movl	%eax, 0x4(%esp)
+ 835362e:      	movl	%edx, (%esp)
+ 8353631:      	calll	0x8391040 <_ZNKSt6vectorI15MonsterKillItemSaIS0_EEixEj>
+ 8353636:      	movl	(%eax), %edx
+ 8353638:      	movl	%edx, -0x2c(%ebp)
+ 835363b:      	movl	0x4(%eax), %edx
+ 835363e:      	movl	%edx, -0x28(%ebp)
+ 8353641:      	movl	0x8(%eax), %edx
+ 8353644:      	movl	%edx, -0x24(%ebp)
+ 8353647:      	movl	0xc(%eax), %edx
+ 835364a:      	movl	%edx, -0x20(%ebp)
+ 835364d:      	movl	0x10(%eax), %edx
+ 8353650:      	movl	%edx, -0x1c(%ebp)
+ 8353653:      	movl	0x14(%eax), %edx
+ 8353656:      	movl	%edx, -0x18(%ebp)
+ 8353659:      	movl	0x18(%eax), %edx
+ 835365c:      	movl	%edx, -0x14(%ebp)
+ 835365f:      	movl	0x1c(%eax), %eax
+ 8353662:      	movl	%eax, -0x10(%ebp)
+ 8353665:      	movl	-0x20(%ebp), %eax
+ 8353668:      	cmpl	$-0x1, %eax
+ 835366b:      	je	0x8353675 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0x9f>
+ 835366d:      	movl	-0x20(%ebp), %eax
+ 8353670:      	cmpl	0x10(%ebp), %eax
+ 8353673:      	jne	0x83536a9 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xd3>
+ 8353675:      	movl	-0x24(%ebp), %eax
+ 8353678:      	cmpl	$-0x1, %eax
+ 835367b:      	je	0x8353685 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xaf>
+ 835367d:      	movl	-0x24(%ebp), %eax
+ 8353680:      	cmpl	0xc(%ebp), %eax
+ 8353683:      	jne	0x83536ac <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xd6>
+ 8353685:      	movl	-0x2c(%ebp), %eax
+ 8353688:      	cmpl	0x18(%ebp), %eax
+ 835368b:      	jne	0x83536af <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xd9>
+ 835368d:      	movl	-0x28(%ebp), %eax
+ 8353690:      	cmpl	0x14(%ebp), %eax
+ 8353693:      	jne	0x83536b0 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xda>
+ 8353695:      	leal	-0x2c(%ebp), %eax
+ 8353698:      	movl	%eax, 0x4(%esp)
+ 835369c:      	movl	0x1c(%ebp), %eax
+ 835369f:      	movl	%eax, (%esp)
+ 83536a2:      	calll	0x8391052 <_ZNSt6vectorI15MonsterKillItemSaIS0_EE9push_backERKS0_>
+ 83536a7:      	jmp	0x83536b0 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xda>
+ 83536a9:      	nop
+ 83536aa:      	jmp	0x83536b0 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xda>
+ 83536ac:      	nop
+ 83536ad:      	jmp	0x83536b0 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0xda>
+ 83536af:      	nop
+ 83536b0:      	addl	$0x1, -0xc(%ebp)
+ 83536b4:      	movl	0x8(%ebp), %eax
+ 83536b7:      	addl	$0x54, %eax
+ 83536ba:      	movl	%eax, (%esp)
+ 83536bd:      	calll	0x8390f00 <_ZNKSt6vectorI15MonsterKillItemSaIS0_EE4sizeEv>
+ 83536c2:      	cmpl	-0xc(%ebp), %eax
+ 83536c5:      	setg	%al
+ 83536c8:      	testb	%al, %al
+ 83536ca:      	jne	0x8353621 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0x4b>
+ 83536d0:      	movl	0x1c(%ebp), %eax
+ 83536d3:      	movl	%eax, (%esp)
+ 83536d6:      	calll	0x8390f00 <_ZNKSt6vectorI15MonsterKillItemSaIS0_EE4sizeEv>
+ 83536db:      	testl	%eax, %eax
+ 83536dd:      	sete	%al
+ 83536e0:      	testb	%al, %al
+ 83536e2:      	je	0x83536eb <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0x115>
+ 83536e4:      	movl	$0x0, %eax
+ 83536e9:      	jmp	0x83536f0 <_ZNK5Quest16CheckKillMonsterEiii21ENUM_QUEST_ENEMY_TYPERSt6vectorI15MonsterKillItemSaIS2_EE+0x11a>
+ 83536eb:      	movl	$0x1, %eax
+ 83536f0:      	leave
+ 83536f1:      	retl
+
+083536f2 <_ZNK5Quest13get_appearmapEii>:
+ 83536f2:      	pushl	%ebp
+ 83536f3:      	movl	%esp, %ebp
+ 83536f5:      	pushl	%ebx
+ 83536f6:      	subl	$0x14, %esp
+ 83536f9:      	movl	0x8(%ebp), %eax
+ 83536fc:      	movl	0x64(%eax), %eax
+ 83536ff:      	cmpl	$-0x1, %eax
+ 8353702:      	jne	0x8353732 <_ZNK5Quest13get_appearmapEii+0x40>
+ 8353704:      	movl	0x8(%ebp), %eax
+ 8353707:      	movl	0x60(%eax), %eax
+ 835370a:      	cmpl	0xc(%ebp), %eax
+ 835370d:      	jne	0x835376b <_ZNK5Quest13get_appearmapEii+0x79>
+ 835370f:      	movl	0x8(%ebp), %eax
+ 8353712:      	movl	0x6c(%eax), %ebx
+ 8353715:      	movl	$0x64, (%esp)
+ 835371c:      	calll	0x86b1b87 <_Z12get_rand_inti>
+ 8353721:      	cmpl	%eax, %ebx
+ 8353723:      	setge	%al
+ 8353726:      	testb	%al, %al
+ 8353728:      	je	0x835376b <_ZNK5Quest13get_appearmapEii+0x79>
+ 835372a:      	movl	0x8(%ebp), %eax
+ 835372d:      	movl	0x68(%eax), %eax
+ 8353730:      	jmp	0x8353770 <_ZNK5Quest13get_appearmapEii+0x7e>
+ 8353732:      	movl	0x8(%ebp), %eax
+ 8353735:      	movl	0x64(%eax), %eax
+ 8353738:      	cmpl	0xc(%ebp), %eax
+ 835373b:      	jne	0x835376b <_ZNK5Quest13get_appearmapEii+0x79>
+ 835373d:      	movl	0x8(%ebp), %eax
+ 8353740:      	movl	0x64(%eax), %eax
+ 8353743:      	cmpl	0x10(%ebp), %eax
+ 8353746:      	jne	0x835376b <_ZNK5Quest13get_appearmapEii+0x79>
+ 8353748:      	movl	0x8(%ebp), %eax
+ 835374b:      	movl	0x6c(%eax), %ebx
+ 835374e:      	movl	$0x64, (%esp)
+ 8353755:      	calll	0x86b1b87 <_Z12get_rand_inti>
+ 835375a:      	cmpl	%eax, %ebx
+ 835375c:      	setge	%al
+ 835375f:      	testb	%al, %al
+ 8353761:      	je	0x835376b <_ZNK5Quest13get_appearmapEii+0x79>
+ 8353763:      	movl	0x8(%ebp), %eax
+ 8353766:      	movl	0x68(%eax), %eax
+ 8353769:      	jmp	0x8353770 <_ZNK5Quest13get_appearmapEii+0x7e>
+ 835376b:      	movl	$0x0, %eax
+ 8353770:      	addl	$0x14, %esp
+ 8353773:      	popl	%ebx
+ 8353774:      	popl	%ebp
+ 8353775:      	retl
+
+08353776 <_ZNK5Quest19IsOpenScheduleQuestEv>:
+ 8353776:      	pushl	%ebp
+ 8353777:      	movl	%esp, %ebp
+ 8353779:      	subl	$0x28, %esp
+ 835377c:      	movl	$0x0, -0x10(%ebp)
+ 8353783:      	movl	0x8(%ebp), %eax
+ 8353786:      	movl	0x4(%eax), %eax
+ 8353789:      	movl	%eax, %edx
+ 835378b:      	movl	0x941f784, %eax
+ 8353790:      	movl	%edx, 0x8(%esp)
+ 8353794:      	movl	$0x1, 0x4(%esp)
+ 835379c:      	movl	%eax, (%esp)
+ 835379f:      	calll	0x81266e2 <_ZNK21CDailyScheduleManager16GetScheduleStateE18_DailyScheduleTypej>
+ 83537a4:      	movl	%eax, -0xc(%ebp)
+ 83537a7:      	cmpl	$0x1, -0xc(%ebp)
+ 83537ab:      	je	0x83537b3 <_ZNK5Quest19IsOpenScheduleQuestEv+0x3d>
+ 83537ad:      	cmpl	$0x2, -0xc(%ebp)
+ 83537b1:      	jne	0x83537ba <_ZNK5Quest19IsOpenScheduleQuestEv+0x44>
+ 83537b3:      	movl	$0x1, %eax
+ 83537b8:      	jmp	0x83537bf <_ZNK5Quest19IsOpenScheduleQuestEv+0x49>
+ 83537ba:      	movl	$0x0, %eax
+ 83537bf:      	leave
+ 83537c0:      	retl
+ 83537c1:      	nop

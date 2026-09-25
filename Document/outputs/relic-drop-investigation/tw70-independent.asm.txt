@@ -1,0 +1,469 @@
+
+_Z26independentItemRateControlR26stMonsterIndependentDrop_tRKN8WongWork19stGenerateRefData_tE
+0x834972f push ebp
+0x8349730 mov ebp, esp
+0x8349732 sub esp, 0x48
+0x8349735 call 0x80cc19b (135053723, 13, '_Z14G_CDataManagerv')
+0x834973a add eax, 0xa89c
+0x834973f mov dword ptr [ebp - 0x18], eax
+0x8349742 mov eax, dword ptr [ebp + 0xc]
+0x8349745 movzx eax, byte ptr [eax + 0x36]
+0x8349749 mov byte ptr [ebp - 0x12], al
+0x834974c mov eax, dword ptr [ebp + 0xc]
+0x834974f movzx eax, byte ptr [eax + 0x34]
+0x8349753 mov byte ptr [ebp - 0x11], al
+0x8349756 lea eax, [ebp - 0x20]
+0x8349759 mov edx, dword ptr [ebp - 0x18]
+0x834975c mov dword ptr [esp + 4], edx
+0x8349760 mov dword ptr [esp], eax
+0x8349763 call 0x83882b8 (137921208, 35, '_ZNSt6vectorI28stIndependentDropRateControlSaIS0_EE5beginEv')
+0x8349768 sub esp, 4
+0x834976b jmp 0x8349869
+0x8349770 lea eax, [ebp - 0x20]
+0x8349773 mov dword ptr [esp], eax
+0x8349776 call 0x8388344 (137921348, 10, '_ZNK9__gnu_cxx17__normal_iteratorIP28stIndependentDropRateControlSt6vectorIS1_SaIS1_EEEptEv')
+0x834977b mov edx, dword ptr [eax]
+0x834977d mov eax, dword ptr [ebp + 8]
+0x8349780 mov eax, dword ptr [eax]
+0x8349782 cmp edx, eax
+0x8349784 setne al
+0x8349787 test al, al
+0x8349789 jne 0x834985a
+0x834978f movzx edx, byte ptr [ebp - 0x12]
+0x8349793 mov eax, dword ptr [ebp + 8]
+0x8349796 mov eax, dword ptr [eax + edx*4 + 4]
+0x834979a test eax, eax
+0x834979c je 0x834985d
+0x83497a2 mov eax, dword ptr [ebp + 0xc]
+0x83497a5 movzx eax, byte ptr [eax + 0x3f]
+0x83497a9 movzx edx, al
+0x83497ac movzx eax, byte ptr [ebp - 0x11]
+0x83497b0 mov ecx, edx
+0x83497b2 sub ecx, eax
+0x83497b4 mov eax, ecx
+0x83497b6 mov dword ptr [ebp - 0x10], eax
+0x83497b9 lea eax, [ebp - 0x20]
+0x83497bc mov dword ptr [esp], eax
+0x83497bf call 0x8388344 (137921348, 10, '_ZNK9__gnu_cxx17__normal_iteratorIP28stIndependentDropRateControlSt6vectorIS1_SaIS1_EEEptEv')
+0x83497c4 mov eax, dword ptr [eax + 4]
+0x83497c7 cmp eax, dword ptr [ebp - 0x10]
+0x83497ca setle al
+0x83497cd test al, al
+0x83497cf je 0x834985e
+0x83497d5 lea eax, [ebp - 0x20]
+0x83497d8 mov dword ptr [esp], eax
+0x83497db call 0x8388344 (137921348, 10, '_ZNK9__gnu_cxx17__normal_iteratorIP28stIndependentDropRateControlSt6vectorIS1_SaIS1_EEEptEv')
+0x83497e0 mov eax, dword ptr [eax + 8]
+0x83497e3 imul eax, dword ptr [ebp - 0x10]
+0x83497e7 mov edx, 0x2710
+0x83497ec mov ecx, edx
+0x83497ee sub ecx, eax
+0x83497f0 mov eax, ecx
+0x83497f2 mov dword ptr [ebp - 0x2c], eax
+0x83497f5 fild dword ptr [ebp - 0x2c]
+0x83497f8 fstp dword ptr [ebp - 0xc]
+0x83497fb fld dword ptr [ebp - 0xc]
+0x83497fe fldz
+0x8349800 fucompp
+0x8349802 fnstsw ax
+0x8349804 test ah, 0x45
+0x8349807 sete al
+0x834980a test al, al
+0x834980c je 0x8349816
+0x834980e mov eax, 0x3f800000
+0x8349813 mov dword ptr [ebp - 0xc], eax
+0x8349816 movzx edx, byte ptr [ebp - 0x12]
+0x834981a movzx ecx, byte ptr [ebp - 0x12]
+0x834981e mov eax, dword ptr [ebp + 8]
+0x8349821 mov eax, dword ptr [eax + ecx*4 + 4]
+0x8349825 mov dword ptr [ebp - 0x2c], eax
+0x8349828 fild dword ptr [ebp - 0x2c]
+0x834982b fld dword ptr [ebp - 0xc]
+0x834982e fld dword ptr [0x8c349ec]
+0x8349834 fdivp st(1)
+0x8349836 fmulp st(1)
+0x8349838 fnstcw word ptr [ebp - 0x2e]
+0x834983b movzx eax, word ptr [ebp - 0x2e]
+0x834983f mov ah, 0xc
+0x8349841 mov word ptr [ebp - 0x30], ax
+0x8349845 fldcw word ptr [ebp - 0x30]
+0x8349848 fistp dword ptr [ebp - 0x2c]
+0x834984b fldcw word ptr [ebp - 0x2e]
+0x834984e mov ecx, dword ptr [ebp - 0x2c]
+0x8349851 mov eax, dword ptr [ebp + 8]
+0x8349854 mov dword ptr [eax + edx*4 + 4], ecx
+0x8349858 jmp 0x834985e
+0x834985a nop
+0x834985b jmp 0x834985e
+0x834985d nop
+0x834985e lea eax, [ebp - 0x20]
+0x8349861 mov dword ptr [esp], eax
+0x8349864 call 0x838832e (137921326, 21, '_ZN9__gnu_cxx17__normal_iteratorIP28stIndependentDropRateControlSt6vectorIS1_SaIS1_EEEppEv')
+0x8349869 lea eax, [ebp - 0x1c]
+0x834986c mov edx, dword ptr [ebp - 0x18]
+0x834986f mov dword ptr [esp + 4], edx
+0x8349873 mov dword ptr [esp], eax
+0x8349876 call 0x83882dc (137921244, 38, '_ZNSt6vectorI28stIndependentDropRateControlSaIS0_EE3endEv')
+0x834987b sub esp, 4
+0x834987e lea eax, [ebp - 0x1c]
+0x8349881 mov dword ptr [esp + 4], eax
+0x8349885 lea eax, [ebp - 0x20]
+0x8349888 mov dword ptr [esp], eax
+0x834988b call 0x8388302 (137921282, 44, '_ZN9__gnu_cxxneIP28stIndependentDropRateControlSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_')
+0x8349890 test al, al
+0x8349892 jne 0x8349770
+0x8349898 leave
+0x8349899 ret
+
+_Z23generateIndependentItemRKSt6vectorI26stMonsterIndependentDrop_tSaIS0_EERKN8WongWork19stGenerateRefData_tERS_I10Inven_ItemSaIS9_EE
+0x834989a push ebp
+0x834989b mov ebp, esp
+0x834989d push esi
+0x834989e push ebx
+0x834989f sub esp, 0xe0
+0x83498a5 mov eax, dword ptr [ebp + 0xc]
+0x83498a8 movzx eax, byte ptr [eax + 0x36]
+0x83498ac mov byte ptr [ebp - 0x1f], al
+0x83498af mov eax, dword ptr [ebp + 0xc]
+0x83498b2 movzx eax, byte ptr [eax + 0x34]
+0x83498b6 mov byte ptr [ebp - 0x1e], al
+0x83498b9 mov eax, dword ptr [ebp + 0xc]
+0x83498bc movzx eax, byte ptr [eax + 0x3e]
+0x83498c0 mov byte ptr [ebp - 0x1d], al
+0x83498c3 lea eax, [ebp - 0x2c]
+0x83498c6 mov edx, dword ptr [ebp + 8]
+0x83498c9 mov dword ptr [esp + 4], edx
+0x83498cd mov dword ptr [esp], eax
+0x83498d0 call 0x838834e (137921358, 43, '_ZNKSt6vectorI26stMonsterIndependentDrop_tSaIS0_EE5beginEv')
+0x83498d5 sub esp, 4
+0x83498d8 lea eax, [ebp - 0x30]
+0x83498db mov edx, dword ptr [ebp + 8]
+0x83498de mov dword ptr [esp + 4], edx
+0x83498e2 mov dword ptr [esp], eax
+0x83498e5 call 0x838837a (137921402, 44, '_ZNKSt6vectorI26stMonsterIndependentDrop_tSaIS0_EE3endEv')
+0x83498ea sub esp, 4
+0x83498ed jmp 0x8349d7c
+0x83498f2 lea eax, [ebp - 0x2c]
+0x83498f5 mov dword ptr [esp], eax
+0x83498f8 call 0x83883e8 (137921512, 10, '_ZNK9__gnu_cxx17__normal_iteratorIPK26stMonsterIndependentDrop_tSt6vectorIS1_SaIS1_EEEdeEv')
+0x83498fd mov dword ptr [esp + 4], eax
+0x8349901 lea eax, [ebp - 0xc8]
+0x8349907 mov dword ptr [esp], eax
+0x834990a call 0x8376bb2 (137849778, 168, '_ZN26stMonsterIndependentDrop_tC2ERKS_')
+0x834990f mov eax, dword ptr [ebp - 0x8c]
+0x8349915 test eax, eax
+0x8349917 jne 0x8349923
+0x8349919 mov eax, dword ptr [ebp - 0x88]
+0x834991f test eax, eax
+0x8349921 je 0x834997b
+0x8349923 mov eax, dword ptr [ebp + 0xc]
+0x8349926 movzx eax, byte ptr [eax + 0x25]
+0x834992a test al, al
+0x834992c je 0x8349957
+0x834992e mov eax, dword ptr [ebp + 0xc]
+0x8349931 mov edx, dword ptr [eax + 0x2c]
+0x8349934 mov eax, dword ptr [ebp - 0x8c]
+0x834993a cmp edx, eax
+0x834993c jl 0x8349d63
+0x8349942 mov eax, dword ptr [ebp + 0xc]
+0x8349945 mov edx, dword ptr [eax + 0x2c]
+0x8349948 mov eax, dword ptr [ebp - 0x88]
+0x834994e cmp edx, eax
+0x8349950 jle 0x834997b
+0x8349952 jmp 0x8349d63
+0x8349957 mov edx, dword ptr [ebp - 0x8c]
+0x834995d movzx eax, byte ptr [ebp - 0x1e]
+0x8349961 cmp edx, eax
+0x8349963 jg 0x8349d63
+0x8349969 mov edx, dword ptr [ebp - 0x88]
+0x834996f movzx eax, byte ptr [ebp - 0x1e]
+0x8349973 cmp edx, eax
+0x8349975 jl 0x8349d63
+0x834997b mov dword ptr [ebp - 0x34], 0
+0x8349982 mov eax, dword ptr [ebp + 0xc]
+0x8349985 mov dword ptr [esp + 4], eax
+0x8349989 lea eax, [ebp - 0xc8]
+0x834998f mov dword ptr [esp], eax
+0x8349992 call 0x834972f (137664303, 363, '_Z26independentItemRateControlR26stMonsterIndependentDrop_tRKN8WongWork19stGenerateRefData_tE')
+0x8349997 mov eax, dword ptr [ebp - 0x9c]
+0x834999d test eax, eax
+0x834999f jle 0x8349a33
+0x83499a5 mov eax, dword ptr [ebp + 0xc]
+0x83499a8 mov eax, dword ptr [eax + 0x20]
+0x83499ab test eax, eax
+0x83499ad jle 0x8349a33
+0x83499b3 mov eax, dword ptr [ebp + 0xc]
+0x83499b6 movzx eax, byte ptr [eax + 0x3c]
+0x83499ba cmp al, 3
+0x83499bc jne 0x8349a33
+0x83499be movzx ebx, byte ptr [ebp - 0x1f]
+0x83499c2 movzx eax, byte ptr [ebp - 0x1f]
+0x83499c6 mov edx, dword ptr [ebp + eax*4 - 0xc4]
+0x83499cd mov eax, dword ptr [ebp + 0xc]
+0x83499d0 mov eax, dword ptr [eax + 0x20]
+0x83499d3 add eax, 0x64
+0x83499d6 mov ecx, edx
+0x83499d8 imul ecx, eax
+0x83499db mov edx, 0x51eb851f
+0x83499e0 mov eax, ecx
+0x83499e2 imul edx
+0x83499e4 sar edx, 5
+0x83499e7 mov eax, ecx
+0x83499e9 sar eax, 0x1f
+0x83499ec mov ecx, edx
+0x83499ee sub ecx, eax
+0x83499f0 mov eax, ecx
+0x83499f2 mov dword ptr [ebp - 0xcc], eax
+0x83499f8 fild dword ptr [ebp - 0xcc]
+0x83499fe fnstcw word ptr [ebp - 0xce]
+0x8349a04 movzx eax, word ptr [ebp - 0xce]
+0x8349a0b mov ah, 0xc
+0x8349a0d mov word ptr [ebp - 0xd0], ax
+0x8349a14 fldcw word ptr [ebp - 0xd0]
+0x8349a1a fistp dword ptr [ebp - 0xcc]
+0x8349a20 fldcw word ptr [ebp - 0xce]
+0x8349a26 mov eax, dword ptr [ebp - 0xcc]
+0x8349a2c mov dword ptr [ebp + ebx*4 - 0xc4], eax
+0x8349a33 mov eax, dword ptr [ebp + 0xc]
+0x8349a36 movzx eax, byte ptr [eax + 0x25]
+0x8349a3a test al, al
+0x8349a3c je 0x8349a94
+0x8349a3e mov eax, dword ptr [ebp + 0xc]
+0x8349a41 mov eax, dword ptr [eax + 0x30]
+0x8349a44 cmp eax, 1
+0x8349a47 jle 0x8349a94
+0x8349a49 movzx eax, byte ptr [ebp - 0x1f]
+0x8349a4d mov edx, dword ptr [ebp + eax*4 - 0xc4]
+0x8349a54 mov eax, dword ptr [ebp + 0xc]
+0x8349a57 mov eax, dword ptr [eax + 0x30]
+0x8349a5a imul eax, edx
+0x8349a5d cmp eax, 0xf423f
+0x8349a62 jle 0x8349a75
+0x8349a64 movzx eax, byte ptr [ebp - 0x1f]
+0x8349a68 mov dword ptr [ebp + eax*4 - 0xc4], 0xf4240
+0x8349a73 jmp 0x8349a94
+0x8349a75 movzx eax, byte ptr [ebp - 0x1f]
+0x8349a79 movzx edx, byte ptr [ebp - 0x1f]
+0x8349a7d mov ecx, dword ptr [ebp + edx*4 - 0xc4]
+0x8349a84 mov edx, dword ptr [ebp + 0xc]
+0x8349a87 mov edx, dword ptr [edx + 0x30]
+0x8349a8a imul edx, ecx
+0x8349a8d mov dword ptr [ebp + eax*4 - 0xc4], edx
+0x8349a94 mov dword ptr [ebp - 0x1c], 0
+0x8349a9b mov eax, dword ptr [ebp - 0xc8]
+0x8349aa1 test eax, eax
+0x8349aa3 jne 0x8349ac8
+0x8349aa5 mov eax, dword ptr [ebp - 0x9c]
+0x8349aab test eax, eax
+0x8349aad jne 0x8349ac8
+0x8349aaf movzx eax, byte ptr [ebp - 0x1d]
+0x8349ab3 sub eax, 1
+0x8349ab6 add eax, 4
+0x8349ab9 mov eax, dword ptr [ebp + eax*4 - 0xc0]
+0x8349ac0 mov dword ptr [ebp - 0x1c], eax
+0x8349ac3 jmp 0x8349b4c
+0x8349ac8 mov dword ptr [ebp - 0x18], 0
+0x8349acf jmp 0x8349b14
+0x8349ad1 mov eax, dword ptr [ebp + 0xc]
+0x8349ad4 movzx eax, byte ptr [eax + 0x24]
+0x8349ad8 test al, al
+0x8349ada je 0x8349ae7
+0x8349adc mov eax, dword ptr [ebp - 0x34]
+0x8349adf add eax, 1
+0x8349ae2 mov dword ptr [ebp - 0x34], eax
+0x8349ae5 jmp 0x8349b10
+0x8349ae7 movzx eax, byte ptr [ebp - 0x1f]
+0x8349aeb mov ebx, dword ptr [ebp + eax*4 - 0xc4]
+0x8349af2 mov dword ptr [esp], 0xf4240
+0x8349af9 call 0x86b1b87 (141237127, 245, '_Z12get_rand_inti')
+0x8349afe cmp ebx, eax
+0x8349b00 setg al
+0x8349b03 test al, al
+0x8349b05 je 0x8349b10
+0x8349b07 mov eax, dword ptr [ebp - 0x34]
+0x8349b0a add eax, 1
+0x8349b0d mov dword ptr [ebp - 0x34], eax
+0x8349b10 add dword ptr [ebp - 0x18], 1
+0x8349b14 movzx eax, byte ptr [ebp - 0x1d]
+0x8349b18 sub eax, 1
+0x8349b1b add eax, 4
+0x8349b1e mov eax, dword ptr [ebp + eax*4 - 0xc0]
+0x8349b25 cmp eax, dword ptr [ebp - 0x18]
+0x8349b28 setg al
+0x8349b2b test al, al
+0x8349b2d jne 0x8349ad1
+0x8349b2f lea eax, [ebp - 0xc8]
+0x8349b35 add eax, 0x28
+0x8349b38 mov dword ptr [esp + 4], eax
+0x8349b3c lea eax, [ebp - 0x34]
+0x8349b3f mov dword ptr [esp], eax
+0x8349b42 call 0x80df90e (135133454, 27, '_ZSt3minIiERKT_S2_S2_')
+0x8349b47 mov eax, dword ptr [eax]
+0x8349b49 mov dword ptr [ebp - 0x1c], eax
+0x8349b4c lea eax, [ebp - 0x7d]
+0x8349b4f mov dword ptr [esp], eax
+0x8349b52 call 0x80cb854 (135051348, 47, '_ZN10Inven_ItemC2Ev')
+0x8349b57 mov eax, dword ptr [ebp - 0x9c]
+0x8349b5d test eax, eax
+0x8349b5f je 0x8349c91
+0x8349b65 mov eax, dword ptr [ebp + 0xc]
+0x8349b68 movzx eax, byte ptr [eax + 0x25]
+0x8349b6c test al, al
+0x8349b6e je 0x8349b90
+0x8349b70 mov eax, dword ptr [ebp - 0x84]
+0x8349b76 test eax, eax
+0x8349b78 js 0x8349b90
+0x8349b7a mov eax, dword ptr [ebp + 0xc]
+0x8349b7d mov eax, dword ptr [eax + 0x28]
+0x8349b80 mov edx, eax
+0x8349b82 mov eax, dword ptr [ebp - 0x84]
+0x8349b88 cmp edx, eax
+0x8349b8a jne 0x8349d63
+0x8349b90 mov dword ptr [ebp - 0x14], 0
+0x8349b97 jmp 0x8349c7b
+0x8349b9c mov eax, dword ptr [ebp - 0x9c]
+0x8349ba2 mov dword ptr [esp], eax
+0x8349ba5 call 0x86b1b87 (141237127, 245, '_Z12get_rand_inti')
+0x8349baa mov dword ptr [ebp - 0x10], eax
+0x8349bad lea eax, [ebp - 0x28]
+0x8349bb0 lea edx, [ebp - 0xc8]
+0x8349bb6 add edx, 0x30
+0x8349bb9 mov dword ptr [esp + 4], edx
+0x8349bbd mov dword ptr [esp], eax
+0x8349bc0 call 0x80dd5b2 (135124402, 35, '_ZNSt6vectorISt4pairIiiESaIS1_EE5beginEv')
+0x8349bc5 sub esp, 4
+0x8349bc8 lea eax, [ebp - 0x28]
+0x8349bcb mov dword ptr [esp + 4], eax
+0x8349bcf lea eax, [ebp - 0x38]
+0x8349bd2 mov dword ptr [esp], eax
+0x8349bd5 call 0x8387922 (137918754, 26, '_ZN9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEC2IPS2_EERKNS0_IT_NS_11__enable_ifIXsrSt10__are_sameISB_SA_E7__valueES7_E6__typeEEE')
+0x8349bda jmp 0x8349c0d
+0x8349bdc lea eax, [ebp - 0x38]
+0x8349bdf mov dword ptr [esp], eax
+0x8349be2 call 0x8235bba (136534970, 10, '_ZNK9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEdeEv')
+0x8349be7 mov edx, dword ptr [eax + 4]
+0x8349bea mov eax, dword ptr [eax]
+0x8349bec mov dword ptr [ebp - 0x40], eax
+0x8349bef mov dword ptr [ebp - 0x3c], edx
+0x8349bf2 mov eax, dword ptr [ebp - 0x3c]
+0x8349bf5 cmp eax, dword ptr [ebp - 0x10]
+0x8349bf8 jle 0x8349c02
+0x8349bfa mov eax, dword ptr [ebp - 0x40]
+0x8349bfd mov dword ptr [ebp - 0x7b], eax
+0x8349c00 jmp 0x8349c3e
+0x8349c02 lea eax, [ebp - 0x38]
+0x8349c05 mov dword ptr [esp], eax
+0x8349c08 call 0x823dcd0 (136568016, 21, '_ZN9__gnu_cxx17__normal_iteratorIPKSt4pairIiiESt6vectorIS2_SaIS2_EEEppEv')
+0x8349c0d lea eax, [ebp - 0x24]
+0x8349c10 lea edx, [ebp - 0xc8]
+0x8349c16 add edx, 0x30
+0x8349c19 mov dword ptr [esp + 4], edx
+0x8349c1d mov dword ptr [esp], eax
+0x8349c20 call 0x80dd5d6 (135124438, 38, '_ZNSt6vectorISt4pairIiiESaIS1_EE3endEv')
+0x8349c25 sub esp, 4
+0x8349c28 lea eax, [ebp - 0x24]
+0x8349c2b mov dword ptr [esp + 4], eax
+0x8349c2f lea eax, [ebp - 0x38]
+0x8349c32 mov dword ptr [esp], eax
+0x8349c35 call 0x838793c (137918780, 44, '_ZN9__gnu_cxxneIPKSt4pairIiiEPS2_St6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T1_EERKNS9_IT0_SB_EE')
+0x8349c3a test al, al
+0x8349c3c jne 0x8349bdc
+0x8349c3e call 0x80cc19b (135053723, 13, '_Z14G_CDataManagerv')
+0x8349c43 mov eax, dword ptr [eax + 0xc]
+0x8349c46 mov dword ptr [esp + 0xc], 1
+0x8349c4e lea edx, [ebp - 0x7d]
+0x8349c51 mov dword ptr [esp + 8], edx
+0x8349c55 mov dword ptr [esp + 4], 1
+0x8349c5d mov dword ptr [esp], eax
+0x8349c60 call 0x8511fb8 (139534264, 631, '_ZN9CItemList11create_itemE21ENUM_ITEM_CREATE_TYPER10Inven_Itemi')
+0x8349c65 lea eax, [ebp - 0x7d]
+0x8349c68 mov dword ptr [esp + 4], eax
+0x8349c6c mov eax, dword ptr [ebp + 0x10]
+0x8349c6f mov dword ptr [esp], eax
+0x8349c72 call 0x8237262 (136540770, 115, '_ZNSt6vectorI10Inven_ItemSaIS0_EE9push_backERKS0_')
+0x8349c77 add dword ptr [ebp - 0x14], 1
+0x8349c7b mov eax, dword ptr [ebp - 0x14]
+0x8349c7e cmp eax, dword ptr [ebp - 0x1c]
+0x8349c81 setl al
+0x8349c84 test al, al
+0x8349c86 jne 0x8349b9c
+0x8349c8c jmp 0x8349d63
+0x8349c91 mov eax, dword ptr [ebp + 0xc]
+0x8349c94 movzx eax, byte ptr [eax + 0x25]
+0x8349c98 test al, al
+0x8349c9a je 0x8349cbc
+0x8349c9c mov eax, dword ptr [ebp - 0x84]
+0x8349ca2 test eax, eax
+0x8349ca4 js 0x8349cbc
+0x8349ca6 mov eax, dword ptr [ebp + 0xc]
+0x8349ca9 mov eax, dword ptr [eax + 0x28]
+0x8349cac mov edx, eax
+0x8349cae mov eax, dword ptr [ebp - 0x84]
+0x8349cb4 cmp edx, eax
+0x8349cb6 jne 0x8349d63
+0x8349cbc mov eax, dword ptr [ebp - 0xc8]
+0x8349cc2 mov dword ptr [ebp - 0x7b], eax
+0x8349cc5 call 0x80cc19b (135053723, 13, '_Z14G_CDataManagerv')
+0x8349cca mov eax, dword ptr [eax + 0xc]
+0x8349ccd mov dword ptr [esp + 0xc], 1
+0x8349cd5 lea edx, [ebp - 0x7d]
+0x8349cd8 mov dword ptr [esp + 8], edx
+0x8349cdc mov dword ptr [esp + 4], 1
+0x8349ce4 mov dword ptr [esp], eax
+0x8349ce7 call 0x8511fb8 (139534264, 631, '_ZN9CItemList11create_itemE21ENUM_ITEM_CREATE_TYPER10Inven_Itemi')
+0x8349cec mov eax, dword ptr [ebp - 0x7b]
+0x8349cef test eax, eax
+0x8349cf1 jne 0x8349d17
+0x8349cf3 mov eax, dword ptr [ebp - 0x9c]
+0x8349cf9 test eax, eax
+0x8349cfb jne 0x8349d17
+0x8349cfd mov eax, dword ptr [ebp - 0x1c]
+0x8349d00 mov dword ptr [ebp - 0x76], eax
+0x8349d03 lea eax, [ebp - 0x7d]
+0x8349d06 mov dword ptr [esp + 4], eax
+0x8349d0a mov eax, dword ptr [ebp + 0x10]
+0x8349d0d mov dword ptr [esp], eax
+0x8349d10 call 0x8237262 (136540770, 115, '_ZNSt6vectorI10Inven_ItemSaIS0_EE9push_backERKS0_')
+0x8349d15 jmp 0x8349d63
+0x8349d17 mov dword ptr [ebp - 0xc], 0
+0x8349d1e jmp 0x8349d36
+0x8349d20 lea eax, [ebp - 0x7d]
+0x8349d23 mov dword ptr [esp + 4], eax
+0x8349d27 mov eax, dword ptr [ebp + 0x10]
+0x8349d2a mov dword ptr [esp], eax
+0x8349d2d call 0x8237262 (136540770, 115, '_ZNSt6vectorI10Inven_ItemSaIS0_EE9push_backERKS0_')
+0x8349d32 add dword ptr [ebp - 0xc], 1
+0x8349d36 mov eax, dword ptr [ebp - 0xc]
+0x8349d39 cmp eax, dword ptr [ebp - 0x1c]
+0x8349d3c setl al
+0x8349d3f test al, al
+0x8349d41 jne 0x8349d20
+0x8349d43 jmp 0x8349d63
+0x8349d45 mov ebx, edx
+0x8349d47 mov esi, eax
+0x8349d49 lea eax, [ebp - 0xc8]
+0x8349d4f mov dword ptr [esp], eax
+0x8349d52 call 0x8376c5a (137849946, 22, '_ZN26stMonsterIndependentDrop_tD2Ev')
+0x8349d57 mov eax, esi
+0x8349d59 mov edx, ebx
+0x8349d5b mov dword ptr [esp], eax
+0x8349d5e call 0x8ae3750 (145635152, 248, '_Unwind_Resume')
+0x8349d63 lea eax, [ebp - 0xc8]
+0x8349d69 mov dword ptr [esp], eax
+0x8349d6c call 0x8376c5a (137849946, 22, '_ZN26stMonsterIndependentDrop_tD2Ev')
+0x8349d71 lea eax, [ebp - 0x2c]
+0x8349d74 mov dword ptr [esp], eax
+0x8349d77 call 0x83883d2 (137921490, 21, '_ZN9__gnu_cxx17__normal_iteratorIPK26stMonsterIndependentDrop_tSt6vectorIS1_SaIS1_EEEppEv')
+0x8349d7c lea eax, [ebp - 0x30]
+0x8349d7f mov dword ptr [esp + 4], eax
+0x8349d83 lea eax, [ebp - 0x2c]
+0x8349d86 mov dword ptr [esp], eax
+0x8349d89 call 0x83883a6 (137921446, 44, '_ZN9__gnu_cxxneIPK26stMonsterIndependentDrop_tSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESC_')
+0x8349d8e test al, al
+0x8349d90 jne 0x83498f2
+0x8349d96 lea esp, [ebp - 8]
+0x8349d99 add esp, 0
+0x8349d9c pop ebx
+0x8349d9d pop esi
+0x8349d9e pop ebp
+0x8349d9f ret

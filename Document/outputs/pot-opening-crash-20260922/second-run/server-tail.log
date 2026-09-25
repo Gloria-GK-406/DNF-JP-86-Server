@@ -1,0 +1,18 @@
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x01BA frame=22 MercenaryInfoResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command LotteryOpeningCommand handled by LotteryOpeningCommandHandler as Transactional with execution 00e64a8a-40ce-45d9-b684-932cd1a316f1 in 189.5303 ms
+info: Dfo.Server.Protocol.Game.LotteryOpening.LotteryOpeningDelivery[0]
+      Lottery character=4 mode=0 seq=30 slot=65 committed=True
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x001B frame=74 LotteryOpeningResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x000E frame=220 InventoryDeltaMessage
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x000E frame=119 InventoryDeltaMessage
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x01A1 seq=31 body(10B)=A9190000010000000000
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 1fbc5630-7066-4415-abcd-4e9b9fcd4d8d in 0.0925 ms

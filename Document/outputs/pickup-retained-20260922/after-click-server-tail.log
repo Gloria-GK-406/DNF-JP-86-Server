@@ -1,0 +1,150 @@
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 66907d0e-7ee7-4566-ab07-d11c3c34799c in 0.0141 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution a074bcaa-5cae-425c-be78-883255348c3f in 0.0174 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution b93026c8-5866-43c8-8095-7f5b6899c53b in 0.0168 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 7b5dc233-b4b7-49d6-917d-22cb2e49d771 in 0.018 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 367944c4-3b10-4985-b07b-e39867d50b17 in 0.0212 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 57eeb690-a23d-437e-b84e-278c823111c3 in 0.0181 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 0106bfeb-83ef-4d5c-897f-d9cb9661993e in 0.0172 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:01-00-00-00: 0500000000000000
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x0252 frame=21 SecurityStatusAcknowledgement
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:01-00-00-00: 0500000000000000
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x0252 frame=21 SecurityStatusAcknowledgement
+info: Dfo.Server.Protocol.Game.DungeonEntry.MoveMapHandler[0]
+      Move map Game:01-00-00-00 user=4: (2,1) -> (1,1) room=55636 first=False path=(163,271)
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x001D frame=38 StartMapNotification
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command MarkDungeonParticipantReadyCommand handled by MarkDungeonParticipantReadyCommandHandler as Direct with execution 2705b249-523a-4ba4-99f5-fc3f64647ec5 in 0.0391 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x001E frame=20 LoadingCompleteNotification
+info: Dfo.Server.Protocol.Game.FinishLoading.FinishLoadingHandler[0]
+      Finish loading Game:01-00-00-00: releasing the current map (0,0)
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:01-00-00-00: 0500000000000000
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x0252 frame=21 SecurityStatusAcknowledgement
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:01-00-00-00: 0500000000000000
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x0252 frame=21 SecurityStatusAcknowledgement
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AdvanceWeaknessRecoveryCommand handled by AdvanceWeaknessRecoveryCommandHandler as Transactional with execution 055e8bda-fdea-43d7-a28b-e10a6fb66905 in 0.0147 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse

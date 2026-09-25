@@ -1,0 +1,82 @@
+* TAKEOVER DRAFT: corrected static addresses; debugger syntax remains UNTESTED.
+* Do not attach until isolated debugger validation passes.
+* pickup-trace.cdb.txt — cdb command file (v3, pure commands only)
+* Usage / verification / rollback: see pickup-trace-runbook.md
+* Command syntax NOT verified on this machine (no local cdb) — run the
+* isolated-process checks in the runbook BEFORE attaching to the game.
+
+.logopen E:\Project\DNF\DNF-JP-86-Server\Document\outputs\pickup-retained-20260922\pickup-trace.log
+
+* ---- sequence counter ----
+r $t0 = 0
+
+.echo PICKUP-TRACE script start
+.time
+
+* ---- base+byte gate: STOP (no breakpoints, no continue) on any mismatch ----
+* gate1: NOTI0027 handler prologue 55 8b ec 6a
+* gate2: T5 site cmp ecx,[ebp-0x23c] 3b 8d c4 fd
+* gate3: T8 entry prologue 55 8b ec 6a
+* gate4: real request serialized ID boundary 50 e8 aa 00
+* gate5: T8b site call 0x191E450 e8 64 28 13
+.if (dwo(0x01185970) == 0x6aec8b55) {
+  .if (dwo(0x011860b8) == 0xfdc48d3b) {
+    .if (dwo(0x0191e450) == 0x6aec8b55) {
+      .if (dwo(0x016fc9a0) == 0x00aae850) {
+        .if (dwo(0x017ebbe7) == 0x132864e8) {
+          .echo GATE-OK-ALL-5
+        } .else { .echo GATE-FAIL-5-017EBBE7; qd }
+      } .else { .echo GATE-FAIL-4-016FC9A0; qd }
+    } .else { .echo GATE-FAIL-3-0191E450; qd }
+  } .else { .echo GATE-FAIL-2-011860B8; qd }
+} .else { .echo GATE-FAIL-1-01185970; qd }
+
+* ---- breakpoints (only reached when all gates passed) ----
+* breakpoint commands are placed AFTER the gate block; a qd above aborts the file.
+
+* T1: NOTI0027 header fields complete (AFTER the three reads, NOT function entry)
+*     [ebp-0x258]=dropNumber  [ebp-0x25c]=pickerActor  [ebp-0x240]=type byte
+bp 0x011859D2 "r $t0=@$t0+1; .printf \"[T1-NOTI27] seq=%x drop=%04x picker=%04x type=%x\\n\", @$t0, wo(@ebp-0x258), wo(@ebp-0x25c), by(@ebp-0x240); .time; g"
+
+* T2: G1 scene gate, BEFORE cmp (eax = scene pointer from the 0x119B2B0 chain)
+bp 0x01185ADA "r $t0=@$t0+1; .printf \"[T2-SCENE] seq=%x drop=%04x scene=%p\\n\", @$t0, wo(@ebp-0x258), @eax; g"
+
+* T3: G2 find result, AFTER 0x00FCE210 returned, BEFORE store (eax = hit object, 0 = not found)
+bp 0x01185B01 "r $t0=@$t0+1; .printf \"[T3-FIND] seq=%x drop=%04x hitObj=%p\\n\", @$t0, wo(@ebp-0x258), @eax; g"
+
+* T4: G3 item reference, AFTER 0x0174CEA0 returned ([ebp-0x248]=hit object already stored)
+bp 0x01185B23 "r $t0=@$t0+1; .printf \"[T4-ITEMREF] seq=%x drop=%04x hitObj=%p itemRef=%p\\n\", @$t0, wo(@ebp-0x258), poi(@ebp-0x248), @eax; g"
+
+* T5: G4 recipient compare (0x011860B1 movzx done; ecx=recipient, [ebp-0x23c]=myId)
+*     v1 address 0x011860B4 was mid-instruction; corrected to the cmp at 0x011860B8
+bp 0x011860B8 "r $t0=@$t0+1; .printf \"[T5-RECV] seq=%x drop=%04x recipient=%04x myId=%x\\n\", @$t0, wo(@ebp-0x258), @ecx, dwo(@ebp-0x23c); g"
+
+* Real CMD002B path A: after ground object vt[4C] returned, before WriteU16.
+* ESI=ground object; EAX=decoded drop ID. +9C is protected storage, not plain ID.
+bp 0x016FC9A0 "r $t0=@$t0+1; .printf \"[REQ-A] seq=%x tid=%x obj=%p drop=%x\\n\", @$t0, @$tid, @esi, @eax; g"
+* Real CMD002B path B: ESI is a different source object, do NOT equate it to ground object.
+bp 0x024681F7 "r $t0=@$t0+1; .printf \"[REQ-B] seq=%x tid=%x source=%p drop=%x\\n\", @$t0, @$tid, @esi, wo(@esi+0x1a8); g"
+
+* T7: strip entry (ecx = object being stripped)
+bp 0x0174E660 "r $t0=@$t0+1; .printf \"[T7-STRIP] seq=%x obj=%p vtbl=%p raw98=%x protected9c=%x itemRef=%p\\n\", @$t0, @ecx, poi(@ecx), dwo(@ecx+0x98), dwo(@ecx+0x9c), dwo(@ecx+0x1134); g"
+
+* T8: generic key registration (thiscall: ecx=scene; [esp+8]=category [esp+0xC]=number [esp+0x10]=obj)
+*     fires game-wide; 0x121 filter in the condition. Comment this block out in lite mode.
+bp 0x0191E450 ".if (dwo(@esp+8)==0x121) { r $t0=@$t0+1; .printf \"[T8-REG] seq=%x scene=%p num=%x obj=%p vtbl=%p\\n\", @$t0, @ecx, dwo(@esp+0xc), dwo(@esp+0x10), poi(dwo(@esp+0x10)); }; g"
+
+* T8b: kill-path registration call site (0x26 -> 0x17EB8C0 -> here; BEFORE call:
+*      [esp]=arg1 [esp+4]=0x121 [esp+8]=number [esp+0xC]=obj; ecx=scene)
+bp 0x017EBBE7 "r $t0=@$t0+1; .printf \"[T8b-KILLREG] seq=%x scene=%p num=%x obj=%p vtbl=%p\\n\", @$t0, @ecx, dwo(@esp+8), dwo(@esp+0xc), poi(dwo(@esp+0xc)); g"
+
+* T9: vt[0x17C] deactivate entry (ecx = object; +0xC0 = gate flag)
+bp 0x017778C0 "r $t0=@$t0+1; .printf \"[T9-DEACT] seq=%x obj=%p vtbl=%p gateC0=%x\\n\", @$t0, @ecx, poi(@ecx), by(@ecx+0xc0); g"
+
+* T10: backpack slot query RETURN value (AFTER the 0x16EE6C0 call; eax = existing item)
+bp 0x01186136 "r $t0=@$t0+1; .printf \"[T10-SLOT] seq=%x drop=%04x destSlot=%04x existingItem=%p\\n\", @$t0, wo(@ebp-0x258), wo(@ebp-0x24c), @eax; g"
+
+* Actual handler entry distinguishes pre-header failure from completed field reads.
+bp 0x01185970 "r $t0=@$t0+1; .printf \"[NOTI27-ENTRY] seq=%x tid=%x\\n\", @$t0, @$tid; g"
+* ---- all set; resume target ----
+.echo BREAKPOINTS-SET-RESUMING
+bl
+g

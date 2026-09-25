@@ -1,0 +1,10 @@
+00E56100 55                       push ebp
+00E56101 8bec                     mov ebp, esp
+00E56103 8b4508                   mov eax, dword ptr [ebp + 8]
+00E56106 8b5104                   mov edx, dword ptr [ecx + 4]
+00E56109 8b09                     mov ecx, dword ptr [ecx]
+00E5610B c7400400000000           mov dword ptr [eax + 4], 0
+00E56112 895008                   mov dword ptr [eax + 8], edx
+00E56115 8908                     mov dword ptr [eax], ecx
+00E56117 5d                       pop ebp
+00E56118 c20400                   ret 4

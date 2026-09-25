@@ -1,0 +1,102 @@
+0115CDC0 push ebp
+0115CDC1 mov ebp, esp
+0115CDC3 push -1
+0115CDC5 push 0x2d7322b
+0115CDCA mov eax, dword ptr fs:[0]
+0115CDD0 push eax
+0115CDD1 sub esp, 0xd0
+0115CDD7 mov eax, dword ptr [0x399cee0]
+0115CDDC xor eax, ebp
+0115CDDE mov dword ptr [ebp - 0x10], eax
+0115CDE1 push ebx
+0115CDE2 push esi
+0115CDE3 push edi
+0115CDE4 push eax
+0115CDE5 lea eax, [ebp - 0xc]
+0115CDE8 mov dword ptr fs:[0], eax
+0115CDEE lea eax, [ebp - 0xcd]
+0115CDF4 push 1
+0115CDF6 push eax
+0115CDF7 call 0x27c5230
+0115CDFC xor ebx, ebx
+0115CDFE add esp, 8
+0115CE01 xor edi, edi
+0115CE03 mov dword ptr [ebp - 0xd4], ebx
+0115CE09 mov dword ptr [ebp - 0xdc], ebx
+0115CE0F cmp byte ptr [ebp - 0xcd], bl
+0115CE15 jbe 0x115ce46
+0115CE17 push ebx
+0115CE18 push 0x396a9dc
+0115CE1D push 0x395e7a0
+0115CE22 push ebx
+0115CE23 push -3
+0115CE25 call 0x1102c30
+0115CE2A mov ecx, dword ptr [0x3a5c9b8]
+0115CE30 push eax
+0115CE31 push 0xf3
+0115CE36 call 0x2304c70
+0115CE3B push eax
+0115CE3C call 0x2c6386a
+0115CE41 add esp, 0x14
+0115CE44 mov edi, eax
+0115CE46 mov dword ptr [ebp - 0xd8], ebx
+0115CE4C cmp byte ptr [ebp - 0xcd], bl
+0115CE52 jbe 0x115cef2
+0115CE58 jmp 0x115ce60
+0115CE5A lea ebx, [ebx]
+0115CE60 lea ecx, [ebp - 0xd4]
+0115CE66 push ecx
+0115CE67 call 0x27c5310
+0115CE6C lea edx, [ebp - 0xdc]
+0115CE72 push edx
+0115CE73 call 0x27c5310
+0115CE78 add esp, 8
+0115CE7B cmp edi, ebx
+0115CE7D je 0x115ced6
+0115CE7F mov eax, dword ptr [ebp - 0xdc]
+0115CE85 push eax
+0115CE86 lea ecx, [ebp - 0xcc]
+0115CE8C call 0x154c250
+0115CE91 mov ecx, dword ptr [ebp - 0xd4]
+0115CE97 push ebx
+0115CE98 push 1
+0115CE9A push eax
+0115CE9B push ecx
+0115CE9C mov dword ptr [ebp - 4], ebx
+0115CE9F call 0x1a85220
+0115CEA4 add esp, 0x10
+0115CEA7 lea ecx, [ebp - 0xcc]
+0115CEAD mov esi, eax
+0115CEAF mov dword ptr [ebp - 4], 0xffffffff
+0115CEB6 call 0x4387d0
+0115CEBB push ebx
+0115CEBC push ebx
+0115CEBD push 1
+0115CEBF push esi
+0115CEC0 mov ecx, edi
+0115CEC2 call 0x246d450
+0115CEC7 cmp esi, ebx
+0115CEC9 je 0x115ced6
+0115CECB mov edx, dword ptr [esi]
+0115CECD mov eax, dword ptr [edx + 0xc]
+0115CED0 push 1
+0115CED2 mov ecx, esi
+0115CED4 call eax
+0115CED6 mov eax, dword ptr [ebp - 0xd8]
+0115CEDC movzx ecx, byte ptr [ebp - 0xcd]
+0115CEE3 inc eax
+0115CEE4 mov dword ptr [ebp - 0xd8], eax
+0115CEEA cmp eax, ecx
+0115CEEC jl 0x115ce60
+0115CEF2 mov ecx, dword ptr [ebp - 0xc]
+0115CEF5 mov dword ptr fs:[0], ecx
+0115CEFC pop ecx
+0115CEFD pop edi
+0115CEFE pop esi
+0115CEFF pop ebx
+0115CF00 mov ecx, dword ptr [ebp - 0x10]
+0115CF03 xor ecx, ebp
+0115CF05 call 0x2c627f3
+0115CF0A mov esp, ebp
+0115CF0C pop ebp
+0115CF0D ret

@@ -1,0 +1,555 @@
+
+_ZN4CMap7set_mapE11STMapScript
+0x834e18a push ebp
+0x834e18b mov ebp, esp
+0x834e18d push esi
+0x834e18e push ebx
+0x834e18f sub esp, 0x2f0
+0x834e195 mov eax, dword ptr [ebp + 0xc]
+0x834e198 mov edx, dword ptr [eax]
+0x834e19a mov eax, dword ptr [ebp + 8]
+0x834e19d mov dword ptr [eax + 4], edx
+0x834e1a0 mov eax, dword ptr [ebp + 0xc]
+0x834e1a3 mov eax, dword ptr [eax + 0xc]
+0x834e1a6 mov edx, eax
+0x834e1a8 mov eax, dword ptr [ebp + 8]
+0x834e1ab mov dword ptr [eax + 8], edx
+0x834e1ae mov eax, dword ptr [ebp + 0xc]
+0x834e1b1 mov edx, dword ptr [eax + 0x4c]
+0x834e1b4 mov eax, dword ptr [ebp + 8]
+0x834e1b7 mov dword ptr [eax + 0x80], edx
+0x834e1bd mov eax, dword ptr [ebp + 0xc]
+0x834e1c0 lea edx, [eax + 0x10]
+0x834e1c3 mov eax, dword ptr [ebp + 8]
+0x834e1c6 add eax, 0x84
+0x834e1cb mov dword ptr [esp + 4], edx
+0x834e1cf mov dword ptr [esp], eax
+0x834e1d2 call 0x830f08c (137425036, 589, '_ZNSt6vectorISt4pairIiiESaIS1_EEaSERKS3_')
+0x834e1d7 mov eax, dword ptr [ebp + 0xc]
+0x834e1da lea edx, [eax + 4]
+0x834e1dd mov eax, dword ptr [ebp + 8]
+0x834e1e0 add eax, 0x24
+0x834e1e3 mov dword ptr [esp + 4], edx
+0x834e1e7 mov dword ptr [esp], eax
+0x834e1ea call 0x838a9c4 (137931204, 314, '_ZNSt4listIiSaIiEEaSERKS1_')
+0x834e1ef mov eax, dword ptr [ebp + 0xc]
+0x834e1f2 lea edx, [eax + 0x288]
+0x834e1f8 mov eax, dword ptr [ebp + 8]
+0x834e1fb add eax, 0xb8
+0x834e200 mov dword ptr [esp + 4], edx
+0x834e204 mov dword ptr [esp], eax
+0x834e207 call 0x8310010 (137429008, 630, '_ZNSt6vectorI19STAssignBloodSystemSaIS0_EEaSERKS2_')
+0x834e20c mov eax, dword ptr [ebp + 0xc]
+0x834e20f lea edx, [eax + 0x294]
+0x834e215 mov eax, dword ptr [ebp + 8]
+0x834e218 add eax, 0xc4
+0x834e21d mov dword ptr [esp + 4], edx
+0x834e221 mov dword ptr [esp], eax
+0x834e224 call 0x8310286 (137429638, 648, '_ZNSt6vectorI22STAssignBloodPhaseTimeSaIS0_EEaSERKS2_')
+0x834e229 mov eax, dword ptr [ebp + 0xc]
+0x834e22c mov edx, dword ptr [eax + 0x284]
+0x834e232 mov eax, dword ptr [ebp + 8]
+0x834e235 mov dword ptr [eax + 0xb4], edx
+0x834e23b mov eax, dword ptr [ebp + 0xc]
+0x834e23e lea edx, [eax + 0x100]
+0x834e244 mov eax, dword ptr [ebp + 8]
+0x834e247 add eax, 0x2c
+0x834e24a mov dword ptr [esp + 8], 0x20
+0x834e252 mov dword ptr [esp + 4], edx
+0x834e256 mov dword ptr [esp], eax
+0x834e259 call 0x807d8a0 None
+0x834e25e mov eax, dword ptr [ebp + 0xc]
+0x834e261 lea edx, [eax + 0x120]
+0x834e267 mov eax, dword ptr [ebp + 8]
+0x834e26a add eax, 0x4c
+0x834e26d mov dword ptr [esp + 8], 0x20
+0x834e275 mov dword ptr [esp + 4], edx
+0x834e279 mov dword ptr [esp], eax
+0x834e27c call 0x807d8a0 None
+0x834e281 lea eax, [ebp - 0x2b4]
+0x834e287 mov dword ptr [esp], eax
+0x834e28a call 0x836c5e0 (137807328, 148, '_ZN15STAssignMonsterC2Ev')
+0x834e28f lea eax, [ebp - 0x240]
+0x834e295 mov dword ptr [esp], eax
+0x834e298 call 0x838aafe (137931518, 14, '_ZN9__gnu_cxx17__normal_iteratorIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEC2Ev')
+0x834e29d mov eax, dword ptr [ebp + 0xc]
+0x834e2a0 lea edx, [eax + 0x34]
+0x834e2a3 lea eax, [ebp - 0x2bc]
+0x834e2a9 mov dword ptr [esp + 4], edx
+0x834e2ad mov dword ptr [esp], eax
+0x834e2b0 call 0x838ab0c (137931532, 35, '_ZNSt6vectorI15STAssignMonsterSaIS0_EE5beginEv')
+0x834e2b5 sub esp, 4
+0x834e2b8 mov eax, dword ptr [ebp - 0x2bc]
+0x834e2be mov dword ptr [ebp - 0x240], eax
+0x834e2c4 jmp 0x834e3ee
+0x834e2c9 lea eax, [ebp - 0x240]
+0x834e2cf mov dword ptr [esp], eax
+0x834e2d2 call 0x838ab82 (137931650, 10, '_ZNK9__gnu_cxx17__normal_iteratorIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEdeEv')
+0x834e2d7 mov dword ptr [esp + 4], eax
+0x834e2db lea eax, [ebp - 0x238]
+0x834e2e1 mov dword ptr [esp], eax
+0x834e2e4 call 0x8377696 (137852566, 348, '_ZN15STAssignMonsterC2ERKS_')
+0x834e2e9 lea eax, [ebp - 0x238]
+0x834e2ef mov dword ptr [esp + 4], eax
+0x834e2f3 lea eax, [ebp - 0x2b4]
+0x834e2f9 mov dword ptr [esp], eax
+0x834e2fc call 0x83777f2 (137852914, 288, '_ZN15STAssignMonsteraSERKS_')
+0x834e301 jmp 0x834e31e
+0x834e303 mov ebx, edx
+0x834e305 mov esi, eax
+0x834e307 lea eax, [ebp - 0x238]
+0x834e30d mov dword ptr [esp], eax
+0x834e310 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e315 mov eax, esi
+0x834e317 mov edx, ebx
+0x834e319 jmp 0x834e988
+0x834e31e lea eax, [ebp - 0x238]
+0x834e324 mov dword ptr [esp], eax
+0x834e327 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e32c mov eax, dword ptr [ebp + 8]
+0x834e32f mov eax, dword ptr [eax + 8]
+0x834e332 cmp eax, 2
+0x834e335 jne 0x834e353
+0x834e337 mov eax, dword ptr [ebp - 0x290]
+0x834e33d cmp eax, 3
+0x834e340 jne 0x834e353
+0x834e342 mov dword ptr [ebp - 0x290], 1
+0x834e34c mov byte ptr [ebp - 0x260], 1
+0x834e353 mov eax, dword ptr [ebp - 0x290]
+0x834e359 cmp eax, 3
+0x834e35c jne 0x834e36b
+0x834e35e mov eax, dword ptr [ebp + 8]
+0x834e361 mov eax, dword ptr [eax]
+0x834e363 lea edx, [eax + 1]
+0x834e366 mov eax, dword ptr [ebp + 8]
+0x834e369 mov dword ptr [eax], edx
+0x834e36b lea eax, [ebp - 0x2b4]
+0x834e371 mov dword ptr [esp + 4], eax
+0x834e375 lea eax, [ebp - 0x1d0]
+0x834e37b mov dword ptr [esp], eax
+0x834e37e call 0x8377696 (137852566, 348, '_ZN15STAssignMonsterC2ERKS_')
+0x834e383 mov dword ptr [esp + 8], 0xffffffff
+0x834e38b lea eax, [ebp - 0x1d0]
+0x834e391 mov dword ptr [esp + 4], eax
+0x834e395 mov eax, dword ptr [ebp + 8]
+0x834e398 mov dword ptr [esp], eax
+0x834e39b call 0x834e9d4 (137685460, 255, '_ZN4CMap14insert_monsterE15STAssignMonsteri')
+0x834e3a0 jmp 0x834e3bd
+0x834e3a2 mov ebx, edx
+0x834e3a4 mov esi, eax
+0x834e3a6 lea eax, [ebp - 0x1d0]
+0x834e3ac mov dword ptr [esp], eax
+0x834e3af call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e3b4 mov eax, esi
+0x834e3b6 mov edx, ebx
+0x834e3b8 jmp 0x834e988
+0x834e3bd lea eax, [ebp - 0x1d0]
+0x834e3c3 mov dword ptr [esp], eax
+0x834e3c6 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e3cb lea eax, [ebp - 0x168]
+0x834e3d1 mov dword ptr [esp + 8], 0
+0x834e3d9 lea edx, [ebp - 0x240]
+0x834e3df mov dword ptr [esp + 4], edx
+0x834e3e3 mov dword ptr [esp], eax
+0x834e3e6 call 0x838ae7c (137932412, 51, '_ZN9__gnu_cxx17__normal_iteratorIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEppEi')
+0x834e3eb sub esp, 4
+0x834e3ee mov eax, dword ptr [ebp + 0xc]
+0x834e3f1 lea edx, [eax + 0x34]
+0x834e3f4 lea eax, [ebp - 0x23c]
+0x834e3fa mov dword ptr [esp + 4], edx
+0x834e3fe mov dword ptr [esp], eax
+0x834e401 call 0x838ab30 (137931568, 38, '_ZNSt6vectorI15STAssignMonsterSaIS0_EE3endEv')
+0x834e406 sub esp, 4
+0x834e409 lea eax, [ebp - 0x23c]
+0x834e40f mov dword ptr [esp + 4], eax
+0x834e413 lea eax, [ebp - 0x240]
+0x834e419 mov dword ptr [esp], eax
+0x834e41c call 0x838ab56 (137931606, 44, '_ZN9__gnu_cxxneIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_')
+0x834e421 test al, al
+0x834e423 jne 0x834e2c9
+0x834e429 mov eax, dword ptr [ebp + 0xc]
+0x834e42c lea edx, [eax + 0x40]
+0x834e42f lea eax, [ebp - 0x2bc]
+0x834e435 mov dword ptr [esp + 4], edx
+0x834e439 mov dword ptr [esp], eax
+0x834e43c call 0x838ab0c (137931532, 35, '_ZNSt6vectorI15STAssignMonsterSaIS0_EE5beginEv')
+0x834e441 sub esp, 4
+0x834e444 mov eax, dword ptr [ebp - 0x2bc]
+0x834e44a mov dword ptr [ebp - 0x240], eax
+0x834e450 jmp 0x834e533
+0x834e455 lea eax, [ebp - 0x240]
+0x834e45b mov dword ptr [esp], eax
+0x834e45e call 0x838ab82 (137931650, 10, '_ZNK9__gnu_cxx17__normal_iteratorIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEdeEv')
+0x834e463 mov dword ptr [esp + 4], eax
+0x834e467 lea eax, [ebp - 0x160]
+0x834e46d mov dword ptr [esp], eax
+0x834e470 call 0x8377696 (137852566, 348, '_ZN15STAssignMonsterC2ERKS_')
+0x834e475 lea eax, [ebp - 0x160]
+0x834e47b mov dword ptr [esp + 4], eax
+0x834e47f lea eax, [ebp - 0x2b4]
+0x834e485 mov dword ptr [esp], eax
+0x834e488 call 0x83777f2 (137852914, 288, '_ZN15STAssignMonsteraSERKS_')
+0x834e48d jmp 0x834e4aa
+0x834e48f mov ebx, edx
+0x834e491 mov esi, eax
+0x834e493 lea eax, [ebp - 0x160]
+0x834e499 mov dword ptr [esp], eax
+0x834e49c call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e4a1 mov eax, esi
+0x834e4a3 mov edx, ebx
+0x834e4a5 jmp 0x834e988
+0x834e4aa lea eax, [ebp - 0x160]
+0x834e4b0 mov dword ptr [esp], eax
+0x834e4b3 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e4b8 lea eax, [ebp - 0x2b4]
+0x834e4be mov dword ptr [esp + 4], eax
+0x834e4c2 lea eax, [ebp - 0xf8]
+0x834e4c8 mov dword ptr [esp], eax
+0x834e4cb call 0x8377696 (137852566, 348, '_ZN15STAssignMonsterC2ERKS_')
+0x834e4d0 lea eax, [ebp - 0xf8]
+0x834e4d6 mov dword ptr [esp + 4], eax
+0x834e4da mov eax, dword ptr [ebp + 8]
+0x834e4dd mov dword ptr [esp], eax
+0x834e4e0 call 0x834ead4 (137685716, 191, '_ZN4CMap24insert_condition_monsterE15STAssignMonster')
+0x834e4e5 jmp 0x834e502
+0x834e4e7 mov ebx, edx
+0x834e4e9 mov esi, eax
+0x834e4eb lea eax, [ebp - 0xf8]
+0x834e4f1 mov dword ptr [esp], eax
+0x834e4f4 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e4f9 mov eax, esi
+0x834e4fb mov edx, ebx
+0x834e4fd jmp 0x834e988
+0x834e502 lea eax, [ebp - 0xf8]
+0x834e508 mov dword ptr [esp], eax
+0x834e50b call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e510 lea eax, [ebp - 0x90]
+0x834e516 mov dword ptr [esp + 8], 0
+0x834e51e lea edx, [ebp - 0x240]
+0x834e524 mov dword ptr [esp + 4], edx
+0x834e528 mov dword ptr [esp], eax
+0x834e52b call 0x838ae7c (137932412, 51, '_ZN9__gnu_cxx17__normal_iteratorIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEppEi')
+0x834e530 sub esp, 4
+0x834e533 mov eax, dword ptr [ebp + 0xc]
+0x834e536 lea edx, [eax + 0x40]
+0x834e539 lea eax, [ebp - 0x164]
+0x834e53f mov dword ptr [esp + 4], edx
+0x834e543 mov dword ptr [esp], eax
+0x834e546 call 0x838ab30 (137931568, 38, '_ZNSt6vectorI15STAssignMonsterSaIS0_EE3endEv')
+0x834e54b sub esp, 4
+0x834e54e lea eax, [ebp - 0x164]
+0x834e554 mov dword ptr [esp + 4], eax
+0x834e558 lea eax, [ebp - 0x240]
+0x834e55e mov dword ptr [esp], eax
+0x834e561 call 0x838ab56 (137931606, 44, '_ZN9__gnu_cxxneIP15STAssignMonsterSt6vectorIS1_SaIS1_EEEEbRKNS_17__normal_iteratorIT_T0_EESB_')
+0x834e566 test al, al
+0x834e568 jne 0x834e455
+0x834e56e mov dword ptr [ebp - 0x1c], 0
+0x834e575 mov eax, dword ptr [ebp + 0xc]
+0x834e578 add eax, 0x58
+0x834e57b mov dword ptr [esp], eax
+0x834e57e call 0x838aeb0 (137932464, 18, '_ZNKSt4listI25STAssignSpecialPassiveObjSaIS0_EE5emptyEv')
+0x834e583 xor eax, 1
+0x834e586 test al, al
+0x834e588 je 0x834e7ae
+0x834e58e mov eax, dword ptr [ebp + 0xc]
+0x834e591 lea edx, [eax + 0x58]
+0x834e594 lea eax, [ebp - 0x244]
+0x834e59a mov dword ptr [esp + 4], edx
+0x834e59e mov dword ptr [esp], eax
+0x834e5a1 call 0x838aec2 (137932482, 37, '_ZNSt4listI25STAssignSpecialPassiveObjSaIS0_EE5beginEv')
+0x834e5a6 sub esp, 4
+0x834e5a9 jmp 0x834e773
+0x834e5ae lea eax, [ebp - 0x244]
+0x834e5b4 mov dword ptr [esp], eax
+0x834e5b7 call 0x838af58 (137932632, 13, '_ZNKSt14_List_iteratorI25STAssignSpecialPassiveObjEdeEv')
+0x834e5bc mov dword ptr [ebp - 0x14], eax
+0x834e5bf mov dword ptr [ebp - 0x10], 0
+0x834e5c6 jmp 0x834e733
+0x834e5cb mov eax, dword ptr [ebp - 0x14]
+0x834e5ce lea edx, [eax + 0x10]
+0x834e5d1 mov eax, dword ptr [ebp - 0x10]
+0x834e5d4 mov dword ptr [esp + 4], eax
+0x834e5d8 mov dword ptr [esp], edx
+0x834e5db call 0x838af88 (137932680, 25, '_ZNSt6vectorI18SPOBJ_ACTION_DATASSaIS0_EEixEj')
+0x834e5e0 mov dword ptr [ebp - 0xc], eax
+0x834e5e3 mov eax, dword ptr [ebp - 0xc]
+0x834e5e6 mov eax, dword ptr [eax]
+0x834e5e8 test eax, eax
+0x834e5ea jne 0x834e6e6
+0x834e5f0 mov eax, dword ptr [ebp - 0xc]
+0x834e5f3 mov eax, dword ptr [eax + 0x10]
+0x834e5f6 test eax, eax
+0x834e5f8 je 0x834e725
+0x834e5fe mov dword ptr [esp], 0x64
+0x834e605 call 0x86b1b87 (141237127, 245, '_Z12get_rand_inti')
+0x834e60a mov ecx, eax
+0x834e60c mov eax, dword ptr [ebp - 0xc]
+0x834e60f mov eax, dword ptr [eax + 0xc]
+0x834e612 imul eax, eax, 0x64
+0x834e615 mov edx, dword ptr [ebp - 0xc]
+0x834e618 mov edx, dword ptr [edx + 0x10]
+0x834e61b mov dword ptr [ebp - 0x2cc], edx
+0x834e621 mov edx, eax
+0x834e623 sar edx, 0x1f
+0x834e626 idiv dword ptr [ebp - 0x2cc]
+0x834e62c cmp ecx, eax
+0x834e62e setg al
+0x834e631 test al, al
+0x834e633 jne 0x834e728
+0x834e639 mov eax, dword ptr [ebp - 0xc]
+0x834e63c mov eax, dword ptr [eax + 8]
+0x834e63f cmp eax, 0xc8
+0x834e644 jg 0x834e72b
+0x834e64a mov eax, dword ptr [ebp - 0xc]
+0x834e64d mov eax, dword ptr [eax + 8]
+0x834e650 test eax, eax
+0x834e652 jle 0x834e72e
+0x834e658 lea eax, [ebp - 0x2b4]
+0x834e65e mov dword ptr [esp], eax
+0x834e661 call 0x836c4fa (137807098, 229, '_ZN15STAssignMonster5ClearEv')
+0x834e666 mov eax, dword ptr [ebp - 0xc]
+0x834e669 mov eax, dword ptr [eax + 4]
+0x834e66c mov dword ptr [ebp - 0x2b4], eax
+0x834e672 mov eax, dword ptr [ebp - 0xc]
+0x834e675 mov eax, dword ptr [eax + 8]
+0x834e678 mov dword ptr [ebp - 0x2ac], eax
+0x834e67e mov byte ptr [ebp - 0x2b0], 0
+0x834e685 lea eax, [ebp - 0x2b4]
+0x834e68b mov dword ptr [esp + 4], eax
+0x834e68f lea eax, [ebp - 0x88]
+0x834e695 mov dword ptr [esp], eax
+0x834e698 call 0x8377696 (137852566, 348, '_ZN15STAssignMonsterC2ERKS_')
+0x834e69d mov eax, dword ptr [ebp - 0x1c]
+0x834e6a0 mov dword ptr [esp + 8], eax
+0x834e6a4 lea eax, [ebp - 0x88]
+0x834e6aa mov dword ptr [esp + 4], eax
+0x834e6ae mov eax, dword ptr [ebp + 8]
+0x834e6b1 mov dword ptr [esp], eax
+0x834e6b4 call 0x834e9d4 (137685460, 255, '_ZN4CMap14insert_monsterE15STAssignMonsteri')
+0x834e6b9 jmp 0x834e6d6
+0x834e6bb mov ebx, edx
+0x834e6bd mov esi, eax
+0x834e6bf lea eax, [ebp - 0x88]
+0x834e6c5 mov dword ptr [esp], eax
+0x834e6c8 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e6cd mov eax, esi
+0x834e6cf mov edx, ebx
+0x834e6d1 jmp 0x834e988
+0x834e6d6 lea eax, [ebp - 0x88]
+0x834e6dc mov dword ptr [esp], eax
+0x834e6df call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e6e4 jmp 0x834e72f
+0x834e6e6 mov eax, dword ptr [ebp - 0xc]
+0x834e6e9 mov eax, dword ptr [eax]
+0x834e6eb cmp eax, 2
+0x834e6ee jne 0x834e72f
+0x834e6f0 mov eax, dword ptr [ebp - 0x14]
+0x834e6f3 mov ebx, dword ptr [eax + 0x1c]
+0x834e6f6 mov eax, dword ptr [ebp - 0xc]
+0x834e6f9 mov ecx, dword ptr [eax + 0xc]
+0x834e6fc mov eax, dword ptr [ebp - 0xc]
+0x834e6ff mov edx, dword ptr [eax + 8]
+0x834e702 mov eax, dword ptr [ebp - 0xc]
+0x834e705 mov eax, dword ptr [eax + 4]
+0x834e708 mov dword ptr [esp + 0x10], ebx
+0x834e70c mov dword ptr [esp + 0xc], ecx
+0x834e710 mov dword ptr [esp + 8], edx
+0x834e714 mov dword ptr [esp + 4], eax
+0x834e718 mov eax, dword ptr [ebp + 8]
+0x834e71b mov dword ptr [esp], eax
+0x834e71e call 0x834eb94 (137685908, 69, '_ZN4CMap11insert_itemEiiii')
+0x834e723 jmp 0x834e72f
+0x834e725 nop
+0x834e726 jmp 0x834e72f
+0x834e728 nop
+0x834e729 jmp 0x834e72f
+0x834e72b nop
+0x834e72c jmp 0x834e72f
+0x834e72e nop
+0x834e72f add dword ptr [ebp - 0x10], 1
+0x834e733 mov eax, dword ptr [ebp - 0x14]
+0x834e736 add eax, 0x10
+0x834e739 mov dword ptr [esp], eax
+0x834e73c call 0x838af66 (137932646, 33, '_ZNKSt6vectorI18SPOBJ_ACTION_DATASSaIS0_EE4sizeEv')
+0x834e741 cmp eax, dword ptr [ebp - 0x10]
+0x834e744 seta al
+0x834e747 test al, al
+0x834e749 jne 0x834e5cb
+0x834e74f add dword ptr [ebp - 0x1c], 1
+0x834e753 lea eax, [ebp - 0x20]
+0x834e756 mov dword ptr [esp + 8], 0
+0x834e75e lea edx, [ebp - 0x244]
+0x834e764 mov dword ptr [esp + 4], edx
+0x834e768 mov dword ptr [esp], eax
+0x834e76b call 0x838af20 (137932576, 55, '_ZNSt14_List_iteratorI25STAssignSpecialPassiveObjEppEi')
+0x834e770 sub esp, 4
+0x834e773 mov eax, dword ptr [ebp + 0xc]
+0x834e776 lea edx, [eax + 0x58]
+0x834e779 lea eax, [ebp - 0x8c]
+0x834e77f mov dword ptr [esp + 4], edx
+0x834e783 mov dword ptr [esp], eax
+0x834e786 call 0x838aee8 (137932520, 35, '_ZNSt4listI25STAssignSpecialPassiveObjSaIS0_EE3endEv')
+0x834e78b sub esp, 4
+0x834e78e lea eax, [ebp - 0x8c]
+0x834e794 mov dword ptr [esp + 4], eax
+0x834e798 lea eax, [ebp - 0x244]
+0x834e79e mov dword ptr [esp], eax
+0x834e7a1 call 0x838af0c (137932556, 20, '_ZNKSt14_List_iteratorI25STAssignSpecialPassiveObjEneERKS1_')
+0x834e7a6 test al, al
+0x834e7a8 jne 0x834e5ae
+0x834e7ae mov eax, dword ptr [ebp + 0xc]
+0x834e7b1 lea edx, [eax + 0x250]
+0x834e7b7 mov eax, dword ptr [ebp + 8]
+0x834e7ba add eax, 0x90
+0x834e7bf mov dword ptr [esp + 4], edx
+0x834e7c3 mov dword ptr [esp], eax
+0x834e7c6 call 0x838afa2 (137932706, 626, '_ZNSt6vectorI14STRivalMapDataSaIS0_EEaSERKS2_')
+0x834e7cb mov eax, dword ptr [ebp + 0xc]
+0x834e7ce lea edx, [eax + 0x278]
+0x834e7d4 mov eax, dword ptr [ebp + 8]
+0x834e7d7 add eax, 0x9c
+0x834e7dc mov dword ptr [esp + 4], edx
+0x834e7e0 mov dword ptr [esp], eax
+0x834e7e3 call 0x838afa2 (137932706, 626, '_ZNSt6vectorI14STRivalMapDataSaIS0_EEaSERKS2_')
+0x834e7e8 mov eax, dword ptr [ebp + 0xc]
+0x834e7eb mov edx, dword ptr [eax + 0x268]
+0x834e7f1 mov eax, dword ptr [ebp + 8]
+0x834e7f4 mov dword ptr [eax + 0x78], edx
+0x834e7f7 mov eax, dword ptr [ebp + 0xc]
+0x834e7fa lea edx, [eax + 0x25c]
+0x834e800 mov eax, dword ptr [ebp + 8]
+0x834e803 add eax, 0x6c
+0x834e806 mov dword ptr [esp + 4], edx
+0x834e80a mov dword ptr [esp], eax
+0x834e80d call 0x838b214 (137933332, 648, '_ZNSt6vectorI27STAICharacterMapArrangeDataSaIS0_EEaSERKS2_')
+0x834e812 mov eax, dword ptr [ebp + 0xc]
+0x834e815 add eax, 0x60
+0x834e818 mov dword ptr [esp], eax
+0x834e81b call 0x838b49c (137933980, 33, '_ZNKSt6vectorI9AssignNpcSaIS0_EE4sizeEv')
+0x834e820 mov edx, dword ptr [ebp + 8]
+0x834e823 mov dword ptr [edx + 0x7c], eax
+0x834e826 mov eax, dword ptr [ebp + 0xc]
+0x834e829 add eax, 0x2c
+0x834e82c mov dword ptr [esp], eax
+0x834e82f call 0x838b4be (137934014, 18, '_ZNKSt4listI21STAssignPassiveObjectSaIS0_EE5emptyEv')
+0x834e834 xor eax, 1
+0x834e837 test al, al
+0x834e839 je 0x834e8c4
+0x834e83f mov eax, dword ptr [ebp + 0xc]
+0x834e842 lea edx, [eax + 0x2c]
+0x834e845 lea eax, [ebp - 0x248]
+0x834e84b mov dword ptr [esp + 4], edx
+0x834e84f mov dword ptr [esp], eax
+0x834e852 call 0x838b4d0 (137934032, 37, '_ZNSt4listI21STAssignPassiveObjectSaIS0_EE5beginEv')
+0x834e857 sub esp, 4
+0x834e85a mov eax, dword ptr [ebp + 0xc]
+0x834e85d lea edx, [eax + 0x2c]
+0x834e860 lea eax, [ebp - 0x24c]
+0x834e866 mov dword ptr [esp + 4], edx
+0x834e86a mov dword ptr [esp], eax
+0x834e86d call 0x838b4f6 (137934070, 35, '_ZNSt4listI21STAssignPassiveObjectSaIS0_EE3endEv')
+0x834e872 sub esp, 4
+0x834e875 jmp 0x834e8a8
+0x834e877 lea eax, [ebp - 0x248]
+0x834e87d mov dword ptr [esp], eax
+0x834e880 call 0x838b542 (137934146, 13, '_ZNKSt14_List_iteratorI21STAssignPassiveObjectEdeEv')
+0x834e885 mov edx, dword ptr [ebp + 8]
+0x834e888 add edx, 0xa8
+0x834e88e mov dword ptr [esp + 4], eax
+0x834e892 mov dword ptr [esp], edx
+0x834e895 call 0x8111126 (135336230, 115, '_ZNSt6vectorIiSaIiEE9push_backERKi')
+0x834e89a lea eax, [ebp - 0x248]
+0x834e8a0 mov dword ptr [esp], eax
+0x834e8a3 call 0x838b52e (137934126, 20, '_ZNSt14_List_iteratorI21STAssignPassiveObjectEppEv')
+0x834e8a8 lea eax, [ebp - 0x24c]
+0x834e8ae mov dword ptr [esp + 4], eax
+0x834e8b2 lea eax, [ebp - 0x248]
+0x834e8b8 mov dword ptr [esp], eax
+0x834e8bb call 0x838b51a (137934106, 20, '_ZNKSt14_List_iteratorI21STAssignPassiveObjectEneERKS1_')
+0x834e8c0 test al, al
+0x834e8c2 jne 0x834e877
+0x834e8c4 mov eax, dword ptr [ebp + 0xc]
+0x834e8c7 mov edx, dword ptr [eax + 0x324]
+0x834e8cd mov eax, dword ptr [ebp + 8]
+0x834e8d0 mov dword ptr [eax + 0xec], edx
+0x834e8d6 mov eax, dword ptr [ebp + 0xc]
+0x834e8d9 mov edx, dword ptr [eax + 0x328]
+0x834e8df mov eax, dword ptr [ebp + 8]
+0x834e8e2 mov dword ptr [eax + 0xf0], edx
+0x834e8e8 mov eax, dword ptr [ebp + 0xc]
+0x834e8eb lea edx, [eax + 0x330]
+0x834e8f1 mov eax, dword ptr [ebp + 8]
+0x834e8f4 add eax, 0xf4
+0x834e8f9 mov dword ptr [esp + 4], edx
+0x834e8fd mov dword ptr [esp], eax
+0x834e900 call 0x8377940 (137853248, 53, '_ZN12advancealtar8TimeLineaSERKS0_')
+0x834e905 mov eax, dword ptr [ebp + 0xc]
+0x834e908 mov edx, dword ptr [eax + 0x178]
+0x834e90e mov eax, dword ptr [ebp + 8]
+0x834e911 mov dword ptr [eax + 0x110], edx
+0x834e917 call 0x80cc19b (135053723, 13, '_Z14G_CDataManagerv')
+0x834e91c lea edx, [eax + 0x62e8]
+0x834e922 mov eax, dword ptr [ebp + 8]
+0x834e925 add eax, 0xf4
+0x834e92a mov dword ptr [esp + 4], edx
+0x834e92e mov dword ptr [esp], eax
+0x834e931 call 0x889a032 (143237170, 492, '_ZN12advancealtar22StageTimeLineParameter23checkAndSetActionDefineERNS_8TimeLineERKSt3mapIiNS_12ActionDefineESt4lessIiESaISt4pairIKiS4_EEE')
+0x834e936 mov byte ptr [ebp - 0x15], al
+0x834e939 mov eax, dword ptr [ebp + 0xc]
+0x834e93c lea edx, [eax + 0x2b8]
+0x834e942 mov eax, dword ptr [ebp + 8]
+0x834e945 add eax, 0x114
+0x834e94a mov dword ptr [esp + 4], edx
+0x834e94e mov dword ptr [esp], eax
+0x834e951 call 0x838ba38 (137935416, 29, '_ZNSt3mapIcSt6vectorI17TournamentMonsterSaIS1_EESt4lessIcESaISt4pairIKcS3_EEEaSERKSA_')
+0x834e956 mov eax, dword ptr [ebp + 0xc]
+0x834e959 movzx edx, byte ptr [eax + 0x36e]
+0x834e960 mov eax, dword ptr [ebp + 8]
+0x834e963 mov byte ptr [eax + 0x12c], dl
+0x834e969 mov ebx, 1
+0x834e96e lea eax, [ebp - 0x2b4]
+0x834e974 mov dword ptr [esp], eax
+0x834e977 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e97c mov eax, ebx
+0x834e97e lea esp, [ebp - 8]
+0x834e981 add esp, 0
+0x834e984 pop ebx
+0x834e985 pop esi
+0x834e986 pop ebp
+0x834e987 ret
+0x834e988 mov ebx, edx
+0x834e98a mov esi, eax
+0x834e98c lea eax, [ebp - 0x2b4]
+0x834e992 mov dword ptr [esp], eax
+0x834e995 call 0x8377622 (137852450, 115, '_ZN15STAssignMonsterD2Ev')
+0x834e99a mov eax, esi
+0x834e99c mov edx, ebx
+0x834e99e mov dword ptr [esp], eax
+0x834e9a1 call 0x8ae3750 (145635152, 248, '_Unwind_Resume')
+
+_ZN8WongWork21CGenerateRandomNumber14generateNumberEii
+0x85334a4 push ebp
+0x85334a5 mov ebp, esp
+0x85334a7 sub esp, 0x28
+0x85334aa mov eax, dword ptr [ebp + 8]
+0x85334ad mov eax, dword ptr [eax + 4]
+0x85334b0 cmp eax, dword ptr [ebp + 0xc]
+0x85334b3 jge 0x85334c2
+0x85334b5 mov eax, dword ptr [ebp + 0x10]
+0x85334b8 mov dword ptr [esp], eax
+0x85334bb call 0x86b1b87 (141237127, 245, '_Z12get_rand_inti')
+0x85334c0 jmp 0x85334e7
+0x85334c2 mov eax, dword ptr [ebp + 0x10]
+0x85334c5 mov dword ptr [ebp - 0xc], eax
+0x85334c8 mov eax, dword ptr [ebp + 8]
+0x85334cb mov edx, dword ptr [eax]
+0x85334cd mov eax, dword ptr [ebp + 0xc]
+0x85334d0 imul eax, eax, 0x9c8
+0x85334d6 add edx, eax
+0x85334d8 lea eax, [ebp - 0xc]
+0x85334db mov dword ptr [esp + 4], eax
+0x85334df mov dword ptr [esp], edx
+0x85334e2 call 0x80cbabe (135051966, 95, '_ZN7CMTRand7randIntERKm')
+0x85334e7 leave
+0x85334e8 ret

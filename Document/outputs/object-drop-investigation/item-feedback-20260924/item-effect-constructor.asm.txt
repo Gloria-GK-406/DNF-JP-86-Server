@@ -1,0 +1,169 @@
+016DC3E0 push ebp
+016DC3E1 mov ebp, esp
+016DC3E3 push -1
+016DC3E5 push 0x2dac273
+016DC3EA mov eax, dword ptr fs:[0]
+016DC3F0 push eax
+016DC3F1 sub esp, 0xc
+016DC3F4 push ebx
+016DC3F5 push esi
+016DC3F6 push edi
+016DC3F7 mov eax, dword ptr [0x399cee0]
+016DC3FC xor eax, ebp
+016DC3FE push eax
+016DC3FF lea eax, [ebp - 0xc]
+016DC402 mov dword ptr fs:[0], eax
+016DC408 mov edi, dword ptr [ebp + 8]
+016DC40B test edi, edi
+016DC40D je 0x16dc586
+016DC413 mov eax, dword ptr [ebp + 0x18]
+016DC416 push eax
+016DC417 lea ecx, [ebp - 0x18]
+016DC41A push ecx
+016DC41B call 0x16dc330
+016DC420 add esp, 8
+016DC423 mov edx, dword ptr [edi]
+016DC425 mov eax, dword ptr [edx + 0x6c]
+016DC428 mov ecx, edi
+016DC42A mov dword ptr [ebp - 4], 0
+016DC431 call eax
+016DC433 cmp dword ptr [ebp - 0x18], 0
+016DC437 mov ebx, eax
+016DC439 je 0x16dc4fa
+016DC43F test ebx, ebx
+016DC441 je 0x16dc4fa
+016DC447 push 0x2cc
+016DC44C call 0x27c42e0
+016DC451 mov esi, eax
+016DC453 add esp, 4
+016DC456 mov dword ptr [ebp + 8], esi
+016DC459 mov byte ptr [ebp - 4], 1
+016DC45D test esi, esi
+016DC45F je 0x16dc48e
+016DC461 push 0
+016DC463 push 1
+016DC465 sub esp, 8
+016DC468 mov ecx, esp
+016DC46A lea edx, [ebp - 0x18]
+016DC46D mov dword ptr [ebp - 0x10], esp
+016DC470 push edx
+016DC471 mov dword ptr [ecx], 0
+016DC477 mov dword ptr [ecx + 4], 0
+016DC47E call 0x121d970
+016DC483 mov ecx, esi
+016DC485 call 0x1771840
+016DC48A mov esi, eax
+016DC48C jmp 0x16dc490
+016DC48E xor esi, esi
+016DC490 push 6
+016DC492 mov ecx, esi
+016DC494 mov byte ptr [ebp - 4], 0
+016DC498 call 0x1763e70
+016DC49D mov eax, dword ptr [esi]
+016DC49F mov edx, dword ptr [eax + 0x60]
+016DC4A2 push 2
+016DC4A4 mov ecx, esi
+016DC4A6 call edx
+016DC4A8 push 1
+016DC4AA push 0
+016DC4AC push 0
+016DC4AE push edi
+016DC4AF push esi
+016DC4B0 push 0
+016DC4B2 push 2
+016DC4B4 push edi
+016DC4B5 mov ecx, ebx
+016DC4B7 call 0x191e450
+016DC4BC mov ebx, dword ptr [ebp + 0x14]
+016DC4BF mov ecx, dword ptr [ebp + 0x10]
+016DC4C2 mov eax, dword ptr [esi]
+016DC4C4 mov edx, dword ptr [ebp + 0xc]
+016DC4C7 mov eax, dword ptr [eax + 0xac]
+016DC4CD push ebx
+016DC4CE push ecx
+016DC4CF push edx
+016DC4D0 mov ecx, esi
+016DC4D2 call eax
+016DC4D4 cmp byte ptr [ebp + 0x20], 0
+016DC4D8 je 0x16dc52a
+016DC4DA mov edx, dword ptr [esi]
+016DC4DC mov eax, dword ptr [edx + 0x54]
+016DC4DF mov ecx, esi
+016DC4E1 call eax
+016DC4E3 test eax, eax
+016DC4E5 je 0x16dc4fd
+016DC4E7 mov edx, dword ptr [esi]
+016DC4E9 mov eax, dword ptr [edx + 0x54]
+016DC4EC push edi
+016DC4ED mov ecx, esi
+016DC4EF call eax
+016DC4F1 mov ecx, eax
+016DC4F3 call 0x1922640
+016DC4F8 jmp 0x16dc4fd
+016DC4FA mov ebx, dword ptr [ebp + 0x14]
+016DC4FD cmp byte ptr [ebp + 0x20], 0
+016DC501 je 0x16dc52a
+016DC503 mov eax, dword ptr [ebp + 0x10]
+016DC506 mov ecx, dword ptr [ebp + 0xc]
+016DC509 mov edx, dword ptr [edi]
+016DC50B mov edx, dword ptr [edx + 0xbc0]
+016DC511 push 0
+016DC513 push ebx
+016DC514 push eax
+016DC515 mov eax, dword ptr [ebp + 0x1c]
+016DC518 push ecx
+016DC519 mov ecx, dword ptr [ebp + 0x18]
+016DC51C push 0
+016DC51E push eax
+016DC51F push 0
+016DC521 push ecx
+016DC522 push 1
+016DC524 mov ecx, edi
+016DC526 call edx
+016DC528 jmp 0x16dc54f
+016DC52A mov ecx, dword ptr [ebp + 0x10]
+016DC52D mov edx, dword ptr [ebp + 0xc]
+016DC530 mov eax, dword ptr [edi]
+016DC532 mov eax, dword ptr [eax + 0xbc0]
+016DC538 push 0
+016DC53A push ebx
+016DC53B push ecx
+016DC53C mov ecx, dword ptr [ebp + 0x1c]
+016DC53F push edx
+016DC540 mov edx, dword ptr [ebp + 0x18]
+016DC543 push 1
+016DC545 push ecx
+016DC546 push 0
+016DC548 push edx
+016DC549 push 1
+016DC54B mov ecx, edi
+016DC54D call eax
+016DC54F mov esi, dword ptr [ebp - 0x14]
+016DC552 mov dword ptr [ebp - 4], 0xffffffff
+016DC559 test esi, esi
+016DC55B je 0x16dc586
+016DC55D lea ecx, [esi + 4]
+016DC560 or edx, 0xffffffff
+016DC563 lock xadd dword ptr [ecx], edx
+016DC567 jne 0x16dc586
+016DC569 mov eax, dword ptr [esi]
+016DC56B mov edx, dword ptr [eax]
+016DC56D mov ecx, esi
+016DC56F call edx
+016DC571 lea eax, [esi + 8]
+016DC574 or ecx, 0xffffffff
+016DC577 lock xadd dword ptr [eax], ecx
+016DC57B jne 0x16dc586
+016DC57D mov edx, dword ptr [esi]
+016DC57F mov eax, dword ptr [edx + 4]
+016DC582 mov ecx, esi
+016DC584 call eax
+016DC586 mov ecx, dword ptr [ebp - 0xc]
+016DC589 mov dword ptr fs:[0], ecx
+016DC590 pop ecx
+016DC591 pop edi
+016DC592 pop esi
+016DC593 pop ebx
+016DC594 mov esp, ebp
+016DC596 pop ebp
+016DC597 ret
