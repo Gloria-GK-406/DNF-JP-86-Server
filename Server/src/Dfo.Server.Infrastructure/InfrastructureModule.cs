@@ -92,6 +92,7 @@ public sealed class InfrastructureModule : IServerModule
             PvfDungeonExperienceProgressionPolicySource>();
         services.TryAddSingleton<IEquipmentRequirementDefinitionSource, PvfEquipmentRequirementDefinitionSource>();
         services.TryAddSingleton<IPremiumServiceDefinitionSource, PvfPremiumServiceDefinitionSource>();
+        services.TryAddSingleton<IQuestHelperPuppetDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,
             PvfExpertSkillContractDefinitionSource>();
         services.TryAddSingleton<ITownDefinitionSource, PvfTownDefinitionSource>();

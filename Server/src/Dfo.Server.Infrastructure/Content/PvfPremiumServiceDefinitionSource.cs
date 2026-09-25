@@ -3,9 +3,20 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource
+internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource, IQuestHelperPuppetDefinitionSource
 {
-    public IReadOnlyList<int> ReadQuestHelperMinimumDropRates()
+    public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() =>
+        Array.AsReadOnly(ReadQuestHelperValues().Skip(1).Take(3).ToArray());
+
+    public IReadOnlyList<int> ReadPuppetItemIds()
+    {
+        var ids = ReadQuestHelperValues().Skip(4).ToArray();
+        if (ids.Distinct().Count() != ids.Length)
+            throw new InvalidDataException("Duplicate quest helper puppet IDs.");
+        return Array.AsReadOnly(ids);
+    }
+
+    private int[] ReadQuestHelperValues()
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
             .Single(s => s.Name == "[quest_helper]");
@@ -15,7 +26,7 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
             || section.Values.Skip(1).Take(3).Any(v => v.Value is < 0 or > 100)
             || section.Values.Skip(4).Any(v => v.Value <= 0))
             throw new InvalidDataException("Invalid quest helper rules.");
-        return Array.AsReadOnly(section.Values.Skip(1).Take(3).Select(v => v.Value).ToArray());
+        return section.Values.Select(v => v.Value).ToArray();
     }
 
     public DoublePotRules ReadDoublePotRules()

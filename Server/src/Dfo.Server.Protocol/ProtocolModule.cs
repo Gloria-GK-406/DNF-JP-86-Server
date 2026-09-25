@@ -298,6 +298,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<CleanupExpiredCharacterItemsCommand, bool, CleanupExpiredCharacterItemsCommandHandler>(
             CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<EnsureDailyContractPuppetsCommand, bool, EnsureDailyContractPuppetsCommandHandler>(
+            CommandExecutionKind.Transactional,
+            accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PrepareSelectedCharacterStateCommand, SelectCharacterResult, PrepareSelectedCharacterStateCommandHandler>(
             CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);

@@ -18,7 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Mail;
 
-public sealed class MailboxCoreIntegrationTests
+public sealed partial class MailboxCoreIntegrationTests
 {
     private static readonly CharacterId Sender = new(1);
     private static readonly CharacterId Recipient = new(2);
@@ -293,12 +293,14 @@ public sealed class MailboxCoreIntegrationTests
         private readonly string path;
         private readonly ServiceProvider provider;
         private readonly bool ownsDirectory;
+        private readonly Action<IServiceCollection>? configure;
+        public IServiceProvider Services => provider;
         public AdvanceableTimeProvider Clock { get; }
         public IMailboxQueryDomainService Query => provider.GetRequiredService<IMailboxQueryDomainService>();
         public IMailboxDomainService Mail => provider.GetRequiredService<IMailboxDomainService>();
 
-        public MailFixture() : this(Path.Combine(Path.GetTempPath(), "dfo-mail-core-" + Guid.NewGuid().ToString("N")),
-            new AdvanceableTimeProvider(new DateTimeOffset(2026, 9, 24, 0, 0, 0, TimeSpan.Zero)), true)
+        public MailFixture(Action<IServiceCollection>? configure = null) : this(Path.Combine(Path.GetTempPath(), "dfo-mail-core-" + Guid.NewGuid().ToString("N")),
+            new AdvanceableTimeProvider(new DateTimeOffset(2026, 9, 24, 0, 0, 0, TimeSpan.Zero)), true, configure)
         {
             Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'mail-test',0); " +
                 "INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES" +
@@ -306,14 +308,15 @@ public sealed class MailboxCoreIntegrationTests
                 "INSERT INTO character_stats(character_id,carried_gold) VALUES(1,1000),(2,1000),(3,1000)");
         }
 
-        private MailFixture(string directory, AdvanceableTimeProvider clock, bool ownsDirectory)
+        private MailFixture(string directory, AdvanceableTimeProvider clock, bool ownsDirectory, Action<IServiceCollection>? configure)
         {
+            this.configure = configure;
             this.directory = directory;
             this.ownsDirectory = ownsDirectory;
             path = Path.Combine(directory, "mail.db");
             Clock = clock;
             var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-                { ["Database:Path"] = path }).Build();
+                { ["Database:Path"] = path, ["Game:DailyResetTime"] = "06:00:00" }).Build();
             var services = new ServiceCollection().AddLogging();
             new InfrastructureModule().ConfigureServices(services, config);
             new PersistenceModule().ConfigureServices(services, config);
@@ -322,6 +325,7 @@ public sealed class MailboxCoreIntegrationTests
             services.AddSingleton<IMailItemDefinitionSource>(new MailDefinitions());
             services.AddSingleton<IGoldCarryLimitSource>(new FixedGoldCarryLimit());
             services.AddSingleton<TimeProvider>(Clock);
+            configure?.Invoke(services);
             provider = services.BuildServiceProvider();
             _ = provider.GetRequiredService<SqliteDatabase>();
         }
@@ -335,14 +339,15 @@ public sealed class MailboxCoreIntegrationTests
             await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
         }
 
-        public MailFixture Reopen() => new(directory, Clock, false);
+        public MailFixture Reopen() => new(directory, Clock, false, configure);
 
-        public async Task SeedStackAsync(CharacterId owner, int slot, int itemId, int count, byte kind)
+        public async Task SeedStackAsync(CharacterId owner, int slot, int itemId, int count, byte kind,
+            InventoryContainerType container = InventoryContainerType.Main)
         {
             var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
             await using var transaction = scope.Begin();
             var store = provider.GetRequiredService<IItemDomainStore>();
-            store.SessionIn(scope.Current!).Write(ContainerId.ForCharacter(owner, InventoryContainerType.Main),
+            store.SessionIn(scope.Current!).Write(ContainerId.ForCharacter(owner, container),
                 new StoredItem(slot, StackableItemCore.Create(kind, itemId, count))
                     { WorldClass = ItemWorldClass.Interchangeable });
             await transaction.CommitAsync(default);

@@ -6,11 +6,27 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfPremiumDurationTests
 {
     [SkippableFact]
+    public async Task Quest_helper_puppets_are_holdable_single_stack_consumables()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var placements = new PvfItemPlacementDefinitionSource(provider);
+        foreach (var id in new PvfPremiumServiceDefinitionSource(provider).ReadPuppetItemIds())
+        {
+            var placement = await placements.GetAsync(id, default);
+            Assert.NotNull(placement);
+            Assert.Equal(1, placement.StackLimit);
+            Assert.Equal(Dfo.Server.Abstractions.Content.ItemWorldClass.Interchangeable, placement.WorldClass);
+        }
+    }
+
+    [SkippableFact]
     public void A21_contract_levels_and_short_term_products_are_read_from_the_archive()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         var levels = new PvfPremiumServiceDefinitionSource(provider).ReadContractLevels();
+        Assert.Equal([2681922, 2681923, 2681924, 2681925], new PvfPremiumServiceDefinitionSource(provider).ReadPuppetItemIds());
         Assert.Equal(10, new PvfPremiumServiceDefinitionSource(provider).ReadFreeWeaknessDailyLimit());
         Assert.Equal(6, new PvfPremiumServiceDefinitionSource(provider).ReadAutoRepairDailyLimit());
         Assert.Equal(10, new PvfPremiumServiceDefinitionSource(provider).ReadFreeGoldCardDailyLimit());

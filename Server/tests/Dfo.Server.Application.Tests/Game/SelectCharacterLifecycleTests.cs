@@ -59,6 +59,7 @@ public sealed partial class SelectCharacterLifecycleTests
             [
                 typeof(PrepareSelectedCharacterSessionCommand),
                 typeof(CleanupExpiredCharacterItemsCommand),
+                typeof(EnsureDailyContractPuppetsCommand),
                 typeof(PrepareSelectedCharacterStateCommand),
                 typeof(ApplySelectedCharacterDailyRefillCommand),
                 typeof(PublishSelectedCharacterSessionCommand),
@@ -856,6 +857,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     await RunAsync(prepare, value, cancellationToken),
                 CleanupExpiredCharacterItemsCommand value =>
                     await RunAsync(cleanupExpired, value, cancellationToken),
+                EnsureDailyContractPuppetsCommand => false,
                 PrepareSelectedCharacterStateCommand value =>
                     await RunAsync(prepareState, value, cancellationToken),
                 ApplySelectedCharacterDailyRefillCommand value =>

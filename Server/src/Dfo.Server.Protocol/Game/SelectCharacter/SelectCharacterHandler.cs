@@ -127,6 +127,8 @@ public sealed class SelectCharacterHandler(
                 throw new InvalidOperationException(
                     "Selected character is no longer owned by the account during expired-item cleanup.");
             }
+            await commandBus.SendAsync(new EnsureDailyContractPuppetsCommand(session), cancellationToken)
+                .ConfigureAwait(false);
             var state = await commandBus.SendAsync(
                 new PrepareSelectedCharacterStateCommand(
                     session, prepared.Selected, prepared.Channel), cancellationToken)

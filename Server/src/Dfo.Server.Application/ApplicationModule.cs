@@ -183,6 +183,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IPremiumServiceUsageDomainService, PremiumServiceUsageDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService, DailyResetRuleService>();
         services.TryAddSingleton<IPremiumServiceRuleService, PremiumServiceRuleService>();
+        services.TryAddSingleton<IQuestHelperPuppetRuleService, QuestHelperPuppetRuleService>();
+        services.TryAddSingleton<IQuestHelperPuppetDomainService, QuestHelperPuppetDomainService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IWeaknessRuleService>(_ => new WeaknessRuleService(configuration));
