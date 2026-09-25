@@ -18,7 +18,7 @@ public sealed class SqliteMailboxRepositoryTests
         using var fixture = new MailboxFixture();
         var recipient = new CharacterId(27);
         var now = new DateTimeOffset(2026, 9, 24, 1, 2, 3, TimeSpan.Zero);
-        var mail = new MailBuilder(MailSource.FromSystem("system"), recipient)
+        var mail = new MailBuilder(MailSource.FromSystem(), recipient)
             .WithText("Reward", "Body")
             .ExpiresAt(now.AddDays(3))
             .AddEquipment(new ItemIdentity(1001))
@@ -156,7 +156,7 @@ public sealed class SqliteMailboxRepositoryTests
     public async Task MultipleGoldAttachmentsSetLegacyGoldFlagOnlyAfterAllAreClaimed()
     {
         using var fixture = new MailboxFixture();
-        var mail = new MailBuilder(MailSource.FromSystem("system"), new CharacterId(27))
+        var mail = new MailBuilder(MailSource.FromSystem(), new CharacterId(27))
             .WithText("gold", "body").AddGold(10).AddGold(20).Build();
         long id;
         await using (var lease = fixture.Scope.Begin())

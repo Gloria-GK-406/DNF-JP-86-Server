@@ -408,6 +408,8 @@ public sealed class EntryLoadCharacterizationTests
         Features.Mailbox.PageMessages[0].Attachments[0].PetSerialOrHandle = 1067
         Features.Mailbox.PageMessages[0].Attachments[0].ItemCore = 0x00E90300001100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
         Features.Mailbox.PageMessages[0].Attachments[0].DetailJson = "detail"
+        Features.Mailbox.PageMessages[0].GoldAttachments[0].AttachmentId = 1055
+        Features.Mailbox.PageMessages[0].GoldAttachments[0].Amount = 123
         Features.PvpMissions[0].Item1 = 0
         Features.PvpMissions[0].Item2 = 900
         Features.PvpMissions[0].Item3 = 12

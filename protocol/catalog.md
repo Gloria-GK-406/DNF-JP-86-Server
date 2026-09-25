@@ -680,3 +680,9 @@ CMD001B mode1双倍显示/发奖、CMD0040购买后036F slot1刷新、每日累�
 ### 2026-09-24 角色设置原样持久化（过渡态）
 
 [CMD 0x01C0](game/client-to-server/0x01C0.md) 接入角色设置 blob 保存，NOTI 0187 登录回放。实现及自动化验证完成，待实机验收；内部逐字段语义解析由 [#129](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/129) 跟踪。
+
+## 2026-09-25 邮箱基础闭环补充
+
+005E/013B发送、0144收件人查询、0060打开、005F逐附件领取、0086已读与幂等删除已接入；NOTI0061用于登录/打开投影，0063用于在线提醒。用户已验收文字、装备、材料、金币与混合附件正常收发领取；不将未测试拒绝提示、非ASCII姓名、时装/宠物、保存/退回升级ClientVerified。逐消息人工区和 `Document/tasks/mailbox-protocol/verification/closeout-20260925.md` 提供证据边界。
+
+2026-09-25：NOTI0063双账号双向在线通知、保留旧邮件后再次收信提醒均由用户实机验收，具体行为标ClientVerified；计数口径仍未差分定案。

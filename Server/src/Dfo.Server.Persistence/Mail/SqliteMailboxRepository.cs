@@ -109,6 +109,13 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database) : IMailbo
         return id;
     }
 
+    public ValueTask<MailRecipient?> FindRecipientAsync(byte[] name, CancellationToken cancellationToken) =>
+        database.ReadFirstAsync("""
+            SELECT character_id,COALESCE(name_bytes,CAST(name AS BLOB)),level,job,grow_type
+            FROM characters WHERE delete_flag=0 AND COALESCE(name_bytes,CAST(name AS BLOB))=@name LIMIT 1
+            """, p => p.AddWithValue("@name", name),
+            r => new MailRecipient(new CharacterId(r.GetInt32(0)), (byte[])r.GetValue(1), r.GetInt32(2), r.GetInt32(3), r.GetInt32(4)), cancellationToken);
+
     public ValueTask<IReadOnlyList<MailHeader>> ReadInboxHeadersAsync(CharacterId recipient, CancellationToken cancellationToken) =>
         database.ReadAllAsync("""
             SELECT m.message_id,m.created_at,m.unlimited_flag,m.expire_at

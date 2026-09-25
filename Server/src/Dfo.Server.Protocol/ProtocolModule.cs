@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Abstractions.World;
@@ -107,6 +108,29 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddSingleton<MailboxDelivery>();
+        services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSend);
+        services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSendMulti);
+        services.AddGameCmdMessageDecoder<MailboxSendDecoder>(0x005E, ClientMessageType.GameMailboxSend);
+        services.AddGameCmdMessageDecoder<MailboxSendMultiDecoder>(0x013B, ClientMessageType.GameMailboxSendMulti);
+        services.AddGameCmdMessageEncoder<MailboxSendResponse, MailboxSendEncoder>();
+        services.AddNotificationHandler<MailboxArrived, MailboxArrivedHandler>(retryLimit: 0);
+        services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
+        services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
+        services.AddGameCmdMessageDecoder<MailboxClaimDecoder>(0x005F, ClientMessageType.GameMailboxClaim);
+        services.AddGameCmdMessageEncoder<MailboxClaimResponse, MailboxClaimEncoder>();
+        services.RegisterMessageHandler<MailboxActionHandler>(ClientMessageType.GameMailboxAction);
+        services.AddGameCmdMessageDecoder<MailboxActionDecoder>(0x0086, ClientMessageType.GameMailboxAction);
+        services.AddGameCmdMessageEncoder<MailboxActionResponse, MailboxActionEncoder>();
+        // A21 character 000, 2026-09-24: CMD 0060 seq=28 has an empty body.
+        services.RegisterMessageHandler<MailboxOpenHandler>(ClientMessageType.GameMailboxOpen);
+        services.AddGameCmdMessageDecoder<MailboxOpenDecoder>(0x0060, ClientMessageType.GameMailboxOpen);
+        services.AddGameCmdMessageEncoder<MailboxOpenResponse, MailboxOpenEncoder>();
+        services.RegisterMessageHandler<MailboxQueryHandler>(ClientMessageType.GameMailboxQuery);
+        services.AddGameCmdMessageDecoder<MailboxQueryDecoder>(0x0144, ClientMessageType.GameMailboxQuery);
+        services.AddGameCmdMessageEncoder<MailboxQueryResponse, MailboxQueryEncoder>();
+        services.AddGameNotiMessageEncoder<MailboxAlarm, MailboxAlarmEncoder>();
         services.TryAddSingleton<PartyClientIdRegistry>();
         services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();

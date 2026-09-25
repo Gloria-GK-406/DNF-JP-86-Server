@@ -548,6 +548,7 @@ public sealed class SelectCharacterPayloadCodecTests
         var message = result.CharacterEntry.Features.Mailbox.Messages[0] with
         {
             Gold = 321,
+            GoldAttachments = [new MailGoldAttachmentState(2, 321)],
             Attachments =
             [
                 new CharacterMailboxAttachmentEntryState(
@@ -568,11 +569,20 @@ public sealed class SelectCharacterPayloadCodecTests
 
         var body = EncodeSelectedStateBody(result, 0x0061);
 
-        Assert.Equal(1, body[0]);
+        Assert.Equal(2, body[0]);
         Assert.Equal(0x40000001, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(2, 4)));
-        Assert.Equal(321, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(15, 4)));
-        Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19, 4)));
-        Assert.Equal(1, body[23]);
+        var senderBytes = BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(10, 4));
+        var firstGold = 14 + senderBytes;
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(firstGold, 4)));
+        Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(firstGold + 4, 4)));
+        Assert.Equal(1, body[firstGold + 8]);
+        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(firstGold + 42, 4)));
+        Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(firstGold + 50, 4)));
+        Assert.Equal(0, body[firstGold + 62]);
+        Assert.Equal(0, body[firstGold + 71]);
+        var secondSummary = firstGold + 72;
+        Assert.Equal(0x40000002, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(secondSummary, 4)));
+        Assert.Equal(321, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(secondSummary + 12 + senderBytes, 4)));
     }
 
     [Fact]

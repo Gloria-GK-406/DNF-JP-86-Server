@@ -2,6 +2,12 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameMailboxSend = 0x0001_005E,
+    GameMailboxSendMulti = 0x0001_013B,
+    GameMailboxClaim = 0x0001_005F,
+    GameMailboxAction = 0x0001_0086,
+    GameMailboxOpen = 0x0001_0060,
+    GameMailboxQuery = 0x0001_0144,
     GamePremiumServiceUsageReport = 0x0001_036F,
     GameMagicBoxBatchOpening = 0x0001_0450,
     GameMagicBoxSingleOpening = 0x0001_00D0,
@@ -161,6 +167,13 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameMailboxSend = 0x0001_005E,
+    GameMailboxSendMulti = 0x0001_013B,
+    GameMailboxClaim = 0x0001_005F,
+    GameMailboxAction = 0x0001_0086,
+    GameMailboxOpen = 0x0001_0060,
+    GameMailboxQuery = 0x0001_0144,
+    GameMailboxAlarm = 0x0000_0063,
     GameMagicBoxBatchOpening = 0x0001_0450,
     GameMagicBoxSingleOpening = 0x0001_00D0,
     GameLotteryOpening = 0x0001_001B,

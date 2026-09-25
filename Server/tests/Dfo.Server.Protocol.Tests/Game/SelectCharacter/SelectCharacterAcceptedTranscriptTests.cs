@@ -96,7 +96,12 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         "B1ABCB72E7FD6D171C4B1330D59E8A731F9E1D122F9D378F2EA126BB76560561",
         "7F2629F5B68855367A92CACB33A8479E7E87B2C443CF665D17A3C40782AEBFE1",
         "8603826808E971B3602A1EDD1F5E07D29B7BB174746B5BDC220BEAD9A0B509D7",
-        "95E129E2524D878686C794D015E9605AC8C0862ED7513210069E054D3F0FD3D0",
+        // Mailbox fixture #47 is nonempty (message 90, sender S, body T\nB).
+        // 2026-09-24: A21 ClientStatic requires two unconditional length blocks
+        // and both record terminators; parent ID is now shared with the body.
+        // This one revised hash is a code regression baseline, not a new live capture.
+        // Independent field-consumption coverage: MailboxProtocolTests.
+        "DEB7AD36EE97C5CC464ADE0BF5A8000B98D9A33026F9792BC3A5D6A6D5F5C572",
         "A227C34D0C869176C5A79AE0AF33CF32D53E93A7DC7B6C39977A3B7B7BECD342",
         "CA6111294B4CDF0F4ED89B05BF707FD96B2A3D1741A9E5127192070CFA65B3E5",
         "F8E09759C7AD90E56A4EC27137298F326B4AD859F492B0E8B430A6953F136D95",
@@ -246,7 +251,9 @@ public sealed class SelectCharacterAcceptedTranscriptTests
 
         var hashes = CaptureCurrentTranscript(result).Select(Sha256).ToArray();
 
-        Assert.Equal(AcceptedKnightFrameSha256, hashes);
+        Assert.Equal(AcceptedKnightFrameSha256.Length, hashes.Length);
+        for (var i = 0; i < hashes.Length; i++)
+            Assert.True(AcceptedKnightFrameSha256[i] == hashes[i], $"Frame {i}: expected={AcceptedKnightFrameSha256[i]}, actual={hashes[i]}");
     }
 
     [Fact]

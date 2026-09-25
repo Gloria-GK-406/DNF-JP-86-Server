@@ -784,7 +784,7 @@ internal sealed class PersistentItemContainer(
     ContainerShape shape,
     IItemDomainStore store,
     IDomainTransactionAccessor transactions,
-    IEntryInventoryMutationRepository snapshots,
+    IEntryInventoryMutationRepository? snapshots,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules,
@@ -809,7 +809,7 @@ internal sealed class PersistentItemContainer(
     /// </remarks>
     public override ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
         CancellationToken cancellationToken) =>
-        this.Type == InventoryContainerType.Main
+        this.Type == InventoryContainerType.Main && snapshots is not null
             ? snapshots.ReadMainItemsAsync(characterId, cancellationToken)
             : throw new NotSupportedException(
                 $"Container '{this.Id.Value}' has no snapshot source; only the main list does.");

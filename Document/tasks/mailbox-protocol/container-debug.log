@@ -1,0 +1,91 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.10]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.23]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.24]   Starting:    Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.49]       System.InvalidOperationException : A circular dependency was detected for the service of type 'Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService'.
+[xUnit.net 00:00:00.49]     Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.Recipient_query_returns_the_stored_character_identity [FAIL]
+[xUnit.net 00:00:00.49]       Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService(Dfo.Server.Application.Inventory.CharacterContainerDomainService) -> Dfo.Server.Application.Inventory.CharacterContainerAddition -> Dfo.Server.Abstractions.Inventory.IEntryInventoryMutationRepository(Dfo.Server.Application.Inventory.DailyRefillService) -> Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService
+[xUnit.net 00:00:00.49]       Stack Trace:
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteChain.CheckCircularDependency(ServiceIdentifier serviceIdentifier)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)
+[xUnit.net 00:00:00.49]            at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
+[xUnit.net 00:00:00.49]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)
+[xUnit.net 00:00:00.49]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(322,0): at Dfo.Server.Application.Tests.Inventory.ShopFixture.Select(Int32 character)
+[xUnit.net 00:00:00.49]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(302,0): at Dfo.Server.Application.Tests.Inventory.ShopFixture..ctor(Action`1 configure)
+[xUnit.net 00:00:00.49]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Mail\MailboxProtocolIntegrationTests.cs(159,0): at Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.CreateShop()
+[xUnit.net 00:00:00.49]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Mail\MailboxProtocolIntegrationTests.cs(150,0): at Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.Recipient_query_returns_the_stored_character_identity()
+[xUnit.net 00:00:00.49]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.50]   Finished:    Dfo.Server.Application.Tests
+  失败 Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.Recipient_query_returns_the_stored_character_identity [223 ms]
+  错误消息:
+   System.InvalidOperationException : A circular dependency was detected for the service of type 'Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService'.
+Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService(Dfo.Server.Application.Inventory.CharacterContainerDomainService) -> Dfo.Server.Application.Inventory.CharacterContainerAddition -> Dfo.Server.Abstractions.Inventory.IEntryInventoryMutationRepository(Dfo.Server.Application.Inventory.DailyRefillService) -> Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService
+  堆栈跟踪:
+     at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteChain.CheckCircularDependency(ServiceIdentifier serviceIdentifier)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)
+   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)
+   at Dfo.Server.Application.Tests.Inventory.ShopFixture.Select(Int32 character) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs:line 322
+   at Dfo.Server.Application.Tests.Inventory.ShopFixture..ctor(Action`1 configure) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs:line 302
+   at Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.CreateShop() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Mail\MailboxProtocolIntegrationTests.cs:line 159
+   at Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.Recipient_query_returns_the_stored_character_identity() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Mail\MailboxProtocolIntegrationTests.cs:line 150
+--- End of stack trace from previous location ---
+
+测试运行失败。
+测试总数: 1
+     失败数: 1
+总时间: 0.8856 秒

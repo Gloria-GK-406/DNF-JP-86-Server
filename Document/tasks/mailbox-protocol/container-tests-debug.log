@@ -1,0 +1,58 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.10]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.25]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.27]   Starting:    Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.59]       System.IO.InvalidDataException : Business slot QuickSlot/0 does not belong to container Pet.
+[xUnit.net 00:00:00.59]     Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Routes_material_and_pet_consumable_without_a_caller_selected_bag [FAIL]
+[xUnit.net 00:00:00.59]       Stack Trace:
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs(682,0): at Dfo.Server.Application.Inventory.StoreBackedItemContainer.StorageIndex(BusinessSlot slot)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs(652,0): at Dfo.Server.Application.Inventory.StoreBackedItemContainer.<>c__DisplayClass32_0.<PilesOf>b__1(BusinessSlot slot)
+[xUnit.net 00:00:00.59]            at System.Linq.Enumerable.IteratorSelectIterator`2.MoveNext()
+[xUnit.net 00:00:00.59]            at System.Linq.Enumerable.IEnumerableWhereSelectIterator`2.MoveNext()
+[xUnit.net 00:00:00.59]            at System.Collections.Generic.List`1.AddRange(IEnumerable`1 collection)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs(651,0): at Dfo.Server.Application.Inventory.StoreBackedItemContainer.PilesOf(IReadOnlyList`1 held, Int32 itemId, IEnumerable`1 candidates)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs(420,0): at Dfo.Server.Application.Inventory.StoreBackedItemContainer.AddAsync(Int32 itemId, Int32 count, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\CharacterContainerAddition.cs(47,0): at Dfo.Server.Application.Inventory.CharacterContainerAddition.AddAsync(ICharacterContainerDomainService containers, CharacterId character, Int32 itemId, Int32 count, CancellationToken ct)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\CharacterContainerAddition.cs(68,0): at Dfo.Server.Application.Inventory.CharacterContainerAddition.AddAsync(ICharacterContainerDomainService containers, CharacterId character, Int32 itemId, Int32 count, CancellationToken ct)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\CharacterContainerAddition.cs(70,0): at Dfo.Server.Application.Inventory.CharacterContainerAddition.AddAsync(ICharacterContainerDomainService containers, CharacterId character, Int32 itemId, Int32 count, CancellationToken ct)
+[xUnit.net 00:00:00.59]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\ContainerAdditionTests.cs(19,0): at Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Routes_material_and_pet_consumable_without_a_caller_selected_bag()
+[xUnit.net 00:00:00.59]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.88]     Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Whole_quantity_rolls_back_when_only_part_fits_and_unknown_items_throw [FAIL]
+[xUnit.net 00:00:00.88]       Assert.Throws() Failure: No exception was thrown
+[xUnit.net 00:00:00.88]       Expected: typeof(Dfo.Server.Abstractions.Inventory.ContainerAdditionException)
+[xUnit.net 00:00:00.88]       Stack Trace:
+[xUnit.net 00:00:00.88]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\ContainerAdditionTests.cs(30,0): at Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Whole_quantity_rolls_back_when_only_part_fits_and_unknown_items_throw()
+[xUnit.net 00:00:00.88]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.89]   Finished:    Dfo.Server.Application.Tests
+  失败 Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Routes_material_and_pet_consumable_without_a_caller_selected_bag [296 ms]
+  错误消息:
+   System.IO.InvalidDataException : Business slot QuickSlot/0 does not belong to container Pet.
+  堆栈跟踪:
+     at Dfo.Server.Application.Inventory.StoreBackedItemContainer.StorageIndex(BusinessSlot slot) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs:line 682
+   at Dfo.Server.Application.Inventory.StoreBackedItemContainer.<>c__DisplayClass32_0.<PilesOf>b__1(BusinessSlot slot) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs:line 652
+   at System.Linq.Enumerable.IteratorSelectIterator`2.MoveNext()
+   at System.Linq.Enumerable.IEnumerableWhereSelectIterator`2.MoveNext()
+   at System.Collections.Generic.List`1.AddRange(IEnumerable`1 collection)
+   at Dfo.Server.Application.Inventory.StoreBackedItemContainer.PilesOf(IReadOnlyList`1 held, Int32 itemId, IEnumerable`1 candidates) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs:line 651
+   at Dfo.Server.Application.Inventory.StoreBackedItemContainer.AddAsync(Int32 itemId, Int32 count, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\ItemContainers.cs:line 420
+   at Dfo.Server.Application.Inventory.CharacterContainerAddition.AddAsync(ICharacterContainerDomainService containers, CharacterId character, Int32 itemId, Int32 count, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\CharacterContainerAddition.cs:line 47
+   at Dfo.Server.Application.Inventory.CharacterContainerAddition.AddAsync(ICharacterContainerDomainService containers, CharacterId character, Int32 itemId, Int32 count, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\CharacterContainerAddition.cs:line 68
+   at Dfo.Server.Application.Inventory.CharacterContainerAddition.AddAsync(ICharacterContainerDomainService containers, CharacterId character, Int32 itemId, Int32 count, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\src\Dfo.Server.Application\Inventory\CharacterContainerAddition.cs:line 70
+   at Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Routes_material_and_pet_consumable_without_a_caller_selected_bag() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\ContainerAdditionTests.cs:line 19
+--- End of stack trace from previous location ---
+  已通过 Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Offline_delivery_uses_persistent_container_without_registering_an_online_bag [149 ms]
+  失败 Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Whole_quantity_rolls_back_when_only_part_fits_and_unknown_items_throw [145 ms]
+  错误消息:
+   Assert.Throws() Failure: No exception was thrown
+Expected: typeof(Dfo.Server.Abstractions.Inventory.ContainerAdditionException)
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.ContainerAdditionTests.Whole_quantity_rolls_back_when_only_part_fits_and_unknown_items_throw() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Application.Tests\Inventory\ContainerAdditionTests.cs:line 30
+--- End of stack trace from previous location ---
+
+测试运行失败。
+测试总数: 3
+     通过数: 1
+     失败数: 2
+总时间: 1.2804 秒

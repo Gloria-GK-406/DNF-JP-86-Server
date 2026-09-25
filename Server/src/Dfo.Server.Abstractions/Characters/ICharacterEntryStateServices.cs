@@ -177,7 +177,10 @@ public sealed record CharacterMailboxMessageStorageRow(
     int RemainingSeconds,
     int CreatedAtUnixSeconds,
     int LetterState,
-    IReadOnlyList<CharacterMailboxAttachmentStorageRow> Attachments);
+    IReadOnlyList<CharacterMailboxAttachmentStorageRow> Attachments)
+{
+    public IReadOnlyList<MailGoldAttachmentState> GoldAttachments { get; init; } = [];
+}
 
 public sealed record CharacterFeatureStorageRecord(
     IReadOnlyList<CharacterPetStorageRow> Pets,

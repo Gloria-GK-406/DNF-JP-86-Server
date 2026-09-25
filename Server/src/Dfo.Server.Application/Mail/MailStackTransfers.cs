@@ -10,7 +10,7 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Mail;
 
 internal sealed class MailStackTransfers(IItemDomainStore items, IDomainTransactionAccessor transactions,
-    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals, IInventorySlotMappingRuleService mapping,
+    IItemPlacementRuleService placements, ICharacterContainerDomainService containers,
     IMailItemRuleService sendRules, IAccountMaterialRuleService accountRules,
     IAccountMaterialBagDomainService accountBags, ICharacterTable owners)
 {
@@ -25,11 +25,15 @@ internal sealed class MailStackTransfers(IItemDomainStore items, IDomainTransact
         return placement;
     }
 
-    public async ValueTask<IReadOnlyList<MailAssetChange>> TakeAsync(CharacterId character, int itemId, int count, bool sameAccount, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<MailAssetChange>> TakeAsync(CharacterId character, int itemId, int count, bool sameAccount, CancellationToken ct, GameSlot? sourceSlot = null)
     {
         var placement = await ValidateAsync(itemId, ct);
+        if (sourceSlot is { } selected && (!Carried.Contains(selected.Space) || selected.Index < 0
+            || selected.Space == InventoryContainerType.Main && selected.Index < 3))
+            throw new MailException(MailFailure.InvalidItem, "Invalid source slot.");
         if (accountRules.TryGetByItemId(itemId, out var accountMaterial))
         {
+            if (sourceSlot is not null) throw new MailException(MailFailure.InvalidItem, "Account materials cannot be selected as physical mail attachments.");
             if (!(await sendRules.CanSendAsync(StackableItemCore.Create(placement.ItemKind, itemId, count), sameAccount, ct)).Allowed)
                 throw new MailException(MailFailure.NotSendable, "Account material is not sendable.");
             var account = await owners.FindOwnerAsync(character, ct) ?? throw new MailException(MailFailure.CharacterNotFound, "Character was deleted.");
@@ -43,7 +47,7 @@ internal sealed class MailStackTransfers(IItemDomainStore items, IDomainTransact
         {
             var container = ContainerId.ForCharacter(character, type);
             foreach (var item in await session.ReadAllAsync(container, ct))
-                if (item.Core.ItemId == itemId && (await sendRules.CanSendAsync(item.Core, sameAccount, ct)).Allowed)
+                if ((sourceSlot is null || sourceSlot.Value.Space == type && sourceSlot.Value.Index == item.SlotIndex) && item.Core.ItemId == itemId && (await sendRules.CanSendAsync(item.Core, sameAccount, ct)).Allowed)
                     held.Add((container, type, item));
         }
         if (held.Sum(x => (long)x.Item.Core.Value) < count)
@@ -63,41 +67,22 @@ internal sealed class MailStackTransfers(IItemDomainStore items, IDomainTransact
 
     public async ValueTask<IReadOnlyList<MailAssetChange>> GrantAsync(CharacterId character, int itemId, int count, CancellationToken ct)
     {
-        var placement = await ValidateAsync(itemId, ct);
-        if (accountRules.TryGetByItemId(itemId, out var accountMaterial))
+        await ValidateAsync(itemId, ct);
+        try
         {
-            var account = await owners.FindOwnerAsync(character, ct) ?? throw new MailException(MailFailure.CharacterNotFound, "Character was deleted.");
-            var accountChanges = await accountBags.Get(account).AddAsync(new Dictionary<AccountMaterialKind, int> { [accountMaterial.Kind] = count }, ct);
-            return [new MailAssetChange(character, null, null, itemId, count, null) { AccountMaterial = accountChanges.Single() }];
+            var added = await containers.AddAsync(character, itemId, count, ct);
+            if (added.AccountMaterial is { } material)
+                return [new MailAssetChange(character, null, null, itemId, count, null) { AccountMaterial = material }];
+            return added.Items.Select(x => new MailAssetChange(character, x.Type, x.SlotIndex, itemId, x.Count, null) { ContainerId = x.Container.Value }).ToArray();
         }
-        var session = Session;
-        var changes = new List<MailAssetChange>();
-        while (count > 0)
+        catch (ContainerAdditionException e)
         {
-            var held = new Dictionary<BusinessSlot, StoredItem>();
-            foreach (var type in Carried)
-                foreach (var item in await session.ReadAllAsync(ContainerId.ForCharacter(character, type), ct))
-                    held.Add(mapping.ToBusinessSlot(new GameSlot(type, item.SlotIndex)), item);
-            var arrival = arrivals.ForGrant(held.Where(x => x.Value.Core.ItemId == itemId)
-                .Select(x => new ItemPile(x.Key, x.Value.Core.Value)).ToArray(), count, placement, held.Keys.ToHashSet());
-            BusinessSlot slot;
-            int granted;
-            InventoryItemCoreState core;
-            switch (arrival)
+            throw new MailException(e.Reason switch
             {
-                case ItemArrival.OntoExistingPile onto:
-                    slot = onto.Slot; granted = onto.Added; core = held[slot].Core with { Value = onto.Total }; break;
-                case ItemArrival.IntoEmptySlot empty:
-                    slot = empty.Slot; granted = empty.Count; core = StackableItemCore.Create(placement.ItemKind, itemId, granted); break;
-                default: throw new MailException(MailFailure.NoCapacity, "The complete attachment does not fit in the inventory.");
-            }
-            var target = mapping.ToGameSlot(slot);
-            if (!Carried.Contains(target.Space) || granted <= 0 || granted > count)
-                throw new MailException(MailFailure.InvalidItem, "Unsupported mail item destination.");
-            session.Write(ContainerId.ForCharacter(character, target.Space), new StoredItem(target.Index, core) { WorldClass = ItemWorldClass.Interchangeable });
-            changes.Add(new(character, target.Space, target.Index, itemId, granted, null));
-            count -= granted;
+                ContainerAdditionFailure.NoRoom => MailFailure.NoCapacity,
+                ContainerAdditionFailure.CharacterNotFound => MailFailure.CharacterNotFound,
+                _ => MailFailure.InvalidItem
+            }, e.Message);
         }
-        return changes;
     }
 }

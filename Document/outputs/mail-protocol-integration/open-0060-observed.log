@@ -1,0 +1,3 @@
+Source: artifacts/mailbox-protocol-20260924/server.stdout.log
+User: character 000 opened mailbox, 2026-09-24
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0060 seq=28 body(0B)=

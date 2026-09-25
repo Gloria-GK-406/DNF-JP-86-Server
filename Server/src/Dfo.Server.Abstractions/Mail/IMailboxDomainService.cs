@@ -14,6 +14,8 @@ public interface IMailboxDomainService
 
 public interface IMailboxQueryDomainService
 {
+    ValueTask<MailRecipient?> FindRecipientAsync(byte[] name, CancellationToken cancellationToken = default);
+    ValueTask<Dfo.Server.Abstractions.Characters.CharacterMailboxStorageRecord> ReadStorageAsync(CharacterId recipient, CancellationToken cancellationToken = default);
     ValueTask<MailPage> PageAsync(CharacterId recipient, int pageSize, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<MailView>> InboxAsync(CharacterId recipient, CancellationToken cancellationToken = default);
 }

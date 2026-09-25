@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Mailbox;
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
@@ -627,29 +628,25 @@ internal static partial class StateSynchronizationPayloadCodec
     {
         if (mailbox.Messages.Count > ushort.MaxValue || mailbox.NotLoadedCount is < 0 or > ushort.MaxValue)
             throw CountError("mailbox", "u16");
-        var summaries = new List<(CharacterMailboxMessageEntryState Message, CharacterMailboxAttachmentEntryState? Attachment, bool IncludeGold, bool SeedOnly)>();
+        var summaries = new List<(CharacterMailboxMessageEntryState Message, CharacterMailboxAttachmentEntryState? Attachment, int Gold, long? GoldId, bool SeedOnly)>();
         foreach (var message in mailbox.Messages)
         {
-            var wroteAttachment = false;
             foreach (var attachment in message.Attachments.Where(value => value.ItemTemplateId > 0 && value.ItemCount > 0))
-            {
-                summaries.Add((message, attachment, !wroteAttachment, false));
-                wroteAttachment = true;
-            }
-            if (!wroteAttachment && message.Gold > 0)
-            {
-                summaries.Add((message, null, true, false));
-                wroteAttachment = true;
-            }
-            if (!wroteAttachment && message.Body.Length > 0)
-                summaries.Add((message, null, false, true));
+                summaries.Add((message, attachment, 0, null, false));
+            foreach (var gold in message.GoldAttachments)
+                summaries.Add((message, null, gold.Amount, gold.AttachmentId, false));
+            // Old projection callers have no independent gold keys; preserve only their historical shape.
+            if (message.GoldAttachments.Count == 0 && message.Gold > 0)
+                summaries.Add((message, null, message.Gold, null, false));
+            if (message.Attachments.Count == 0 && message.Gold == 0)
+                summaries.Add((message, null, 0, null, true));
         }
         if (summaries.Count > byte.MaxValue) throw CountError("mailbox summary", "u8");
 
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(checked((byte)summaries.Count)); writer.Write((byte)0);
         foreach (var summary in summaries)
-            WriteMailboxSummary(writer, summary.Message, summary.Attachment, summary.IncludeGold, summary.SeedOnly);
+            WriteMailboxSummary(writer, summary.Message, summary.Attachment, summary.Gold, summary.GoldId, summary.SeedOnly);
         writer.Write(checked((ushort)mailbox.NotLoadedCount));
         writer.Write(checked((ushort)mailbox.Messages.Count));
         foreach (var message in mailbox.Messages)
@@ -659,6 +656,7 @@ internal static partial class StateSynchronizationPayloadCodec
                 ? message.Body
                 : [.. message.Title, (byte)'\n', .. message.Body];
             WriteMailboxString(writer, display, 512); writer.Write(Math.Max(0, message.CreatedAtUnixSeconds)); writer.Write((ushort)message.LetterState);
+            writer.Write((byte)0); // A21 detail terminal byte @01199613; semantics pending.
         }
         return stream.ToArray();
     }
@@ -667,16 +665,19 @@ internal static partial class StateSynchronizationPayloadCodec
         BinaryWriter writer,
         CharacterMailboxMessageEntryState message,
         CharacterMailboxAttachmentEntryState? attachment,
-        bool includeGold,
+        int gold,
+        long? goldId,
         bool seedOnly)
     {
         var hasItem = attachment is { ItemTemplateId: > 0, ItemCount: > 0 };
         var core = hasItem ? DecodeMailboxCore(attachment!) : null;
         var messageId = checked((int)message.MessageId);
-        writer.Write(hasItem ? checked(0x40000000 + (int)attachment!.AttachmentId) : messageId);
+        uint claimWireId = hasItem ? MailboxIds.Attachment(attachment!.AttachmentId)
+            : goldId is { } id ? MailboxIds.Attachment(id) : checked((uint)messageId);
+        writer.Write(claimWireId);
         writer.Write(MailboxSenderId(message));
         WriteMailboxString(writer, MailboxSenderName(message), 30);
-        writer.Write(includeGold ? message.Gold : 0);
+        writer.Write(gold);
         writer.Write(hasItem ? attachment!.ItemTemplateId : 0);
         writer.Write(hasItem ? (byte)1 : (byte)0);
 
@@ -721,9 +722,13 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(hasItem ? core!.TailUnknown3 : (byte)0);
         writer.Write(hasItem ? core!.RemainUseCount : (byte)0);
         writer.Write(hasItem ? core!.SortLockFlag : (byte)0);
+        writer.Write(4); writer.Write(0);
+        writer.Write(8); writer.Write(0L);
+        writer.Write((byte)0); // A21 @011991FA after the two unconditional length blocks.
         if (avatar) WriteMailboxAvatarDetail(writer, attachment!);
         writer.Write(Math.Max(0, message.RemainingSeconds));
-        writer.Write(seedOnly ? 0 : messageId);
+        writer.Write(messageId); // Same parent key for all attachments and the body record.
+        writer.Write((byte)0); // A21 terminal byte @0119952B; semantics pending.
     }
 
     private static InventoryItemCoreState DecodeMailboxCore(CharacterMailboxAttachmentEntryState attachment)
@@ -764,7 +769,7 @@ internal static partial class StateSynchronizationPayloadCodec
     }
 
     private static int MailboxSenderId(CharacterMailboxMessageEntryState message) => message.MailType != 0 ? 0 : message.SenderCharacterId;
-    private static byte[] MailboxSenderName(CharacterMailboxMessageEntryState message) => message.MailType != 0 ? Encoding.UTF8.GetBytes("DNFadmin") : message.SenderName;
+    private static byte[] MailboxSenderName(CharacterMailboxMessageEntryState message) => message.MailType != 0 || message.SenderCharacterId is 0 or 2000000000 ? [] : message.SenderName;
     private static void WriteMailboxString(BinaryWriter writer, byte[] value, int maximumBytes)
     {
         var bytes = value.Length < maximumBytes ? value : value[..(maximumBytes - 1)];

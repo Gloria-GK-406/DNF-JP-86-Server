@@ -13,8 +13,12 @@ namespace Dfo.Server.Application.Inventory;
 /// character starts on and the one it returns to, so entering a dungeon is a registration and a
 /// switch rather than a rule about dungeons.
 /// </remarks>
-internal sealed class CharacterContainerDomainService : ICharacterContainerDomainService
+internal sealed class CharacterContainerDomainService(CharacterContainerAddition? additions = null) : ICharacterContainerDomainService
 {
+    public ValueTask<ContainerAddition> AddAsync(CharacterId characterId, int itemId, int count, CancellationToken cancellationToken) =>
+        (additions ?? throw new InvalidOperationException("Container addition service is not configured."))
+            .AddAsync(this, characterId, itemId, count, cancellationToken);
+
     private readonly ConcurrentDictionary<int, CharacterContainers> byCharacter = new();
 
     public void Register(CharacterId characterId, IItemContainer container)

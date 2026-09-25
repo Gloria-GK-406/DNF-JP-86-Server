@@ -1,0 +1,6 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\mailbox-core\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:21.47]     Dfo.Server.Persistence.Tests.Schema.SchemaOwnershipTests.EveryTableIsDeclaredSomewhereRatherThanByAccident [FAIL]
+[xUnit.net 00:00:44.33]     Dfo.Server.Persistence.Tests.Characters.EntryLoadCharacterizationTests.ACharacterIsLoadedWithExactlyWhatItWasLoadedWithBefore [FAIL]
+
+失败!  - 失败:     2，通过:   367，已跳过:     0，总计:   369，持续时间: 46 s - Dfo.Server.Persistence.Tests.dll (net10.0)

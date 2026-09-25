@@ -546,7 +546,12 @@ public sealed record CharacterMailboxMessageEntryState(
     int RemainingSeconds,
     int CreatedAtUnixSeconds,
     byte LetterState,
-    IReadOnlyList<CharacterMailboxAttachmentEntryState> Attachments);
+    IReadOnlyList<CharacterMailboxAttachmentEntryState> Attachments)
+{
+    public IReadOnlyList<MailGoldAttachmentState> GoldAttachments { get; init; } = [];
+}
+
+public sealed record MailGoldAttachmentState(long AttachmentId, int Amount);
 
 public sealed record CharacterMailboxEntryState(
     int NotLoadedCount,

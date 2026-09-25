@@ -1,0 +1,11 @@
+Equipment UID=674 item=14412 sourceSlot=9
+Sent mail=1, changes=[]
+Sent mail=2, changes=[{"Character":{"Value":2},"Container":null,"SlotIndex":null,"ItemId":0,"Count":-1000,"GoldBalance":146482,"AccountMaterial":null}]
+Sent mail=3, changes=[{"Character":{"Value":2},"Container":0,"SlotIndex":133,"ItemId":3272,"Count":-1,"GoldBalance":null,"AccountMaterial":null}]
+Sent mail=4, changes=[{"Character":{"Value":2},"Container":0,"SlotIndex":9,"ItemId":14412,"Count":-1,"GoldBalance":null,"AccountMaterial":null}]
+Sent mail=5, changes=[{"Character":{"Value":2},"Container":null,"SlotIndex":null,"ItemId":0,"Count":-100,"GoldBalance":146382,"AccountMaterial":null},{"Character":{"Value":2},"Container":0,"SlotIndex":130,"ItemId":3303,"Count":-1,"GoldBalance":null,"AccountMaterial":null}]
+{"Id":5,"SenderCharacterId":2,"SenderName":"1123","Title":"MailTest-20260924-05-mixed","Attachments":[{"Id":4,"Type":"Gold"},{"Id":5,"Type":"Stackable"}]}
+{"Id":4,"SenderCharacterId":2,"SenderName":"1123","Title":"MailTest-20260924-04-equipment","Attachments":[{"Id":3,"Type":"Equipment"}]}
+{"Id":3,"SenderCharacterId":2,"SenderName":"1123","Title":"MailTest-20260924-03-material","Attachments":[{"Id":2,"Type":"Stackable"}]}
+{"Id":2,"SenderCharacterId":2,"SenderName":"1123","Title":"MailTest-20260924-02-gold","Attachments":[{"Id":1,"Type":"Gold"}]}
+{"Id":1,"SenderCharacterId":2,"SenderName":"1123","Title":"MailTest-20260924-01-text","Attachments":[]}

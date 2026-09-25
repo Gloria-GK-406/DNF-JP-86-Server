@@ -58,7 +58,7 @@ public sealed class MailboxCoreIntegrationTests
         using var fixture = new MailFixture();
         var ids = new List<long>();
         for (var i = 0; i < 25; i++)
-            ids.Add((await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient)
+            ids.Add((await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
                 .WithText($"mail {i}", "body").Build())).MailId);
         var page = await fixture.Query.PageAsync(Recipient, 20);
         Assert.Equal(25, page.TotalCount);
@@ -70,10 +70,10 @@ public sealed class MailboxCoreIntegrationTests
     public void BuilderRejectsInvalidStructureAndCopiesAttachmentList()
     {
         Assert.Equal(MailFailure.InvalidMail, Assert.Throws<MailException>(() =>
-            new MailBuilder(MailSource.FromSystem("event"), new CharacterId(0)).Build()).Reason);
+            new MailBuilder(MailSource.FromSystem(), new CharacterId(0)).Build()).Reason);
         Assert.Equal(MailFailure.InvalidMail, Assert.Throws<MailException>(() =>
-            new MailBuilder(MailSource.FromSystem("event"), Recipient).AddStackable(1000, 0).Build()).Reason);
-        var builder = new MailBuilder(MailSource.FromSystem("event"), Recipient).AddGold(5);
+            new MailBuilder(MailSource.FromSystem(), Recipient).AddStackable(1000, 0).Build()).Reason);
+        var builder = new MailBuilder(MailSource.FromSystem(), Recipient).AddGold(5);
         var mail = builder.Build();
         builder.AddGold(7);
         Assert.Single(mail.Attachments);
@@ -116,7 +116,7 @@ public sealed class MailboxCoreIntegrationTests
     public async Task SystemCanDeliverToOfflineCharacterAndOnlyRecipientCanClaim()
     {
         using var fixture = new MailFixture();
-        var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient)
+        var receipt = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
             .WithText("offline", "reward")
             .AddStackable(1000, 2).Build());
         Assert.Equal(1000, fixture.Gold(Sender));
@@ -126,7 +126,7 @@ public sealed class MailboxCoreIntegrationTests
         var mail = Assert.Single(await reopened.Mail.InboxAsync(Recipient));
         Assert.Equal(receipt.MailId, mail.Id);
         Assert.Equal("reward", mail.Body);
-        Assert.Equal("event", mail.SenderName);
+        Assert.Empty(mail.SenderName);
         var attachment = Assert.Single(mail.Attachments);
         await AssertMailFailureAsync(MailFailure.NotFound, () => reopened.Mail.ClaimAsync(Stranger, attachment.Id).AsTask());
         Assert.False(Assert.Single((await reopened.Mail.InboxAsync(Recipient)).Single().Attachments).Claimed);
@@ -150,7 +150,7 @@ public sealed class MailboxCoreIntegrationTests
         await fixture.SeedStackAsync(Recipient, 122, 1000, 1000, 3);
         for (var slot = 3; slot <= 8; slot++)
             await fixture.SeedStackAsync(Recipient, slot, 4000, 1, 2);
-        var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient)
+        var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
             .WithText("full", "full").AddStackable(1000, 2).Build())).MailId;
         var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, id)).Attachments);
         await AssertMailFailureAsync(MailFailure.NoCapacity, () => fixture.Mail.ClaimAsync(Recipient, attachment.Id).AsTask());
@@ -163,7 +163,7 @@ public sealed class MailboxCoreIntegrationTests
     {
         using var fixture = new MailFixture();
         fixture.Sql("UPDATE character_stats SET carried_gold=2000 WHERE character_id=2");
-        var goldId = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient)
+        var goldId = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
             .WithText("gold", "gold").AddGold(20).Build())).MailId;
         var goldAttachment = Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Id;
         await AssertMailFailureAsync(MailFailure.UnclaimedAttachments, () => fixture.Mail.DeleteAsync(Recipient, goldId).AsTask());
@@ -179,7 +179,7 @@ public sealed class MailboxCoreIntegrationTests
         Assert.Empty(await fixture.Mail.InboxAsync(Recipient));
 
         var expires = fixture.Clock.GetUtcNow().AddMinutes(1);
-        var expiring = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient)
+        var expiring = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
             .WithText("short", "short").ExpiresAt(expires).AddGold(7).Build())).MailId;
         Assert.Single(await fixture.Mail.InboxAsync(Recipient));
         fixture.Clock.Advance(TimeSpan.FromMinutes(1));
@@ -194,7 +194,7 @@ public sealed class MailboxCoreIntegrationTests
     public async Task ConcurrentClaimCreditsAttachmentAtMostOnce()
     {
         using var fixture = new MailFixture();
-        var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient)
+        var id = (await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient)
             .WithText("race", "race").AddGold(5).Build())).MailId;
         var attachment = Assert.Single((await fixture.Mail.InboxAsync(Recipient)).Single().Attachments).Id;
         using var another = fixture.Reopen();
@@ -240,7 +240,7 @@ public sealed class MailboxCoreIntegrationTests
         await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
             new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(3037, 2).AddGold(1001).Build()).AsTask());
         Assert.Equal(10, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
-        var reward = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem("event"), Recipient).AddStackable(3037, 4).Build());
+        var reward = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient).AddStackable(3037, 4).Build());
         await fixture.Mail.ClaimAsync(Recipient, Assert.Single((await fixture.Mail.ReadAsync(Recipient, reward.MailId)).Attachments).Id);
         Assert.Equal(14, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
         Assert.Equal(0, await fixture.TotalStackAsync(3037));
@@ -255,7 +255,7 @@ public sealed class MailboxCoreIntegrationTests
         Assert.Equal(1000, fixture.Gold(Sender));
         fixture.Sql("UPDATE characters SET delete_flag=1 WHERE character_id=2");
         await AssertMailFailureAsync(MailFailure.CharacterNotFound, () => fixture.Mail.SendAsync(new MailBuilder(
-            MailSource.FromSystem("event"), Recipient).AddGold(5).Build()).AsTask());
+            MailSource.FromSystem(), Recipient).AddGold(5).Build()).AsTask());
         Assert.Equal(0, fixture.InboxRows(Recipient));
     }
 

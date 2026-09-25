@@ -22,7 +22,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
             var now = time.GetUtcNow();
             if (mail.ExpiresAt <= now) throw Error(MailFailure.Expired);
             _ = await CharacterAsync(mail.Recipient, cancellationToken);
-            var senderName = mail.Source.SystemName;
+            var senderName = string.Empty;
             var sameAccount = false;
             if (mail.Source.Character is { } sender)
             {
@@ -56,7 +56,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                     case MailAsset.Stackable stack:
                         var stackPlacement = await stacks.ValidateAsync(stack.ItemId, cancellationToken);
                         if (mail.Source.Character is { } stackOwner)
-                            changes.AddRange(await stacks.TakeAsync(stackOwner, stack.ItemId, stack.Count, sameAccount, cancellationToken));
+                            changes.AddRange(await stacks.TakeAsync(stackOwner, stack.ItemId, stack.Count, sameAccount, cancellationToken, stack.SourceSlot));
                         prepared.Add(new(asset, Dfo.Server.Application.Inventory.StackableItemCore.Create(stackPlacement.ItemKind, stack.ItemId, stack.Count)));
                         break;
                     case MailAsset.Gold gold:
@@ -123,7 +123,8 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
     public async ValueTask DeleteAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken = default) =>
         _ = await RunAsync(true, async () =>
         {
-            var mail = await repository.FindAsync(recipient, mailId, cancellationToken) ?? throw Error(MailFailure.NotFound);
+            var mail = await repository.FindAsync(recipient, mailId, cancellationToken);
+            if (mail is null) return true;
             if (IsLive(mail, time.GetUtcNow()) && mail.Attachments.Any(x => !x.Claimed)) throw Error(MailFailure.UnclaimedAttachments);
             await repository.MarkDeletedAsync(recipient, mailId, cancellationToken);
             return true;

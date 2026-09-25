@@ -285,6 +285,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
         services.TryAddSingleton<IMailboxQueryDomainService, MailboxQueryDomainService>();
         services.TryAddSingleton<IMailboxDomainService, MailboxDomainService>();
+        services.TryAddSingleton<IMailboxAssetDomainService, MailboxAssetDomainService>();
+        services.TryAddSingleton<IMailboxSendDomainService, MailboxSendDomainService>();
         services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
@@ -359,6 +361,7 @@ public sealed class ApplicationModule : IServerModule
         // Thirty-three tables: the order they are read in, and everything that makes them one
         // character.
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
+        services.TryAddSingleton<CharacterContainerAddition>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<IQuestTriggerDomainService, QuestTriggerDomainService>();

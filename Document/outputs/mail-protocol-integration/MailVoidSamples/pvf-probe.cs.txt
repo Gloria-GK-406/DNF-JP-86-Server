@@ -1,0 +1,12 @@
+using Dfo.Pvf;
+using Dfo.Pvf.Tokens;
+using var pvf=PvfArchive.Open("E:/Project/DNF/DNFClient-A21-protocol/Script.pvf");
+var list=new Dictionary<int,string>();var r=pvf.OpenScript("equipment/equipment.lst");int id=0;
+while(r.Read(out var t)){if(t.Kind==PvfTokenKind.Int32)id=t.Value;else if(t.IsString)list[id]=pvf.ResolveString(t.Value).Trim('`');}
+int magic=0,epic=0;
+foreach(var e in list){if(!e.Value.Contains("swordman/weapon") && e.Key!=14412)continue;var sections=new Dictionary<string,List<string>>();string tag="";var s=pvf.OpenScript("equipment/"+e.Value);while(s.Read(out var t)){if(t.Kind==PvfTokenKind.Identifier && pvf.ResolveString(t.Value).StartsWith('[')){tag=pvf.ResolveString(t.Value);sections.TryAdd(tag,new());}else if(sections.TryGetValue(tag,out var v))v.Add(t.IsString?pvf.ResolveString(t.Value):t.Value.ToString());}
+string Get(string k)=>sections.TryGetValue(k,out var v)?string.Join("|",v):"";
+var name=Get("[name]");var rarity=Get("[rarity]");
+if(e.Key==14412 || (magic<3 && sections.ContainsKey("[random option]") && Get("[attach type]")=="[sealing]") || (epic<3 && rarity=="4" && Get("[attach type]")=="[trade]" && Get("[minimum level]")=="75")){Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new{Id=e.Key,Path=e.Value,Name=name,Rarity=rarity,Attach=Get("[attach type]"),Level=Get("[minimum level]"),Random=Get("[random option]"),Durability=Get("[durability]"),Tags=sections.Keys.Where(x=>x.Contains("random")||x.Contains("seal"))}));if(sections.ContainsKey("[random option]") && Get("[attach type]")=="[sealing]")magic++;if(rarity=="4")epic++;}
+if(magic>=3&&epic>=3&&e.Key>14412)break;
+}

@@ -10,17 +10,23 @@ public sealed class MailException(MailFailure reason, string message) : InvalidO
     public MailFailure Reason { get; } = reason;
 }
 
-public sealed record MailSource(CharacterId? Character, string SystemName)
+public sealed record MailSource
 {
-    public static MailSource FromCharacter(CharacterId id) => new(id, string.Empty);
-    public static MailSource FromSystem(string name) => new(null, name);
+    private MailSource(CharacterId? character) { Character = character; }
+    public CharacterId? Character { get; }
+    public static MailSource FromCharacter(CharacterId id) => new(id);
+    public static MailSource FromSystem() => new((CharacterId?)null);
 }
 
 public abstract record MailAsset
 {
     private MailAsset() { }
     public sealed record Equipment(ItemIdentity Identity) : MailAsset;
-    public sealed record Stackable(int ItemId, int Count) : MailAsset;
+    public sealed record Stackable(int ItemId, int Count) : MailAsset
+    {
+        // Optional sender-side selection; received attachments contain only template and quantity.
+        public GameSlot? SourceSlot { get; init; }
+    }
     public sealed record Gold(int Amount) : MailAsset;
 }
 
@@ -39,6 +45,8 @@ public sealed record Mail
 
 public sealed class MailBuilder(MailSource source, CharacterId recipient)
 {
+    public static MailBuilder FromCharacter(CharacterId sender, CharacterId recipient) => new(MailSource.FromCharacter(sender), recipient);
+    public static MailBuilder FromSystem(CharacterId recipient) => new(MailSource.FromSystem(), recipient);
     private readonly List<MailAsset> attachments = [];
     private string title = string.Empty;
     private string body = string.Empty;
@@ -46,12 +54,12 @@ public sealed class MailBuilder(MailSource source, CharacterId recipient)
     public MailBuilder WithText(string subject, string content) { title = subject; body = content; return this; }
     public MailBuilder ExpiresAt(DateTimeOffset value) { expiresAt = value; return this; }
     public MailBuilder AddEquipment(ItemIdentity identity) { attachments.Add(new MailAsset.Equipment(identity)); return this; }
-    public MailBuilder AddStackable(int itemId, int count) { attachments.Add(new MailAsset.Stackable(itemId, count)); return this; }
+    public MailBuilder AddStackable(int itemId, int count, GameSlot? sourceSlot = null) { attachments.Add(new MailAsset.Stackable(itemId, count) { SourceSlot = sourceSlot }); return this; }
     public MailBuilder AddGold(int amount) { attachments.Add(new MailAsset.Gold(amount)); return this; }
     public Mail Build()
     {
         if (source is null || recipient.Value <= 0 || title is null || body is null
-            || (source.Character is { } id ? id.Value <= 0 || source.SystemName != string.Empty : string.IsNullOrWhiteSpace(source.SystemName)))
+            || (source.Character is { } id && id.Value <= 0))
             throw new MailException(MailFailure.InvalidMail, "Mail requires a valid source, recipient and text.");
         foreach (var asset in attachments)
         {
@@ -74,10 +82,12 @@ public sealed record MailView(long Id, CharacterId Recipient, int SenderCharacte
     ImmutableArray<MailAttachment> Attachments);
 public sealed record MailAssetChange(CharacterId Character, InventoryContainerType? Container, int? SlotIndex, int ItemId, int Count, int? GoldBalance)
 {
+    public string? ContainerId { get; init; }
     public AccountMaterialChange? AccountMaterial { get; init; }
 }
 public sealed record MailSendReceipt(long MailId, ImmutableArray<MailAssetChange> Changes);
 public sealed record MailClaimReceipt(long MailId, long AttachmentId, ImmutableArray<MailAssetChange> Changes);
 
+public sealed record MailRecipient(CharacterId CharacterId, byte[] Name, int Level, int Job, int GrowType);
 public sealed record MailHeader(long Id, DateTimeOffset CreatedAt, DateTimeOffset? ExpiresAt);
 public sealed record MailPage(int TotalCount, IReadOnlyList<MailView> Messages);

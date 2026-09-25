@@ -21,6 +21,10 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// </remarks>
 public interface ICharacterContainerDomainService
 {
+    /// <summary>Adds the whole quantity, resolves the destination internally, or throws without partial delivery.</summary>
+    ValueTask<ContainerAddition> AddAsync(CharacterId characterId, int itemId, int count,
+        CancellationToken cancellationToken) => throw new NotSupportedException("This container registry cannot add items.");
+
     /// <summary>Adds a container to the character. The first of its type becomes the current one.</summary>
     /// <exception cref="InvalidOperationException">
     /// The character already holds a container under that identifier. Two containers answering to
@@ -56,4 +60,13 @@ public interface ICharacterContainerDomainService
 
     /// <summary>Drops everything the character had registered.</summary>
     void Clear(CharacterId characterId);
+}
+
+public sealed record ContainerItemAddition(ContainerId Container, InventoryContainerType Type, int SlotIndex, int Count);
+public sealed record ContainerAddition(IReadOnlyList<ContainerItemAddition> Items, AccountMaterialChange? AccountMaterial = null);
+public enum ContainerAdditionFailure { UnknownItem, NoRoom, CharacterNotFound }
+public sealed class ContainerAdditionException(ContainerAdditionFailure reason)
+    : InvalidOperationException($"Container addition refused: {reason}.")
+{
+    public ContainerAdditionFailure Reason { get; } = reason;
 }

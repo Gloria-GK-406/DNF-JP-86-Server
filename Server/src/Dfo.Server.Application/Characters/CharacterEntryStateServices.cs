@@ -197,43 +197,7 @@ internal sealed class CharacterFeatureEntryProjection : ICharacterFeatureEntryPr
                 storage.ExpertJob.DisjointMachineEndurance,
                 storage.ExpertJob.EnchanterEndurance,
                 storage.ExpertJob.RecipeIds.Order().ToArray()),
-            new CharacterMailboxEntryState(
-                Math.Max(0, storage.Mailbox.TotalCount - storage.Mailbox.PageMessages.Count),
-                storage.Mailbox.PageMessages.OrderByDescending(value => value.MessageId)
-                    .Select(value => new CharacterMailboxMessageEntryState(
-                        value.MessageId,
-                        value.SenderCharacterId,
-                        System.Text.Encoding.UTF8.GetBytes(value.SenderName),
-                        value.MailType,
-                        value.SourceProtocol,
-                        System.Text.Encoding.UTF8.GetBytes(value.Title),
-                        System.Text.Encoding.UTF8.GetBytes(value.Body),
-                        value.Gold,
-                        value.RemainingSeconds,
-                        value.CreatedAtUnixSeconds,
-                        checked((byte)value.LetterState),
-                        value.Attachments.OrderBy(attachment => attachment.Ordinal)
-                            .Select(attachment => new CharacterMailboxAttachmentEntryState(
-                                attachment.AttachmentId,
-                                attachment.Ordinal,
-                                checked((byte)attachment.ItemType),
-                                attachment.SourceListType,
-                                attachment.SourceSlotIndex,
-                                attachment.SourceItemUid,
-                                attachment.ItemTemplateId,
-                                attachment.ItemKind,
-                                attachment.ItemCount,
-                                attachment.InstanceValue,
-                                attachment.Durability,
-                                attachment.SealFlag,
-                                attachment.OptionValue,
-                                attachment.ExpireTime,
-                                attachment.Marker16,
-                                attachment.PetSerialOrHandle,
-                                [.. attachment.ItemCore],
-                                attachment.DetailJson))
-                            .ToArray()))
-                    .ToArray()),
+            Dfo.Server.Application.Mail.MailboxProjection.Map(storage.Mailbox),
             storage.PvpMissions.OrderBy(value => value.SortOrder)
                 .Select(value => new CharacterPvpMissionEntryState(value.MissionId, value.Progress))
                 .ToArray());

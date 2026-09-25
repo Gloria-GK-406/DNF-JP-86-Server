@@ -57,13 +57,10 @@ internal sealed class CharacterEntryAssembly(
     ICharacterExpertRecipeTable expertRecipes,
     ICharacterPvpMissionTable pvpMissions,
     IMailboxQueryDomainService mailbox,
-    TimeProvider time,
-    IMailboxMessageTable mailboxMessages,
-    IMailboxAttachmentTable mailboxAttachments,
     IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices, ICharacterSkillBuildTable skillBuilds) : ICharacterEntryStateRepository
 {
     /// <summary>How many of the inbox a character is shown on entry.</summary>
-    private const int InboxPageSize = 20;
+
 
     /// <summary>The counter that says today's revive coin has been taken.</summary>
     private const string ReviveCoinCounter = "revive_coin_daily_claim";
@@ -478,7 +475,7 @@ internal sealed class CharacterEntryAssembly(
             throw new InvalidDataException("Expert job state is out of range.");
         }
 
-        var inbox = await LoadInboxAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var inbox = await mailbox.ReadStorageAsync(characterId, cancellationToken).ConfigureAwait(false);
         var missions = new List<(int, int, int)>();
         foreach (var row in await pvpMissions.ReadAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))
@@ -496,32 +493,6 @@ internal sealed class CharacterEntryAssembly(
             (expert.Type, expert.Experience, workshop.GiveUpCount, workshop.DisjointMachineGrade,
                 workshop.DisjointMachineEndurance, workshop.EnchanterEndurance, recipes),
             inbox, missions);
-    }
-
-    private async ValueTask<CharacterMailboxStorageRecord> LoadInboxAsync(
-        CharacterId characterId, CancellationToken cancellationToken)
-    {
-        var inbox = await mailbox.PageAsync(characterId, InboxPageSize, cancellationToken);
-        var page = inbox.Messages;
-        var headers = (await mailboxMessages.ReadAsync(page.Select(x => x.Id).ToArray(), cancellationToken))
-            .ToDictionary(x => x.MessageId);
-        var now = time.GetUtcNow();
-        var rows = new List<CharacterMailboxMessageStorageRow>(page.Count);
-        foreach (var message in page)
-        {
-            var pending = message.Attachments.Where(x => !x.Claimed).ToArray();
-            var pendingIds = pending.Select(x => x.Id).ToHashSet();
-            var attachments = (await mailboxAttachments.ReadAsync(message.Id, cancellationToken))
-                .Where(x => pendingIds.Contains(x.AttachmentId)).ToArray();
-            var metadata = headers[message.Id];
-            rows.Add(new CharacterMailboxMessageStorageRow(
-                message.Id, message.SenderCharacterId, message.SenderName,
-                metadata.MailType, metadata.SourceProtocol, message.Title, message.Body,
-                checked((int)pending.Sum(x => x.Asset is MailAsset.Gold gold ? (long)gold.Amount : 0)),
-                message.ExpiresAt is { } end ? (int)Math.Clamp((end - now).TotalSeconds, 0, int.MaxValue) : 0,
-                checked((int)message.CreatedAt.ToUnixTimeSeconds()), message.Read ? 2 : 1, attachments));
-        }
-        return new CharacterMailboxStorageRecord(inbox.TotalCount, rows);
     }
 
     private async ValueTask<int> CounterAsync(
