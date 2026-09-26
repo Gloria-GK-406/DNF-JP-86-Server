@@ -23,7 +23,7 @@ internal sealed class ItemDiscardDomainService(
             : online is not { State: OnlineUserState.CharacterActive } ? "NoActiveCharacter"
             : online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId ? "IdentityMismatch"
             : entryCount != 1 ? "EntryCount"
-            : operationType != 1 ? "OperationType"
+            : operationType != 1 && !(operationType == 2 && kind == AccountMaterialKind.ClearCube) ? "OperationType"
             : count <= 0 ? "Count"
             : materialRules.Get(kind).ItemId != itemId ? "ItemMismatch" : null;
         if (reason is not null)
