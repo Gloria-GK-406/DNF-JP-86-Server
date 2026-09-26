@@ -25,6 +25,20 @@ public sealed class SkillMaterialConsumptionTests
         Assert.Equal("InventoryDeltaMessage", f.Sender.Messages[1].GetType().Name);
     }
 
+    [Theory]
+    [InlineData(359, 3262, "cube_gold", 3)]
+    [InlineData(358, 3037, "cube_clear", 2)]
+    public async Task Depleted_account_material_sends_only_consumption_ack(int slot, int item, string column, ushort operation)
+    {
+        using var f = new ShopFixture();
+        f.Sql($"UPDATE accounts SET {column}=1 WHERE account_id=1");
+        f.Sender.BeforeSend = () => Assert.Equal(0, f.Scalar($"SELECT {column} FROM accounts WHERE account_id=1"));
+        await Request(f, slot, item, 1, operation);
+        var ack = Assert.IsType<DeleteItemResponse>(Assert.Single(f.Sender.Messages));
+        Assert.True(ack.Success);
+        Assert.Equal(1, ack.AppliedCount);
+    }
+
     [Fact]
     public async Task Effect_insufficient_balance_does_not_consume_or_project()
     {
