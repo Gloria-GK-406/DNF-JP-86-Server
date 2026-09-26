@@ -294,8 +294,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
         services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();
         services.TryAddSingleton<ICrystalContractDomainService, Dfo.Server.Application.Accounts.CrystalContractDomainService>();
-        services.TryAddSingleton<ISkillMaterialConsumptionDomainService, SkillMaterialConsumptionDomainService>();
-        services.TryAddSingleton<ISkillMaterialConsumptionRuleService, SkillMaterialConsumptionRuleService>();
+        services.TryAddSingleton<IMaterialConsumptionDomainService, MaterialConsumptionDomainService>();
+        services.TryAddSingleton<IMaterialConsumptionRuleService, MaterialConsumptionRuleService>();
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();

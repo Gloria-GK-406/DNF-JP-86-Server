@@ -7,13 +7,13 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.DeleteItem;
 
 public sealed record ConsumeSkillMaterialsCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    IReadOnlyList<SkillMaterialCost> Costs) : ICommand<SkillMaterialConsumptionResult>, IOnlineUserCommand, IAccountCommand
+    IReadOnlyList<MaterialCost> Costs) : ICommand<MaterialConsumptionResult>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
-public sealed class ConsumeSkillMaterialsCommandHandler(ISkillMaterialConsumptionDomainService materials)
-    : ICommandHandler<ConsumeSkillMaterialsCommand, SkillMaterialConsumptionResult>
+public sealed class ConsumeSkillMaterialsCommandHandler(IMaterialConsumptionDomainService materials)
+    : ICommandHandler<ConsumeSkillMaterialsCommand, MaterialConsumptionResult>
 {
-    public ValueTask<SkillMaterialConsumptionResult> HandleAsync(CommandExecutionContext context,
+    public ValueTask<MaterialConsumptionResult> HandleAsync(CommandExecutionContext context,
         ConsumeSkillMaterialsCommand command, CancellationToken ct) => materials.ConsumeAsync(command.Session, command.Costs, ct);
 }

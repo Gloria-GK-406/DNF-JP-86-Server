@@ -2,8 +2,8 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public interface ISkillMaterialConsumptionRuleService
+public interface IMaterialConsumptionRuleService
 {
-    bool IsValidRequest(IReadOnlyList<SkillMaterialCost> costs);
+    bool IsValidRequest(IReadOnlyList<MaterialCost> costs);
     bool IsConsumable(ContainerSlotItem item, int expectedItemId);
 }

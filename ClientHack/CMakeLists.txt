@@ -211,6 +211,18 @@ function(clienthack_plugin_a21 target source output_name descriptor_name)
         RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
 endfunction()
 
+# Standalone opt-in A21 gameplay compatibility patch. Deploy only this DLL;
+# never replace the debug host or the other client plugins with its stage.
+clienthack_plugin_a21(plugin_crystal_effect_consumption_a21
+    plugins/0170_crystal_effect_consumption/crystal_effect_consumption.c
+    "0170_CrystalEffectConsumption" "CrystalEffectConsumption")
+add_executable(clienthack_crystal_effect_consumption_tests
+    tests/test_crystal_effect_consumption.c
+    plugins/0170_crystal_effect_consumption/crystal_effect_consumption.c)
+target_include_directories(clienthack_crystal_effect_consumption_tests PRIVATE include)
+clienthack_warnings(clienthack_crystal_effect_consumption_tests)
+add_test(NAME clienthack_crystal_effect_consumption_tests COMMAND clienthack_crystal_effect_consumption_tests)
+
 add_library(plugin_memory_dump SHARED EXCLUDE_FROM_ALL
     plugins/0000_memory_dump/memory_dump.c
     plugins/plugin_entry.c

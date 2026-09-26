@@ -7,13 +7,13 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class SkillMaterialConsumptionDomainService(
+internal sealed class MaterialConsumptionDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots, IAccountMaterialBagDomainService materials,
-    IAccountMaterialRuleService materialRules, ISkillMaterialConsumptionRuleService rules) : ISkillMaterialConsumptionDomainService
+    IAccountMaterialRuleService materialRules, IMaterialConsumptionRuleService rules) : IMaterialConsumptionDomainService
 {
-    public async ValueTask<SkillMaterialConsumptionResult> ConsumeAsync(SelectedSessionIdentity session,
-        IReadOnlyList<SkillMaterialCost> costs, CancellationToken ct)
+    public async ValueTask<MaterialConsumptionResult> ConsumeAsync(SelectedSessionIdentity session,
+        IReadOnlyList<MaterialCost> costs, CancellationToken ct)
     {
         if (sessions.Find(session.AccountId) != session
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
@@ -24,10 +24,10 @@ internal sealed class SkillMaterialConsumptionDomainService(
             return new("InvalidRequest", []);
 
         // Validate the whole batch before staging any debit. The command owns the transaction.
-        var pending = new List<(SkillMaterialCost Cost, BoundInventorySlot? Bound, InventoryItemCoreState? Remaining)>();
+        var pending = new List<(MaterialCost Cost, BoundInventorySlot? Bound, InventoryItemCoreState? Remaining)>();
         foreach (var cost in costs)
         {
-            if (cost.Location is SkillMaterialLocation.Account account)
+            if (cost.Location is MaterialLocation.Account account)
             {
                 if (materialRules.Get(account.Kind).ItemId != cost.ItemId)
                     return new("ItemMismatch", []);
@@ -35,7 +35,7 @@ internal sealed class SkillMaterialConsumptionDomainService(
                     return new("InsufficientBalance", []);
                 pending.Add((cost, null, null));
             }
-            else if (cost.Location is SkillMaterialLocation.Carried carried && carried.Slot.Space.IsCarriedItemSpace())
+            else if (cost.Location is MaterialLocation.Carried carried && carried.Slot.Space.IsCarriedItemSpace())
             {
                 var bound = slots.Find(session.CharacterId, carried.Slot);
                 var item = bound is null ? null : await bound.Container.ReadSlotAsync(bound.StorageIndex, ct);
@@ -46,11 +46,11 @@ internal sealed class SkillMaterialConsumptionDomainService(
             }
             else return new("InvalidLocation", []);
         }
-        var debits = new List<SkillMaterialDebit>();
+        var debits = new List<MaterialDebit>();
         foreach (var (cost, bound, remaining) in pending)
         {
             AccountMaterialChange? change = null;
-            if (cost.Location is SkillMaterialLocation.Account account)
+            if (cost.Location is MaterialLocation.Account account)
                 change = await materials.Get(session.AccountId).ConsumeAsync(account.Kind, cost.Count, ct)
                     ?? throw new InvalidOperationException("Validated material balance changed during consumption.");
             else if (remaining is null) await bound!.Container.ClearAsync(bound.StorageIndex, ct);

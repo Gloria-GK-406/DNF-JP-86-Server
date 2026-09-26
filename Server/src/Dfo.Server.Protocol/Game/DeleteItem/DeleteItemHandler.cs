@@ -25,9 +25,9 @@ public sealed class DeleteItemHandler(
         CancellationToken cancellationToken)
     {
         // Business intent selects the command; storage location is resolved only afterwards.
-        if (message.OperationType == 2)
+        if (message.OperationType is 2 or 3)
         {
-            await ConsumeSkillMaterialsAsync(context, message, cancellationToken);
+            await ConsumeMaterialsAsync(context, message, cancellationToken);
             return;
         }
         if (message.OperationType != 1)
@@ -112,32 +112,35 @@ public sealed class DeleteItemHandler(
             cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask ConsumeSkillMaterialsAsync(NetworkDispatchContext context, DeleteItemRequest message,
+    private async ValueTask ConsumeMaterialsAsync(NetworkDispatchContext context, DeleteItemRequest message,
         CancellationToken ct)
     {
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        SkillMaterialConsumptionResult result = new("InvalidRequest", []);
+        MaterialConsumptionResult result = new("InvalidRequest", []);
         if (session is not null && message.EntryCount == 1 && message.ReservedZero == 0
             && onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) && online is not null)
         {
             var material = message.Slot.Space == InventoryContainerType.Main
                 ? AccountMaterialCatalog.Definitions.SingleOrDefault(x => x.VirtualSlotIndex == message.Slot.Index) : null;
-            SkillMaterialLocation? location = null;
-            if (material is not null) location = new SkillMaterialLocation.Account(material.Kind);
+            MaterialLocation? location = null;
+            if (material is not null) location = new MaterialLocation.Account(material.Kind);
             else
             {
-                try { location = new SkillMaterialLocation.Carried(slotMappings.ToBusinessSlot(message.Slot)); }
+                try { location = new MaterialLocation.Carried(slotMappings.ToBusinessSlot(message.Slot)); }
                 catch (InventorySlotMappingException) { result = new("UnmappedSlot", []); }
             }
             if (location is not null)
-                result = await commands.SendAsync(new ConsumeSkillMaterialsCommand(online.OnlineUserId, session,
-                    [new(location, message.ItemId, message.DeleteCount)]), ct);
+                result = message.OperationType == 2
+                    ? await commands.SendAsync(new ConsumeSkillMaterialsCommand(online.OnlineUserId, session,
+                        [new(location, message.ItemId, message.DeleteCount)]), ct)
+                    : await commands.SendAsync(new ConsumeEffectMaterialsCommand(online.OnlineUserId, session,
+                        [new(location, message.ItemId, message.DeleteCount)]), ct);
         }
-        logger.LogInformation("Skill material consumption character={CharacterId} slot={Slot} item={Item} count={Count} success={Success} reason={Reason}",
-            session?.CharacterId, message.Slot, message.ItemId, message.DeleteCount, result.Success, result.Rejection);
+        logger.LogInformation("Material consumption operation={Operation} character={CharacterId} slot={Slot} item={Item} count={Count} success={Success} reason={Reason}",
+            message.OperationType, session?.CharacterId, message.Slot, message.ItemId, message.DeleteCount, result.Success, result.Rejection);
         if (result.Success)
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
-                new SkillMaterialsConsumed(session, result.Debits.Single(), DateTimeOffset.UtcNow), ct);
+                new MaterialsConsumed(session, result.Debits.Single(), DateTimeOffset.UtcNow), ct);
         else if (session is null || sessions.Find(session.AccountId) == session)
             await sender.SendCmdAsync(context.Connection.ConnectionId,
                 new DeleteItemResponse(message.Slot, ErrorCode: DeleteItemResponse.CannotDelete), ct);

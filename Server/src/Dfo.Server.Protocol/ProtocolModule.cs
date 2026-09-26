@@ -187,7 +187,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<SkillMaterialsConsumed, SkillMaterialsConsumedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<MaterialsConsumed, MaterialsConsumedHandler>(retryLimit: 0);
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
         services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
@@ -381,7 +381,8 @@ public sealed class ProtocolModule : IServerModule
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DiscardAccountMaterialCommand, DiscardAccountMaterialResult, DiscardAccountMaterialCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<ConsumeSkillMaterialsCommand, SkillMaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ConsumeSkillMaterialsCommand, MaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ConsumeEffectMaterialsCommand, MaterialConsumptionResult, ConsumeEffectMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DiscardItemCommand, DeleteItemOutcome, DiscardItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, BuyItemOutcome, BuyItemCommandHandler>(

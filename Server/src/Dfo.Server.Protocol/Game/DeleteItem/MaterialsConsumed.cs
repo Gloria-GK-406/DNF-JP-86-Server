@@ -7,14 +7,14 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.DeleteItem;
 
-public sealed record SkillMaterialsConsumed(SelectedSessionIdentity Session, SkillMaterialDebit Debit,
-    DateTimeOffset PreparedAt) : INotification<SkillMaterialsConsumed>;
+public sealed record MaterialsConsumed(SelectedSessionIdentity Session, MaterialDebit Debit,
+    DateTimeOffset PreparedAt) : INotification<MaterialsConsumed>;
 
-public sealed class SkillMaterialsConsumedHandler(ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService projection) : INotificationHandler<SkillMaterialsConsumed>
+public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessions,
+    IInventorySlotProjectionDomainService projection) : INotificationHandler<MaterialsConsumed>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
-        SkillMaterialsConsumed notification, CancellationToken ct)
+        MaterialsConsumed notification, CancellationToken ct)
     {
         if (recipient.CharacterId != notification.Session.CharacterId
             || recipient.ConnectionId != notification.Session.ConnectionId
@@ -31,7 +31,7 @@ public sealed class SkillMaterialsConsumedHandler(ISelectedSessionDomainService 
         }
         else
         {
-            slot = projection.Project(((SkillMaterialLocation.Carried)debit.Cost.Location).Slot);
+            slot = projection.Project(((MaterialLocation.Carried)debit.Cost.Location).Slot);
             update = debit.Remaining is null
                 ? GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, notification.PreparedAt)
                 : GameInventoryDelivery.Notification(new(slot.Space,

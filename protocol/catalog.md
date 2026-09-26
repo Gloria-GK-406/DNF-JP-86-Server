@@ -690,3 +690,7 @@ CMD001B mode1双倍显示/发奖、CMD0040购买后036F slot1刷新、每日累�
 ## 2026-09-26 晶之契约选择接入
 
 CMD [0218](game/client-to-server/0x0218.md)：选择保存、3B成功ACK及036A即时投影已实现并通过自动测试。NOTI [036A](game/server-to-client/NOTI-0x036A.md)复用登录投影。ClientStatic/ServerImplemented，战斗消费待实机，未标ClientVerified。
+
+## 2026-09-26 特效材料消费接入
+
+CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶之契约通过独立0170兼容插件恢复原生消费上报。无服务端消费timer；自动测试通过，ClientStatic/ServerImplemented，待用户实机验证，不标ClientVerified。
