@@ -19,7 +19,7 @@ s=0..7；最后一槽到期字段位于69..72，次数位于73。最后一槽没
 
 槽映射：0黄金卡牌免费翻、1双倍袖珍罐、2任务助手、3BUFF服务、4HP/MP自动恢复、5免费解除虚弱、6自动修理、7高效开罐。580..587只是服务端内部权益键，不是客户端premiumType。
 
-布局证据：客户端静态调查v2（ClientStatic）及现编码器；用户实机验证证明当前快照可用于期限显示，不将用户反馈冒充逐字节抓包。详见[调查报告](../../../Document/outputs/premium-service-client-analysis/premium-service-a21-investigation.md)。
+布局证据：客户端静态调查v2（ClientStatic）及现编码器；用户实机验证证明当前快照可用于期限显示，不将用户反馈冒充逐字节抓包。详见[调查报告](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/main/Document/outputs/premium-service-client-analysis/premium-service-a21-investigation.md)。
 
 ## 抽象流程
 

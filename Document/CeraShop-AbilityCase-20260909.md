@@ -32,7 +32,7 @@
 
 安装前校验目标handler指令，以及证明商城偏移的getter/clear函数字节；不匹配就不安装hook。插件通过现有ClientHack加载，主程序重启后生效。回退只需在客户端关闭后移除新增DLL，不替换原插件。
 
-源码：[cera_ticket_failure_fix.c](../ClientHack/plugins/0150_cera_ticket_failure_fix/cera_ticket_failure_fix.c)。构建输出：`ClientHack/out/cera-feedback-win32/stage-a21/plugins/0150_CeraTicketFailureFix.dll`；SHA-256 `8EBA4EBCEC12C39DA3FF4FF4549E00F659EF4A0D6B9B7ACC63053E8974CC9532`。
+源码：[cera_ticket_failure_fix.c](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/main/ClientHack/plugins/0150_cera_ticket_failure_fix/cera_ticket_failure_fix.c)。构建输出：`ClientHack/out/cera-feedback-win32/stage-a21/plugins/0150_CeraTicketFailureFix.dll`；SHA-256 `8EBA4EBCEC12C39DA3FF4FF4549E00F659EF4A0D6B9B7ACC63053E8974CC9532`。
 
 已用VS2022 Win32 Release构建，native回归通过：四参数转发、成功分支保持等待、失败清理、空上下文保护、地址指令不匹配拒绝。构建与验证命令：
 

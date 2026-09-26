@@ -115,7 +115,7 @@ A21 参照会话，归档于
 
 ## 2026-09-26 A21选择链修正
 
-以[客户端指令证据与服务端实现](../../../Document/outputs/crystal-contract-20260926/selection-investigation.md)为准：0218请求2B；成功ACK3B=`01 + UI来源标志 + 选择索引`，随后036A两字节投影。首字节是UI来源参数（目前0/1），第二字节为选择索引0..5/FF，不以旧参照服的“类型/等级”命名作为已证实语义。角色保存、重登恢复、权益过期拒绝已实现及自动测试；真实战斗效果与消费仍待实机，未升级为ClientVerified。
+以[客户端指令证据与服务端实现](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/main/Document/outputs/crystal-contract-20260926/selection-investigation.md)为准：0218请求2B；成功ACK3B=`01 + UI来源标志 + 选择索引`，随后036A两字节投影。首字节是UI来源参数（目前0/1），第二字节为选择索引0..5/FF，不以旧参照服的“类型/等级”命名作为已证实语义。角色保存、重登恢复、权益过期拒绝已实现及自动测试；真实战斗效果与消费仍待实机，未升级为ClientVerified。
 
 ## 2026-09-26 本轮收口
 

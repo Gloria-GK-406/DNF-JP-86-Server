@@ -164,9 +164,9 @@ C→S  CMD  0x0004  seq 9  body 2    SELECT_CHARACTER   → world-entry.md
 那个恒定栈顶，见 [game-receive](game-receive.md#为什么调用栈在-sc-上不管用)）。
 
 `0x00D8999B` 那五个字节 `E8 40 8E AE 00` 正是 ClientHack 的 `disable-fixed-key-xor`
-补丁位置（[`network_hook.c` 的 `apply_network_xor_patch`](../../ClientHack/plugins/0100_network_hook/network_hook.c)、
+补丁位置（[`network_hook.c` 的 `apply_network_xor_patch`](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/main/ClientHack/plugins/0100_network_hook/network_hook.c)、
 签名 `CH_ORIG_NETWORK_XOR_00D8999B`、地址台账
-[`ClientHack/docs/address-provenance.md`](../../ClientHack/docs/address-provenance.md)）。
+[`ClientHack/docs/address-provenance.md`](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/main/ClientHack/docs/address-provenance.md)）。
 把它 NOP 掉之所以必要且足够，就是因为我们的服务端把初始连接通知**发成明文**。
 
 两条推论，对服务端实现都有直接影响：
@@ -468,7 +468,7 @@ S→C  NOTI 0x0289  荣誉等级    本会话第二次
 会话 12 的入站帧：抓包 **74** 条，跟踪 **73** 行，
 **按顺序逐帧一一对应**（type 与 body 长度全等），唯一差额是抓包的最后一条（`0x001B`，19 字节）
 ——跟踪把一帧写出的时机是"下一帧开始时"，所以最后一帧永远不落盘
-（[`network_hook.c` 的 `flush_read_frame` / `set_remaining_trace`](../../ClientHack/plugins/0100_network_hook/network_hook.c)）。
+（[`network_hook.c` 的 `flush_read_frame` / `set_remaining_trace`](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/main/ClientHack/plugins/0100_network_hook/network_hook.c)）。
 
 这条 1:1 对应同时验证了跟踪"类型是借来的"这个假设在本会话上没有错帧。
 

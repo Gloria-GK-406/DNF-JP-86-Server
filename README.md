@@ -1,6 +1,6 @@
 # 86JP
 
-DNF 86JP 版本的服务端重实现，外加为它服务的客户端补丁与逆向资料。
+DNF 86JP 版本的服务端重实现及协议知识库。客户端补丁与登录器已拆为独立私有仓库。
 
 **要动代码，先读 [`AGENTS.md`](AGENTS.md)**——那是本仓的架构图与硬性约定。本页只说明**东西都在哪**。
 
@@ -10,9 +10,8 @@ DNF 86JP 版本的服务端重实现，外加为它服务的客户端补丁与�
 | --- | --- |
 | [`Server/`](Server/) | 服务端。`86JP.Server.slnx`，.NET 10，源码在 `src/`、判据在 `tests/` |
 | [`protocol/`](protocol/README.md) | **协议资料库**。客户端协议的结论**及其证据**，四层组织，规矩见它自己的 README |
-| [`Docs/`](Docs/) | 服务端设计文档、领域裁定、客户端逆向记录。见下面「Docs 里有四类东西」 |
-| [`ClientHack/`](ClientHack/README.md) | 客户端补丁，独立的 Windows x86 纯 C 工程，与服务端解耦 |
-| [`Tool/`](Tool/) | 独立工具：`PvfProbe`（探档案）、`PvfProxy`、`WireSmoke`（打线）、`CrapMeter`（量变更风险，见 [`Document/CrapMeasurement.md`](Document/CrapMeasurement.md)） |
+| [`Docs/`](Docs/) | 服务端设计文档、领域裁定及协议参考记录。见下面「Docs 里有四类东西」 |
+| [`Tool/`](Tool/) | 独立工具：`PvfProbe`（探档案）、`WireSmoke`（打线）、`CrapMeter`（量变更风险，见 [`Document/CrapMeasurement.md`](Document/CrapMeasurement.md)） |
 
 ## Server
 
@@ -56,9 +55,7 @@ PVF_ARCHIVE_PATH=<Script.pvf 的路径> dotnet test Server/86JP.Server.slnx --no
 
 1. **本仓的设计与裁定** —— `ItemWorldModel.md`、`Refactor/TableOwnershipRuling.md`、
    `CharacterDomainCut.md` 等。**都带日期与基准提交**，读的时候先看那一行。
-2. **客户端逆向** —— `a21-units/`（41 份）、`a21-protocol/`、`a21-vmp1/`，加 `client-*`、
-   `themida-*`、`clean-exe-*` 等。**这是对一份固定二进制的测量，不会过期**，但它是
-   `ClientHack` 那条线的产物，不描述服务端。
+2. **客户端逆向** —— 已迁往独立ClientHack仓库，服务端通过跨仓库链接引用证据。
 3. **参照服务端 `ServerS4A21` 的资料** —— 文件开头有醒目的免责块。
    **它们描述的不是本仓**，当业务语义的参照读，**不要当本仓事实去取证**。
 4. **协议失谐记录** —— `ProtocolScaffoldDissonances.md`、`InventoryCoordinateDissonances.md`：
@@ -66,3 +63,10 @@ PVF_ARCHIVE_PATH=<Script.pvf 的路径> dotnet test Server/86JP.Server.slnx --no
 
 **事实该写在哪、什么值得写、过期的怎么办**，一处写清，见
 [`AGENTS.md` 的「记什么，不记什么」](AGENTS.md#记什么不记什么)。
+
+## 独立客户端项目
+
+- [补丁与调试研究](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack)
+- [Windows登录器](https://github.com/Gloria-GK-406/DNF-JP-86-Launcher)
+
+三个仓库本地同级放在E:/Project/DNF。服务端构建不引用两个客户端仓库。拆分记录见Document/repository-split-20260926.md。

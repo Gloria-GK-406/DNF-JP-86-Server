@@ -1,8 +1,0 @@
-LIBRARY ijl15
-EXPORTS
-    ijlErrorStr
-    ijlFree
-    ijlGetLibVersion
-    ijlInit
-    ijlRead
-    ijlWrite

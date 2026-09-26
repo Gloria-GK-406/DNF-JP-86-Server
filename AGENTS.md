@@ -11,8 +11,7 @@ DNF 日服 Act.86 客户端的服务端仿真。协议逆向结论的权威存�
 ```
 Server/      .NET 10 服务端解决方案（本文档主角，见下）
 protocol/    协议知识库：按 endpoint/direction/type 组织的逆向记录
-ClientHack/  客户端补丁宿主（纯 C17/x86，CMake，Az.dll + 插件体系）
-Tool/        PvfProbe（PVF 归档探针）、PvfProxy（TCP 中转/启动器）、WireSmoke（打线）、
+Tool/        PvfProbe（PVF 归档探针）、WireSmoke（打线）、
              CrapMeter（方法级 CRAP 变更风险采集，结果写 .crap/<时间戳>/，不进版本库）
 Docs/        四类东西混在一个平面上，读之前先认清是哪一类，分类见 README.md：
              本仓的设计与裁定 / 客户端逆向 / 参照服务端 ServerS4A21 的资料 / 协议失谐记录
@@ -982,3 +981,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 - **反向扫要扫写入方，不能只扫判定点。** 「一条拒绝在哪、有没有判据会红」只答了一半；
   另一半是「谁能把系统送进那条拒绝」。曾有一条缺陷正是因为只扫了判定点而漏过：
   清单把它记作「有覆盖」，而实际只覆盖了两个制造者中的一个。
+
+## 2026-09-26 仓库边界
+
+本仓只承载服务端、服务端工具和协议知识库。客户端补丁/调试研究迁往相邻DNF-JP-86-ClientHack；WPF登录器及历史PvfProxy迁往DNF-JP-86-Launcher。Dfo.Server.LauncherApi是服务端HTTP认证端点，保留在本仓。协议消费证据与服务端验收记录保留，不是客户端运行实现。历史任务记录中的旧绝对路径仅作为来源。

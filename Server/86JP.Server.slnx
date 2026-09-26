@@ -22,8 +22,4 @@
     <Project Path="tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj" />
   </Folder>
-  <Folder Name="/Launcher/">
-    <Project Path="../Launcher/Dfo.Launcher/Dfo.Launcher.csproj" />
-    <Project Path="../Launcher/Dfo.Launcher.Tests/Dfo.Launcher.Tests.csproj" />
-  </Folder>
 </Solution>

@@ -1,9 +1,0 @@
-event_log_calls=11
-unapproved_logging_sinks=0
-automatic_redirects_disabled=True
-whole_operation_deadline=True
-bootstrap_failure_never_ready=True
-credential_field_errors_editable=True
-launcher_ini=[Launcher]|BaseUrl=http://127.0.0.1:8080/
-process_count=0
-decision=pass

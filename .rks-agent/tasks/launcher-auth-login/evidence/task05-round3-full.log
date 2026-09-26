@@ -1,7 +1,0 @@
-  Dfo.Launcher -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\bin\Release\net10.0-windows\Dfo.Launcher.dll
-  Dfo.Launcher.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll
-E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
-总共 1 个测试文件与指定模式相匹配。
-结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\.rks-agent\tasks\launcher-auth-login\evidence\task05-round3-full.trx
-
-已通过! - 失败:     0，通过:    60，已跳过:     0，总计:    60，持续时间: 723 ms - Dfo.Launcher.Tests.dll (net10.0)
