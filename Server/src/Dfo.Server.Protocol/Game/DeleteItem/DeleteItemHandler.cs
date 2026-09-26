@@ -29,6 +29,8 @@ public sealed class DeleteItemHandler(
             ? AccountMaterialCatalog.Definitions.SingleOrDefault(d => d.VirtualSlotIndex == message.Slot.Index) : null;
         if (material is not null)
         {
+            logger.LogInformation("Material request slot={Slot} item={Item} count={Count} entries={Entries} operation={Operation} reserved={Reserved} safeMode={SafeMode}",
+                message.Slot.Index, message.ItemId, message.DeleteCount, message.EntryCount, message.OperationType, message.ReservedZero, message.SafeModeSkipIndex);
             var selected = sessions.FindByConnection(context.Connection.ConnectionId);
             AccountMaterialChange? change = null;
             if (selected is not null && message.ReservedZero == 0
@@ -38,10 +40,15 @@ public sealed class DeleteItemHandler(
             if (selected is not null && sessions.Find(selected.AccountId) != selected) return;
             logger.LogInformation("Material consumption slot={Slot} item={ItemId} count={Count} success={Success} remaining={Remaining}",
                 message.Slot.Index, message.ItemId, message.DeleteCount, change is not null, change?.FinalCount);
-            // The existing DELETE_ITEM ACK applies the decrement locally; never send a second decrement.
+            // Keep the native ACK, then reconcile with the committed absolute balance.
             await sender.SendCmdAsync(context.Connection.ConnectionId,
                 new DeleteItemResponse(message.Slot, change is null ? 0 : message.DeleteCount,
                     Success: change is not null, ErrorCode: DeleteItemResponse.CannotDelete), cancellationToken);
+            if (change is not null)
+                await sender.SendExplicitAsync(context.Connection.ConnectionId,
+                    new GameExplicitMessageDelivery([GameInventoryDelivery.VirtualResourceNotification(
+                        [new InventoryRuntimeValueState(change.VirtualSlotIndex, change.ItemId, change.FinalCount)],
+                        DateTimeOffset.UtcNow)], []), cancellationToken);
             return;
         }
         BusinessSlot slot;
