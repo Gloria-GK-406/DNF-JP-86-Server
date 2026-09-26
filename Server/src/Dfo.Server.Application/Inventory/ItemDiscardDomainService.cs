@@ -15,7 +15,7 @@ internal sealed class ItemDiscardDomainService(
     IItemDiscardRuleService rules, IAccountMaterialBagDomainService materials, IAccountMaterialRuleService materialRules,
     ILogger<ItemDiscardDomainService> logger) : IItemDiscardDomainService
 {
-    public async ValueTask<AccountMaterialChange?> ConsumeMaterialAsync(SelectedSessionIdentity session,
+    public async ValueTask<AccountMaterialChange?> DiscardMaterialAsync(SelectedSessionIdentity session,
         AccountMaterialKind kind, int itemId, int count, byte entryCount, ushort operationType, CancellationToken ct)
     {
         onlineUsers.TryGetByConnection(session.ConnectionId, out var online);
@@ -23,7 +23,7 @@ internal sealed class ItemDiscardDomainService(
             : online is not { State: OnlineUserState.CharacterActive } ? "NoActiveCharacter"
             : online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId ? "IdentityMismatch"
             : entryCount != 1 ? "EntryCount"
-            : operationType != 1 && !(operationType == 2 && kind == AccountMaterialKind.ClearCube) ? "OperationType"
+            : operationType != 1 ? "OperationType"
             : count <= 0 ? "Count"
             : materialRules.Get(kind).ItemId != itemId ? "ItemMismatch" : null;
         if (reason is not null)

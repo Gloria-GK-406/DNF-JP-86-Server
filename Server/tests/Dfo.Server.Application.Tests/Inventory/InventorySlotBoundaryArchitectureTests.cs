@@ -17,7 +17,7 @@ public sealed class InventorySlotBoundaryArchitectureTests
     public void The_six_item_commands_expose_only_business_slot_addresses()
     {
         AssertSlotProperty<SellItemCommand>(nameof(SellItemCommand.Slot), typeof(BusinessSlot));
-        AssertSlotProperty<DeleteItemCommand>(nameof(DeleteItemCommand.Slot), typeof(BusinessSlot));
+        AssertSlotProperty<DiscardItemCommand>(nameof(DiscardItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<RepairItemCommand>(nameof(RepairItemCommand.Slot), typeof(BusinessSlot?));
         AssertSlotProperty<NpcDisjointItemCommand>(nameof(NpcDisjointItemCommand.TargetSlot), typeof(BusinessSlot));
         AssertSlotProperty<PortableDisjointItemCommand>(nameof(PortableDisjointItemCommand.TargetSlot), typeof(BusinessSlot));
@@ -27,7 +27,7 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<UseStackableCommand>(nameof(UseStackableCommand.Slot), typeof(BusinessSlot));
 
         AssertNoGameAddress<SellItemCommand>();
-        AssertNoGameAddress<DeleteItemCommand>();
+        AssertNoGameAddress<DiscardItemCommand>();
         AssertNoGameAddress<RepairItemCommand>();
         AssertNoGameAddress<NpcDisjointItemCommand>();
         AssertNoGameAddress<PortableDisjointItemCommand>();

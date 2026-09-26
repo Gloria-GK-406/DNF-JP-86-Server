@@ -293,6 +293,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
         services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();
+        services.TryAddSingleton<ISkillMaterialConsumptionDomainService, SkillMaterialConsumptionDomainService>();
+        services.TryAddSingleton<ISkillMaterialConsumptionRuleService, SkillMaterialConsumptionRuleService>();
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();

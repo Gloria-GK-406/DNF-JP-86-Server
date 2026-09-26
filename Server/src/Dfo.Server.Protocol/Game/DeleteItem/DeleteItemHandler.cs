@@ -24,6 +24,18 @@ public sealed class DeleteItemHandler(
         DeleteItemRequest message,
         CancellationToken cancellationToken)
     {
+        // Business intent selects the command; storage location is resolved only afterwards.
+        if (message.OperationType == 2)
+        {
+            await ConsumeSkillMaterialsAsync(context, message, cancellationToken);
+            return;
+        }
+        if (message.OperationType != 1)
+        {
+            await sender.SendCmdAsync(context.Connection.ConnectionId,
+                new DeleteItemResponse(message.Slot, ErrorCode: DeleteItemResponse.CannotDelete), cancellationToken);
+            return;
+        }
         // Account-wide virtual materials deliberately have no ordinary character-bag mapping.
         var material = message.Slot.Space == InventoryContainerType.Main
             ? AccountMaterialCatalog.Definitions.SingleOrDefault(d => d.VirtualSlotIndex == message.Slot.Index) : null;
@@ -35,7 +47,7 @@ public sealed class DeleteItemHandler(
             AccountMaterialChange? change = null;
             if (selected is not null && message.ReservedZero == 0
                 && onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var owner) && owner is not null)
-                change = (await commands.SendAsync(new ConsumeAccountMaterialCommand(owner.OnlineUserId, selected,
+                change = (await commands.SendAsync(new DiscardAccountMaterialCommand(owner.OnlineUserId, selected,
                     material.Kind, message.ItemId, message.DeleteCount, message.EntryCount, message.OperationType), cancellationToken)).Change;
             if (selected is not null && sessions.Find(selected.AccountId) != selected) return;
             logger.LogInformation("Material consumption slot={Slot} item={ItemId} count={Count} success={Success} remaining={Remaining}",
@@ -72,7 +84,7 @@ public sealed class DeleteItemHandler(
         else
         {
             result = await commands.SendAsync(
-                new DeleteItemCommand(online.OnlineUserId, session,
+                new DiscardItemCommand(online.OnlineUserId, session,
                     slot,
                     message.EntryCount, message.OperationType,
                     message.ItemId, message.DeleteCount),
@@ -98,5 +110,36 @@ public sealed class DeleteItemHandler(
         await sender.SendCmdAsync(context.Connection.ConnectionId,
             new DeleteItemResponse(responseSlot, ErrorCode: DeleteItemResponse.CannotDelete),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask ConsumeSkillMaterialsAsync(NetworkDispatchContext context, DeleteItemRequest message,
+        CancellationToken ct)
+    {
+        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        SkillMaterialConsumptionResult result = new("InvalidRequest", []);
+        if (session is not null && message.EntryCount == 1 && message.ReservedZero == 0
+            && onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) && online is not null)
+        {
+            var material = message.Slot.Space == InventoryContainerType.Main
+                ? AccountMaterialCatalog.Definitions.SingleOrDefault(x => x.VirtualSlotIndex == message.Slot.Index) : null;
+            SkillMaterialLocation? location = null;
+            if (material is not null) location = new SkillMaterialLocation.Account(material.Kind);
+            else
+            {
+                try { location = new SkillMaterialLocation.Carried(slotMappings.ToBusinessSlot(message.Slot)); }
+                catch (InventorySlotMappingException) { result = new("UnmappedSlot", []); }
+            }
+            if (location is not null)
+                result = await commands.SendAsync(new ConsumeSkillMaterialsCommand(online.OnlineUserId, session,
+                    [new(location, message.ItemId, message.DeleteCount)]), ct);
+        }
+        logger.LogInformation("Skill material consumption character={CharacterId} slot={Slot} item={Item} count={Count} success={Success} reason={Reason}",
+            session?.CharacterId, message.Slot, message.ItemId, message.DeleteCount, result.Success, result.Rejection);
+        if (result.Success)
+            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
+                new SkillMaterialsConsumed(session, result.Debits.Single(), DateTimeOffset.UtcNow), ct);
+        else if (session is null || sessions.Find(session.AccountId) == session)
+            await sender.SendCmdAsync(context.Connection.ConnectionId,
+                new DeleteItemResponse(message.Slot, ErrorCode: DeleteItemResponse.CannotDelete), ct);
     }
 }

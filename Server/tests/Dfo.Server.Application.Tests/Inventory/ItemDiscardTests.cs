@@ -114,7 +114,7 @@ public sealed class ItemDiscardTests
         bag.Select(2);
 
         var result = await bag.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new DeleteItemCommand(
+            new DiscardItemCommand(
                 bag.OnlineUser, old,
                 new BusinessSlot(BusinessInventorySpace.Consumable, 0),
                 1, 1, 5000, 1));

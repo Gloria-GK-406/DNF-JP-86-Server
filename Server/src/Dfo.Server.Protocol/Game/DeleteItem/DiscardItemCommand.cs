@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.DeleteItem;
 
-public sealed record DeleteItemCommand(
+public sealed record DiscardItemCommand(
     OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session,
     BusinessSlot Slot,
@@ -26,15 +26,15 @@ public sealed record DeleteItemOutcome(ItemDiscardResult Discard, QuestProgressS
     public ItemDiscardRejection Rejection => Discard.Rejection;
 }
 
-public sealed class DeleteItemCommandHandler(
+public sealed class DiscardItemCommandHandler(
     IItemDiscardDomainService discards,
     IQuestProgressDomainService quests,
     TimeProvider clock)
-    : ICommandHandler<DeleteItemCommand, DeleteItemOutcome>
+    : ICommandHandler<DiscardItemCommand, DeleteItemOutcome>
 {
     public async ValueTask<DeleteItemOutcome> HandleAsync(
         CommandExecutionContext context,
-        DeleteItemCommand command,
+        DiscardItemCommand command,
         CancellationToken cancellationToken)
     {
         var discard = await discards.DiscardAsync(
