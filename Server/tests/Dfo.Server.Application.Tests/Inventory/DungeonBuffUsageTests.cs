@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Networking;
+using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -122,5 +124,34 @@ public sealed class DungeonBuffUsageTests
     {
         using var shop = new ShopFixture();
         Assert.Equal(10, shop.Services.GetRequiredService<IPremiumServiceRuleService>().DungeonBuffDailyLimit);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Crystal_expiry_sends_one_zero_notice_and_rejects_qualification(bool expiredBeforeFirstTick)
+    {
+        using var shop = Fixture(false);
+        var now = shop.Clock.GetUtcNow();
+        shop.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,97,{now.AddMinutes(expiredBeforeFirstTick ? -1 : 1).ToUnixTimeSeconds()})");
+        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        await refresh.RefreshAsync(default);
+        shop.Clock.Advance(TimeSpan.FromMinutes(1));
+        await refresh.RefreshAsync(default);
+        await refresh.RefreshAsync(default);
+        var notice = Assert.Single(shop.Sender.Messages, x => x.GetType().Name == "PremiumGrantedMessage");
+        var registration = shop.Services.GetServices<ServerMessageEncoderRegistration>().Single(x => x.MessageType == notice.GetType());
+        var frame = Assert.Single(((IServerMessageEncoder)shop.Services.GetRequiredService(registration.EncoderType)).Encode(notice));
+        Assert.Equal(0x0042, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+        Assert.Equal(97, frame[17]);
+        Assert.Equal(0, BinaryPrimitives.ReadInt64LittleEndian(frame.AsSpan(18, 8)));
+        Assert.False(await shop.Services.GetRequiredService<IPremiumServiceDomainService>().For(shop.Session.AccountId)
+            .IsActiveAsync(PremiumServiceType.CrystalContract, default));
+        // A renewal can expire again; the old expiry notice must not suppress the new transition.
+        shop.Sql($"UPDATE account_premiums SET end_time={shop.Clock.GetUtcNow().AddMinutes(1).ToUnixTimeSeconds()}");
+        await refresh.RefreshAsync(default);
+        shop.Clock.Advance(TimeSpan.FromMinutes(1));
+        await refresh.RefreshAsync(default);
+        Assert.Equal(2, shop.Sender.Messages.Count(x => x.GetType().Name == "PremiumGrantedMessage"));
     }
 }

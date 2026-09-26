@@ -62,9 +62,11 @@ public sealed class SelectCharacterPayloadCodecTests
     }
 
     [Theory]
-    [InlineData(1699999999L)]
-    [InlineData(1700000000L)]
-    public void Entry_omits_expired_premiums_without_shifting_wallet_or_quest_fields(long expiry)
+    [InlineData(1699999999L, 27)]
+    [InlineData(1700000000L, 27)]
+    [InlineData(1699999999L, 97)]
+    [InlineData(1700000000L, 97)]
+    public void Entry_omits_expired_premiums_without_shifting_wallet_or_quest_fields(long expiry, int type)
     {
         var result = SelectCharacterPayloadTestData.Create();
         var expected = EncodeAcknowledgement(result);
@@ -73,7 +75,7 @@ public sealed class SelectCharacterPayloadCodecTests
             Account = result.Account with
             {
                 Entitlements = new AccountEntitlementEntryState(
-                    [.. result.Account.Entitlements.Premiums, new AccountPremiumEntryState(27, expiry)]),
+                    [.. result.Account.Entitlements.Premiums, new AccountPremiumEntryState(type, expiry)]),
             },
         };
         Assert.Equal(expected, EncodeAcknowledgement(changed));

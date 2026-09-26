@@ -110,7 +110,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         return new(CeraShopRejection.None, new(session, quote.ProductIds, plan.Balances, gold, plan.GoldCost > 0,
             updates.ToImmutable(), pets, hasCreatures, now)
             { PremiumEntitlements = entitlements, PremiumUsageSlots = usage,
-                GrantedPremiums = entitlements?.Premiums.Where(p => p.PremiumType is 22 or 27
+                GrantedPremiums = entitlements?.Premiums.Where(p => p.PremiumType is 22 or 27 or 97
                     && quote.Subscriptions.Any(s => (int)s.Service == p.PremiumType)).ToArray() ?? [] }, null);
     }
 }

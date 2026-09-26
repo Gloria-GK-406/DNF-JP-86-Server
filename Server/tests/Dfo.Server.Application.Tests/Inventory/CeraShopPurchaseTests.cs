@@ -25,6 +25,7 @@ public sealed class CeraShopPurchaseTests
     [InlineData(100041,22,7,1180)]
     [InlineData(100058,27,3,1080)]
     [InlineData(100059,27,7,1680)]
+    [InlineData(102234,97,7,600)]
     public async Task Ordinary_contract_purchase_and_renewal_persist_and_notify_current_total(int product, int type, int days, int cost)
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
@@ -60,6 +61,34 @@ public sealed class CeraShopPurchaseTests
     }
 
     [SkippableFact]
+    public async Task Crystal_gold_product_refuses_insufficient_gold_then_grants_seven_days()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        var entry = CeraShopTestContent.Entry(103061);
+        Assert.Equal(CeraShopRejection.InsufficientFunds, (await shop.Buy(entry)).Rejection);
+        Assert.Equal(0, shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+        shop.Host.Sql("UPDATE character_stats SET carried_gold=2000000");
+        var receipt = (await shop.Buy(entry)).Receipt;
+        Assert.NotNull(receipt);
+        Assert.Equal(500000, shop.Host.Gold);
+        Assert.Equal(100000, shop.Cera);
+        Assert.Equal(97, Assert.Single(receipt.GrantedPremiums).PremiumType);
+        Assert.Equal(shop.Host.Clock.GetUtcNow().AddDays(7).ToUnixTimeSeconds(), receipt.GrantedPremiums[0].ExpiresAtUnixSeconds);
+    }
+
+    [SkippableFact]
+    public async Task Crystal_payment_and_term_roll_back_together()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        shop.Host.Sql("CREATE TRIGGER fail_crystal BEFORE INSERT ON account_premiums WHEN NEW.premium_type=97 BEGIN SELECT RAISE(ABORT,'forced'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => shop.Buy(CeraShopTestContent.Entry(102234)));
+        Assert.Equal(100000, shop.Cera);
+        Assert.Equal(0, shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));
+    }
+
+    [SkippableFact]
     public async Task Ordinary_contract_refuses_insufficient_payment_and_catalog_placeholders()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
@@ -67,7 +96,7 @@ public sealed class CeraShopPurchaseTests
         shop.Host.Sql("UPDATE accounts SET cera=779,token_cera=0,happy_token_cera=0");
         Assert.Equal(CeraShopRejection.InsufficientFunds,(await shop.Buy(CeraShopTestContent.Entry(100039))).Rejection);
         shop.Host.Sql("UPDATE accounts SET cera=100000");
-        foreach(var product in new[]{100043,100061})
+        foreach(var product in new[]{100043,100061,102232})
             Assert.Null((await shop.Buy(CeraShopTestContent.Entry(product))).Receipt);
         Assert.Equal(100000,shop.Cera);
         Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM account_premiums"));

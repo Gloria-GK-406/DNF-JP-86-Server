@@ -111,7 +111,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         return result with
         {
             Premium = row.Category == "[premium]" && premiumTerms.TryGetValue(itemId, out var premium)
-                && premium.Type is 22 or 27 ? new(premium.Type, premium.Duration) : null,
+                && premium.Type is 22 or 27 or 97 ? new(premium.Type, premium.Duration) : null,
             IsService = result.IsService || serviceProducts.Contains(id) || item?.Kind == CeraShopItemKind.Service,
             BuyOnlyCera = onlyCera.Contains(itemId), BuyOnlyCeraPoint = onlyPoint.Contains(itemId),
             Diagnostics = diagnostics.ToImmutable(),

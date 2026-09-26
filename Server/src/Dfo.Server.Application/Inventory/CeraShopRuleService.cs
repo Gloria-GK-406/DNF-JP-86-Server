@@ -43,7 +43,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         || entry.Attribute is not (0 or 255) || entry.Variant is not (0 or 255))
                         throw Refuse(CeraShopRejection.InvalidChoice, "Unexpected subscription options.");
                     if (product.Category == "[premium]" && product.Count == 1
-                        && product.Premium is { PremiumType: 22 or 27 } contract && contract.Duration > TimeSpan.Zero)
+                        && product.Premium is { PremiumType: 22 or 27 or 97 } contract && contract.Duration > TimeSpan.Zero)
                     {
                         subscriptions.Add(new((PremiumServiceType)contract.PremiumType, contract.Duration));
                     }
