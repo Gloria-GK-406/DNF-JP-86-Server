@@ -1,0 +1,20 @@
+CERA purchase character=2 products=102234 cera=90350 token=0 happy=0 gold=147382 slots=0
+CERA purchase character=2 products=102234 cera=89750 token=0 happy=0 gold=148548 slots=0
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=40 body(2B)=0004
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=41 body(2B)=0005
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=42 body(2B)=0003
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=43 body(2B)=0002
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=44 body(2B)=0004
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=46 body(2B)=0005
+Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0218 seq=48 body(2B)=0001
+Material consumption slot=358 item=3037 count=2 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=2 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=1 success=False remaining=(null)
+Material consumption slot=358 item=3037 count=2 success=False remaining=(null)
