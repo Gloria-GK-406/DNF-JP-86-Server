@@ -10,6 +10,17 @@ namespace Dfo.Server.Persistence.Characters;
 /// <summary>The <c>character_condition</c> table.</summary>
 internal sealed partial class SqliteCharacterConditionTable(SqliteDatabase database) : ICharacterConditionTable
 {
+    public ValueTask SaveCrystalSelectionAsync(CharacterId characterId, byte mode, byte selection, CancellationToken ct) =>
+        database.WriteAsync(async (command, token) =>
+        {
+            command.CommandText = "UPDATE character_condition SET crystal_cube_type=@mode, crystal_cube_grade=@selection WHERE character_id=@id;";
+            command.Parameters.AddWithValue("@mode", mode);
+            command.Parameters.AddWithValue("@selection", selection);
+            command.Parameters.AddWithValue("@id", characterId.Value);
+            if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)
+                throw new InvalidDataException($"Character {characterId.Value} has no condition row.");
+        }, ct);
+
     public ValueTask<CharacterConditionRow?> FindAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadFirstAsync(

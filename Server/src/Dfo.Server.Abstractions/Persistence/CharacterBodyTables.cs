@@ -116,6 +116,8 @@ public sealed record CharacterExpertJobRow(
 /// <summary>The <c>character_condition</c> table.</summary>
 public interface ICharacterConditionTable
 {
+    ValueTask SaveCrystalSelectionAsync(CharacterId characterId, byte mode, byte selection, CancellationToken cancellationToken);
+
     ValueTask<CharacterConditionRow?> FindAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 

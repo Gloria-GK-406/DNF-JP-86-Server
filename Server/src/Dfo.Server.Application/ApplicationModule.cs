@@ -293,6 +293,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
         services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();
+        services.TryAddSingleton<ICrystalContractDomainService, Dfo.Server.Application.Accounts.CrystalContractDomainService>();
         services.TryAddSingleton<ISkillMaterialConsumptionDomainService, SkillMaterialConsumptionDomainService>();
         services.TryAddSingleton<ISkillMaterialConsumptionRuleService, SkillMaterialConsumptionRuleService>();
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();

@@ -686,3 +686,7 @@ CMD001B mode1双倍显示/发奖、CMD0040购买后036F slot1刷新、每日累�
 005E/013B发送、0144收件人查询、0060打开、005F逐附件领取、0086已读与幂等删除已接入；NOTI0061用于登录/打开投影，0063用于在线提醒。用户已验收文字、装备、材料、金币与混合附件正常收发领取；不将未测试拒绝提示、非ASCII姓名、时装/宠物、保存/退回升级ClientVerified。逐消息人工区和 `Document/tasks/mailbox-protocol/verification/closeout-20260925.md` 提供证据边界。
 
 2026-09-25：NOTI0063双账号双向在线通知、保留旧邮件后再次收信提醒均由用户实机验收，具体行为标ClientVerified；计数口径仍未差分定案。
+
+## 2026-09-26 晶之契约选择接入
+
+CMD [0218](game/client-to-server/0x0218.md)：选择保存、3B成功ACK及036A即时投影已实现并通过自动测试。NOTI [036A](game/server-to-client/NOTI-0x036A.md)复用登录投影。ClientStatic/ServerImplemented，战斗消费待实机，未标ClientVerified。

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
@@ -185,6 +186,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>(retryLimit: 0);
         services.AddNotificationHandler<SkillMaterialsConsumed, SkillMaterialsConsumedHandler>(retryLimit: 0);
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
@@ -378,6 +380,7 @@ public sealed class ProtocolModule : IServerModule
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DiscardAccountMaterialCommand, DiscardAccountMaterialResult, DiscardAccountMaterialCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<ConsumeSkillMaterialsCommand, SkillMaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DiscardItemCommand, DeleteItemOutcome, DiscardItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -559,6 +562,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
         services.RegisterMessageHandler<DisjointItemHandler>(ClientMessageType.GameDisjointItem);
+        services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
@@ -752,6 +756,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
         services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(
             GameProtocol.DisjointItemType, ClientMessageType.GameDisjointItem);
+        services.AddGameCmdMessageDecoder<CrystalContractDecoder>(0x0218, ClientMessageType.GameCrystalContract);
         services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
             GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
@@ -862,6 +867,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
+        services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
         services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();
