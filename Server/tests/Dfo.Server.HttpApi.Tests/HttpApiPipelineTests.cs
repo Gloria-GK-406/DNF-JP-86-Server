@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Networking;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -490,7 +491,8 @@ public sealed class HttpApiPipelineTests
             string password,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask<AccountId?> ConsumeTicketAsync(
+        public ValueTask<AccountId?> BindSessionAsync(
+            NetworkConnectionId connectionId,
             string loginId,
             string ticket,
             CancellationToken cancellationToken) => throw new NotSupportedException();

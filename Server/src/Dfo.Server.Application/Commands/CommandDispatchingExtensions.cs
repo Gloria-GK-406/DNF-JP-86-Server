@@ -15,6 +15,7 @@ public static class CommandDispatchingExtensions
         ArgumentNullException.ThrowIfNull(services);
         services.TryAddSingleton<CommandHandlerRegistry>();
         services.TryAddSingleton<ICommandBus, CommandBus>();
+        services.TryAddSingleton<NetworkCommandAuthorization>();
         services.TryAddSingleton<OnlineUserExecutionGate>();
         services.TryAddSingleton<SelectedSessionTransitionGate>();
         services.TryAddSingleton<AccountExecutionGate>();

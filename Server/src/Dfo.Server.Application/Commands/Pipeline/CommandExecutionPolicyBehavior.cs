@@ -1,6 +1,6 @@
 namespace Dfo.Server.Application.Commands.Pipeline;
 
-internal sealed class CommandExecutionPolicyBehavior<TResult> : ICommandPipelineBehavior<TResult>
+internal sealed class CommandExecutionPolicyBehavior<TResult>(NetworkCommandAuthorization authorization) : ICommandPipelineBehavior<TResult>
     where TResult : notnull
 {
     public int Order => 100;
@@ -9,7 +9,10 @@ internal sealed class CommandExecutionPolicyBehavior<TResult> : ICommandPipeline
         CommandExecutionContext context,
         ICommand command,
         CommandExecutionDelegate<TResult> next,
-        CancellationToken cancellationToken) => context.ExecutionKind switch
+        CancellationToken cancellationToken)
+    {
+        authorization.DemandCurrent();
+        return context.ExecutionKind switch
         {
             CommandExecutionKind.Direct => next(),
             CommandExecutionKind.Workflow => next(),
@@ -19,4 +22,5 @@ internal sealed class CommandExecutionPolicyBehavior<TResult> : ICommandPipeline
             _ => throw new InvalidOperationException(
                 $"Unsupported command execution kind '{context.ExecutionKind}'."),
         };
+    }
 }

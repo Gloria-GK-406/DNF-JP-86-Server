@@ -24,7 +24,7 @@ public sealed class RedeemGameLoginCommandHandler(
         RedeemGameLoginCommand command,
         CancellationToken cancellationToken)
     {
-        var accountId = await authentication.RedeemTicketAsync(
+        var accountId = await authentication.AuthenticateSessionAsync(
             command.OnlineUserId,
             command.MId,
             command.Ticket,

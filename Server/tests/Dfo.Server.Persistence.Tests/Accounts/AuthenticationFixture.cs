@@ -23,7 +23,8 @@ internal sealed class AuthenticationFixture : IDisposable
     public IAuthenticationPersistence Store => Services.GetRequiredService<IAuthenticationPersistence>();
     public DomainTransactionScope Scope => Services.GetRequiredService<DomainTransactionScope>();
 
-    public AuthenticationFixture(IPasswordCredentialRuleService? passwords = null, Dictionary<string, string?>? settings = null)
+    public AuthenticationFixture(IPasswordCredentialRuleService? passwords = null, Dictionary<string, string?>? settings = null,
+        Action<IServiceCollection>? configure = null)
     {
         Directory.CreateDirectory(DirectoryPath);
         settings ??= [];
@@ -35,6 +36,7 @@ internal sealed class AuthenticationFixture : IDisposable
         services.AddSingleton<IPasswordCredentialRuleService>(passwords ?? new PasswordCredentialService(100));
         new ApplicationModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
+        configure?.Invoke(services);
         Services = services.BuildServiceProvider();
         _ = Store;
     }
@@ -55,10 +57,10 @@ internal sealed class AuthenticationFixture : IDisposable
         await lease.CommitAsync(CancellationToken.None);
     }
 
-    public async Task<Dfo.Server.Data.Accounts.AccountId?> Consume(string mId, string ticket)
+    public async Task<Dfo.Server.Data.Accounts.AccountId?> Consume(string mId, string ticket, Dfo.Server.Data.Networking.NetworkConnectionId? connectionId = null)
     {
         await using var lease = Scope.Begin();
-        var result = await Services.GetRequiredService<IAuthenticationDomainService>().ConsumeTicketAsync(mId, ticket, CancellationToken.None);
+        var result = await Services.GetRequiredService<IAuthenticationDomainService>().BindSessionAsync(connectionId ?? new Dfo.Server.Data.Networking.NetworkConnectionId(Guid.NewGuid().ToString()), mId, ticket, CancellationToken.None);
         await lease.CommitAsync(CancellationToken.None);
         return result;
     }

@@ -38,7 +38,7 @@ public sealed class AuthenticationFailureTests
         var service = fixture.Services.GetRequiredService<IAuthenticationDomainService>();
         await using (var lease = fixture.Scope.Begin())
         {
-            Assert.NotNull(await service.ConsumeTicketAsync(login.MId!, login.Ticket!, default));
+            Assert.NotNull(await service.BindSessionAsync(new Dfo.Server.Data.Networking.NetworkConnectionId("test-binding"), login.MId!, login.Ticket!, default));
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await lease.CommitAsync(canceled.Token));

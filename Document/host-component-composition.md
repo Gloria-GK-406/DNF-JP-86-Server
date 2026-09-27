@@ -15,7 +15,7 @@ Host
 
 HttpApi 由原 LauncherApi 更名，仍只引用 Abstractions、Application、Data；它不依赖 Networking/Protocol/Persistence。未来更新列表、公告等 HTTP 功能归该组件下各自的功能目录，本次没有增加这些业务。
 
-GameServer 装配已有网络/协议模块，不复制其源码，也不注册第二套公共服务。Host 不直接依赖 Networking/Protocol。共用登录票据、在线状态、CommandBus、事务入口及数据库，无 RPC 和第二个 IServiceProvider。内存票据仍保留原有效期、单次消费、重登替换和进程重启失效规则。
+GameServer 装配已有网络/协议模块，不复制其源码，也不注册第二套公共服务。Host 不直接依赖 Networking/Protocol。共用登录会话、在线状态、CommandBus、事务入口及数据库，无 RPC 和第二个 IServiceProvider。登录会话后续改为在线持续有效、断线5分钟宽限，重登替换和进程重启失效，见 [登录会话](login-session-lifecycle.md)。
 
 ## 配置与开关
 

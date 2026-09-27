@@ -17,6 +17,12 @@ internal sealed class NetworkMessageDispatcher(
         ArgumentNullException.ThrowIfNull(message);
 
         await using var scope = scopeFactory.CreateAsyncScope();
+        // A replaced login/connection loses authority before asynchronous transport closure.
+        var sessions = scope.ServiceProvider.GetService<Authentication.LoginSessionRegistry>();
+        if (sessions?.IsSuperseded(context.Connection.ConnectionId) == true) return;
+        var authority = sessions?.CaptureAuthority(context.Connection.ConnectionId);
+        using var authorization = authority is null ? null : scope.ServiceProvider
+            .GetRequiredService<Commands.NetworkCommandAuthorization>().Enter(authority);
         var handlerType = registry.GetHandlerType(message.MessageType);
         var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(handlerType);
         if (!handler.CanHandle(message))

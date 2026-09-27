@@ -73,6 +73,8 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
                 new(IPAddress.Loopback, channelListenerPort),
             [new(GameHost, AdvertisedGamePort)] =
                 new(IPAddress.Loopback, gameListenerPort),
+            [new(GameHost, AdvertisedGamePort + 1)] =
+                new(IPAddress.Loopback, secondGameListenerPort),
         };
         var harness = new EndToEndHostHarness(
             directory,
@@ -197,6 +199,56 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         var honor = await ReadGameFrameAsync(gameStream, this.timeout.Token);
         Assert.Equal((byte)0x00, honor.Command);
         Assert.Equal((ushort)0x0289, honor.Type);
+
+        var secondChannel = new AdvertisedEndpoint(
+            ReadFixedAscii(infoPlaintext.AsSpan(34 + 48, 16)),
+            BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(50 + 48, 4)));
+        // New channel can arrive before the old TCP close callback; its credential stays the same.
+        using var switched = await LoginGameAsync(secondChannel, mId!, ticket!);
+        await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+            await ReadGameFrameAsync(gameStream, this.timeout.Token));
+        switched.Dispose();
+        using var reconnected = await LoginGameAsync(advertisedGame, mId!, ticket!);
+
+        using var replacement = await this.http.PostAsJsonAsync(
+            "/api/launcher/v1/login", new { loginId, password }, this.timeout.Token);
+        Assert.Equal(HttpStatusCode.OK, replacement.StatusCode);
+        using var replacementJson = JsonDocument.Parse(await replacement.Content.ReadAsStreamAsync(this.timeout.Token));
+        await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+            await ReadGameFrameAsync(reconnected.GetStream(), this.timeout.Token));
+        await AssertLoginRejectedAsync(advertisedGame, mId!, ticket!);
+        var newMId = replacementJson.RootElement.GetProperty("mId").GetString()!;
+        var newTicket = replacementJson.RootElement.GetProperty("ticket").GetString()!;
+        using var last = await LoginGameAsync(secondChannel, newMId, newTicket);
+        await last.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0003, [0]), this.timeout.Token);
+        var exit = await ReadGameFrameAsync(last.GetStream(), this.timeout.Token);
+        Assert.Equal((ushort)0x0003, exit.Type);
+        Assert.Equal((byte)1, exit.Body[0]);
+        await AssertLoginRejectedAsync(advertisedGame, newMId, newTicket);
+    }
+
+    private async Task<TcpClient> LoginGameAsync(AdvertisedEndpoint endpoint, string mId, string ticket)
+    {
+        var client = await ConnectThroughAdvertisedRouteAsync(endpoint);
+        try
+        {
+            _ = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+            await client.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0001, EncodeDStrings(mId, ticket)), timeout.Token);
+            var response = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+            Assert.Equal((ushort)0x0001, response.Type);
+            Assert.Equal((byte)1, response.Body[0]);
+            for (var i = 0; i < 6; i++) _ = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+            return client;
+        }
+        catch { client.Dispose(); throw; }
+    }
+
+    private async Task AssertLoginRejectedAsync(AdvertisedEndpoint endpoint, string mId, string ticket)
+    {
+        using var client = await ConnectThroughAdvertisedRouteAsync(endpoint);
+        _ = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+        await client.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0001, EncodeDStrings(mId, ticket)), timeout.Token);
+        await Assert.ThrowsAsync<EndOfStreamException>(async () => await ReadGameFrameAsync(client.GetStream(), timeout.Token));
     }
 
     public async ValueTask DisposeAsync()
