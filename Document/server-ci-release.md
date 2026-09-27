@@ -51,3 +51,9 @@ Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不�
 CI 使用 .NET 10 最新稳定维护版（setup-dotnet 10.0.x，符合 global.json），实际 SDK 写入发布包清单。Actions 依赖固定提交 SHA；更新 SDK/Action 时仍应经过 PR 和两个平台验证。
 
 工作流只读权限为默认值，只有最后发布 job 获得 contents:write。未配置额外 PAT、PVF 下载凭证或生产部署密钥。
+
+## Linux 首次接入的传输兼容性
+
+两核 Linux 复现了 TouchSocket 4.3.1 快速重连时的接收器复用竞态：旧 socket 的异步接收尚未结束，TcpCore 已回池，下一条连接复用其 SocketAsyncEventArgs 后立即断开。服务端现在在 OnTcpClosed 中等待 transport 接收/发送任务完成，然后才执行连接观察者清理和框架回池；不在该回调中等待 session 自身关闭，避免自等待。登录拒绝/重试集成测试加入连续 10 轮快速重连。
+
+这次适配不改变 Game/Channel 帧格式和业务应答。启动冒烟之外仍需实际客户端验收 Linux 部署；本次未迁移正在运行的 Windows 服务。
