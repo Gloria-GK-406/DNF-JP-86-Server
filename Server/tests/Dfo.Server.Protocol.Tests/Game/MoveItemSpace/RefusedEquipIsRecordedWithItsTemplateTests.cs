@@ -114,7 +114,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// back is one of the eleven that were measured rather than derived.
     /// </para>
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_archive_calls_this_template_an_avatar_and_names_its_worn_slot()
     {
         var placement = await archive.Placements.GetAsync(
@@ -142,7 +142,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// request wrote, and the line still says so.
     /// </para>
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task An_avatar_aimed_at_the_wrong_costume_slot_is_recorded_with_its_template_and_that_slot()
     {
         var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
@@ -171,7 +171,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// change touched both: were only the first passing the identifier on, this line would come
     /// out reading <c>item 0</c>.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_piece_aimed_at_the_wrong_slot_is_recorded_with_its_template_and_that_slot()
     {
         var (handler, _, logger) = this.Build(OrdinaryCoatTemplate);

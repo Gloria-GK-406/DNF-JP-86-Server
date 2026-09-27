@@ -74,7 +74,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// decided from the two list numbers alone, before either slot is read, so an empty inventory
     /// separates served from unserved and nothing else does.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_dispatch_serves_these_pairs_of_lists_and_no_others()
     {
         var served = await this.ServedPairsAsync();
@@ -97,7 +97,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// For every served pair that crosses two lists, the end that is holding something is the end
     /// that moves.
     /// </summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Whichever_end_holds_the_item_is_the_end_that_moves()
     {
         foreach (var (first, second) in await this.CrossListPairsAsync())
@@ -118,7 +118,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     }
 
     /// <summary>The forward direction of each of those pairs still works, unchanged.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_end_named_first_still_moves_when_it_is_the_one_holding_the_item()
     {
         foreach (var (first, second) in await this.CrossListPairsAsync())
@@ -147,7 +147,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// request and the forward one are refused alike, so nothing was widened to make the reversal
     /// work.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_reversed_take_off_is_refused_by_the_bag_rule_the_forward_one_obeys()
     {
         var reversed = this.Build();
@@ -177,7 +177,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// A piece put on a slot its archive entry does not name is refused the same way whichever end
     /// the client named it on.
     /// </summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_reversed_put_on_is_refused_by_the_slot_rule_the_forward_one_obeys()
     {
         var reversed = this.Build();
@@ -210,7 +210,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// would be walked only where it succeeds, and the third of the three paths would be the one
     /// with no evidence that its rules survived the reversal.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_reversed_carry_across_is_refused_by_the_list_rule_the_forward_one_obeys()
     {
         var reversed = this.Build();
@@ -242,7 +242,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// from the reversed side is what shows the delegation reaches the rule rather than going
     /// around it.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_template_the_archive_does_not_know_is_refused_on_the_reversed_path()
     {
         var side = this.Build();
@@ -258,7 +258,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     }
 
     /// <summary>Two empty ends are still two empty ends.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Neither_end_holding_anything_is_still_refused_as_both_slots_empty()
     {
         foreach (var (first, second) in await this.CrossListPairsAsync())
@@ -278,7 +278,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// read off the dispatch rather than observed here: what these assertions can see is the
     /// refusal and a store nobody touched.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task An_unserved_list_is_still_refused()
     {
         var side = this.Build();
@@ -308,7 +308,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// work -- the guard's "greater than zero" clause is upstream's wording carried over, and no
     /// real template identifier is zero, so widening it changes nothing here.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_request_naming_the_worn_piece_on_its_empty_end_does_not_take_it_off()
     {
         var restated = this.Build();
@@ -328,7 +328,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             (await restated.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot))!.ItemId);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_request_naming_nothing_on_its_empty_end_takes_the_piece_off()
     {
         var side = this.Build();
@@ -343,7 +343,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_request_naming_some_other_piece_on_its_empty_end_takes_the_piece_off()
     {
         var side = this.Build();
@@ -376,7 +376,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// itself.
     /// </para>
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_restated_take_off_does_not_put_the_piece_back_on()
     {
         var restated = this.Build();
@@ -405,7 +405,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// judged the shape of the move rather than which end names what would refuse this one too, so
     /// this is what holds the rule to being about the contradiction and nothing else.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_same_two_cells_named_the_other_way_round_are_a_fresh_put_on()
     {
         var side = this.Build();
@@ -430,7 +430,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// it can see in the worn slot, which is what a take-off does, and the store agrees with it.
     /// Agreement is never a restatement.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Naming_the_worn_piece_on_the_end_that_holds_it_still_takes_it_off()
     {
         var side = this.Build();
@@ -455,7 +455,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// was reported about a costume coming off, and a reader could reasonably think this were only
     /// about the worn list.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_restated_carry_across_does_not_carry_it_back()
     {
         var restated = this.Build();
@@ -482,7 +482,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// same way, so this had the same defect as the three that cross lists -- and it was missed
     /// when the rule was first applied, because the walk started from the paths the report named.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_restated_drag_inside_one_list_does_not_drag_it_back()
     {
         var restated = this.Build();
@@ -528,7 +528,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// this one asserts where each piece ended up.
     /// </para>
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_swap_onto_an_occupied_worn_slot_is_carried_out_whatever_either_end_names()
     {
         var side = this.Build();
@@ -559,7 +559,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// named is not empty; empty, and neither end holds anything. The rule cannot reach it either
     /// way, and this is what says so out loud rather than by argument.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Dropping_a_piece_back_where_it_already_is_changes_nothing()
     {
         var side = this.Build();
@@ -583,7 +583,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// client that does not fill them sends. The rule's first clause is the one that keeps those
     /// out of its way.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_naming_neither_end_is_carried_out()
     {
         var side = this.Build();
@@ -608,7 +608,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// an empty cell reach the same place, so a client that applies the acknowledgement as a swap
     /// of the two cells it names is left holding what the store holds.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_acknowledgement_for_a_reversed_move_names_the_two_cells_the_request_did()
     {
         var (handler, sender, _, side) = this.BuildHandler();
@@ -634,7 +634,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// belongs to several different paths -- which is why the take-off defect above took three
     /// live rounds to place rather than one.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_line_a_move_leaves_names_the_list_at_both_ends()
     {
         var (handler, _, logger, side) = this.BuildHandler();

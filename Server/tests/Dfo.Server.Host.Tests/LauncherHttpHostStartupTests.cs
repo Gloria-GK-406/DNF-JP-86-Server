@@ -39,7 +39,7 @@ public sealed class LauncherHttpHostStartupTests
                 await process.WaitForExitAsync();
             }
 
-            Directory.Delete(directory, recursive: true);
+            await TestDirectory.DeleteAsync(directory);
         }
     }
 
@@ -107,7 +107,7 @@ public sealed class LauncherHttpHostStartupTests
         finally
         {
             await StopAsync(process);
-            Directory.Delete(directory, recursive: true);
+            await TestDirectory.DeleteAsync(directory);
         }
     }
 
@@ -157,8 +157,8 @@ public sealed class LauncherHttpHostStartupTests
         {
             await StopAsync(first);
             await StopAsync(second);
-            Directory.Delete(firstDirectory, recursive: true);
-            Directory.Delete(secondDirectory, recursive: true);
+            await TestDirectory.DeleteAsync(firstDirectory);
+            await TestDirectory.DeleteAsync(secondDirectory);
         }
     }
 
@@ -201,7 +201,7 @@ public sealed class LauncherHttpHostStartupTests
         finally
         {
             await StopAsync(process);
-            Directory.Delete(directory, recursive: true);
+            await TestDirectory.DeleteAsync(directory);
         }
     }
 

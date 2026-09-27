@@ -65,7 +65,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     private static readonly NetworkDispatchContext Dispatch = new(
         new NetworkConnectionContext(Connection, NetworkEndpointKind.Game, 10011));
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Expired_wear_qualification_refuses_equipping_but_allows_taking_off()
     {
         var equip = Build(inBagAt: BagSlot, canWear: false);
@@ -76,7 +76,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Null(Assert.IsType<MoveItemSpaceResponse>(remove.Sender.Sent[0]).ErrorCode);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Putting_a_costume_on_tells_the_client_what_the_character_now_wears()
     {
         var world = Build(inBagAt: BagSlot);
@@ -91,7 +91,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                 Assert.Single(Assert.IsType<CurrentUserStateMessage>(second).Equipment).Core.ItemId));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Taking_a_costume_off_tells_the_client_the_character_is_no_longer_wearing_it()
     {
         var world = Build(wornAt: WornCostumeSlot);
@@ -112,7 +112,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// implementation that built the frame from the session would send that other costume and pass
     /// every other case here, because everywhere else the two agree.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_frame_follows_the_store_and_not_the_session_copy()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
@@ -125,7 +125,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     }
 
     /// <summary>Subsequent projections read the store without replacing a session copy.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task The_current_view_follows_the_move_without_session_copy_replacement()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
@@ -146,7 +146,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// These readers must retain their captured objects rather than newly prepared entry values.
     /// This checks an uncontended refresh; it does not assert aggregate concurrency safety.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Current_view_reads_inventory_without_modifying_entry_data()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
@@ -178,7 +178,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// inside the bag is the cheapest case that tells the two rules apart, and without it a
     /// narrower gate passes every case in this file.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_that_changes_nothing_drawn_needs_no_appearance_projection()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
@@ -191,7 +191,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     }
 
     /// <summary>A refused move needs no current appearance projection.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_refused_move_needs_no_appearance_projection()
     {
         var world = Build(sessionCopyWears: OtherCostume);
@@ -207,7 +207,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// <remarks>
     /// The move has committed, so losing the optional current projection cannot cost the answer.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_displaced_session_view_still_gets_its_acknowledgement()
     {
         var world = Build(
@@ -221,7 +221,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Empty(world.Logger.Errors);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_inside_the_bag_sends_the_acknowledgement_alone()
     {
         var world = Build(inBagAt: BagSlot);
@@ -231,7 +231,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_between_the_bag_and_the_avatar_page_sends_the_acknowledgement_alone()
     {
         var world = Build(inBagAt: BagSlot);
@@ -247,7 +247,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// takes 0..12 and 23, and the creature triple takes 24. A move there changes what the
     /// character owns and not what it looks like.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_onto_a_worn_slot_the_frame_ignores_sends_the_acknowledgement_alone()
     {
         var world = Build(wornAt: 22);
@@ -266,7 +266,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// bring back the very symptom this frame removes, wearing an unrelated cause. The store is
     /// asked after the transaction has closed, and asking it can raise.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_is_still_acknowledged_when_the_appearance_cannot_be_built()
     {
         var world = Build(inBagAt: BagSlot, storeRefusesToLoad: true);
@@ -278,7 +278,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Equal(1, acknowledgement.MoveValue);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_refused_move_sends_the_refusal_alone()
     {
         var world = Build();
@@ -289,7 +289,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.NotNull(refusal.ErrorCode);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Opening_dungeon_selection_after_dressing_reads_the_current_equipment()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
@@ -308,7 +308,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Empty((await world.OpenDungeonSelectionAsync()).Equipment);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Dressing_reads_the_inventory_once_for_both_frames_and_copy()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
@@ -321,7 +321,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             (await world.OpenDungeonSelectionAsync()).Equipment).Core.ItemId);
     }
 
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Refresh_preserves_the_real_directorys_position_persistence_flag(bool persists)
@@ -333,7 +333,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Equal(persists, after);
     }
 
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [InlineData((byte)1)]
     [InlineData((byte)5)]
     public async Task Dungeon_selection_reports_refreshed_character_values_in_the_existing_frame_order(byte level)

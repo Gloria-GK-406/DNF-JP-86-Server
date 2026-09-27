@@ -65,7 +65,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// <summary>A second coat avatar, so a swap has a costume at both ends.</summary>
     private const int OtherCostumeTemplate = 101500690;
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_costume_moves_from_the_avatar_list_into_the_bag()
     {
         var side = Build(avatarAt: AvatarSlot);
@@ -79,7 +79,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         Assert.Equal(CostumeTemplate, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_costume_moves_from_the_bag_back_into_the_avatar_list()
     {
         var side = Build(costumeInBagAt: BagSlot);
@@ -93,7 +93,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>The avatar list takes costumes, and says so before anything is written.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Something_that_is_not_a_costume_does_not_get_into_the_avatar_list()
     {
         var side = Build(ordinaryInBagAt: BagSlot);
@@ -108,7 +108,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>Past the end of the list is past the end of the list.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_business_slot_past_the_end_of_the_avatar_list_is_rejected_as_an_invariant_failure()
     {
         var side = Build(costumeInBagAt: BagSlot);
@@ -124,7 +124,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>A move inside one list is that list's own business, and reaches it.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_move_inside_the_avatar_list_is_handed_to_that_list()
     {
         var side = Build(avatarAt: AvatarSlot);
@@ -150,7 +150,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// avatar goes and where a live client asked for it three separate times.
     /// </para>
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_costume_is_worn_out_of_the_avatar_list_onto_its_own_slot()
     {
         var side = Build(avatarAt: AvatarSlot);
@@ -167,7 +167,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>A costume aimed at a costume slot that is not its own is turned away.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_costume_does_not_go_on_a_costume_slot_that_is_not_its_own()
     {
         var side = Build(avatarAt: AvatarSlot);
@@ -185,7 +185,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// Both sources reach the same lines of <c>PutOnAsync</c>, but a case proves one path. The bag
     /// is the path a costume takes today, because that is where a granted one lands.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_costume_is_worn_out_of_the_bag_too()
     {
         var side = Build(costumeInBagAt: BagSlot);
@@ -208,7 +208,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// costume in. Until today it could not be asserted at all: nothing could stand in a costume
     /// slot to be displaced out of one.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task What_comes_off_a_costume_slot_goes_back_into_the_avatar_list()
     {
         var side = Build(avatarAt: AvatarSlot, wornAt: CoatAvatarSlot, wornIsOtherCostume: true);
@@ -226,7 +226,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>Taking a costume off into the avatar list reaches the list rather than a refusal.</summary>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Taking_something_off_into_the_avatar_list_reaches_that_list()
     {
         var side = Build(wornAt: 3);
@@ -256,7 +256,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// lines up now leans on.
     /// </para>
     /// </remarks>
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [InlineData(OrdinaryTemplate)]
     [InlineData(CostumeTemplate)]
     public async Task Nothing_goes_on_a_costume_slot_but_the_costume_whose_slot_it_is(int template)
@@ -278,7 +278,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// so aiming it at a costume slot is refused -- which is why a costume slot can never come to
     /// hold a coat, and why what comes off one is always something the avatar list will take.
     /// </remarks>
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task A_piece_may_not_be_worn_in_a_slot_its_archive_entry_does_not_name()
     {
         var side = Build(ordinaryInBagAt: BagSlot);
@@ -308,7 +308,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             { InventoryContainerType.QuickSlot, InventoryContainerType.Avatar },
         };
 
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [MemberData(nameof(ListsStillNotServed))]
     public async Task A_list_this_server_does_not_serve_is_still_refused(
         InventoryContainerType source, InventoryContainerType destination)

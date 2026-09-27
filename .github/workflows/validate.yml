@@ -1,0 +1,69 @@
+name: Server validation
+on:
+  workflow_call:
+    inputs:
+      package:
+        type: boolean
+        default: false
+      version:
+        type: string
+        default: 0.0.0-ci
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Test ${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            rid: linux-x64
+          - os: windows-2022
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_RID: ${{ matrix.rid }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify release guard
+        run: python -m unittest discover -s Tool/Release -p "test_*.py"
+      - name: Restore
+        run: dotnet restore Server/86JP.Server.slnx
+      - name: Build
+        run: dotnet build Server/86JP.Server.slnx -c Release --no-restore -p:ContinuousIntegrationBuild=true
+      - name: Test
+        run: dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory artifacts/test-results --blame-hang-timeout 3m --blame-hang-dump-type none
+      - name: Test summary
+        if: always()
+        run: python Tool/Release/release.py summary artifacts/test-results
+      - name: Retain test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ matrix.rid }}
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-results/**/*Sequence.xml
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Publish, smoke-test and archive
+        if: inputs.package
+        run: python Tool/Release/release.py package
+      - name: Retain release package
+        if: inputs.package && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/'))
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: server-${{ matrix.rid }}
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: 7

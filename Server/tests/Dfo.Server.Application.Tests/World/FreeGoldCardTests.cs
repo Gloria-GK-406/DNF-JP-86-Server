@@ -12,6 +12,11 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class FreeGoldCardTests
 {
+    private sealed class GoldLimit : IGoldCarryLimitSource
+    {
+        public int BaseLimitFor(int characterLevel) => int.MaxValue;
+    }
+
     private sealed class Rules : IPremiumServiceDefinitionSource
     {
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
@@ -24,7 +29,11 @@ public sealed class FreeGoldCardTests
     }
     private static ShopFixture Fixture(bool subscribed = true)
     {
-        var shop = new ShopFixture(s => s.AddSingleton<IPremiumServiceDefinitionSource>(new Rules()));
+        var shop = new ShopFixture(s =>
+        {
+            s.AddSingleton<IPremiumServiceDefinitionSource>(new Rules());
+            s.AddSingleton<IGoldCarryLimitSource>(new GoldLimit());
+        });
         if (subscribed) shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,580,4000000000)");
         return shop;
     }
