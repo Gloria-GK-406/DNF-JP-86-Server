@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Dfo.Server.LauncherApi;
+namespace Dfo.Server.HttpApi;
 
-public sealed record LauncherApiOptions(bool Enabled, Uri? ListenUrl)
+public sealed record HttpApiOptions(bool Enabled, Uri? ListenUrl)
 {
-    public static LauncherApiOptions FromConfiguration(IConfiguration configuration)
+    public static HttpApiOptions FromConfiguration(IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         var rawEnabled = configuration["LauncherAuth:Enabled"];
@@ -17,7 +17,7 @@ public sealed record LauncherApiOptions(bool Enabled, Uri? ListenUrl)
         var enabled = bool.TryParse(rawEnabled, out var parsed) && parsed;
         if (!enabled)
         {
-            return new LauncherApiOptions(false, null);
+            return new HttpApiOptions(false, null);
         }
 
         var raw = configuration["LauncherAuth:ListenUrl"];
@@ -33,6 +33,6 @@ public sealed record LauncherApiOptions(bool Enabled, Uri? ListenUrl)
                 "Required launcher HTTP configuration 'LauncherAuth:ListenUrl' is invalid.");
         }
 
-        return new LauncherApiOptions(true, uri);
+        return new HttpApiOptions(true, uri);
     }
 }

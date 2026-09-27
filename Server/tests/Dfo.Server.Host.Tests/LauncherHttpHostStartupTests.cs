@@ -9,7 +9,41 @@ namespace Dfo.Server.Host.Tests;
 public sealed class LauncherHttpHostStartupTests
 {
     [Fact]
-    public async Task EnabledLauncherApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap()
+    public async Task HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-http-only-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var httpPort = GetAvailablePort();
+        var channelPort = GetAvailablePortExcept(httpPort);
+        var gamePort = GetAvailablePortExcept(httpPort, channelPort);
+        var output = new StringBuilder();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output,
+            commandLineOverrides: new Dictionary<string, string> { ["Networking:Enabled"] = "false" });
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
+            using var bootstrap = await WaitForBootstrapAsync(process, client, output, timeout.Token);
+            Assert.Equal(HttpStatusCode.OK, bootstrap.StatusCode);
+            using var content = new StringContent(
+                "{\"loginId\":\"http-only-player\",\"password\":\"password-1\"}", Encoding.UTF8, "application/json");
+            using var registration = await client.PostAsync("/api/launcher/v1/register", content, timeout.Token);
+            Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
+            using var login = await PostCredentialsAsync(client, "http-only-player", "password-1", timeout.Token);
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, login.StatusCode);
+            Assert.Equal("service_unavailable", JsonCode(await login.Content.ReadAsStringAsync(timeout.Token)));
+            Assert.False(await CanConnectAsync(channelPort));
+            Assert.False(await CanConnectAsync(gamePort));
+        }
+        finally
+        {
+            await StopAsync(process);
+            await TestDirectory.DeleteAsync(directory);
+        }
+    }
+
+    [Fact]
+    public async Task EnabledHttpApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-launcher-host-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -112,7 +146,7 @@ public sealed class LauncherHttpHostStartupTests
     }
 
     [Fact]
-    public async Task DisabledLauncherApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener()
+    public async Task DisabledHttpApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener()
     {
         var firstDirectory = Path.Combine(Path.GetTempPath(), $"dfo-no-http-a-{Guid.NewGuid():N}");
         var secondDirectory = Path.Combine(Path.GetTempPath(), $"dfo-no-http-b-{Guid.NewGuid():N}");

@@ -15,6 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Dfo.Server.LauncherApi\Dfo.Server.LauncherApi.csproj" />
+    <ProjectReference Include="..\..\src\Dfo.Server.HttpApi\Dfo.Server.HttpApi.csproj" />
   </ItemGroup>
 </Project>

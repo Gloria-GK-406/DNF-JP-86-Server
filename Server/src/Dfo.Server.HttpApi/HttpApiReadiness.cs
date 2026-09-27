@@ -1,11 +1,10 @@
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Configuration;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace Dfo.Server.LauncherApi;
+namespace Dfo.Server.HttpApi;
 
-internal sealed class LauncherApiReadiness
+internal sealed class HttpApiReadiness
 {
     private volatile bool ready;
 
@@ -14,20 +13,22 @@ internal sealed class LauncherApiReadiness
     public void SetReady(bool value) => ready = value;
 }
 
-internal sealed class LauncherApiStartupService(
+internal sealed class HttpApiStartupService(
     IAuthenticationDomainService authentication,
     IPublicEndpointSource endpoints,
-    IConfiguration configuration,
-    LauncherApiReadiness readiness) : IHostedService
+    IHostApplicationLifetime lifetime,
+    HttpApiReadiness readiness) : IHostedService, IDisposable
 {
+    private CancellationTokenRegistration started;
+    private CancellationTokenRegistration stopping;
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _ = authentication;
         _ = endpoints.Snapshot;
-        readiness.SetReady(
-            bool.TryParse(configuration["Networking:Enabled"], out var networkingEnabled)
-            && networkingEnabled);
+        started = lifetime.ApplicationStarted.Register(() => readiness.SetReady(true));
+        stopping = lifetime.ApplicationStopping.Register(() => readiness.SetReady(false));
         return Task.CompletedTask;
     }
 
@@ -35,5 +36,11 @@ internal sealed class LauncherApiStartupService(
     {
         readiness.SetReady(false);
         return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        started.Dispose();
+        stopping.Dispose();
     }
 }

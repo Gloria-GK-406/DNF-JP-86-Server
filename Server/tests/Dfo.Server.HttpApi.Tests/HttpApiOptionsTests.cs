@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Dfo.Server.LauncherApi.Tests;
+namespace Dfo.Server.HttpApi.Tests;
 
-public sealed class LauncherApiOptionsTests
+public sealed class HttpApiOptionsTests
 {
     [Fact]
     public void DisabledApiDoesNotRequireOrInventAListener()
@@ -10,7 +10,7 @@ public sealed class LauncherApiOptionsTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["LauncherAuth:Enabled"] = "false" }).Build();
 
-        var options = LauncherApiOptions.FromConfiguration(configuration);
+        var options = HttpApiOptions.FromConfiguration(configuration);
 
         Assert.False(options.Enabled);
         Assert.Null(options.ListenUrl);
@@ -35,7 +35,7 @@ public sealed class LauncherApiOptionsTests
             }).Build();
 
         Assert.Throws<InvalidOperationException>(
-            () => LauncherApiOptions.FromConfiguration(configuration));
+            () => HttpApiOptions.FromConfiguration(configuration));
     }
 
     [Fact]
@@ -49,6 +49,6 @@ public sealed class LauncherApiOptionsTests
             .Build();
 
         Assert.Throws<InvalidOperationException>(
-            () => LauncherApiOptions.FromConfiguration(configuration));
+            () => HttpApiOptions.FromConfiguration(configuration));
     }
 }

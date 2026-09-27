@@ -16,9 +16,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Dfo.Server.LauncherApi.Tests;
+namespace Dfo.Server.HttpApi.Tests;
 
-public sealed class LauncherApiPipelineTests
+public sealed class HttpApiPipelineTests
 {
     [Theory]
     [InlineData(true, StatusCodes.Status200OK, "ready")]
@@ -368,7 +368,7 @@ public sealed class LauncherApiPipelineTests
             WebApplication application,
             RequestDelegate pipeline,
             StubCommandBus commands,
-            LauncherApiReadiness readiness)
+            HttpApiReadiness readiness)
         {
             this.application = application;
             this.pipeline = pipeline;
@@ -377,7 +377,7 @@ public sealed class LauncherApiPipelineTests
         }
 
         public StubCommandBus Commands { get; }
-        public LauncherApiReadiness Readiness { get; }
+        public HttpApiReadiness Readiness { get; }
 
         public static ApiHarness Create(
             Func<ICommand, object>? execute = null,
@@ -402,14 +402,15 @@ public sealed class LauncherApiPipelineTests
             builder.Services.AddSingleton<ICommandBus>(commands);
             builder.Services.AddSingleton<IAuthenticationDomainService, StubAuthenticationService>();
             builder.Services.AddSingleton<IPublicEndpointSource>(new StubEndpointSource());
-            new LauncherApiModule().ConfigureServices(builder.Services, builder.Configuration);
+            builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new ReadyGame());
+            new HttpApiModule().ConfigureServices(builder.Services, builder.Configuration);
             var app = builder.Build();
-            app.MapLauncherApi();
-            var readiness = app.Services.GetRequiredService<LauncherApiReadiness>();
+            app.MapHttpApi();
+            var readiness = app.Services.GetRequiredService<HttpApiReadiness>();
             readiness.SetReady(true);
             var pipelineBuilder = new ApplicationBuilder(app.Services);
-            LauncherApiApplicationExtensions.UseLauncherApiMiddleware(pipelineBuilder);
-            pipelineBuilder.UseEndpoints(LauncherApiApplicationExtensions.MapLauncherApiEndpoints);
+            HttpApiApplicationExtensions.UseHttpApiMiddleware(pipelineBuilder);
+            pipelineBuilder.UseEndpoints(HttpApiApplicationExtensions.MapHttpApiEndpoints);
             var pipeline = pipelineBuilder.Build();
             return new ApiHarness(app, pipeline, commands, readiness);
         }
@@ -470,6 +471,11 @@ public sealed class LauncherApiPipelineTests
             new PublicNetworkEndpoint("203.0.113.10", 7001),
             [new PublicNetworkEndpoint("198.51.100.11", 10011)],
             new PublicGameLoginEndpoints("192.0.2.20", 10128, 17200, 17201));
+    }
+
+    private sealed class ReadyGame : Dfo.Server.Abstractions.Hosting.IGameServerReadiness
+    {
+        public bool IsReady => true;
     }
 
     private sealed class StubAuthenticationService : IAuthenticationDomainService

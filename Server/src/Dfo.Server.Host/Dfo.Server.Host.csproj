@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
@@ -11,18 +11,18 @@
     <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
     <ProjectReference Include="..\Dfo.Server.Application\Dfo.Server.Application.csproj" />
     <ProjectReference Include="..\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj" />
-    <ProjectReference Include="..\Dfo.Server.LauncherApi\Dfo.Server.LauncherApi.csproj" />
+    <ProjectReference Include="..\Dfo.Server.HttpApi\Dfo.Server.HttpApi.csproj" />
     <ProjectReference Include="..\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
-    <ProjectReference Include="..\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
-    <ProjectReference Include="..\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
+    <ProjectReference Include="..\Dfo.Server.GameServer\Dfo.Server.GameServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="experience.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="appsettings.json">
+    <None Update="appsettings.json;appsettings.*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
     <None Update="Resources\Channel\channel_info.etc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
