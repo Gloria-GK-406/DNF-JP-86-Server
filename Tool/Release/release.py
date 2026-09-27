@@ -36,7 +36,7 @@ def verify_tag():
 
 
 def summary(directory):
-    reports = sorted(Path(directory).glob("*.trx"))
+    reports = sorted(Path(directory).rglob("*.trx"))
     if not reports:
         raise RuntimeError("No TRX reports were produced; validation did not complete")
     ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}

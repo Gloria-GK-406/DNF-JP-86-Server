@@ -42,7 +42,7 @@ jobs:
       - name: Build
         run: dotnet build Server/86JP.Server.slnx -c Release --no-restore -p:ContinuousIntegrationBuild=true
       - name: Test
-        run: dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory artifacts/test-results
+        run: dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory artifacts/test-results --blame-hang-timeout 3m --blame-hang-dump-type none
       - name: Test summary
         if: always()
         run: python Tool/Release/release.py summary artifacts/test-results
@@ -51,14 +51,16 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-${{ matrix.rid }}
-          path: artifacts/test-results/*.trx
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-results/**/*Sequence.xml
           if-no-files-found: warn
           retention-days: 7
       - name: Publish, smoke-test and archive
         if: inputs.package
         run: python Tool/Release/release.py package
       - name: Retain release package
-        if: inputs.package
+        if: inputs.package && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/'))
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: server-${{ matrix.rid }}

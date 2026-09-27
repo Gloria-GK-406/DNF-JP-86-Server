@@ -9,7 +9,7 @@ public sealed class LauncherApiArchitectureTests
     {
         var project = XDocument.Load(FindProjectFile());
         var references = project.Descendants("ProjectReference")
-            .Select(element => Path.GetFileNameWithoutExtension((string)element.Attribute("Include")!))
+            .Select(element => Path.GetFileNameWithoutExtension(((string)element.Attribute("Include")!).Replace('\\', '/')))
             .ToArray();
 
         Assert.Equal(

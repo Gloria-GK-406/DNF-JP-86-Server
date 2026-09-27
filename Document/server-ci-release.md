@@ -25,7 +25,7 @@ git push origin v1.2.3
 
 不移动、不覆盖已经发布的 tag。失败时先看 Actions；测试/打包失败不会创建 Release。资产上传或发布失败可能留下 draft，核对后删除这个 draft 再重跑原工作流；不要删除已公开使用的发布版本来覆盖产物。
 
-Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不创建 tag 或 Release。产物和测试报告保留 7 天；正式 Release 附件长期保留，除非人工删除。
+Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不创建 tag 或 Release。常规 PR/main CI 只上传测试报告，手动 CI 和 tag 工作流另外上传候选包。产物和测试报告保留 7 天；正式 Release 附件长期保留，除非人工删除。
 
 ## 发布包与运行
 

@@ -29,6 +29,9 @@ namespace Dfo.Server.Networking.Tests.Integration;
 
 public sealed class GameLoginIntegrationTests
 {
+    // Host startup, schema migration and password hashing share this guard on hosted CI.
+    // Authentication expiry is driven by the fixture clock, not by this wall-clock budget.
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(60);
     [Fact]
     public async Task Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate()
     {
@@ -53,7 +56,7 @@ public sealed class GameLoginIntegrationTests
                 databasePath,
                 channelScriptPath,
                 preparedAt);
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var timeout = new CancellationTokenSource(TestTimeout);
             await host.StartAsync(timeout.Token);
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
@@ -202,7 +205,7 @@ public sealed class GameLoginIntegrationTests
                 databasePath,
                 channelScriptPath,
                 preparedAt);
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var timeout = new CancellationTokenSource(TestTimeout);
             await host.StartAsync(timeout.Token);
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
@@ -299,7 +302,7 @@ public sealed class GameLoginIntegrationTests
                 channelScriptPath,
                 new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero),
                 failFirstLoginDelivery: true);
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var timeout = new CancellationTokenSource(TestTimeout);
             await host.StartAsync(timeout.Token);
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
@@ -403,7 +406,7 @@ public sealed class GameLoginIntegrationTests
                 channelScriptPath,
                 new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero),
                 preCommitFault: fault);
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var timeout = new CancellationTokenSource(TestTimeout);
             await host.StartAsync(timeout.Token);
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
