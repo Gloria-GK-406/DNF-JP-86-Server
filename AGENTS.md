@@ -6,6 +6,13 @@ DNF 日服 Act.86 客户端的服务端仿真。协议逆向结论的权威存�
 [Docs/NetworkingFrameProtocol.md](Docs/NetworkingFrameProtocol.md)。
 旧单体实现保留在 `E:\Project\86JP` 仅供行为对照，**不要**参考其结构。
 
+## 开发与发布约定
+
+- 开发提交只推功能分支，经 PR 合并到 `main`，不直接向主干推送代码。
+- 版本 tag 只从主干创建；Release 工作流检查 tag 指向 main 历史上的提交。
+- PR 和主干合并运行 CI；版本 tag 重新测试后发布 Windows x64 / Linux x64 自包含包。
+- 当前不依赖付费分支保护，遵守上述约定。操作与验收边界见 `Document/server-ci-release.md`。
+
 ## 仓库布局
 
 ```

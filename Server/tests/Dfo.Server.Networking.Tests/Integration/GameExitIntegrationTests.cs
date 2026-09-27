@@ -43,7 +43,7 @@ public sealed class GameExitIntegrationTests
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
 
-        using var host = builder.Build();
+        using var host = TestInfrastructure.Build(builder);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await host.StartAsync(timeout.Token);
 

@@ -27,7 +27,7 @@ public sealed class LotteryOpeningTests
     private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort sequence = 10, ushort mode = 0, int slot = 65) =>
         shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new LotteryOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, slot, mode, sequence)).AsTask();
 
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [InlineData(7110, 20002)]
     [InlineData(7120, 10402)]
     [InlineData(7150, 31353)]
@@ -44,7 +44,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(100000, shop.Host.Gold);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Unsupported_mode_or_missing_source_does_not_consume()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 3);
@@ -53,7 +53,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(3, shop.Host.Count(7110));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Failure_rolls_back_and_same_sequence_can_retry()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 3);
@@ -64,7 +64,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(2, shop.Host.Count(7110));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Full_equipment_band_refuses_without_consuming_pot()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 3);
@@ -73,7 +73,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(3, shop.Host.Count(7110));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Handler_sends_full_native_result_before_absolute_inventory()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 1);
@@ -91,7 +91,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(1, shop.Host.Count(20002));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Concurrent_same_sequence_grants_only_once()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 3);
@@ -101,7 +101,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(1, shop.Host.Count(20002));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Gold_and_pot_roll_back_together_and_insufficient_gold_is_rejected()
     {
         using var shop = new CeraShopFixture(useArchive: true, configure: services =>
@@ -124,7 +124,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(40000, shop.Host.Gold);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Source_id_outside_pot_cache_throws_without_consumption()
     {
         using var shop = Fixture();
@@ -136,7 +136,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(100000, shop.Host.Gold);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Production_selector_opens_without_fixed_configuration()
     {
         using var shop = new CeraShopFixture(useArchive: true); await shop.Host.Seed(65, 7110, 1);
@@ -152,7 +152,7 @@ public sealed class LotteryOpeningTests
     private static int Used(CeraShopFixture shop) => shop.Host.Scalar(
         "SELECT COALESCE(MAX(value),0) FROM character_daily_counters WHERE counter_key='lottery_double_reward_used'");
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Double_draws_once_grants_two_distinct_instances_and_commits_before_native_reply_and_snapshot()
     {
         var selector = new Fixed(); using var shop = Fixture(selector); Subscribe(shop);
@@ -177,7 +177,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(1, Used(shop));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Eighth_double_succeeds_ninth_stops_with_73_then_next_business_day_resets()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 10);
@@ -191,7 +191,7 @@ public sealed class LotteryOpeningTests
         await Command(shop, 20, 1); Assert.Equal(1, Used(shop));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task One_free_slot_rejects_double_and_rolls_back_pot_gold_and_quota()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 2);
@@ -202,7 +202,7 @@ public sealed class LotteryOpeningTests
         await Command(shop, mode: 0); Assert.Equal(1, shop.Host.Count(7110));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Storage_failure_rolls_back_double_quota_and_retry_does_not_duplicate_rewards()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 3);
@@ -213,7 +213,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(1, Used(shop)); Assert.Equal(2, shop.Host.Count(20002));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Expired_subscription_and_ineligible_pot_do_not_consume()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 3);
@@ -240,7 +240,7 @@ public sealed class LotteryOpeningTests
         shop.Host.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',{round},{timestamp}),(1,'lottery_double_reward_total_used',{total},{timestamp})");
     }
 
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [InlineData(0, 0)]
     [InlineData(8, 0)]
     [InlineData(22, 0)]
@@ -259,7 +259,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(projected, Used(shop)); Assert.Equal(total, TotalUsed(shop));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Final_round_grants_six_then_renewal_cannot_bypass_thirty_and_next_day_resets_both()
     {
         using var shop = Fixture(); Subscribe(shop); SeedUsage(shop, 24);
@@ -279,7 +279,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(1, Used(shop)); Assert.Equal(1, TotalUsed(shop));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task First_renewal_preserves_legacy_usage_and_failed_purchase_rolls_everything_back()
     {
         using var shop = Fixture(); Subscribe(shop);
@@ -294,7 +294,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(0, Used(shop)); Assert.Equal(8, TotalUsed(shop));
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task Cumulative_write_failure_rolls_back_round_pot_and_reward()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 2);

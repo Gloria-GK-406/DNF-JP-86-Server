@@ -58,7 +58,7 @@ public sealed class ItemPathLiveTests
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task AnItemDraggedOverASocketLandsInTheDatabaseAndIsAcknowledgedByteForByte()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-live-{Guid.NewGuid():N}");

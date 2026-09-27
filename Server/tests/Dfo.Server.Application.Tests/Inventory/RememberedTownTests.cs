@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class RememberedTownTests
 {
-    [Theory]
+    [Dfo.Server.Testing.PvfTheory]
     [InlineData(1)]
     [InlineData(2)]
     public async Task Selection_reads_saved_town_and_resolves_its_private_gate_instead_of_old_coordinates(byte town)

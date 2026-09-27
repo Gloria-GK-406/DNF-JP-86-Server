@@ -44,4 +44,7 @@
              Link="Support\VolatileItemDomainStore.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
+  </ItemGroup>
 </Project>

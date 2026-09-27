@@ -119,7 +119,7 @@ public sealed class DungeonBuffUsageTests
         Assert.Equal(3, shop.Sender.Messages.Count);
     }
 
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public void A21_archive_declares_ten_buff_uses()
     {
         using var shop = new ShopFixture();

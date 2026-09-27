@@ -144,7 +144,7 @@ public sealed class OutboundSendFailureTests
             var capture = new ConnectionCapture(channelPort, gamePort);
             builder.Services.AddSingleton<INetworkConnectionObserver>(capture);
 
-            var host = builder.Build();
+            var host = TestInfrastructure.Build(builder);
             var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await host.StartAsync(timeout.Token);
             return new OutboundFixture(host, timeout, capture);
