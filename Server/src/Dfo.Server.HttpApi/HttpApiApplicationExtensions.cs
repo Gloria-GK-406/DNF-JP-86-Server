@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Hosting;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Authentication;
@@ -9,33 +10,33 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 
-namespace Dfo.Server.LauncherApi;
+namespace Dfo.Server.HttpApi;
 
-public static class LauncherApiApplicationExtensions
+public static class HttpApiApplicationExtensions
 {
     private const string BootstrapPath = "/api/launcher/v1/bootstrap";
     internal const string RegisterPath = "/api/launcher/v1/register";
     internal const string LoginPath = "/api/launcher/v1/login";
 
-    public static WebApplication MapLauncherApi(this WebApplication application)
+    public static WebApplication MapHttpApi(this WebApplication application)
     {
         ArgumentNullException.ThrowIfNull(application);
 
-        UseLauncherApiMiddleware(application);
-        MapLauncherApiEndpoints(application);
+        UseHttpApiMiddleware(application);
+        MapHttpApiEndpoints(application);
         return application;
     }
 
-    internal static void UseLauncherApiMiddleware(IApplicationBuilder application)
+    internal static void UseHttpApiMiddleware(IApplicationBuilder application)
     {
-        application.UseMiddleware<LauncherApiExceptionMiddleware>();
+        application.UseMiddleware<HttpApiExceptionMiddleware>();
         application.UseRouting();
         application.UseMiddleware<CredentialTransportGateMiddleware>();
     }
 
-    internal static void MapLauncherApiEndpoints(IEndpointRouteBuilder endpoints)
+    internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet(BootstrapPath, (LauncherApiReadiness readiness) =>
+        endpoints.MapGet(BootstrapPath, (HttpApiReadiness readiness) =>
             readiness.IsReady
                 ? Results.Json(new BootstrapResponse("1", "ready", true))
                 : ApiResponses.Error(
@@ -50,7 +51,7 @@ public static class LauncherApiApplicationExtensions
 
     private static async Task<IResult> RegisterAsync(
         HttpContext context,
-        LauncherApiReadiness readiness,
+        HttpApiReadiness readiness,
         ICommandBus commands)
     {
         if (!readiness.IsReady)
@@ -94,11 +95,12 @@ public static class LauncherApiApplicationExtensions
 
     private static async Task<IResult> LoginAsync(
         HttpContext context,
-        LauncherApiReadiness readiness,
+        HttpApiReadiness readiness,
         ICommandBus commands,
-        IPublicEndpointSource endpoints)
+        IPublicEndpointSource endpoints,
+        IGameServerReadiness game)
     {
-        if (!readiness.IsReady)
+        if (!readiness.IsReady || !game.IsReady)
         {
             return ApiResponses.Error(
                 StatusCodes.Status503ServiceUnavailable,
@@ -190,9 +192,9 @@ internal sealed class CredentialEndpointMetadata
     private CredentialEndpointMetadata() { }
 }
 
-internal sealed class LauncherApiExceptionMiddleware(
+internal sealed class HttpApiExceptionMiddleware(
     RequestDelegate next,
-    ILogger<LauncherApiExceptionMiddleware> logger)
+    ILogger<HttpApiExceptionMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
     {

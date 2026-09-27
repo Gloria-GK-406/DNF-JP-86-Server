@@ -43,10 +43,14 @@ Docs/        四类东西混在一个平面上，读之前先认清是哪一类�
 | `Dfo.Server.Persistence` | Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + `Database/` 事务参与者。**全部类型 `internal`**，对外只经 Abstractions 契约 |
 | `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识；显式多收件人投递也只表达必达顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
-| `Dfo.Server.Host` | 全部 | 组合根：模块注册顺序 + appsettings + channel_info.etc |
+| `Dfo.Server.HttpApi` | Abstractions, Application, Data | HTTP 组件：Kestrel 装配、路由、中间件、HTTP 就绪；保留 LauncherAuth 配置键 |
+| `Dfo.Server.GameServer` | Abstractions, Infrastructure, Networking, Protocol | 游戏组件：装配网络/协议，入口启动前预热内容，提供游戏就绪状态 |
+| `Dfo.Server.Host` | 公共模块、HttpApi、GameServer | 唯一组合根：共享配置和服务注册；不直接引用 Networking/Protocol |
 | `Dfo.Server.Utilities` | — | 空占位 |
 
 **分层由项目引用图在编译期强制**：
+
+- Host、HttpApi、GameServer 仍在同一进程、同一根 DI 中。组件不能自行 Build 第二个 Host/ServiceProvider。启动顺序与开关见 [Document/host-component-composition.md](Document/host-component-composition.md)。
 
 - `Data` 不引用任何项目；`Abstractions` 只引用 `Data`。
 - `Networking` 只引用 `Abstractions` 与 `Data`——它**不引用 `Application`，也不引用

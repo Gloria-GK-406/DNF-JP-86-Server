@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.Authentication;
 internal sealed class AuthenticationDomainService(
     IAuthenticationPersistence persistence, IPasswordCredentialRuleService passwords,
     TimeProvider clock, AuthenticationRuleService rules,
-    LoginSessionRegistry sessions) : IAuthenticationDomainService
+    LoginSessionRegistry sessions, LoginSessionOptions sessionOptions) : IAuthenticationDomainService
 {
     private const int MIdEncodedLength = 6;
     private const int TicketEncodedLength = 32;
@@ -42,12 +42,12 @@ internal sealed class AuthenticationDomainService(
             && !await persistence.TryReplaceCredentialAsync(account.AccountId, account.PasswordHash, passwords.Hash(password), cancellationToken))
             return new(AuthenticationStatus.InvalidCredentials);
         var now = clock.GetUtcNow();
-        var expiresAt = now.AddSeconds(180);
+        var expiresAt = now.AddSeconds(sessionOptions.InitialLifetimeSeconds);
         var session = sessions.Issue(account.AccountId, now, expiresAt);
         return new(AuthenticationStatus.Success, session.MId, session.Ticket, session.ExpiresAtUtc);
     }
 
-    public ValueTask<AccountId?> ConsumeTicketAsync(string mId, string ticket, CancellationToken cancellationToken)
+    public ValueTask<AccountId?> BindSessionAsync(Dfo.Server.Data.Networking.NetworkConnectionId connectionId, string mId, string ticket, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (mId is null
@@ -61,7 +61,7 @@ internal sealed class AuthenticationDomainService(
             return ValueTask.FromResult<AccountId?>(null);
         }
 
-        return ValueTask.FromResult(sessions.TryConsume(mId, ticket));
+        return ValueTask.FromResult(sessions.TryBind(connectionId, mId, ticket));
     }
 }
 
@@ -69,13 +69,14 @@ internal sealed class GameLoginAuthenticationDomainService(
     IAuthenticationDomainService authentication,
     OnlineStateRegistry onlineUsers) : IGameLoginAuthenticationDomainService
 {
-    public async ValueTask<AccountId?> RedeemTicketAsync(
+    public async ValueTask<AccountId?> AuthenticateSessionAsync(
         OnlineUserId onlineUserId,
         string mId,
         string ticket,
         CancellationToken cancellationToken)
     {
-        var accountId = await authentication.ConsumeTicketAsync(
+        var accountId = await authentication.BindSessionAsync(
+            onlineUsers.GetRequiredUser(onlineUserId).Connection.ConnectionId,
             mId,
             ticket,
             cancellationToken).ConfigureAwait(false);

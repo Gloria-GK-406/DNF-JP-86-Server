@@ -39,7 +39,7 @@ public sealed class AuthenticationMigrationTests
         Assert.Equal("1:kept-character:86", await fixture.Scalar("SELECT account_id||':'||name||':'||level FROM characters WHERE character_id=123"));
         var noAllowlist = new AuthenticationDomainService(fixture.Store, new PasswordCredentialService(100), fixture.Clock,
             AuthenticationRuleService.From(new ConfigurationBuilder().Build()),
-            new LoginSessionRegistry(fixture.Scope, fixture.Clock));
+            new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions()), new LoginSessionOptions());
         await using var transaction = fixture.Scope.Begin();
         Assert.Equal(AuthenticationStatus.Success, (await noAllowlist.AuthenticateAndIssueTicketAsync("legacy", Password, default)).Status);
         await transaction.CommitAsync(default);

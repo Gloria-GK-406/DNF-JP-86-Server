@@ -37,9 +37,9 @@ public sealed class AuthenticationTicketTests
         var login = await fixture.Bus.SendAsync(
             new AuthenticateAndIssueTicketCommand("player", "test password"));
 
-        var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock);
+        var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions());
         await using var transaction = fixture.Scope.Begin();
-        Assert.Null(afterRestart.TryConsume(login.MId!, login.Ticket!));
+        Assert.Null(afterRestart.TryBind(new Dfo.Server.Data.Networking.NetworkConnectionId("restart"), login.MId!, login.Ticket!));
         await transaction.CommitAsync(default);
 
         Assert.NotNull(await fixture.Store.FindAsync("player", default));

@@ -6,8 +6,8 @@ namespace Dfo.Server.Host.Modules;
 
 internal static class ServerModuleRegistrationExtensions
 {
-    public static IHostApplicationBuilder AddServerModules(
-        this IHostApplicationBuilder builder,
+    public static IHostBuilder AddServerModules(
+        this IHostBuilder builder,
         params IServerModule[] modules)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -22,12 +22,13 @@ internal static class ServerModuleRegistrationExtensions
             throw new InvalidOperationException($"Server module '{duplicateName}' was registered more than once.");
         }
 
-        foreach (var module in modules)
+        return builder.ConfigureServices((context, services) =>
         {
-            module.ConfigureServices(builder.Services, builder.Configuration);
-            builder.Services.AddSingleton<IServerModule>(module);
-        }
-
-        return builder;
+            foreach (var module in modules)
+            {
+                module.ConfigureServices(services, context.Configuration);
+                services.AddSingleton<IServerModule>(module);
+            }
+        });
     }
 }

@@ -129,6 +129,7 @@ def package():
                     "sdk": run("dotnet", "--version"), "selfContained": True}
         (published / "release.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         shutil.copyfile(ROOT / "Document/server-ci-release.md", published / "README.md")
+        shutil.copyfile(ROOT / "Document/host-component-composition.md", published / "host-component-composition.md")
         smoke(published, rid)
         output = ROOT / "artifacts/release"
         output.mkdir(parents=True, exist_ok=True)

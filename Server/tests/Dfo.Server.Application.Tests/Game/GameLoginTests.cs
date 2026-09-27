@@ -247,7 +247,7 @@ public sealed class GameLoginTests
 
         public string? Ticket { get; private set; }
 
-        public ValueTask<AccountId?> RedeemTicketAsync(
+        public ValueTask<AccountId?> AuthenticateSessionAsync(
             OnlineUserId onlineUserId,
             string mId,
             string ticket,

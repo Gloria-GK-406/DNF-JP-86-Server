@@ -113,43 +113,6 @@ public sealed class GameLoginCommandTransactionTests
         Assert.Equal(new AccountId(73), onlineUsers.GetRequired(second.OnlineUserId).AccountId);
     }
 
-    [Fact]
-    public async Task TargetLostAfterDurableCommitLeavesTheTicketConsumedAndImpossibleToReplay()
-    {
-        using var services = BuildServices(
-            databasePath: null,
-            collection =>
-            {
-                collection.AddSingleton<CommitThenDisconnectAuthenticationDomainService>();
-                collection.AddSingleton<IAuthenticationDomainService>(provider =>
-                    provider.GetRequiredService<CommitThenDisconnectAuthenticationDomainService>());
-            },
-            includePersistence: false);
-        var authentication = services.GetRequiredService<CommitThenDisconnectAuthenticationDomainService>();
-        var commands = services.GetRequiredService<ICommandBus>();
-        var onlineUsers = services.GetRequiredService<IOnlineUserDomainService>();
-        var first = Register(onlineUsers, "Game:lost-after-durable-commit");
-        authentication.TargetConnectionId = first.Connection.ConnectionId;
-
-        var committed = await commands.SendAsync(new RedeemGameLoginCommand(
-            first.OnlineUserId,
-            "player",
-            CommitThenDisconnectAuthenticationDomainService.Ticket));
-
-        Assert.True(committed.Succeeded);
-        Assert.False(authentication.Available);
-        Assert.False(onlineUsers.TryGetByConnection(first.Connection.ConnectionId, out _));
-
-        var second = Register(onlineUsers, "Game:replay-after-target-lost");
-        var replay = await commands.SendAsync(new RedeemGameLoginCommand(
-            second.OnlineUserId,
-            "player",
-            CommitThenDisconnectAuthenticationDomainService.Ticket));
-
-        Assert.False(replay.Succeeded);
-        Assert.Equal(OnlineUserState.Connected, onlineUsers.GetRequired(second.OnlineUserId).State);
-    }
-
     private static ServiceProvider BuildServices(
         string? databasePath,
         Action<IServiceCollection> configure,
@@ -184,13 +147,14 @@ public sealed class GameLoginCommandTransactionTests
     {
         private int cancelNext = 1;
 
-        public async ValueTask<AccountId?> RedeemTicketAsync(
+        public async ValueTask<AccountId?> AuthenticateSessionAsync(
             OnlineUserId onlineUserId,
             string loginId,
             string ticket,
             CancellationToken cancellationToken)
         {
-            var accountId = await authentication.ConsumeTicketAsync(
+            var accountId = await authentication.BindSessionAsync(
+                onlineUsers.GetRequiredUser(onlineUserId).Connection.ConnectionId,
                 loginId,
                 ticket,
                 cancellationToken);
@@ -229,7 +193,8 @@ public sealed class GameLoginCommandTransactionTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public ValueTask<AccountId?> ConsumeTicketAsync(
+        public ValueTask<AccountId?> BindSessionAsync(
+            NetworkConnectionId connectionId,
             string loginId,
             string ticket,
             CancellationToken cancellationToken)
@@ -273,62 +238,4 @@ public sealed class GameLoginCommandTransactionTests
         }
     }
 
-    private sealed class CommitThenDisconnectAuthenticationDomainService(
-        IDomainTransactionAccessor transactions,
-        OnlineStateRegistry onlineUsers) : IAuthenticationDomainService
-    {
-        internal const string Ticket = "committed-ticket-cannot-be-replayed-00000000";
-
-        public bool Available { get; private set; } = true;
-
-        public NetworkConnectionId TargetConnectionId { get; set; }
-
-        public ValueTask<RegistrationResult> RegisterAsync(
-            string loginId,
-            string password,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(
-            string loginId,
-            string password,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public ValueTask<AccountId?> ConsumeTicketAsync(
-            string loginId,
-            string ticket,
-            CancellationToken cancellationToken)
-        {
-            if (!this.Available || loginId != "player" || ticket != Ticket)
-            {
-                return ValueTask.FromResult<AccountId?>(null);
-            }
-
-            var transaction = transactions.Current
-                ?? throw new InvalidOperationException("Test transaction was not supplied.");
-            transaction.Enlist(this, () => new TicketParticipant(this, onlineUsers));
-            return ValueTask.FromResult<AccountId?>(new AccountId(74));
-        }
-
-        private sealed class TicketParticipant(
-            CommitThenDisconnectAuthenticationDomainService owner,
-            OnlineStateRegistry onlineUsers) : ITransactionParticipant
-        {
-            public bool CommitCanFail => true;
-
-            public ValueTask PrepareAsync(CancellationToken cancellationToken) =>
-                ValueTask.CompletedTask;
-
-            public ValueTask CommitAsync(CancellationToken cancellationToken)
-            {
-                owner.Available = false;
-                _ = onlineUsers.TryDisconnectConnection(owner.TargetConnectionId);
-                return ValueTask.CompletedTask;
-            }
-
-            public ValueTask RollbackAsync(CancellationToken cancellationToken) =>
-                ValueTask.CompletedTask;
-        }
-    }
 }

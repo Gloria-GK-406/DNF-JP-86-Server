@@ -14,7 +14,7 @@ public sealed class GameExitHandler(
         CancellationToken cancellationToken)
     {
         var result = await commandBus.SendAsync(
-            new AcknowledgeGameExitCommand(), cancellationToken).ConfigureAwait(false);
+            new AcknowledgeGameExitCommand(context.Connection.ConnectionId), cancellationToken).ConfigureAwait(false);
         await sender.SendCmdAsync(
             context.Connection.ConnectionId,
             new GameExitResponse(result.Succeeded),

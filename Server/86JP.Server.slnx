@@ -4,9 +4,10 @@
     <Project Path="src/Dfo.Server.Abstractions/Dfo.Server.Abstractions.csproj" />
     <Project Path="src/Dfo.Server.Application/Dfo.Server.Application.csproj" />
     <Project Path="src/Dfo.Server.Data/Dfo.Server.Data.csproj" />
+    <Project Path="src/Dfo.Server.GameServer/Dfo.Server.GameServer.csproj" />
     <Project Path="src/Dfo.Server.Host/Dfo.Server.Host.csproj" />
     <Project Path="src/Dfo.Server.Infrastructure/Dfo.Server.Infrastructure.csproj" />
-    <Project Path="src/Dfo.Server.LauncherApi/Dfo.Server.LauncherApi.csproj" />
+    <Project Path="src/Dfo.Server.HttpApi/Dfo.Server.HttpApi.csproj" />
     <Project Path="src/Dfo.Server.Persistence/Dfo.Server.Persistence.csproj" />
     <Project Path="src/Dfo.Server.Networking/Dfo.Server.Networking.csproj" />
     <Project Path="src/Dfo.Server.Protocol/Dfo.Server.Protocol.csproj" />
@@ -17,7 +18,7 @@
     <Project Path="tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Host.Tests/Dfo.Server.Host.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Infrastructure.Tests/Dfo.Server.Infrastructure.Tests.csproj" />
-    <Project Path="tests/Dfo.Server.LauncherApi.Tests/Dfo.Server.LauncherApi.Tests.csproj" />
+    <Project Path="tests/Dfo.Server.HttpApi.Tests/Dfo.Server.HttpApi.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Persistence.Tests/Dfo.Server.Persistence.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj" />

@@ -8,8 +8,8 @@ public sealed class AcknowledgeGameExitCommandHandlerTests
     [Fact]
     public async Task HandleAsync_ReturnsASuccessAcknowledgement()
     {
-        var handler = new AcknowledgeGameExitCommandHandler();
-        var command = new AcknowledgeGameExitCommand();
+        var handler = new AcknowledgeGameExitCommandHandler(new Dfo.Server.Application.Authentication.LoginSessionRegistry(new Dfo.Server.Application.Transactions.DomainTransactionScope(), TimeProvider.System, new Dfo.Server.Application.Authentication.LoginSessionOptions()));
+        var command = new AcknowledgeGameExitCommand(new Dfo.Server.Data.Networking.NetworkConnectionId("exit"));
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
             command.GetType(),

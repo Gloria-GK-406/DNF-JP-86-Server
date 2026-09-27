@@ -33,6 +33,8 @@ Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不�
 
 运行入口：Windows `Dfo.Server.Host.exe`；Linux `./Dfo.Server.Host`。Linux tar 包保留可执行权限。
 
+Host 内组合 HttpApi 与 GameServer，仍为一份发布包和一个进程；组件边界、启动顺序和 HTTP 单开行为见 [host-component-composition.md](host-component-composition.md)。原 LauncherAuth 配置键与 HTTP 路径保持兼容。
+
 默认 `Networking:Enabled` 与 `LauncherAuth:Enabled` 均为 false。实际部署需配置地址、端口、数据库与 PVF，再开启所需服务。数据资源不随包发布：
 
 - 使用合法持有的 `Script.pvf`，通过环境变量 `PVF_ARCHIVE_PATH` 指定，或放入 `Data/Pvf/Script.pvf`。

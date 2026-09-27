@@ -1,11 +1,11 @@
 using System.Xml.Linq;
 
-namespace Dfo.Server.LauncherApi.Tests;
+namespace Dfo.Server.HttpApi.Tests;
 
-public sealed class LauncherApiArchitectureTests
+public sealed class HttpApiArchitectureTests
 {
     [Fact]
-    public void LauncherApiDoesNotReferencePersistenceInfrastructureNetworkingOrProtocol()
+    public void HttpApiDoesNotReferencePersistenceInfrastructureNetworkingOrProtocol()
     {
         var project = XDocument.Load(FindProjectFile());
         var references = project.Descendants("ProjectReference")
@@ -25,12 +25,12 @@ public sealed class LauncherApiArchitectureTests
             var candidate = Path.Combine(
                 directory.FullName,
                 "src",
-                "Dfo.Server.LauncherApi",
-                "Dfo.Server.LauncherApi.csproj");
+                "Dfo.Server.HttpApi",
+                "Dfo.Server.HttpApi.csproj");
             if (File.Exists(candidate)) return candidate;
             directory = directory.Parent;
         }
 
-        throw new FileNotFoundException("Could not locate the LauncherApi project file.");
+        throw new FileNotFoundException("Could not locate the HttpApi project file.");
     }
 }

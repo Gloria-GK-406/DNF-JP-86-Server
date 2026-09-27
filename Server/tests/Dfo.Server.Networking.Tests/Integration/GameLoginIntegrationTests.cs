@@ -284,7 +284,7 @@ public sealed class GameLoginIntegrationTests
     }
 
     [Fact]
-    public async Task LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay()
+    public async Task LoginDeliveryFailureAfterCommitCleansIdentityAndAllowsReconnect()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-login-delivery-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -361,8 +361,8 @@ public sealed class GameLoginIntegrationTests
                         EncodeDStrings(issued.MId!, issued.Ticket)),
                     timeout.Token);
 
-                await Assert.ThrowsAsync<EndOfStreamException>(async () =>
-                    await ReadFrameAsync(replay.GetStream(), timeout.Token));
+                var accepted = await ReadFrameAsync(replay.GetStream(), timeout.Token);
+                Assert.Equal(BuildExpectedLoginResponse(), accepted);
             }
 
             await WaitUntilAsync(
@@ -785,13 +785,13 @@ public sealed class GameLoginIntegrationTests
         IOnlineUserQueryDomainService onlineUsers,
         TransactionPrepareFaultProbe fault) : IGameLoginAuthenticationDomainService
     {
-        public async ValueTask<AccountId?> RedeemTicketAsync(
+        public async ValueTask<AccountId?> AuthenticateSessionAsync(
             OnlineUserId onlineUserId,
             string loginId,
             string ticket,
             CancellationToken cancellationToken)
         {
-            var accountId = await inner.RedeemTicketAsync(
+            var accountId = await inner.AuthenticateSessionAsync(
                 onlineUserId,
                 loginId,
                 ticket,

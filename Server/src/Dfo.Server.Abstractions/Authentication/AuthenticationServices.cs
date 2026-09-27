@@ -17,12 +17,12 @@ public interface IAuthenticationDomainService
 {
     ValueTask<RegistrationResult> RegisterAsync(string loginId, string password, CancellationToken cancellationToken);
     ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(string loginId, string password, CancellationToken cancellationToken);
-    ValueTask<AccountId?> ConsumeTicketAsync(string mId, string ticket, CancellationToken cancellationToken);
+    ValueTask<AccountId?> BindSessionAsync(Dfo.Server.Data.Networking.NetworkConnectionId connectionId, string mId, string ticket, CancellationToken cancellationToken);
 }
 
 public interface IGameLoginAuthenticationDomainService
 {
-    ValueTask<AccountId?> RedeemTicketAsync(
+    ValueTask<AccountId?> AuthenticateSessionAsync(
         OnlineUserId onlineUserId,
         string mId,
         string ticket,

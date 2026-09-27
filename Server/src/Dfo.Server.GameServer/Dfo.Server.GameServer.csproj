@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
+  </ItemGroup>
+</Project>
