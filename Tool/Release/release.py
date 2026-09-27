@@ -1,4 +1,5 @@
 """CI release tooling. Uses only Python's standard library; never touches a live deployment."""
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -56,9 +57,25 @@ def summary(directory):
             output.write(text)
 
 
+@contextmanager
+def temporary_directory(prefix):
+    temporary = tempfile.TemporaryDirectory(prefix=prefix)
+    try:
+        yield temporary.name
+    finally:
+        for attempt in range(26):
+            try:
+                temporary.cleanup()
+                break
+            except OSError as error:
+                if os.name != "nt" or error.winerror not in (5, 32) or attempt == 25:
+                    raise
+                time.sleep(0.2)
+
+
 def smoke(published, rid):
     # Run a copy: migrations, logs and generated state must never enter the release archive.
-    with tempfile.TemporaryDirectory(prefix="dfo-release-smoke-") as temporary:
+    with temporary_directory(prefix="dfo-release-smoke-") as temporary:
         temporary = Path(temporary)
         app = temporary / "app"
         shutil.copytree(published, app)
@@ -96,7 +113,7 @@ def package():
         raise ValueError("Invalid release version or runtime")
     if (rid == "win-x64") != (os.name == "nt"):
         raise ValueError("Build on the target operating system so its executable can be smoke-tested")
-    with tempfile.TemporaryDirectory(prefix="dfo-publish-") as temporary:
+    with temporary_directory(prefix="dfo-publish-") as temporary:
         published = Path(temporary) / "publish"
         subprocess.run(["dotnet", "publish", "Server/src/Dfo.Server.Host/Dfo.Server.Host.csproj",
                         "-c", "Release", "-r", rid, "--self-contained", "true", "-o", str(published),

@@ -211,7 +211,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         }
 
         this.process.Dispose();
-        Directory.Delete(this.directory, recursive: true);
+        await TestDirectory.DeleteAsync(this.directory);
     }
 
     private async Task<TcpClient> ConnectThroughAdvertisedRouteAsync(

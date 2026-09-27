@@ -75,7 +75,7 @@ public sealed class ChannelHostStartupTests
                 process.Kill(entireProcessTree: true);
                 await process.WaitForExitAsync();
             }
-            Directory.Delete(workingDirectory, recursive: true);
+            await TestDirectory.DeleteAsync(workingDirectory);
         }
     }
 
@@ -145,7 +145,7 @@ public sealed class ChannelHostStartupTests
                 process.Kill(entireProcessTree: true);
                 await process.WaitForExitAsync();
             }
-            Directory.Delete(workingDirectory, recursive: true);
+            await TestDirectory.DeleteAsync(workingDirectory);
         }
     }
 
