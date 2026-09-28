@@ -121,6 +121,20 @@ public sealed class DungeonBuffUsageTests
         Assert.Equal(3, shop.Sender.Messages.Count);
     }
 
+    [Fact]
+    public async Task Rolling_default_black_diamond_does_not_refresh_devil_snapshot_every_minute()
+    {
+        using var shop = Fixture(false);
+        var premium = shop.Services.GetRequiredService<IPremiumServiceDomainService>().For(shop.Session.AccountId);
+        Assert.True(await premium.IsActiveAsync(PremiumServiceType.BlackDiamond, default));
+        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        await refresh.RefreshAsync(default);
+        Assert.Single(shop.Sender.Messages);
+        shop.Clock.Advance(TimeSpan.FromMinutes(1));
+        await refresh.RefreshAsync(default);
+        Assert.Single(shop.Sender.Messages);
+    }
+
     [Dfo.Server.Testing.PvfFact]
     public void A21_archive_declares_ten_buff_uses()
     {

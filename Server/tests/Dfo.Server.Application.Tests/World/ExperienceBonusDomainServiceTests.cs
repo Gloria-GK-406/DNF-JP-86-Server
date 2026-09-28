@@ -178,7 +178,7 @@ public sealed class ExperienceBonusDomainServiceTests
         new ExperienceBonusDomainService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
-            new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates()),
+            new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build())),
             new OneChannel(channelId),
             new ExperienceRuleService(
                 new UnpricedKills(),

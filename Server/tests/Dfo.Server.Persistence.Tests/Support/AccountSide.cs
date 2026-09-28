@@ -33,7 +33,7 @@ internal sealed class AccountSide
     public IAccountEntryStateRepository Entry => new AccountEntryAssembly(
         new SqliteAccountTable(this.database),
         new SqliteAccountSettingsTable(this.database),
-        new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!),
+        new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
         new SqliteAccountLotteryProgressTable(this.database),
         new SqliteCharacterTable(this.database),
         new SqliteCharacterConditionTable(this.database),

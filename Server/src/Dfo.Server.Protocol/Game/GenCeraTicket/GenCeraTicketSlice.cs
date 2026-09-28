@@ -39,6 +39,6 @@ public sealed class GenCeraTicketHandler(IGameMessageSender sender, ILogger<GenC
         await sender.SendCmdAsync(context.Connection.ConnectionId, new GenCeraTicketUnavailable(), cancellationToken)
             .ConfigureAwait(false);
         await sender.SendNotiAsync(context.Connection.ConnectionId,
-            new GameServerNoticeMessage("黑钻网页服务暂未开放。"), cancellationToken).ConfigureAwait(false);
+            new GameServerNoticeMessage("黑钻权益由服务器统一设置，无需购买。"), cancellationToken).ConfigureAwait(false);
     }
 }

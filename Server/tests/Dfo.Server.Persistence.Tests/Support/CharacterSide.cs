@@ -115,7 +115,7 @@ internal sealed class CharacterSide
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>
         new ExpertSkillContractReconciliationService(
-            new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!),
+            new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
             new SqliteCharacterTable(this.database),
             new SqliteCharacterSkillTable(this.database),
             rules);
@@ -196,7 +196,7 @@ internal sealed class CharacterSide
             new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database), TimeProvider.System,
                 new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database)),
             goldLimits, new PremiumServiceUsageDomainService(
-                new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!),
+                new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
                 new SqlitePremiumServiceUsageTable(this.database),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
                 new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System), new SqliteCharacterSkillBuildTable(this.database));
@@ -250,4 +250,10 @@ internal sealed class CharacterSide
             return result;
         }
     }
+}
+
+internal sealed class DisabledDefaultPremiumSettings : Dfo.Server.Abstractions.Configuration.IServerConfigService
+{
+    public T GetConfig<T>(string key) => key == "Premium:BlackDiamondEnabled" && typeof(T) == typeof(bool)
+        ? (T)(object)false : throw new InvalidOperationException(key);
 }

@@ -56,7 +56,8 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
                 if (!state.IsCurrent) continue;
                 var active = string.Join(";", state.Entitlements.Premiums
                     .Where(x => x.ExpiresAtUnixSeconds > state.PreparedAt.ToUnixTimeSeconds())
-                    .OrderBy(x => x.PremiumType).Select(x => $"{x.PremiumType}:{x.ExpiresAtUnixSeconds}"));
+                    .OrderBy(x => x.PremiumType).Select(x => x.PremiumType == (int)PremiumServiceType.BlackDiamond
+                        ? $"{x.PremiumType}:default" : $"{x.PremiumType}:{x.ExpiresAtUnixSeconds}"));
                 var crystal = state.Entitlements.Premiums.SingleOrDefault(x => x.PremiumType == (int)PremiumServiceType.CrystalContract);
                 var crystalActive = crystal is not null && crystal.ExpiresAtUnixSeconds > state.PreparedAt.ToUnixTimeSeconds();
                 var growth = state.Entitlements.Premiums.SingleOrDefault(x => x.PremiumType == (int)PremiumServiceType.GrowthContract);

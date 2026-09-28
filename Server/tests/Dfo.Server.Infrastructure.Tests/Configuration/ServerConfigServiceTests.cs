@@ -7,6 +7,18 @@ namespace Dfo.Server.Infrastructure.Tests.Configuration;
 public sealed class ServerConfigServiceTests
 {
     [Fact]
+    public void Black_diamond_defaults_on_and_can_be_disabled_at_startup()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
+        Assert.True(new ServerConfigService(configuration).GetConfig<bool>("Premium:BlackDiamondEnabled"));
+        configuration["Premium:BlackDiamondEnabled"] = "false";
+        var settings = new ServerConfigService(configuration);
+        Assert.False(settings.GetConfig<bool>("Premium:BlackDiamondEnabled"));
+        configuration["Premium:BlackDiamondEnabled"] = "true";
+        Assert.False(settings.GetConfig<bool>("Premium:BlackDiamondEnabled"));
+    }
+
+    [Fact]
     public void Daily_reset_has_a_default_and_configuration_overrides_it()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection().Build();
