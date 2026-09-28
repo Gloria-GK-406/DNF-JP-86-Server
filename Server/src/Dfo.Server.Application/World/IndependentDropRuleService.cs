@@ -9,17 +9,23 @@ namespace Dfo.Server.Application.World;
 /// <summary>Cached independent rows; character facts are resolved only for a matching source.</summary>
 internal sealed class IndependentDropRuleService(
     IIndependentDropTableSource source, Func<ICharacterDomainService> characters,
-    ILogger<IndependentDropRuleService> logger) : IIndependentDropRuleService
+    ILogger<IndependentDropRuleService> logger, IndependentDropOptions? options = null) : IIndependentDropRuleService
 {
-    private sealed record Prepared(IndependentDropRow Row, ImmutableArray<int> Ends);
+    private sealed record Prepared(IndependentDropRow Row, ImmutableArray<int> Ends, bool BossEquipment);
     private sealed record Cache(IndependentDropTable Table,
         IReadOnlyDictionary<(IndependentDropSourceType, int), Prepared[]> Rows);
     private readonly Lazy<Cache> cache = new(() => Prepare(source.Load(), logger));
 
-    public int Initialize() => cache.Value.Table.Rows.Length;
+    public int Initialize()
+    {
+        var count = cache.Value.Table.Rows.Length;
+        if (options?.DebugGuaranteeGrowthBossEquipment == true)
+            logger.LogWarning("Temporary acceptance override enabled: eligible growth-contract boss equipment pools have 100% hit probability");
+        return count;
+    }
 
     public async ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterDropRequest request, CancellationToken cancellationToken)
+        MonsterDropRequest request, CancellationToken cancellationToken, int growthBonusPercent = 0)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!cache.Value.Rows.ContainsKey((request.Context.SourceType, request.MonsterCode)))
@@ -29,11 +35,12 @@ internal sealed class IndependentDropRuleService(
         var progress = await characters().Get(request.CharacterId).ProgressAsync(cancellationToken)
             .ConfigureAwait(false) ?? throw new InvalidOperationException(
                 $"Independent drops: missing character {request.CharacterId}.");
-        return this.Draw(request, progress.Level);
+        return this.Draw(request, progress.Level, growthBonusPercent);
     }
 
-    internal IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel)
+    internal IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent = 0)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(growthBonusPercent);
         if (request.PartyMemberCount is < 1 or > 4 || (int)request.Context.Difficulty > 4)
             throw new ArgumentOutOfRangeException(nameof(request));
         if (!cache.Value.Rows.TryGetValue((request.Context.SourceType, request.MonsterCode), out var rows))
@@ -47,8 +54,14 @@ internal sealed class IndependentDropRuleService(
             var random = new DropRandom(DropRandom.SeedFor(request.Context.Seed, request.Context.MapId,
                 request.Context.Cell.X, request.Context.Cell.Y, request.ActorSequence)
                 ^ 0x494E444550445250UL ^ ((ulong)(uint)row.Ordinal * 0x9E3779B97F4A7C15UL));
+            var probability = row.Fields[3 + (int)request.Context.Difficulty];
+            if (prepared.BossEquipment && request.Context.SourceType == IndependentDropSourceType.Monster
+                && cache.Value.Table.GrowthBonusDungeonIds.Contains(request.Context.DungeonId)
+                && request.MonsterRank == 3 && growthBonusPercent > 0)
+                probability = GrowthProbability(probability, growthBonusPercent,
+                    options?.DebugGuaranteeGrowthBossEquipment == true);
             var count = IndependentDropRules.SuccessfulAttempts(row.Fields[7 + request.PartyMemberCount],
-                row.Fields[12], row.Fields[3 + (int)request.Context.Difficulty], 1000000, random);
+                row.Fields[12], probability, 1000000, random);
             for (var i = 0; i < count; i++)
             {
                 var id = row.PoolMode == 0 ? row.ItemId : row.Choices[
@@ -63,6 +76,9 @@ internal sealed class IndependentDropRuleService(
         }
         return result;
     }
+
+    internal static int GrowthProbability(int probability, int bonusPercent, bool guarantee) =>
+        guarantee ? 1000000 : (int)Math.Min(1000000L, (long)probability * (100L + bonusPercent) / 100);
 
     private static Cache Prepare(IndependentDropTable table, ILogger logger)
     {
@@ -87,7 +103,11 @@ internal sealed class IndependentDropRuleService(
                         + "item={ItemId} has no PVF definition; rule and weight retained",
                         row.Ordinal, row.SourceType, row.SourceId, id);
             }
-            prepared.Add(new(row, ends.ToImmutable()));
+            var tagged = row.Choices.Count(c => table.BossEquipmentIds.Contains(c.ItemId));
+            var bossEquipment = row.PoolMode == 1 && tagged == row.Choices.Length && tagged > 0;
+            if (tagged > 0 && !bossEquipment)
+                logger.LogWarning("Independent drop row={Row} mixes boss equipment with other items; growth bonus disabled", row.Ordinal);
+            prepared.Add(new(row, ends.ToImmutable(), bossEquipment));
         }
         return new(table, prepared.GroupBy(p => ((IndependentDropSourceType)p.Row.SourceType, p.Row.SourceId))
             .ToDictionary(g => g.Key, g => g.ToArray()));

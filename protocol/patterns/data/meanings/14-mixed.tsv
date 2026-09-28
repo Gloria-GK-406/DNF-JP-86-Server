@@ -1,29 +1,4 @@
 family	type	offset	meaning	confidence	source
-NOTI	0x0025	0	角色等级（构造参数 level）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:30 顺序写 WriteByte(level) 为 body 首字节
-NOTI	0x0025	1	角色累计经验（构造参数 totalExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:31 WriteUInt32(totalExp)
-NOTI	0x0025	5	队伍奖励 EXP（构造参数 partyRewardExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:32 WriteUInt32(partyRewardExp)
-NOTI	0x0025	9	队员奖励 EXP（构造参数 memberRewardExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:33 WriteUInt32(memberRewardExp)
-NOTI	0x0025	13	技能页 0 剩余 SP（skillPoints.Page0Sp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:34 WriteUInt16(skillPoints.Page0Sp)
-NOTI	0x0025	15	技能页 1 剩余 SP（skillPoints.Page1Sp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:35 WriteUInt16(skillPoints.Page1Sp)
-NOTI	0x0025	17	技能页 0 剩余 TP（skillPoints.Page0Tp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:36 WriteUInt16(skillPoints.Page0Tp)
-NOTI	0x0025	19	技能页 1 剩余 TP（skillPoints.Page1Tp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:37 WriteUInt16(skillPoints.Page1Tp)
-NOTI	0x0025	21	决斗胜点绝对值快照（pvpVictoryPointSnapshot）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:8 定义 PvpVictoryPointOffset = 0x15，:41 在该位置写 pvpVictoryPointSnapshot
-NOTI	0x0025	25	疲劳值 Buff 加成 EXP（fatigueBuffBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:43 WriteUInt32(fatigueBuffBonusExp)
-NOTI	0x0025	29	EXP 表现模式，普通经验路径恒写 0	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:44 WriteByte(0) 并注明 +0x1D 为 EXP 表现模式
-NOTI	0x0025	30	赛丽亚的祝福加成 EXP（seriaBlessingBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:45 WriteUInt32(seriaBlessingBonusExp)
-NOTI	0x0025	34	成长之契约加成 EXP（growthContractBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:46 WriteUInt32(growthContractBonusExp)
-NOTI	0x0025	42	疲劳值燃烧加成 EXP（fatigueBurnBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:48 WriteUInt32(fatigueBurnBonusExp)
-NOTI	0x0025	46	网吧奖励加成 EXP（internetCafeBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:49 WriteUInt32(internetCafeBonusExp)
-NOTI	0x0025	50	可变项数量 N，其后每项 8B；构造器恒写 0	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:9 定义 VariableEntryCountOffset = 0x32，:54 在该位置写 0
-NOTI	0x0025	51	精英怪击杀加成 EXP（eliteMonsterKillBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:55 WriteUInt32(eliteMonsterKillBonusExp)
-NOTI	0x0025	59	成长胶囊 EXP（growthCapsuleExp）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:10 定义 GrowthCapsuleExpOffset = 0x3B，:57 在该位置写 growthCapsuleExp
-NOTI	0x0025	63	荣誉等级（HonorLevelSummary.HonorLevel）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:11 定义 HonorLevelOffset = 0x3F，:58 在该位置写 honorLevel.HonorLevel
-NOTI	0x0025	67	当前荣誉段内经验（HonorLevelSummary.HonorExp）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:12 定义 HonorExpOffset = 0x43，:59 在该位置写 honorLevel.HonorExp
-NOTI	0x0025	71	极速成长 Buff 加成 EXP；构造器恒写 0	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:60 WriteUInt32(0) 注明 +0x47 为极速成长 Buff EXP
-NOTI	0x0025	79	频道奖励加成 EXP（channelBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:62 WriteUInt32(channelBonusExp)
-NOTI	0x0025	83	赛丽亚的欢迎加成 EXP；构造器恒写 0	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:63 WriteUInt32(0) 注明 +0x53 为赛丽亚的欢迎 EXP
-NOTI	0x0025	g1:0	可变 EXP 分量的类型标识；上游固定 N=0 从未产出该条目	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:51-53 记可变项结构为 [u32 类型, u32 EXP]，循环地址与本组提取地址 0x921BB0..0x921C06 一致
-NOTI	0x0025	g1:4	该可变分量对应的 EXP 值；上游固定 N=0 从未产出该条目	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:51-53 记可变项结构为 [u32 类型, u32 EXP]
 NOTI	0x0289	0	荣誉等级（HonorLevelSummary.HonorLevel）	Confirmed	上游 Network/Builders/HonorLevelPacketBuilder.cs:10 取 summary.HonorLevel，:15 作为 8B body 的首个 u32 写出
 NOTI	0x0289	4	荣誉经验（HonorLevelSummary.HonorExp）	Confirmed	上游 Network/Builders/HonorLevelPacketBuilder.cs:11 取 summary.HonorExp，:16 作为 8B body 的第二个 u32 写出
 NOTI	0x0042	0	上游恒写常量 2 的前导 u16（其后跟 u8 高级服务类型与 i64 剩余秒数，超出本表 2B 边界）	Hypothesis	上游 Game/Premium/PremiumService.cs:107 WriteUInt16(2) 为 body 首字段，:108-109 续写 premiumType 与 remaining

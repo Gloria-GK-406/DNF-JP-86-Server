@@ -19,6 +19,7 @@ out/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+TestResults/
 *.nuget.props
 *.nuget.targets
 

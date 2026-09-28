@@ -1,0 +1,269 @@
+--- K label helper: this+4B4 map RVA 021E74D7..021E751B ---
+021E74D7: mov      eax, dword ptr [ebp + 0x14]
+021E74DA: mov      esi, ecx
+021E74DC: mov      ecx, dword ptr [ebp + 0xc]
+021E74DF: xor      edi, edi
+021E74E1: mov      dword ptr [ebp - 4], 1
+021E74E8: cmp      ecx, edi
+021E74EA: jne      0x21e7555
+021E74EC: push     edi
+021E74ED: lea      ecx, [ebp - 0x14]
+021E74F0: mov      dword ptr [ebp - 0x14], edi
+021E74F3: mov      dword ptr [ebp - 0x10], edi
+021E74F6: call     0x2dd70
+021E74FB: lea      eax, [ebp - 0x14]
+021E74FE: push     eax
+021E74FF: lea      ecx, [ebp + 8]
+021E7502: add      esi, 0x4b4
+021E7508: push     ecx
+021E7509: mov      ecx, esi
+021E750B: mov      byte ptr [ebp - 4], 2
+021E750F: call     0x21e71e0
+021E7514: mov      ecx, eax
+021E7516: call     0x24894b0
+--- K 0-9 label registration RVA 021E8160..021E83E2 ---
+021E8160: mov      ecx, dword ptr [0x4c2d5e8]
+021E8166: mov      edx, 0xb4
+021E816B: push     0xbff4
+021E8170: mov      dword ptr [esi + 0xa4], ecx
+021E8176: mov      word ptr [esi + 0x9e], dx
+021E817D: mov      byte ptr [esi + 0xa2], bl
+021E8183: call     0x24c14c0
+021E8188: sub      esp, 0x1c
+021E818B: mov      ecx, esp
+021E818D: mov      dword ptr [ebp - 0x18], esp
+021E8190: push     eax
+021E8191: call     0x2b800
+021E8196: push     4
+021E8198: sub      esp, 8
+021E819B: mov      ecx, esp
+021E819D: mov      dword ptr [ebp - 0x14], esp
+021E81A0: lea      edi, [esi + 0x74]
+021E81A3: push     edi
+021E81A4: mov      byte ptr [ebp - 4], 7
+021E81A8: mov      dword ptr [ecx], ebx
+021E81AA: mov      dword ptr [ecx + 4], ebx
+021E81AD: call     0xe1d970
+021E81B2: push     3
+021E81B4: mov      ecx, esi
+021E81B6: mov      byte ptr [ebp - 4], bl
+021E81B9: call     0x21e74b0
+021E81BE: push     0xbff5
+021E81C3: call     0x24c14c0
+021E81C8: sub      esp, 0x1c
+021E81CB: mov      ecx, esp
+021E81CD: mov      dword ptr [ebp - 0x18], esp
+021E81D0: push     eax
+021E81D1: call     0x2b800
+021E81D6: push     5
+021E81D8: sub      esp, 8
+021E81DB: mov      ecx, esp
+021E81DD: mov      dword ptr [ebp - 0x14], esp
+021E81E0: push     edi
+021E81E1: mov      byte ptr [ebp - 4], 8
+021E81E5: mov      dword ptr [ecx], ebx
+021E81E7: mov      dword ptr [ecx + 4], ebx
+021E81EA: call     0xe1d970
+021E81EF: push     5
+021E81F1: mov      ecx, esi
+021E81F3: mov      byte ptr [ebp - 4], bl
+021E81F6: call     0x21e74b0
+021E81FB: push     0xbff6
+021E8200: call     0x24c14c0
+021E8205: sub      esp, 0x1c
+021E8208: mov      ecx, esp
+021E820A: mov      dword ptr [ebp - 0x18], esp
+021E820D: push     eax
+021E820E: call     0x2b800
+021E8213: push     0x15
+021E8215: sub      esp, 8
+021E8218: mov      ecx, esp
+021E821A: mov      dword ptr [ebp - 0x14], esp
+021E821D: push     edi
+021E821E: mov      byte ptr [ebp - 4], 9
+021E8222: mov      dword ptr [ecx], ebx
+021E8224: mov      dword ptr [ecx + 4], ebx
+021E8227: call     0xe1d970
+021E822C: push     7
+021E822E: mov      ecx, esi
+021E8230: mov      byte ptr [ebp - 4], bl
+021E8233: call     0x21e74b0
+021E8238: push     0xbff7
+021E823D: call     0x24c14c0
+021E8242: sub      esp, 0x1c
+021E8245: mov      ecx, esp
+021E8247: mov      dword ptr [ebp - 0x18], esp
+021E824A: push     eax
+021E824B: call     0x2b800
+021E8250: mov      byte ptr [ebp - 4], 0xa
+021E8254: push     0xe
+021E8256: sub      esp, 8
+021E8259: mov      ecx, esp
+021E825B: mov      dword ptr [ebp - 0x14], esp
+021E825E: push     edi
+021E825F: mov      dword ptr [ecx], ebx
+021E8261: mov      dword ptr [ecx + 4], ebx
+021E8264: call     0xe1d970
+021E8269: push     6
+021E826B: mov      ecx, esi
+021E826D: mov      byte ptr [ebp - 4], bl
+021E8270: call     0x21e74b0
+021E8275: push     0xbff8
+021E827A: call     0x24c14c0
+021E827F: sub      esp, 0x1c
+021E8282: mov      ecx, esp
+021E8284: mov      dword ptr [ebp - 0x18], esp
+021E8287: push     eax
+021E8288: call     0x2b800
+021E828D: push     3
+021E828F: sub      esp, 8
+021E8292: mov      ecx, esp
+021E8294: mov      dword ptr [ebp - 0x14], esp
+021E8297: push     edi
+021E8298: mov      byte ptr [ebp - 4], 0xb
+021E829C: mov      dword ptr [ecx], ebx
+021E829E: mov      dword ptr [ecx + 4], ebx
+021E82A1: call     0xe1d970
+021E82A6: push     2
+021E82A8: mov      ecx, esi
+021E82AA: mov      byte ptr [ebp - 4], bl
+021E82AD: call     0x21e74b0
+021E82B2: push     0xbff9
+021E82B7: call     0x24c14c0
+021E82BC: sub      esp, 0x1c
+021E82BF: mov      ecx, esp
+021E82C1: mov      dword ptr [ebp - 0x18], esp
+021E82C4: push     eax
+021E82C5: call     0x2b800
+021E82CA: push     6
+021E82CC: sub      esp, 8
+021E82CF: mov      ecx, esp
+021E82D1: mov      dword ptr [ebp - 0x14], esp
+021E82D4: push     edi
+021E82D5: mov      byte ptr [ebp - 4], 0xc
+021E82D9: mov      dword ptr [ecx], ebx
+021E82DB: mov      dword ptr [ecx + 4], ebx
+021E82DE: call     0xe1d970
+021E82E3: push     9
+021E82E5: mov      ecx, esi
+021E82E7: mov      byte ptr [ebp - 4], bl
+021E82EA: call     0x21e74b0
+021E82EF: push     0xbffa
+021E82F4: call     0x24c14c0
+021E82F9: sub      esp, 0x1c
+021E82FC: mov      ecx, esp
+021E82FE: mov      dword ptr [ebp - 0x18], esp
+021E8301: push     eax
+021E8302: call     0x2b800
+021E8307: push     8
+021E8309: sub      esp, 8
+021E830C: mov      ecx, esp
+021E830E: mov      dword ptr [ebp - 0x14], esp
+021E8311: push     edi
+021E8312: mov      byte ptr [ebp - 4], 0xd
+021E8316: mov      dword ptr [ecx], ebx
+021E8318: mov      dword ptr [ecx + 4], ebx
+021E831B: call     0xe1d970
+021E8320: push     1
+021E8322: mov      ecx, esi
+021E8324: mov      byte ptr [ebp - 4], bl
+021E8327: call     0x21e74b0
+021E832C: push     0xbffb
+021E8331: call     0x24c14c0
+021E8336: sub      esp, 0x1c
+021E8339: mov      ecx, esp
+021E833B: mov      dword ptr [ebp - 0x18], esp
+021E833E: push     eax
+021E833F: call     0x2b800
+021E8344: push     0x13
+021E8346: sub      esp, 8
+021E8349: mov      ecx, esp
+021E834B: mov      dword ptr [ebp - 0x14], esp
+021E834E: push     edi
+021E834F: mov      byte ptr [ebp - 4], 0xe
+021E8353: mov      dword ptr [ecx], ebx
+021E8355: mov      dword ptr [ecx + 4], ebx
+021E8358: call     0xe1d970
+021E835D: push     4
+021E835F: mov      ecx, esi
+021E8361: mov      byte ptr [ebp - 4], bl
+021E8364: call     0x21e74b0
+021E8369: push     0xbffe
+021E836E: call     0x24c14c0
+021E8373: sub      esp, 0x1c
+021E8376: mov      ecx, esp
+021E8378: mov      dword ptr [ebp - 0x18], esp
+021E837B: push     eax
+021E837C: call     0x2b800
+021E8381: push     0x14
+021E8383: sub      esp, 8
+021E8386: mov      ecx, esp
+021E8388: mov      dword ptr [ebp - 0x14], esp
+021E838B: push     edi
+021E838C: mov      byte ptr [ebp - 4], 0xf
+021E8390: mov      dword ptr [ecx], ebx
+021E8392: mov      dword ptr [ecx + 4], ebx
+021E8395: call     0xe1d970
+021E839A: push     8
+021E839C: mov      ecx, esi
+021E839E: mov      byte ptr [ebp - 4], bl
+021E83A1: call     0x21e74b0
+021E83A6: push     0xc004
+021E83AB: call     0x24c14c0
+021E83B0: sub      esp, 0x1c
+021E83B3: mov      ecx, esp
+021E83B5: mov      dword ptr [ebp - 0x18], esp
+021E83B8: push     eax
+021E83B9: call     0x2b800
+021E83BE: push     0xc
+021E83C0: sub      esp, 8
+021E83C3: mov      ecx, esp
+021E83C5: mov      dword ptr [ebp - 0x14], esp
+021E83C8: push     edi
+021E83C9: mov      byte ptr [ebp - 4], 0x10
+021E83CD: mov      dword ptr [ecx], ebx
+021E83CF: mov      dword ptr [ecx + 4], ebx
+021E83D2: call     0xe1d970
+021E83D7: push     ebx
+021E83D8: mov      ecx, esi
+021E83DA: mov      byte ptr [ebp - 4], bl
+021E83DD: call     0x21e74b0
+--- K value and same-index label lookup RVA 021E9E6B..021E9EB0 ---
+021E9E6B: mov      eax, dword ptr [esi + ebx*4 + 0x43c]
+021E9E72: mov      ecx, dword ptr [esi + 0x38]
+021E9E75: push     eax
+021E9E76: mov      dword ptr [ebp - 0x11c], eax
+021E9E7C: call     0x23fdab0
+021E9E81: lea      edx, [ebp - 0x13c]
+021E9E87: lea      ecx, [esi + 0x4b4]
+021E9E8D: push     edx
+021E9E8E: mov      dword ptr [ebp - 0x10c], eax
+021E9E94: mov      dword ptr [ebp - 0x13c], ebx
+021E9E9A: call     0x21e7020
+021E9E9F: cmp      dword ptr [eax], 0
+021E9EA2: je       0x21e9f51
+021E9EA8: fld1
+021E9EAA: xor      eax, eax
+--- K label draw RVA 021E9F83..021E9FD2 ---
+021E9F83: lea      ecx, [ebp - 0x1b0]
+021E9F89: push     ecx
+021E9F8A: lea      ecx, [esi + 0x4b4]
+021E9F90: mov      dword ptr [ebp - 0x1b0], ebx
+021E9F96: call     0x21e7020
+021E9F9B: cmp      dword ptr [eax + 0x20], 8
+021E9F9F: jb       0x21e9fa6
+021E9FA1: mov      eax, dword ptr [eax + 0xc]
+021E9FA4: jmp      0x21e9fa9
+021E9FA6: add      eax, 0xc
+021E9FA9: mov      edx, dword ptr [ebp - 0x15c]
+021E9FAF: push     eax
+021E9FB0: mov      eax, dword ptr [ebp - 0x108]
+021E9FB6: push     0xff373790
+021E9FBB: push     edx
+021E9FBC: mov      edx, dword ptr [ebp - 0x130]
+021E9FC2: lea      ecx, [edi + eax + 0xb]
+021E9FC6: push     ecx
+021E9FC7: add      edx, 0xb
+021E9FCA: push     edx
+021E9FCB: mov      ecx, esi
+021E9FCD: call     0x21e33a0

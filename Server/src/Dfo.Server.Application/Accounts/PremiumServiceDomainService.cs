@@ -6,20 +6,35 @@ using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.Accounts;
 
 internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
-    IDomainTransactionAccessor transactions, TimeProvider clock) : IPremiumServiceDomainService
+    IDomainTransactionAccessor transactions, TimeProvider clock, IPremiumServiceRuleService rules) : IPremiumServiceDomainService
 {
+    public async ValueTask<int> GetBossEquipmentDropBonusPercentAsync(IReadOnlyList<AccountId> participants,
+        CancellationToken cancellationToken)
+    {
+        if (participants.Count is < 1 or > 4) throw new ArgumentOutOfRangeException(nameof(participants));
+        var count = 0;
+        foreach (var account in participants)
+            if (await For(account).IsActiveAsync(PremiumServiceType.GrowthContract, cancellationToken).ConfigureAwait(false))
+                count++;
+        return rules.GrowthBossEquipmentBonusPercent(count);
+    }
+
     public IAccountPremiumServices For(AccountId accountId)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(accountId.Value);
-        return new AccountServices(accountId, table, transactions, clock);
+        return new AccountServices(accountId, table, transactions, clock, rules);
     }
 
     private sealed class AccountServices(AccountId accountId, IAccountPremiumTable table,
-        IDomainTransactionAccessor transactions, TimeProvider clock) : IAccountPremiumServices
+        IDomainTransactionAccessor transactions, TimeProvider clock, IPremiumServiceRuleService rules) : IAccountPremiumServices
     {
         public async ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken) =>
             (await table.ReadAsync(accountId, cancellationToken).ConfigureAwait(false))
                 .Select(row => new AccountPremiumEntryState(row.PremiumType, row.ExpiresAtUnixSeconds)).ToArray();
+
+        public async ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken) =>
+            await IsActiveAsync(PremiumServiceType.GrowthContract, cancellationToken).ConfigureAwait(false)
+                ? rules.GrowthExperienceBonusRate : 0;
 
         public async ValueTask<bool> IsActiveAsync(PremiumServiceType type, CancellationToken cancellationToken)
         {

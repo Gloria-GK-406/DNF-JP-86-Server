@@ -74,7 +74,9 @@ public sealed record ItemUseRule(
     int MinimumLevel,
     ItemJobRestriction Jobs,
     ItemPlaceRestriction Places,
-    bool HasUnreadableDeclaration = false)
+    bool HasUnreadableDeclaration = false,
+    double ExpBonusRate = 0,
+    int EffectDurationMilliseconds = 0)
 {
     /// <summary>
     /// Whether every restriction this item declares could be read.

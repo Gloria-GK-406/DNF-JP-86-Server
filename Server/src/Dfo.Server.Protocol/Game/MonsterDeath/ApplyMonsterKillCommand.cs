@@ -38,8 +38,7 @@ public sealed record ApplyMonsterKillResult(
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
 /// </summary>
 public sealed class ApplyMonsterKillCommandHandler(
-    IExperienceValuationDomainService valuation,
-    IExperienceBonusDomainService bonuses,
+    IExperienceCalculationDomainService calculation,
     ICharacterExperienceDomainService experience,
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
@@ -64,8 +63,7 @@ public sealed class ApplyMonsterKillCommandHandler(
 
         var awarded = command.EnemyType == HuntEnemyTargetTypes.Monster
             ? await GrantKillExperienceCommandHandler.AwardAsync(
-                valuation,
-                bonuses,
+                calculation,
                 experience,
                 new GrantKillExperienceCommand(
                     command.AccountId,

@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -32,6 +33,115 @@ public sealed class UseStackableHandlerTests
 {
     /// <summary>The level on the character's own row, which is what a use is judged against.</summary>
     private const byte RowLevel = 50;
+
+    [Fact]
+    public async Task Spirit_potion_starts_only_after_consumption_commits()
+    {
+        var inventory = new FakeInventory(3, 7377, 2, 2);
+        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
+
+        await using (var transaction = inventory.Scope.Begin())
+        {
+            var result = await setup.Command.HandleAsync(UseContext,
+                SpiritCommand(), CancellationToken.None);
+            Assert.Equal(ItemUseStatus.Used, result.Status);
+            Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(1, inventory.Count);
+        Assert.Equal(1, setup.Potion.GetBonusRate(new CharacterId(60)));
+    }
+
+    [Fact]
+    public async Task Rolled_back_consumption_does_not_start_spirit_potion()
+    {
+        var inventory = new FakeInventory(3, 7377, 2, 2);
+        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
+
+        await using (inventory.Scope.Begin())
+        {
+            var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+            Assert.Equal(ItemUseStatus.Used, result.Status);
+        }
+
+        Assert.Equal(2, inventory.Count);
+        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+    }
+
+    [Fact]
+    public async Task Late_commit_after_session_exit_does_not_restore_spirit_potion()
+    {
+        var inventory = new FakeInventory(3, 7377, 2, 2);
+        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
+
+        await using (var transaction = inventory.Scope.Begin())
+        {
+            var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+            Assert.Equal(ItemUseStatus.Used, result.Status);
+            Assert.True(setup.Sessions.ReleaseExact(OneSession.Session));
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+    }
+
+    [Fact]
+    public async Task Replaced_session_rejects_old_spirit_potion_commit()
+    {
+        var inventory = new FakeInventory(3, 7377, 2, 2);
+        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
+
+        await using (var transaction = inventory.Scope.Begin())
+        {
+            var result = await setup.Command.HandleAsync(UseContext, SpiritCommand(), CancellationToken.None);
+            Assert.Equal(ItemUseStatus.Used, result.Status);
+            setup.Sessions.Select(OneSession.Session with
+            {
+                ConnectionId = new NetworkConnectionId("game-replacement"),
+                ConnectionGeneration = 2,
+            });
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+    }
+
+    [Fact]
+    public async Task Replaced_session_before_command_rejects_old_potion_use()
+    {
+        var inventory = new FakeInventory(3, 7377, 2, 2);
+        var setup = BuildDetailed(inventory, (7377, SpiritRule()));
+        setup.Sessions.Select(OneSession.Session with
+        {
+            ConnectionId = new NetworkConnectionId("game-replacement"),
+            ConnectionGeneration = 2,
+        });
+
+        await using (var transaction = inventory.Scope.Begin())
+        {
+            var result = await setup.Command.HandleAsync(UseContext,
+                SpiritCommand(), CancellationToken.None);
+            Assert.Equal(ItemUseStatus.NoSession, result.Status);
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(2, inventory.Count);
+        Assert.Equal(0, setup.Potion.GetBonusRate(new CharacterId(60)));
+    }
+
+    private static ItemUseRule SpiritRule() => ItemUseRules.Potion(cooldownMilliseconds: 0) with
+    {
+        ExpBonusRate = 1,
+        EffectDurationMilliseconds = 7_200_000,
+    };
+
+    private static UseStackableCommand SpiritCommand() =>
+        new(OneSession.Session, new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 7377);
+
+    private static readonly CommandExecutionContext UseContext = new(
+        Guid.Empty, typeof(UseStackableCommand), typeof(UseStackableCommandHandler),
+        CommandExecutionKind.Transactional);
 
     [Fact]
     public async Task One_item_leaves_the_pile()
@@ -298,6 +408,15 @@ public sealed class UseStackableHandlerTests
         FakeInventory inventory,
         params (int ItemId, ItemUseRule Rule)[] rules)
     {
+        var setup = BuildDetailed(inventory, rules);
+        return (setup.Handler, setup.Sender);
+    }
+
+    private static (UseStackableHandler Handler, RecordingSender Sender,
+        UseStackableCommandHandler Command, SpiritPotionDomainService Potion,
+        OneSession Sessions) BuildDetailed(
+        FakeInventory inventory, params (int ItemId, ItemUseRule Rule)[] rules)
+    {
         var declared = rules.Length == 0
             ? [(8474, ItemUseRules.Potion(cooldownMilliseconds: 0))]
             : rules;
@@ -305,6 +424,7 @@ public sealed class UseStackableHandlerTests
         var clock = new AdvanceableTimeProvider(
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         var cooldowns = new CharacterItemCooldownDomainService(clock);
+        var potion = new SpiritPotionDomainService(clock);
         var sessions = new OneSession();
         var sender = new RecordingSender();
 
@@ -312,6 +432,7 @@ public sealed class UseStackableHandlerTests
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers();
         var commandHandler = new UseStackableCommandHandler(
+            sessions,
             new BusinessInventorySlotDomainService(containers, mappings),
             new OneCharacter(new PlayingCharacter(
                 new CharacterId(60),
@@ -322,7 +443,8 @@ public sealed class UseStackableHandlerTests
                 new StoredCarryLimitOnly(),
                 CharacterRow.At(RowLevel),
                 new NoSkillPointLedger(), null!, null!)),
-            new ItemUseEffectDomainService(judgement, cooldowns));
+            new ItemUseEffectDomainService(judgement, cooldowns,
+                potion, sessions, inventory.Scope));
 
         return (
             new UseStackableHandler(
@@ -331,7 +453,7 @@ public sealed class UseStackableHandlerTests
                 new DirectCommandBus(use: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<UseStackableHandler>.Instance),
-            sender);
+            sender, commandHandler, potion, sessions);
     }
 
 
@@ -358,15 +480,27 @@ public sealed class UseStackableHandlerTests
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
-        private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
+        internal static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-use"), 1, 10011);
 
-        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
-        public bool ReleaseExact(SelectedSessionIdentity session) => false;
-        public SelectedSessionIdentity? Find(AccountId accountId) => Session;
-        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
-        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
-        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
+        private SelectedSessionIdentity? current = Session;
+
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session)
+        {
+            var previous = current;
+            current = session;
+            return previous;
+        }
+        public bool ReleaseExact(SelectedSessionIdentity session)
+        {
+            if (current != session) return false;
+            current = null;
+            return true;
+        }
+        public SelectedSessionIdentity? Find(AccountId accountId) => current;
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => current;
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => current;
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => current;
     }
 
     private sealed class RecordingSender : IGameMessageSender

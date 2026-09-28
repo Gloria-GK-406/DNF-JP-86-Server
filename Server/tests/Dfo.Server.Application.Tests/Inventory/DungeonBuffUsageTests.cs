@@ -18,6 +18,8 @@ public sealed class DungeonBuffUsageTests
     {
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
+        public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents() => new[] {20, 23, 27, 30};
+        public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadDungeonBuffDailyLimit() => 10;
         public int ReadFreeWeaknessDailyLimit() => 10;
@@ -127,13 +129,15 @@ public sealed class DungeonBuffUsageTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Crystal_expiry_sends_one_zero_notice_and_rejects_qualification(bool expiredBeforeFirstTick)
+    [InlineData(false, 97)]
+    [InlineData(false, 84)]
+    [InlineData(true, 97)]
+    [InlineData(true, 84)]
+    public async Task Contract_expiry_sends_one_zero_notice_and_rejects_qualification(bool expiredBeforeFirstTick, int type)
     {
         using var shop = Fixture(false);
         var now = shop.Clock.GetUtcNow();
-        shop.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,97,{now.AddMinutes(expiredBeforeFirstTick ? -1 : 1).ToUnixTimeSeconds()})");
+        shop.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,{type},{now.AddMinutes(expiredBeforeFirstTick ? -1 : 1).ToUnixTimeSeconds()})");
         var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
         await refresh.RefreshAsync(default);
         shop.Clock.Advance(TimeSpan.FromMinutes(1));
@@ -143,10 +147,10 @@ public sealed class DungeonBuffUsageTests
         var registration = shop.Services.GetServices<ServerMessageEncoderRegistration>().Single(x => x.MessageType == notice.GetType());
         var frame = Assert.Single(((IServerMessageEncoder)shop.Services.GetRequiredService(registration.EncoderType)).Encode(notice));
         Assert.Equal(0x0042, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
-        Assert.Equal(97, frame[17]);
+        Assert.Equal(type, frame[17]);
         Assert.Equal(0, BinaryPrimitives.ReadInt64LittleEndian(frame.AsSpan(18, 8)));
         Assert.False(await shop.Services.GetRequiredService<IPremiumServiceDomainService>().For(shop.Session.AccountId)
-            .IsActiveAsync(PremiumServiceType.CrystalContract, default));
+            .IsActiveAsync((PremiumServiceType)type, default));
         // A renewal can expire again; the old expiry notice must not suppress the new transition.
         shop.Sql($"UPDATE account_premiums SET end_time={shop.Clock.GetUtcNow().AddMinutes(1).ToUnixTimeSeconds()}");
         await refresh.RefreshAsync(default);

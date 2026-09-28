@@ -10,6 +10,13 @@ internal sealed class PvfDropItemReader
     private readonly PvfArchive archive;
     private readonly Dictionary<int, (string Path, DropItemKind Kind)> paths = [];
     private readonly Dictionary<int, RolledDrop?> items = [];
+    private readonly HashSet<int> bossEquipment = [];
+
+    public bool IsBossEquipment(int id)
+    {
+        _ = Get(id);
+        return bossEquipment.Contains(id);
+    }
 
     public PvfDropItemReader(PvfArchive archive)
     {
@@ -53,6 +60,10 @@ internal sealed class PvfDropItemReader
         }
         var rarity = Field("[rarity]", 0);
         var durability = Field("[durability]", 0);
+        if (path.Kind == DropItemKind.Equipment && rarity == (int)DropRarity.Unique
+            && sections.Any(s => s.Name == "[item category]" && s.Values.Any(t =>
+                t.IsString && archive.ResolveString(t.Value) == "boss drop")))
+            bossEquipment.Add(id);
         if (!Enum.IsDefined((DropRarity)rarity) || durability < 0 || durability > ushort.MaxValue)
             throw new InvalidDataException($"Invalid drop metadata for item {id} in {path.Path}.");
         return items[id] = new RolledDrop(id, 1, (DropRarity)rarity, path.Kind, (ushort)durability);

@@ -6,6 +6,22 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfCeraShopDefinitionSourceTests
 {
+    [SkippableTheory]
+    [InlineData(292736, 2660409, 3, 790)]
+    [InlineData(292738, 2660411, 15, 1290)]
+    public async Task Growth_contract_catalog_products_keep_their_price_and_premium_term(
+        int productId, int itemId, int days, int price)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var product = await new PvfCeraShopDefinitionSource(provider).GetProductAsync(productId, default);
+        Assert.NotNull(product);
+        Assert.Equal((itemId, 1, price), (product.ItemId, product.Count, product.Price?.Cera));
+        Assert.Empty(product.Diagnostics);
+        Assert.True(product.IsService);
+        Assert.Equal(new CeraShopPremiumDeclaration(84, TimeSpan.FromDays(days)), product.Premium);
+    }
+
     [SkippableFact]
     public async Task Knight_coat_shared_ability_case_preserves_sparse_option_ids()
     {

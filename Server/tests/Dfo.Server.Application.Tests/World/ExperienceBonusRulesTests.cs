@@ -4,15 +4,6 @@ using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.Tests.World;
 
-/// <summary>
-/// What an account's entitlements add to an award, and for how long.
-/// </summary>
-/// <remarks>
-/// The rates are policy, not content: every one of the fifty-two premium types in
-/// <c>etc/(r)premiumlist.etc</c> declares an empty <c>[bonus]</c>, so nothing in the archive says
-/// what a premium term is worth. An unconfigured server therefore adds nothing, and these tests
-/// configure a rate to check the rule rather than to assert a number anyone measured.
-/// </remarks>
 public sealed class ExperienceBonusRulesTests
 {
     private static readonly DateTimeOffset Now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
@@ -50,19 +41,14 @@ public sealed class ExperienceBonusRulesTests
     public void AnUnconfiguredTypeAddsNothing() =>
         Assert.Empty(Collect(Configured, Premium(type: 9, expiresIn: TimeSpan.FromDays(30))));
 
-    /// <remarks>
-    /// Zero and below are read as a row that carries no end rather than as one that ended in 1970.
-    /// The account tables use them for exactly that, and treating them as expired would silently
-    /// retire whatever an operator had configured.
-    /// </remarks>
     [Theory]
     [InlineData(0L)]
     [InlineData(-1L)]
-    public void AnEntitlementWithNoDeclaredEndIsStillHeld(long expiresAt)
+    public void AnEntitlementWithNoDeclaredEndIsInactive(long expiresAt)
     {
         var found = Collect(Configured, new AccountPremiumEntryState(1, expiresAt));
 
-        Assert.Single(found);
+        Assert.Empty(found);
     }
 
     /// <summary>Two held entitlements report two contributions, not one combined.</summary>
@@ -172,6 +158,13 @@ public sealed class ExperienceBonusRulesTests
         var found = Collect(Configured, Premium(type: 1, expiresIn: TimeSpan.FromDays(30)));
 
         Assert.Equal(ExperienceBonusKind.Unlisted, Assert.Single(found).Kind);
+    }
+
+    [Fact]
+    public void Growth_ignores_legacy_operator_rate_to_prevent_double_payment()
+    {
+        Assert.Empty(Collect(new ExperienceEntitlementPolicy(new Dictionary<int, double> { [84] = 2 }),
+            Premium(84, TimeSpan.FromDays(1))));
     }
 
     private static AccountPremiumEntryState Premium(int type, TimeSpan expiresIn) =>

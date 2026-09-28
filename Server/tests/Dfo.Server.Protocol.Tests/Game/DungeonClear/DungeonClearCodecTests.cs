@@ -23,7 +23,41 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 /// </remarks>
 public sealed class DungeonClearCodecTests
 {
+    [Fact]
+    public void Clear_growth_potion_and_historical_growth_use_distinct_client_slots()
+    {
+        var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20);
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20,
+            killExperience: new(GrowthContract: 19),
+            experience: new(Base: 100, ClearRank: 20, GrowthContract: 13, SpiritPotion: 11));
+        Assert.Equal(11u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(21)));
+        Assert.Equal(13u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(53)));
+        Assert.Equal(19u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(89)));
+        Assert.Equal(144u, BinaryPrimitives.ReadUInt32LittleEndian(body)
+            + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(4))
+            + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(21))
+            + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(53)));
+        Assert.Equal(baseline.Length, body.Length);
+        foreach (var offset in new[] { 21, 53, 89 }) body.AsSpan(offset, 4).Clear();
+        Assert.Equal(baseline, body);
+    }
+
     /// <summary>The exit opens on one byte, and the byte is zero.</summary>
+    [Fact]
+    public void KillCategoriesAreDisplayOnlyAndDoNotChangeClearAwardOrCardLayout()
+    {
+        var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70);
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70,
+            killExperience: new Dfo.Server.Abstractions.World.DungeonKillExperienceSummary(
+                Ordinary: 100, Champion: 200, SuperChampion: 300, Boss: 400));
+        Assert.Equal(baseline.Length, body.Length);
+        Assert.Equal(200u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(143)));
+        Assert.Equal(300u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(147)));
+        Assert.Equal(400u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(151)));
+        Assert.Equal(baseline[..139], body[..139]);
+        Assert.Equal(baseline[155..], body[155..]);
+    }
+
     [Fact]
     public void Party_reward_row_preserves_each_seats_gold_and_equipment()
     {

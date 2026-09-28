@@ -51,6 +51,36 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
             throw new InvalidDataException("Invalid free stamina daily limit.");
         return section.Values[1].Value;
     }
+    public double ReadGrowthExperienceBonusRate()
+    {
+        var type = 0;
+        foreach (var section in PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"))
+        {
+            if (section.Name == "[type]" && section.Values.Count == 1)
+                type = section.Values[0].Value;
+            if (type != 84 || section.Name != "[bonus exp]") continue;
+            if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32
+                || section.Values[0].Value < 0)
+                throw new InvalidDataException("Invalid growth contract experience rate.");
+            return section.Values[0].Value / 100d;
+        }
+        throw new InvalidDataException("Missing growth contract experience rate.");
+    }
+
+    public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents()
+    {
+        var type = 0;
+        foreach (var section in PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"))
+        {
+            if (section.Name == "[type]" && section.Values.Count == 1) type = section.Values[0].Value;
+            if (type != 84 || section.Name != "[independent drop rate]") continue;
+            if (section.Values.Count != 4 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32 || v.Value < 0))
+                throw new InvalidDataException("Invalid growth contract boss equipment rates.");
+            return Array.AsReadOnly(section.Values.Select(v => v.Value).ToArray());
+        }
+        throw new InvalidDataException("Missing growth contract boss equipment rates.");
+    }
+
     public PremiumContractLevels ReadContractLevels()
     {
         var type = 0; var skill = 0; var equipment = 0;

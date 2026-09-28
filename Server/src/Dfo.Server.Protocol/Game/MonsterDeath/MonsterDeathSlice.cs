@@ -75,22 +75,19 @@ internal sealed class ExperienceBonusLines
     /// </remarks>
     public static ExperienceBonusLines Of(ExperienceAward? award)
     {
-        if (award is null || award.Contributions.Count == 0)
-            return None;
-
+        if (award is null) return None;
+        var b = award.Breakdown;
         var amounts = new uint[KindCount];
-        foreach (var contribution in award.Contributions)
-        {
-            if (contribution.Kind is ExperienceBonusKind.Unlisted)
-                continue;
-
-            // Saturating: the frame's field is a u32, and a sum that wrapped would draw a line
-            // smaller than the amount it stands for -- which is exactly the breakdown error this
-            // whole type exists to prevent.
-            var total = (ulong)amounts[(int)contribution.Kind] + contribution.Amount;
-            amounts[(int)contribution.Kind] = total > uint.MaxValue ? uint.MaxValue : (uint)total;
-        }
-
+        amounts[(int)ExperienceBonusKind.PartyReward] = b.Party;
+        amounts[(int)ExperienceBonusKind.FatigueBuff] = b.FatigueBuff;
+        amounts[(int)ExperienceBonusKind.SeriaBlessing] = b.Channel;
+        amounts[(int)ExperienceBonusKind.GrowthContract] = b.GrowthContract;
+        amounts[(int)ExperienceBonusKind.FatigueBurn] = b.FatigueBurning;
+        amounts[(int)ExperienceBonusKind.InternetCafe] = b.InternetCafe;
+        amounts[(int)ExperienceBonusKind.RapidGrowthBuff] = b.RapidGrowthBuff;
+        amounts[(int)ExperienceBonusKind.SeriaWelcome] = b.SeriaWelcome;
+        amounts[(int)ExperienceBonusKind.GuildReward] = b.Guild;
+        // Potion and clear-rank amounts stay in the base display until their wire slots are proven.
         return new ExperienceBonusLines(amounts);
     }
 
@@ -344,10 +341,16 @@ internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathN
             MonsterDeathPayloadCodec.EncodeMonsterDeath(message));
 }
 
-internal sealed class MonsterDeathDecoder : IGameMessageDecoder
+internal sealed class MonsterDeathDecoder(
+    ILogger<MonsterDeathDecoder>? logger = null) : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
+        if (logger?.IsEnabled(LogLevel.Trace) == true)
+            logger.LogTrace(
+                "DIE_MONSTER capture metadata={Metadata} body({BodyLength}B)={Body}",
+                metadata, body.Length, Convert.ToHexString(body));
+
         // A21: u32 actor/object code, u16 killer, four u32 values, then count x 10.
         if (body.Length < MonsterDeathPayloadCodec.MinimumBodyLength)
             throw new InvalidDataException("DIE_MONSTER has a truncated A21 prefix.");
@@ -520,7 +523,7 @@ public sealed class MonsterDeathHandler(
                             run.IsBossRoom && verifiedKill.IsMonster
                                 && verifiedKill.Rank == MonsterRank.Boss),
                         cancellationToken).ConfigureAwait(false);
-                    if (!runs.CommitParticipantKillEffect(effectClaim))
+                    if (!runs.CommitParticipantKillEffect(effectClaim, appliedKill?.Award))
                     {
                         throw new InvalidOperationException(
                             "The participant kill effect claim was no longer current.");
@@ -809,7 +812,7 @@ public sealed class MonsterDeathHandler(
                             deathClaim.Run.IsBossRoom && verifiedKill.IsMonster
                                 && verifiedKill.Rank == MonsterRank.Boss),
                         cancellationToken).ConfigureAwait(false);
-                    if (!runs.CommitParticipantKillEffect(effectClaim))
+                    if (!runs.CommitParticipantKillEffect(effectClaim, applied.Award))
                     {
                         throw new InvalidOperationException(
                             "The participant kill effect claim was no longer current.");

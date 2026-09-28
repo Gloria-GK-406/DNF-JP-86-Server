@@ -154,6 +154,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 new SelectedSessionRuntimeDirectory(),
                 new CharacterContainerDomainService(),
                 new CharacterItemCooldownDomainService(TimeProvider.System),
+                new SpiritPotionDomainService(TimeProvider.System),
                 failAfterPartyCleanup
                     ? new ThrowingActiveCharacters()
                     : new PassiveActiveCharacters(),

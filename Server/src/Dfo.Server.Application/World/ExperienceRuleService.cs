@@ -20,7 +20,6 @@ internal sealed class ExperienceRuleService(
     IDungeonRankGradeSource rankGrades,
     IDungeonExperienceProgressionPolicySource progression,
     IChannelExperienceSource channels,
-    IQuestContentRuleService quests,
     ExperienceTuning tuning,
     ExperienceEntitlementPolicy entitlements) : IExperienceRuleService
 {
@@ -33,7 +32,7 @@ internal sealed class ExperienceRuleService(
     public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear)
     {
         var settings = parameters.Load();
-        var clearBase = DungeonClearExperienceRules.BaseWorth(clear, quests.Parameters(), settings);
+        var clearBase = DungeonClearExperienceRules.BaseWorth(clear, tuning, settings);
         return new ClearExperienceWorth(
             clearBase,
             DungeonClearExperienceRules.RankBonus(

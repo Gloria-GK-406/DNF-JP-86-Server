@@ -7,7 +7,7 @@ on:
         default: false
       version:
         type: string
-        default: 0.0.0-ci
+        default: ''
 permissions:
   contents: read
 jobs:

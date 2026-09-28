@@ -15,4 +15,3 @@ jobs:
     uses: ./.github/workflows/validate.yml
     with:
       package: true
-      version: 0.0.0-ci

@@ -98,7 +98,8 @@ public sealed class FinishQuestCommandHandler(
     ICharacterDomainService characters,
     IQuestProgressDomainService questProgress,
     IItemGrantDomainService itemGrants,
-    ICharacterCareerDomainService careers)
+    ICharacterCareerDomainService careers,
+    IExperienceCalculationDomainService calculation)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(
@@ -220,7 +221,9 @@ public sealed class FinishQuestCommandHandler(
             // same total for two completions of one quest.
             var award = await grant.AwardAsync(
                 command.CharacterId,
-                _ => new ExperienceValuation(reward.Experience, []),
+                level => calculation.CalculateAsync(new QuestExperienceContext(
+                    new ExperienceOccasion(ExperienceEvent.QuestCompletion, command.AccountId,
+                        command.CharacterId, 0), reward.Experience), level, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
 
             // No character to award to, or a row that would not take the write. Both were refusals

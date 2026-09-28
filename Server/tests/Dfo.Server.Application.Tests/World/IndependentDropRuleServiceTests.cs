@@ -13,6 +13,50 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class IndependentDropRuleServiceTests
 {
+    private sealed class FixedTable(IndependentDropTable table) : IIndependentDropTableSource
+    {
+        public IndependentDropTable Load() => table;
+    }
+
+    [Theory]
+    [InlineData(6288, 20, 7545)]
+    [InlineData(6288, 30, 8174)]
+    [InlineData(10000, 23, 12300)]
+    [InlineData(10000, 27, 12700)]
+    [InlineData(900000, 30, 1000000)]
+    public void Growth_changes_outer_probability_with_integer_truncation(int basis, int bonus, int expected) =>
+        Assert.Equal(expected, IndependentDropRuleService.GrowthProbability(basis, bonus, false));
+
+    [Fact]
+    public void Acceptance_override_requires_contract_boss_and_pure_equipment_pool_and_keeps_cache_unchanged()
+    {
+        var pool = Row(item:0, mode:1, choices:[new(100, 1), new(101, 3)]);
+        var mixed = pool with { Ordinal = 1, Choices = [new(100, 1), new(102, 1)] };
+        var direct = Row(item:100, ordinal:2);
+        var apc = pool with { Ordinal = 3, Fields = pool.Fields.SetItem(0, 1) };
+        var table = new IndependentDropTable([pool, mixed, direct, apc],
+            new[] {100,101,102}.ToImmutableDictionary(id=>id,
+                id=>(RolledDrop?)new RolledDrop(id,1,DropRarity.Unique,DropItemKind.Equipment)))
+            { BossEquipmentIds = [100,101], GrowthBonusDungeonIds = [144] };
+        var source = new FixedTable(table);
+        var service = new IndependentDropRuleService(source, () => throw new InvalidOperationException(),
+            NullLogger<IndependentDropRuleService>.Instance,
+            new IndependentDropOptions { DebugGuaranteeGrowthBossEquipment = true });
+        var request = Request() with { Context = Request().Context with { Difficulty = 0, MonsterRank = 3 } };
+        // All rows have zero base probability in Normal: only the tagged pool may be forced.
+        var rewards = Enumerable.Range(1, 1000).Select(seed => Assert.Single(service.Draw(request with {
+            Context = request.Context with { Seed = seed } }, 20, 20))).ToArray();
+        Assert.InRange(rewards.Count(d=>d.ItemId==100), 200, 300);
+        Assert.All(rewards, d=>Assert.Contains(d.ItemId, new[] {100,101}));
+        Assert.Empty(service.Draw(request,20,0));
+        Assert.Empty(service.Draw(request with {Context=request.Context with {DungeonId=999}},20,20));
+        Assert.Empty(service.Draw(request with {Context=request.Context with {MonsterRank=0}},20,20));
+        Assert.Empty(service.Draw(request with {Context=request.Context with {SourceType=IndependentDropSourceType.APC}},20,20));
+        var normal = new IndependentDropRuleService(source, () => throw new InvalidOperationException(), NullLogger<IndependentDropRuleService>.Instance);
+        Assert.Empty(normal.Draw(request,20,20));
+        Assert.Equal(0, table.Rows[0].Fields[3]);
+    }
+
     [Fact]
     public void Production_registration_prewarms_without_resolving_character_runtime()
     {

@@ -792,6 +792,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     }
 
     public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
+        => this.CommitParticipantKillEffect(claim, null);
+
+    public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim, ExperienceAward? award)
     {
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
@@ -804,7 +807,17 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 return false;
             }
 
-            return aggregate.CompletedKillEffects.Add(effect);
+            if (!aggregate.CompletedKillEffects.Add(effect)) return false;
+            if (award is not null && claim.Death.ActorState is { IsMonster: true } actor)
+            {
+                var summary = aggregate.KillExperiences.GetValueOrDefault(claim.CharacterId) ?? new();
+                aggregate.KillExperiences[claim.CharacterId] = summary.Add(
+                    (MonsterRank)actor.Actor.ActorType, award.Breakdown.Base) with
+                {
+                    GrowthContract = checked(summary.GrowthContract + award.Breakdown.GrowthContract),
+                };
+            }
+            return true;
         }
     }
 
@@ -1601,6 +1614,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public long EntryRevision { get; set; } = 1;
         public long RuntimeRevision { get; set; }
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
+        public Dictionary<CharacterId, DungeonKillExperienceSummary> KillExperiences { get; } = [];
+
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> BuffParticipants { get; } = [];
@@ -1671,6 +1686,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 DeadParticipants = this.DeadParticipants.ToImmutableHashSet(),
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
                 Kills = this.kills.ToImmutableArray(),
+                KillExperience = this.KillExperiences.GetValueOrDefault(characterId) ?? new(),
             };
         }
     }

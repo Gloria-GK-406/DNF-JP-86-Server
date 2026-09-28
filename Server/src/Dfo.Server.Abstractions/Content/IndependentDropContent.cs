@@ -18,7 +18,18 @@ public sealed record IndependentDropRow(int Ordinal, ImmutableArray<int> Fields,
 
 public readonly record struct IndependentDropChoice(int ItemId, int Weight);
 public sealed record IndependentDropTable(ImmutableArray<IndependentDropRow> Rows,
-    ImmutableDictionary<int, RolledDrop?> Items);
+    ImmutableDictionary<int, RolledDrop?> Items)
+{
+    public ImmutableHashSet<int> BossEquipmentIds { get; init; } = [];
+    // Conservative server policy: explicit special dungeon declarations are excluded.
+    public ImmutableHashSet<int> GrowthBonusDungeonIds { get; init; } = [];
+}
+
+public sealed class IndependentDropOptions
+{
+    // Temporary acceptance aid. Only eligible growth-contract pools are forced to hit.
+    public bool DebugGuaranteeGrowthBossEquipment { get; init; }
+}
 public interface IIndependentDropTableSource
 {
     IndependentDropTable Load();
@@ -29,5 +40,6 @@ public enum IndependentDropSourceType { Monster = 0, APC = 1 }
 public interface IIndependentDropRuleService
 {
     int Initialize();
-    ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken cancellationToken,
+        int growthBonusPercent = 0);
 }

@@ -184,7 +184,7 @@ public sealed class ComponentLifecycleTests
             if (!Release.Wait(TimeSpan.FromSeconds(20))) throw new TimeoutException("Test did not release preparation");
             throw new InvalidDataException("content unavailable");
         }
-        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken cancellationToken) =>
+        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken cancellationToken, int growthBonusPercent = 0) =>
             throw new NotSupportedException();
         public void Dispose() => Release.Dispose();
     }

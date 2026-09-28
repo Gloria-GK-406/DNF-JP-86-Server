@@ -55,6 +55,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
+            new SpiritPotionDomainService(TimeProvider.System),
             new ThrowingActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
             new CharacterVitalRuntimeDomainService(),
@@ -84,6 +85,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
+            new SpiritPotionDomainService(TimeProvider.System),
             new ThrowingActive(), presence, stores, new PvpLobbyDomainService(),
             [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
             new DungeonRunDomainService(), []);
@@ -132,6 +134,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
+            new SpiritPotionDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
             [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
             new DungeonRunDomainService(), []);
@@ -175,6 +178,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, runtimes, new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
+            new SpiritPotionDomainService(TimeProvider.System),
             new PassiveActive(),
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
             [persistence], positions, new CharacterVitalRuntimeDomainService(), new PassiveParties(), new DungeonRunDomainService(), []);
@@ -206,6 +210,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
+            new SpiritPotionDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
             [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
             runs, [departure]);
@@ -236,9 +241,12 @@ public sealed class SessionGenerationOwnershipTests
         directory.Select(session);
         var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
         cooldowns.Start(session.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+        var potion = new SpiritPotionDomainService(TimeProvider.System);
+        potion.Apply(session.CharacterId, 1, TimeSpan.FromHours(2));
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(),
             new CharacterContainerDomainService(), cooldowns,
+            potion,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
             new CharacterVitalRuntimeDomainService(),
@@ -248,6 +256,7 @@ public sealed class SessionGenerationOwnershipTests
 
         Assert.False(
             cooldowns.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
+        Assert.Equal(0, potion.GetBonusRate(session.CharacterId));
     }
 
     /// <remarks>
@@ -263,9 +272,12 @@ public sealed class SessionGenerationOwnershipTests
         directory.Select(returned);
         var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
         cooldowns.Start(returned.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+        var potion = new SpiritPotionDomainService(TimeProvider.System);
+        potion.Apply(returned.CharacterId, 1, TimeSpan.FromHours(2));
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(),
             new CharacterContainerDomainService(), cooldowns,
+            potion,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
             new CharacterVitalRuntimeDomainService(),
@@ -275,6 +287,7 @@ public sealed class SessionGenerationOwnershipTests
 
         Assert.True(
             cooldowns.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));
+        Assert.Equal(1, potion.GetBonusRate(returned.CharacterId));
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>

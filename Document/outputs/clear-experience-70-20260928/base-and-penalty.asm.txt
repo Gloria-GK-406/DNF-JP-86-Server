@@ -1,0 +1,187 @@
+
+### 08360a6e _ZNK12CDataManager14get_mob_rewardEiRj
+08360a6e push    ebp
+08360a6f mov     ebp, esp
+08360a71 cmp     dword ptr [ebp + 0xc], 0
+08360a75 jle     0x8360a80
+08360a77 cmp     dword ptr [ebp + 0xc], 0xc7
+08360a7e jle     0x8360a8b
+08360a80 mov     eax, dword ptr [ebp + 0x10]
+08360a83 mov     dword ptr [eax], 0
+08360a89 jmp     0x8360aa0
+08360a8b mov     edx, dword ptr [ebp + 0xc]
+08360a8e mov     eax, dword ptr [ebp + 8]
+08360a91 add     edx, 0x2b68
+08360a97 mov     edx, dword ptr [eax + edx*4 + 4]
+08360a9b mov     eax, dword ptr [ebp + 0x10]
+08360a9e mov     dword ptr [eax], edx
+08360aa0 pop     ebp
+08360aa1 ret
+
+### 08360914 _ZN12CDataManager14BaseExpPenaltyEii
+08360914 push    ebp
+08360915 mov     ebp, esp
+08360917 sub     esp, 0x14
+0836091a mov     eax, dword ptr [ebp + 0xc]
+0836091d mov     edx, dword ptr [ebp + 0x10]
+08360920 mov     ecx, edx
+08360922 sub     ecx, eax
+08360924 mov     eax, ecx
+08360926 mov     dword ptr [ebp - 8], eax
+08360929 cmp     dword ptr [ebp - 8], -6
+0836092d jge     0x836093c
+0836092f mov     eax, 0x3d4ccccd
+08360934 mov     dword ptr [ebp - 4], eax
+08360937 jmp     0x8360a62
+0836093c cmp     dword ptr [ebp - 8], -5
+08360940 jge     0x836094f
+08360942 mov     eax, 0x3e4ccccd
+08360947 mov     dword ptr [ebp - 4], eax
+0836094a jmp     0x8360a62
+0836094f cmp     dword ptr [ebp - 8], -5
+08360953 jne     0x8360962
+08360955 mov     eax, 0x3f000000
+0836095a mov     dword ptr [ebp - 4], eax
+0836095d jmp     0x8360a62
+08360962 cmp     dword ptr [ebp - 8], -4
+08360966 jne     0x8360975
+08360968 mov     eax, 0x3f400000
+0836096d mov     dword ptr [ebp - 4], eax
+08360970 jmp     0x8360a62
+08360975 cmp     dword ptr [ebp - 8], -3
+08360979 jne     0x8360988
+0836097b mov     eax, 0x3f800000
+08360980 mov     dword ptr [ebp - 4], eax
+08360983 jmp     0x8360a62
+08360988 cmp     dword ptr [ebp - 8], -2
+0836098c jne     0x836099b
+0836098e mov     eax, 0x3f800000
+08360993 mov     dword ptr [ebp - 4], eax
+08360996 jmp     0x8360a62
+0836099b cmp     dword ptr [ebp - 8], -1
+0836099f jne     0x83609ae
+083609a1 mov     eax, 0x3f800000
+083609a6 mov     dword ptr [ebp - 4], eax
+083609a9 jmp     0x8360a62
+083609ae cmp     dword ptr [ebp - 8], 0
+083609b2 jne     0x83609c1
+083609b4 mov     eax, 0x3f800000
+083609b9 mov     dword ptr [ebp - 4], eax
+083609bc jmp     0x8360a62
+083609c1 cmp     dword ptr [ebp - 8], 1
+083609c5 jne     0x83609d4
+083609c7 mov     eax, 0x3f8f5c29
+083609cc mov     dword ptr [ebp - 4], eax
+083609cf jmp     0x8360a62
+083609d4 cmp     dword ptr [ebp - 8], 2
+083609d8 jne     0x83609e4
+083609da mov     eax, 0x3f8f5c29
+083609df mov     dword ptr [ebp - 4], eax
+083609e2 jmp     0x8360a62
+083609e4 cmp     dword ptr [ebp - 8], 3
+083609e8 jne     0x83609f4
+083609ea mov     eax, 0x3f8f5c29
+083609ef mov     dword ptr [ebp - 4], eax
+083609f2 jmp     0x8360a62
+083609f4 cmp     dword ptr [ebp - 8], 4
+083609f8 jne     0x8360a04
+083609fa mov     eax, 0x3f800000
+083609ff mov     dword ptr [ebp - 4], eax
+08360a02 jmp     0x8360a62
+08360a04 cmp     dword ptr [ebp - 8], 5
+08360a08 jne     0x8360a14
+08360a0a mov     eax, 0x3f800000
+08360a0f mov     dword ptr [ebp - 4], eax
+08360a12 jmp     0x8360a62
+08360a14 cmp     dword ptr [ebp - 8], 6
+08360a18 jne     0x8360a24
+08360a1a mov     eax, 0x3f400000
+08360a1f mov     dword ptr [ebp - 4], eax
+08360a22 jmp     0x8360a62
+08360a24 cmp     dword ptr [ebp - 8], 7
+08360a28 jne     0x8360a34
+08360a2a mov     eax, 0x3f333333
+08360a2f mov     dword ptr [ebp - 4], eax
+08360a32 jmp     0x8360a62
+08360a34 cmp     dword ptr [ebp - 8], 8
+08360a38 jne     0x8360a44
+08360a3a mov     eax, 0x3f19999a
+08360a3f mov     dword ptr [ebp - 4], eax
+08360a42 jmp     0x8360a62
+08360a44 cmp     dword ptr [ebp - 8], 9
+08360a48 jne     0x8360a54
+08360a4a mov     eax, 0x3f000000
+08360a4f mov     dword ptr [ebp - 4], eax
+08360a52 jmp     0x8360a62
+08360a54 cmp     dword ptr [ebp - 8], 9
+08360a58 jle     0x8360a62
+08360a5a mov     eax, 0x3d4ccccd
+08360a5f mov     dword ptr [ebp - 4], eax
+08360a62 mov     eax, dword ptr [ebp - 4]
+08360a65 mov     dword ptr [ebp - 0x14], eax
+08360a68 fld     dword ptr [ebp - 0x14]
+08360a6b leave
+08360a6c ret
+
+### 0859d70e _ZN6CParty17MemberPenaltyRateEv
+0859d70e push    ebp
+0859d70f mov     ebp, esp
+0859d711 mov     eax, 1
+0859d716 pop     ebp
+0859d717 ret
+
+### 085a23dc _ZN6CParty18getMonsterTotalExpEjciffb
+085a23dc push    ebp
+085a23dd mov     ebp, esp
+085a23df sub     esp, 0x38
+085a23e2 mov     edx, dword ptr [ebp + 0x10]
+085a23e5 mov     eax, dword ptr [ebp + 0x20]
+085a23e8 mov     byte ptr [ebp - 0x1c], dl
+085a23eb mov     byte ptr [ebp - 0x20], al
+085a23ee call    0x80cc19b                                    _Z14G_CDataManagerv
+085a23f3 add     eax, 0x68
+085a23f6 mov     dword ptr [ebp - 0x14], eax
+085a23f9 cmp     byte ptr [ebp - 0x1c], 3
+085a23fd jg      0x85a2414
+085a23ff movsx   edx, byte ptr [ebp - 0x1c]
+085a2403 mov     eax, dword ptr [ebp - 0x14]
+085a2406 add     edx, 0xfc
+085a240c mov     eax, dword ptr [eax + edx*4]
+085a240f mov     dword ptr [ebp - 0x10], eax
+085a2412 jmp     0x85a241c
+085a2414 mov     eax, 0x3f800000
+085a2419 mov     dword ptr [ebp - 0x10], eax
+085a241c cmp     byte ptr [ebp - 0x20], 0
+085a2420 je      0x85a2430
+085a2422 fld     dword ptr [ebp - 0x10]
+085a2425 fld     dword ptr [0x8cbbbd0]
+085a242b fmulp   st(1)
+085a242d fstp    dword ptr [ebp - 0x10]
+085a2430 mov     eax, dword ptr [ebp + 0xc]
+085a2433 mov     edx, 0
+085a2438 mov     dword ptr [ebp - 0x28], eax
+085a243b mov     dword ptr [ebp - 0x24], edx
+085a243e fild    qword ptr [ebp - 0x28]
+085a2441 fld     dword ptr [0x8cbbbd4]
+085a2447 fdivp   st(1)
+085a2449 fmul    dword ptr [ebp + 0x1c]
+085a244c mov     edx, dword ptr [ebp + 0x14]
+085a244f mov     eax, dword ptr [ebp - 0x14]
+085a2452 add     edx, 0xe4
+085a2458 fld     dword ptr [eax + edx*4 + 8]
+085a245c fmulp   st(1)
+085a245e fmul    dword ptr [ebp + 0x18]
+085a2461 fmul    dword ptr [ebp - 0x10]
+085a2464 fnstcw  word ptr [ebp - 0x2a]
+085a2467 movzx   eax, word ptr [ebp - 0x2a]
+085a246b mov     ah, 0xc
+085a246d mov     word ptr [ebp - 0x2c], ax
+085a2471 fldcw   word ptr [ebp - 0x2c]
+085a2474 fistp   qword ptr [ebp - 0x28]
+085a2477 fldcw   word ptr [ebp - 0x2a]
+085a247a mov     eax, dword ptr [ebp - 0x28]
+085a247d mov     edx, dword ptr [ebp - 0x24]
+085a2480 mov     dword ptr [ebp - 0xc], eax
+085a2483 mov     eax, dword ptr [ebp - 0xc]
+085a2486 leave
+085a2487 ret

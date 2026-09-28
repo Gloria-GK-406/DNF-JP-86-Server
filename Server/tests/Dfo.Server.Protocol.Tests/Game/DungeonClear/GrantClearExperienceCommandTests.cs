@@ -28,19 +28,19 @@ public sealed class GrantClearExperienceCommandTests
 
     /// <summary>What the clear pays is the clear's worth plus what its rank added.</summary>
     /// <remarks>
-    /// Level 5 pays 293; the easiest difficulty is 1.3; the dungeon weighs 1.45, so the clear is
-    /// worth 552. A score of 80 is the third rank down of five and earns 0.12 of that, which is 66.
+    /// Level 5 monster worth is 70; ten kills, divisor 2, difficulty 1.3 and weight 1.45 give
+    /// 659 base EXP. Score 80 adds 12%, floored to 79.
     /// </remarks>
     [Fact]
     public async Task AClearPaysItsWorthAndItsRank()
     {
         var result = await Settle(clientRankPoint: 80);
 
-        Assert.Equal(552u, result.ClearBase);
-        Assert.Equal(66u, result.RankBonus);
+        Assert.Equal(659u, result.ClearBase);
+        Assert.Equal(79u, result.RankBonus);
         Assert.NotNull(result.Award);
-        Assert.Equal(552u, result.Award.Base);
-        Assert.Equal(618u, result.Award.Gained);
+        Assert.Equal(659u, result.Award.Base);
+        Assert.Equal(738u, result.Award.Gained);
     }
 
     /// <summary>
@@ -77,10 +77,7 @@ public sealed class GrantClearExperienceCommandTests
     {
         var result = await Settle(clientRankPoint: 80);
 
-        var contribution = Assert.Single(result.Award!.Contributions);
-        Assert.Equal("clear rank", contribution.Source);
-        Assert.Equal(66u, contribution.Amount);
-        Assert.Equal(ExperienceBonusKind.Unlisted, contribution.Kind);
+        Assert.Equal(result.RankBonus, result.Award!.Breakdown.ClearRank);
     }
 
     /// <summary>A run below every paying rank is paid its worth and nothing more.</summary>
@@ -89,16 +86,16 @@ public sealed class GrantClearExperienceCommandTests
     {
         var result = await Settle(clientRankPoint: 49);
 
-        Assert.Equal(552u, result.ClearBase);
+        Assert.Equal(659u, result.ClearBase);
         Assert.Equal(0u, result.RankBonus);
-        Assert.Empty(result.Award!.Contributions);
+        Assert.Equal(0u, result.Award!.Breakdown.ClearRank);
     }
 
     /// <summary>A dungeon the reward table cannot price pays nothing at all.</summary>
     [Fact]
     public async Task ADungeonTheTableCannotPricePaysNothing()
     {
-        var result = await Settle(clientRankPoint: 100, basisLevel: 99);
+        var result = await Settle(clientRankPoint: 100, basisLevel: 0);
 
         Assert.Equal(0u, result.ClearBase);
         Assert.Equal(0u, result.RankBonus);
@@ -125,15 +122,20 @@ public sealed class GrantClearExperienceCommandTests
 
     private static GrantClearExperienceCommandHandler Handler() =>
         new(
-            new ExperienceValuationDomainService(new ExperienceRuleService(
+            new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
                 new NoProgression(),
                 new NoChannelExperience(),
-                new QuestContentRuleService(new NoQuestDefinitions(), new ArchiveQuests()),
                 ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)),
+                ExperienceEntitlementPolicy.None)), new NoBonuses()),
             new PricingGrant());
+
+    private sealed class NoBonuses : IExperienceBonusDomainService
+    {
+        public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(ExperienceOccasion occasion, CancellationToken token) =>
+            ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
+    }
 
     private static CommandExecutionContext Context(CommandExecutionKind kind) =>
         new(Guid.Empty,
@@ -146,7 +148,7 @@ public sealed class GrantClearExperienceCommandTests
             new CharacterId(60),
             CapturedDungeon,
             new ClearCircumstances(
-                basisLevel, Difficulty: 0, CapturedDungeonWeight, (byte)clientRankPoint));
+                basisLevel, Difficulty: 0, CapturedDungeonWeight, (byte)clientRankPoint, KilledMonsterCount: 10));
 
     /// <summary>A settlement asks what a clear pays, never what a quest is.</summary>
     /// <summary>Nothing on this path turns experience into a level.</summary>
@@ -217,18 +219,13 @@ public sealed class GrantClearExperienceCommandTests
             CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public ValueTask<ExperienceAward?> AwardAsync(
+        public async ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,
-            Func<byte, ExperienceValuation> valuation,
+            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
             CancellationToken cancellationToken)
         {
-            var (@base, contributions) = valuation(3);
-            var gained = @base;
-            foreach (var contribution in contributions)
-                gained += contribution.Amount;
-
-            return ValueTask.FromResult<ExperienceAward?>(new ExperienceAward(
-                @base, contributions, gained, 3, gained, LeveledUp: false));
+            var breakdown = await valuation(1);
+            return new ExperienceAward(breakdown, 1, breakdown.Total, LeveledUp: false);
         }
     }
 }

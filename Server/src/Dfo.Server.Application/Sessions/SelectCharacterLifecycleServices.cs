@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
@@ -28,6 +29,7 @@ internal sealed class SelectedSessionCleanupService(
     ISelectedSessionRuntimeDirectory runtimes,
     ICharacterContainerDomainService containers,
     ICharacterItemCooldownDomainService cooldowns,
+    SpiritPotionDomainService spiritPotion,
     IActiveCharacterDomainService activeCharacters,
     ITownAreaDomainService townAreas,
     IExpertStoreDomainService expertStores,
@@ -156,7 +158,11 @@ internal sealed class SelectedSessionCleanupService(
                 containers.Clear(session.CharacterId);
                 cooldowns.Clear(session.CharacterId);
             }
-
+            return true;
+        });
+        Run(() =>
+        {
+            spiritPotion.ClearIfUnselected(session.CharacterId, sessions);
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
@@ -235,7 +241,8 @@ internal sealed class SelectCharacterSessionEntryService(
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
     ICharacterPositionDomainService positions,
-    ICharacterVitalRuntimeDomainService vitals) : ISelectCharacterSessionEntryDomainService
+    ICharacterVitalRuntimeDomainService vitals,
+    SpiritPotionDomainService spiritPotion) : ISelectCharacterSessionEntryDomainService
 {
     public async ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
         SelectedSessionIdentity session, SelectCharacterResult result,
@@ -338,6 +345,9 @@ internal sealed class SelectCharacterSessionEntryService(
     /// </remarks>
     public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
     {
+        if (sessions.FindByCharacter(session.CharacterId) != session)
+            throw new InvalidOperationException("Cannot publish a replaced selection.");
+        spiritPotion.Clear(session.CharacterId);
         runtimes.Publish(session, result.World.Channel.PersistsPosition);
         positions.Place(session, result.Character.Position);
         vitals.Publish(session, checked((byte)Math.Clamp(

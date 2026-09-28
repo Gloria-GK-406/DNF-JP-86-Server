@@ -85,13 +85,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterSkillRuleService>(sp => sp.GetRequiredService<CharacterSkillRuleService>());
         services.TryAddSingleton<ISkillPointDefinitionSource>(sp => sp.GetRequiredService<CharacterSkillRuleService>());
 
-        // What a premium term adds to an award. Empty unless an operator configures it: the
-        // archive declares no rate for any of its fifty-two premium types, so any number here
-        // would be invented, and an invented number is indistinguishable from a measured one.
-        // What a kill is worth before anything a character carries: the curve, the divisor, the
-        // rank rates and the level-gap bands. Only what the archive does not declare -- and unlike
-        // the two policies below, a malformed value here stops the server rather than defaulting,
-        // because these have a right answer and a wrong one is invisible in play.
         services.TryAddSingleton(ExperienceTuningSource.From(configuration));
 
         services.TryAddSingleton(ExperienceEntitlementPolicyFrom(configuration));
@@ -109,6 +102,8 @@ public sealed class ApplicationModule : IServerModule
         // What a kill, a clear and a channel are worth, and how much of it a level costs. The
         // one reader of the four archive declarations and the two operator dials behind them.
         services.TryAddSingleton<IExperienceRuleService, ExperienceRuleService>();
+        services.TryAddSingleton<SpiritPotionDomainService>();
+        services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
         services.TryAddSingleton<ICharacterExperienceDomainService, CharacterExperienceDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
@@ -207,7 +202,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IIndependentDropRuleService>(provider => new IndependentDropRuleService(
             provider.GetRequiredService<IIndependentDropTableSource>(),
             () => provider.GetRequiredService<ICharacterDomainService>(),
-            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IndependentDropRuleService>>()));
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IndependentDropRuleService>>(),
+            provider.GetRequiredService<IndependentDropOptions>()));
+        services.TryAddSingleton(new IndependentDropOptions
+        {
+            DebugGuaranteeGrowthBossEquipment = bool.Parse(configuration["IndependentDrops:DebugGuaranteeGrowthBossEquipment"] ?? "false"),
+        });
         services.TryAddSingleton<IExtraDropRuleService, ExtraDropRuleService>();
         services.TryAddSingleton<IWorldDropRuleService, WorldDropRuleService>();
         services.TryAddSingleton<IMonsterDeclaredDropRuleService, MonsterDeclaredDropRuleService>();
@@ -303,6 +303,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
+        services.TryAddSingleton<IExperienceCalculationDomainService, ExperienceCalculationDomainService>();
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<MonsterDropDomainService>();

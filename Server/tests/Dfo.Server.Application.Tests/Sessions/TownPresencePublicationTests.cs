@@ -22,7 +22,7 @@ public sealed class TownPresencePublicationTests
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
             sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService());
+            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
         var first = await EntryAsync(1, 60, "Game:first", x: 100);
         var second = await EntryAsync(2, 61, "Game:second", x: 300);
 
@@ -53,7 +53,7 @@ public sealed class TownPresencePublicationTests
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
             sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService());
+            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
         var first = await EntryAsync(1, 60, "Game:first", x: 100, sharesTownPresence: false);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, sharesTownPresence: false);
 
@@ -77,7 +77,7 @@ public sealed class TownPresencePublicationTests
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
             sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService());
+            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
         var first = await EntryAsync(1, 60, "Game:first", x: 100, listenerPort: 10012);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, listenerPort: 10011);
 
@@ -103,7 +103,7 @@ public sealed class TownPresencePublicationTests
         var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
             sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
-            new CharacterVitalRuntimeDomainService());
+            new CharacterVitalRuntimeDomainService(), new SpiritPotionDomainService(TimeProvider.System));
         var old = await EntryAsync(1, 60, "Game:old", x: 100, listenerPort: 10011);
         var newcomer = await EntryAsync(2, 61, "Game:newcomer", x: 300, listenerPort: 10011);
 

@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
@@ -50,6 +51,12 @@ public sealed record StartItemCooldownEffect(ItemCooldownKey Key, TimeSpan Durat
     public ItemEffectTarget Target => ItemEffectTarget.Character;
 }
 
+/// <summary>Grants an exp bonus to the selected character for a bounded time.</summary>
+public sealed record StartSpiritPotionEffect(double BonusRate, TimeSpan Duration) : IItemUseEffect
+{
+    public ItemEffectTarget Target => ItemEffectTarget.Character;
+}
+
 /// <summary>What the store holds after the effects were applied.</summary>
 public sealed record ItemUseApplication(int ItemId, int RemainingCount);
 
@@ -71,7 +78,7 @@ public interface IItemUseEffectDomainService
 
     /// <summary>Applies the effects and answers what the slot holds afterwards.</summary>
     ValueTask<ItemUseApplication> ApplyAsync(
-        CharacterId characterId,
+        SelectedSessionIdentity session,
         IItemContainer container,
         ContainerSlotItem item,
         IReadOnlyList<IItemUseEffect> effects,

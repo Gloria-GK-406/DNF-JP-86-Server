@@ -25,73 +25,24 @@ public sealed record GrantClearExperienceCommand(
     int DungeonId,
     ClearCircumstances Clear) : ICommand<ClearExperienceResult>;
 
-/// <summary>
-/// Works out what a finished run was worth and grants it.
-/// </summary>
-/// <remarks>
-/// The same shape as the kill's: a rule over content decides the amount, the shared grant adds it,
-/// and the transaction is here. What it deliberately does not do is ask
-/// <c>IExperienceBonusDomainService</c> what the character carries.
-/// <para>
-/// <b>Why nothing is collected here.</b> A settlement is drawn on the result screen, whose
-/// breakdown this server fills from the two figures below. An entitlement paid at settlement would
-/// reach the character's total but appear in none of that screen's fields -- the twenty-three the
-/// frame carries are unmeasured in A21, and the reference server's answer for the channel's own
-/// belongs to a frame with a different number of them. Paying what cannot be declared leaves the
-/// screen short by the difference, and this whole subject has already cost a day to exactly that
-/// kind of silent gap. The measurement that would settle it is written up in this Spec.
-/// </para>
-/// </remarks>
+/// <summary>Calculate settlement and persist progression within one transaction.</summary>
 public sealed class GrantClearExperienceCommandHandler(
-    IExperienceValuationDomainService valuation,
+    IExperienceCalculationDomainService calculation,
     ICharacterExperienceDomainService grant)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
-    public async ValueTask<ClearExperienceResult> HandleAsync(
-        CommandExecutionContext context,
-        GrantClearExperienceCommand command,
-        CancellationToken cancellationToken)
+    public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
+        GrantClearExperienceCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(context);
-
         if (context.ExecutionKind is not CommandExecutionKind.Transactional)
-        {
-            throw new InvalidOperationException(
-                "Awarding experience writes a row that outlives the process, so it has to be "
-                + $"registered transactional; this execution is {context.ExecutionKind}.");
-        }
-
-        var (clearBase, rankBonus) = valuation.WorthOfClear(command.Clear);
-
-        // The two figures are worked out before the grant rather than inside its callback, because
-        // neither depends on the character's level -- unlike a kill, where the level decides the
-        // gap penalty and reading it twice is how a stale copy gets in.
-        var award = await grant.AwardAsync(
-            command.CharacterId,
-            _ => clearBase == 0
-                ? ExperienceValuation.Nothing
-                : new ExperienceValuation(
-                    clearBase,
-                    rankBonus == 0
-                        ? []
-                        // Unlisted: the experience notice has no line named for a clear's rank, so
-                        // the client draws this as part of what the clear itself paid -- which is
-                        // what it is. The result screen reports it on its own field.
-                        : [new ExperienceContribution(
-                            "clear rank", RateOf(clearBase, rankBonus), rankBonus)]),
+            throw new InvalidOperationException("Awarding experience requires a transaction.");
+        var award = await grant.AwardAsync(command.CharacterId,
+            level => calculation.CalculateAsync(new ClearExperienceContext(
+                new ExperienceOccasion(ExperienceEvent.DungeonClear, command.AccountId,
+                    command.CharacterId, command.DungeonId), command.Clear), level, cancellationToken),
             cancellationToken).ConfigureAwait(false);
-
-        return new ClearExperienceResult(award, clearBase, rankBonus);
+        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0);
     }
-
-    /// <summary>
-    /// The proportion the rank bonus came to, for the log that has to explain the award afterwards.
-    /// </summary>
-    /// <remarks>
-    /// Recovered from the two amounts rather than carried down from the table, so it reports what
-    /// was actually paid rather than what was meant to be.
-    /// </remarks>
-    private static double RateOf(uint clearBase, uint rankBonus) =>
-        clearBase == 0 ? 0 : (double)rankBonus / clearBase;
 }
