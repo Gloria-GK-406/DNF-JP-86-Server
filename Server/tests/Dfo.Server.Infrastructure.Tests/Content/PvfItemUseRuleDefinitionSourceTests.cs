@@ -15,6 +15,21 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </remarks>
 public sealed class PvfItemUseRuleDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task Real_archive_reads_spirit_potion_bonus_and_effect_duration()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfItemUseRuleDefinitionSource(provider);
+
+        var rule = await source.GetAsync(7377, CancellationToken.None);
+
+        Assert.NotNull(rule);
+        Assert.True(rule.IsReadable);
+        Assert.Equal(1, rule.ExpBonusRate);
+        Assert.Equal(7_200_000, rule.EffectDurationMilliseconds);
+    }
+
     /// <remarks>
     /// <c>stackable/tutorial/tutorial_8474.stk</c>, the potion the tutorial hands out and the one
     /// the live walkthrough drinks: consumed, ten seconds, sharing its wait with nothing.

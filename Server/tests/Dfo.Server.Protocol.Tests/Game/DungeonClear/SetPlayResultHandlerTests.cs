@@ -39,6 +39,19 @@ public sealed class SetPlayResultHandlerTests
     private const int ClearBase = 552;
     private const int RankBonus = 66;
 
+    [Fact]
+    public async Task Clear_bonus_award_reaches_both_experience_and_reward_notifications()
+    {
+        var breakdown = new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus,
+            GrowthContract: 110, SpiritPotion: 552);
+        var sent = await Settle(bus: new FixedAward(false, bonusAward: breakdown));
+        var reward = Assert.Single(sent.OfType<ClearDungeonRewardNotification>());
+        Assert.Equal(breakdown, reward.Experience);
+        var experience = Assert.Single(sent.OfType<ExperienceNotification>());
+        Assert.Equal(StartingExperience + breakdown.Total, experience.TotalExperience);
+        Assert.Equal(110u, experience.Lines[ExperienceBonusKind.GrowthContract]);
+    }
+
     /// <summary>The result screen reports what was paid, and the frames come in the reference's order.</summary>
     [Fact]
     public async Task TheResultScreenReportsWhatWasPaid()
@@ -592,7 +605,8 @@ public sealed class SetPlayResultHandlerTests
         bool leveledUp,
         bool awarded = true,
         bool clamped = false,
-        int failuresBeforeSuccess = 0)
+        int failuresBeforeSuccess = 0,
+        ExperienceBreakdown? bonusAward = null)
         : ICommandBus
     {
         private int remainingFailures = failuresBeforeSuccess;
@@ -614,14 +628,14 @@ public sealed class SetPlayResultHandlerTests
             // what landed, reported whole, with no parts to attribute it to.
             var award = clamped
                 ? new ExperienceAward(
-                    Breakdown: new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus),
+                    Breakdown: bonusAward ?? new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus),
                     Level: leveledUp ? (byte)4 : (byte)3,
                     Total: StartingExperience + ClampedLanding,
                     LeveledUp: leveledUp)
                 : new ExperienceAward(
-                    Breakdown: new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus),
+                    Breakdown: bonusAward ?? new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus),
                     Level: leveledUp ? (byte)4 : (byte)3,
-                    Total: StartingExperience + ClearBase + RankBonus,
+                    Total: StartingExperience + (bonusAward?.Total ?? (ClearBase + RankBonus)),
                     LeveledUp: leveledUp);
             // The two figures stand even when nothing was awarded: they are what the clear was
             // worth, and the handler is what has to decide they may not be reported.

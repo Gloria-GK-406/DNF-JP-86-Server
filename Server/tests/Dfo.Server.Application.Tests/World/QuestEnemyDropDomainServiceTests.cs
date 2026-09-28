@@ -421,6 +421,7 @@ public sealed class QuestEnemyDropDomainServiceTests
     {
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => throw new NotSupportedException();
+        public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => throw new NotSupportedException();
         public int ReadFreeWeaknessDailyLimit() => throw new NotSupportedException();
         public int ReadDungeonBuffDailyLimit() => throw new NotSupportedException();
@@ -439,6 +440,7 @@ public sealed class QuestEnemyDropDomainServiceTests
     private sealed class NoPremiums : IPremiumServiceDomainService, IAccountPremiumServices
     {
         public IAccountPremiumServices For(AccountId accountId) => this;
+        public ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken) => ValueTask.FromResult(0d);
         public ValueTask<bool> HasBenefitAsync(PremiumBenefit benefit, CancellationToken cancellationToken) => ValueTask.FromResult(false);
         public ValueTask<bool> IsActiveAsync(PremiumServiceType type, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken) => throw new NotSupportedException();

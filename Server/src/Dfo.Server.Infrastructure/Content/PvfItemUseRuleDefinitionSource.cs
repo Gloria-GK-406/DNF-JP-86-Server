@@ -68,6 +68,11 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             ref reader, archive.GetTag("[cooltime group]"), ref unreadable);
         var minimumLevel = FirstInt32(
             ref reader, archive.GetTag("[minimum level]"), ref unreadable);
+        var expBonusRate = FirstSingle(ref reader, archive.GetTag("[exp bonus rate]"), ref unreadable);
+        var effectDuration = FirstInt32(
+            ref reader, archive.GetTag("[stat change duration]"), ref unreadable);
+        if (expBonusRate > 0 && effectDuration <= 0)
+            unreadable = true;
         var jobText = AllStrings(archive, ref reader, archive.GetTag("[usable job]"));
         var placeText = AllStrings(archive, ref reader, archive.GetTag("[action usable place]"));
 
@@ -79,7 +84,9 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             MinimumLevel: Math.Max(0, minimumLevel),
             Jobs: ProjectJobs(jobText),
             Places: ProjectPlaces(placeText),
-            HasUnreadableDeclaration: unreadable);
+            HasUnreadableDeclaration: unreadable,
+            ExpBonusRate: expBonusRate,
+            EffectDurationMilliseconds: Math.Max(0, effectDuration));
     }
 
     /// <summary>
@@ -136,6 +143,26 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
 
         if (reader.TryReadInt32(out var value))
             return value;
+
+        unreadable = true;
+        return 0;
+    }
+
+    internal static double FirstSingle(ref PvfTokenReader reader, TagRef tag, ref bool unreadable)
+    {
+        reader.Reset();
+        if (!tag.IsResolved || !reader.TryMovePast(tag))
+            return 0;
+
+        while (reader.TryReadSectionValue(out var token))
+        {
+            if (token.Kind != PvfTokenKind.Single)
+                continue;
+            var value = token.AsSingle();
+            if (float.IsFinite(value) && value > 0)
+                return value;
+            break;
+        }
 
         unreadable = true;
         return 0;

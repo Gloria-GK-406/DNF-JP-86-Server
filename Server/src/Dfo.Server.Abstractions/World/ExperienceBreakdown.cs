@@ -24,6 +24,7 @@ public sealed record ExperienceBreakdown(
     public ExperienceBreakdown Add(ExperienceBonusKind kind, uint amount) => kind switch
     {
         ExperienceBonusKind.SeriaBlessing => this with { Channel = checked(Channel + amount) },
+        ExperienceBonusKind.SpiritPotion => this with { SpiritPotion = checked(SpiritPotion + amount) },
         ExperienceBonusKind.GrowthContract => this with { GrowthContract = checked(GrowthContract + amount) },
         ExperienceBonusKind.FatigueBurn => this with { FatigueBurning = checked(FatigueBurning + amount) },
         ExperienceBonusKind.PartyReward => this with { Party = checked(Party + amount) },

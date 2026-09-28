@@ -7,6 +7,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.UseStackable;
@@ -206,9 +207,12 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
 
 /// <summary>One character using one item out of one slot.</summary>
 public sealed record UseStackableCommand(
-    CharacterId CharacterId,
+    SelectedSessionIdentity Session,
     BusinessSlot Slot,
-    int ItemCode) : ICommand<ItemUseResult>;
+    int ItemCode) : ICommand<ItemUseResult>
+{
+    public CharacterId CharacterId => Session.CharacterId;
+}
 
 /// <summary>
 /// Decides whether the item may be used, and applies what using it changes.
@@ -227,6 +231,7 @@ public sealed record UseStackableCommand(
 /// already applied.
 /// </remarks>
 public sealed class UseStackableCommandHandler(
+    ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService inventory,
     ICharacterDomainService characters,
     IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
@@ -237,6 +242,9 @@ public sealed class UseStackableCommandHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (sessions.FindByCharacter(command.CharacterId) != command.Session)
+            return ItemUseResult.Refused(ItemUseStatus.NoSession);
 
         if (!command.Slot.Space.IsCarriedItemSpace())
             return ItemUseResult.Refused(ItemUseStatus.ListNotServed);
@@ -262,7 +270,7 @@ public sealed class UseStackableCommandHandler(
         var planned = await effects.PlanAsync(item.ItemId, item.SlotIndex, cancellationToken)
             .ConfigureAwait(false);
         var applied = await effects
-            .ApplyAsync(command.CharacterId, slot.Container, item, planned, cancellationToken)
+            .ApplyAsync(command.Session, slot.Container, item, planned, cancellationToken)
             .ConfigureAwait(false);
 
         return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
@@ -340,7 +348,7 @@ public sealed class UseStackableHandler(
 
         var result = await commandBus.SendAsync(
             new UseStackableCommand(
-                session.CharacterId, slot, message.ItemCode),
+                session, slot, message.ItemCode),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is ItemUseStatus.Used)

@@ -40,7 +40,7 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
     IPremiumServiceUsageDomainService usage, ICommandBus commands, IGameMessageSender sender, TimeProvider clock,
     ILogger<PremiumDailyRefreshService> logger) : BackgroundService
 {
-    private readonly Dictionary<SelectedSessionIdentity, (DateTimeOffset Period, string Active, bool CrystalActive)> delivered = [];
+    private readonly Dictionary<SelectedSessionIdentity, (DateTimeOffset Period, string Active, bool CrystalActive, bool GrowthActive)> delivered = [];
     public async Task RefreshAsync(CancellationToken token)
     {
         var current = directory.Snapshot();
@@ -59,17 +59,23 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
                     .OrderBy(x => x.PremiumType).Select(x => $"{x.PremiumType}:{x.ExpiresAtUnixSeconds}"));
                 var crystal = state.Entitlements.Premiums.SingleOrDefault(x => x.PremiumType == (int)PremiumServiceType.CrystalContract);
                 var crystalActive = crystal is not null && crystal.ExpiresAtUnixSeconds > state.PreparedAt.ToUnixTimeSeconds();
+                var growth = state.Entitlements.Premiums.SingleOrDefault(x => x.PremiumType == (int)PremiumServiceType.GrowthContract);
+                var growthActive = growth is not null && growth.ExpiresAtUnixSeconds > state.PreparedAt.ToUnixTimeSeconds();
                 var hadPrevious = delivered.TryGetValue(session, out var previous);
-                if (hadPrevious && previous == (period, active, crystalActive)) continue;
-                // The eight-slot snapshot cannot clear an ordinary type-97 contract. Also cover
+                if (hadPrevious && previous == (period, active, crystalActive, growthActive)) continue;
+                // The eight-slot snapshot cannot clear ordinary contracts. Also cover
                 // expiry before the first scheduler tick; subsequent ticks must not repeat it.
                 if (!crystalActive && (previous.CrystalActive || !hadPrevious && crystal is not null))
                     await sender.SendNotiAsync(session.ConnectionId,
                         new PremiumGrantedMessage(new((int)PremiumServiceType.CrystalContract, 0), state.PreparedAt), token)
                         .ConfigureAwait(false);
+                if (!growthActive && (previous.GrowthActive || !hadPrevious && growth is not null))
+                    await sender.SendNotiAsync(session.ConnectionId,
+                        new PremiumGrantedMessage(new((int)PremiumServiceType.GrowthContract, 0), state.PreparedAt), token)
+                        .ConfigureAwait(false);
                 await sender.SendCmdAsync(session.ConnectionId,
                     new PremiumServiceStateMessage(state.Entitlements, state.Usage, state.PreparedAt), token).ConfigureAwait(false);
-                delivered[session] = (period, active, crystalActive);
+                delivered[session] = (period, active, crystalActive, growthActive);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception ex) { logger.LogWarning(ex, "Premium daily projection failed character={CharacterId}", session.CharacterId); }

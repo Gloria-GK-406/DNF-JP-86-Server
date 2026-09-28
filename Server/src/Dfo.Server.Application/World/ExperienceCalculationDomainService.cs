@@ -34,8 +34,12 @@ internal sealed class ExperienceCalculationDomainService(
                 return result;
             case ClearExperienceContext clear:
                 var calculated = valuation.WorthOfClear(clear.Clear with { CharacterLevel = characterLevel });
-                // Preserve current rules: settlement modifiers will be enabled with their feature.
-                return new(Base: calculated.Base, ClearRank: calculated.RankBonus);
+                var settlement = new ExperienceBreakdown(Base: calculated.Base, ClearRank: calculated.RankBonus);
+                foreach (var modifier in await bonuses.CollectAsync(clear.Occasion, cancellationToken)
+                    .ConfigureAwait(false))
+                    settlement = settlement.Add(modifier.Kind, Floor(calculated.Base * modifier.Rate));
+                _ = settlement.Total;
+                return settlement;
             case QuestExperienceContext quest:
                 return new(Base: quest.Base);
             default:

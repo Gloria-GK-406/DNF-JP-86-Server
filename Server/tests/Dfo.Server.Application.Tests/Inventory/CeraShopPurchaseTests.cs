@@ -25,6 +25,8 @@ public sealed class CeraShopPurchaseTests
     [InlineData(100041,22,7,1180)]
     [InlineData(100058,27,3,1080)]
     [InlineData(100059,27,7,1680)]
+    [InlineData(292736,84,3,790)]
+    [InlineData(292738,84,15,1290)]
     [InlineData(102234,97,7,600)]
     public async Task Ordinary_contract_purchase_and_renewal_persist_and_notify_current_total(int product, int type, int days, int cost)
     {

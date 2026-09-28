@@ -7,6 +7,7 @@ public interface IPremiumServiceDefinitionSource
     IReadOnlyList<int> ReadQuestHelperMinimumDropRates();
     DoublePotRules ReadDoublePotRules();
     PremiumContractLevels ReadContractLevels();
+    double ReadGrowthExperienceBonusRate();
     int ReadFreeWeaknessDailyLimit();
     int ReadDungeonBuffDailyLimit();
     int ReadAutoRepairDailyLimit();

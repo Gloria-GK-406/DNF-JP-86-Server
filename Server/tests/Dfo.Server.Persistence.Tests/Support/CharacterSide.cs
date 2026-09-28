@@ -115,7 +115,7 @@ internal sealed class CharacterSide
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>
         new ExpertSkillContractReconciliationService(
-            new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
+            new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!),
             new SqliteCharacterTable(this.database),
             new SqliteCharacterSkillTable(this.database),
             rules);
@@ -147,6 +147,7 @@ internal sealed class CharacterSide
     {
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
+        public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadFreeWeaknessDailyLimit() => 10;
         public int ReadFreeGoldCardDailyLimit() => 10;
@@ -194,7 +195,7 @@ internal sealed class CharacterSide
             new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database), TimeProvider.System,
                 new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database)),
             goldLimits, new PremiumServiceUsageDomainService(
-                new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System),
+                new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!),
                 new SqlitePremiumServiceUsageTable(this.database),
                 new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
                 new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System), new SqliteCharacterSkillBuildTable(this.database));

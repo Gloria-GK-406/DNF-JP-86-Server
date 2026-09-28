@@ -30,7 +30,7 @@ public readonly record struct ExperienceOccasion(
     int DungeonId);
 
 /// <summary>
-/// Which of the client's experience lines a bonus belongs to.
+/// Which source contributes an experience bonus; known sources also have client display lines.
 /// </summary>
 /// <remarks>
 /// The client's experience popup is not a free-form list: <c>NOTI 0x0025</c> has one fixed slot
@@ -38,7 +38,7 @@ public readonly record struct ExperienceOccasion(
 /// from the total it gained (<c>0x01179476</c> onwards in the A21 client). So a bonus that is paid
 /// but declared in no slot is not merely undrawn -- it is drawn as part of the base.
 /// <para>
-/// The nine named members are the nine slots the client both draws and subtracts. Their names are
+/// Nine wire-backed members correspond to slots the client both draws and subtracts. Their names are
 /// the client's own, read off the screen: a probe paid a distinct amount into all fourteen slots
 /// and the popup labelled each line itself. That measurement, and the two rounds that
 /// cross-validated it, are written up in <c>Docs/ExperienceNoticeSlots.md</c>.
@@ -102,6 +102,9 @@ public enum ExperienceBonusKind
 
     /// <summary>公会奖励, drawn from <c>+0x4F</c>.</summary>
     GuildReward,
+
+    /// <summary>精灵秘药；领域独立计账，A21 的专用显示槽尚未证实。</summary>
+    SpiritPotion,
 }
 
 /// <summary>One reason a character earns more than the occasion is worth.</summary>

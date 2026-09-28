@@ -128,8 +128,14 @@ public sealed class GrantClearExperienceCommandTests
                 new NoProgression(),
                 new NoChannelExperience(),
                 ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)), null!),
+                ExperienceEntitlementPolicy.None)), new NoBonuses()),
             new PricingGrant());
+
+    private sealed class NoBonuses : IExperienceBonusDomainService
+    {
+        public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(ExperienceOccasion occasion, CancellationToken token) =>
+            ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
+    }
 
     private static CommandExecutionContext Context(CommandExecutionKind kind) =>
         new(Guid.Empty,

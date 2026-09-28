@@ -812,7 +812,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             {
                 var summary = aggregate.KillExperiences.GetValueOrDefault(claim.CharacterId) ?? new();
                 aggregate.KillExperiences[claim.CharacterId] = summary.Add(
-                    (MonsterRank)actor.Actor.ActorType, award.Breakdown.Base);
+                    (MonsterRank)actor.Actor.ActorType, award.Breakdown.Base) with
+                {
+                    GrowthContract = checked(summary.GrowthContract + award.Breakdown.GrowthContract),
+                };
             }
             return true;
         }

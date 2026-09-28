@@ -176,9 +176,9 @@ public sealed class MonsterDeathCodecTests
             Assert.Equal(clientName, declared.ClientName);
         }
 
-        // Every kind but Unlisted has a line, so no kind can be paid and silently undeclared.
+        // Spirit potion is tracked separately in the domain; its wire slot remains unproven.
         var declarable = Enum.GetValues<ExperienceBonusKind>()
-            .Where(kind => kind is not ExperienceBonusKind.Unlisted);
+            .Where(kind => kind is not (ExperienceBonusKind.Unlisted or ExperienceBonusKind.SpiritPotion));
         Assert.Equal(
             declarable.Order(),
             MonsterDeathPayloadCodec.NamedLines.Select(line => line.Kind).Order());

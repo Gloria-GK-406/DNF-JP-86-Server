@@ -20,14 +20,14 @@ public sealed class ExperienceCalculationDomainServiceTests
     }
 
     [Fact]
-    public async Task ClearAndQuestKeepTheirExistingAmountsWithoutEnablingNewBonuses()
+    public async Task ClearBonusesUseBaseIndependentlyOfRankAndQuestRemainsUnchanged()
     {
-        var service = new ExperienceCalculationDomainService(new FixedWorth(), null!);
+        var service = new ExperienceCalculationDomainService(new FixedWorth(), new ClearBonuses());
         var clear = await service.CalculateAsync(new ClearExperienceContext(
             Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, CancellationToken.None);
         var quest = await service.CalculateAsync(new QuestExperienceContext(
             Occasion(ExperienceEvent.QuestCompletion), 101), 3, CancellationToken.None);
-        Assert.Equal(new ExperienceBreakdown(Base: 100, ClearRank: 20), clear);
+        Assert.Equal(new ExperienceBreakdown(Base: 100, ClearRank: 20, GrowthContract: 20, SpiritPotion: 100), clear);
         Assert.Equal(new ExperienceBreakdown(Base: 101), quest);
     }
 
@@ -44,6 +44,16 @@ public sealed class ExperienceCalculationDomainServiceTests
     {
         public uint WorthOfKill(in KillCircumstances kill) => 75;
         public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) => new(100, 20);
+    }
+    private sealed class ClearBonuses : IExperienceBonusDomainService
+    {
+        public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(ExperienceOccasion occasion, CancellationToken token)
+        {
+            Assert.Equal(ExperienceEvent.DungeonClear, occasion.Event);
+            return ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([
+                new("growth", .2, ExperienceBonusKind.GrowthContract),
+                new("potion", 1, ExperienceBonusKind.SpiritPotion)]);
+        }
     }
     private sealed class Bonuses : IExperienceBonusDomainService
     {

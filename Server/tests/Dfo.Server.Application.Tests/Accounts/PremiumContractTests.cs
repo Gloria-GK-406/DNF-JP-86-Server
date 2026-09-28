@@ -13,6 +13,23 @@ namespace Dfo.Server.Application.Tests.Accounts;
 public sealed class PremiumContractTests
 {
     [Fact]
+    public async Task Growth_rate_is_owned_by_account_service_and_uses_rules_only_while_active()
+    {
+        await using var f = new LearningFixture(configure: services =>
+            services.AddSingleton<IPremiumServiceDefinitionSource>(new Levels()));
+        await f.SeedAsync();
+        var account = f.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(1));
+        Assert.Equal(0, await account.GetExperienceBonusRateAsync(default));
+        f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,84,4000000000)");
+        Assert.Equal(.2, await account.GetExperienceBonusRateAsync(default));
+        Assert.Equal(0, await f.Services.GetRequiredService<IPremiumServiceDomainService>().For(new(2)).GetExperienceBonusRateAsync(default));
+        f.Sql("UPDATE account_premiums SET end_time=0");
+        Assert.Equal(0, await account.GetExperienceBonusRateAsync(default));
+        f.Sql("UPDATE account_premiums SET end_time=1");
+        Assert.Equal(0, await account.GetExperienceBonusRateAsync(default));
+    }
+
+    [Fact]
     public async Task Extension_preserves_remaining_time_is_visible_in_transaction_and_rolls_back()
     {
         await using var f = new LearningFixture(); await f.SeedAsync();
@@ -92,6 +109,7 @@ public sealed class PremiumContractTests
         public int ReadAutoRepairDailyLimit() => 6;
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
+        public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
     }
     private sealed class Requirement(int level) : IEquipmentWearRuleService

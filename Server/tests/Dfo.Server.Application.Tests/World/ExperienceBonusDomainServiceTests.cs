@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Abstractions.Channel;
@@ -29,6 +32,42 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class ExperienceBonusDomainServiceTests
 {
+    [Theory]
+    [InlineData(ExperienceEvent.MonsterKill, true, false)]
+    [InlineData(ExperienceEvent.DungeonClear, true, true)]
+    [InlineData(ExperienceEvent.QuestCompletion, false, false)]
+    public void Growth_and_potion_have_separate_occasion_rules(ExperienceEvent occasion, bool growth, bool potion)
+    {
+        var potions = new SpiritPotionDomainService(TimeProvider.System);
+        potions.Apply(new(60), 1, TimeSpan.FromHours(2));
+        var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
+        Assert.Equal(growth, found.Any(x => x.Kind == ExperienceBonusKind.GrowthContract && x.Rate == .2));
+        Assert.Equal(potion, found.Any(x => x.Kind == ExperienceBonusKind.SpiritPotion && x.Rate == 1));
+        Assert.Equal((growth ? 1 : 0) + (potion ? 1 : 0), found.Count);
+    }
+
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(1L)]
+    public void Expired_growth_does_not_contribute(long expiry) =>
+        Assert.Empty(Collect(Service(premiums: [new(84, expiry)]), OtherDungeon));
+
+    private sealed class Rates : IPremiumServiceRuleService
+    {
+        public double GrowthExperienceBonusRate => .2;
+        public IReadOnlyList<int> QuestHelperMinimumDropRates => throw new NotSupportedException();
+        public int DrawQuestHelperBonusCount(ulong seed) => throw new NotSupportedException();
+        public int DoublePotDailyLimit => throw new NotSupportedException();
+        public int DoublePotTotalDailyLimit => throw new NotSupportedException();
+        public int DoublePotRenewedUsage(int totalUsed) => throw new NotSupportedException();
+        public bool SupportsDoublePot(int itemId) => throw new NotSupportedException();
+        public int FreeWeaknessDailyLimit => throw new NotSupportedException();
+        public int DungeonBuffDailyLimit => throw new NotSupportedException();
+        public int AutoRepairDailyLimit => throw new NotSupportedException();
+        public int FreeGoldCardDailyLimit => throw new NotSupportedException();
+        public int LevelAllowance(PremiumBenefit benefit) => throw new NotSupportedException();
+    }
+
     private const int CarriedDungeon = 144;
     private const int OtherDungeon = 157;
 
@@ -132,11 +171,13 @@ public sealed class ExperienceBonusDomainServiceTests
     private static IExperienceBonusDomainService Service(
         bool published = true,
         ChannelExperienceCatalog? channels = null,
-        int channelId = Channel) =>
+        int channelId = Channel,
+        IReadOnlyList<AccountPremiumRow>? premiums = null,
+        ISpiritPotionDomainService? potions = null) =>
         new ExperienceBonusDomainService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
-            new PremiumServiceDomainService(new NoPremium(), new DomainTransactionScope(), TimeProvider.System),
+            new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates()),
             new OneChannel(channelId),
             new ExperienceRuleService(
                 new UnpricedKills(),
@@ -145,7 +186,7 @@ public sealed class ExperienceBonusDomainServiceTests
                 new FixedChannelExperience(channels ?? TwoChannels),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None),
-            TimeProvider.System);
+            TimeProvider.System, potions ?? new SpiritPotionDomainService(TimeProvider.System));
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;
@@ -285,11 +326,11 @@ public sealed class ExperienceBonusDomainServiceTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class NoPremium : IAccountPremiumTable
+    private sealed class NoPremium(IReadOnlyList<AccountPremiumRow> rows) : IAccountPremiumTable
     {
         public ValueTask<IReadOnlyList<AccountPremiumRow>> ReadAsync(
             AccountId accountId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<AccountPremiumRow>>([]);
+            ValueTask.FromResult(rows);
     }
 
     private sealed class OneChannel(int channelId) : IChannelEntryPolicy

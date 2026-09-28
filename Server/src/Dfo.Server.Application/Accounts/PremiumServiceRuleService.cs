@@ -29,6 +29,8 @@ internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource 
     public int AutoRepairDailyLimit => autoRepairLimit.Value;
     private readonly Lazy<int> freeWeaknessLimit = new(source.ReadFreeWeaknessDailyLimit);
     public int FreeWeaknessDailyLimit => freeWeaknessLimit.Value;
+    private readonly Lazy<double> growthExperience = new(source.ReadGrowthExperienceBonusRate);
+    public double GrowthExperienceBonusRate => growthExperience.Value;
     private readonly Lazy<PremiumContractLevels> levels = new(source.ReadContractLevels);
     public int LevelAllowance(PremiumBenefit benefit) => benefit switch
     {

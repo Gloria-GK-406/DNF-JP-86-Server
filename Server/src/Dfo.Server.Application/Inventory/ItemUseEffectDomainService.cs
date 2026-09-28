@@ -1,7 +1,11 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
+using Dfo.Server.Application.Characters;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -16,7 +20,10 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 internal sealed class ItemUseEffectDomainService(
     IItemUseJudgementService judgement,
-    ICharacterItemCooldownDomainService cooldowns) : IItemUseEffectDomainService
+    ICharacterItemCooldownDomainService cooldowns,
+    SpiritPotionDomainService spiritPotion,
+    ISelectedSessionDomainService sessions,
+    IDomainTransactionAccessor transactions) : IItemUseEffectDomainService
 {
     private const int ConsumedPerUse = 1;
 
@@ -30,7 +37,7 @@ internal sealed class ItemUseEffectDomainService(
         if (rule is null)
             return [];
 
-        var effects = new List<IItemUseEffect>(2);
+        var effects = new List<IItemUseEffect>(3);
         if (rule.IsConsumedOnUse)
             effects.Add(new ConsumeFromContainerEffect(slotIndex, ConsumedPerUse));
 
@@ -41,11 +48,15 @@ internal sealed class ItemUseEffectDomainService(
                 TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
         }
 
+        if (rule.ExpBonusRate > 0 && rule.EffectDurationMilliseconds > 0)
+            effects.Add(new StartSpiritPotionEffect(rule.ExpBonusRate,
+                TimeSpan.FromMilliseconds(rule.EffectDurationMilliseconds)));
+
         return effects;
     }
 
     public async ValueTask<ItemUseApplication> ApplyAsync(
-        CharacterId characterId,
+        SelectedSessionIdentity session,
         IItemContainer container,
         ContainerSlotItem item,
         IReadOnlyList<IItemUseEffect> effects,
@@ -54,6 +65,7 @@ internal sealed class ItemUseEffectDomainService(
         ArgumentNullException.ThrowIfNull(container);
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(effects);
+        ArgumentNullException.ThrowIfNull(session);
 
         // The container goes first, as it did when it could still refuse. It no longer can -- the
         // slot was read inside this same use case and nothing outside can have moved it since -- but
@@ -87,8 +99,30 @@ internal sealed class ItemUseEffectDomainService(
         }
 
         foreach (var cooldown in effects.OfType<StartItemCooldownEffect>())
-            cooldowns.Start(characterId, cooldown.Key, cooldown.Duration);
+            cooldowns.Start(session.CharacterId, cooldown.Key, cooldown.Duration);
+
+        foreach (var potion in effects.OfType<StartSpiritPotionEffect>())
+        {
+            var transaction = transactions.Current
+                ?? throw new InvalidOperationException("Using a spirit potion requires a transaction.");
+            transaction.Enlist(new object(), () => new SpiritPotionCommit(
+                sessions, spiritPotion, session, potion.BonusRate, potion.Duration));
+        }
 
         return new ItemUseApplication(item.ItemId, remaining);
+    }
+
+    private sealed class SpiritPotionCommit(
+        ISelectedSessionDomainService sessions, SpiritPotionDomainService spiritPotion,
+        SelectedSessionIdentity session, double rate, TimeSpan duration) : ITransactionParticipant
+    {
+        public bool CommitCanFail => false;
+        public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask CommitAsync(CancellationToken ct)
+        {
+            spiritPotion.ApplyForSession(session, sessions, rate, duration);
+            return ValueTask.CompletedTask;
+        }
     }
 }

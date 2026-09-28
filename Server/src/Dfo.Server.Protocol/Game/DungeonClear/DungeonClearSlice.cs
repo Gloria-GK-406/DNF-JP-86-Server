@@ -98,7 +98,8 @@ internal sealed record ClearDungeonRewardNotification(
     int CardGold,
     int PaidFlipCost,
     IReadOnlyList<PartyCardReward>? PartyCards = null,
-    DungeonKillExperienceSummary? KillExperience = null)
+    DungeonKillExperienceSummary? KillExperience = null,
+    ExperienceBreakdown? Experience = null)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
@@ -322,7 +323,8 @@ internal static class DungeonClearPayloadCodec
         int cardGold = 0,
         int paidFlipCost = NoPaidFlipCost,
         IReadOnlyList<PartyCardReward>? partyCards = null,
-        DungeonKillExperienceSummary? killExperience = null)
+        DungeonKillExperienceSummary? killExperience = null,
+        ExperienceBreakdown? experience = null)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
         using var writer = new BinaryWriter(stream);
@@ -334,7 +336,13 @@ internal static class DungeonClearPayloadCodec
         writer.Write(0); // avatar bonus
         writer.Write((byte)0);
         for (var slot = 0; slot < FixedRewardSlotCount; slot++)
-            writer.Write(0);
+            writer.Write(slot switch
+            {
+                1 => experience?.SpiritPotion ?? 0u,
+                9 => experience?.GrowthContract ?? 0u,
+                18 => killExperience?.GrowthContract ?? 0u, // Already awarded kills; display only.
+                _ => 0u,
+            });
 
         // Two counted lists, both empty. A value written into either of these counts would be read
         // as a length, and the client would go on to consume entries that are not there.
@@ -632,7 +640,7 @@ internal sealed class ClearDungeonRewardEncoder
                 message.FreeCards,
                 message.CardGold,
                 message.PaidFlipCost,
-                message.PartyCards, message.KillExperience));
+                message.PartyCards, message.KillExperience, message.Experience));
 }
 
 /// <summary>
@@ -928,10 +936,7 @@ public sealed class SetPlayResultHandler(
                     total,
                     mirror,
                     AccountHonorLevel.Initial,
-                    // Nothing a clear pays belongs to a named line: the clear's own worth and its
-                    // rank bonus are both what the occasion was worth, and the client draws them
-                    // as the base. The result screen below reports them apart.
-                    ExperienceBonusLines.None),
+                    ExperienceBonusLines.Of(award)),
             ];
 
             if (award?.LeveledUp == true)
@@ -944,7 +949,7 @@ public sealed class SetPlayResultHandler(
             frames.Add(award is null
                 ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost, partyCards)
                 : new ClearDungeonRewardNotification(
-                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience));
+                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience, award.Breakdown));
 
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,

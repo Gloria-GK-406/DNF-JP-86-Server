@@ -58,6 +58,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);
         var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes,
             new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
+            new SpiritPotionDomainService(TimeProvider.System),
             f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
             new CharacterVitalRuntimeDomainService(),
             new PartyService(
