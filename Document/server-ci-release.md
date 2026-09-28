@@ -6,6 +6,8 @@
 
 - 开发使用功能分支，经 PR 合并到 `main`，不直接向主干推送开发提交。
 - PR 面向 main 时运行 CI；合并产生 main push 后再次运行 CI。
+- 正式版本基线为 `0.1.0`，唯一声明位于 `Server/Directory.Build.props` 的 `VersionPrefix`。本次建立基线的 PR 保持 `0.1.0`；以后每个 PR 默认将目标 main 的 PATCH 加一，同一 PR 追加提交不再加。用户明确指定版本时以用户要求为准；并行 PR 在合并前重新核对 main。该递增由开发流程执行，不由 Actions 额外向主干提交。
+- 日常构建及 CI 候选包使用源码版本，程序集信息保留提交标识。版本递增本身不打 tag、不创建 Release；只有用户明确要求发布时才走下面的 tag 流程。
 - Windows x64 / Linux x64 分别还原、Release 构建、运行测试、生成候选包并启动验证；任一失败均标红。CI 不创建 GitHub Release。
 - `vMAJOR.MINOR.PATCH` 或 `vMAJOR.MINOR.PATCH-rc.1` tag 推送后触发 Release。
 - Release 必须先通过 tag 校验、两个平台的测试、自包含发布与启动冒烟测试，再创建 GitHub Release。预发行 tag 自动标记为 prerelease。

@@ -9,6 +9,8 @@ DNF 日服 Act.86 客户端的服务端仿真。协议逆向结论的权威存�
 ## 开发与发布约定
 
 - 开发提交只推功能分支，经 PR 合并到 `main`，不直接向主干推送代码。
+- 服务端版本统一由 `Server/Directory.Build.props` 的 `VersionPrefix` 管理，初始基线为 `0.1.0`。用户没有另行指定时，每个 PR 相对目标 main 的版本递增一次 PATCH（如 `0.1.1`、`0.1.2`）；同一 PR 的追加提交不重复递增。合并前若 main 已前进，重新核对版本，避免并行 PR 使用同一版本。本次建立版本基线的 PR 使用 `0.1.0`。
+- 递增版本不创建或推送 tag，不自动发布 Release；打 tag 仍须用户明确要求。
 - 版本 tag 只从主干创建；Release 工作流检查 tag 指向 main 历史上的提交。
 - PR 和主干合并运行 CI；版本 tag 重新测试后发布 Windows x64 / Linux x64 自包含包。
 - 当前不依赖付费分支保护，遵守上述约定。操作与验收边界见 `Document/server-ci-release.md`。

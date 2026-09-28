@@ -108,7 +108,8 @@ def smoke(published, rid):
 
 
 def package():
-    version, rid = os.environ["RELEASE_VERSION"], os.environ["RELEASE_RID"]
+    version = os.environ.get("RELEASE_VERSION") or ET.parse(ROOT / "Server/Directory.Build.props").findtext(".//VersionPrefix")
+    rid = os.environ["RELEASE_RID"]
     if not VERSION.fullmatch(version) or rid not in ("win-x64", "linux-x64"):
         raise ValueError("Invalid release version or runtime")
     if (rid == "win-x64") != (os.name == "nt"):
