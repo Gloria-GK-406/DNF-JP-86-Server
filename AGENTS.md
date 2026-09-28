@@ -210,11 +210,11 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 不存在会话物品副本和 `ReplaceExact` 回写。入场时的物品租约缓存及退场保存链路已移除。
 会话与当前视图的边界见 [选角结果与运行期当前视图](Document/SelectedSessionCurrentView.md)。
 
-**疲劳有接缝，但接缝不记账。** 唯一注册的实现是
-`UnaccountedCharacterFatigueDomainService`：它答一对定值，对报给它的东西一律丢弃。进本处
-（`SelectDungeonHandler`）确实调 `SpendAsync` 且数目被判据钉住，但那是**报告**不是**闸门**——
-没有余额可以不足，`SelectDungeonRefusal.InsufficientFatigue` 至今无人问。
-`CharacterRosterService.cs:214` 那个写死的 `new CharacterFatigueState(188, 0)` 仍是发出去的唯一数字。
+**疲劳总量已接入配置，消耗仍未记账。** `UnaccountedCharacterFatigueDomainService`
+读取 `Fatigue:BaseTotal`（默认156），加账号增值服务 `GetExtraFatigueAsync` 的结果；
+后者有黑钻资格返回 `Premium:BlackDiamondExtraFatigue`（默认32），无资格返回0。
+登录和队伍投影统一读取该服务，已用量仍为0。`SpendAsync`/`RefundAsync` 仍为空，
+没有跨日消耗记录，也未接入零疲劳入场拒绝。
 **报的那个 `1` 是占位值，且与档案已知冲突**：`SelectDungeonHandler.FatigueAnEntryCosts` 无条件
 报 1，而副本自带 `[no fatigue]` 标记（`DungeonDefinition.ConsumesFatigue`，全仓唯一读者是
 `PvfDungeonDefinitionSourceTests.cs:32` 那条钉解析的判据，它断言教程本 10000 为 `false`）——

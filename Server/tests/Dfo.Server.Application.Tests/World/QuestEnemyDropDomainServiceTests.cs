@@ -440,6 +440,7 @@ public sealed class QuestEnemyDropDomainServiceTests
     }
     private sealed class NoPremiums : IPremiumServiceDomainService, IAccountPremiumServices
     {
+        public ValueTask<ushort> GetExtraFatigueAsync(CancellationToken cancellationToken) => ValueTask.FromResult((ushort)0);
         public ValueTask<int> GetBossEquipmentDropBonusPercentAsync(IReadOnlyList<AccountId> participants, CancellationToken token) => ValueTask.FromResult(0);
         public IAccountPremiumServices For(AccountId accountId) => this;
         public ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken) => ValueTask.FromResult(0d);

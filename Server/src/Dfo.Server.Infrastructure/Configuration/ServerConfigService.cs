@@ -19,6 +19,8 @@ public sealed class ServerConfigService : IServerConfigService
                 StringComparer.OrdinalIgnoreCase);
         snapshot.TryAdd("Game:DailyResetTime", "06:00:00");
         snapshot.TryAdd("Premium:BlackDiamondEnabled", "true");
+        snapshot.TryAdd("Premium:BlackDiamondExtraFatigue", "32");
+        snapshot.TryAdd("Fatigue:BaseTotal", "156");
         values = snapshot;
     }
 

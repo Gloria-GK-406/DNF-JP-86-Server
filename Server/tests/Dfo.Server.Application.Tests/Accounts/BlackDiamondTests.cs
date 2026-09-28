@@ -50,7 +50,9 @@ public sealed class BlackDiamondTests
     private sealed class Settings(bool enabled) : IServerConfigService
     {
         public T GetConfig<T>(string key) => key == "Premium:BlackDiamondEnabled" && typeof(T) == typeof(bool)
-            ? (T)(object)enabled : throw new InvalidOperationException(key);
+            ? (T)(object)enabled : key == "Premium:BlackDiamondExtraFatigue" && typeof(T) == typeof(ushort)
+            ? (T)(object)(ushort)32 : key == "Fatigue:BaseTotal" && typeof(T) == typeof(ushort)
+            ? (T)(object)(ushort)156 : throw new InvalidOperationException(key);
     }
 
     private sealed class Clock : TimeProvider

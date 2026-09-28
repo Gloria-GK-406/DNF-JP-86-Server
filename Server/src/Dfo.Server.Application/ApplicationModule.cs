@@ -331,9 +331,7 @@ public sealed class ApplicationModule : IServerModule
         // already read, and this reads the same rows for anyone who is not entry.
         services.TryAddSingleton<
             ICharacterSettingsDomainService, CharacterSettingsDomainService>();
-        // A character's fatigue -- the seam only. The implementation answers a fixed pair and
-        // records nothing, which is what its name says; the system that would record it is its own
-        // piece of work and this exists so that the places that spend fatigue call it now.
+        // Configured allowance is live; usage accounting is still pending.
         services.TryAddSingleton<
             ICharacterFatigueDomainService, UnaccountedCharacterFatigueDomainService>();
         services.TryAddSingleton(

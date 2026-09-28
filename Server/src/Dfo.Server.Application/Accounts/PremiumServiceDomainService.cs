@@ -11,6 +11,7 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
     IServerConfigService settings) : IPremiumServiceDomainService
 {
     private readonly bool blackDiamondEnabled = settings.GetConfig<bool>("Premium:BlackDiamondEnabled");
+    private readonly ushort blackDiamondExtraFatigue = settings.GetConfig<ushort>("Premium:BlackDiamondExtraFatigue");
     public async ValueTask<int> GetBossEquipmentDropBonusPercentAsync(IReadOnlyList<AccountId> participants,
         CancellationToken cancellationToken)
     {
@@ -25,12 +26,12 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
     public IAccountPremiumServices For(AccountId accountId)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(accountId.Value);
-        return new AccountServices(accountId, table, transactions, clock, rules, blackDiamondEnabled);
+        return new AccountServices(accountId, table, transactions, clock, rules, blackDiamondEnabled, blackDiamondExtraFatigue);
     }
 
     private sealed class AccountServices(AccountId accountId, IAccountPremiumTable table,
         IDomainTransactionAccessor transactions, TimeProvider clock, IPremiumServiceRuleService rules,
-        bool blackDiamondEnabled) : IAccountPremiumServices
+        bool blackDiamondEnabled, ushort blackDiamondExtraFatigue) : IAccountPremiumServices
     {
         public async ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken)
         {
@@ -42,6 +43,9 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
                 entries.Add(new((int)PremiumServiceType.BlackDiamond, clock.GetUtcNow().AddDays(365).ToUnixTimeSeconds()));
             return entries;
         }
+
+        public ValueTask<ushort> GetExtraFatigueAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(blackDiamondEnabled ? blackDiamondExtraFatigue : (ushort)0);
 
         public async ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken) =>
             await IsActiveAsync(PremiumServiceType.GrowthContract, cancellationToken).ConfigureAwait(false)

@@ -607,6 +607,7 @@ public sealed class CardRewardDomainServiceTests
     public void The_registration_wires_the_settlement_service()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService, Dfo.Server.Application.Tests.Support.FixedFatigue>();
         new ApplicationModule().ConfigureServices(
             services, new ConfigurationBuilder().Build());
         services.AddSingleton<IClearRewardRateSource>(

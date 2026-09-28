@@ -92,6 +92,7 @@ public sealed class RegistryExistenceTests
     private static ServiceProvider BuildProductionGraph()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService, Dfo.Server.Application.Tests.Support.FixedFatigue>();
         new ApplicationModule().ConfigureServices(
             services,
             new ConfigurationBuilder().Build());

@@ -56,7 +56,7 @@ internal sealed class CharacterSide
         new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
         items,
-        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()));
+        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue());
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.
@@ -255,5 +255,13 @@ internal sealed class CharacterSide
 internal sealed class DisabledDefaultPremiumSettings : Dfo.Server.Abstractions.Configuration.IServerConfigService
 {
     public T GetConfig<T>(string key) => key == "Premium:BlackDiamondEnabled" && typeof(T) == typeof(bool)
-        ? (T)(object)false : throw new InvalidOperationException(key);
+        ? (T)(object)false : key == "Premium:BlackDiamondExtraFatigue" && typeof(T) == typeof(ushort)
+            ? (T)(object)(ushort)32 : throw new InvalidOperationException(key);
+}
+
+internal sealed class RosterTestFatigue : ICharacterFatigueDomainService
+{
+    public ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId id, CancellationToken token) => ValueTask.FromResult(new CharacterFatigueBalance(188, 0));
+    public ValueTask SpendAsync(CharacterId id, ushort points, CancellationToken token) => ValueTask.CompletedTask;
+    public ValueTask RefundAsync(CharacterId id, ushort points, CancellationToken token) => ValueTask.CompletedTask;
 }
