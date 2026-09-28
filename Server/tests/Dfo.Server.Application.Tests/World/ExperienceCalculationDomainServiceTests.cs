@@ -20,15 +20,25 @@ public sealed class ExperienceCalculationDomainServiceTests
     }
 
     [Fact]
-    public async Task ClearBonusesUseBaseIndependentlyOfRankAndQuestRemainsUnchanged()
+    public async Task BlackDiamondUsesScoredBaseWithoutCompoundingOtherBonuses()
     {
         var service = new ExperienceCalculationDomainService(new FixedWorth(), new ClearBonuses());
         var clear = await service.CalculateAsync(new ClearExperienceContext(
             Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, CancellationToken.None);
         var quest = await service.CalculateAsync(new QuestExperienceContext(
             Occasion(ExperienceEvent.QuestCompletion), 101), 3, CancellationToken.None);
-        Assert.Equal(new ExperienceBreakdown(Base: 100, ClearRank: 20, GrowthContract: 20, SpiritPotion: 100), clear);
+        Assert.Equal(new ExperienceBreakdown(Base: 100, ClearRank: 20, GrowthContract: 20, SpiritPotion: 100, BlackDiamond: 6), clear);
+        Assert.Equal(246u, clear.Total);
         Assert.Equal(new ExperienceBreakdown(Base: 101), quest);
+    }
+
+    [Fact]
+    public async Task BlackDiamondFloorsFractionalScoredExperience()
+    {
+        var service = new ExperienceCalculationDomainService(new FixedWorth(101, 22), new ClearBonuses());
+        var result = await service.CalculateAsync(new ClearExperienceContext(
+            Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, CancellationToken.None);
+        Assert.Equal(6u, result.BlackDiamond);
     }
 
     [Fact]
@@ -40,10 +50,10 @@ public sealed class ExperienceCalculationDomainServiceTests
 
     private static ExperienceOccasion Occasion(ExperienceEvent kind) =>
         new(kind, new AccountId(1), new CharacterId(2), 144);
-    private sealed class FixedWorth : IExperienceValuationDomainService
+    private sealed class FixedWorth(uint clearBase = 100, uint rank = 20) : IExperienceValuationDomainService
     {
         public uint WorthOfKill(in KillCircumstances kill) => 75;
-        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) => new(100, 20);
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) => new(clearBase, rank);
     }
     private sealed class ClearBonuses : IExperienceBonusDomainService
     {
@@ -52,7 +62,8 @@ public sealed class ExperienceCalculationDomainServiceTests
             Assert.Equal(ExperienceEvent.DungeonClear, occasion.Event);
             return ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([
                 new("growth", .2, ExperienceBonusKind.GrowthContract),
-                new("potion", 1, ExperienceBonusKind.SpiritPotion)]);
+                new("potion", 1, ExperienceBonusKind.SpiritPotion),
+                new("black diamond", .05, ExperienceBonusKind.BlackDiamond)]);
         }
     }
     private sealed class Bonuses : IExperienceBonusDomainService

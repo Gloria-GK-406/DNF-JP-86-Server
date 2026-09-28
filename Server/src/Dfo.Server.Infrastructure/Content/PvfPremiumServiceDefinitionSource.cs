@@ -51,20 +51,23 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
             throw new InvalidDataException("Invalid free stamina daily limit.");
         return section.Values[1].Value;
     }
-    public double ReadGrowthExperienceBonusRate()
+    public double ReadGrowthExperienceBonusRate() => ReadExperienceRate(84, "[bonus exp]");
+    public double ReadBlackDiamondExperienceBonusRate() => ReadExperienceRate(56, "[exp]");
+
+    private double ReadExperienceRate(int premiumType, string tag)
     {
         var type = 0;
         foreach (var section in PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"))
         {
             if (section.Name == "[type]" && section.Values.Count == 1)
                 type = section.Values[0].Value;
-            if (type != 84 || section.Name != "[bonus exp]") continue;
+            if (type != premiumType || section.Name != tag) continue;
             if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32
                 || section.Values[0].Value < 0)
-                throw new InvalidDataException("Invalid growth contract experience rate.");
+                throw new InvalidDataException($"Invalid premium {premiumType} experience rate.");
             return section.Values[0].Value / 100d;
         }
-        throw new InvalidDataException("Missing growth contract experience rate.");
+        throw new InvalidDataException($"Missing premium {premiumType} experience rate.");
     }
 
     public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents()

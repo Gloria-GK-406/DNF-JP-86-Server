@@ -19,6 +19,7 @@ public sealed class DungeonBuffUsageTests
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents() => new[] {20, 23, 27, 30};
+        public double ReadBlackDiamondExperienceBonusRate() => .05;
         public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadDungeonBuffDailyLimit() => 10;

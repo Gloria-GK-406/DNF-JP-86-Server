@@ -47,6 +47,9 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
         public ValueTask<ushort> GetExtraFatigueAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult(blackDiamondEnabled ? blackDiamondExtraFatigue : (ushort)0);
 
+        public ValueTask<double> GetBlackDiamondExperienceBonusRateAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(blackDiamondEnabled ? rules.BlackDiamondExperienceBonusRate : 0d);
+
         public async ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken) =>
             await IsActiveAsync(PremiumServiceType.GrowthContract, cancellationToken).ConfigureAwait(false)
                 ? rules.GrowthExperienceBonusRate : 0;

@@ -344,6 +344,7 @@ internal static class DungeonClearPayloadCodec
             writer.Write(slot switch
             {
                 1 => experience?.SpiritPotion ?? 0u,
+                2 => experience?.BlackDiamond ?? 0u,
                 9 => experience?.GrowthContract ?? 0u,
                 18 => killExperience?.GrowthContract ?? 0u, // Already awarded kills; display only.
                 _ => 0u,

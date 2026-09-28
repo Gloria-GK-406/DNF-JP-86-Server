@@ -20,6 +20,7 @@ public interface IAccountPremiumServices
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken);
     ValueTask<ushort> GetExtraFatigueAsync(CancellationToken cancellationToken);
     ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken);
+    ValueTask<double> GetBlackDiamondExperienceBonusRateAsync(CancellationToken cancellationToken);
     ValueTask<bool> IsActiveAsync(PremiumServiceType type, CancellationToken cancellationToken);
     ValueTask<bool> HasBenefitAsync(PremiumBenefit benefit, CancellationToken cancellationToken);
     ValueTask<AccountPremiumEntryState> ExtendAsync(PremiumServiceType type, TimeSpan duration,

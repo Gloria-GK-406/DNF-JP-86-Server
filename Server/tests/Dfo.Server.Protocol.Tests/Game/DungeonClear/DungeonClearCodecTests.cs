@@ -45,16 +45,18 @@ public sealed class DungeonClearCodecTests
         var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20);
         var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20,
             killExperience: new(GrowthContract: 19),
-            experience: new(Base: 100, ClearRank: 20, GrowthContract: 13, SpiritPotion: 11));
+            experience: new(Base: 100, ClearRank: 20, GrowthContract: 13, SpiritPotion: 11, BlackDiamond: 6));
+        Assert.Equal(6u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(25)));
         Assert.Equal(11u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(21)));
         Assert.Equal(13u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(53)));
         Assert.Equal(19u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(89)));
-        Assert.Equal(144u, BinaryPrimitives.ReadUInt32LittleEndian(body)
+        Assert.Equal(150u, BinaryPrimitives.ReadUInt32LittleEndian(body)
             + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(4))
+            + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(25))
             + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(21))
             + BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(53)));
         Assert.Equal(baseline.Length, body.Length);
-        foreach (var offset in new[] { 21, 53, 89 }) body.AsSpan(offset, 4).Clear();
+        foreach (var offset in new[] { 21, 25, 53, 89 }) body.AsSpan(offset, 4).Clear();
         Assert.Equal(baseline, body);
     }
 

@@ -19,6 +19,7 @@ internal sealed class CardPremiums(params long[] activeAccounts) : IPremiumServi
         }
         public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken token) => throw new NotSupportedException();
         public ValueTask<ushort> GetExtraFatigueAsync(CancellationToken token) => ValueTask.FromResult((ushort)0);
+        public ValueTask<double> GetBlackDiamondExperienceBonusRateAsync(CancellationToken cancellationToken) => ValueTask.FromResult(0d);
         public ValueTask<double> GetExperienceBonusRateAsync(CancellationToken token) => ValueTask.FromResult(0d);
         public ValueTask<bool> HasBenefitAsync(PremiumBenefit benefit, CancellationToken token) => ValueTask.FromResult(false);
         public ValueTask<AccountPremiumEntryState> ExtendAsync(PremiumServiceType type, TimeSpan duration, CancellationToken token) => throw new NotSupportedException();

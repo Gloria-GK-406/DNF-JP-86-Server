@@ -37,7 +37,12 @@ internal sealed class ExperienceCalculationDomainService(
                 var settlement = new ExperienceBreakdown(Base: calculated.Base, ClearRank: calculated.RankBonus);
                 foreach (var modifier in await bonuses.CollectAsync(clear.Occasion, cancellationToken)
                     .ConfigureAwait(false))
-                    settlement = settlement.Add(modifier.Kind, Floor(calculated.Base * modifier.Rate));
+                {
+                    // Black diamond includes rank, but never compounds other premium bonuses.
+                    var basis = modifier.Kind == ExperienceBonusKind.BlackDiamond
+                        ? (double)calculated.Base + calculated.RankBonus : calculated.Base;
+                    settlement = settlement.Add(modifier.Kind, Floor(basis * modifier.Rate));
+                }
                 _ = settlement.Total;
                 return settlement;
             case QuestExperienceContext quest:
