@@ -25,6 +25,21 @@ public sealed class DungeonClearCodecTests
 {
     /// <summary>The exit opens on one byte, and the byte is zero.</summary>
     [Fact]
+    public void KillCategoriesAreDisplayOnlyAndDoNotChangeClearAwardOrCardLayout()
+    {
+        var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70);
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70,
+            killExperience: new Dfo.Server.Abstractions.World.DungeonKillExperienceSummary(
+                Ordinary: 100, Champion: 200, SuperChampion: 300, Boss: 400));
+        Assert.Equal(baseline.Length, body.Length);
+        Assert.Equal(200u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(143)));
+        Assert.Equal(300u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(147)));
+        Assert.Equal(400u, System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(151)));
+        Assert.Equal(baseline[..139], body[..139]);
+        Assert.Equal(baseline[155..], body[155..]);
+    }
+
+    [Fact]
     public void Party_reward_row_preserves_each_seats_gold_and_equipment()
     {
         var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(7, 9,

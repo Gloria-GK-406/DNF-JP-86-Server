@@ -986,7 +986,11 @@ public sealed class DungeonRunDomainServiceTests
             service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
         var leaderEffect = Assert.IsType<DungeonParticipantKillEffectClaim>(
             service.TryClaimParticipantKillEffect(firstDeath, leader.CharacterId));
-        Assert.True(service.CommitParticipantKillEffect(leaderEffect));
+        var award = new ExperienceAward(new ExperienceBreakdown(Base: 90, Channel: 9), 1, 99, false);
+        Assert.True(service.CommitParticipantKillEffect(leaderEffect, award));
+        Assert.False(service.CommitParticipantKillEffect(leaderEffect, award));
+        Assert.Equal(90u, service.Find(leader.CharacterId)!.KillExperience.Ordinary);
+        Assert.Equal(0u, service.Find(member.CharacterId)!.KillExperience.Ordinary);
         var failedMemberEffect = Assert.IsType<DungeonParticipantKillEffectClaim>(
             service.TryClaimParticipantKillEffect(firstDeath, member.CharacterId));
         Assert.True(service.ReleaseParticipantKillEffect(failedMemberEffect));
@@ -997,7 +1001,10 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Null(service.TryClaimParticipantKillEffect(retry, leader.CharacterId));
         var retriedMember = Assert.IsType<DungeonParticipantKillEffectClaim>(
             service.TryClaimParticipantKillEffect(retry, member.CharacterId));
-        Assert.True(service.CommitParticipantKillEffect(retriedMember));
+        Assert.True(service.CommitParticipantKillEffect(retriedMember,
+            new ExperienceAward(new ExperienceBreakdown(Base: 45), 1, 45, false)));
+        Assert.Equal(90u, service.Find(leader.CharacterId)!.KillExperience.Ordinary);
+        Assert.Equal(45u, service.Find(member.CharacterId)!.KillExperience.Ordinary);
         Assert.NotNull(service.CommitActorDeath(retry));
         Assert.Null(service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
     }

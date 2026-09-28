@@ -68,6 +68,8 @@ public sealed record DungeonRunState(
     public ImmutableArray<DungeonKillRecord> Kills { get; init; } = [];
 
     /// <summary>Counts derived from <see cref="Kills"/> without becoming a second source.</summary>
+    public DungeonKillExperienceSummary KillExperience { get; init; } = new();
+
     public DungeonKillSummary KillSummary => DungeonKillSummary.From(this.Kills);
 
     /// <summary>The current in-run party size used by run-scoped reward rules.</summary>
@@ -654,6 +656,9 @@ public interface IDungeonRunDomainService
 
     /// <summary>Marks one participant's transactional kill effects complete.</summary>
     bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim) => true;
+
+    bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim, ExperienceAward? award)
+        => CommitParticipantKillEffect(claim);
 
     /// <summary>Releases exactly one failed participant-effect attempt for retry.</summary>
     bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim) => false;

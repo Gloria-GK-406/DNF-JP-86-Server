@@ -97,7 +97,8 @@ internal sealed record ClearDungeonRewardNotification(
     IReadOnlyList<ClearRewardCardSlot> FreeCards,
     int CardGold,
     int PaidFlipCost,
-    IReadOnlyList<PartyCardReward>? PartyCards = null)
+    IReadOnlyList<PartyCardReward>? PartyCards = null,
+    DungeonKillExperienceSummary? KillExperience = null)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
@@ -320,7 +321,8 @@ internal static class DungeonClearPayloadCodec
         IReadOnlyList<ClearRewardCardSlot>? freeCards = null,
         int cardGold = 0,
         int paidFlipCost = NoPaidFlipCost,
-        IReadOnlyList<PartyCardReward>? partyCards = null)
+        IReadOnlyList<PartyCardReward>? partyCards = null,
+        DungeonKillExperienceSummary? killExperience = null)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
         using var writer = new BinaryWriter(stream);
@@ -346,8 +348,11 @@ internal static class DungeonClearPayloadCodec
             writer.Write(0);
 
         // The score quartet: reserved, champion, super champion, boss.
-        for (var index = 0; index < 4; index++)
-            writer.Write(0);
+        var kills = killExperience ?? new();
+        writer.Write(0);
+        writer.Write(kills.Champion);
+        writer.Write(kills.SuperChampion);
+        writer.Write(kills.Boss);
 
         writer.Write(0u); // no per-object experience entries
 
@@ -627,7 +632,7 @@ internal sealed class ClearDungeonRewardEncoder
                 message.FreeCards,
                 message.CardGold,
                 message.PaidFlipCost,
-                message.PartyCards));
+                message.PartyCards, message.KillExperience));
 }
 
 /// <summary>
@@ -833,7 +838,7 @@ public sealed class SetPlayResultHandler(
                         run.Layout.BasisLevel,
                         run.Difficulty,
                         run.Layout.ExperienceWeight,
-                        message.ClientRankPoint)),
+                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount)),
                 cancellationToken).ConfigureAwait(false));
 
             // The whole award, in its parts. Experience is a number nobody can check by looking, so
@@ -842,7 +847,7 @@ public sealed class SetPlayResultHandler(
             logger.LogInformation(
                 "Set play result {ConnectionId} character={CharacterId}: dungeon {DungeonId} cleared "
                     + "in {ClearTime}ms at rank {Rank}; clearBase={ClearBase} rankBonus={RankBonus} "
-                    + "award={Award}",
+                    + "award={Award} kills={Kills} party={PartyCount} killExperience={KillExperience}",
                 context.Connection.ConnectionId,
                 session.CharacterId.Value,
                 run.Layout.DungeonId,
@@ -850,7 +855,7 @@ public sealed class SetPlayResultHandler(
                 message.ClientRankPoint,
                 paid.ClearBase,
                 paid.RankBonus,
-                paid.Award);
+                paid.Award, run.KillSummary.Total, run.PartyMemberCount, run.KillExperience);
 
             // The award is the result of this write. When none was made, the character's current
             // progress supplies the frame; the session remains only a compatibility projection.
@@ -939,7 +944,7 @@ public sealed class SetPlayResultHandler(
             frames.Add(award is null
                 ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost, partyCards)
                 : new ClearDungeonRewardNotification(
-                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards));
+                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience));
 
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,

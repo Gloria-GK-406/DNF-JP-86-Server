@@ -33,7 +33,7 @@ internal sealed class ExperienceCalculationDomainService(
                 _ = result.Total;
                 return result;
             case ClearExperienceContext clear:
-                var calculated = valuation.WorthOfClear(clear.Clear);
+                var calculated = valuation.WorthOfClear(clear.Clear with { CharacterLevel = characterLevel });
                 // Preserve current rules: settlement modifiers will be enabled with their feature.
                 return new(Base: calculated.Base, ClearRank: calculated.RankBonus);
             case QuestExperienceContext quest:

@@ -517,7 +517,7 @@ public sealed class MonsterDeathHandler(
                             run.IsBossRoom && verifiedKill.IsMonster
                                 && verifiedKill.Rank == MonsterRank.Boss),
                         cancellationToken).ConfigureAwait(false);
-                    if (!runs.CommitParticipantKillEffect(effectClaim))
+                    if (!runs.CommitParticipantKillEffect(effectClaim, appliedKill?.Award))
                     {
                         throw new InvalidOperationException(
                             "The participant kill effect claim was no longer current.");
@@ -806,7 +806,7 @@ public sealed class MonsterDeathHandler(
                             deathClaim.Run.IsBossRoom && verifiedKill.IsMonster
                                 && verifiedKill.Rank == MonsterRank.Boss),
                         cancellationToken).ConfigureAwait(false);
-                    if (!runs.CommitParticipantKillEffect(effectClaim))
+                    if (!runs.CommitParticipantKillEffect(effectClaim, applied.Award))
                     {
                         throw new InvalidOperationException(
                             "The participant kill effect claim was no longer current.");

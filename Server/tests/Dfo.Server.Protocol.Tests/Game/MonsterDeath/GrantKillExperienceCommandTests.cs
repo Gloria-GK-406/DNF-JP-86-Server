@@ -80,7 +80,6 @@ public sealed class GrantKillExperienceCommandTests
                 new UngradedRanks(),
                 new NoProgression(),
                 new NoChannelExperience(),
-                new NoQuestContent(),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None)),
             new FixedChannelBonus(channelRate)),

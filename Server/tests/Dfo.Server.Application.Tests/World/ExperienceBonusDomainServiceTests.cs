@@ -143,7 +143,6 @@ public sealed class ExperienceBonusDomainServiceTests
                 new UngradedRanks(),
                 new NoProgression(),
                 new FixedChannelExperience(channels ?? TwoChannels),
-                new NoQuestContent(),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None),
             TimeProvider.System);
