@@ -52,7 +52,7 @@ public sealed class BlackDiamondTests
         public T GetConfig<T>(string key) => key == "Premium:BlackDiamondEnabled" && typeof(T) == typeof(bool)
             ? (T)(object)enabled : key == "Premium:BlackDiamondExtraFatigue" && typeof(T) == typeof(ushort)
             ? (T)(object)(ushort)32 : key == "Fatigue:BaseTotal" && typeof(T) == typeof(ushort)
-            ? (T)(object)(ushort)156 : throw new InvalidOperationException(key);
+            ? (T)(object)(ushort)156 : key == "Game:DailyResetTime" ? (T)(object)TimeSpan.FromHours(6) : throw new InvalidOperationException(key);
     }
 
     private sealed class Clock : TimeProvider

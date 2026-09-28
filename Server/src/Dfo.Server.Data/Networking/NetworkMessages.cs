@@ -279,6 +279,7 @@ public enum ServerMessageType
     GameExperience = 0x0000_0025,
     GameMonsterDeath = 0x0000_0026,
     GameCharacterLifeState = 0x0000_0020,
+    GameFatigue = 0x0000_0024,
     GameWeaknessProjection = 0x0000_0021,
     GameCharacterDeath = 0x0001_0028,
     GameUseRevivalCoin = 0x0001_0029,

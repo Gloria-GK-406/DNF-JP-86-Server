@@ -221,7 +221,7 @@ internal sealed class CharacterRosterService(
                     checked((byte)row.Job),
                     checked((byte)row.GrowType)),
                 new CharacterProgressionState(checked((byte)row.Level), 0),
-                new CharacterFatigueState(balance.Total, balance.Used),
+                new CharacterFatigueState(balance.Total, balance.Used) { ConsumedToday = balance.ConsumedToday },
                 row.Position,
                 // The client reads this as the character's creation time and the entry ACK carries
                 // it; a working A21 session sends a real Unix timestamp here, so a fixed epoch is a

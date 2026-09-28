@@ -79,6 +79,13 @@ public sealed class DungeonEntryProjectionDelivery(
         var entered = attempt.Entry;
         if (entered is null)
         {
+            if (attempt.Failure == DungeonEntryFailure.InsufficientFatigue)
+            {
+                await RefuseAsync(requesterConnection,
+                    participants.Length == 1 ? SelectDungeonRefusal.InsufficientFatigue : SelectDungeonRefusal.MemberBlocked,
+                    attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
+                return;
+            }
             if (attempt.Failure == DungeonEntryFailure.DifficultyNotUnlocked)
             {
                 await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked,
@@ -143,14 +150,6 @@ public sealed class DungeonEntryProjectionDelivery(
         try
         {
             deliveryRegistry.Register(runId, attachments.Members.Select(value => value.Session).ToArray());
-
-            foreach (var attachment in attachments.Members)
-            {
-                await fatigue.SpendAsync(
-                    attachment.Session.CharacterId,
-                    SelectDungeonHandler.FatigueAnEntryCosts,
-                    cancellationToken).ConfigureAwait(false);
-            }
 
             var refreshed = new Dictionary<CharacterId, SelectCharacterResult>();
             foreach (var attachment in attachments.Members.OrderBy(value => value.Slot))
@@ -220,6 +219,7 @@ public sealed class DungeonEntryProjectionDelivery(
                     visit.Actors,
                     visit.FirstActorSequence,
                     FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                frames.Add(new Fatigue.FatigueNotification(await fatigue.BalanceOfAsync(receiver.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 deliveries.Add((receiver.Session, frames));
             }
 

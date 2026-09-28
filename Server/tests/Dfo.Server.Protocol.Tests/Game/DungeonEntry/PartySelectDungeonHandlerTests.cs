@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Fatigue;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -284,7 +285,8 @@ public sealed class PartySelectDungeonHandlerTests
             frame => Assert.IsType<UdpHostNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame));
+            frame => Assert.IsType<StartMapNotification>(frame),
+            frame => Assert.IsType<FatigueNotification>(frame));
         Assert.Collection(
             world.Sender.Messages(Member.ConnectionId),
             frame => Assert.IsType<ExtendedUserStateMessage>(frame),
@@ -295,7 +297,8 @@ public sealed class PartySelectDungeonHandlerTests
             frame => Assert.IsType<EnterSelectDungeonNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame));
+            frame => Assert.IsType<StartMapNotification>(frame),
+            frame => Assert.IsType<FatigueNotification>(frame));
         Assert.Equal(
             new[] { Leader.WireUserId, Member.WireUserId },
             Assert.Single(world.Sender.Messages(Member.ConnectionId)
@@ -342,9 +345,7 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Equal(leaderStart.Run.CurrentRoomMapId, memberStart.Run.CurrentRoomMapId);
         Assert.Equal(leaderStart.Actors, memberStart.Actors);
         Assert.Equal(leaderStart.Drops, memberStart.Drops);
-        Assert.Equal(
-            [Leader.CharacterId, Member.CharacterId],
-            world.Fatigue.Spent.Select(value => value.CharacterId));
+        Assert.Empty(world.Fatigue.Spent); // Charging belongs to the visit domain, not delivery.
     }
 
     [Fact]
@@ -919,7 +920,7 @@ public sealed class PartySelectDungeonHandlerTests
             Spent.Add((characterId, points));
             return ValueTask.CompletedTask;
         }
-        public ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId characterId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId characterId, CancellationToken cancellationToken) => ValueTask.FromResult(new CharacterFatigueBalance(188, 1));
         public ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 

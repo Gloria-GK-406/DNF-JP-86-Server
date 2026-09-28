@@ -175,7 +175,10 @@ public sealed record CharacterIdentityState(
 
 public sealed record CharacterProgressionState(byte Level, uint Experience);
 
-public sealed record CharacterFatigueState(ushort Total, ushort Used);
+public sealed record CharacterFatigueState(ushort Total, ushort Used)
+{
+    public int ConsumedToday { get; init; }
+}
 
 public sealed record CharacterPositionState(
     byte TownId,

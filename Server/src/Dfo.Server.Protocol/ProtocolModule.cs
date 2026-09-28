@@ -2,6 +2,7 @@ using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
@@ -143,6 +144,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<RecoverStaminaCommand, RecoverStaminaResult, RecoverStaminaCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>(retryLimit: 0);
+        services.TryAddSingleton<FatigueProjectionDelivery>();
+        services.AddHostedService<FatigueDailyRefreshService>();
+        services.AddGameNotiMessageEncoder<FatigueNotification, FatigueEncoder>();
         services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.AddHostedService<WeaknessRecoveryService>();
         services.AddHostedService<PremiumDailyRefreshService>();

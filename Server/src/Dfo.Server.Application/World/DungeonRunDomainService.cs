@@ -110,6 +110,12 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         lock (this.gate)
         {
+            if (this.transactions?.Current is { } transaction)
+            {
+                var previous = frozen.ToDictionary(x => x.CharacterId, x => this.runsByCharacter.GetValueOrDefault(x.CharacterId));
+                transaction.Enlist(new object(), () => new EntryCommit(this, aggregate, previous));
+                return aggregate.EntryChange(DungeonEntryChangeKind.Prepared, aggregate.Leader.CharacterId);
+            }
             foreach (var participant in frozen)
                 this.DetachParticipant(participant.CharacterId);
 
@@ -452,6 +458,14 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             return null;
         }
 
+        if (!aggregate.Cells.ContainsKey(target) && (preparedCell is null || !preparedCell.IsComplete))
+            return null;
+        if (this.transactions?.Current is { } transaction)
+        {
+            var cell = aggregate.Cells.GetValueOrDefault(target) ?? aggregate.CreateCell(preparedCell!);
+            var movement = transaction.Enlist(new object(), () => new MoveCommit(this, aggregate, characterId, target, cell));
+            return movement.Preview;
+        }
         if (!aggregate.Cells.ContainsKey(target))
         {
             if (preparedCell is null || !preparedCell.IsComplete)

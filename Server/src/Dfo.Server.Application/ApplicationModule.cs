@@ -251,7 +251,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICardFlipCostDomainService, CardFlipCostDomainService>();
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
-        services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();
+        services.TryAddSingleton<DungeonVisitDomainService>();
+        services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();
         services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         // Runtime kill interpretation reads only the published Cell snapshot.
@@ -331,9 +332,9 @@ public sealed class ApplicationModule : IServerModule
         // already read, and this reads the same rows for anyone who is not entry.
         services.TryAddSingleton<
             ICharacterSettingsDomainService, CharacterSettingsDomainService>();
-        // Configured allowance is live; usage accounting is still pending.
+        // Configured allowance plus persistent, business-day usage accounting.
         services.TryAddSingleton<
-            ICharacterFatigueDomainService, UnaccountedCharacterFatigueDomainService>();
+            ICharacterFatigueDomainService, CharacterFatigueDomainService>();
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),

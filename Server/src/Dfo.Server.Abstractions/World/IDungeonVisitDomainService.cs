@@ -36,9 +36,9 @@ public sealed record DungeonPartyEntry(
     IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits,
     DungeonEntryChange? Change = null);
 
-public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked }
+public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue }
 
-public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure)
+public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null)
 {
     public static DungeonEntryAttempt Accepted(DungeonPartyEntry entry) => new(entry, null);
     public static DungeonEntryAttempt Refused(DungeonEntryFailure failure) => new(null, failure);
