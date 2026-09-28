@@ -1,0 +1,17 @@
+{
+  "0x54f4c100": {
+    "handle": "0x71f36a",
+    "decoded": 7377,
+    "signed": 7377
+  },
+  "0x54f4ca1c": {
+    "handle": "0x71f376",
+    "decoded": 4294967295,
+    "signed": -1
+  },
+  "0x3a5affc": {
+    "handle": "0x171",
+    "decoded": 0,
+    "signed": 0
+  }
+}

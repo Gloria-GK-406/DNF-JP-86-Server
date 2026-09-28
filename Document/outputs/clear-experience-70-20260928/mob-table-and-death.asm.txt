@@ -1,0 +1,139 @@
+
+### 083605a8 _ZN12CDataManager14set_mob_rewardEv
+083605a8 push    ebp
+083605a9 mov     ebp, esp
+083605ab sub     esp, 0x28
+083605ae mov     eax, dword ptr [0x940bdac]
+083605b3 mov     dword ptr [esp + 8], 0
+083605bb mov     dword ptr [esp + 4], 2
+083605c3 mov     dword ptr [esp], eax
+083605c6 call    0x83f523e                                    _ZN5DBMgr11GetDBHandleE18ENUM_DB_HANDLE_IDX17ENUM_SERVER_GROUP
+083605cb mov     dword ptr [ebp - 0x14], eax
+083605ce mov     dword ptr [esp + 4], 0x8c32e24
+083605d6 mov     eax, dword ptr [ebp - 0x14]
+083605d9 mov     dword ptr [esp], eax
+083605dc call    0x83f41c0                                    _ZN5MySQL9set_queryEPKcz
+083605e1 mov     dword ptr [esp + 4], 1
+083605e9 mov     eax, dword ptr [ebp - 0x14]
+083605ec mov     dword ptr [esp], eax
+083605ef call    0x83f4326                                    _ZN5MySQL4execEb
+083605f4 mov     byte ptr [ebp - 0x15], al
+083605f7 movzx   eax, byte ptr [ebp - 0x15]
+083605fb xor     eax, 1
+083605fe test    al, al
+08360600 je      0x836060c
+08360602 mov     eax, 0
+08360607 jmp     0x8360713
+0836060c mov     eax, dword ptr [ebp - 0x14]
+0836060f mov     dword ptr [esp], eax
+08360612 call    0x80e236c                                    _ZN5MySQL10get_n_rowsEv
+08360617 mov     dword ptr [ebp - 0x10], eax
+0836061a cmp     dword ptr [ebp - 0x10], 0
+0836061e jg      0x836062a
+08360620 mov     eax, 0
+08360625 jmp     0x8360713
+0836062a mov     dword ptr [ebp - 0xc], 0
+08360631 jmp     0x83606c8
+08360636 mov     eax, dword ptr [ebp - 0x14]
+08360639 mov     dword ptr [esp], eax
+0836063c call    0x83f44bc                                    _ZN5MySQL5fetchEv
+08360641 mov     byte ptr [ebp - 0x15], al
+08360644 movzx   eax, byte ptr [ebp - 0x15]
+08360648 xor     eax, 1
+0836064b test    al, al
+0836064d jne     0x83606db
+08360653 lea     eax, [ebp - 0x18]
+08360656 mov     dword ptr [esp + 8], eax
+0836065a mov     dword ptr [esp + 4], 0
+08360662 mov     eax, dword ptr [ebp - 0x14]
+08360665 mov     dword ptr [esp], eax
+08360668 call    0x80fddec                                    _ZN5MySQL9get_shortEiRs
+0836066d mov     byte ptr [ebp - 0x15], al
+08360670 movzx   eax, byte ptr [ebp - 0x15]
+08360674 xor     eax, 1
+08360677 test    al, al
+08360679 je      0x8360685
+0836067b mov     eax, 0
+08360680 jmp     0x8360713
+08360685 movzx   eax, word ptr [ebp - 0x18]
+08360689 cwde
+0836068a add     eax, 0x2b68
+0836068f shl     eax, 2
+08360692 add     eax, dword ptr [ebp + 8]
+08360695 add     eax, 4
+08360698 mov     dword ptr [esp + 8], eax
+0836069c mov     dword ptr [esp + 4], 1
+083606a4 mov     eax, dword ptr [ebp - 0x14]
+083606a7 mov     dword ptr [esp], eax
+083606aa call    0x814201c                                    _ZN5MySQL9get_shortEiRi
+083606af mov     byte ptr [ebp - 0x15], al
+083606b2 movzx   eax, byte ptr [ebp - 0x15]
+083606b6 xor     eax, 1
+083606b9 test    al, al
+083606bb je      0x83606c4
+083606bd mov     eax, 0
+083606c2 jmp     0x8360713
+083606c4 add     dword ptr [ebp - 0xc], 1
+083606c8 mov     eax, dword ptr [ebp - 0xc]
+083606cb cmp     eax, dword ptr [ebp - 0x10]
+083606ce setl    al
+083606d1 test    al, al
+083606d3 jne     0x8360636
+083606d9 jmp     0x83606dc
+083606db nop
+083606dc mov     eax, dword ptr [ebp + 8]
+083606df mov     dword ptr [eax + 0xada4], 0
+083606e9 mov     eax, dword ptr [ebp + 8]
+083606ec lea     edx, [eax + 0xada4]
+083606f2 mov     eax, dword ptr [ebp + 8]
+083606f5 add     eax, 0xb0c8
+083606fa mov     dword ptr [esp + 8], 0x324
+08360702 mov     dword ptr [esp + 4], edx
+08360706 mov     dword ptr [esp], eax
+08360709 call    0x807d8a0
+0836070e mov     eax, 1
+08360713 leave
+08360714 ret
+
+### 085ad9b4 _ZN6CParty25calDeadUserDungeonPenaltyEi
+085ad9b4 push    ebp
+085ad9b5 mov     ebp, esp
+085ad9b7 sub     esp, 0x18
+085ad9ba mov     eax, 0
+085ad9bf mov     dword ptr [ebp - 8], eax
+085ad9c2 mov     eax, dword ptr [ebp + 8]
+085ad9c5 mov     eax, dword ptr [eax + 0x9b8]
+085ad9cb mov     dword ptr [ebp - 4], eax
+085ad9ce cmp     dword ptr [ebp + 0xc], 0
+085ad9d2 jns     0x85ad9d9
+085ad9d4 mov     eax, dword ptr [ebp - 8]
+085ad9d7 jmp     0x85ada28
+085ad9d9 cmp     dword ptr [ebp - 4], 1
+085ad9dd jle     0x85ada25
+085ad9df mov     edx, dword ptr [ebp + 0xc]
+085ad9e2 mov     eax, dword ptr [ebp + 8]
+085ad9e5 add     edx, 0xe0
+085ad9eb mov     eax, dword ptr [eax + edx*4 + 0x10]
+085ad9ef mov     dword ptr [ebp - 0x14], eax
+085ad9f2 fild    dword ptr [ebp - 0x14]
+085ad9f5 mov     eax, dword ptr [ebp - 4]
+085ad9f8 sub     eax, 1
+085ad9fb mov     dword ptr [ebp - 0x14], eax
+085ad9fe fild    dword ptr [ebp - 0x14]
+085ada01 fdivp   st(1)
+085ada03 fstp    dword ptr [ebp - 8]
+085ada06 fld     dword ptr [ebp - 8]
+085ada09 fld     dword ptr [0x8cbbbe8]
+085ada0f fucompp
+085ada11 fnstsw  ax
+085ada13 test    ah, 0x45
+085ada16 sete    al
+085ada19 test    al, al
+085ada1b je      0x85ada25
+085ada1d mov     eax, 0
+085ada22 mov     dword ptr [ebp - 8], eax
+085ada25 mov     eax, dword ptr [ebp - 8]
+085ada28 mov     dword ptr [ebp - 0x18], eax
+085ada2b fld     dword ptr [ebp - 0x18]
+085ada2e leave
+085ada2f ret
