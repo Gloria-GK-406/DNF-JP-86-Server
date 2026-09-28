@@ -8,6 +8,17 @@ namespace Dfo.Server.Application.Accounts;
 internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
     IDomainTransactionAccessor transactions, TimeProvider clock, IPremiumServiceRuleService rules) : IPremiumServiceDomainService
 {
+    public async ValueTask<int> GetBossEquipmentDropBonusPercentAsync(IReadOnlyList<AccountId> participants,
+        CancellationToken cancellationToken)
+    {
+        if (participants.Count is < 1 or > 4) throw new ArgumentOutOfRangeException(nameof(participants));
+        var count = 0;
+        foreach (var account in participants)
+            if (await For(account).IsActiveAsync(PremiumServiceType.GrowthContract, cancellationToken).ConfigureAwait(false))
+                count++;
+        return rules.GrowthBossEquipmentBonusPercent(count);
+    }
+
     public IAccountPremiumServices For(AccountId accountId)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(accountId.Value);

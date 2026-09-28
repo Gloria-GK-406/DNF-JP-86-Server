@@ -122,6 +122,7 @@ public sealed class QuestHelperGroundBonusTests
     {
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => rates ?? [100, 70, 30];
         public DoublePotRules ReadDoublePotRules() => throw new NotSupportedException();
+        public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents() => new[] {20, 23, 27, 30};
         public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => throw new NotSupportedException();
         public int ReadFreeWeaknessDailyLimit() => throw new NotSupportedException();

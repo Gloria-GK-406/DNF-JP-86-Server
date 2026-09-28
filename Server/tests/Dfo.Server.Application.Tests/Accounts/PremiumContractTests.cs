@@ -13,6 +13,24 @@ namespace Dfo.Server.Application.Tests.Accounts;
 public sealed class PremiumContractTests
 {
     [Fact]
+    public async Task Boss_equipment_bonus_counts_only_valid_holders_at_generation_time()
+    {
+        await using var f = new LearningFixture(configure: services =>
+            services.AddSingleton<IPremiumServiceDefinitionSource>(new Levels()));
+        await f.SeedAsync();
+        var service = f.Services.GetRequiredService<IPremiumServiceDomainService>();
+        Assert.Equal(0, await service.GetBossEquipmentDropBonusPercentAsync([new(1)], default));
+        f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,84,4000000000)");
+        Assert.Equal(20, await service.GetBossEquipmentDropBonusPercentAsync([new(1),new(2)], default));
+        // Count participants, even when more than one character belongs to one account.
+        Assert.Equal(23, await service.GetBossEquipmentDropBonusPercentAsync([new(1),new(1)], default));
+        Assert.Equal(27, await service.GetBossEquipmentDropBonusPercentAsync([new(1),new(1),new(1)], default));
+        Assert.Equal(30, await service.GetBossEquipmentDropBonusPercentAsync([new(1),new(1),new(1),new(1)], default));
+        f.Sql("UPDATE account_premiums SET end_time=1");
+        Assert.Equal(0, await service.GetBossEquipmentDropBonusPercentAsync([new(1)], default));
+    }
+
+    [Fact]
     public async Task Growth_rate_is_owned_by_account_service_and_uses_rules_only_while_active()
     {
         await using var f = new LearningFixture(configure: services =>
@@ -109,6 +127,7 @@ public sealed class PremiumContractTests
         public int ReadAutoRepairDailyLimit() => 6;
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
+        public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents() => new[] {20, 23, 27, 30};
         public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
     }

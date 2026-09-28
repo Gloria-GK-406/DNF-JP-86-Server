@@ -13,5 +13,6 @@ public interface IPremiumServiceRuleService
     int AutoRepairDailyLimit { get; }
     int FreeGoldCardDailyLimit { get; }
     double GrowthExperienceBonusRate { get; }
+    int GrowthBossEquipmentBonusPercent(int holderCount);
     int LevelAllowance(PremiumBenefit benefit);
 }

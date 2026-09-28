@@ -4,6 +4,13 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfIndependentDropTableSourceTests
 {
+    [Fact]
+    public void Explicit_special_dungeon_tags_are_conservatively_excluded()
+    {
+        Assert.True(PvfIndependentDropTableSource.IsGrowthBonusDungeon([]));
+        Assert.False(PvfIndependentDropTableSource.IsGrowthBonusDungeon([new("[dungeon type]", [])]));
+        Assert.False(PvfIndependentDropTableSource.IsGrowthBonusDungeon([new("[dimension dungeon]", [])]));
+    }
     private static IndependentDropToken N(int value) => new(value, null);
     private static IndependentDropToken T(string tag) => new(null, tag);
     private static int[] Fields(int mode = 0) => [0, 17, 3229, 300000, 400000, 500000, 600000, 600000,
@@ -53,6 +60,10 @@ public sealed class PvfIndependentDropTableSourceTests
         using var provider = ContentArchive.CreateProvider();
         var table = new PvfIndependentDropTableSource(provider).Load();
         Assert.Equal(3046, table.Rows.Length);
+        Assert.Equal(375, table.BossEquipmentIds.Count);
+        Assert.Contains(27347, table.BossEquipmentIds);
+        Assert.DoesNotContain(10149055, table.BossEquipmentIds);
+        Assert.Equal(new[] {20,23,27,30}, new PvfPremiumServiceDefinitionSource(provider).ReadGrowthBossEquipmentBonusPercents());
         Assert.Equal(374, table.Rows.Count(row => row.SourceType == 1));
         Assert.Equal(4953, table.Rows.Sum(row => row.Choices.Length));
         Assert.Equal(1961, table.Items.Count);

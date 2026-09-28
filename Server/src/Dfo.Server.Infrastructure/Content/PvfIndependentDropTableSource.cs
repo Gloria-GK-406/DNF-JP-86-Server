@@ -30,8 +30,20 @@ internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider)
         foreach (var id in rows.SelectMany(row => row.PoolMode == 0
                      ? new[] { row.ItemId } : row.Choices.Select(choice => choice.ItemId)).Distinct())
             items.Add(id, metadata.Get(id));
-        return new(rows, items.ToImmutable());
+        return new(rows, items.ToImmutable())
+        {
+            BossEquipmentIds = items.Keys.Where(metadata.IsBossEquipment).ToImmutableHashSet(),
+            GrowthBonusDungeonIds = PvfListFile.Read(archive, "dungeon/dungeon.lst")
+                .Where(row => archive.FindFile("dungeon/" + row.RelativePath) >= 0)
+                .Where(row => IsGrowthBonusDungeon(PvfNpcShopDefinitionSource.Sections(archive, "dungeon/" + row.RelativePath)))
+                .Select(row => row.Id).ToImmutableHashSet(),
+        };
     }
+
+    // A21 adaptation, not a claim that these tags map one-to-one to the 70 runtime gates.
+    internal static bool IsGrowthBonusDungeon(IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections) =>
+        !sections.Any(s => s.Name is "[dungeon type]" or "[dimension dungeon]"
+            || (s.Name == "[ancient dungeon]" && s.Values.Any(v => v.Kind == PvfTokenKind.Int32 && v.Value != 0)));
 
     internal static ImmutableArray<IndependentDropRow> Parse(IReadOnlyList<IndependentDropToken> tokens)
     {

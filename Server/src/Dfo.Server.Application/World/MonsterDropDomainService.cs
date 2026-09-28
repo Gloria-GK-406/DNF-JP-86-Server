@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Abstractions.Accounts;
 
 namespace Dfo.Server.Application.World;
 
@@ -20,7 +21,8 @@ internal sealed partial class MonsterDropDomainService(
     IWorldDropRuleService worldDrops,
     IMonsterDeclaredDropRuleService declaredDrops,
     IExtraDropRuleService extraDrops,
-    IIndependentDropRuleService independentDrops) : IMonsterDropDomainService
+    IIndependentDropRuleService independentDrops,
+    IPremiumServiceDomainService premiums) : IMonsterDropDomainService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -32,7 +34,11 @@ internal sealed partial class MonsterDropDomainService(
             return await independentDrops.DrawAsync(request, cancellationToken).ConfigureAwait(false);
         result.AddRange(this.GenerateRandomDrops(request));
         result.AddRange(GenerateMonsterDeclared(request));
-        result.AddRange(await independentDrops.DrawAsync(request, cancellationToken).ConfigureAwait(false));
+        var growthBonus = context.MonsterRank == 3
+            ? await premiums.GetBossEquipmentDropBonusPercentAsync(
+                context.Participants.Select(p => p.AccountId).ToArray(), cancellationToken).ConfigureAwait(false)
+            : 0;
+        result.AddRange(await independentDrops.DrawAsync(request, cancellationToken, growthBonus).ConfigureAwait(false));
         result.AddRange(worldDrops.Draw(request));
         result.AddRange(GenerateSpecialMode(request));
         return result;

@@ -8,6 +8,7 @@ public interface IPremiumServiceDefinitionSource
     DoublePotRules ReadDoublePotRules();
     PremiumContractLevels ReadContractLevels();
     double ReadGrowthExperienceBonusRate();
+    IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents();
     int ReadFreeWeaknessDailyLimit();
     int ReadDungeonBuffDailyLimit();
     int ReadAutoRepairDailyLimit();

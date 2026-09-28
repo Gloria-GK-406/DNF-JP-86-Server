@@ -202,7 +202,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IIndependentDropRuleService>(provider => new IndependentDropRuleService(
             provider.GetRequiredService<IIndependentDropTableSource>(),
             () => provider.GetRequiredService<ICharacterDomainService>(),
-            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IndependentDropRuleService>>()));
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IndependentDropRuleService>>(),
+            provider.GetRequiredService<IndependentDropOptions>()));
+        services.TryAddSingleton(new IndependentDropOptions
+        {
+            DebugGuaranteeGrowthBossEquipment = bool.Parse(configuration["IndependentDrops:DebugGuaranteeGrowthBossEquipment"] ?? "false"),
+        });
         services.TryAddSingleton<IExtraDropRuleService, ExtraDropRuleService>();
         services.TryAddSingleton<IWorldDropRuleService, WorldDropRuleService>();
         services.TryAddSingleton<IMonsterDeclaredDropRuleService, MonsterDeclaredDropRuleService>();

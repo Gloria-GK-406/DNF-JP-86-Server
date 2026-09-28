@@ -31,6 +31,12 @@ internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource 
     public int FreeWeaknessDailyLimit => freeWeaknessLimit.Value;
     private readonly Lazy<double> growthExperience = new(source.ReadGrowthExperienceBonusRate);
     public double GrowthExperienceBonusRate => growthExperience.Value;
+    private readonly Lazy<IReadOnlyList<int>> growthDrops = new(source.ReadGrowthBossEquipmentBonusPercents);
+    public int GrowthBossEquipmentBonusPercent(int holderCount)
+    {
+        if (holderCount is < 0 or > 4) throw new ArgumentOutOfRangeException(nameof(holderCount));
+        return holderCount == 0 ? 0 : growthDrops.Value[holderCount - 1];
+    }
     private readonly Lazy<PremiumContractLevels> levels = new(source.ReadContractLevels);
     public int LevelAllowance(PremiumBenefit benefit) => benefit switch
     {

@@ -11,6 +11,8 @@ public enum PremiumBenefit { LearnSkillsEarly, EquipItemsEarly, FreeWeaknessReco
 public interface IPremiumServiceDomainService
 {
     IAccountPremiumServices For(AccountId accountId);
+    ValueTask<int> GetBossEquipmentDropBonusPercentAsync(IReadOnlyList<AccountId> participants,
+        CancellationToken cancellationToken);
 }
 
 public interface IAccountPremiumServices

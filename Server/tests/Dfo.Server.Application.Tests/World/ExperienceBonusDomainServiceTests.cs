@@ -54,6 +54,7 @@ public sealed class ExperienceBonusDomainServiceTests
 
     private sealed class Rates : IPremiumServiceRuleService
     {
+        public int GrowthBossEquipmentBonusPercent(int count) => count == 0 ? 0 : new[] {20,23,27,30}[count-1];
         public double GrowthExperienceBonusRate => .2;
         public IReadOnlyList<int> QuestHelperMinimumDropRates => throw new NotSupportedException();
         public int DrawQuestHelperBonusCount(ulong seed) => throw new NotSupportedException();
