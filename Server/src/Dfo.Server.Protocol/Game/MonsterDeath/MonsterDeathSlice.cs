@@ -341,10 +341,16 @@ internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathN
             MonsterDeathPayloadCodec.EncodeMonsterDeath(message));
 }
 
-internal sealed class MonsterDeathDecoder : IGameMessageDecoder
+internal sealed class MonsterDeathDecoder(
+    ILogger<MonsterDeathDecoder>? logger = null) : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
+        if (logger?.IsEnabled(LogLevel.Trace) == true)
+            logger.LogTrace(
+                "DIE_MONSTER capture metadata={Metadata} body({BodyLength}B)={Body}",
+                metadata, body.Length, Convert.ToHexString(body));
+
         // A21: u32 actor/object code, u16 killer, four u32 values, then count x 10.
         if (body.Length < MonsterDeathPayloadCodec.MinimumBodyLength)
             throw new InvalidDataException("DIE_MONSTER has a truncated A21 prefix.");

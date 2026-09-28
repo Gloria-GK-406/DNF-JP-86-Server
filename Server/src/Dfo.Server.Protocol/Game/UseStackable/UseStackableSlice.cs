@@ -133,10 +133,16 @@ internal static class UseStackablePayloadCodec
             body.Length >= ItemCodeBodyLength ? BinaryPrimitives.ReadInt32LittleEndian(body[7..]) : 0);
 }
 
-internal sealed class UseStackableDecoder : IGameMessageDecoder
+internal sealed class UseStackableDecoder(
+    ILogger<UseStackableDecoder>? logger = null) : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
+        if (logger?.IsEnabled(LogLevel.Trace) == true)
+            logger.LogTrace(
+                "USE_STACKABLE capture metadata={Metadata} body({BodyLength}B)={Body}",
+                metadata, body.Length, Convert.ToHexString(body));
+
         if (body.Length < UseStackablePayloadCodec.MinimumBodyLength)
         {
             throw new InvalidDataException(
