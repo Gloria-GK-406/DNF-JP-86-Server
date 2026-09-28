@@ -77,10 +77,7 @@ public sealed class GrantClearExperienceCommandTests
     {
         var result = await Settle(clientRankPoint: 80);
 
-        var contribution = Assert.Single(result.Award!.Contributions);
-        Assert.Equal("clear rank", contribution.Source);
-        Assert.Equal(66u, contribution.Amount);
-        Assert.Equal(ExperienceBonusKind.Unlisted, contribution.Kind);
+        Assert.Equal(result.RankBonus, result.Award!.Breakdown.ClearRank);
     }
 
     /// <summary>A run below every paying rank is paid its worth and nothing more.</summary>
@@ -91,7 +88,7 @@ public sealed class GrantClearExperienceCommandTests
 
         Assert.Equal(552u, result.ClearBase);
         Assert.Equal(0u, result.RankBonus);
-        Assert.Empty(result.Award!.Contributions);
+        Assert.Equal(0u, result.Award!.Breakdown.ClearRank);
     }
 
     /// <summary>A dungeon the reward table cannot price pays nothing at all.</summary>
@@ -125,14 +122,14 @@ public sealed class GrantClearExperienceCommandTests
 
     private static GrantClearExperienceCommandHandler Handler() =>
         new(
-            new ExperienceValuationDomainService(new ExperienceRuleService(
+            new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
                 new NoProgression(),
                 new NoChannelExperience(),
                 new QuestContentRuleService(new NoQuestDefinitions(), new ArchiveQuests()),
                 ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)),
+                ExperienceEntitlementPolicy.None)), null!),
             new PricingGrant());
 
     private static CommandExecutionContext Context(CommandExecutionKind kind) =>
@@ -217,18 +214,13 @@ public sealed class GrantClearExperienceCommandTests
             CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public ValueTask<ExperienceAward?> AwardAsync(
+        public async ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,
-            Func<byte, ExperienceValuation> valuation,
+            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
             CancellationToken cancellationToken)
         {
-            var (@base, contributions) = valuation(3);
-            var gained = @base;
-            foreach (var contribution in contributions)
-                gained += contribution.Amount;
-
-            return ValueTask.FromResult<ExperienceAward?>(new ExperienceAward(
-                @base, contributions, gained, 3, gained, LeveledUp: false));
+            var breakdown = await valuation(1);
+            return new ExperienceAward(breakdown, 1, breakdown.Total, LeveledUp: false);
         }
     }
 }

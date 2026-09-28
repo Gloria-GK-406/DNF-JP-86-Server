@@ -197,6 +197,7 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<IItemGrantDomainService>(
             new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
         services.AddSingleton<ICharacterCareerDomainService, NoCareerChange>();
+        services.AddSingleton<IExperienceCalculationDomainService>(new ExperienceCalculationDomainService(null!, null!));
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -272,6 +273,7 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<IItemGrantDomainService>(
             new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
         services.AddSingleton<ICharacterCareerDomainService, NoCareerChange>();
+        services.AddSingleton<IExperienceCalculationDomainService>(new ExperienceCalculationDomainService(null!, null!));
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -416,7 +418,7 @@ public sealed class FinishQuestCommandHandlerTests
                 new CharacterExperienceDomainService(this.Characters, new FixedProgression()),
                 CurrentCharacterStub.Domain(this.Current),
                 this.Progress,
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new NoCareerChange());
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new NoCareerChange(), new ExperienceCalculationDomainService(null!, null!));
 
         /// <summary>Puts the quest in the carried list with its objective already at that value.</summary>
         public async Task CarryAsync(int questId, int triggerValue)
@@ -568,7 +570,7 @@ public sealed class FinishQuestCommandHandlerTests
 
         public async ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,
-            Func<byte, ExperienceValuation> valuation,
+            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
             CancellationToken cancellationToken)
         {
             var award = await inner.AwardAsync(characterId, valuation, cancellationToken);

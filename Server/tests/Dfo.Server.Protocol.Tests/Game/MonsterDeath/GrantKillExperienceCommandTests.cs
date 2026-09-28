@@ -49,9 +49,7 @@ public sealed class GrantKillExperienceCommandTests
         Assert.NotNull(award);
         Assert.Equal(worth, award.Base);
         Assert.Equal(awarded, award.Gained);
-        var channel = Assert.Single(award.Contributions);
-        Assert.Equal(fromChannel, channel.Amount);
-        Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
+        Assert.Equal(fromChannel, award.Breakdown.Channel);
     }
 
     /// <summary>
@@ -70,14 +68,14 @@ public sealed class GrantKillExperienceCommandTests
         Assert.NotNull(award);
         Assert.Equal(72u, award.Base);
         Assert.Equal(72u, award.Gained);
-        Assert.Empty(award.Contributions);
+        Assert.Equal(new ExperienceBreakdown(Base: 72), award.Breakdown);
     }
 
     private static async Task<ExperienceAward?> Award(
         int monsterLevel, MonsterRank rank, double channelRate)
     {
         var handler = new GrantKillExperienceCommandHandler(
-            new ExperienceValuationDomainService(new ExperienceRuleService(
+            new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new CapturedParameters(),
                 new UngradedRanks(),
                 new NoProgression(),
@@ -85,7 +83,7 @@ public sealed class GrantKillExperienceCommandTests
                 new NoQuestContent(),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None)),
-            new FixedChannelBonus(channelRate),
+            new FixedChannelBonus(channelRate)),
             new PricingGrant(characterLevel: 3));
 
         var result = await handler.HandleAsync(
@@ -176,18 +174,13 @@ public sealed class GrantKillExperienceCommandTests
             CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public ValueTask<ExperienceAward?> AwardAsync(
+        public async ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,
-            Func<byte, ExperienceValuation> valuation,
+            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
             CancellationToken cancellationToken)
         {
-            var (@base, contributions) = valuation(characterLevel);
-            var gained = @base;
-            foreach (var contribution in contributions)
-                gained += contribution.Amount;
-
-            return ValueTask.FromResult<ExperienceAward?>(new ExperienceAward(
-                @base, contributions, gained, characterLevel, gained, LeveledUp: false));
+            var breakdown = await valuation(characterLevel);
+            return new ExperienceAward(breakdown, characterLevel, breakdown.Total, LeveledUp: false);
         }
     }
 }

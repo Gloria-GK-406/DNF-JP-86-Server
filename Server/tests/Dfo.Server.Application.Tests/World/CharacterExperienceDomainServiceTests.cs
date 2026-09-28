@@ -120,14 +120,14 @@ public sealed class CharacterExperienceDomainServiceTests
 
         var award = await grant.AwardAsync(
             Character,
-            _ => new ExperienceValuation(20, [new ExperienceContribution("premium type 1", 0.5, 10)]),
+            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 20, Other: 10)),
             CancellationToken.None);
 
         Assert.NotNull(award);
         Assert.Equal(20u, award!.Base);
         Assert.Equal(30u, award!.Gained);
         Assert.Equal(30u, award!.Total);
-        Assert.Equal("premium type 1", Assert.Single(award!.Contributions).Source);
+        Assert.Equal(10u, award!.Breakdown.Other);
     }
 
     /// <summary>An occasion that pays nothing writes nothing.</summary>
@@ -138,7 +138,7 @@ public sealed class CharacterExperienceDomainServiceTests
         var grant = Grant(characters);
 
         var award = await grant.AwardAsync(
-            Character, _ => ExperienceValuation.Nothing, CancellationToken.None);
+            Character, _ => ValueTask.FromResult(new ExperienceBreakdown()), CancellationToken.None);
 
         Assert.Equal(0u, award!.Gained);
         Assert.Equal(300u, award!.Total);
@@ -193,60 +193,36 @@ public sealed class CharacterExperienceDomainServiceTests
         Assert.Equal(Thresholds[^1], award!.Total);
     }
 
-    /// <summary>
-    /// An award reports what landed, which at the ceiling is less than what it was worth.
-    /// </summary>
-    /// <remarks>
-    /// Every caller reports this award to the client, and two of them draw a breakdown from it. The
-    /// experience notice declares each contribution and the client works out the base by taking
-    /// them off the gain it computes for itself -- so an award claiming more than the total moved
-    /// makes that base come out negative, which is the one thing that notice exists not to do. The
-    /// result screen has the same problem the other way round, reporting experience nobody
-    /// received.
-    /// </remarks>
     [Fact]
-    public async Task AnAwardClampedByTheCeilingReportsOnlyWhatLanded()
+    public async Task CrossingTheCeilingKeepsTheRewardAndCapsOnlyProgression()
     {
         var characters = new RecordingCharacterTable(level: 4, experience: 690);
         var grant = Grant(characters);
-
-        var award = await grant.AwardAsync(
-            Character,
-            _ => new ExperienceValuation(
-                1_000_000, [new ExperienceContribution("channel", 0.05, 50_000)]),
+        var award = await grant.AwardAsync(Character,
+            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 1_000_000, Channel: 50_000)),
             CancellationToken.None);
-
         Assert.NotNull(award);
-        Assert.Equal(Thresholds[^1] - 690, award.Gained);
-        // The parts cannot be attributed once the ceiling has taken some of them, so what landed
-        // is reported whole rather than split into a base and a bonus that no longer add up.
-        Assert.Equal(award.Gained, award.Base);
-        Assert.Empty(award.Contributions);
+        Assert.Equal(1_050_000u, award.Gained);
+        Assert.Equal(1_000_000u, award.Base);
+        Assert.Equal(50_000u, award.Breakdown.Channel);
+        Assert.Equal(700u, award.Total);
+        Assert.Equal(5, award.Level);
     }
 
-    /// <summary>
-    /// A character already at the ceiling is awarded nothing, and is told so.
-    /// </summary>
-    /// <remarks>
-    /// Not an award of what the kill was worth against a total that cannot move. Before this, a
-    /// capped character killing a monster was sent a notice declaring a bonus line beside a gain of
-    /// nothing -- the client subtracts the line from the gain, and draws a negative base.
-    /// </remarks>
     [Fact]
-    public async Task ACharacterAtTheCeilingIsAwardedNothing()
+    public async Task ACharacterAtTheCeilingKeepsTheFullRewardBreakdown()
     {
         var characters = new RecordingCharacterTable(level: 5, experience: Thresholds[^1]);
         var grant = Grant(characters);
-
-        var award = await grant.AwardAsync(
-            Character,
-            _ => new ExperienceValuation(72, [new ExperienceContribution("channel", 0.05, 3)]),
+        var award = await grant.AwardAsync(Character,
+            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Channel: 3)),
             CancellationToken.None);
-
         Assert.NotNull(award);
-        Assert.Equal(0u, award.Gained);
-        Assert.Equal(0u, award.Base);
-        Assert.Empty(award.Contributions);
+        Assert.Equal(75u, award.Gained);
+        Assert.Equal(72u, award.Base);
+        Assert.Equal(3u, award.Breakdown.Channel);
+        Assert.Equal(5, award.Level);
+        Assert.False(award.LeveledUp);
         Assert.Equal(Thresholds[^1], award.Total);
         Assert.Null(characters.LastWrite);
     }
@@ -260,12 +236,12 @@ public sealed class CharacterExperienceDomainServiceTests
 
         var award = await grant.AwardAsync(
             Character,
-            _ => new ExperienceValuation(72, [new ExperienceContribution("premium type 1", 0.05, 3)]),
+            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Other: 3)),
             CancellationToken.None);
 
         Assert.NotNull(award);
-        Assert.Contains("base 72", award!.ToString(), StringComparison.Ordinal);
-        Assert.Contains("premium type 1 3", award!.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Base = 72", award!.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Other = 3", award!.ToString(), StringComparison.Ordinal);
         Assert.Contains("75", award!.ToString(), StringComparison.Ordinal);
     }
 
@@ -284,7 +260,7 @@ public sealed class CharacterExperienceDomainServiceTests
         Assert.Null(row.LastWrite);
     }
 
-    private static ExperienceValuation Worth(uint amount) => new(amount, []);
+    private static ValueTask<ExperienceBreakdown> Worth(uint amount) => ValueTask.FromResult(new ExperienceBreakdown(Base: amount));
 
     private static CharacterExperienceDomainService Grant(ICharacterTable characters) =>
         new(characters, new FixedProgression(Thresholds));

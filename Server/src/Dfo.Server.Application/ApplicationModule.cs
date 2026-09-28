@@ -303,6 +303,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
+        services.TryAddSingleton<IExperienceCalculationDomainService, ExperienceCalculationDomainService>();
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<MonsterDropDomainService>();

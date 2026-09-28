@@ -304,10 +304,8 @@ public sealed class MonsterDeathCodecTests
     /// </remarks>
     private static ExperienceBonusLines LinesOf(params (ExperienceBonusKind Kind, uint Amount)[] paid) =>
         ExperienceBonusLines.Of(new ExperienceAward(
-            Base: 1,
-            Contributions: [.. paid.Select(
-                one => new ExperienceContribution("test", 0.5, one.Amount, one.Kind))],
-            Gained: 1,
+            Breakdown: paid.Aggregate(new ExperienceBreakdown(Base: 1),
+                (result, one) => result.Add(one.Kind, one.Amount)),
             Level: 7,
             Total: 1234,
             LeveledUp: false));

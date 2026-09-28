@@ -287,28 +287,16 @@ public sealed class SetPlayResultHandlerTests
             });
     }
 
-    /// <summary>
-    /// A clamped award is reported as what landed, not as what the clear was worth.
-    /// </summary>
-    /// <remarks>
-    /// At the top of the experience table the grant hands back less than it was asked to pay, and
-    /// with the parts no longer attributable it hands the whole of it back as the base. The result
-    /// screen has to follow: reporting the command's two figures beside a total that moved by less
-    /// would put experience on the screen the character did not receive.
-    /// <para>
-    /// This is the half of the fix a test would otherwise miss. The command's figures and the
-    /// award's agree whenever nothing is clamped, so reading the wrong one is invisible until they
-    /// do not -- which is exactly here.
-    /// </para>
-    /// </remarks>
+    /// <summary>The result screen reports earned amounts even when progression reaches its ceiling.</summary>
     [Fact]
-    public async Task AClampedAwardIsReportedAsWhatLanded()
+    public async Task AProgressionCeilingDoesNotClipTheResultScreenReward()
     {
         var sent = await Settle(bus: new FixedAward(leveledUp: false, clamped: true));
-
         var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
-        Assert.Equal(ClampedLanding, reward.ClearBase);
-        Assert.Equal(0u, reward.RankBonus);
+        Assert.Equal((uint)ClearBase, reward.ClearBase);
+        Assert.Equal((uint)RankBonus, reward.RankBonus);
+        Assert.Equal(StartingExperience + ClampedLanding,
+            sent.OfType<ExperienceNotification>().Single().TotalExperience);
     }
 
     /// <summary>What the ceiling left room for, which is less than the clear was worth.</summary>
@@ -626,16 +614,12 @@ public sealed class SetPlayResultHandlerTests
             // what landed, reported whole, with no parts to attribute it to.
             var award = clamped
                 ? new ExperienceAward(
-                    Base: ClampedLanding,
-                    Contributions: [],
-                    Gained: ClampedLanding,
+                    Breakdown: new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus),
                     Level: leveledUp ? (byte)4 : (byte)3,
                     Total: StartingExperience + ClampedLanding,
                     LeveledUp: leveledUp)
                 : new ExperienceAward(
-                    Base: ClearBase,
-                    Contributions: [new ExperienceContribution("clear rank", 0.12, RankBonus)],
-                    Gained: ClearBase + RankBonus,
+                    Breakdown: new ExperienceBreakdown(Base: ClearBase, ClearRank: RankBonus),
                     Level: leveledUp ? (byte)4 : (byte)3,
                     Total: StartingExperience + ClearBase + RankBonus,
                     LeveledUp: leveledUp);

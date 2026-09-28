@@ -48,8 +48,7 @@ public sealed record GrantKillExperienceCommand(
 /// </para>
 /// </remarks>
 public sealed class GrantKillExperienceCommandHandler(
-    IExperienceValuationDomainService valuation,
-    IExperienceBonusDomainService bonuses,
+    IExperienceCalculationDomainService calculation,
     ICharacterExperienceDomainService grant)
     : ICommandHandler<GrantKillExperienceCommand, KillExperienceResult>
 {
@@ -69,67 +68,19 @@ public sealed class GrantKillExperienceCommandHandler(
         }
 
         return new KillExperienceResult(
-            await AwardAsync(valuation, bonuses, grant, command, cancellationToken)
+            await AwardAsync(calculation, grant, command, cancellationToken)
                 .ConfigureAwait(false));
     }
 
-    internal static async ValueTask<ExperienceAward?> AwardAsync(
-        IExperienceValuationDomainService valuation,
-        IExperienceBonusDomainService bonuses,
+    internal static ValueTask<ExperienceAward?> AwardAsync(
+        IExperienceCalculationDomainService calculation,
         ICharacterExperienceDomainService grant,
         GrantKillExperienceCommand command,
-        CancellationToken cancellationToken)
-    {
-        var occasion = new ExperienceOccasion(
-            ExperienceEvent.MonsterKill, command.AccountId, command.CharacterId, command.DungeonId);
-        var modifiers = await bonuses.CollectAsync(occasion, cancellationToken).ConfigureAwait(false);
-        // The character's level decides what the kill is worth, and the grant is what knows it.
-        // Valuing inside the grant's callback is what keeps the two from disagreeing.
-        return await grant.AwardAsync(
-            command.CharacterId,
-            characterLevel => Value(valuation, modifiers, command, characterLevel),
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    private static ExperienceValuation Value(
-        IExperienceValuationDomainService valuation,
-        IReadOnlyList<ExperienceModifier> modifiers,
-        GrantKillExperienceCommand command,
-        byte characterLevel)
-    {
-        var worth = valuation.WorthOfKill(
-            new KillCircumstances(
-                command.Monster.Level,
-                command.Monster.Rank,
-                characterLevel,
-                command.Difficulty,
-                command.DungeonWeight,
-                command.PartyMemberCount));
-        if (worth == 0)
-            return ExperienceValuation.Nothing;
-
-        // Each entitlement's amount is rounded down on its own and then added, rather than the
-        // rates being summed into one multiplier. The two agree on every captured award, all of
-        // which had exactly one contribution in play, and diverge only when two are; an elixir's
-        // own text says such effects "overlap", which is this shape. Recorded as unsettled in the
-        // TaskContract because nothing observed can yet tell them apart.
-        var contributions = modifiers
-            .Select(modifier => new ExperienceContribution(
-                modifier.Source, modifier.Rate, Floor(worth * modifier.Rate), modifier.Kind))
-            .Where(contribution => contribution.Amount > 0)
-            .ToArray();
-
-        return new ExperienceValuation(worth, contributions);
-    }
-
-    /// <remarks>
-    /// Saturating, like the one in the rule it sits beside. The rate here is an operator's number
-    /// rather than the archive's, so it can be anything at all, and an unchecked cast of a double
-    /// too large for a uint is undefined -- on x64 it lands on zero, turning a misconfigured
-    /// enormous bonus into no bonus.
-    /// </remarks>
-    private static uint Floor(double value) =>
-        value <= 0 || double.IsNaN(value) ? 0
-        : value >= uint.MaxValue ? uint.MaxValue
-        : (uint)Math.Floor(value);
+        CancellationToken cancellationToken) => grant.AwardAsync(command.CharacterId,
+            level => calculation.CalculateAsync(new KillExperienceContext(
+                new ExperienceOccasion(ExperienceEvent.MonsterKill, command.AccountId,
+                    command.CharacterId, command.DungeonId),
+                command.Monster.Level, command.Monster.Rank, command.Difficulty,
+                command.DungeonWeight, command.PartyMemberCount), level, cancellationToken),
+            cancellationToken);
 }

@@ -882,9 +882,7 @@ public sealed class MonsterDeathHandlerTests
                 throw new InvalidOperationException("injected durable kill failure");
             var result = new ApplyMonsterKillResult(
                 awarded ? new ExperienceAward(
-                    Base: KillGain,
-                    Contributions: [],
-                    Gained: KillGain,
+                    Breakdown: new ExperienceBreakdown(Base: KillGain),
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
                     Total: StartingExperience + KillGain,
                     LeveledUp: leveledUp) : null,
@@ -1330,12 +1328,9 @@ public sealed class MonsterDeathHandlerTests
                 throw new InvalidOperationException("injected later participant failure");
             }
             var award = new ExperienceAward(
-                Base: KillGain,
-                Contributions: kill.CharacterId == levelFor
-                    ? [new ExperienceContribution(
-                        "party", 0.17, 17, ExperienceBonusKind.PartyReward)]
-                    : [],
-                Gained: KillGain,
+                Breakdown: new ExperienceBreakdown(
+                    Base: kill.CharacterId == levelFor ? KillGain - 17 : KillGain,
+                    Party: kill.CharacterId == levelFor ? 17u : 0u),
                 Level: kill.CharacterId == levelFor
                     ? (byte)(StartingLevel + 1)
                     : StartingLevel,

@@ -935,15 +935,11 @@ public sealed class SetPlayResultHandler(
                     level, result.World.Content.AvailableQuests));
             }
 
-            // Read off the award rather than off the valuation. The command's two figures are what the
-            // clear was worth; what the character received can be less -- nothing at all when the
-            // award did not happen, or a clamped amount at the top of the experience table -- and the
-            // result screen must report what landed. An award carries its base and its one
-            // contribution, which are those same two figures whenever nothing was clamped.
+            // Render the earned reward, independent of any progression ceiling.
             frames.Add(award is null
                 ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost, partyCards)
                 : new ClearDungeonRewardNotification(
-                    award.Base, award.Gained - award.Base, freeCards, cardGold, paidFlipCost, partyCards));
+                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards));
 
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
