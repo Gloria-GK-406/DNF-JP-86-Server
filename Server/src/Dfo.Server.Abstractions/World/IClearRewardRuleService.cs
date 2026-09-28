@@ -4,38 +4,14 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
 
-/// <summary>Which of the two flips a face belongs to.</summary>
-/// <remarks>
-/// A fact handed in, not something these rules work out. <b>The two faces carry the same odds.</b>
-/// They share the same file, the same threshold profile, the same bonus tables, the same ladder,
-/// the same grade band and the same pool, and nothing in the composition is keyed on which of the
-/// two is being drawn.
-/// <para>
-/// <b>What the kind does reach is the fallback a blank position falls back on, and only while that
-/// card's switch is on.</b> See <see cref="ClearRewardBlankItemSwitches"/>: the paid card's rows
-/// are <c>[gold card blank item]</c> and the free card has no section of that shape, so a
-/// switched-on paid face fills where a free face stays empty. All three switches are off as this
-/// server is deployed, which is why the two faces of one seed come out identical today -- <b>that
-/// is the configuration's doing rather than the composition's</b>, and a switch turned on would
-/// part them.
-/// </para>
-/// <para>
-/// What the archive gives the paid card is
-/// three sections of its own -- <c>[gold card cost table]</c>, <c>[gold card create rate]</c> and
-/// <c>[gold card blank item]</c> -- and none of them is a rate for a position. Its six
-/// <c>[drop prob]</c> profiles are named for occasions (<c>event</c>, <c>pcroom bonus</c>) and not
-/// for card types, so pairing one of them with the paid card would be this server inventing a
-/// difference the file does not draw.
-/// </para>
-/// <para>
-/// So the kind still travels with a face, and still decides what turning one over costs; what it
-/// decides about a position is the fallback above and nothing else.
-/// </para>
-/// </remarks>
+/// <summary>Reward categories. Only Free and Paid are selectable wire request values.</summary>
+/// <remarks>BlackDiamond is an extra reward delivered with the free card.</remarks>
 public enum ClearRewardCardKind
 {
     Free = 0,
     Paid = 1,
+    // Internal reward category, not a third SELECT_CARD request value.
+    BlackDiamond = 2,
 }
 
 /// <summary>One thing sitting behind one card position.</summary>
@@ -186,6 +162,7 @@ public sealed record ClearRewardOccasion(
     int PartyMemberCount)
 {
     /// <summary>The run's committed monster deaths when this face is fixed.</summary>
+    public bool HasBlackDiamond { get; init; }
     public ImmutableArray<DungeonKillRecord> Kills { get; init; } = [];
 
     /// <summary>Counts derived from <see cref="Kills"/> for reward rules that need aggregates.</summary>

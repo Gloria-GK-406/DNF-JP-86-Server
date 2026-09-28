@@ -18,6 +18,28 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class ClearRewardRuleServiceTests
 {
+    [Fact]
+    public void Black_diamond_uses_pcroom_profiles_and_never_pays_extra_gold()
+    {
+        var table = ClearRewardFixture.Table() with
+        {
+            Profiles = [
+                new(ClearRewardProfiles.Default, [new(1, 200, 20000)]),
+                new(ClearRewardProfiles.PcRoomDefault, [new(1, 200, 9000)]),
+                new(ClearRewardProfiles.PcRoomEvent, [new(1, 200, 8000)]),
+                new(ClearRewardProfiles.PcRoomBonus, [new(1, 200, 7000)]),
+            ],
+        };
+        var service = ClearRewardFixture.Service(table, OnePiece());
+        var ordinary = ClearRewardFixture.Occasion(difficulty: 0);
+        Assert.Equal(0, service.ChanceOf(ordinary).Rate);
+        Assert.Equal(7000, service.ChanceOf(ordinary with { HasBlackDiamond = true }).Rate);
+        Assert.Equal(8000, service.ChanceOf(ordinary with { Kind = ClearRewardCardKind.Paid, HasBlackDiamond = true }).Rate);
+        var bonus = ordinary with { Kind = ClearRewardCardKind.BlackDiamond, HasBlackDiamond = true };
+        Assert.Equal(9000, service.ChanceOf(bonus).Rate);
+        Assert.Equal(0, service.FaceFor(bonus, Seed).Gold);
+    }
+
     /// <summary>An arbitrary seed. Nothing about the assertions depends on which one.</summary>
     private const ulong Seed = 0x0BAD_F00D_C0FF_EE01;
 
@@ -972,19 +994,9 @@ public sealed class ClearRewardRuleServiceTests
         }
     }
 
-    /// <summary>
-    /// <b>The PC-room card's table is read and its switch is here, and no flip reaches
-    /// either.</b>
-    /// </summary>
-    /// <remarks>
-    /// What this phase owes the PC-room card is the reading and the switch, and not the path --
-    /// see <see cref="ClearRewardBlankCard.PcRoom"/>. There is no PC-room member of
-    /// <see cref="ClearRewardCardKind"/> to flip and no third face byte for the flip request to
-    /// carry, so the assertion that no flip hands out item 7454 is a statement about the boundary
-    /// of this phase rather than about the odds.
-    /// </remarks>
+    /// <summary>PC-room fallback belongs only to the extra reward, not a selectable card.</summary>
     [Fact]
-    public void Blank_items_of_the_pcroom_card_are_read_and_switched_and_reach_no_flip()
+    public void Pcroom_blank_items_never_leak_into_ordinary_selectable_cards()
     {
         var table = ClearRewardFixture.Table(
             goldCardBlankItems: ClearRewardFixture.GoldCardBlankItems,
@@ -1003,7 +1015,7 @@ public sealed class ClearRewardRuleServiceTests
         // And unreachable: a flip carries one of two kinds, and with all three switched on
         // neither of them ever hands out the PC-room card's item.
         ClearRewardCardKind[] flippable = [ClearRewardCardKind.Free, ClearRewardCardKind.Paid];
-        Assert.Equal(flippable, Enum.GetValues<ClearRewardCardKind>());
+        Assert.Contains(ClearRewardCardKind.BlackDiamond, Enum.GetValues<ClearRewardCardKind>());
 
         var everythingOn = ClearRewardFixture.Service(
             table,

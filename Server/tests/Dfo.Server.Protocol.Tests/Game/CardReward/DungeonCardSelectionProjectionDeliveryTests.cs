@@ -19,6 +19,25 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
     private static readonly SelectedSessionIdentity Helper = Session(2, "helper", 1);
 
     [Fact]
+    public async Task Bonus_inventory_projection_is_private_even_when_the_card_board_is_shared()
+    {
+        var world = Build([Leader, Helper]);
+        var change = new DungeonCardSelectionChange(world.Run.RunId, 8, Leader.CharacterId,
+            [new(ClearRewardCardKind.Free, 0, Leader.CharacterId, 0)],
+            [Leader.CharacterId, Helper.CharacterId]);
+        var result = new SelectCardResult(SelectCardStatus.Flipped, ClearRewardCardKind.Free,
+            0, [], StaticChange: change)
+        {
+            BlackDiamondDelivered = new(Dfo.Server.Data.Inventory.InventoryContainerType.Main,
+                [], DateTimeOffset.UnixEpoch),
+        };
+        await world.Projection.DeliverAsync(Leader, result, DateTimeOffset.UnixEpoch, default);
+        Assert.Single(world.Sender.For(Leader.ConnectionId).OfType<InventoryDeltaMessage>());
+        Assert.Empty(world.Sender.For(Helper.ConnectionId).OfType<InventoryDeltaMessage>());
+        Assert.Single(world.Sender.For(Helper.ConnectionId).OfType<SelectCardResponse>());
+    }
+
+    [Fact]
     public async Task First_party_confirmation_does_not_reveal_a_partial_board()
     {
         var world = Build([Leader, Helper]);

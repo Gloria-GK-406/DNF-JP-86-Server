@@ -950,15 +950,17 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunId expectedRunId,
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
-        int? paidFlipCost) =>
-        this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost);
+        int? paidFlipCost,
+        ClearRewardCardFace? blackDiamond = null) =>
+        this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost, blackDiamond);
 
     private DungeonRunState? FixClearRewardCardsCore(
         CharacterId characterId,
         DungeonRunId? expectedRunId,
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
-        int? paidFlipCost)
+        int? paidFlipCost,
+        ClearRewardCardFace? blackDiamond = null)
     {
         ArgumentNullException.ThrowIfNull(free);
         ArgumentNullException.ThrowIfNull(paid);
@@ -972,7 +974,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
             var progress = aggregate.ProgressFor(characterId);
             progress.ClearRewardCards ??= new ClearRewardCardSet(
-                free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost);
+                free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost)
+            { BlackDiamond = blackDiamond };
             return aggregate.ViewFor(characterId);
         }
     }

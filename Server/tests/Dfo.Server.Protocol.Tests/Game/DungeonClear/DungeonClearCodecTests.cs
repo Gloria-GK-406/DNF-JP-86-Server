@@ -24,6 +24,22 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 public sealed class DungeonClearCodecTests
 {
     [Fact]
+    public void Black_diamond_row_is_personal_and_keeps_gold_before_equipment()
+    {
+        var face = new ClearRewardCardFace(ClearRewardCardKind.BlackDiamond,
+            [new(0, new ClearRewardCardItem(17265, 1, Dfo.Server.Abstractions.World.DropRarity.Common, 10))], 0);
+        var solo = CardPanelFrameReader.ReadClearDungeonReward(
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(0, 0, blackDiamond: face));
+        Assert.Equal(new CardEntry(17265, 1), solo.BlackDiamondRow.Columns[0].Piece);
+        Assert.Equal(0, solo.BlackDiamondRow.Columns[0].Gold);
+        var party = CardPanelFrameReader.ReadClearDungeonReward(
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(0, 0, partyCards:
+                [new(0, [], 0), new PartyCardReward(1, [], 0) { BlackDiamond = face }]));
+        Assert.Empty(party.BlackDiamondRow.Columns[0].Entries);
+        Assert.Equal(new CardEntry(17265, 1), party.BlackDiamondRow.Columns[1].Piece);
+    }
+
+    [Fact]
     public void Clear_growth_potion_and_historical_growth_use_distinct_client_slots()
     {
         var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20);

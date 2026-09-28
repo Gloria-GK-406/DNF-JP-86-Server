@@ -397,7 +397,7 @@ public sealed class PaidCardFlipCostTests
 
             var runs = new DungeonRunDomainService();
             var run = runs.Begin(Character, LayoutFor(dungeonId), difficulty: (DungeonDifficulty)1);
-            this._cards = new CardRewardDomainService(Rules(provider), runs);
+            this._cards = new CardRewardDomainService(Rules(provider), runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
 
             if (settleAtLevel is { } settledAt)
             {

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
@@ -20,6 +21,29 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class CardRewardDomainServiceTests
 {
+    [Fact]
+    public async Task Black_diamond_is_personal_and_frozen_once_with_an_independent_seed()
+    {
+        var runs = new DungeonRunDomainService();
+        var leader = new DungeonRunParticipant(new AccountId(11), new CharacterId(1), 0, true);
+        var member = new DungeonRunParticipant(new AccountId(22), new CharacterId(2), 1, false);
+        var run = runs.BeginParty([leader, member], Tutorial, (DungeonDifficulty)Difficulty);
+        var premiums = new Dfo.Server.Application.Tests.Support.CardPremiums(11);
+        var rules = new RecordingRules();
+        var service = new CardRewardDomainService(rules, runs, premiums);
+        var first = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
+        var second = await service.SettleAsync(new(member.CharacterId, Level, 2, run.RunId), default);
+        Assert.NotNull(first!.Cards.BlackDiamond);
+        Assert.Null(second!.Cards.BlackDiamond);
+        Assert.Equal(5, rules.Asked.Count);
+        Assert.Equal(3, rules.Asked.Take(3).Select(x => x.Seed).Distinct().Count());
+        premiums.Enabled = false;
+        var repeated = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
+        Assert.Same(first.Cards, repeated!.Cards);
+        Assert.Equal(2, premiums.Queries);
+        Assert.Equal(5, rules.Asked.Count);
+    }
+
     private static readonly CharacterId Character = new(1);
 
     /// <summary>The level, the party size and the difficulty these tests settle at.</summary>
@@ -184,7 +208,7 @@ public sealed class CardRewardDomainServiceTests
         var runs = new DungeonRunDomainService();
         runs.Begin(Character, layout, (DungeonDifficulty)Difficulty);
         var rules = new RecordingRules();
-        return (new CardRewardDomainService(rules, runs), runs, rules);
+        return (new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums()), runs, rules);
     }
 
     private static int?[] ItemIds(ClearRewardCardFace face) =>
@@ -267,7 +291,7 @@ public sealed class CardRewardDomainServiceTests
         var killed = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
         Assert.NotNull(runs.TryOpenClear(Character, killed.RunId, killed.RoomVersion));
         var rules = new RecordingRules();
-        var service = new CardRewardDomainService(rules, runs);
+        var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
 
         var settled = await service.SettleAsync(Settlement, CancellationToken.None);
 
@@ -289,7 +313,7 @@ public sealed class CardRewardDomainServiceTests
         var runs = new DungeonRunDomainService();
         var old = runs.Begin(Character, Tutorial, (DungeonDifficulty)Difficulty);
         var rules = new RecordingRules(pauseOffers: true);
-        var service = new CardRewardDomainService(rules, runs);
+        var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
         var pending = service.SettleAsync(
             Settlement with { RunId = old.RunId }, CancellationToken.None).AsTask();
         await rules.WaitForOffersAsync();
@@ -564,7 +588,7 @@ public sealed class CardRewardDomainServiceTests
     public async Task A_character_in_no_run_settles_nothing()
     {
         var rules = new RecordingRules();
-        var service = new CardRewardDomainService(rules, new DungeonRunDomainService());
+        var service = new CardRewardDomainService(rules, new DungeonRunDomainService(), new Dfo.Server.Application.Tests.Support.CardPremiums());
 
         Assert.Null(await service.SettleAsync(Settlement, CancellationToken.None));
         Assert.Null(
@@ -598,7 +622,7 @@ public sealed class CardRewardDomainServiceTests
         var constructor = Assert.Single(typeof(CardRewardDomainService).GetConstructors());
 
         Assert.Equal(
-            [typeof(IClearRewardRuleService), typeof(IDungeonRunDomainService)],
+            [typeof(IClearRewardRuleService), typeof(IDungeonRunDomainService), typeof(IPremiumServiceDomainService)],
             constructor.GetParameters().Select(parameter => parameter.ParameterType));
     }
 
@@ -619,6 +643,7 @@ public sealed class CardRewardDomainServiceTests
         services.AddSingleton<IDungeonDefinitionSource>(new ClearRewardFixture.StubDungeons());
         services.AddSingleton<IGoldDropTableSource>(new ClearRewardFixture.StubGoldTables());
 
+        services.AddSingleton<IPremiumServiceDomainService>(new Dfo.Server.Application.Tests.Support.CardPremiums());
         using var provider = services.BuildServiceProvider();
 
         Assert.IsType<CardRewardDomainService>(
