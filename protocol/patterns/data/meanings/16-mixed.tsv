@@ -8,38 +8,6 @@ NOTI	0x0022	8	后续成员记录条数（上游恒写 0x01，只投影自己一�
 NOTI	0x0022	9	成员的 UserId（session.Player.UserId）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:343 WriteUInt16(userId)；调用点 DungeonSettlementHandler.cs:161
 NOTI	0x0022	11	该成员的通关耗时（毫秒，与 offset 1 写同一个 clearTimeMs）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:344 WriteInt32(clearTimeMs)
 NOTI	0x0022	15	newBestClearTime 标记（是否刷新最佳通关时间；参数默认 false→0）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:345 WriteByte(newBestClearTime ? 1 : 0)
-NOTI	0x0023	0	通关基础经验 clearBaseExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:369 WriteUInt32(clearBaseExp)；调用点 Network/Handlers/Dungeon/DungeonSettlementHandler.cs:191
-NOTI	0x0023	4	评分加成经验 scoreBonusExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:370 WriteInt32(scoreBonusExp)；调用点 DungeonSettlementHandler.cs:192-193
-NOTI	0x0023	8	组队通关经验明细 partyClearBreakdownExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:371 WriteUInt32(partyClearBreakdownExp)；调用点 DungeonSettlementHandler.cs:194-195
-NOTI	0x0023	12	装扮（时装）通关奖励经验 avatarExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:372 WriteInt32(avatarExp) 注释「装扮通关奖励」；调用点 DungeonSettlementHandler.cs:196-197
-NOTI	0x0023	17	结算额外经验槽位数组第 1 项（i=0）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	21	结算额外经验槽位数组第 2 项（i=1）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	25	黑钻加成经验 blackDiamondExp（槽位 i=2）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:377 循环内 i==2 写 blackDiamondExp，偏移 = 17 + 4×2
-NOTI	0x0023	29	结算额外经验槽位数组第 4 项（i=3）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	33	结算额外经验槽位数组第 5 项（i=4）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	37	宠物（creature）通关奖励经验 creatureExp（槽位 i=5）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:378 循环内 i==5 写 creatureExp，偏移 = 17 + 4×5
-NOTI	0x0023	41	结算额外经验槽位数组第 7 项（i=6）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	45	冒险团通关奖励经验 adventureGroupExp（槽位 i=7）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:379 循环内 i==7 写 adventureGroupExp，偏移 = 17 + 4×7
-NOTI	0x0023	49	结算额外经验槽位数组第 9 项（i=8）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	53	成长之契约加成经验 growthContractExp（槽位 i=9）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:380 循环内 i==9 写 growthContractExp，偏移 = 17 + 4×9
-NOTI	0x0023	57	结算额外经验槽位数组第 11 项（i=10）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	61	结算额外经验槽位数组第 12 项（i=11）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	65	结算额外经验槽位数组第 13 项（i=12）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	69	结算额外经验槽位数组第 14 项（i=13）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	73	结算额外经验槽位数组第 15 项（i=14）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	77	结算额外经验槽位数组第 16 项（i=15）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	81	结算额外经验槽位数组第 17 项（i=16）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	85	结算额外经验槽位数组第 18 项（i=17）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	89	杀怪成长之契约加成经验 monsterGrowthContractExp（槽位 i=18）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:381 循环内 i==18 写 monsterGrowthContractExp，偏移 = 17 + 4×18
-NOTI	0x0023	93	结算额外经验槽位数组第 20 项（i=19）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	97	结算额外经验槽位数组第 21 项（i=20）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	101	结算额外经验槽位数组第 22 项（i=21）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	105	结算额外经验槽位数组第 23 项（i=22）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	109	频道奖励经验 channelExp（槽位 i=23）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:382 循环内 i==23 写 channelExp，偏移 = 17 + 4×23
-NOTI	0x0023	113	结算额外经验槽位数组第 25 项（i=24）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
-NOTI	0x0023	155	冠军怪总经验 championExp	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:396 WriteInt32(championExp)；按 366-396 写入序列累加得偏移 155
-NOTI	0x0023	159	超级冠军怪经验 superChampionExp（DungeonSettlementHandler.cs:215 恒传 0）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:397 WriteInt32(superChampionExp)；按 366-397 写入序列累加得偏移 159
-NOTI	0x0023	163	BOSS 总经验 bossExp	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:398 WriteInt32(bossExp)；按 366-398 写入序列累加得偏移 163
 NOTI	0x015C	0	通关耗时 clearTimeMilliseconds（毫秒）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:288 WriteUInt32(clearTimeMilliseconds)；调用点 Network/Handlers/Dungeon/DungeonSettlementHandler.cs:1052
 NOTI	0x015C	4	层数 floor（上游 Math.Clamp(floor, 1, 100)，由 DungeonData.TryGetTowerOfDespairFloor 解析出）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:289 WriteUInt16；来源 DungeonSettlementHandler.cs:1048
 NOTI	0x015C	6	奖励槽位数 rewardSlotCount（常量 10）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:286,290 const rewardSlotCount = 10 + WriteByte

@@ -1,5 +1,15 @@
 # 协议清单
 
+## 2026-09-28 经验明细字段复核
+
+| 协议 | 本轮证据与边界 | 记录 |
+|---|---|---|
+| NOTI `0x0025` EXP | ClientStatic复核83+8n布局、十项基础扣减；九个常用加成行沿用既有ClientVerified探针；变量列表键空间未定名 | [即时通知](game/server-to-client/NOTI-0x0025.md) |
+| NOTI `0x0023` CLEAR_DUNGEON_REWARD | 23固定槽的存储/求和与J/K明细标签完成静态对照；新增经验与历史摘要分离；领主+362单例已验收，新增非零加成行尚未实测 | [结算通知](game/server-to-client/NOTI-0x0023.md) |
+
+汇总、保留未知项及下一步接入边界见 [A21经验加成字段映射](../Document/A21经验加成字段映射-20260928.md)。
+本轮仅调查与文档修订，没有部署经验加成新功能。
+
 ## 2026-09-24 提示已读状态修订
 
 CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondary。
