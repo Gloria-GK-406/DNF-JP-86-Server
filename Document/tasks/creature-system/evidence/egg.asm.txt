@@ -1,0 +1,38 @@
+
+### 0833912a size=108 _ZN13user_creature4CEgg5HatchEPi
+0833912a: push     ebp
+0833912b: mov      ebp, esp
+0833912d: push     ebx
+0833912e: sub      esp, 0x24
+08339131: mov      eax, dword ptr [ebp + 8]
+08339134: mov      dword ptr [esp], eax
+08339137: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833913c: mov      ebx, eax
+0833913e: call     0x80cc19b ; _Z14G_CDataManagerv
+08339143: mov      dword ptr [esp + 4], ebx
+08339147: mov      dword ptr [esp], eax
+0833914a: call     0x835fa32 ; _ZNK12CDataManager9find_itemEi
+0833914f: mov      dword ptr [ebp - 0x10], eax
+08339152: cmp      dword ptr [ebp - 0x10], 0
+08339156: jne      0x833915f
+08339158: mov      eax, 0
+0833915d: jmp      0x8339190
+0833915f: mov      eax, dword ptr [ebp - 0x10]
+08339162: mov      dword ptr [esp], eax
+08339165: call     0x80f12fa ; _ZNK5CItem12is_stackableEv
+0833916a: test     al, al
+0833916c: je       0x8339175
+0833916e: mov      eax, 0
+08339173: jmp      0x8339190
+08339175: mov      eax, dword ptr [ebp - 0x10]
+08339178: mov      dword ptr [ebp - 0xc], eax
+0833917b: mov      eax, dword ptr [ebp - 0xc]
+0833917e: mov      dword ptr [esp], eax
+08339181: call     0x833eeda ; _ZNK10CEquipItem17get_hatch_item_idEv
+08339186: mov      edx, dword ptr [ebp + 0xc]
+08339189: mov      dword ptr [edx], eax
+0833918b: mov      eax, 1
+08339190: add      esp, 0x24
+08339193: pop      ebx
+08339194: pop      ebp
+08339195: ret

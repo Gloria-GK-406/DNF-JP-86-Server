@@ -1,0 +1,33 @@
+
+### 08340842 size=115 _ZN13user_creature17CPacketRespondent29MakeNotipacketEvoluteCreatureEi
+08340842: push     ebp
+08340843: mov      ebp, esp
+08340845: sub      esp, 0x18
+08340848: mov      eax, dword ptr [ebp + 8]
+0834084b: mov      dword ptr [esp], eax
+0834084e: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+08340853: mov      eax, dword ptr [ebp + 8]
+08340856: mov      dword ptr [esp + 8], 0x6a
+0834085e: mov      dword ptr [esp + 4], 0
+08340866: mov      dword ptr [esp], eax
+08340869: call     0x80cb8fc ; _ZN18InterfacePacketBuf10put_headerEii
+0834086e: mov      eax, dword ptr [ebp + 8]
+08340871: mov      edx, dword ptr [ebp + 0xc]
+08340874: mov      dword ptr [esp + 4], edx
+08340878: mov      dword ptr [esp], eax
+0834087b: call     0x80cb920 ; _ZN18InterfacePacketBuf8put_byteEi
+08340880: mov      eax, dword ptr [ebp + 8]
+08340883: mov      eax, dword ptr [eax + 0xc]
+08340886: mov      dword ptr [esp], eax
+08340889: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+0834088e: movzx    edx, ax
+08340891: mov      eax, dword ptr [ebp + 8]
+08340894: mov      dword ptr [esp + 4], edx
+08340898: mov      dword ptr [esp], eax
+0834089b: call     0x80d9ea4 ; _ZN18InterfacePacketBuf9put_shortEi
+083408a0: mov      dword ptr [esp + 4], 1
+083408a8: mov      eax, dword ptr [ebp + 8]
+083408ab: mov      dword ptr [esp], eax
+083408ae: call     0x83403b8 ; _ZN13user_creature17CPacketRespondent8finalizeEb
+083408b3: leave
+083408b4: ret

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
@@ -77,6 +79,8 @@ public sealed record UseStackableResponse(
     /// owns would blame them for it.
     /// </remarks>
     public const byte Silent = 2;
+
+    public CreatureRuntimeChange? CreatureChange { get; init; }
 
     public ServerMessageType MessageType => ServerMessageType.GameUseStackable;
 
@@ -199,7 +203,8 @@ public enum ItemUseStatus
 }
 
 /// <summary>What a use did, or why it did not.</summary>
-public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int RemainingCount)
+public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int RemainingCount,
+    CreatureRuntimeChange? CreatureChange = null)
 {
     public static ItemUseResult Refused(ItemUseStatus status, int itemId = 0) =>
         new(status, itemId, 0);
@@ -234,7 +239,8 @@ public sealed class UseStackableCommandHandler(
     ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService inventory,
     ICharacterDomainService characters,
-    IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
+    IItemUseEffectDomainService effects,
+    ICreatureRuntimeDomainService? creatures = null) : ICommandHandler<UseStackableCommand, ItemUseResult>
 {
     public async ValueTask<ItemUseResult> HandleAsync(
         CommandExecutionContext context,
@@ -246,7 +252,8 @@ public sealed class UseStackableCommandHandler(
         if (sessions.FindByCharacter(command.CharacterId) != command.Session)
             return ItemUseResult.Refused(ItemUseStatus.NoSession);
 
-        if (!command.Slot.Space.IsCarriedItemSpace())
+        if (!command.Slot.Space.IsCarriedItemSpace()
+            && command.Slot.Space != BusinessInventorySpace.CreatureConsumable)
             return ItemUseResult.Refused(ItemUseStatus.ListNotServed);
 
         var slot = inventory.Find(command.CharacterId, command.Slot);
@@ -267,13 +274,23 @@ public sealed class UseStackableCommandHandler(
         if (verdict is not ItemUsability.Allowed)
             return ItemUseResult.Refused(StatusFor(verdict), item.ItemId);
 
+        CreatureRuntimeChange? creatureChange = null;
+        if (command.Slot.Space == BusinessInventorySpace.CreatureConsumable && item.ItemId != 24)
+            return ItemUseResult.Refused(ItemUseStatus.NotAUsableItem, item.ItemId);
+        if (item.ItemId == 24)
+        {
+            creatureChange = creatures is null ? null
+                : await creatures.FeedAsync(command.Session, cancellationToken).ConfigureAwait(false);
+            if (creatureChange is null)
+                return ItemUseResult.Refused(ItemUseStatus.PlaceNotAllowed, item.ItemId);
+        }
         var planned = await effects.PlanAsync(item.ItemId, item.SlotIndex, cancellationToken)
             .ConfigureAwait(false);
         var applied = await effects
             .ApplyAsync(command.Session, slot.Container, item, planned, cancellationToken)
             .ConfigureAwait(false);
 
-        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
+        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount, creatureChange);
     }
 
     /// <summary>
@@ -362,7 +379,7 @@ public sealed class UseStackableHandler(
                 responseSlot.Index,
                 result.RemainingCount);
             return UseStackableResponse.Success(
-                responseSlot, message.InstanceValue, result.ItemId);
+                responseSlot, message.InstanceValue, result.ItemId) with { CreatureChange = result.CreatureChange };
         }
 
         logger.LogInformation(

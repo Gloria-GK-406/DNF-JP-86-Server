@@ -1,0 +1,323 @@
+creature/Faras/faras.cre
+Identifier: [name]
+QuotedString: 佛拉斯
+Identifier: [width]
+Int32: 10
+Int32: 10
+Identifier: [floating height]
+Int32: 60
+Identifier: [layer]
+QuotedString: [normal]
+Identifier: [skill recovery time]
+Int32: 5000
+Identifier: [over skill recovery time]
+Int32: 12000
+Identifier: [direction correct]
+Int32: 1
+Identifier: [move speed]
+Int32: 286
+Int32: 238
+Int32: 114
+Int32: 95
+Int32: 70
+Identifier: [gravity]
+Int32: 0
+Identifier: [start level]
+Int32: 1
+Identifier: [permission level]
+Int32: 1
+Identifier: [max level]
+Int32: 50
+Identifier: [parent max level]
+Int32: 50
+Identifier: [artifact slot]
+QuotedString: red
+QuotedString: blue
+QuotedString: green
+Identifier: [/artifact slot]
+Identifier: [learn overskill level]
+Int32: 10
+Identifier: [skill MP]
+Int32: 0
+Identifier: [over skill MP]
+Int32: 50
+Identifier: [basic motion]
+QuotedString: Animation/stay.ani
+Identifier: [walk motion]
+QuotedString:
+Identifier: [run motion]
+QuotedString:
+Identifier: [skill motion]
+QuotedString: Animation/skill.ani
+Identifier: [over skill motion]
+QuotedString: Animation/overskill.ani
+Identifier: [response motion]
+QuotedString: Animation/response.ani
+Identifier: [response sound tag]
+QuotedString: R_BIRD_CRY_A
+Identifier: [wing sound tag]
+QuotedString: WING_FLAP_01
+Identifier: [etc motion]
+QuotedString: Effect/Animation/DashAttackOver.ani
+QuotedString: Effect/Animation/DashAttackUnder.ani
+QuotedString: Effect/Animation/DashAttackUnderDodge.ani
+QuotedString: Effect/Animation/DashAttackParticle.ani
+Identifier: [/etc motion]
+Identifier: [attack info]
+QuotedString: AttackInfo/skill.atk
+QuotedString: ../../PassiveObject/Creature/Faras/AttackInfo/FeatherWave.atk
+Identifier: [/attack info]
+Identifier: [piercing]
+Int32: 30
+Int32: 1
+Int32: 50
+Int32: 1
+Identifier: [/piercing]
+Identifier: [skill string]
+QuotedString: 勇猛突击
+QuotedString: 向前方敌人发出突进攻击
+QuotedString: 六向箭羽
+QuotedString: 向主人周围6个方向的敌人发射羽毛
+Identifier: [/skill string]
+Identifier: [int data]
+Int32: 700
+Int32: -60
+Int32: 500
+Int32: 30
+Int32: 100
+Int32: 400
+Identifier: [/int data]
+Identifier: [string data]
+QuotedString: DESTROY_SOUND
+Identifier: [/string data]
+Identifier: [evolution quest]
+Int32: 0
+Identifier: [evolution creature id]
+Int32: 2
+Identifier: [evolution level]
+Int32: 20
+creature/Bobo/Bobo.cre
+Identifier: [name]
+QuotedString: 波比
+Identifier: [width]
+Int32: 10
+Int32: 10
+Identifier: [floating height]
+Int32: 65
+Identifier: [layer]
+QuotedString: [normal]
+Identifier: [skill recovery time]
+Int32: 1
+Identifier: [over skill recovery time]
+Int32: 1
+Identifier: [direction correct]
+Int32: 1
+Identifier: [move speed]
+Int32: 286
+Int32: 238
+Int32: 114
+Int32: 95
+Int32: 70
+Identifier: [gravity]
+Int32: 0
+Identifier: [start level]
+Int32: 1
+Identifier: [permission level]
+Int32: 1
+Identifier: [max level]
+Int32: 20
+Identifier: [parent max level]
+Int32: 1
+Identifier: [artifact slot]
+QuotedString: red
+QuotedString: blue
+QuotedString: green
+Identifier: [/artifact slot]
+Identifier: [learn overskill level]
+Int32: 20
+Identifier: [skill MP]
+Int32: 0
+Identifier: [over skill MP]
+Int32: 0
+Identifier: [basic motion]
+QuotedString: Animation/stay.ani
+Identifier: [skill motion]
+QuotedString: Animation/skill.ani
+Identifier: [over skill motion]
+QuotedString: Animation/overskill.ani
+Identifier: [response motion]
+QuotedString: Animation/response.ani
+Identifier: [response sound tag]
+QuotedString: F_CREATURE_CRY
+Identifier: [revision x]
+Int32: 0
+Identifier: [revision y]
+Int32: 0
+Identifier: [attack info]
+QuotedString:
+QuotedString:
+Identifier: [/attack info]
+Identifier: [piercing]
+Int32: 1000
+Int32: 0
+Int32: 0
+Int32: 0
+Identifier: [/piercing]
+Identifier: [skill type]
+QuotedString: [passive]
+Identifier: [over skill type]
+QuotedString: [passive]
+Identifier: [skill string]
+QuotedString: 呐喊
+QuotedString: 在聊天窗口中输入‘波比-’然后再输入喊话内容， 则波比就会自动帮忙喊话1分钟； 再次输入‘波比-’， 则可以取消当前的自动喊话
+QuotedString: 疯狂呐喊
+QuotedString: 在聊天窗口中输入‘波比-’然后再输入喊话内容， 则波比就会自动帮忙喊话2分钟； 再次输入‘波比-’， 则可以取消当前的自动喊话
+Identifier: [/skill string]
+Identifier: [over skill level values]
+Int32: 1
+Int32: 20
+Identifier: [/over skill level values]
+Identifier: [int data]
+Int32: 60000
+Int32: 120000
+Int32: 5000
+Int32: 500
+Identifier: [/int data]
+Identifier: [string data]
+QuotedString: 老大，我的特长是说话；记这么长的东西，我会脑梗塞的！
+QuotedString: 天才也记不住这么长的东西，更何况是我！
+QuotedString: 分段！分段啊！这话太长了，我记不住！
+QuotedString: 老大，你到底想说什么啊？请说重点……
+Identifier: [/string data]
+Identifier: [evolution quest]
+Int32: 0
+Identifier: [evolution creature id]
+Int32: 0
+Identifier: [evolution level]
+Int32: 1
+equipment/creature/faras.equ
+Identifier: [name]
+QuotedString: 佛拉斯
+Identifier: [dictionary text]
+QuotedString: crdic_txt_63000
+Identifier: [attach type]
+QuotedString: [trade]
+Identifier: [rarity]
+Int32: 1
+Identifier: [usable job]
+QuotedString: [all]
+Identifier: [/usable job]
+Identifier: [minimum level]
+Int32: 1
+Identifier: [icon]
+QuotedString: item/creature/creature.img
+Int32: 0
+Identifier: [field image]
+QuotedString: item/fieldimage.img
+Int32: 30
+Identifier: [equipment type]
+QuotedString: [creature]
+Int32: 0
+Identifier: [sub type]
+Int32: 0
+Identifier: [creature species]
+Int32: 1
+Identifier: [output index]
+Int32: 63001
+Identifier: [cool time]
+Int32: 10000
+Identifier: [all elemental resistance]
+Int32: 5
+Identifier: [MP MAX rate]
+Single: 5
+Identifier: [move wav]
+QuotedString: CREATURE_EQUIP_TOUCH
+Identifier: [set item master]
+Int32: -1
+equipment/creature/egg_bobo.equ
+Identifier: [name]
+QuotedString: 宠物蛋 (波比)
+Identifier: [dictionary text]
+QuotedString:
+Identifier: [attach type]
+QuotedString: [sealing trade]
+Identifier: [rarity]
+Int32: 1
+Identifier: [usable job]
+QuotedString: [all]
+Identifier: [/usable job]
+Identifier: [minimum level]
+Int32: 1
+Identifier: [icon]
+QuotedString: item/creature/creature_egg.img
+Int32: 9
+Identifier: [field image]
+QuotedString: item/fieldimage.img
+Int32: 30
+Identifier: [equipment type]
+QuotedString: [creature]
+Int32: 0
+Identifier: [sub type]
+Int32: 1
+Identifier: [creature species]
+Int32: 20
+Identifier: [output index]
+Int32: 63023
+Identifier: [cool time]
+Int32: 10000
+Identifier: [MP MAX rate]
+Single: 10
+Identifier: [physical attack]
+Int32: 10
+Identifier: [physical defense]
+Int32: 10
+Identifier: [magical attack]
+Int32: 10
+Identifier: [magical defense]
+Int32: 10
+Identifier: [move wav]
+QuotedString: CREATURE_EGG_TOUCH
+Identifier: [set item master]
+Int32: -1
+equipment/creature/artifact_blue/claw_roc.equ
+Identifier: [name]
+QuotedString: 巨鹏罗克的爪
+Identifier: [grade]
+Int32: 20
+Identifier: [attach type]
+QuotedString: [free]
+Identifier: [creation rate]
+Int32: 40
+Identifier: [rarity]
+Int32: 1
+Identifier: [weight]
+Int32: 50
+Identifier: [usable job]
+QuotedString: [all]
+Identifier: [/usable job]
+Identifier: [icon]
+QuotedString: Item/creature/artifact_blue.img
+Int32: 0
+Identifier: [field image]
+QuotedString: Item/field_creature.img
+Int32: 1
+Identifier: [equipment type]
+QuotedString: [artifact blue]
+Int32: 15
+Identifier: [sub type]
+Int32: 0
+Identifier: [creature minimum level]
+Int32: 20
+Identifier: [creature physical attack]
+Int32: 105
+Identifier: [price]
+Int32: 10000
+Identifier: [cool time]
+Int32: 10000
+Identifier: [move wav]
+QuotedString: SKIN_TOUCH
+Identifier: [set item master]
+Int32: -1
+Identifier: [item category]
+QuotedString: no random
+Identifier: [/item category]

@@ -1,0 +1,343 @@
+
+### 081cd3ae size=151 _ZN24Dispatcher_HatchCreature4readER9PacketBufR8MSG_BASE
+081cd3ae: push     ebp
+081cd3af: mov      ebp, esp
+081cd3b1: sub      esp, 0x28
+081cd3b4: mov      eax, dword ptr [ebp + 0x10]
+081cd3b7: mov      dword ptr [ebp - 0xc], eax
+081cd3ba: mov      eax, dword ptr [ebp - 0xc]
+081cd3bd: add      eax, 0xd
+081cd3c0: mov      dword ptr [esp + 4], eax
+081cd3c4: mov      eax, dword ptr [ebp + 0xc]
+081cd3c7: mov      dword ptr [esp], eax
+081cd3ca: call     0x858cf70 ; _ZN9PacketBuf8get_byteERh
+081cd3cf: xor      eax, 1
+081cd3d2: test     al, al
+081cd3d4: je       0x81cd3fc
+081cd3d6: mov      dword ptr [esp + 0xc], 0
+081cd3de: mov      dword ptr [esp + 8], 0
+081cd3e6: mov      dword ptr [esp + 4], 0x8bd4960
+081cd3ee: mov      dword ptr [esp], 0x2518
+081cd3f5: call     0x85908d7 ; _Z8LineFunciPKcij
+081cd3fa: jmp      0x81cd443
+081cd3fc: mov      eax, dword ptr [ebp - 0xc]
+081cd3ff: add      eax, 0xe
+081cd402: mov      dword ptr [esp + 4], eax
+081cd406: mov      eax, dword ptr [ebp + 0xc]
+081cd409: mov      dword ptr [esp], eax
+081cd40c: call     0x858cfc0 ; _ZN9PacketBuf9get_shortERs
+081cd411: xor      eax, 1
+081cd414: test     al, al
+081cd416: je       0x81cd43e
+081cd418: mov      dword ptr [esp + 0xc], 0
+081cd420: mov      dword ptr [esp + 8], 0
+081cd428: mov      dword ptr [esp + 4], 0x8bd4960
+081cd430: mov      dword ptr [esp], 0x251b
+081cd437: call     0x85908d7 ; _Z8LineFunciPKcij
+081cd43c: jmp      0x81cd443
+081cd43e: mov      eax, 0
+081cd443: leave
+081cd444: ret
+
+### 081cd446 size=300 _ZN24Dispatcher_HatchCreature7processEP5CUserR8MSG_BASER9ParamBase
+081cd446: push     ebp
+081cd447: mov      ebp, esp
+081cd449: push     esi
+081cd44a: push     ebx
+081cd44b: sub      esp, 0x20
+081cd44e: mov      eax, dword ptr [ebp + 0x14]
+081cd451: mov      dword ptr [ebp - 0x14], eax
+081cd454: mov      eax, dword ptr [ebp + 0x10]
+081cd457: mov      dword ptr [esp + 8], eax
+081cd45b: mov      eax, dword ptr [ebp + 0xc]
+081cd45e: mov      dword ptr [esp + 4], eax
+081cd462: mov      eax, dword ptr [ebp + 8]
+081cd465: mov      dword ptr [esp], eax
+081cd468: call     0x81cd5aa ; _ZN24Dispatcher_HatchCreature11check_errorEP5CUserR8MSG_BASE
+081cd46d: mov      edx, eax
+081cd46f: mov      eax, dword ptr [ebp - 0x14]
+081cd472: mov      dword ptr [eax + 4], edx
+081cd475: mov      eax, dword ptr [ebp - 0x14]
+081cd478: mov      eax, dword ptr [eax + 4]
+081cd47b: test     eax, eax
+081cd47d: jle      0x81cd489
+081cd47f: mov      eax, 0
+081cd484: jmp      0x81cd56b
+081cd489: mov      eax, dword ptr [ebp - 0x14]
+081cd48c: mov      eax, dword ptr [eax + 4]
+081cd48f: test     eax, eax
+081cd491: jns      0x81cd4c5
+081cd493: mov      eax, dword ptr [ebp + 0xc]
+081cd496: mov      dword ptr [esp], eax
+081cd499: call     0x80da36e ; _ZNK5CUser10get_acc_idEv
+081cd49e: mov      edx, dword ptr [ebp - 0x14]
+081cd4a1: mov      edx, dword ptr [edx + 4]
+081cd4a4: mov      dword ptr [esp + 0xc], eax
+081cd4a8: mov      dword ptr [esp + 8], edx
+081cd4ac: mov      dword ptr [esp + 4], 0x8bd4900
+081cd4b4: mov      dword ptr [esp], 0x252c
+081cd4bb: call     0x85908d7 ; _Z8LineFunciPKcij
+081cd4c0: jmp      0x81cd56b
+081cd4c5: mov      eax, dword ptr [ebp + 0x10]
+081cd4c8: mov      dword ptr [ebp - 0x10], eax
+081cd4cb: mov      eax, dword ptr [ebp - 0x10]
+081cd4ce: movzx    eax, word ptr [eax + 0xe]
+081cd4d2: movsx    esi, ax
+081cd4d5: mov      eax, dword ptr [ebp - 0x10]
+081cd4d8: movzx    eax, byte ptr [eax + 0xd]
+081cd4dc: movzx    eax, al
+081cd4df: mov      dword ptr [esp], eax
+081cd4e2: call     0x80f7845 ; _Z25GetInvenTypeFromItemSpace14ENUM_ITEMSPACE
+081cd4e7: mov      ebx, eax
+081cd4e9: mov      eax, dword ptr [ebp + 0xc]
+081cd4ec: mov      dword ptr [esp], eax
+081cd4ef: call     0x81803ca ; _ZNK15CUserCharacInfo21getCurCharacInvenRefREv
+081cd4f4: mov      dword ptr [esp + 8], esi
+081cd4f8: mov      dword ptr [esp + 4], ebx
+081cd4fc: mov      dword ptr [esp], eax
+081cd4ff: call     0x84fc1de ; _ZNK10CInventory11GetInvenRefEii
+081cd504: mov      dword ptr [ebp - 0xc], eax
+081cd507: cmp      dword ptr [ebp - 0xc], 0
+081cd50b: jne      0x81cd53a
+081cd50d: mov      eax, dword ptr [ebp + 0xc]
+081cd510: mov      dword ptr [esp], eax
+081cd513: call     0x80da36e ; _ZNK5CUser10get_acc_idEv
+081cd518: mov      dword ptr [esp + 0xc], eax
+081cd51c: mov      dword ptr [esp + 8], 0
+081cd524: mov      dword ptr [esp + 4], 0x8bd4900
+081cd52c: mov      dword ptr [esp], 0x2533
+081cd533: call     0x85908d7 ; _Z8LineFunciPKcij
+081cd538: jmp      0x81cd56b
+081cd53a: mov      eax, dword ptr [ebp - 0xc]
+081cd53d: mov      dword ptr [esp], eax
+081cd540: call     0x80f783a ; _ZNK10Inven_Item12get_add_infoEv
+081cd545: mov      ebx, eax
+081cd547: mov      eax, dword ptr [ebp + 0xc]
+081cd54a: mov      dword ptr [esp], eax
+081cd54d: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+081cd552: mov      dword ptr [esp], eax
+081cd555: call     0x80dd568 ; _ZN10CInventory15GetCreatureMgrWEv
+081cd55a: mov      dword ptr [esp + 4], ebx
+081cd55e: mov      dword ptr [esp], eax
+081cd561: call     0x8339fa0 ; _ZN13user_creature12CCreatureMgr5HatchEi
+081cd566: mov      eax, 0
+081cd56b: add      esp, 0x20
+081cd56e: pop      ebx
+081cd56f: pop      esi
+081cd570: pop      ebp
+081cd571: ret
+
+### 081cd572 size=56 _ZN24Dispatcher_HatchCreature4sendEP5CUserR9ParamBase
+081cd572: push     ebp
+081cd573: mov      ebp, esp
+081cd575: sub      esp, 0x28
+081cd578: mov      eax, dword ptr [ebp + 0x10]
+081cd57b: mov      dword ptr [ebp - 0xc], eax
+081cd57e: mov      eax, dword ptr [ebp - 0xc]
+081cd581: mov      eax, dword ptr [eax + 4]
+081cd584: test     eax, eax
+081cd586: je       0x81cd5a8
+081cd588: mov      eax, dword ptr [ebp - 0xc]
+081cd58b: mov      eax, dword ptr [eax + 4]
+081cd58e: movzx    eax, al
+081cd591: mov      dword ptr [esp + 8], eax
+081cd595: mov      dword ptr [esp + 4], 0x69
+081cd59d: mov      eax, dword ptr [ebp + 0xc]
+081cd5a0: mov      dword ptr [esp], eax
+081cd5a3: call     0x867bf42 ; _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+081cd5a8: leave
+081cd5a9: ret
+
+### 081cd5aa size=151 _ZN24Dispatcher_HatchCreature11check_errorEP5CUserR8MSG_BASE
+081cd5aa: push     ebp
+081cd5ab: mov      ebp, esp
+081cd5ad: push     ebx
+081cd5ae: sub      esp, 0x24
+081cd5b1: mov      eax, dword ptr [ebp + 0xc]
+081cd5b4: mov      dword ptr [esp], eax
+081cd5b7: call     0x8120432 ; _ZNK15CUserCharacInfo13getCurCharacREv
+081cd5bc: test     eax, eax
+081cd5be: sete     al
+081cd5c1: test     al, al
+081cd5c3: je       0x81cd5cc
+081cd5c5: mov      eax, 0xffffffff
+081cd5ca: jmp      0x81cd63b
+081cd5cc: mov      eax, dword ptr [ebp + 0x10]
+081cd5cf: mov      dword ptr [ebp - 0x10], eax
+081cd5d2: mov      eax, dword ptr [0x941f7cc]
+081cd5d7: mov      dword ptr [esp + 8], 0x14
+081cd5df: mov      edx, dword ptr [ebp + 0xc]
+081cd5e2: mov      dword ptr [esp + 4], edx
+081cd5e6: mov      dword ptr [esp], eax
+081cd5e9: call     0x8288a02 ; _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+081cd5ee: mov      dword ptr [ebp - 0xc], eax
+081cd5f1: cmp      dword ptr [ebp - 0xc], 0
+081cd5f5: je       0x81cd5fc
+081cd5f7: mov      eax, dword ptr [ebp - 0xc]
+081cd5fa: jmp      0x81cd63b
+081cd5fc: mov      eax, dword ptr [ebp - 0x10]
+081cd5ff: movzx    eax, word ptr [eax + 0xe]
+081cd603: movsx    ebx, ax
+081cd606: mov      eax, dword ptr [ebp - 0x10]
+081cd609: movzx    eax, byte ptr [eax + 0xd]
+081cd60d: movzx    eax, al
+081cd610: mov      dword ptr [esp], eax
+081cd613: call     0x80f7845 ; _Z25GetInvenTypeFromItemSpace14ENUM_ITEMSPACE
+081cd618: mov      dword ptr [esp + 8], ebx
+081cd61c: mov      dword ptr [esp + 4], eax
+081cd620: mov      eax, dword ptr [ebp + 0xc]
+081cd623: mov      dword ptr [esp], eax
+081cd626: call     0x8646942 ; _ZNK5CUser13CheckItemLockEii
+081cd62b: test     al, al
+081cd62d: je       0x81cd636
+081cd62f: mov      eax, 0xd5
+081cd634: jmp      0x81cd63b
+081cd636: mov      eax, 0
+081cd63b: add      esp, 0x24
+081cd63e: pop      ebx
+081cd63f: pop      ebp
+081cd640: ret
+
+### 08245f10 size=48 _ZN24Dispatcher_HatchCreatureD2Ev
+08245f10: push     ebp
+08245f11: mov      ebp, esp
+08245f13: sub      esp, 0x18
+08245f16: mov      eax, dword ptr [ebp + 8]
+08245f19: mov      dword ptr [eax], 0x8bdb8c8
+08245f1f: mov      eax, dword ptr [ebp + 8]
+08245f22: mov      dword ptr [esp], eax
+08245f25: call     0x825d0a2 ; _ZN17IPacketDispatcherI18MSG_HATCH_CREATURE15stHatchCreatureL8ch_state3EED2Ev
+08245f2a: mov      eax, 0
+08245f2f: test     al, al
+08245f31: je       0x8245f3e
+08245f33: mov      eax, dword ptr [ebp + 8]
+08245f36: mov      dword ptr [esp], eax
+08245f39: call     0x87244f0 ; _ZdlPv
+08245f3e: leave
+08245f3f: ret
+
+### 08245f10 size=48 _ZN24Dispatcher_HatchCreatureD1Ev
+08245f10: push     ebp
+08245f11: mov      ebp, esp
+08245f13: sub      esp, 0x18
+08245f16: mov      eax, dword ptr [ebp + 8]
+08245f19: mov      dword ptr [eax], 0x8bdb8c8
+08245f1f: mov      eax, dword ptr [ebp + 8]
+08245f22: mov      dword ptr [esp], eax
+08245f25: call     0x825d0a2 ; _ZN17IPacketDispatcherI18MSG_HATCH_CREATURE15stHatchCreatureL8ch_state3EED2Ev
+08245f2a: mov      eax, 0
+08245f2f: test     al, al
+08245f31: je       0x8245f3e
+08245f33: mov      eax, dword ptr [ebp + 8]
+08245f36: mov      dword ptr [esp], eax
+08245f39: call     0x87244f0 ; _ZdlPv
+08245f3e: leave
+08245f3f: ret
+
+### 08245f40 size=30 _ZN24Dispatcher_HatchCreatureD0Ev
+08245f40: push     ebp
+08245f41: mov      ebp, esp
+08245f43: sub      esp, 0x18
+08245f46: mov      eax, dword ptr [ebp + 8]
+08245f49: mov      dword ptr [esp], eax
+08245f4c: call     0x8245f10 ; _ZN24Dispatcher_HatchCreatureD1Ev
+08245f51: mov      eax, dword ptr [ebp + 8]
+08245f54: mov      dword ptr [esp], eax
+08245f57: call     0x87244f0 ; _ZdlPv
+08245f5c: leave
+08245f5d: ret
+
+### 08336fc8 size=73 _ZN13user_creature9CArtifact19GetExperienceAmountEv
+08336fc8: push     ebp
+08336fc9: mov      ebp, esp
+08336fcb: sub      esp, 0x38
+08336fce: mov      eax, dword ptr [ebp + 8]
+08336fd1: mov      eax, dword ptr [eax]
+08336fd3: test     eax, eax
+08336fd5: jne      0x8336fde
+08336fd7: mov      eax, 0
+08336fdc: jmp      0x8337009
+08336fde: mov      eax, dword ptr [ebp + 8]
+08336fe1: mov      eax, dword ptr [eax]
+08336fe3: mov      dword ptr [esp], eax
+08336fe6: call     0x80f12fa ; _ZNK5CItem12is_stackableEv
+08336feb: test     al, al
+08336fed: je       0x8336ff6
+08336fef: mov      eax, 0
+08336ff4: jmp      0x8337009
+08336ff6: mov      eax, dword ptr [ebp + 8]
+08336ff9: mov      eax, dword ptr [eax]
+08336ffb: mov      dword ptr [esp], eax
+08336ffe: call     0x833eea6 ; _ZNK10CEquipItem21get_experience_amountEv
+08337003: fstp     dword ptr [ebp - 0xc]
+08337006: mov      eax, dword ptr [ebp - 0xc]
+08337009: mov      dword ptr [ebp - 0x1c], eax
+0833700c: fld      dword ptr [ebp - 0x1c]
+0833700f: leave
+08337010: ret
+
+### 0836053c size=37 _ZNK12CDataManager22get_creature_level_expEi
+0836053c: push     ebp
+0836053d: mov      ebp, esp
+0836053f: cmp      dword ptr [ebp + 0xc], 1
+08360543: jle      0x836054b
+08360545: cmp      dword ptr [ebp + 0xc], 0x63
+08360549: jle      0x8360552
+0836054b: mov      eax, 0
+08360550: jmp      0x836055f
+08360552: mov      eax, dword ptr [ebp + 0xc]
+08360555: sub      eax, 2
+08360558: mov      eax, dword ptr [eax*4 + 0x94fefa0]
+0836055f: pop      ebp
+08360560: ret
+
+### 08360562 size=69 _ZNK12CDataManager22get_creature_exp_levelEi
+08360562: push     ebp
+08360563: mov      ebp, esp
+08360565: sub      esp, 0x18
+08360568: mov      dword ptr [ebp - 4], 1
+0836056f: jmp      0x8360591
+08360571: mov      eax, dword ptr [ebp - 4]
+08360574: mov      dword ptr [esp + 4], eax
+08360578: mov      eax, dword ptr [ebp + 8]
+0836057b: mov      dword ptr [esp], eax
+0836057e: call     0x836053c ; _ZNK12CDataManager22get_creature_level_expEi
+08360583: cmp      eax, dword ptr [ebp + 0xc]
+08360586: setg     al
+08360589: test     al, al
+0836058b: jne      0x836059e
+0836058d: add      dword ptr [ebp - 4], 1
+08360591: cmp      dword ptr [ebp - 4], 0x62
+08360595: setle    al
+08360598: test     al, al
+0836059a: jne      0x8360571
+0836059c: jmp      0x836059f
+0836059e: nop
+0836059f: mov      eax, dword ptr [ebp - 4]
+083605a2: sub      eax, 1
+083605a5: leave
+083605a6: ret
+
+### 08595f58 size=28 _ZN24Dispatcher_HatchCreatureC2Ev
+08595f58: push     ebp
+08595f59: mov      ebp, esp
+08595f5b: sub      esp, 0x18
+08595f5e: mov      eax, dword ptr [ebp + 8]
+08595f61: mov      dword ptr [esp], eax
+08595f64: call     0x8598632 ; _ZN17IPacketDispatcherI18MSG_HATCH_CREATURE15stHatchCreatureL8ch_state3EEC1Ev
+08595f69: mov      eax, dword ptr [ebp + 8]
+08595f6c: mov      dword ptr [eax], 0x8bdb8c8
+08595f72: leave
+08595f73: ret
+
+### 08595f58 size=28 _ZN24Dispatcher_HatchCreatureC1Ev
+08595f58: push     ebp
+08595f59: mov      ebp, esp
+08595f5b: sub      esp, 0x18
+08595f5e: mov      eax, dword ptr [ebp + 8]
+08595f61: mov      dword ptr [esp], eax
+08595f64: call     0x8598632 ; _ZN17IPacketDispatcherI18MSG_HATCH_CREATURE15stHatchCreatureL8ch_state3EEC1Ev
+08595f69: mov      eax, dword ptr [ebp + 8]
+08595f6c: mov      dword ptr [eax], 0x8bdb8c8
+08595f72: leave
+08595f73: ret

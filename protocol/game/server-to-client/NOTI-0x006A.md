@@ -30,8 +30,8 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 2 | `u16` | 进化后的生物参数 EvolvedCreatureParam（经 NormalizeCreatureEventParam 归一化后写出） | Confirmed | 上游 Network/Handlers/Pets/PetCreatureRuntimeService.cs:717 WriteUInt16(NormalizeCreatureEventParam(evolution.EvolvedCreatureParam))，:720 以 type 0x006A 发出，取自 `[ebp - 4]` |
-| 2 | 2 | `u16` | 进化事件所属玩家的唯一 ID eventUniqueId | Confirmed | 上游 PetCreatureRuntimeService.cs:718-719 eventUniqueId = GetPetCreatureEventUniqueId(session.Player) 后 WriteUInt16(eventUniqueId)，取自 `[ebp - 8]` |
+| 0 | 2 | `u16` | 目标宠物脚本 species ID；70 传目标 creature ID 且写 u8，A21 接收端恰读 u16，属于不同版本线宽 | High | 70Reference CCreature::Evolute 0x083383E2-0x083383EF 传目标脚本ID，MakeNotipacketEvoluteCreature 0x08340842 写 u8；Document/tasks/creature-system/evidence/evolve-notify.asm.txt；A21 ClientStatic VA 0x01146890 读 u16，取自 `[ebp - 4]` |
+| 2 | 2 | `u16` | 进化所属玩家的场景 uniqueId u16；A21 用该值找场景对象 | High | 70Reference MakeNotipacketEvoluteCreature 0x08340883-0x0834089B 写 CUser::get_unique_id；Document/tasks/creature-system/evidence/evolve-notify.asm.txt；A21 ClientStatic VA 0x01146890 读 u16 后查对象，取自 `[ebp - 8]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -50,5 +50,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21 进化通知（2026-09-29）
+
+**ClientStatic / Confirmed**：A21 handler VA `0x01146890` 恰读 `u16 targetSpecies,u16 ownerUniqueId`，第二值用于查场景角色，第一值写其宠物状态字段。**70Reference / High 业务语义**：`CCreature::Evolute` 传目标 `.cre` 的 creature ID，70 通知写 `u8 targetCreatureId,u16 ownerUniqueId`；首字段版本线宽不同，不可将 70 的 3B 包直接发给 A21。70 自动进化改同一宠物对象和穿戴物品模板，UID及已有成长状态不重置。当前实现按 A21 4B 形状编码目标 species 与 owner ID，仅覆盖单目标、无任务前置的升级自动进化；A21 非空进化实帧和客户端效果待验证。见[70 通知反汇编](../../../Document/tasks/creature-system/evidence/evolve-notify.asm.txt)、[A21 接收切片](../../../Document/tasks/creature-system/evidence/a21-pet-noti-handlers.asm.txt)及[专项证据](../../../Document/tasks/creature-system/evidence/a21-protocol.md)。

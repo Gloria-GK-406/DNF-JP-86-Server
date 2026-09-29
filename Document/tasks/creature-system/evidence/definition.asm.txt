@@ -1,0 +1,724 @@
+
+### 0833c77e size=202 _ZN13user_creature15CCreatureScriptC1Ev
+0833c77e: push     ebp
+0833c77f: mov      ebp, esp
+0833c781: push     esi
+0833c782: push     ebx
+0833c783: sub      esp, 0x10
+0833c786: mov      eax, dword ptr [ebp + 8]
+0833c789: add      eax, 8
+0833c78c: mov      dword ptr [esp], eax
+0833c78f: call     0x808e1ac ; _ZNSt6vectorIiSaIiEEC1Ev
+0833c794: mov      eax, dword ptr [ebp + 8]
+0833c797: mov      dword ptr [eax + 0x24], 0
+0833c79e: mov      eax, dword ptr [ebp + 8]
+0833c7a1: mov      dword ptr [eax + 0x28], 0
+0833c7a8: mov      eax, dword ptr [ebp + 8]
+0833c7ab: mov      byte ptr [eax + 0x2c], 0
+0833c7af: mov      eax, dword ptr [ebp + 8]
+0833c7b2: add      eax, 0x34
+0833c7b5: mov      dword ptr [esp], eax
+0833c7b8: call     0x80da3dc ; _ZNSt3setIiSt4lessIiESaIiEEC1Ev
+0833c7bd: mov      eax, dword ptr [ebp + 8]
+0833c7c0: add      eax, 0x68
+0833c7c3: mov      dword ptr [esp], eax
+0833c7c6: call     0x808e1ac ; _ZNSt6vectorIiSaIiEEC1Ev
+0833c7cb: mov      eax, dword ptr [ebp + 8]
+0833c7ce: add      eax, 8
+0833c7d1: mov      dword ptr [esp], eax
+0833c7d4: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+0833c7d9: mov      eax, dword ptr [ebp + 8]
+0833c7dc: mov      dword ptr [eax + 0x20], 0
+0833c7e3: mov      eax, dword ptr [ebp + 8]
+0833c7e6: add      eax, 0x68
+0833c7e9: mov      dword ptr [esp], eax
+0833c7ec: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+0833c7f1: jmp      0x833c841
+0833c7f3: mov      ebx, edx
+0833c7f5: mov      esi, eax
+0833c7f7: mov      eax, dword ptr [ebp + 8]
+0833c7fa: add      eax, 0x68
+0833c7fd: mov      dword ptr [esp], eax
+0833c800: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c805: mov      eax, esi
+0833c807: mov      edx, ebx
+0833c809: jmp      0x833c80b
+0833c80b: mov      ebx, edx
+0833c80d: mov      esi, eax
+0833c80f: mov      eax, dword ptr [ebp + 8]
+0833c812: add      eax, 0x34
+0833c815: mov      dword ptr [esp], eax
+0833c818: call     0x80d9f34 ; _ZNSt3setIiSt4lessIiESaIiEED1Ev
+0833c81d: mov      eax, esi
+0833c81f: mov      edx, ebx
+0833c821: jmp      0x833c823
+0833c823: mov      ebx, edx
+0833c825: mov      esi, eax
+0833c827: mov      eax, dword ptr [ebp + 8]
+0833c82a: add      eax, 8
+0833c82d: mov      dword ptr [esp], eax
+0833c830: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c835: mov      eax, esi
+0833c837: mov      edx, ebx
+0833c839: mov      dword ptr [esp], eax
+0833c83c: call     0x8ae3750 ; _Unwind_Resume
+0833c841: add      esp, 0x10
+0833c844: pop      ebx
+0833c845: pop      esi
+0833c846: pop      ebp
+0833c847: ret
+
+### 0833c77e size=202 _ZN13user_creature15CCreatureScriptC2Ev
+0833c77e: push     ebp
+0833c77f: mov      ebp, esp
+0833c781: push     esi
+0833c782: push     ebx
+0833c783: sub      esp, 0x10
+0833c786: mov      eax, dword ptr [ebp + 8]
+0833c789: add      eax, 8
+0833c78c: mov      dword ptr [esp], eax
+0833c78f: call     0x808e1ac ; _ZNSt6vectorIiSaIiEEC1Ev
+0833c794: mov      eax, dword ptr [ebp + 8]
+0833c797: mov      dword ptr [eax + 0x24], 0
+0833c79e: mov      eax, dword ptr [ebp + 8]
+0833c7a1: mov      dword ptr [eax + 0x28], 0
+0833c7a8: mov      eax, dword ptr [ebp + 8]
+0833c7ab: mov      byte ptr [eax + 0x2c], 0
+0833c7af: mov      eax, dword ptr [ebp + 8]
+0833c7b2: add      eax, 0x34
+0833c7b5: mov      dword ptr [esp], eax
+0833c7b8: call     0x80da3dc ; _ZNSt3setIiSt4lessIiESaIiEEC1Ev
+0833c7bd: mov      eax, dword ptr [ebp + 8]
+0833c7c0: add      eax, 0x68
+0833c7c3: mov      dword ptr [esp], eax
+0833c7c6: call     0x808e1ac ; _ZNSt6vectorIiSaIiEEC1Ev
+0833c7cb: mov      eax, dword ptr [ebp + 8]
+0833c7ce: add      eax, 8
+0833c7d1: mov      dword ptr [esp], eax
+0833c7d4: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+0833c7d9: mov      eax, dword ptr [ebp + 8]
+0833c7dc: mov      dword ptr [eax + 0x20], 0
+0833c7e3: mov      eax, dword ptr [ebp + 8]
+0833c7e6: add      eax, 0x68
+0833c7e9: mov      dword ptr [esp], eax
+0833c7ec: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+0833c7f1: jmp      0x833c841
+0833c7f3: mov      ebx, edx
+0833c7f5: mov      esi, eax
+0833c7f7: mov      eax, dword ptr [ebp + 8]
+0833c7fa: add      eax, 0x68
+0833c7fd: mov      dword ptr [esp], eax
+0833c800: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c805: mov      eax, esi
+0833c807: mov      edx, ebx
+0833c809: jmp      0x833c80b
+0833c80b: mov      ebx, edx
+0833c80d: mov      esi, eax
+0833c80f: mov      eax, dword ptr [ebp + 8]
+0833c812: add      eax, 0x34
+0833c815: mov      dword ptr [esp], eax
+0833c818: call     0x80d9f34 ; _ZNSt3setIiSt4lessIiESaIiEED1Ev
+0833c81d: mov      eax, esi
+0833c81f: mov      edx, ebx
+0833c821: jmp      0x833c823
+0833c823: mov      ebx, edx
+0833c825: mov      esi, eax
+0833c827: mov      eax, dword ptr [ebp + 8]
+0833c82a: add      eax, 8
+0833c82d: mov      dword ptr [esp], eax
+0833c830: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c835: mov      eax, esi
+0833c837: mov      edx, ebx
+0833c839: mov      dword ptr [esp], eax
+0833c83c: call     0x8ae3750 ; _Unwind_Resume
+0833c841: add      esp, 0x10
+0833c844: pop      ebx
+0833c845: pop      esi
+0833c846: pop      ebp
+0833c847: ret
+
+### 0833c848 size=159 _ZN13user_creature15CCreatureScriptD2Ev
+0833c848: push     ebp
+0833c849: mov      ebp, esp
+0833c84b: push     esi
+0833c84c: push     ebx
+0833c84d: sub      esp, 0x10
+0833c850: mov      eax, dword ptr [ebp + 8]
+0833c853: mov      eax, dword ptr [eax + 0x20]
+0833c856: test     eax, eax
+0833c858: je       0x833c87c
+0833c85a: mov      eax, dword ptr [ebp + 8]
+0833c85d: mov      eax, dword ptr [eax + 0x20]
+0833c860: test     eax, eax
+0833c862: je       0x833c872
+0833c864: mov      eax, dword ptr [ebp + 8]
+0833c867: mov      eax, dword ptr [eax + 0x20]
+0833c86a: mov      dword ptr [esp], eax
+0833c86d: call     0x8724bb0 ; _ZdaPv
+0833c872: mov      eax, dword ptr [ebp + 8]
+0833c875: mov      dword ptr [eax + 0x20], 0
+0833c87c: mov      eax, dword ptr [ebp + 8]
+0833c87f: add      eax, 0x68
+0833c882: mov      dword ptr [esp], eax
+0833c885: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c88a: jmp      0x833c8a4
+0833c88c: mov      ebx, edx
+0833c88e: mov      esi, eax
+0833c890: mov      eax, dword ptr [ebp + 8]
+0833c893: add      eax, 0x34
+0833c896: mov      dword ptr [esp], eax
+0833c899: call     0x80d9f34 ; _ZNSt3setIiSt4lessIiESaIiEED1Ev
+0833c89e: mov      eax, esi
+0833c8a0: mov      edx, ebx
+0833c8a2: jmp      0x833c8b4
+0833c8a4: mov      eax, dword ptr [ebp + 8]
+0833c8a7: add      eax, 0x34
+0833c8aa: mov      dword ptr [esp], eax
+0833c8ad: call     0x80d9f34 ; _ZNSt3setIiSt4lessIiESaIiEED1Ev
+0833c8b2: jmp      0x833c8d2
+0833c8b4: mov      ebx, edx
+0833c8b6: mov      esi, eax
+0833c8b8: mov      eax, dword ptr [ebp + 8]
+0833c8bb: add      eax, 8
+0833c8be: mov      dword ptr [esp], eax
+0833c8c1: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c8c6: mov      eax, esi
+0833c8c8: mov      edx, ebx
+0833c8ca: mov      dword ptr [esp], eax
+0833c8cd: call     0x8ae3750 ; _Unwind_Resume
+0833c8d2: mov      eax, dword ptr [ebp + 8]
+0833c8d5: add      eax, 8
+0833c8d8: mov      dword ptr [esp], eax
+0833c8db: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c8e0: add      esp, 0x10
+0833c8e3: pop      ebx
+0833c8e4: pop      esi
+0833c8e5: pop      ebp
+0833c8e6: ret
+
+### 0833c848 size=159 _ZN13user_creature15CCreatureScriptD1Ev
+0833c848: push     ebp
+0833c849: mov      ebp, esp
+0833c84b: push     esi
+0833c84c: push     ebx
+0833c84d: sub      esp, 0x10
+0833c850: mov      eax, dword ptr [ebp + 8]
+0833c853: mov      eax, dword ptr [eax + 0x20]
+0833c856: test     eax, eax
+0833c858: je       0x833c87c
+0833c85a: mov      eax, dword ptr [ebp + 8]
+0833c85d: mov      eax, dword ptr [eax + 0x20]
+0833c860: test     eax, eax
+0833c862: je       0x833c872
+0833c864: mov      eax, dword ptr [ebp + 8]
+0833c867: mov      eax, dword ptr [eax + 0x20]
+0833c86a: mov      dword ptr [esp], eax
+0833c86d: call     0x8724bb0 ; _ZdaPv
+0833c872: mov      eax, dword ptr [ebp + 8]
+0833c875: mov      dword ptr [eax + 0x20], 0
+0833c87c: mov      eax, dword ptr [ebp + 8]
+0833c87f: add      eax, 0x68
+0833c882: mov      dword ptr [esp], eax
+0833c885: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c88a: jmp      0x833c8a4
+0833c88c: mov      ebx, edx
+0833c88e: mov      esi, eax
+0833c890: mov      eax, dword ptr [ebp + 8]
+0833c893: add      eax, 0x34
+0833c896: mov      dword ptr [esp], eax
+0833c899: call     0x80d9f34 ; _ZNSt3setIiSt4lessIiESaIiEED1Ev
+0833c89e: mov      eax, esi
+0833c8a0: mov      edx, ebx
+0833c8a2: jmp      0x833c8b4
+0833c8a4: mov      eax, dword ptr [ebp + 8]
+0833c8a7: add      eax, 0x34
+0833c8aa: mov      dword ptr [esp], eax
+0833c8ad: call     0x80d9f34 ; _ZNSt3setIiSt4lessIiESaIiEED1Ev
+0833c8b2: jmp      0x833c8d2
+0833c8b4: mov      ebx, edx
+0833c8b6: mov      esi, eax
+0833c8b8: mov      eax, dword ptr [ebp + 8]
+0833c8bb: add      eax, 8
+0833c8be: mov      dword ptr [esp], eax
+0833c8c1: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c8c6: mov      eax, esi
+0833c8c8: mov      edx, ebx
+0833c8ca: mov      dword ptr [esp], eax
+0833c8cd: call     0x8ae3750 ; _Unwind_Resume
+0833c8d2: mov      eax, dword ptr [ebp + 8]
+0833c8d5: add      eax, 8
+0833c8d8: mov      dword ptr [esp], eax
+0833c8db: call     0x8083dda ; _ZNSt6vectorIiSaIiEED1Ev
+0833c8e0: add      esp, 0x10
+0833c8e3: pop      ebx
+0833c8e4: pop      esi
+0833c8e5: pop      ebp
+0833c8e6: ret
+
+### 0833c8e8 size=495 _ZN13user_creature15CCreatureScript3SetEP14CreatureScript
+0833c8e8: push     ebp
+0833c8e9: mov      ebp, esp
+0833c8eb: sub      esp, 0x38
+0833c8ee: mov      dword ptr [esp], 3
+0833c8f5: call     0x8722dc0 ; _Znaj
+0833c8fa: mov      edx, eax
+0833c8fc: mov      eax, dword ptr [ebp + 8]
+0833c8ff: mov      dword ptr [eax + 0x20], edx
+0833c902: mov      dword ptr [ebp - 0x14], 0
+0833c909: jmp      0x833c92d
+0833c90b: mov      eax, dword ptr [ebp + 8]
+0833c90e: mov      edx, dword ptr [eax + 0x20]
+0833c911: mov      eax, dword ptr [ebp - 0x14]
+0833c914: add      edx, eax
+0833c916: mov      ecx, dword ptr [ebp - 0x14]
+0833c919: mov      eax, dword ptr [ebp + 0xc]
+0833c91c: add      ecx, 0x14
+0833c91f: mov      eax, dword ptr [eax + ecx*4]
+0833c922: test     eax, eax
+0833c924: setne    al
+0833c927: mov      byte ptr [edx], al
+0833c929: add      dword ptr [ebp - 0x14], 1
+0833c92d: cmp      dword ptr [ebp - 0x14], 2
+0833c931: setle    al
+0833c934: test     al, al
+0833c936: jne      0x833c90b
+0833c938: mov      eax, dword ptr [ebp + 0xc]
+0833c93b: mov      edx, dword ptr [eax + 0x174]
+0833c941: mov      eax, dword ptr [ebp + 8]
+0833c944: mov      dword ptr [eax], edx
+0833c946: mov      eax, dword ptr [ebp + 0xc]
+0833c949: mov      edx, dword ptr [eax + 0x178]
+0833c94f: mov      eax, dword ptr [ebp + 8]
+0833c952: mov      dword ptr [eax + 4], edx
+0833c955: mov      eax, dword ptr [ebp + 0xc]
+0833c958: add      eax, 0x180
+0833c95d: mov      dword ptr [esp], eax
+0833c960: call     0x808e1c0 ; _ZNKSt6vectorIiSaIiEE4sizeEv
+0833c965: mov      dword ptr [ebp - 0x1c], eax
+0833c968: mov      dword ptr [ebp - 0x10], 0
+0833c96f: jmp      0x833c99f
+0833c971: mov      eax, dword ptr [ebp - 0x10]
+0833c974: mov      edx, dword ptr [ebp + 0xc]
+0833c977: add      edx, 0x180
+0833c97d: mov      dword ptr [esp + 4], eax
+0833c981: mov      dword ptr [esp], edx
+0833c984: call     0x808e1dc ; _ZNSt6vectorIiSaIiEEixEj
+0833c989: mov      edx, dword ptr [ebp + 8]
+0833c98c: add      edx, 8
+0833c98f: mov      dword ptr [esp + 4], eax
+0833c993: mov      dword ptr [esp], edx
+0833c996: call     0x8111126 ; _ZNSt6vectorIiSaIiEE9push_backERKi
+0833c99b: add      dword ptr [ebp - 0x10], 1
+0833c99f: mov      eax, dword ptr [ebp - 0x10]
+0833c9a2: cmp      eax, dword ptr [ebp - 0x1c]
+0833c9a5: setl     al
+0833c9a8: test     al, al
+0833c9aa: jne      0x833c971
+0833c9ac: mov      eax, dword ptr [ebp + 0xc]
+0833c9af: mov      edx, dword ptr [eax + 0x17c]
+0833c9b5: mov      eax, dword ptr [ebp + 8]
+0833c9b8: mov      dword ptr [eax + 0x14], edx
+0833c9bb: mov      eax, dword ptr [ebp + 0xc]
+0833c9be: mov      edx, dword ptr [eax + 0x48]
+0833c9c1: mov      eax, dword ptr [ebp + 8]
+0833c9c4: mov      dword ptr [eax + 0x18], edx
+0833c9c7: mov      eax, dword ptr [ebp + 0xc]
+0833c9ca: mov      edx, dword ptr [eax + 0x1c]
+0833c9cd: mov      eax, dword ptr [ebp + 8]
+0833c9d0: mov      dword ptr [eax + 0x24], edx
+0833c9d3: mov      eax, dword ptr [ebp + 0xc]
+0833c9d6: mov      edx, dword ptr [eax + 0x20]
+0833c9d9: mov      eax, dword ptr [ebp + 8]
+0833c9dc: mov      dword ptr [eax + 0x28], edx
+0833c9df: mov      eax, dword ptr [ebp + 0xc]
+0833c9e2: mov      eax, dword ptr [eax + 0x5c]
+0833c9e5: mov      edx, eax
+0833c9e7: mov      eax, dword ptr [ebp + 8]
+0833c9ea: mov      byte ptr [eax + 0x2c], dl
+0833c9ed: mov      eax, dword ptr [ebp + 0xc]
+0833c9f0: add      eax, 0x1c0
+0833c9f5: mov      dword ptr [esp], eax
+0833c9f8: call     0x8342c0e ; _ZNKSt6vectorI21st_crature_id_item_idSaIS0_EE4sizeEv
+0833c9fd: mov      dword ptr [ebp - 0x18], eax
+0833ca00: mov      dword ptr [ebp - 0xc], 0
+0833ca07: jmp      0x833ca43
+0833ca09: mov      eax, dword ptr [ebp - 0xc]
+0833ca0c: mov      edx, dword ptr [ebp + 0xc]
+0833ca0f: add      edx, 0x1c0
+0833ca15: mov      dword ptr [esp + 4], eax
+0833ca19: mov      dword ptr [esp], edx
+0833ca1c: call     0x8342c2a ; _ZNSt6vectorI21st_crature_id_item_idSaIS0_EEixEj
+0833ca21: mov      edx, eax
+0833ca23: mov      eax, dword ptr [ebp + 8]
+0833ca26: lea      ecx, [eax + 0x34]
+0833ca29: lea      eax, [ebp - 0x24]
+0833ca2c: mov      dword ptr [esp + 8], edx
+0833ca30: mov      dword ptr [esp + 4], ecx
+0833ca34: mov      dword ptr [esp], eax
+0833ca37: call     0x80da5c6 ; _ZNSt3setIiSt4lessIiESaIiEE6insertERKi
+0833ca3c: sub      esp, 4
+0833ca3f: add      dword ptr [ebp - 0xc], 1
+0833ca43: mov      eax, dword ptr [ebp - 0xc]
+0833ca46: cmp      eax, dword ptr [ebp - 0x18]
+0833ca49: setl     al
+0833ca4c: test     al, al
+0833ca4e: jne      0x833ca09
+0833ca50: mov      eax, dword ptr [ebp + 0xc]
+0833ca53: movzx    edx, byte ptr [eax + 0x18c]
+0833ca5a: mov      eax, dword ptr [ebp + 8]
+0833ca5d: mov      byte ptr [eax + 0x4c], dl
+0833ca60: mov      eax, dword ptr [ebp + 0xc]
+0833ca63: mov      edx, dword ptr [eax + 0x190]
+0833ca69: mov      eax, dword ptr [ebp + 8]
+0833ca6c: mov      dword ptr [eax + 0x50], edx
+0833ca6f: mov      eax, dword ptr [ebp + 0xc]
+0833ca72: mov      edx, dword ptr [eax + 0x194]
+0833ca78: mov      eax, dword ptr [ebp + 8]
+0833ca7b: mov      dword ptr [eax + 0x54], edx
+0833ca7e: mov      eax, dword ptr [ebp + 0xc]
+0833ca81: mov      edx, dword ptr [eax + 0x198]
+0833ca87: mov      eax, dword ptr [ebp + 8]
+0833ca8a: mov      dword ptr [eax + 0x58], edx
+0833ca8d: mov      eax, dword ptr [ebp + 0xc]
+0833ca90: mov      edx, dword ptr [eax + 0x19c]
+0833ca96: mov      eax, dword ptr [ebp + 8]
+0833ca99: mov      dword ptr [eax + 0x5c], edx
+0833ca9c: mov      eax, dword ptr [ebp + 0xc]
+0833ca9f: mov      edx, dword ptr [eax + 0x1a0]
+0833caa5: mov      eax, dword ptr [ebp + 8]
+0833caa8: mov      dword ptr [eax + 0x60], edx
+0833caab: mov      eax, dword ptr [ebp + 0xc]
+0833caae: mov      edx, dword ptr [eax + 0x1a4]
+0833cab4: mov      eax, dword ptr [ebp + 8]
+0833cab7: mov      dword ptr [eax + 0x64], edx
+0833caba: mov      eax, dword ptr [ebp + 0xc]
+0833cabd: lea      edx, [eax + 0x208]
+0833cac3: mov      eax, dword ptr [ebp + 8]
+0833cac6: add      eax, 0x68
+0833cac9: mov      dword ptr [esp + 4], edx
+0833cacd: mov      dword ptr [esp], eax
+0833cad0: call     0x80ccfd2 ; _ZNSt6vectorIiSaIiEEaSERKS1_
+0833cad5: leave
+0833cad6: ret
+
+### 0833cad8 size=95 _ZN13user_creature15CCreatureScript26GetItemEvolutionCreatureIdEi
+0833cad8: push     ebp
+0833cad9: mov      ebp, esp
+0833cadb: sub      esp, 0x28
+0833cade: mov      eax, dword ptr [ebp + 8]
+0833cae1: lea      ecx, [eax + 0x34]
+0833cae4: lea      eax, [ebp - 0x10]
+0833cae7: lea      edx, [ebp + 0xc]
+0833caea: mov      dword ptr [esp + 8], edx
+0833caee: mov      dword ptr [esp + 4], ecx
+0833caf2: mov      dword ptr [esp], eax
+0833caf5: call     0x80da574 ; _ZNSt3setIiSt4lessIiESaIiEE4findERKi
+0833cafa: sub      esp, 4
+0833cafd: mov      eax, dword ptr [ebp + 8]
+0833cb00: lea      edx, [eax + 0x34]
+0833cb03: lea      eax, [ebp - 0xc]
+0833cb06: mov      dword ptr [esp + 4], edx
+0833cb0a: mov      dword ptr [esp], eax
+0833cb0d: call     0x80da496 ; _ZNKSt3setIiSt4lessIiESaIiEE3endEv
+0833cb12: sub      esp, 4
+0833cb15: lea      eax, [ebp - 0x10]
+0833cb18: mov      dword ptr [esp + 4], eax
+0833cb1c: lea      eax, [ebp - 0xc]
+0833cb1f: mov      dword ptr [esp], eax
+0833cb22: call     0x80e6152 ; _ZNKSt23_Rb_tree_const_iteratorIiEneERKS0_
+0833cb27: test     al, al
+0833cb29: je       0x833cb30
+0833cb2b: mov      eax, dword ptr [ebp + 0xc]
+0833cb2e: jmp      0x833cb35
+0833cb30: mov      eax, 0
+0833cb35: leave
+0833cb36: ret
+
+### 0833cb38 size=40 _ZN13user_creature15CCreatureScript23IsAvailableArtifactSlotEi
+0833cb38: push     ebp
+0833cb39: mov      ebp, esp
+0833cb3b: mov      eax, dword ptr [ebp + 0xc]
+0833cb3e: sub      eax, 0x17
+0833cb41: cmp      eax, 3
+0833cb44: jle      0x833cb4d
+0833cb46: mov      eax, 0
+0833cb4b: jmp      0x833cb5e
+0833cb4d: mov      eax, dword ptr [ebp + 8]
+0833cb50: mov      eax, dword ptr [eax + 0x20]
+0833cb53: mov      edx, dword ptr [ebp + 0xc]
+0833cb56: sub      edx, 0x17
+0833cb59: add      eax, edx
+0833cb5b: movzx    eax, byte ptr [eax]
+0833cb5e: pop      ebp
+0833cb5f: ret
+
+### 0833f11a size=14 _ZN13user_creature15CCreatureScript9SetItemIdEi
+0833f11a: push     ebp
+0833f11b: mov      ebp, esp
+0833f11d: mov      eax, dword ptr [ebp + 8]
+0833f120: mov      edx, dword ptr [ebp + 0xc]
+0833f123: mov      dword ptr [eax + 0x1c], edx
+0833f126: pop      ebp
+0833f127: ret
+
+### 0833f128 size=11 _ZN13user_creature15CCreatureScript9GetItemIdEv
+0833f128: push     ebp
+0833f129: mov      ebp, esp
+0833f12b: mov      eax, dword ptr [ebp + 8]
+0833f12e: mov      eax, dword ptr [eax + 0x1c]
+0833f131: pop      ebp
+0833f132: ret
+
+### 0833f134 size=15 _ZN13user_creature15CCreatureScript21IsExistEvolutionQuestEv
+0833f134: push     ebp
+0833f135: mov      ebp, esp
+0833f137: mov      eax, dword ptr [ebp + 8]
+0833f13a: mov      eax, dword ptr [eax]
+0833f13c: test     eax, eax
+0833f13e: setne    al
+0833f141: pop      ebp
+0833f142: ret
+
+### 0833f144 size=11 _ZN13user_creature15CCreatureScript22GetEvolutionCreatureIdEv
+0833f144: push     ebp
+0833f145: mov      ebp, esp
+0833f147: mov      eax, dword ptr [ebp + 8]
+0833f14a: mov      eax, dword ptr [eax + 4]
+0833f14d: pop      ebp
+0833f14e: ret
+
+### 0833f150 size=144 _ZN13user_creature15CCreatureScript25validEventEvlouteCreatureEi
+0833f150: push     ebp
+0833f151: mov      ebp, esp
+0833f153: sub      esp, 0x28
+0833f156: mov      eax, dword ptr [ebp + 8]
+0833f159: lea      edx, [eax + 0x68]
+0833f15c: lea      eax, [ebp - 0x14]
+0833f15f: mov      dword ptr [esp + 4], edx
+0833f163: mov      dword ptr [esp], eax
+0833f166: call     0x808e248 ; _ZNSt6vectorIiSaIiEE5beginEv
+0833f16b: sub      esp, 4
+0833f16e: jmp      0x833f1ab
+0833f170: lea      eax, [ebp - 0x14]
+0833f173: mov      dword ptr [esp], eax
+0833f176: call     0x808e7cc ; _ZNK9__gnu_cxx17__normal_iteratorIPiSt6vectorIiSaIiEEEdeEv
+0833f17b: mov      eax, dword ptr [eax]
+0833f17d: cmp      eax, dword ptr [ebp + 0xc]
+0833f180: sete     al
+0833f183: test     al, al
+0833f185: je       0x833f18e
+0833f187: mov      eax, 1
+0833f18c: jmp      0x833f1de
+0833f18e: lea      eax, [ebp - 0xc]
+0833f191: mov      dword ptr [esp + 8], 0
+0833f199: lea      edx, [ebp - 0x14]
+0833f19c: mov      dword ptr [esp + 4], edx
+0833f1a0: mov      dword ptr [esp], eax
+0833f1a3: call     0x8341906 ; _ZN9__gnu_cxx17__normal_iteratorIPiSt6vectorIiSaIiEEEppEi
+0833f1a8: sub      esp, 4
+0833f1ab: mov      eax, dword ptr [ebp + 8]
+0833f1ae: lea      edx, [eax + 0x68]
+0833f1b1: lea      eax, [ebp - 0x10]
+0833f1b4: mov      dword ptr [esp + 4], edx
+0833f1b8: mov      dword ptr [esp], eax
+0833f1bb: call     0x808e26c ; _ZNSt6vectorIiSaIiEE3endEv
+0833f1c0: sub      esp, 4
+0833f1c3: lea      eax, [ebp - 0x10]
+0833f1c6: mov      dword ptr [esp + 4], eax
+0833f1ca: lea      eax, [ebp - 0x14]
+0833f1cd: mov      dword ptr [esp], eax
+0833f1d0: call     0x80ea462 ; _ZN9__gnu_cxxneIPiSt6vectorIiSaIiEEEEbRKNS_17__normal_iteratorIT_T0_EESA_
+0833f1d5: test     al, al
+0833f1d7: jne      0x833f170
+0833f1d9: mov      eax, 0
+0833f1de: leave
+0833f1df: ret
+
+### 0833f1e0 size=96 _ZN13user_creature15CCreatureScript20isEvoluationCreatureEi
+0833f1e0: push     ebp
+0833f1e1: mov      ebp, esp
+0833f1e3: sub      esp, 0x28
+0833f1e6: mov      eax, dword ptr [ebp + 8]
+0833f1e9: add      eax, 8
+0833f1ec: mov      dword ptr [esp], eax
+0833f1ef: call     0x808e1c0 ; _ZNKSt6vectorIiSaIiEE4sizeEv
+0833f1f4: mov      dword ptr [ebp - 0x10], eax
+0833f1f7: mov      dword ptr [ebp - 0xc], 0
+0833f1fe: jmp      0x833f22c
+0833f200: mov      eax, dword ptr [ebp - 0xc]
+0833f203: mov      edx, dword ptr [ebp + 8]
+0833f206: add      edx, 8
+0833f209: mov      dword ptr [esp + 4], eax
+0833f20d: mov      dword ptr [esp], edx
+0833f210: call     0x808e1dc ; _ZNSt6vectorIiSaIiEEixEj
+0833f215: mov      eax, dword ptr [eax]
+0833f217: cmp      eax, dword ptr [ebp + 0xc]
+0833f21a: sete     al
+0833f21d: test     al, al
+0833f21f: je       0x833f228
+0833f221: mov      eax, 1
+0833f226: jmp      0x833f23e
+0833f228: add      dword ptr [ebp - 0xc], 1
+0833f22c: mov      eax, dword ptr [ebp - 0xc]
+0833f22f: cmp      eax, dword ptr [ebp - 0x10]
+0833f232: setl     al
+0833f235: test     al, al
+0833f237: jne      0x833f200
+0833f239: mov      eax, 0
+0833f23e: leave
+0833f23f: ret
+
+### 0833f240 size=11 _ZN13user_creature15CCreatureScript17GetEvolutionLevelEv
+0833f240: push     ebp
+0833f241: mov      ebp, esp
+0833f243: mov      eax, dword ptr [ebp + 8]
+0833f246: mov      eax, dword ptr [eax + 0x14]
+0833f249: pop      ebp
+0833f24a: ret
+
+### 0833f24c size=11 _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+0833f24c: push     ebp
+0833f24d: mov      ebp, esp
+0833f24f: mov      eax, dword ptr [ebp + 8]
+0833f252: mov      eax, dword ptr [eax + 0x18]
+0833f255: pop      ebp
+0833f256: ret
+
+### 0833f258 size=11 _ZN13user_creature15CCreatureScript20GetSkillRecoveryTimeEv
+0833f258: push     ebp
+0833f259: mov      ebp, esp
+0833f25b: mov      eax, dword ptr [ebp + 8]
+0833f25e: mov      eax, dword ptr [eax + 0x24]
+0833f261: pop      ebp
+0833f262: ret
+
+### 0833f264 size=11 _ZN13user_creature15CCreatureScript24GetOverSkillRecoveryTimeEv
+0833f264: push     ebp
+0833f265: mov      ebp, esp
+0833f267: mov      eax, dword ptr [ebp + 8]
+0833f26a: mov      eax, dword ptr [eax + 0x28]
+0833f26d: pop      ebp
+0833f26e: ret
+
+### 0833f270 size=15 _ZN13user_creature15CCreatureScript22GetLearnOverSkillLevelEv
+0833f270: push     ebp
+0833f271: mov      ebp, esp
+0833f273: mov      eax, dword ptr [ebp + 8]
+0833f276: movzx    eax, byte ptr [eax + 0x2c]
+0833f27a: movzx    eax, al
+0833f27d: pop      ebp
+0833f27e: ret
+
+### 0833f280 size=60 _ZN13user_creature15CCreatureScript12validItemExpEi
+0833f280: push     ebp
+0833f281: mov      ebp, esp
+0833f283: mov      eax, dword ptr [ebp + 8]
+0833f286: movzx    eax, byte ptr [eax + 0x4c]
+0833f28a: xor      eax, 1
+0833f28d: test     al, al
+0833f28f: je       0x833f298
+0833f291: mov      eax, 0
+0833f296: jmp      0x833f2ba
+0833f298: mov      eax, dword ptr [ebp + 8]
+0833f29b: mov      eax, dword ptr [eax + 0x5c]
+0833f29e: cmp      eax, dword ptr [ebp + 0xc]
+0833f2a1: je       0x833f2ae
+0833f2a3: mov      eax, dword ptr [ebp + 8]
+0833f2a6: mov      eax, dword ptr [eax + 0x60]
+0833f2a9: cmp      eax, dword ptr [ebp + 0xc]
+0833f2ac: jne      0x833f2b5
+0833f2ae: mov      eax, 1
+0833f2b3: jmp      0x833f2ba
+0833f2b5: mov      eax, 0
+0833f2ba: pop      ebp
+0833f2bb: ret
+
+### 0833f2bc size=49 _ZN13user_creature15CCreatureScript15validItem_ATypeEi
+0833f2bc: push     ebp
+0833f2bd: mov      ebp, esp
+0833f2bf: mov      eax, dword ptr [ebp + 8]
+0833f2c2: movzx    eax, byte ptr [eax + 0x4c]
+0833f2c6: xor      eax, 1
+0833f2c9: test     al, al
+0833f2cb: je       0x833f2d4
+0833f2cd: mov      eax, 0
+0833f2d2: jmp      0x833f2eb
+0833f2d4: mov      eax, dword ptr [ebp + 8]
+0833f2d7: mov      eax, dword ptr [eax + 0x5c]
+0833f2da: cmp      eax, dword ptr [ebp + 0xc]
+0833f2dd: jne      0x833f2e6
+0833f2df: mov      eax, 1
+0833f2e4: jmp      0x833f2eb
+0833f2e6: mov      eax, 0
+0833f2eb: pop      ebp
+0833f2ec: ret
+
+### 0833f2ee size=49 _ZN13user_creature15CCreatureScript15validItem_BTypeEi
+0833f2ee: push     ebp
+0833f2ef: mov      ebp, esp
+0833f2f1: mov      eax, dword ptr [ebp + 8]
+0833f2f4: movzx    eax, byte ptr [eax + 0x4c]
+0833f2f8: xor      eax, 1
+0833f2fb: test     al, al
+0833f2fd: je       0x833f306
+0833f2ff: mov      eax, 0
+0833f304: jmp      0x833f31d
+0833f306: mov      eax, dword ptr [ebp + 8]
+0833f309: mov      eax, dword ptr [eax + 0x60]
+0833f30c: cmp      eax, dword ptr [ebp + 0xc]
+0833f30f: jne      0x833f318
+0833f311: mov      eax, 1
+0833f316: jmp      0x833f31d
+0833f318: mov      eax, 0
+0833f31d: pop      ebp
+0833f31e: ret
+
+### 0833f320 size=41 _ZN13user_creature15CCreatureScript18IsItemGrowCreatureEv
+0833f320: push     ebp
+0833f321: mov      ebp, esp
+0833f323: mov      eax, dword ptr [ebp + 8]
+0833f326: mov      eax, dword ptr [eax + 0x5c]
+0833f329: cmp      eax, -1
+0833f32c: jne      0x833f340
+0833f32e: mov      eax, dword ptr [ebp + 8]
+0833f331: mov      eax, dword ptr [eax + 0x60]
+0833f334: cmp      eax, -1
+0833f337: jne      0x833f340
+0833f339: mov      eax, 0
+0833f33e: jmp      0x833f347
+0833f340: mov      eax, dword ptr [ebp + 8]
+0833f343: movzx    eax, byte ptr [eax + 0x4c]
+0833f347: pop      ebp
+0833f348: ret
+
+### 0833f34a size=11 _ZN13user_creature15CCreatureScript27GetTypeSelectEvolutionLevelEv
+0833f34a: push     ebp
+0833f34b: mov      ebp, esp
+0833f34d: mov      eax, dword ptr [ebp + 8]
+0833f350: mov      eax, dword ptr [eax + 0x50]
+0833f353: pop      ebp
+0833f354: ret
+
+### 0833f356 size=11 _ZN13user_creature15CCreatureScript26GetGrowItemCountforLevelUpEv
+0833f356: push     ebp
+0833f357: mov      ebp, esp
+0833f359: mov      eax, dword ptr [ebp + 8]
+0833f35c: mov      eax, dword ptr [eax + 0x64]
+0833f35f: pop      ebp
+0833f360: ret
+
+### 0833f362 size=11 _ZN13user_creature15CCreatureScript17GET_ATypeCreatureEv
+0833f362: push     ebp
+0833f363: mov      ebp, esp
+0833f365: mov      eax, dword ptr [ebp + 8]
+0833f368: mov      eax, dword ptr [eax + 0x54]
+0833f36b: pop      ebp
+0833f36c: ret
+
+### 0833f36e size=11 _ZN13user_creature15CCreatureScript17GET_BTypeCreatureEv
+0833f36e: push     ebp
+0833f36f: mov      ebp, esp
+0833f371: mov      eax, dword ptr [ebp + 8]
+0833f374: mov      eax, dword ptr [eax + 0x58]
+0833f377: pop      ebp
+0833f378: ret

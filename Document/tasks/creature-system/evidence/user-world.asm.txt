@@ -1,0 +1,488 @@
+
+### 0867edb2 size=118 _ZN5CUser9set_stateE8ch_state
+0867edb2: push     ebp
+0867edb3: mov      ebp, esp
+0867edb5: push     ebx
+0867edb6: sub      esp, 0x14
+0867edb9: mov      eax, dword ptr [ebp + 8]
+0867edbc: mov      edx, dword ptr [ebp + 0xc]
+0867edbf: mov      dword ptr [eax + 0x8cfc4], edx
+0867edc5: mov      eax, dword ptr [ebp + 8]
+0867edc8: mov      eax, dword ptr [eax + 0x8cfc4]
+0867edce: cmp      eax, 5
+0867edd1: jne      0x867edde
+0867edd3: mov      eax, dword ptr [ebp + 8]
+0867edd6: mov      dword ptr [esp], eax
+0867edd9: call     0x8697526 ; _ZN5CUser18ClearItemSellCountEv
+0867edde: mov      eax, dword ptr [ebp + 8]
+0867ede1: mov      dword ptr [esp], eax
+0867ede4: call     0x8120432 ; _ZNK15CUserCharacInfo13getCurCharacREv
+0867ede9: test     eax, eax
+0867edeb: sete     al
+0867edee: test     al, al
+0867edf0: jne      0x867ee21
+0867edf2: mov      eax, dword ptr [ebp + 8]
+0867edf5: mov      dword ptr [esp], eax
+0867edf8: call     0x867ed68 ; _ZN5CUser11is_fightingEv
+0867edfd: movzx    ebx, al
+0867ee00: mov      eax, dword ptr [ebp + 8]
+0867ee03: mov      dword ptr [esp], eax
+0867ee06: call     0x80da27e ; _ZNK15CUserCharacInfo18getCurCharacInvenREv
+0867ee0b: mov      dword ptr [esp], eax
+0867ee0e: call     0x80dd568 ; _ZN10CInventory15GetCreatureMgrWEv
+0867ee13: mov      dword ptr [esp + 4], ebx
+0867ee17: mov      dword ptr [esp], eax
+0867ee1a: call     0x833c28a ; _ZN13user_creature12CCreatureMgr11TurnStomachEb
+0867ee1f: jmp      0x867ee22
+0867ee21: nop
+0867ee22: add      esp, 0x14
+0867ee25: pop      ebx
+0867ee26: pop      ebp
+0867ee27: ret
+
+### 086be1fe size=1717 _ZN7WarRoom17HandleMonsterKillEP5CUseriS1_
+086be1fe: push     ebp
+086be1ff: mov      ebp, esp
+086be201: push     esi
+086be202: push     ebx
+086be203: sub      esp, 0x3e0
+086be209: lea      eax, [ebp - 0x3a8]
+086be20f: mov      dword ptr [esp], eax
+086be212: call     0x81511c8 ; _ZN11map_monsterC2Ev
+086be217: lea      eax, [ebp - 0x4c]
+086be21a: mov      dword ptr [esp], eax
+086be21d: call     0x858dd4c ; _ZN11PacketGuardC2Ev
+086be222: mov      eax, dword ptr [ebp + 8]
+086be225: mov      dword ptr [esp], eax
+086be228: call     0x86babcc ; _ZNK7WarRoom14GetWaiterCountEv
+086be22d: mov      dword ptr [ebp - 0x40], eax
+086be230: cmp      dword ptr [ebp - 0x40], 0
+086be234: jne      0x86be240
+086be236: mov      ebx, 0
+086be23b: jmp      0x86be86e
+086be240: mov      dword ptr [ebp - 0x3c], 0
+086be247: mov      dword ptr [ebp - 0x34], 0
+086be24e: jmp      0x86be2b1
+086be250: mov      edx, dword ptr [ebp - 0x34]
+086be253: mov      eax, dword ptr [ebp + 8]
+086be256: add      edx, 0x48
+086be259: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be25d: test     eax, eax
+086be25f: je       0x86be2ac
+086be261: cmp      dword ptr [ebp + 0x14], 0
+086be265: je       0x86be2ad
+086be267: mov      edx, dword ptr [ebp - 0x34]
+086be26a: mov      eax, dword ptr [ebp + 8]
+086be26d: add      edx, 0x48
+086be270: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be274: cmp      eax, dword ptr [ebp + 0x14]
+086be277: jne      0x86be2ad
+086be279: mov      eax, dword ptr [ebp + 8]
+086be27c: lea      edx, [eax + 0x34]
+086be27f: lea      eax, [ebp - 0x3a8]
+086be285: mov      dword ptr [esp + 0x10], eax
+086be289: mov      dword ptr [esp + 0xc], 0
+086be291: mov      eax, dword ptr [ebp + 0x10]
+086be294: mov      dword ptr [esp + 8], eax
+086be298: mov      eax, dword ptr [ebp + 0x14]
+086be29b: mov      dword ptr [esp + 4], eax
+086be29f: mov      dword ptr [esp], edx
+086be2a2: call     0x86ba1ea ; _ZN8WarField18HandleWpPerMonsterEP5CUseriiR11map_monster
+086be2a7: mov      dword ptr [ebp - 0x3c], eax
+086be2aa: jmp      0x86be2ad
+086be2ac: nop
+086be2ad: add      dword ptr [ebp - 0x34], 1
+086be2b1: cmp      dword ptr [ebp - 0x34], 5
+086be2b5: setle    al
+086be2b8: test     al, al
+086be2ba: jne      0x86be250
+086be2bc: mov      eax, dword ptr [ebp + 8]
+086be2bf: mov      eax, dword ptr [eax + 0x1d0]
+086be2c5: mov      edx, dword ptr [ebp + 8]
+086be2c8: add      edx, 0x34
+086be2cb: mov      dword ptr [esp + 0x14], eax
+086be2cf: mov      eax, dword ptr [ebp + 0x14]
+086be2d2: mov      dword ptr [esp + 0x10], eax
+086be2d6: lea      eax, [ebp - 0x3a8]
+086be2dc: mov      dword ptr [esp + 0xc], eax
+086be2e0: lea      eax, [ebp - 0x4c]
+086be2e3: mov      dword ptr [esp + 8], eax
+086be2e7: mov      eax, dword ptr [ebp + 0x10]
+086be2ea: mov      dword ptr [esp + 4], eax
+086be2ee: mov      dword ptr [esp], edx
+086be2f1: call     0x86b9672 ; _ZN8WarField17HandleMonsterKillEiR11PacketGuardR11map_monsterP5CUserPK8CDungeon
+086be2f6: xor      eax, 1
+086be2f9: test     al, al
+086be2fb: je       0x86be307
+086be2fd: mov      ebx, 0
+086be302: jmp      0x86be86e
+086be307: movzx    eax, byte ptr [ebp - 0x3a0]
+086be30e: movsx    edx, al
+086be311: movzx    eax, byte ptr [ebp - 0x3a0]
+086be318: movsx    ecx, al
+086be31b: mov      eax, dword ptr [ebp + 8]
+086be31e: add      ecx, 0x6c
+086be321: fld      dword ptr [eax + ecx*4 + 0xc]
+086be325: fld      dword ptr [ebp - 0x380]
+086be32b: faddp    st(1)
+086be32d: mov      eax, dword ptr [ebp + 8]
+086be330: add      edx, 0x6c
+086be333: fstp     dword ptr [eax + edx*4 + 0xc]
+086be337: mov      dword ptr [ebp - 0x30], 0
+086be33e: jmp      0x86be68a
+086be343: mov      edx, dword ptr [ebp - 0x30]
+086be346: mov      eax, dword ptr [ebp + 8]
+086be349: add      edx, 0x48
+086be34c: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be350: test     eax, eax
+086be352: je       0x86be685
+086be358: cmp      dword ptr [ebp + 0x14], 0
+086be35c: je       0x86be377
+086be35e: mov      edx, dword ptr [ebp - 0x30]
+086be361: mov      eax, dword ptr [ebp + 8]
+086be364: add      edx, 0x48
+086be367: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be36b: cmp      eax, dword ptr [ebp + 0x14]
+086be36e: jne      0x86be377
+086be370: mov      eax, 1
+086be375: jmp      0x86be37c
+086be377: mov      eax, 0
+086be37c: mov      byte ptr [ebp - 0x29], al
+086be37f: cmp      byte ptr [ebp - 0x29], 0
+086be383: je       0x86be3e7
+086be385: mov      ecx, dword ptr [ebp - 0x390]
+086be38b: movzx    eax, byte ptr [ebp - 0x3a0]
+086be392: movsx    edx, al
+086be395: mov      eax, dword ptr [ebp + 0x14]
+086be398: mov      dword ptr [esp + 0xc], ecx
+086be39c: mov      ecx, dword ptr [ebp - 0x3c]
+086be39f: mov      dword ptr [esp + 8], ecx
+086be3a3: mov      dword ptr [esp + 4], edx
+086be3a7: mov      dword ptr [esp], eax
+086be3aa: call     0x86459c4 ; _ZN15CUserCharacInfo11WarAreaKillEiif
+086be3af: mov      dword ptr [ebp - 0x10], 1
+086be3b6: mov      ebx, dword ptr [ebp - 0x39c]
+086be3bc: mov      eax, dword ptr [ebp + 8]
+086be3bf: mov      eax, dword ptr [eax + 0x1d0]
+086be3c5: mov      dword ptr [esp], eax
+086be3c8: call     0x80fdcf0 ; _ZNK8CDungeon9get_indexEv
+086be3cd: mov      edx, dword ptr [ebp - 0x10]
+086be3d0: mov      dword ptr [esp + 0xc], edx
+086be3d4: mov      dword ptr [esp + 8], ebx
+086be3d8: mov      dword ptr [esp + 4], eax
+086be3dc: mov      eax, dword ptr [ebp + 0x14]
+086be3df: mov      dword ptr [esp], eax
+086be3e2: call     0x866cb04 ; _ZN5CUser17CheckQuestMonsterEii21ENUM_QUEST_ENEMY_TYPE
+086be3e7: fld      dword ptr [ebp - 0x390]
+086be3ed: mov      eax, dword ptr [ebp + 8]
+086be3f0: mov      eax, dword ptr [eax + 0x1d0]
+086be3f6: movzx    edx, byte ptr [ebp - 0x3a0]
+086be3fd: movsx    edx, dl
+086be400: add      edx, 0x1e0
+086be406: mov      eax, dword ptr [eax + edx*4 + 0x10]
+086be40a: mov      dword ptr [ebp - 0x3ac], eax
+086be410: fild     dword ptr [ebp - 0x3ac]
+086be416: fmulp    st(1)
+086be418: fnstcw   word ptr [ebp - 0x3ae]
+086be41e: movzx    eax, word ptr [ebp - 0x3ae]
+086be425: mov      ah, 0xc
+086be427: mov      word ptr [ebp - 0x3b0], ax
+086be42e: fldcw    word ptr [ebp - 0x3b0]
+086be434: fistp    qword ptr [ebp - 0x3b8]
+086be43a: fldcw    word ptr [ebp - 0x3ae]
+086be440: mov      eax, dword ptr [ebp - 0x3b8]
+086be446: mov      edx, dword ptr [ebp - 0x3b4]
+086be44c: mov      dword ptr [ebp - 0x28], eax
+086be44f: cmp      byte ptr [ebp - 0x29], 0
+086be453: je       0x86be4bd
+086be455: mov      eax, dword ptr [ebp - 0x28]
+086be458: mov      edx, 0
+086be45d: mov      dword ptr [ebp - 0x3b8], eax
+086be463: mov      dword ptr [ebp - 0x3b4], edx
+086be469: fild     qword ptr [ebp - 0x3b8]
+086be46f: fstp     dword ptr [ebp - 0x3bc]
+086be475: call     0x80cc19b ; _Z14G_CDataManagerv
+086be47a: fld      dword ptr [eax + 0x88f0]
+086be480: fmul     dword ptr [ebp - 0x3bc]
+086be486: fnstcw   word ptr [ebp - 0x3ae]
+086be48c: movzx    eax, word ptr [ebp - 0x3ae]
+086be493: mov      ah, 0xc
+086be495: mov      word ptr [ebp - 0x3b0], ax
+086be49c: fldcw    word ptr [ebp - 0x3b0]
+086be4a2: fistp    qword ptr [ebp - 0x3b8]
+086be4a8: fldcw    word ptr [ebp - 0x3ae]
+086be4ae: mov      eax, dword ptr [ebp - 0x3b8]
+086be4b4: mov      edx, dword ptr [ebp - 0x3b4]
+086be4ba: mov      dword ptr [ebp - 0x28], eax
+086be4bd: lea      eax, [ebp - 0x54]
+086be4c0: mov      dword ptr [esp], eax
+086be4c3: call     0x8695ca4 ; _ZN19ExpBonusPointResultC1Ev
+086be4c8: cmp      byte ptr [ebp - 0x29], 0
+086be4cc: je       0x86be4eb
+086be4ce: mov      eax, dword ptr [ebp + 0x14]
+086be4d1: mov      dword ptr [esp], eax
+086be4d4: call     0x868ec5c ; _ZN15CUserCharacInfo15checkBonusPointEv
+086be4d9: mov      eax, dword ptr [ebp + 0x14]
+086be4dc: lea      edx, [ebp - 0x54]
+086be4df: mov      dword ptr [esp + 4], edx
+086be4e3: mov      dword ptr [esp], eax
+086be4e6: call     0x868ee50 ; _ZN15CUserCharacInfo16getExpBonusPointER19ExpBonusPointResult
+086be4eb: mov      eax, dword ptr [ebp - 0x54]
+086be4ee: add      eax, dword ptr [ebp - 0x28]
+086be4f1: mov      dword ptr [ebp - 0x24], eax
+086be4f4: fild     dword ptr [ebp - 0x24]
+086be4f7: mov      eax, dword ptr [ebp - 0x50]
+086be4fa: mov      dword ptr [ebp - 0x3ac], eax
+086be500: fild     dword ptr [ebp - 0x3ac]
+086be506: fld      dword ptr [0x8cfa704]
+086be50c: fdivp    st(1)
+086be50e: fmulp    st(1)
+086be510: fnstcw   word ptr [ebp - 0x3ae]
+086be516: movzx    eax, word ptr [ebp - 0x3ae]
+086be51d: mov      ah, 0xc
+086be51f: mov      word ptr [ebp - 0x3b0], ax
+086be526: fldcw    word ptr [ebp - 0x3b0]
+086be52c: fistp    dword ptr [ebp - 0x3ac]
+086be532: fldcw    word ptr [ebp - 0x3ae]
+086be538: mov      eax, dword ptr [ebp - 0x3ac]
+086be53e: add      eax, dword ptr [ebp - 0x24]
+086be541: mov      dword ptr [ebp - 0x28], eax
+086be544: mov      edx, dword ptr [ebp - 0x28]
+086be547: mov      ecx, dword ptr [ebp - 0x30]
+086be54a: mov      eax, dword ptr [ebp + 8]
+086be54d: add      ecx, 0x48
+086be550: mov      eax, dword ptr [eax + ecx*4 + 0xc]
+086be554: mov      dword ptr [esp + 4], edx
+086be558: mov      dword ptr [esp], eax
+086be55b: call     0x864fa08 ; _ZN5CUser20gainExpAsUpperMemberEi
+086be560: mov      dword ptr [ebp - 0x20], eax
+086be563: mov      edx, dword ptr [ebp - 0x28]
+086be566: mov      ecx, dword ptr [ebp - 0x30]
+086be569: mov      eax, dword ptr [ebp + 8]
+086be56c: add      ecx, 0x48
+086be56f: mov      eax, dword ptr [eax + ecx*4 + 0xc]
+086be573: mov      dword ptr [esp + 4], edx
+086be577: mov      dword ptr [esp], eax
+086be57a: call     0x864fb3a ; _ZN5CUser17gainGuildSkillExpEi
+086be57f: mov      dword ptr [ebp - 0x1c], eax
+086be582: mov      dword ptr [ebp - 0x18], 0
+086be589: mov      edx, dword ptr [ebp - 0x30]
+086be58c: mov      eax, dword ptr [ebp + 8]
+086be58f: add      edx, 0x48
+086be592: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be596: mov      dword ptr [esp], eax
+086be599: call     0x84a852c ; _ZNK15CUserCharacInfo30getCurCharacFatigueGrownUpBuffEv
+086be59e: test     ax, ax
+086be5a1: setne    al
+086be5a4: test     al, al
+086be5a6: je       0x86be5ca
+086be5a8: mov      eax, dword ptr [ebp - 0x28]
+086be5ab: mov      dword ptr [ebp - 0x18], eax
+086be5ae: mov      edx, dword ptr [ebp - 0x30]
+086be5b1: mov      eax, dword ptr [ebp + 8]
+086be5b4: add      edx, 0x48
+086be5b7: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be5bb: mov      edx, dword ptr [ebp - 0x18]
+086be5be: mov      dword ptr [esp + 4], edx
+086be5c2: mov      dword ptr [esp], eax
+086be5c5: call     0x8469a02 ; _ZN15CUserCharacInfo32set_charac_fatigue_buf_bonus_expEi
+086be5ca: mov      edx, dword ptr [ebp - 0x28]
+086be5cd: mov      ecx, dword ptr [ebp - 0x30]
+086be5d0: mov      eax, dword ptr [ebp + 8]
+086be5d3: add      ecx, 0x48
+086be5d6: mov      eax, dword ptr [eax + ecx*4 + 0xc]
+086be5da: mov      dword ptr [esp + 4], edx
+086be5de: mov      dword ptr [esp], eax
+086be5e1: call     0x864fc34 ; _ZN5CUser21gainPowerWarRewardExpEi
+086be5e6: mov      dword ptr [ebp - 0x14], eax
+086be5e9: mov      dword ptr [ebp - 0x58], 0
+086be5f0: mov      dword ptr [ebp - 0x5c], 0
+086be5f7: mov      ecx, dword ptr [ebp - 0x39c]
+086be5fd: mov      eax, dword ptr [ebp - 0x20]
+086be600: mov      edx, eax
+086be602: add      edx, dword ptr [ebp - 0x28]
+086be605: mov      eax, dword ptr [ebp - 0x1c]
+086be608: add      edx, eax
+086be60a: mov      eax, dword ptr [ebp - 0x14]
+086be60d: add      edx, eax
+086be60f: mov      eax, dword ptr [ebp - 0x18]
+086be612: lea      eax, [edx + eax]
+086be615: mov      edx, eax
+086be617: mov      ebx, dword ptr [ebp - 0x30]
+086be61a: mov      eax, dword ptr [ebp + 8]
+086be61d: add      ebx, 0x48
+086be620: mov      eax, dword ptr [eax + ebx*4 + 0xc]
+086be624: mov      dword ptr [esp + 0x18], 0
+086be62c: mov      dword ptr [esp + 0x14], ecx
+086be630: mov      dword ptr [esp + 0x10], 4
+086be638: lea      ecx, [ebp - 0x5c]
+086be63b: mov      dword ptr [esp + 0xc], ecx
+086be63f: lea      ecx, [ebp - 0x58]
+086be642: mov      dword ptr [esp + 8], ecx
+086be646: mov      dword ptr [esp + 4], edx
+086be64a: mov      dword ptr [esp], eax
+086be64d: call     0x866a3fe ; _ZN5CUser11gain_exp_spEiRiS0_13eExpAddReasonib
+086be652: test     al, al
+086be654: je       0x86be686
+086be656: mov      edx, dword ptr [ebp - 0x30]
+086be659: mov      eax, dword ptr [ebp + 8]
+086be65c: add      edx, 0x48
+086be65f: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be663: mov      dword ptr [esp + 0xc], 1
+086be66b: mov      dword ptr [esp + 8], 2
+086be673: mov      dword ptr [esp + 4], 3
+086be67b: mov      dword ptr [esp], eax
+086be67e: call     0x867ba5c ; _ZN5CUser14SendNotiPacketENS_11eSendTargetE15ENUM_NOTIPACKETi
+086be683: jmp      0x86be686
+086be685: nop
+086be686: add      dword ptr [ebp - 0x30], 1
+086be68a: cmp      dword ptr [ebp - 0x30], 5
+086be68e: setle    al
+086be691: test     al, al
+086be693: jne      0x86be343
+086be699: mov      word ptr [ebp - 0x36], 0xffff
+086be69f: cmp      dword ptr [ebp + 0x14], 0
+086be6a3: je       0x86be6b4
+086be6a5: mov      eax, dword ptr [ebp + 0x14]
+086be6a8: mov      dword ptr [esp], eax
+086be6ab: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+086be6b0: mov      word ptr [ebp - 0x36], ax
+086be6b4: mov      dword ptr [esp + 4], 1
+086be6bc: lea      eax, [ebp - 0x4c]
+086be6bf: mov      dword ptr [esp], eax
+086be6c2: call     0x80cb920 ; _ZN18InterfacePacketBuf8put_byteEi
+086be6c7: movzx    eax, word ptr [ebp - 0x36]
+086be6cb: mov      dword ptr [esp + 4], eax
+086be6cf: lea      eax, [ebp - 0x4c]
+086be6d2: mov      dword ptr [esp], eax
+086be6d5: call     0x80d9ea4 ; _ZN18InterfacePacketBuf9put_shortEi
+086be6da: mov      eax, dword ptr [ebp - 0x3c]
+086be6dd: mov      dword ptr [esp + 4], eax
+086be6e1: lea      eax, [ebp - 0x4c]
+086be6e4: mov      dword ptr [esp], eax
+086be6e7: call     0x80d9ea4 ; _ZN18InterfacePacketBuf9put_shortEi
+086be6ec: mov      dword ptr [esp + 4], 1
+086be6f4: lea      eax, [ebp - 0x4c]
+086be6f7: mov      dword ptr [esp], eax
+086be6fa: call     0x80cb958 ; _ZN18InterfacePacketBuf8finalizeEb
+086be6ff: lea      eax, [ebp - 0x4c]
+086be702: mov      dword ptr [esp + 4], eax
+086be706: mov      eax, dword ptr [ebp + 8]
+086be709: mov      dword ptr [esp], eax
+086be70c: call     0x86be0cc ; _ZN7WarRoom10SendToRoomER11PacketGuard
+086be711: mov      eax, dword ptr [ebp + 8]
+086be714: add      eax, 0x34
+086be717: mov      dword ptr [esp], eax
+086be71a: call     0x86b954c ; _ZN8WarField11IsGridClearEv
+086be71f: test     al, al
+086be721: je       0x86be852
+086be727: mov      dword ptr [ebp - 0xc], 0
+086be72e: jmp      0x86be7e5
+086be733: mov      edx, dword ptr [ebp - 0xc]
+086be736: mov      eax, dword ptr [ebp + 8]
+086be739: add      edx, 0x48
+086be73c: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be740: test     eax, eax
+086be742: je       0x86be7e0
+086be748: mov      edx, dword ptr [ebp - 0xc]
+086be74b: mov      eax, dword ptr [ebp + 8]
+086be74e: add      edx, 0x48
+086be751: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be755: mov      eax, dword ptr [eax + 0x8e08c]
+086be75b: test     eax, eax
+086be75d: jle      0x86be7c7
+086be75f: mov      edx, dword ptr [ebp - 0xc]
+086be762: mov      eax, dword ptr [ebp + 8]
+086be765: add      edx, 0x48
+086be768: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be76c: mov      dword ptr [esp], eax
+086be76f: call     0x80da27e ; _ZNK15CUserCharacInfo18getCurCharacInvenREv
+086be774: mov      dword ptr [esp], eax
+086be777: call     0x81b7408 ; _ZNK10CInventory15GetCreatureMgrREv
+086be77c: mov      dword ptr [esp], eax
+086be77f: call     0x833debc ; _ZNK13user_creature12CCreatureMgr32IsGrowCreature_Equipped_CreatureEv
+086be784: xor      eax, 1
+086be787: test     al, al
+086be789: je       0x86be7c7
+086be78b: mov      edx, dword ptr [ebp - 0xc]
+086be78e: mov      eax, dword ptr [ebp + 8]
+086be791: add      edx, 0x48
+086be794: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be798: mov      ebx, dword ptr [eax + 0x8e08c]
+086be79e: mov      edx, dword ptr [ebp - 0xc]
+086be7a1: mov      eax, dword ptr [ebp + 8]
+086be7a4: add      edx, 0x48
+086be7a7: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be7ab: mov      dword ptr [esp], eax
+086be7ae: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+086be7b3: mov      dword ptr [esp], eax
+086be7b6: call     0x80dd568 ; _ZN10CInventory15GetCreatureMgrWEv
+086be7bb: mov      dword ptr [esp + 4], ebx
+086be7bf: mov      dword ptr [esp], eax
+086be7c2: call     0x8339b06 ; _ZN13user_creature12CCreatureMgr7GainExpEi
+086be7c7: mov      edx, dword ptr [ebp - 0xc]
+086be7ca: mov      eax, dword ptr [ebp + 8]
+086be7cd: add      edx, 0x48
+086be7d0: mov      eax, dword ptr [eax + edx*4 + 0xc]
+086be7d4: mov      dword ptr [eax + 0x8e08c], 0
+086be7de: jmp      0x86be7e1
+086be7e0: nop
+086be7e1: add      dword ptr [ebp - 0xc], 1
+086be7e5: cmp      dword ptr [ebp - 0xc], 5
+086be7e9: setle    al
+086be7ec: test     al, al
+086be7ee: jne      0x86be733
+086be7f4: mov      dword ptr [esp + 4], 0x45
+086be7fc: mov      eax, dword ptr [ebp + 8]
+086be7ff: mov      dword ptr [esp], eax
+086be802: call     0x86c0b24 ; _ZN7WarRoom11GenTimerKeyE13TIMER_MESSAGE
+086be807: mov      eax, dword ptr [ebp + 8]
+086be80a: mov      edx, dword ptr [eax + 0x128]
+086be810: mov      eax, dword ptr [ebp + 8]
+086be813: mov      eax, dword ptr [eax + 0x1d0]
+086be819: mov      eax, dword ptr [eax + 0x744]
+086be81f: cmp      edx, eax
+086be821: jne      0x86be83f
+086be823: mov      eax, dword ptr [ebp + 8]
+086be826: mov      byte ptr [eax + 0x12], 1
+086be82a: mov      dword ptr [esp + 4], 5
+086be832: mov      eax, dword ptr [ebp + 8]
+086be835: mov      dword ptr [esp], eax
+086be838: call     0x86bb53c ; _ZN7WarRoom11ChangeStateE13WARROOM_STATE
+086be83d: jmp      0x86be852
+086be83f: mov      dword ptr [esp + 4], 4
+086be847: mov      eax, dword ptr [ebp + 8]
+086be84a: mov      dword ptr [esp], eax
+086be84d: call     0x86bb53c ; _ZN7WarRoom11ChangeStateE13WARROOM_STATE
+086be852: mov      ebx, 1
+086be857: jmp      0x86be86e
+086be859: mov      ebx, edx
+086be85b: mov      esi, eax
+086be85d: lea      eax, [ebp - 0x4c]
+086be860: mov      dword ptr [esp], eax
+086be863: call     0x858de80 ; _ZN11PacketGuardD1Ev
+086be868: mov      eax, esi
+086be86a: mov      edx, ebx
+086be86c: jmp      0x86be87b
+086be86e: lea      eax, [ebp - 0x4c]
+086be871: mov      dword ptr [esp], eax
+086be874: call     0x858de80 ; _ZN11PacketGuardD1Ev
+086be879: jmp      0x86be899
+086be87b: mov      ebx, edx
+086be87d: mov      esi, eax
+086be87f: lea      eax, [ebp - 0x3a8]
+086be885: mov      dword ptr [esp], eax
+086be888: call     0x81515ae ; _ZN11map_monsterD1Ev
+086be88d: mov      eax, esi
+086be88f: mov      edx, ebx
+086be891: mov      dword ptr [esp], eax
+086be894: call     0x8ae3750 ; _Unwind_Resume
+086be899: lea      eax, [ebp - 0x3a8]
+086be89f: mov      dword ptr [esp], eax
+086be8a2: call     0x81515ae ; _ZN11map_monsterD1Ev
+086be8a7: mov      eax, ebx
+086be8a9: add      esp, 0x3e0
+086be8af: pop      ebx
+086be8b0: pop      esi
+086be8b1: pop      ebp
+086be8b2: ret

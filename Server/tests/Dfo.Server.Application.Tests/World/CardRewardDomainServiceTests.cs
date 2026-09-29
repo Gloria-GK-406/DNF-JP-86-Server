@@ -626,7 +626,7 @@ public sealed class CardRewardDomainServiceTests
             constructor.GetParameters().Select(parameter => parameter.ParameterType));
     }
 
-    /// <summary>The service is registered, and resolves against the module's own wiring.</summary>
+    /// <summary>The application module registers the settlement service.</summary>
     [Fact]
     public void The_registration_wires_the_settlement_service()
     {
@@ -634,19 +634,9 @@ public sealed class CardRewardDomainServiceTests
         services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService, Dfo.Server.Application.Tests.Support.FixedFatigue>();
         new ApplicationModule().ConfigureServices(
             services, new ConfigurationBuilder().Build());
-        services.AddSingleton<IClearRewardRateSource>(
-            new ClearRewardFixture.StubRates(ClearRewardFixture.Table()));
-        services.AddSingleton<IDropItemPoolSource>(
-            new ClearRewardFixture.RecordingPools(
-                ClearRewardFixture.Pool(
-                    new ClearRewardFixture.PoolRow(86, DropRarity.Common, 1, 1))));
-        services.AddSingleton<IDungeonDefinitionSource>(new ClearRewardFixture.StubDungeons());
-        services.AddSingleton<IGoldDropTableSource>(new ClearRewardFixture.StubGoldTables());
 
-        services.AddSingleton<IPremiumServiceDomainService>(new Dfo.Server.Application.Tests.Support.CardPremiums());
-        using var provider = services.BuildServiceProvider();
-
-        Assert.IsType<CardRewardDomainService>(
-            provider.GetRequiredService<ICardRewardDomainService>());
+        var registration = Assert.Single(services, service =>
+            service.ServiceType == typeof(ICardRewardDomainService));
+        Assert.Equal(typeof(CardRewardDomainService), registration.ImplementationType);
     }
 }

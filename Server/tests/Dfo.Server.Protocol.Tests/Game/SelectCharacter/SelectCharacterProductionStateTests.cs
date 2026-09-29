@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -54,6 +55,40 @@ public sealed class SelectCharacterProductionStateTests
             container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
         Assert.Equal(0, sources.RecoveryCalls);
         Assert.Equal(0, sources.ReconciliationCalls);
+    }
+
+    [Fact]
+    public async Task Equipped_creature_can_reenter_and_encode_the_complete_login_stream()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var pet = new InventoryItemState(new ItemIdentity(948), 25,
+            StackableItemCore.Create(5, 63000, 948));
+        seed = seed with
+        {
+            CharacterInventory = seed.CharacterInventory with
+            {
+                Containers = seed.CharacterInventory.Containers.Select(container =>
+                    container.ContainerType == InventoryContainerType.Equipment
+                        ? container with { Items = [.. container.Items, pet] } : container).ToArray(),
+            },
+            CharacterEntry = seed.CharacterEntry with
+            {
+                Features = seed.CharacterEntry.Features with
+                {
+                    Pets = [new CharacterPetRuntimeState(948, 100, 0, 0, 0, 0, 1, [], 0)],
+                },
+            },
+        };
+        var result = await PrepareAsync(new Sources(seed, []), seed);
+
+        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result);
+
+        Assert.NotEmpty(messages);
+        var worn = result.CharacterInventory.Containers.Single(container =>
+            container.ContainerType == InventoryContainerType.Equipment).Items.Single(item => item.SlotIndex == 25);
+        Assert.Equal(0u, worn.Noti2CreatureMarker);
+        Assert.Equal(948, worn.Core.Value);
+        Assert.Equal(100, Assert.Single(result.CharacterEntry.Features.Pets).Field04);
     }
 
     [Fact]

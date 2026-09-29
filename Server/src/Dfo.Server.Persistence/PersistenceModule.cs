@@ -7,10 +7,12 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Quests;
@@ -173,6 +175,7 @@ public sealed class PersistenceModule : IServerModule
         // The character's own rows, kept in the same database and therefore settled by the same
         // participant as the items it owns.
         services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));
+        services.TryAddSingleton<ICreatureDomainStore>(_ => new SqliteCreatureDomainStore(databasePath));
         services.TryAddSingleton<IItemDomainStore>(
             provider => provider.GetRequiredService<SqliteItemDomainStore>());
         // The character's quests, kept in the same database and therefore settled by the same

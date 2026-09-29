@@ -180,6 +180,8 @@ public sealed class SelectCharacterPreparationService(
             accountId,
             cancellationToken).ConfigureAwait(false);
         var preparedAt = timeProvider.GetUtcNow();
+        characterInventory = await CompleteCreatureMarkerAsync(
+            characterInventory, preparationRules, preparedAt, cancellationToken).ConfigureAwait(false);
         accountEntry = await CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
             characters, characterInventoryEntries, characterEntries,
@@ -484,7 +486,7 @@ public sealed class SelectCharacterPreparationService(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
         var supportInventory = await inventories.LoadAsync(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
-        supportInventory = await CompleteSupportCreatureMarkerAsync(
+        supportInventory = await CompleteCreatureMarkerAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
         var completed = relation with
@@ -502,12 +504,14 @@ public sealed class SelectCharacterPreparationService(
         };
     }
 
-    private static async ValueTask<CharacterInventoryEntryState> CompleteSupportCreatureMarkerAsync(
+    private static async ValueTask<CharacterInventoryEntryState> CompleteCreatureMarkerAsync(
         CharacterInventoryEntryState inventory,
         ICharacterEntryPreparationRuleService rules,
         DateTimeOffset preparedAt,
         CancellationToken cancellationToken)
     {
+        if (!inventory.Containers.Any(container => container.ContainerType == InventoryContainerType.Equipment
+            && container.Items.Any(item => item.SlotIndex == 25 && item.Core.ItemKind == 5))) return inventory;
         var containers = new List<InventoryContainerState>(inventory.Containers.Count);
         foreach (var container in inventory.Containers)
         {

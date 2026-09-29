@@ -1,0 +1,1 @@
+08a35d37 <- 0835e0bc _ZN12CDataManager4initEv

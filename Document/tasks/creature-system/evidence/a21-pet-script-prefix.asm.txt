@@ -1,0 +1,140 @@
+
+### VA 022C7D00..022C7E9B
+022C7D00 push     edi
+022C7D01 cwde
+022C7D02 add      ah, cl
+022C7D04 int3
+022C7D05 int3
+022C7D06 int3
+022C7D07 int3
+022C7D08 int3
+022C7D09 int3
+022C7D0A int3
+022C7D0B int3
+022C7D0C int3
+022C7D0D int3
+022C7D0E int3
+022C7D0F int3
+022C7D10 push     ebp
+022C7D11 mov      ebp, esp
+022C7D13 push     -1
+022C7D15 push     0x2e57038
+022C7D1A mov      eax, dword ptr fs:[0]
+022C7D20 push     eax
+022C7D21 push     ecx
+022C7D22 push     ebx
+022C7D23 push     esi
+022C7D24 push     edi
+022C7D25 mov      eax, dword ptr [0x399cee0]
+022C7D2A xor      eax, ebp
+022C7D2C push     eax
+022C7D2D lea      eax, [ebp - 0xc]
+022C7D30 mov      dword ptr fs:[0], eax
+022C7D36 cmp      dword ptr [0x3b3dfb8], 0
+022C7D3D je       0x22c7f00
+022C7D43 push     0x3043960
+022C7D48 call     0x27bacc0
+022C7D4D mov      ecx, eax
+022C7D4F add      esp, 4
+022C7D52 lea      esi, [ecx + 2]
+022C7D55 mov      dx, word ptr [ecx]
+022C7D58 add      ecx, 2
+022C7D5B test     dx, dx
+022C7D5E jne      0x22c7d55
+022C7D60 mov      edi, dword ptr [ebp + 8]
+022C7D63 sub      ecx, esi
+022C7D65 sar      ecx, 1
+022C7D67 push     ecx
+022C7D68 push     eax
+022C7D69 mov      eax, dword ptr [edi + 0x14]
+022C7D6C push     eax
+022C7D6D push     0
+022C7D6F mov      ecx, edi
+022C7D71 call     0x423cd0
+022C7D76 test     eax, eax
+022C7D78 je       0x22c7f00
+022C7D7E mov      ecx, 0x3a5afd4
+022C7D83 mov      dword ptr [ebp - 0x10], 0x3a5afd4
+022C7D8A call     0x27be090
+022C7D8F lea      ecx, [ebp + 0xb]
+022C7D92 push     ecx
+022C7D93 push     0x3a5afd0
+022C7D98 mov      ecx, 0x3a5afcc
+022C7D9D mov      dword ptr [ebp - 4], 0
+022C7DA4 call     0x27bc2b0
+022C7DA9 mov      bl, byte ptr [ebp + 0xb]
+022C7DAC mov      ecx, 0x3a5afd4
+022C7DB1 mov      dword ptr [ebp - 4], 0xffffffff
+022C7DB8 call     0x27be0c0
+022C7DBD test     bl, bl
+022C7DBF je       0x22c7e1d
+022C7DC1 mov      ecx, dword ptr [0x3b3dfb8]
+022C7DC7 mov      edx, dword ptr [ecx]
+022C7DC9 mov      eax, dword ptr [edx + 0xa80]
+022C7DCF call     eax
+022C7DD1 test     eax, eax
+022C7DD3 je       0x22c7f00
+022C7DD9 mov      ecx, dword ptr [0x3b3dfb8]
+022C7DDF mov      edx, dword ptr [ecx]
+022C7DE1 mov      eax, dword ptr [edx + 0xa80]
+022C7DE7 call     eax
+022C7DE9 cmp      dword ptr [edi + 0x18], 8
+022C7DED jb       0x22c7df4
+022C7DEF mov      edi, dword ptr [edi + 4]
+022C7DF2 jmp      0x22c7df7
+022C7DF4 add      edi, 4
+022C7DF7 mov      edx, dword ptr [eax + 0xad0]
+022C7DFD lea      ecx, [eax + 0xad0]
+022C7E03 mov      eax, dword ptr [edx + 0x10]
+022C7E06 push     edi
+022C7E07 call     eax
+022C7E09 mov      ecx, dword ptr [ebp - 0xc]
+022C7E0C mov      dword ptr fs:[0], ecx
+022C7E13 pop      ecx
+022C7E14 pop      edi
+022C7E15 pop      esi
+022C7E16 pop      ebx
+022C7E17 mov      esp, ebp
+022C7E19 pop      ebp
+022C7E1A ret      4
+022C7E1D call     0x1102c30
+022C7E22 mov      ecx, eax
+022C7E24 call     0x163e1e0
+022C7E29 mov      esi, eax
+022C7E2B cmp      esi, 1
+022C7E2E jne      0x22c7e4a
+022C7E30 mov      ecx, dword ptr [0x39adf68]
+022C7E36 call     0xc91590
+022C7E3B test     al, al
+022C7E3D jne      0x22c7f00
+022C7E43 mov      esi, 3
+022C7E48 jmp      0x22c7e9b
+022C7E4A cmp      esi, 3
+022C7E4D je       0x22c7e96
+022C7E4F cmp      esi, 0xa
+022C7E52 je       0x22c7e96
+022C7E54 cmp      esi, 0xb
+022C7E57 je       0x22c7e96
+022C7E59 cmp      esi, 0xc
+022C7E5C je       0x22c7e96
+022C7E5E cmp      esi, 0x12
+022C7E61 je       0x22c7e96
+022C7E63 cmp      esi, 9
+022C7E66 je       0x22c7e96
+022C7E68 cmp      esi, 4
+022C7E6B jne      0x22c7e74
+022C7E6D mov      esi, 5
+022C7E72 jmp      0x22c7e9b
+022C7E74 cmp      esi, 8
+022C7E77 jne      0x22c7e80
+022C7E79 mov      esi, 5
+022C7E7E jmp      0x22c7e9b
+022C7E80 cmp      esi, 6
+022C7E83 jne      0x22c7e8c
+022C7E85 mov      esi, 8
+022C7E8A jmp      0x22c7e9b
+022C7E8C cmp      esi, 0xd
+022C7E8F je       0x22c7e96
+022C7E91 cmp      esi, 0xe
+022C7E94 jne      0x22c7e9b
+022C7E96 mov      esi, 2

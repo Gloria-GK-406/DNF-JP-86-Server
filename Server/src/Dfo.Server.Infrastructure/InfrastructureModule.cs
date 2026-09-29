@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Channel;
@@ -64,6 +65,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
+        services.TryAddSingleton<ICreatureRuleSource, PvfCreatureRuleSource>();
         services.TryAddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();
         services.TryAddSingleton<IEntryLifecycleContentSource, PvfEntryLifecycleContentSource>();
         services.TryAddSingleton<IInitialEquipmentDefinitionSource,

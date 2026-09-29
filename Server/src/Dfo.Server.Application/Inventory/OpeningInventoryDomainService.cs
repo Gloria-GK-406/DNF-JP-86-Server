@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Accounts;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
@@ -13,6 +14,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Application.Creatures;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -24,7 +26,8 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     ICharacterInventoryEntryDomainService inventory, IPremiumServiceDomainService premiums,
     ICharacterCreatureTable creatures,
     ICharacterDomainService characterDomain, IItemUseJudgementService useRules,
-    ICharacterItemCooldownDomainService cooldowns) : IOpeningInventoryDomainService
+    ICharacterItemCooldownDomainService cooldowns,
+    ICreatureDomainService? creatureDomains = null) : IOpeningInventoryDomainService
 {
     public async ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
     {
@@ -209,11 +212,21 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (creaturesChanged)
         {
-            var rows = await creatures.ReadAsync(session.CharacterId, ct).ConfigureAwait(false);
-            if (rows.Count > byte.MaxValue) throw new OpeningRejectedException(OpeningRejection.NoRoom, "Creature count cannot fit the protocol.");
-            pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
-                row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
-                row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
+            if (creatureDomains is not null)
+            {
+                var states = await creatureDomains.GetStore(session.CharacterId).ReadAllAsync(ct).ConfigureAwait(false);
+                if (states.Count > byte.MaxValue)
+                    throw new OpeningRejectedException(OpeningRejection.NoRoom, "Creature count cannot fit the protocol.");
+                pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
+            }
+            else
+            {
+                var rows = await creatures.ReadAsync(session.CharacterId, ct).ConfigureAwait(false);
+                if (rows.Count > byte.MaxValue) throw new OpeningRejectedException(OpeningRejection.NoRoom, "Creature count cannot fit the protocol.");
+                pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
+                    row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
+                    row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
+            }
         }
         return new(session, updates.ToImmutable(), writes.Where(w => w.Value.Core is null)
             .Select(w => w.Key).ToImmutableArray(), displayed.ToImmutable(), now,

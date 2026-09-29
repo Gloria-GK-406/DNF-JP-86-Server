@@ -1,3 +1,5 @@
+using Dfo.Server.Protocol.Game.Creatures;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Protocol.Game.InventorySort;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
@@ -151,6 +153,16 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<FatigueNotification, FatigueEncoder>();
         services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.AddHostedService<WeaknessRecoveryService>();
+        services.AddHostedService<CreatureClockService>();
+        services.TryAddSingleton<CreatureProjectionDelivery>();
+        services.AddCommandHandler<AdvanceCreatureClockCommand, IReadOnlyList<CreatureRuntimeChange>, AdvanceCreatureClockCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddGameNotiMessageEncoder<CreatureExperienceNotification, CreatureExperienceEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureStateNotification, CreatureStateEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureDeathNotification, CreatureDeathEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureRevivalNotification, CreatureRevivalEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureRenameNotification, CreatureRenameEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureEvolutionNotification, CreatureEvolutionEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureResponseNotification, CreatureResponseEncoder>();
         services.AddHostedService<PremiumDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
@@ -365,6 +377,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
@@ -572,6 +586,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
+        services.RegisterMessageHandler<RenameCreatureHandler>(ClientMessageType.GameRenameCreature);
+        services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
+        services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
@@ -800,6 +817,12 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
             GameProtocol.UseStackableType, ClientMessageType.GameUseStackable);
+        services.AddGameCmdMessageDecoder<RenameCreatureMessageDecoder>(
+            CreaturePayloadCodec.RenameCommandType, ClientMessageType.GameRenameCreature);
+        services.AddGameCmdMessageDecoder<CreatureResponseReportDecoder>(
+            0x0065, ClientMessageType.GameCreatureResponseReport);
+        services.AddGameCmdMessageDecoder<CreatureScriptMessageReportDecoder>(
+            0x007A, ClientMessageType.GameCreatureScriptMessage);
         services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
             GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
@@ -879,6 +902,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
+        services.AddGameCmdMessageEncoder<RenameCreatureResponse, RenameCreatureResponseEncoder>();
         services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();

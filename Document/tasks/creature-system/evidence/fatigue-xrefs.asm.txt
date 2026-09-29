@@ -1,0 +1,7 @@
+08655c60 <- 081fcb02 _ZN23DisPatcher_DebugCommand12dispatch_sigEP5CUserR9PacketBuf
+08655c60 <- 0820c8a2 _ZN30Dispatcher_New_Gmdebug_Command12oldGmRoutineEP5CUserR9PacketBufRSt6vectorISsSaISsEE
+08655c60 <- 0830c08e _ZN13CBattle_Field12kill_monsterER11PacketGuardR11map_monsterRjRK17STKillMonsterData
+08655c60 <- 085a1b53 _ZN6CParty13dungeon_startEic17ENUM_DUNGEON_TYPE
+08655c60 <- 085a1b9b _ZN6CParty13dungeon_startEic17ENUM_DUNGEON_TYPE
+08655c60 <- 085a8e07 _ZN6CParty21changePartyMemberInfoER12MSG_MOVE_MAPc
+08655c60 <- 086bbb84 _ZN7WarRoom12OnEnterStateEv

@@ -1,5 +1,6 @@
 using System.Reflection;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Inventory;
@@ -123,6 +124,8 @@ public sealed class ItemIdentityArchitectureTests
         var violations = Members()
             .Where(member => RowKeyNames.Contains(member.Name, StringComparer.Ordinal))
             .Where(member => !IsGateway(member.Owner))
+            // A creature is always one world instance; its item UID is its domain identity.
+            .Where(member => member.Owner != typeof(CreatureState))
             .Select(member => $"{member.Owner.FullName}.{member.Name}")
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();

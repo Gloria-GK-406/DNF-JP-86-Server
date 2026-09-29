@@ -1,0 +1,1839 @@
+
+### 085a0954 size=6123 _ZN6CParty13dungeon_startEic17ENUM_DUNGEON_TYPE
+085a0954: push     ebp
+085a0955: mov      ebp, esp
+085a0957: push     edi
+085a0958: push     esi
+085a0959: push     ebx
+085a095a: sub      esp, 0x20c
+085a0960: mov      eax, dword ptr [ebp + 0x10]
+085a0963: mov      byte ptr [ebp - 0x1dc], al
+085a0969: mov      eax, dword ptr [ebp + 8]
+085a096c: mov      dword ptr [esp], eax
+085a096f: call     0x85bdcec ; _ZN6CParty18resetMemberUseCoinEv
+085a0974: mov      eax, dword ptr [ebp + 8]
+085a0977: mov      byte ptr [eax + 0x324], 0
+085a097e: mov      eax, dword ptr [ebp + 8]
+085a0981: mov      dword ptr [esp], eax
+085a0984: call     0x85bf850 ; _ZN6CParty16ClearMapHitCountEv
+085a0989: mov      eax, dword ptr [ebp + 8]
+085a098c: add      eax, 0x1abc
+085a0991: mov      dword ptr [esp], eax
+085a0994: call     0x827a92c ; _ZN24Secu_HackLogCheckByParty12startDungeonEv
+085a0999: mov      dword ptr [ebp - 0x78], 0xffffffff
+085a09a0: mov      dword ptr [ebp - 0x74], 0
+085a09a7: lea      eax, [ebp - 0x78]
+085a09aa: mov      dword ptr [esp + 8], eax
+085a09ae: lea      eax, [ebp + 0xc]
+085a09b1: mov      dword ptr [esp + 4], eax
+085a09b5: mov      eax, dword ptr [ebp + 8]
+085a09b8: mov      dword ptr [esp], eax
+085a09bb: call     0x85bacc0 ; _ZN6CParty21GetDungeonIndex_isTODERiS0_
+085a09c0: mov      dword ptr [ebp - 0x74], eax
+085a09c3: cmp      dword ptr [ebp - 0x74], 0
+085a09c7: je       0x85a09d1
+085a09c9: mov      ebx, dword ptr [ebp - 0x74]
+085a09cc: jmp      0x85a2132
+085a09d1: mov      ebx, dword ptr [ebp + 0xc]
+085a09d4: call     0x80cc19b ; _Z14G_CDataManagerv
+085a09d9: mov      dword ptr [esp + 4], ebx
+085a09dd: mov      dword ptr [esp], eax
+085a09e0: call     0x835f9f8 ; _ZNK12CDataManager12find_dungeonEi
+085a09e5: mov      dword ptr [ebp - 0x70], eax
+085a09e8: cmp      dword ptr [ebp - 0x70], 0
+085a09ec: jne      0x85a09f8
+085a09ee: mov      ebx, 0x15
+085a09f3: jmp      0x85a2132
+085a09f8: lea      eax, [ebp - 0x84]
+085a09fe: mov      dword ptr [esp], eax
+085a0a01: call     0x858dd4c ; _ZN11PacketGuardC2Ev
+085a0a06: mov      eax, dword ptr [ebp + 8]
+085a0a09: mov      eax, dword ptr [eax + 0xcd8]
+085a0a0f: mov      dword ptr [ebp - 0x6c], eax
+085a0a12: mov      eax, dword ptr [ebp - 0x70]
+085a0a15: mov      dword ptr [esp], eax
+085a0a18: call     0x836526a ; _ZNK8CDungeon23GetPartyMemberCoinLimitEv
+085a0a1d: mov      ebx, eax
+085a0a1f: mov      eax, dword ptr [ebp + 8]
+085a0a22: mov      dword ptr [esp], eax
+085a0a25: call     0x859a16a ; _ZN6CParty16get_member_countEv
+085a0a2a: imul     eax, ebx
+085a0a2d: mov      dword ptr [esp + 4], eax
+085a0a31: mov      eax, dword ptr [ebp + 8]
+085a0a34: mov      dword ptr [esp], eax
+085a0a37: call     0x85be55a ; _ZN6CParty23SetPartyMemberCoinLimitEi
+085a0a3c: movsx    eax, byte ptr [ebp - 0x1dc]
+085a0a43: mov      edx, dword ptr [ebp + 8]
+085a0a46: add      edx, 0x210
+085a0a4c: mov      dword ptr [esp + 4], eax
+085a0a50: mov      dword ptr [esp], edx
+085a0a53: call     0x85bf646 ; _ZN16CTraceMobDieHack14setDungeonDiffEi
+085a0a58: mov      eax, dword ptr [ebp + 8]
+085a0a5b: mov      dword ptr [esp], eax
+085a0a5e: call     0x814581c ; _ZN6CParty12GetEPLPStateEv
+085a0a63: test     al, al
+085a0a65: setne    al
+085a0a68: test     al, al
+085a0a6a: je       0x85a0b17
+085a0a70: mov      dword ptr [ebp - 0x54], 0
+085a0a77: jmp      0x85a0afe
+085a0a7c: mov      eax, dword ptr [ebp - 0x54]
+085a0a7f: mov      dword ptr [esp + 4], eax
+085a0a83: mov      eax, dword ptr [ebp + 8]
+085a0a86: mov      dword ptr [esp], eax
+085a0a89: call     0x85b4d12 ; _ZN6CParty15_checkValidUserEi
+085a0a8e: xor      eax, 1
+085a0a91: test     al, al
+085a0a93: jne      0x85a0af9
+085a0a95: mov      edx, dword ptr [ebp - 0x54]
+085a0a98: mov      ecx, dword ptr [ebp + 8]
+085a0a9b: mov      eax, edx
+085a0a9d: add      eax, eax
+085a0a9f: add      eax, edx
+085a0aa1: shl      eax, 3
+085a0aa4: lea      eax, [ecx + eax]
+085a0aa7: add      eax, 0x78
+085a0aaa: mov      ebx, dword ptr [eax]
+085a0aac: mov      edx, dword ptr [ebp - 0x54]
+085a0aaf: mov      ecx, dword ptr [ebp + 8]
+085a0ab2: mov      eax, edx
+085a0ab4: add      eax, eax
+085a0ab6: add      eax, edx
+085a0ab8: shl      eax, 3
+085a0abb: lea      eax, [ecx + eax]
+085a0abe: add      eax, 0x78
+085a0ac1: mov      eax, dword ptr [eax]
+085a0ac3: mov      dword ptr [esp], eax
+085a0ac6: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a0acb: mov      dword ptr [esp + 0x14], 0
+085a0ad3: mov      dword ptr [esp + 0x10], 0
+085a0adb: mov      dword ptr [esp + 0xc], 1
+085a0ae3: mov      dword ptr [esp + 8], 0x195
+085a0aeb: mov      dword ptr [esp + 4], ebx
+085a0aef: mov      dword ptr [esp], eax
+085a0af2: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a0af7: jmp      0x85a0afa
+085a0af9: nop
+085a0afa: add      dword ptr [ebp - 0x54], 1
+085a0afe: cmp      dword ptr [ebp - 0x54], 3
+085a0b02: setle    al
+085a0b05: test     al, al
+085a0b07: jne      0x85a0a7c
+085a0b0d: mov      ebx, 8
+085a0b12: jmp      0x85a2124
+085a0b17: call     0x822ad44 ; _Z13IsLightServerv
+085a0b1c: test     al, al
+085a0b1e: je       0x85a0b37
+085a0b20: mov      eax, dword ptr [ebp - 0x70]
+085a0b23: mov      dword ptr [esp], eax
+085a0b26: call     0x814559a ; _ZNK8CDungeon13get_min_levelEv
+085a0b2b: cmp      eax, 1
+085a0b2e: jle      0x85a0b37
+085a0b30: mov      eax, 1
+085a0b35: jmp      0x85a0b3c
+085a0b37: mov      eax, 0
+085a0b3c: test     al, al
+085a0b3e: je       0x85a0b50
+085a0b40: mov      eax, dword ptr [ebp - 0x70]
+085a0b43: mov      dword ptr [esp], eax
+085a0b46: call     0x814559a ; _ZNK8CDungeon13get_min_levelEv
+085a0b4b: mov      dword ptr [ebp - 0x68], eax
+085a0b4e: jmp      0x85a0b5e
+085a0b50: mov      eax, dword ptr [ebp - 0x70]
+085a0b53: mov      dword ptr [esp], eax
+085a0b56: call     0x814559a ; _ZNK8CDungeon13get_min_levelEv
+085a0b5b: mov      dword ptr [ebp - 0x68], eax
+085a0b5e: mov      eax, dword ptr [ebp + 8]
+085a0b61: mov      eax, dword ptr [eax + 0x74]
+085a0b64: mov      dword ptr [esp], eax
+085a0b67: call     0x811edee ; _ZNK5CUser16IsGameMasterModeEv
+085a0b6c: xor      eax, 1
+085a0b6f: test     al, al
+085a0b71: je       0x85a0b8d
+085a0b73: mov      eax, dword ptr [ebp + 8]
+085a0b76: mov      eax, dword ptr [eax + 0x74]
+085a0b79: mov      dword ptr [esp], eax
+085a0b7c: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a0b81: cmp      eax, dword ptr [ebp - 0x68]
+085a0b84: jge      0x85a0b8d
+085a0b86: mov      eax, 1
+085a0b8b: jmp      0x85a0b92
+085a0b8d: mov      eax, 0
+085a0b92: test     al, al
+085a0b94: je       0x85a0ba0
+085a0b96: mov      ebx, 0xe
+085a0b9b: jmp      0x85a2124
+085a0ba0: movsx    eax, byte ptr [ebp - 0x1dc]
+085a0ba7: mov      edx, dword ptr [ebp - 0x70]
+085a0baa: mov      dword ptr [esp + 8], edx
+085a0bae: mov      dword ptr [esp + 4], eax
+085a0bb2: mov      eax, dword ptr [ebp + 8]
+085a0bb5: mov      dword ptr [esp], eax
+085a0bb8: call     0x85be932 ; _ZN6CParty22checkDungeonDifficultyEcPK8CDungeon
+085a0bbd: test     al, al
+085a0bbf: je       0x85a0c1c
+085a0bc1: mov      byte ptr [ebp - 0x4d], 0
+085a0bc5: mov      eax, dword ptr [ebp + 0xc]
+085a0bc8: movsx    ebx, ax
+085a0bcb: mov      eax, dword ptr [ebp + 8]
+085a0bce: mov      eax, dword ptr [eax + 0x74]
+085a0bd1: mov      dword ptr [esp], eax
+085a0bd4: call     0x85bfab2 ; _ZNK15CUserCharacInfo19getDungeonClearRefREv
+085a0bd9: mov      dword ptr [esp + 4], ebx
+085a0bdd: mov      dword ptr [esp], eax
+085a0be0: call     0x85bf96c ; _ZNK8WongWork13CDungeonClear21getClearedDungeonDiffEs
+085a0be5: mov      byte ptr [ebp - 0x4d], al
+085a0be8: cmp      byte ptr [ebp - 0x4d], 0
+085a0bec: sete     al
+085a0bef: test     al, al
+085a0bf1: je       0x85a0bfd
+085a0bf3: mov      ebx, 0x13
+085a0bf8: jmp      0x85a2124
+085a0bfd: movzx    eax, byte ptr [ebp - 0x4d]
+085a0c01: cmp      al, byte ptr [ebp - 0x1dc]
+085a0c07: jge      0x85a0c1c
+085a0c09: cmp      byte ptr [ebp - 0x1dc], 4
+085a0c10: je       0x85a0c1c
+085a0c12: mov      ebx, 0x13
+085a0c17: jmp      0x85a2124
+085a0c1c: mov      dword ptr [ebp - 0x64], 0
+085a0c23: mov      dword ptr [ebp - 0x4c], 0
+085a0c2a: jmp      0x85a0c8e
+085a0c2c: mov      eax, dword ptr [ebp - 0x4c]
+085a0c2f: mov      dword ptr [esp + 4], eax
+085a0c33: mov      eax, dword ptr [ebp + 8]
+085a0c36: mov      dword ptr [esp], eax
+085a0c39: call     0x85b4d12 ; _ZN6CParty15_checkValidUserEi
+085a0c3e: xor      eax, 1
+085a0c41: test     al, al
+085a0c43: jne      0x85a0c86
+085a0c45: cmp      dword ptr [ebp - 0x6c], 1
+085a0c49: je       0x85a0c89
+085a0c4b: mov      eax, dword ptr [ebp - 0x70]
+085a0c4e: mov      dword ptr [esp], eax
+085a0c51: call     0x80fdcf0 ; _ZNK8CDungeon9get_indexEv
+085a0c56: mov      ecx, eax
+085a0c58: mov      edx, dword ptr [ebp - 0x4c]
+085a0c5b: mov      ebx, dword ptr [ebp + 8]
+085a0c5e: mov      eax, edx
+085a0c60: add      eax, eax
+085a0c62: add      eax, edx
+085a0c64: shl      eax, 3
+085a0c67: lea      eax, [ebx + eax]
+085a0c6a: add      eax, 0x78
+085a0c6d: mov      eax, dword ptr [eax]
+085a0c6f: mov      dword ptr [esp + 4], ecx
+085a0c73: mov      dword ptr [esp], eax
+085a0c76: call     0x866cac6 ; _ZN5CUser13CheckQuestMapEi
+085a0c7b: mov      dword ptr [ebp - 0x64], eax
+085a0c7e: cmp      dword ptr [ebp - 0x64], 0
+085a0c82: jg       0x85a0c9b
+085a0c84: jmp      0x85a0c8a
+085a0c86: nop
+085a0c87: jmp      0x85a0c8a
+085a0c89: nop
+085a0c8a: add      dword ptr [ebp - 0x4c], 1
+085a0c8e: cmp      dword ptr [ebp - 0x4c], 3
+085a0c92: setle    al
+085a0c95: test     al, al
+085a0c97: jne      0x85a0c2c
+085a0c99: jmp      0x85a0c9c
+085a0c9b: nop
+085a0c9c: mov      dword ptr [esp + 4], 0
+085a0ca4: mov      eax, dword ptr [ebp + 8]
+085a0ca7: mov      dword ptr [esp], eax
+085a0caa: call     0x85bf83e ; _ZN6CParty16SetUsedCoinCountEi
+085a0caf: mov      eax, dword ptr [ebp + 0x14]
+085a0cb2: mov      dword ptr [esp + 8], eax
+085a0cb6: mov      eax, dword ptr [ebp - 0x70]
+085a0cb9: mov      dword ptr [esp + 4], eax
+085a0cbd: mov      eax, dword ptr [ebp + 8]
+085a0cc0: mov      dword ptr [esp], eax
+085a0cc3: call     0x85a7b8a ; _ZN6CParty26CheckHaveHellPartyPassItemEPK8CDungeon17ENUM_DUNGEON_TYPE
+085a0cc8: xor      eax, 1
+085a0ccb: test     al, al
+085a0ccd: je       0x85a0cd9
+085a0ccf: mov      ebx, 0
+085a0cd4: jmp      0x85a2124
+085a0cd9: mov      byte ptr [ebp - 0x85], 0
+085a0ce0: mov      dword ptr [esp + 0xc], 0x10
+085a0ce8: mov      eax, dword ptr [ebp - 0x6c]
+085a0ceb: mov      dword ptr [esp + 8], eax
+085a0cef: mov      eax, dword ptr [ebp - 0x70]
+085a0cf2: mov      dword ptr [esp + 4], eax
+085a0cf6: mov      eax, dword ptr [ebp + 8]
+085a0cf9: mov      dword ptr [esp], eax
+085a0cfc: call     0x85abc80 ; _ZN6CParty26checkInoutConditionDungeonEPK8CDungeon17ENUM_DUNGEON_MODE14ENUM_CMDPACKET
+085a0d01: mov      dword ptr [ebp - 0x60], eax
+085a0d04: cmp      dword ptr [ebp - 0x60], 0
+085a0d08: je       0x85a0d14
+085a0d0a: mov      ebx, 0
+085a0d0f: jmp      0x85a2124
+085a0d14: mov      eax, dword ptr [ebp + 8]
+085a0d17: lea      edx, [eax + 0xb24]
+085a0d1d: lea      eax, [ebp - 0x85]
+085a0d23: mov      dword ptr [esp + 0x10], eax
+085a0d27: mov      eax, dword ptr [ebp + 0x14]
+085a0d2a: mov      dword ptr [esp + 0xc], eax
+085a0d2e: mov      eax, dword ptr [ebp - 0x6c]
+085a0d31: mov      dword ptr [esp + 8], eax
+085a0d35: mov      eax, dword ptr [ebp - 0x70]
+085a0d38: mov      dword ptr [esp + 4], eax
+085a0d3c: mov      dword ptr [esp], edx
+085a0d3f: call     0x830a862 ; _ZN13CBattle_Field32check_random_appear_hell_dungeonEPK8CDungeon17ENUM_DUNGEON_MODE17ENUM_DUNGEON_TYPERb
+085a0d44: movzx    eax, byte ptr [ebp - 0x85]
+085a0d4b: movzx    edi, al
+085a0d4e: mov      eax, dword ptr [ebp + 8]
+085a0d51: mov      esi, dword ptr [eax + 0x1868]
+085a0d57: mov      eax, dword ptr [ebp + 8]
+085a0d5a: mov      dword ptr [esp], eax
+085a0d5d: call     0x859a16a ; _ZN6CParty16get_member_countEv
+085a0d62: mov      edx, eax
+085a0d64: movsx    ebx, byte ptr [ebp - 0x1dc]
+085a0d6b: mov      ecx, dword ptr [ebp + 0xc]
+085a0d6e: mov      eax, dword ptr [ebp + 8]
+085a0d71: add      eax, 0xb24
+085a0d76: mov      dword ptr [ebp - 0x1e0], eax
+085a0d7c: mov      eax, dword ptr [ebp - 0x64]
+085a0d7f: mov      dword ptr [esp + 0x20], eax
+085a0d83: mov      dword ptr [esp + 0x1c], edi
+085a0d87: mov      dword ptr [esp + 0x18], esi
+085a0d8b: mov      dword ptr [esp + 0x14], edx
+085a0d8f: mov      eax, dword ptr [ebp + 0x14]
+085a0d92: mov      dword ptr [esp + 0x10], eax
+085a0d96: mov      dword ptr [esp + 0xc], ebx
+085a0d9a: mov      eax, dword ptr [ebp - 0x70]
+085a0d9d: mov      dword ptr [esp + 8], eax
+085a0da1: mov      dword ptr [esp + 4], ecx
+085a0da5: mov      eax, dword ptr [ebp - 0x1e0]
+085a0dab: mov      dword ptr [esp], eax
+085a0dae: call     0x82ff486 ; _ZN13CBattle_Field13SelectDungeonEiPK8CDungeoni17ENUM_DUNGEON_TYPEiP9CWorldMapbi
+085a0db3: xor      eax, 1
+085a0db6: test     al, al
+085a0db8: je       0x85a0dc4
+085a0dba: mov      ebx, 1
+085a0dbf: jmp      0x85a2124
+085a0dc4: mov      eax, dword ptr [ebp + 8]
+085a0dc7: add      eax, 0xb24
+085a0dcc: mov      dword ptr [esp + 4], 0
+085a0dd4: mov      dword ptr [esp], eax
+085a0dd7: call     0x830aaa4 ; _ZN13CBattle_Field24getRandomBuffDungeonTypeEi
+085a0ddc: mov      dword ptr [esp + 4], eax
+085a0de0: mov      eax, dword ptr [ebp + 8]
+085a0de3: mov      dword ptr [esp], eax
+085a0de6: call     0x859b814 ; _ZN6CParty18choose_random_buffEN10QuickParty17RandomBuffDungeonE
+085a0deb: lea      ebx, [ebp - 0x1cc]
+085a0df1: mov      eax, 0
+085a0df6: mov      edx, 0x40
+085a0dfb: mov      edi, ebx
+085a0dfd: mov      ecx, edx
+085a0dff: rep stosd dword ptr es:[edi], eax
+085a0e01: lea      eax, [ebp - 0x1cc]
+085a0e07: mov      dword ptr [esp + 4], eax
+085a0e0b: mov      eax, dword ptr [ebp + 8]
+085a0e0e: mov      dword ptr [esp], eax
+085a0e11: call     0x85b4bde ; _ZN6CParty15_getMemberNamesEPc
+085a0e16: mov      dword ptr [ebp - 0x48], 0
+085a0e1d: jmp      0x85a1414
+085a0e22: mov      eax, dword ptr [ebp - 0x48]
+085a0e25: mov      dword ptr [esp + 4], eax
+085a0e29: mov      eax, dword ptr [ebp + 8]
+085a0e2c: mov      dword ptr [esp], eax
+085a0e2f: call     0x85b4d12 ; _ZN6CParty15_checkValidUserEi
+085a0e34: xor      eax, 1
+085a0e37: test     al, al
+085a0e39: jne      0x85a140f
+085a0e3f: mov      edx, dword ptr [ebp - 0x48]
+085a0e42: mov      ecx, dword ptr [ebp + 8]
+085a0e45: mov      eax, edx
+085a0e47: add      eax, eax
+085a0e49: add      eax, edx
+085a0e4b: shl      eax, 3
+085a0e4e: lea      eax, [ecx + eax]
+085a0e51: add      eax, 0x78
+085a0e54: mov      eax, dword ptr [eax]
+085a0e56: mov      dword ptr [esp + 4], 0x12
+085a0e5e: mov      dword ptr [esp], eax
+085a0e61: call     0x80dd584 ; _ZNK5CUser19GetCharacExpandDataE23ENUM_CHARAC_EXPAND_TYPE
+085a0e66: mov      dword ptr [esp + 4], 0
+085a0e6e: mov      dword ptr [esp], eax
+085a0e71: call     0x80c8b44 ; _ZN13BestClearTime12setNewRecordEb
+085a0e76: mov      edi, dword ptr [ebp - 0x6c]
+085a0e79: lea      eax, [ebp - 0x1cc]
+085a0e7f: mov      dword ptr [esp + 4], eax
+085a0e83: mov      eax, dword ptr [ebp + 8]
+085a0e86: mov      dword ptr [esp], eax
+085a0e89: call     0x85b4bde ; _ZN6CParty15_getMemberNamesEPc
+085a0e8e: mov      ebx, eax
+085a0e90: movsx    esi, byte ptr [ebp - 0x1dc]
+085a0e97: mov      eax, dword ptr [ebp - 0x70]
+085a0e9a: mov      dword ptr [esp], eax
+085a0e9d: call     0x81455a6 ; _ZNK8CDungeon14GetDungeonNameEv
+085a0ea2: mov      ecx, eax
+085a0ea4: mov      edx, dword ptr [ebp - 0x48]
+085a0ea7: mov      eax, dword ptr [ebp + 8]
+085a0eaa: mov      dword ptr [ebp - 0x1e4], eax
+085a0eb0: mov      eax, edx
+085a0eb2: add      eax, eax
+085a0eb4: add      eax, edx
+085a0eb6: shl      eax, 3
+085a0eb9: add      eax, dword ptr [ebp - 0x1e4]
+085a0ebf: add      eax, 0x78
+085a0ec2: mov      eax, dword ptr [eax]
+085a0ec4: add      eax, 0x79700
+085a0ec9: mov      dword ptr [esp + 0x10], edi
+085a0ecd: mov      dword ptr [esp + 0xc], ebx
+085a0ed1: mov      dword ptr [esp + 8], esi
+085a0ed5: mov      dword ptr [esp + 4], ecx
+085a0ed9: mov      dword ptr [esp], eax
+085a0edc: call     0x86849a2 ; _ZN15cUserHistoryLog12EnterDungeonEPKciS1_i
+085a0ee1: mov      edx, dword ptr [ebp - 0x48]
+085a0ee4: mov      ecx, dword ptr [ebp + 8]
+085a0ee7: mov      eax, edx
+085a0ee9: add      eax, eax
+085a0eeb: add      eax, edx
+085a0eed: shl      eax, 3
+085a0ef0: lea      eax, [ecx + eax]
+085a0ef3: add      eax, 0x78
+085a0ef6: mov      eax, dword ptr [eax]
+085a0ef8: mov      dword ptr [esp], eax
+085a0efb: call     0x85bfdda ; _ZN5CUser26resetDungeonClearHackCheckEv
+085a0f00: mov      edx, dword ptr [ebp - 0x48]
+085a0f03: mov      ecx, dword ptr [ebp + 8]
+085a0f06: mov      eax, edx
+085a0f08: add      eax, eax
+085a0f0a: add      eax, edx
+085a0f0c: shl      eax, 3
+085a0f0f: lea      eax, [ecx + eax]
+085a0f12: add      eax, 0x78
+085a0f15: mov      eax, dword ptr [eax]
+085a0f17: mov      dword ptr [esp], eax
+085a0f1a: call     0x8690eca ; _ZNK5CUser12getMoveSpaceEv
+085a0f1f: test     eax, eax
+085a0f21: sete     al
+085a0f24: test     al, al
+085a0f26: je       0x85a1410
+085a0f2c: mov      dword ptr [ebp - 0xb4], 0
+085a0f36: mov      edx, dword ptr [ebp - 0x48]
+085a0f39: mov      ecx, dword ptr [ebp + 8]
+085a0f3c: mov      eax, edx
+085a0f3e: add      eax, eax
+085a0f40: add      eax, edx
+085a0f42: shl      eax, 3
+085a0f45: lea      eax, [ecx + eax]
+085a0f48: add      eax, 0x78
+085a0f4b: mov      eax, dword ptr [eax]
+085a0f4d: mov      dword ptr [esp], eax
+085a0f50: call     0x822f140 ; _ZN15CUserCharacInfo18getCurCharacSkillWEv
+085a0f55: lea      edx, [ebp - 0xb4]
+085a0f5b: mov      dword ptr [esp + 4], edx
+085a0f5f: mov      dword ptr [esp], eax
+085a0f62: call     0x86088e0 ; _ZN9SkillSlot24checkskillSlotEmptyCountERi
+085a0f67: mov      dword ptr [ebp - 0x44], eax
+085a0f6a: mov      dword ptr [ebp - 0x40], 0
+085a0f71: jmp      0x85a100b
+085a0f76: mov      ecx, dword ptr [ebp - 0xb4]
+085a0f7c: mov      edx, dword ptr [ebp - 0x48]
+085a0f7f: mov      ebx, dword ptr [ebp + 8]
+085a0f82: mov      eax, edx
+085a0f84: add      eax, eax
+085a0f86: add      eax, edx
+085a0f88: shl      eax, 3
+085a0f8b: lea      eax, [ebx + eax]
+085a0f8e: add      eax, 0x78
+085a0f91: mov      eax, dword ptr [eax]
+085a0f93: mov      dword ptr [esp + 8], ecx
+085a0f97: mov      dword ptr [esp + 4], 0x1a6
+085a0f9f: mov      dword ptr [esp], eax
+085a0fa2: call     0x80f9968 ; _ZN5CUser6SetETCEsi
+085a0fa7: mov      esi, eax
+085a0fa9: mov      edx, dword ptr [ebp - 0x48]
+085a0fac: mov      ecx, dword ptr [ebp + 8]
+085a0faf: mov      eax, edx
+085a0fb1: add      eax, eax
+085a0fb3: add      eax, edx
+085a0fb5: shl      eax, 3
+085a0fb8: lea      eax, [ecx + eax]
+085a0fbb: add      eax, 0x78
+085a0fbe: mov      ebx, dword ptr [eax]
+085a0fc0: mov      edx, dword ptr [ebp - 0x48]
+085a0fc3: mov      ecx, dword ptr [ebp + 8]
+085a0fc6: mov      eax, edx
+085a0fc8: add      eax, eax
+085a0fca: add      eax, edx
+085a0fcc: shl      eax, 3
+085a0fcf: lea      eax, [ecx + eax]
+085a0fd2: add      eax, 0x78
+085a0fd5: mov      eax, dword ptr [eax]
+085a0fd7: mov      dword ptr [esp], eax
+085a0fda: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a0fdf: mov      dword ptr [esp + 0x14], 0
+085a0fe7: mov      dword ptr [esp + 0x10], esi
+085a0feb: mov      dword ptr [esp + 0xc], 1
+085a0ff3: mov      dword ptr [esp + 8], 0x1a6
+085a0ffb: mov      dword ptr [esp + 4], ebx
+085a0fff: mov      dword ptr [esp], eax
+085a1002: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a1007: add      dword ptr [ebp - 0x40], 1
+085a100b: mov      eax, dword ptr [ebp - 0x40]
+085a100e: cmp      eax, dword ptr [ebp - 0x44]
+085a1011: setl     al
+085a1014: test     al, al
+085a1016: jne      0x85a0f76
+085a101c: mov      dword ptr [ebp - 0xb8], 0
+085a1026: mov      dword ptr [ebp - 0xbc], 0
+085a1030: mov      dword ptr [ebp - 0xc0], 0
+085a103a: mov      dword ptr [ebp - 0xc4], 0
+085a1044: mov      dword ptr [ebp - 0xc8], 0
+085a104e: mov      dword ptr [ebp - 0xcc], 0
+085a1058: mov      edx, dword ptr [ebp - 0x48]
+085a105b: mov      ecx, dword ptr [ebp + 8]
+085a105e: mov      eax, edx
+085a1060: add      eax, eax
+085a1062: add      eax, edx
+085a1064: shl      eax, 3
+085a1067: lea      eax, [ecx + eax]
+085a106a: add      eax, 0x78
+085a106d: mov      eax, dword ptr [eax]
+085a106f: mov      dword ptr [esp], eax
+085a1072: call     0x8110c94 ; _ZNK15CUserCharacInfo23getCurCharFirstGrowTypeEv
+085a1077: movsx    esi, al
+085a107a: mov      edx, dword ptr [ebp - 0x48]
+085a107d: mov      ecx, dword ptr [ebp + 8]
+085a1080: mov      eax, edx
+085a1082: add      eax, eax
+085a1084: add      eax, edx
+085a1086: shl      eax, 3
+085a1089: lea      eax, [ecx + eax]
+085a108c: add      eax, 0x78
+085a108f: mov      eax, dword ptr [eax]
+085a1091: mov      dword ptr [esp], eax
+085a1094: call     0x80fdf20 ; _ZNK15CUserCharacInfo14get_charac_jobEv
+085a1099: mov      ebx, eax
+085a109b: mov      edx, dword ptr [ebp - 0x48]
+085a109e: mov      ecx, dword ptr [ebp + 8]
+085a10a1: mov      eax, edx
+085a10a3: add      eax, eax
+085a10a5: add      eax, edx
+085a10a7: shl      eax, 3
+085a10aa: lea      eax, [ecx + eax]
+085a10ad: add      eax, 0x78
+085a10b0: mov      eax, dword ptr [eax]
+085a10b2: mov      dword ptr [esp], eax
+085a10b5: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+085a10ba: lea      edx, [ebp - 0xcc]
+085a10c0: mov      dword ptr [esp + 0x20], edx
+085a10c4: lea      edx, [ebp - 0xc8]
+085a10ca: mov      dword ptr [esp + 0x1c], edx
+085a10ce: lea      edx, [ebp - 0xc4]
+085a10d4: mov      dword ptr [esp + 0x18], edx
+085a10d8: lea      edx, [ebp - 0xc0]
+085a10de: mov      dword ptr [esp + 0x14], edx
+085a10e2: lea      edx, [ebp - 0xbc]
+085a10e8: mov      dword ptr [esp + 0x10], edx
+085a10ec: lea      edx, [ebp - 0xb8]
+085a10f2: mov      dword ptr [esp + 0xc], edx
+085a10f6: mov      dword ptr [esp + 8], esi
+085a10fa: mov      dword ptr [esp + 4], ebx
+085a10fe: mov      dword ptr [esp], eax
+085a1101: call     0x850ce40 ; _ZN10CInventory19checkEquipmentStateEiiRiS0_S0_S0_S0_S0_
+085a1106: mov      edx, dword ptr [ebp - 0x48]
+085a1109: mov      ecx, dword ptr [ebp + 8]
+085a110c: mov      eax, edx
+085a110e: add      eax, eax
+085a1110: add      eax, edx
+085a1112: shl      eax, 3
+085a1115: lea      eax, [ecx + eax]
+085a1118: add      eax, 0x78
+085a111b: mov      eax, dword ptr [eax]
+085a111d: mov      dword ptr [esp], eax
+085a1120: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a1125: cmp      eax, 0xf
+085a1128: setg     al
+085a112b: test     al, al
+085a112d: je       0x85a11ae
+085a112f: mov      dword ptr [ebp - 0x3c], 0
+085a1136: jmp      0x85a119e
+085a1138: mov      edx, dword ptr [ebp - 0x48]
+085a113b: mov      ecx, dword ptr [ebp + 8]
+085a113e: mov      eax, edx
+085a1140: add      eax, eax
+085a1142: add      eax, edx
+085a1144: shl      eax, 3
+085a1147: lea      eax, [ecx + eax]
+085a114a: add      eax, 0x78
+085a114d: mov      ebx, dword ptr [eax]
+085a114f: mov      edx, dword ptr [ebp - 0x48]
+085a1152: mov      ecx, dword ptr [ebp + 8]
+085a1155: mov      eax, edx
+085a1157: add      eax, eax
+085a1159: add      eax, edx
+085a115b: shl      eax, 3
+085a115e: lea      eax, [ecx + eax]
+085a1161: add      eax, 0x78
+085a1164: mov      eax, dword ptr [eax]
+085a1166: mov      dword ptr [esp], eax
+085a1169: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a116e: mov      dword ptr [esp + 0x14], 0
+085a1176: mov      dword ptr [esp + 0x10], 0
+085a117e: mov      dword ptr [esp + 0xc], 1
+085a1186: mov      dword ptr [esp + 8], 0x1a4
+085a118e: mov      dword ptr [esp + 4], ebx
+085a1192: mov      dword ptr [esp], eax
+085a1195: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a119a: add      dword ptr [ebp - 0x3c], 1
+085a119e: mov      eax, dword ptr [ebp - 0xb8]
+085a11a4: cmp      dword ptr [ebp - 0x3c], eax
+085a11a7: setl     al
+085a11aa: test     al, al
+085a11ac: jne      0x85a1138
+085a11ae: mov      edx, dword ptr [ebp - 0x48]
+085a11b1: mov      ecx, dword ptr [ebp + 8]
+085a11b4: mov      eax, edx
+085a11b6: add      eax, eax
+085a11b8: add      eax, edx
+085a11ba: shl      eax, 3
+085a11bd: lea      eax, [ecx + eax]
+085a11c0: add      eax, 0x78
+085a11c3: mov      eax, dword ptr [eax]
+085a11c5: mov      dword ptr [esp], eax
+085a11c8: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a11cd: cmp      eax, 0x17
+085a11d0: setg     al
+085a11d3: test     al, al
+085a11d5: je       0x85a1290
+085a11db: mov      dword ptr [ebp - 0x38], 0
+085a11e2: jmp      0x85a127c
+085a11e7: mov      ecx, dword ptr [ebp - 0xc0]
+085a11ed: mov      edx, dword ptr [ebp - 0x48]
+085a11f0: mov      ebx, dword ptr [ebp + 8]
+085a11f3: mov      eax, edx
+085a11f5: add      eax, eax
+085a11f7: add      eax, edx
+085a11f9: shl      eax, 3
+085a11fc: lea      eax, [ebx + eax]
+085a11ff: add      eax, 0x78
+085a1202: mov      eax, dword ptr [eax]
+085a1204: mov      dword ptr [esp + 8], ecx
+085a1208: mov      dword ptr [esp + 4], 0x1a5
+085a1210: mov      dword ptr [esp], eax
+085a1213: call     0x80f9968 ; _ZN5CUser6SetETCEsi
+085a1218: mov      esi, eax
+085a121a: mov      edx, dword ptr [ebp - 0x48]
+085a121d: mov      ecx, dword ptr [ebp + 8]
+085a1220: mov      eax, edx
+085a1222: add      eax, eax
+085a1224: add      eax, edx
+085a1226: shl      eax, 3
+085a1229: lea      eax, [ecx + eax]
+085a122c: add      eax, 0x78
+085a122f: mov      ebx, dword ptr [eax]
+085a1231: mov      edx, dword ptr [ebp - 0x48]
+085a1234: mov      ecx, dword ptr [ebp + 8]
+085a1237: mov      eax, edx
+085a1239: add      eax, eax
+085a123b: add      eax, edx
+085a123d: shl      eax, 3
+085a1240: lea      eax, [ecx + eax]
+085a1243: add      eax, 0x78
+085a1246: mov      eax, dword ptr [eax]
+085a1248: mov      dword ptr [esp], eax
+085a124b: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a1250: mov      dword ptr [esp + 0x14], 0
+085a1258: mov      dword ptr [esp + 0x10], esi
+085a125c: mov      dword ptr [esp + 0xc], 1
+085a1264: mov      dword ptr [esp + 8], 0x1a5
+085a126c: mov      dword ptr [esp + 4], ebx
+085a1270: mov      dword ptr [esp], eax
+085a1273: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a1278: add      dword ptr [ebp - 0x38], 1
+085a127c: mov      eax, dword ptr [ebp - 0xbc]
+085a1282: cmp      dword ptr [ebp - 0x38], eax
+085a1285: setl     al
+085a1288: test     al, al
+085a128a: jne      0x85a11e7
+085a1290: mov      dword ptr [ebp - 0x34], 0
+085a1297: jmp      0x85a12ff
+085a1299: mov      edx, dword ptr [ebp - 0x48]
+085a129c: mov      ecx, dword ptr [ebp + 8]
+085a129f: mov      eax, edx
+085a12a1: add      eax, eax
+085a12a3: add      eax, edx
+085a12a5: shl      eax, 3
+085a12a8: lea      eax, [ecx + eax]
+085a12ab: add      eax, 0x78
+085a12ae: mov      ebx, dword ptr [eax]
+085a12b0: mov      edx, dword ptr [ebp - 0x48]
+085a12b3: mov      ecx, dword ptr [ebp + 8]
+085a12b6: mov      eax, edx
+085a12b8: add      eax, eax
+085a12ba: add      eax, edx
+085a12bc: shl      eax, 3
+085a12bf: lea      eax, [ecx + eax]
+085a12c2: add      eax, 0x78
+085a12c5: mov      eax, dword ptr [eax]
+085a12c7: mov      dword ptr [esp], eax
+085a12ca: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a12cf: mov      dword ptr [esp + 0x14], 0
+085a12d7: mov      dword ptr [esp + 0x10], 0
+085a12df: mov      dword ptr [esp + 0xc], 1
+085a12e7: mov      dword ptr [esp + 8], 0x1a7
+085a12ef: mov      dword ptr [esp + 4], ebx
+085a12f3: mov      dword ptr [esp], eax
+085a12f6: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a12fb: add      dword ptr [ebp - 0x34], 1
+085a12ff: mov      eax, dword ptr [ebp - 0xc4]
+085a1305: cmp      dword ptr [ebp - 0x34], eax
+085a1308: setl     al
+085a130b: test     al, al
+085a130d: jne      0x85a1299
+085a130f: mov      dword ptr [ebp - 0x30], 0
+085a1316: jmp      0x85a137e
+085a1318: mov      edx, dword ptr [ebp - 0x48]
+085a131b: mov      ecx, dword ptr [ebp + 8]
+085a131e: mov      eax, edx
+085a1320: add      eax, eax
+085a1322: add      eax, edx
+085a1324: shl      eax, 3
+085a1327: lea      eax, [ecx + eax]
+085a132a: add      eax, 0x78
+085a132d: mov      ebx, dword ptr [eax]
+085a132f: mov      edx, dword ptr [ebp - 0x48]
+085a1332: mov      ecx, dword ptr [ebp + 8]
+085a1335: mov      eax, edx
+085a1337: add      eax, eax
+085a1339: add      eax, edx
+085a133b: shl      eax, 3
+085a133e: lea      eax, [ecx + eax]
+085a1341: add      eax, 0x78
+085a1344: mov      eax, dword ptr [eax]
+085a1346: mov      dword ptr [esp], eax
+085a1349: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a134e: mov      dword ptr [esp + 0x14], 0
+085a1356: mov      dword ptr [esp + 0x10], 0
+085a135e: mov      dword ptr [esp + 0xc], 1
+085a1366: mov      dword ptr [esp + 8], 0x1a8
+085a136e: mov      dword ptr [esp + 4], ebx
+085a1372: mov      dword ptr [esp], eax
+085a1375: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a137a: add      dword ptr [ebp - 0x30], 1
+085a137e: mov      eax, dword ptr [ebp - 0xc8]
+085a1384: cmp      dword ptr [ebp - 0x30], eax
+085a1387: setl     al
+085a138a: test     al, al
+085a138c: jne      0x85a1318
+085a138e: mov      dword ptr [ebp - 0x2c], 0
+085a1395: jmp      0x85a13fd
+085a1397: mov      edx, dword ptr [ebp - 0x48]
+085a139a: mov      ecx, dword ptr [ebp + 8]
+085a139d: mov      eax, edx
+085a139f: add      eax, eax
+085a13a1: add      eax, edx
+085a13a3: shl      eax, 3
+085a13a6: lea      eax, [ecx + eax]
+085a13a9: add      eax, 0x78
+085a13ac: mov      ebx, dword ptr [eax]
+085a13ae: mov      edx, dword ptr [ebp - 0x48]
+085a13b1: mov      ecx, dword ptr [ebp + 8]
+085a13b4: mov      eax, edx
+085a13b6: add      eax, eax
+085a13b8: add      eax, edx
+085a13ba: shl      eax, 3
+085a13bd: lea      eax, [ecx + eax]
+085a13c0: add      eax, 0x78
+085a13c3: mov      eax, dword ptr [eax]
+085a13c5: mov      dword ptr [esp], eax
+085a13c8: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+085a13cd: mov      dword ptr [esp + 0x14], 0
+085a13d5: mov      dword ptr [esp + 0x10], 0
+085a13dd: mov      dword ptr [esp + 0xc], 1
+085a13e5: mov      dword ptr [esp + 8], 0x1a9
+085a13ed: mov      dword ptr [esp + 4], ebx
+085a13f1: mov      dword ptr [esp], eax
+085a13f4: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+085a13f9: add      dword ptr [ebp - 0x2c], 1
+085a13fd: mov      eax, dword ptr [ebp - 0xcc]
+085a1403: cmp      dword ptr [ebp - 0x2c], eax
+085a1406: setl     al
+085a1409: test     al, al
+085a140b: jne      0x85a1397
+085a140d: jmp      0x85a1410
+085a140f: nop
+085a1410: add      dword ptr [ebp - 0x48], 1
+085a1414: cmp      dword ptr [ebp - 0x48], 3
+085a1418: setle    al
+085a141b: test     al, al
+085a141d: jne      0x85a0e22
+085a1423: mov      eax, dword ptr [ebp + 8]
+085a1426: mov      eax, dword ptr [eax + 0x1868]
+085a142c: test     eax, eax
+085a142e: je       0x85a1482
+085a1430: mov      eax, dword ptr [ebp + 8]
+085a1433: mov      eax, dword ptr [eax + 0x1868]
+085a1439: mov      dword ptr [esp], eax
+085a143c: call     0x830e6ba ; _ZN9CWorldMap15IsInHellDungeonEv
+085a1441: test     al, al
+085a1443: je       0x85a1482
+085a1445: cmp      dword ptr [ebp + 0x14], 1
+085a1449: jne      0x85a1482
+085a144b: mov      eax, dword ptr [ebp + 8]
+085a144e: movzx    eax, byte ptr [eax + 0x1865]
+085a1455: test     al, al
+085a1457: je       0x85a1482
+085a1459: mov      eax, dword ptr [ebp + 8]
+085a145c: mov      eax, dword ptr [eax + 0x1868]
+085a1462: add      eax, 0x34
+085a1465: mov      dword ptr [esp + 4], eax
+085a1469: mov      eax, dword ptr [ebp + 8]
+085a146c: mov      dword ptr [esp], eax
+085a146f: call     0x85a8038 ; _ZN6CParty16UseSealDoorItemsERSt6vectorIiSaIiEE
+085a1474: test     al, al
+085a1476: jne      0x85a1482
+085a1478: mov      ebx, 1
+085a147d: jmp      0x85a2124
+085a1482: mov      eax, dword ptr [ebp - 0x70]
+085a1485: movzx    eax, byte ptr [eax + 0x89f]
+085a148c: test     al, al
+085a148e: jle      0x85a1599
+085a1494: lea      eax, [ebp - 0x84]
+085a149a: mov      dword ptr [esp], eax
+085a149d: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+085a14a2: mov      dword ptr [esp + 8], 0xd4
+085a14aa: mov      dword ptr [esp + 4], 0
+085a14b2: lea      eax, [ebp - 0x84]
+085a14b8: mov      dword ptr [esp], eax
+085a14bb: call     0x80cb8fc ; _ZN18InterfacePacketBuf10put_headerEii
+085a14c0: mov      eax, dword ptr [ebp + 0xc]
+085a14c3: mov      dword ptr [esp + 4], eax
+085a14c7: lea      eax, [ebp - 0x84]
+085a14cd: mov      dword ptr [esp], eax
+085a14d0: call     0x80d9ea4 ; _ZN18InterfacePacketBuf9put_shortEi
+085a14d5: movsx    eax, byte ptr [ebp - 0x1dc]
+085a14dc: mov      dword ptr [esp + 4], eax
+085a14e0: lea      eax, [ebp - 0x84]
+085a14e6: mov      dword ptr [esp], eax
+085a14e9: call     0x80cb920 ; _ZN18InterfacePacketBuf8put_byteEi
+085a14ee: mov      eax, dword ptr [ebp + 8]
+085a14f1: lea      edx, [eax + 0xb24]
+085a14f7: lea      eax, [ebp - 0x84]
+085a14fd: mov      dword ptr [esp + 8], eax
+085a1501: mov      dword ptr [esp + 4], 0xd4
+085a1509: mov      dword ptr [esp], edx
+085a150c: call     0x83090a4 ; _ZN13CBattle_Field10MakePacketEiPv
+085a1511: lea      eax, [ebp - 0x84]
+085a1517: mov      dword ptr [esp + 4], eax
+085a151b: mov      eax, dword ptr [ebp + 8]
+085a151e: mov      dword ptr [esp], eax
+085a1521: call     0x859d14e ; _ZN6CParty13send_to_partyER11PacketGuard
+085a1526: lea      eax, [ebp - 0x84]
+085a152c: mov      dword ptr [esp], eax
+085a152f: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+085a1534: mov      eax, dword ptr [ebp + 8]
+085a1537: lea      edx, [eax + 0xb24]
+085a153d: lea      eax, [ebp - 0x84]
+085a1543: mov      dword ptr [esp + 8], eax
+085a1547: mov      dword ptr [esp + 4], 0xd3
+085a154f: mov      dword ptr [esp], edx
+085a1552: call     0x83090a4 ; _ZN13CBattle_Field10MakePacketEiPv
+085a1557: lea      eax, [ebp - 0x84]
+085a155d: mov      dword ptr [esp + 4], eax
+085a1561: mov      eax, dword ptr [ebp + 8]
+085a1564: mov      dword ptr [esp], eax
+085a1567: call     0x859d14e ; _ZN6CParty13send_to_partyER11PacketGuard
+085a156c: mov      eax, dword ptr [ebp + 8]
+085a156f: add      eax, 0xb24
+085a1574: mov      dword ptr [esp + 4], 2
+085a157c: mov      dword ptr [esp], eax
+085a157f: call     0x85bf0b8 ; _ZN13CBattle_Field13setBloodStateE16ENUM_BLOOD_STATE
+085a1584: xor      eax, 1
+085a1587: test     al, al
+085a1589: je       0x85a1773
+085a158f: mov      ebx, 1
+085a1594: jmp      0x85a2124
+085a1599: mov      eax, dword ptr [ebp - 0x70]
+085a159c: mov      dword ptr [esp], eax
+085a159f: call     0x836520a ; _ZNK8CDungeon19isTournamentDungeonEv
+085a15a4: test     al, al
+085a15a6: je       0x85a1689
+085a15ac: lea      eax, [ebp - 0x84]
+085a15b2: mov      dword ptr [esp], eax
+085a15b5: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+085a15ba: mov      dword ptr [esp + 8], 0x182
+085a15c2: mov      dword ptr [esp + 4], 0
+085a15ca: lea      eax, [ebp - 0x84]
+085a15d0: mov      dword ptr [esp], eax
+085a15d3: call     0x80cb8fc ; _ZN18InterfacePacketBuf10put_headerEii
+085a15d8: mov      eax, dword ptr [ebp + 0xc]
+085a15db: mov      dword ptr [esp + 4], eax
+085a15df: lea      eax, [ebp - 0x84]
+085a15e5: mov      dword ptr [esp], eax
+085a15e8: call     0x80d9ea4 ; _ZN18InterfacePacketBuf9put_shortEi
+085a15ed: movsx    eax, byte ptr [ebp - 0x1dc]
+085a15f4: mov      dword ptr [esp + 4], eax
+085a15f8: lea      eax, [ebp - 0x84]
+085a15fe: mov      dword ptr [esp], eax
+085a1601: call     0x80cb920 ; _ZN18InterfacePacketBuf8put_byteEi
+085a1606: mov      eax, dword ptr [ebp + 8]
+085a1609: lea      edx, [eax + 0xb24]
+085a160f: lea      eax, [ebp - 0x84]
+085a1615: mov      dword ptr [esp + 8], eax
+085a1619: mov      dword ptr [esp + 4], 0x182
+085a1621: mov      dword ptr [esp], edx
+085a1624: call     0x83090a4 ; _ZN13CBattle_Field10MakePacketEiPv
+085a1629: lea      eax, [ebp - 0x84]
+085a162f: mov      dword ptr [esp + 4], eax
+085a1633: mov      eax, dword ptr [ebp + 8]
+085a1636: mov      dword ptr [esp], eax
+085a1639: call     0x859d14e ; _ZN6CParty13send_to_partyER11PacketGuard
+085a163e: lea      eax, [ebp - 0x84]
+085a1644: mov      dword ptr [esp], eax
+085a1647: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+085a164c: mov      eax, dword ptr [ebp + 8]
+085a164f: lea      edx, [eax + 0xb24]
+085a1655: lea      eax, [ebp - 0x84]
+085a165b: mov      dword ptr [esp + 8], eax
+085a165f: mov      dword ptr [esp + 4], 0x183
+085a1667: mov      dword ptr [esp], edx
+085a166a: call     0x83090a4 ; _ZN13CBattle_Field10MakePacketEiPv
+085a166f: lea      eax, [ebp - 0x84]
+085a1675: mov      dword ptr [esp + 4], eax
+085a1679: mov      eax, dword ptr [ebp + 8]
+085a167c: mov      dword ptr [esp], eax
+085a167f: call     0x859d14e ; _ZN6CParty13send_to_partyER11PacketGuard
+085a1684: jmp      0x85a1773
+085a1689: lea      eax, [ebp - 0x84]
+085a168f: mov      dword ptr [esp], eax
+085a1692: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+085a1697: mov      dword ptr [esp + 8], 0x1c
+085a169f: mov      dword ptr [esp + 4], 0
+085a16a7: lea      eax, [ebp - 0x84]
+085a16ad: mov      dword ptr [esp], eax
+085a16b0: call     0x80cb8fc ; _ZN18InterfacePacketBuf10put_headerEii
+085a16b5: mov      eax, dword ptr [ebp + 0xc]
+085a16b8: mov      dword ptr [esp + 4], eax
+085a16bc: lea      eax, [ebp - 0x84]
+085a16c2: mov      dword ptr [esp], eax
+085a16c5: call     0x80d9ea4 ; _ZN18InterfacePacketBuf9put_shortEi
+085a16ca: movsx    eax, byte ptr [ebp - 0x1dc]
+085a16d1: mov      dword ptr [esp + 4], eax
+085a16d5: lea      eax, [ebp - 0x84]
+085a16db: mov      dword ptr [esp], eax
+085a16de: call     0x80cb920 ; _ZN18InterfacePacketBuf8put_byteEi
+085a16e3: mov      eax, dword ptr [ebp + 8]
+085a16e6: lea      edx, [eax + 0xb24]
+085a16ec: lea      eax, [ebp - 0x84]
+085a16f2: mov      dword ptr [esp + 8], eax
+085a16f6: mov      dword ptr [esp + 4], 0x1c
+085a16fe: mov      dword ptr [esp], edx
+085a1701: call     0x83090a4 ; _ZN13CBattle_Field10MakePacketEiPv
+085a1706: lea      eax, [ebp - 0x84]
+085a170c: mov      dword ptr [esp + 4], eax
+085a1710: mov      eax, dword ptr [ebp + 8]
+085a1713: mov      dword ptr [esp], eax
+085a1716: call     0x859d14e ; _ZN6CParty13send_to_partyER11PacketGuard
+085a171b: lea      eax, [ebp - 0x84]
+085a1721: mov      dword ptr [esp], eax
+085a1724: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+085a1729: mov      eax, dword ptr [ebp + 8]
+085a172c: lea      edx, [eax + 0xb24]
+085a1732: lea      eax, [ebp - 0x84]
+085a1738: mov      dword ptr [esp + 8], eax
+085a173c: mov      dword ptr [esp + 4], 0x1d
+085a1744: mov      dword ptr [esp], edx
+085a1747: call     0x83090a4 ; _ZN13CBattle_Field10MakePacketEiPv
+085a174c: lea      eax, [ebp - 0x84]
+085a1752: mov      dword ptr [esp + 4], eax
+085a1756: mov      eax, dword ptr [ebp + 8]
+085a1759: mov      dword ptr [esp], eax
+085a175c: call     0x859d14e ; _ZN6CParty13send_to_partyER11PacketGuard
+085a1761: mov      eax, dword ptr [ebp - 0x78]
+085a1764: mov      dword ptr [esp + 4], eax
+085a1768: mov      eax, dword ptr [ebp + 8]
+085a176b: mov      dword ptr [esp], eax
+085a176e: call     0x85bac26 ; _ZN6CParty17_Send_TOD_APCInfoEi
+085a1773: mov      dword ptr [esp], 0x941f714
+085a177a: call     0x81458ac ; _ZN11CSystemTime15getCurTickCountEv
+085a177f: mov      edx, 0
+085a1784: mov      ecx, dword ptr [ebp + 8]
+085a1787: mov      dword ptr [ecx + 0x34c], eax
+085a178d: mov      dword ptr [ecx + 0x350], edx
+085a1793: mov      eax, dword ptr [ebp + 8]
+085a1796: mov      dword ptr [eax + 0x33c], 0
+085a17a0: mov      dword ptr [eax + 0x340], 0
+085a17aa: mov      eax, dword ptr [ebp + 8]
+085a17ad: mov      dword ptr [eax + 0x344], 0
+085a17b7: mov      dword ptr [eax + 0x348], 0
+085a17c1: mov      eax, dword ptr [ebp + 8]
+085a17c4: mov      dword ptr [eax + 0x358], 0
+085a17ce: mov      dword ptr [eax + 0x35c], 0
+085a17d8: mov      eax, dword ptr [ebp + 8]
+085a17db: mov      edx, dword ptr [eax + 0x350]
+085a17e1: mov      eax, dword ptr [eax + 0x34c]
+085a17e7: mov      ecx, dword ptr [ebp + 8]
+085a17ea: mov      dword ptr [ecx + 0x360], eax
+085a17f0: mov      dword ptr [ecx + 0x364], edx
+085a17f6: mov      dword ptr [esp + 4], 2
+085a17fe: mov      eax, dword ptr [ebp + 8]
+085a1801: mov      dword ptr [esp], eax
+085a1804: call     0x826b978 ; _ZN6CParty9set_stateEc
+085a1809: mov      dword ptr [esp + 4], 1
+085a1811: mov      eax, dword ptr [ebp + 8]
+085a1814: mov      dword ptr [esp], eax
+085a1817: call     0x814578c ; _ZN6CParty12SetEPLPStateEc
+085a181c: mov      dword ptr [esp + 4], 0x2d
+085a1824: mov      eax, dword ptr [ebp + 8]
+085a1827: mov      dword ptr [esp], eax
+085a182a: call     0x859ae76 ; _ZN6CParty13gen_timer_keyE13TIMER_MESSAGE
+085a182f: mov      dword ptr [esp + 4], 0xffffffff
+085a1837: mov      eax, dword ptr [ebp + 8]
+085a183a: mov      dword ptr [esp], eax
+085a183d: call     0x8145828 ; _ZN6CParty18SetSelectedEPLPCmdEc
+085a1842: mov      eax, dword ptr [ebp + 8]
+085a1845: mov      dword ptr [esp], eax
+085a1848: call     0x859a16a ; _ZN6CParty16get_member_countEv
+085a184d: mov      dword ptr [ebp - 0x5c], eax
+085a1850: mov      eax, dword ptr [ebp - 0x5c]
+085a1853: mov      dword ptr [esp + 4], eax
+085a1857: mov      eax, dword ptr [ebp + 8]
+085a185a: mov      dword ptr [esp], eax
+085a185d: call     0x85bf75a ; _ZN6CParty22setStartGamePartyCountEi
+085a1862: mov      eax, dword ptr [ebp - 0x70]
+085a1865: movzx    eax, byte ptr [eax + 0x89f]
+085a186c: test     al, al
+085a186e: jg       0x85a18a1
+085a1870: mov      eax, dword ptr [ebp + 8]
+085a1873: mov      eax, dword ptr [eax + 0x74]
+085a1876: mov      dword ptr [esp], eax
+085a1879: call     0x80da38c ; _ZN5CUser9get_stateEv
+085a187e: cmp      eax, 0xa
+085a1881: je       0x85a18a1
+085a1883: mov      eax, dword ptr [ebp - 0x70]
+085a1886: mov      dword ptr [esp], eax
+085a1889: call     0x822b4fa ; _ZNK8CDungeon23isTowerOfDespairDungeonEv
+085a188e: test     al, al
+085a1890: jne      0x85a18a1
+085a1892: mov      eax, dword ptr [ebp - 0x70]
+085a1895: mov      dword ptr [esp], eax
+085a1898: call     0x836520a ; _ZNK8CDungeon19isTournamentDungeonEv
+085a189d: test     al, al
+085a189f: je       0x85a18a8
+085a18a1: mov      eax, 1
+085a18a6: jmp      0x85a18ad
+085a18a8: mov      eax, 0
+085a18ad: test     al, al
+085a18af: je       0x85a18c0
+085a18b1: mov      eax, dword ptr [ebp + 8]
+085a18b4: mov      dword ptr [eax + 0x2a4], 0x3e8
+085a18be: jmp      0x85a1914
+085a18c0: mov      eax, dword ptr [ebp + 8]
+085a18c3: mov      dword ptr [esp], eax
+085a18c6: call     0x859a16a ; _ZN6CParty16get_member_countEv
+085a18cb: mov      esi, eax
+085a18cd: mov      eax, dword ptr [ebp + 8]
+085a18d0: mov      eax, dword ptr [eax + 0xcac]
+085a18d6: mov      dword ptr [esp], eax
+085a18d9: call     0x80f9810 ; _ZNK8CDungeon18get_standard_levelEv
+085a18de: mov      ebx, eax
+085a18e0: mov      eax, dword ptr [ebp + 8]
+085a18e3: mov      eax, dword ptr [eax + 0xcac]
+085a18e9: mov      dword ptr [esp], eax
+085a18ec: call     0x80fdcf0 ; _ZNK8CDungeon9get_indexEv
+085a18f1: mov      edx, dword ptr [0x940be54]
+085a18f7: mov      dword ptr [esp + 0xc], esi
+085a18fb: mov      dword ptr [esp + 8], ebx
+085a18ff: mov      dword ptr [esp + 4], eax
+085a1903: mov      dword ptr [esp], edx
+085a1906: call     0x85fabac ; _ZN10secretshop11CSecretShop10LotteryNpcEiii
+085a190b: mov      edx, dword ptr [ebp + 8]
+085a190e: mov      dword ptr [edx + 0x2a4], eax
+085a1914: mov      byte ptr [ebp - 0x55], 0
+085a1918: mov      dword ptr [ebp - 0x8c], 0
+085a1922: mov      eax, dword ptr [0x941f730]
+085a1927: mov      dword ptr [esp + 4], 0x41
+085a192f: mov      dword ptr [esp], eax
+085a1932: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+085a1937: mov      edx, dword ptr [eax]
+085a1939: add      edx, 0x34
+085a193c: mov      edx, dword ptr [edx]
+085a193e: mov      dword ptr [esp + 4], 0
+085a1946: mov      dword ptr [esp], eax
+085a1949: call     edx
+085a194b: test     al, al
+085a194d: je       0x85a19a9
+085a194f: mov      eax, dword ptr [ebp + 8]
+085a1952: mov      dword ptr [esp], eax
+085a1955: call     0x85b9f50 ; _ZN6CParty17IsReturnUserPartyEv
+085a195a: test     al, al
+085a195c: je       0x85a19a9
+085a195e: mov      eax, dword ptr [ebp + 8]
+085a1961: mov      eax, dword ptr [eax + 0xcac]
+085a1967: lea      edx, [ebp - 0x8c]
+085a196d: mov      dword ptr [esp + 8], edx
+085a1971: mov      dword ptr [esp + 4], eax
+085a1975: mov      eax, dword ptr [ebp + 8]
+085a1978: mov      dword ptr [esp], eax
+085a197b: call     0x85b11ee ; _ZN6CParty23isPremiumGoldCardRewardEPK8CDungeonRj
+085a1980: mov      byte ptr [ebp - 0x55], al
+085a1983: cmp      byte ptr [ebp - 0x55], 0
+085a1987: je       0x85a19a9
+085a1989: mov      eax, dword ptr [ebp + 8]
+085a198c: mov      dword ptr [esp], eax
+085a198f: call     0x85bf708 ; _ZN6CParty23SetPremiumGoldCardPartyEv
+085a1994: mov      eax, dword ptr [ebp - 0x8c]
+085a199a: mov      dword ptr [esp + 4], eax
+085a199e: mov      eax, dword ptr [ebp + 8]
+085a19a1: mov      dword ptr [esp], eax
+085a19a4: call     0x85bf736 ; _ZN6CParty29SetPremiumGoldCardDefaultItemEj
+085a19a9: mov      eax, dword ptr [ebp + 8]
+085a19ac: add      eax, 0x1dc
+085a19b1: mov      dword ptr [esp], eax
+085a19b4: call     0x82a4cc6 ; _ZN20CPartyResultRecvFlag5ClearEv
+085a19b9: mov      dword ptr [ebp - 0x28], 0
+085a19c0: jmp      0x85a1fd1
+085a19c5: mov      dword ptr [ebp - 0x24], 0
+085a19cc: jmp      0x85a19ec
+085a19ce: mov      ecx, dword ptr [ebp - 0x24]
+085a19d1: mov      eax, dword ptr [ebp - 0x28]
+085a19d4: mov      edx, dword ptr [ebp + 8]
+085a19d7: shl      ecx, 2
+085a19da: add      edx, ecx
+085a19dc: lea      eax, [edx + eax]
+085a19df: add      eax, 0x200
+085a19e4: mov      byte ptr [eax + 4], 0xff
+085a19e8: add      dword ptr [ebp - 0x24], 1
+085a19ec: cmp      dword ptr [ebp - 0x24], 1
+085a19f0: setle    al
+085a19f3: test     al, al
+085a19f5: jne      0x85a19ce
+085a19f7: mov      eax, dword ptr [ebp + 8]
+085a19fa: mov      byte ptr [eax + 0x1e0], 0
+085a1a01: mov      eax, dword ptr [ebp - 0x28]
+085a1a04: mov      dword ptr [esp + 4], eax
+085a1a08: mov      eax, dword ptr [ebp + 8]
+085a1a0b: mov      dword ptr [esp], eax
+085a1a0e: call     0x85b4d12 ; _ZN6CParty15_checkValidUserEi
+085a1a13: xor      eax, 1
+085a1a16: test     al, al
+085a1a18: jne      0x85a1fcc
+085a1a1e: mov      eax, dword ptr [ebp + 8]
+085a1a21: mov      ecx, dword ptr [eax + 0x2a4]
+085a1a27: mov      edx, dword ptr [ebp - 0x28]
+085a1a2a: mov      ebx, dword ptr [ebp + 8]
+085a1a2d: mov      eax, edx
+085a1a2f: add      eax, eax
+085a1a31: add      eax, edx
+085a1a33: shl      eax, 3
+085a1a36: lea      eax, [ebx + eax]
+085a1a39: add      eax, 0x78
+085a1a3c: mov      edx, dword ptr [eax]
+085a1a3e: mov      eax, dword ptr [0x940be54]
+085a1a43: mov      dword ptr [esp + 8], ecx
+085a1a47: mov      dword ptr [esp + 4], edx
+085a1a4b: mov      dword ptr [esp], eax
+085a1a4e: call     0x85fb2e0 ; _ZN10secretshop11CSecretShop17SendSecretShopNpcEP5CUseri
+085a1a53: movsx    esi, byte ptr [ebp - 0x1dc]
+085a1a5a: mov      ebx, dword ptr [ebp + 0xc]
+085a1a5d: mov      edx, dword ptr [ebp - 0x28]
+085a1a60: mov      ecx, dword ptr [ebp + 8]
+085a1a63: mov      eax, edx
+085a1a65: add      eax, eax
+085a1a67: add      eax, edx
+085a1a69: shl      eax, 3
+085a1a6c: lea      eax, [ecx + eax]
+085a1a6f: add      eax, 0x78
+085a1a72: mov      eax, dword ptr [eax]
+085a1a74: mov      dword ptr [esp], eax
+085a1a77: call     0x814aa5e ; _ZN5CUser18getCurCharacQuestWEv
+085a1a7c: mov      dword ptr [esp + 0xc], esi
+085a1a80: mov      dword ptr [esp + 8], ebx
+085a1a84: mov      dword ptr [esp + 4], 0
+085a1a8c: mov      dword ptr [esp], eax
+085a1a8f: call     0x86abdb0 ; _ZN9UserQuest15set_authen_dataE15QUEST_CONDITIONii
+085a1a94: cmp      dword ptr [ebp - 0x70], 0
+085a1a98: je       0x85a1ac0
+085a1a9a: mov      edx, dword ptr [ebp - 0x28]
+085a1a9d: mov      ecx, dword ptr [ebp + 8]
+085a1aa0: mov      eax, edx
+085a1aa2: add      eax, eax
+085a1aa4: add      eax, edx
+085a1aa6: shl      eax, 3
+085a1aa9: lea      eax, [ecx + eax]
+085a1aac: add      eax, 0x78
+085a1aaf: mov      eax, dword ptr [eax]
+085a1ab1: mov      dword ptr [esp + 4], eax
+085a1ab5: mov      eax, dword ptr [ebp + 8]
+085a1ab8: mov      dword ptr [esp], eax
+085a1abb: call     0x85bb746 ; _ZN6CParty21SetProperLevelDungeonEP5CUser
+085a1ac0: cmp      dword ptr [ebp - 0x6c], 1
+085a1ac4: je       0x85a1ba0
+085a1aca: mov      eax, dword ptr [ebp - 0x70]
+085a1acd: movzx    eax, byte ptr [eax + 0x87a]
+085a1ad4: xor      eax, 1
+085a1ad7: test     al, al
+085a1ad9: je       0x85a1b0c
+085a1adb: mov      eax, dword ptr [ebp - 0x70]
+085a1ade: movzx    eax, byte ptr [eax + 0x89f]
+085a1ae5: test     al, al
+085a1ae7: jne      0x85a1b0c
+085a1ae9: mov      eax, dword ptr [ebp + 0xc]
+085a1aec: cmp      eax, 0x2710
+085a1af1: je       0x85a1b0c
+085a1af3: mov      eax, dword ptr [ebp - 0x70]
+085a1af6: mov      dword ptr [esp], eax
+085a1af9: call     0x822b4de ; _ZNK8CDungeon18isNoFatigueDungeonEv
+085a1afe: xor      eax, 1
+085a1b01: test     al, al
+085a1b03: je       0x85a1b0c
+085a1b05: mov      eax, 1
+085a1b0a: jmp      0x85a1b11
+085a1b0c: mov      eax, 0
+085a1b11: test     al, al
+085a1b13: je       0x85a1ba0
+085a1b19: mov      eax, dword ptr [ebp - 0x70]
+085a1b1c: mov      dword ptr [esp], eax
+085a1b1f: call     0x836520a ; _ZNK8CDungeon19isTournamentDungeonEv
+085a1b24: test     al, al
+085a1b26: je       0x85a1b79
+085a1b28: mov      eax, dword ptr [ebp - 0x70]
+085a1b2b: mov      dword ptr [esp], eax
+085a1b2e: call     0x8365238 ; _ZNK8CDungeon25getTournamentRoundFatigueEv
+085a1b33: mov      ecx, eax
+085a1b35: mov      edx, dword ptr [ebp - 0x28]
+085a1b38: mov      ebx, dword ptr [ebp + 8]
+085a1b3b: mov      eax, edx
+085a1b3d: add      eax, eax
+085a1b3f: add      eax, edx
+085a1b41: shl      eax, 3
+085a1b44: lea      eax, [ebx + eax]
+085a1b47: add      eax, 0x78
+085a1b4a: mov      eax, dword ptr [eax]
+085a1b4c: mov      dword ptr [esp + 4], ecx
+085a1b50: mov      dword ptr [esp], eax
+085a1b53: call     0x8655c60 ; _ZN5CUser9FatigueUpEi
+085a1b58: mov      edx, dword ptr [ebp - 0x28]
+085a1b5b: mov      ecx, dword ptr [ebp + 8]
+085a1b5e: mov      eax, edx
+085a1b60: add      eax, eax
+085a1b62: add      eax, edx
+085a1b64: shl      eax, 3
+085a1b67: lea      eax, [ecx + eax]
+085a1b6a: add      eax, 0x78
+085a1b6d: mov      eax, dword ptr [eax]
+085a1b6f: mov      dword ptr [esp], eax
+085a1b72: call     0x8656540 ; _ZN5CUser11SendFatigueEv
+085a1b77: jmp      0x85a1ba0
+085a1b79: mov      edx, dword ptr [ebp - 0x28]
+085a1b7c: mov      ecx, dword ptr [ebp + 8]
+085a1b7f: mov      eax, edx
+085a1b81: add      eax, eax
+085a1b83: add      eax, edx
+085a1b85: shl      eax, 3
+085a1b88: lea      eax, [ecx + eax]
+085a1b8b: add      eax, 0x78
+085a1b8e: mov      eax, dword ptr [eax]
+085a1b90: mov      dword ptr [esp + 4], 0
+085a1b98: mov      dword ptr [esp], eax
+085a1b9b: call     0x8655c60 ; _ZN5CUser9FatigueUpEi
+085a1ba0: mov      ecx, dword ptr [ebp + 0xc]
+085a1ba3: mov      edx, dword ptr [ebp - 0x28]
+085a1ba6: mov      ebx, dword ptr [ebp + 8]
+085a1ba9: mov      eax, edx
+085a1bab: add      eax, eax
+085a1bad: add      eax, edx
+085a1baf: shl      eax, 3
+085a1bb2: lea      eax, [ebx + eax]
+085a1bb5: add      eax, 0x78
+085a1bb8: mov      eax, dword ptr [eax]
+085a1bba: mov      dword ptr [esp + 4], ecx
+085a1bbe: mov      dword ptr [esp], eax
+085a1bc1: call     0x867cb70 ; _ZN5CUser22setPlayingDungeonIndexEi
+085a1bc6: mov      edx, dword ptr [ebp - 0x28]
+085a1bc9: mov      ecx, dword ptr [ebp + 8]
+085a1bcc: mov      eax, edx
+085a1bce: add      eax, eax
+085a1bd0: add      eax, edx
+085a1bd2: shl      eax, 3
+085a1bd5: lea      eax, [ecx + eax]
+085a1bd8: add      eax, 0x78
+085a1bdb: mov      eax, dword ptr [eax]
+085a1bdd: add      eax, 0x8e034
+085a1be2: mov      dword ptr [esp], eax
+085a1be5: call     0x8486640 ; _ZN8PlayInfo5ResetEv
+085a1bea: mov      edx, dword ptr [ebp - 0x28]
+085a1bed: mov      ecx, dword ptr [ebp + 8]
+085a1bf0: mov      eax, edx
+085a1bf2: add      eax, eax
+085a1bf4: add      eax, edx
+085a1bf6: shl      eax, 3
+085a1bf9: lea      eax, [ecx + eax]
+085a1bfc: add      eax, 0x78
+085a1bff: mov      eax, dword ptr [eax]
+085a1c01: mov      edx, dword ptr [ebp - 0x5c]
+085a1c04: mov      dword ptr [eax + 0x8e054], edx
+085a1c0a: mov      edx, dword ptr [ebp - 0x28]
+085a1c0d: mov      ecx, dword ptr [ebp + 8]
+085a1c10: mov      eax, edx
+085a1c12: add      eax, eax
+085a1c14: add      eax, edx
+085a1c16: shl      eax, 3
+085a1c19: lea      eax, [ecx + eax]
+085a1c1c: add      eax, 0x78
+085a1c1f: mov      eax, dword ptr [eax]
+085a1c21: mov      byte ptr [eax + 0x8e074], 0
+085a1c28: mov      eax, dword ptr [ebp + 8]
+085a1c2b: mov      eax, dword ptr [eax + 0xcac]
+085a1c31: mov      dword ptr [esp], eax
+085a1c34: call     0x80f9810 ; _ZNK8CDungeon18get_standard_levelEv
+085a1c39: lea      ebx, [eax - 5]
+085a1c3c: mov      edx, dword ptr [ebp - 0x28]
+085a1c3f: mov      ecx, dword ptr [ebp + 8]
+085a1c42: mov      eax, edx
+085a1c44: add      eax, eax
+085a1c46: add      eax, edx
+085a1c48: shl      eax, 3
+085a1c4b: lea      eax, [ecx + eax]
+085a1c4e: add      eax, 0x78
+085a1c51: mov      eax, dword ptr [eax]
+085a1c53: mov      dword ptr [esp], eax
+085a1c56: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a1c5b: cmp      ebx, eax
+085a1c5d: jg       0x85a1c9d
+085a1c5f: mov      eax, dword ptr [ebp + 8]
+085a1c62: mov      eax, dword ptr [eax + 0xcac]
+085a1c68: mov      dword ptr [esp], eax
+085a1c6b: call     0x80f9810 ; _ZNK8CDungeon18get_standard_levelEv
+085a1c70: lea      ebx, [eax + 3]
+085a1c73: mov      edx, dword ptr [ebp - 0x28]
+085a1c76: mov      ecx, dword ptr [ebp + 8]
+085a1c79: mov      eax, edx
+085a1c7b: add      eax, eax
+085a1c7d: add      eax, edx
+085a1c7f: shl      eax, 3
+085a1c82: lea      eax, [ecx + eax]
+085a1c85: add      eax, 0x78
+085a1c88: mov      eax, dword ptr [eax]
+085a1c8a: mov      dword ptr [esp], eax
+085a1c8d: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a1c92: cmp      ebx, eax
+085a1c94: jl       0x85a1c9d
+085a1c96: mov      eax, 1
+085a1c9b: jmp      0x85a1ca2
+085a1c9d: mov      eax, 0
+085a1ca2: test     al, al
+085a1ca4: je       0x85a1cba
+085a1ca6: mov      eax, dword ptr [ebp + 8]
+085a1ca9: mov      byte ptr [eax + 0x354], 1
+085a1cb0: mov      eax, dword ptr [ebp + 8]
+085a1cb3: mov      byte ptr [eax + 0x355], 1
+085a1cba: mov      eax, dword ptr [ebp + 8]
+085a1cbd: mov      dword ptr [esp], eax
+085a1cc0: call     0x85b613e ; _ZN6CParty30getMemberMaxLevelBeforeDungeonEv
+085a1cc5: mov      ebx, eax
+085a1cc7: mov      edx, dword ptr [ebp - 0x28]
+085a1cca: mov      ecx, dword ptr [ebp + 8]
+085a1ccd: mov      eax, edx
+085a1ccf: add      eax, eax
+085a1cd1: add      eax, edx
+085a1cd3: shl      eax, 3
+085a1cd6: lea      eax, [ecx + eax]
+085a1cd9: add      eax, 0x78
+085a1cdc: mov      eax, dword ptr [eax]
+085a1cde: mov      dword ptr [esp], eax
+085a1ce1: call     0x8645d52 ; _ZNK15CUserCharacInfo31get_charac_level_before_dungeonEv
+085a1ce6: mov      edx, ebx
+085a1ce8: sub      edx, eax
+085a1cea: mov      eax, edx
+085a1cec: cmp      eax, 6
+085a1cef: jle      0x85a1cfe
+085a1cf1: cmp      dword ptr [ebp - 0x5c], 1
+085a1cf5: je       0x85a1cfe
+085a1cf7: mov      eax, 1
+085a1cfc: jmp      0x85a1d03
+085a1cfe: mov      eax, 0
+085a1d03: test     al, al
+085a1d05: je       0x85a1d7a
+085a1d07: mov      eax, dword ptr [ebp + 8]
+085a1d0a: mov      byte ptr [eax + 0x356], 1
+085a1d11: mov      eax, dword ptr [ebp + 8]
+085a1d14: mov      dword ptr [esp], eax
+085a1d17: call     0x85b49d0 ; _ZN6CParty12isGuildPartyEv
+085a1d1c: test     al, al
+085a1d1e: jne      0x85a1d52
+085a1d20: mov      edx, dword ptr [ebp - 0x28]
+085a1d23: mov      ecx, dword ptr [ebp + 8]
+085a1d26: mov      eax, edx
+085a1d28: add      eax, eax
+085a1d2a: add      eax, edx
+085a1d2c: shl      eax, 3
+085a1d2f: lea      eax, [ecx + eax]
+085a1d32: add      eax, 0x78
+085a1d35: mov      eax, dword ptr [eax]
+085a1d37: mov      dword ptr [esp], eax
+085a1d3a: call     0x85bfbb4 ; _ZN15CUserCharacInfo24get_connect_upper_memberEv
+085a1d3f: mov      dword ptr [esp + 4], eax
+085a1d43: mov      eax, dword ptr [ebp + 8]
+085a1d46: mov      dword ptr [esp], eax
+085a1d49: call     0x85a2140 ; _ZN6CParty16FindUserByCharIdEj
+085a1d4e: test     eax, eax
+085a1d50: je       0x85a1d59
+085a1d52: mov      eax, 1
+085a1d57: jmp      0x85a1d5e
+085a1d59: mov      eax, 0
+085a1d5e: test     al, al
+085a1d60: je       0x85a1d6e
+085a1d62: mov      eax, dword ptr [ebp + 8]
+085a1d65: mov      byte ptr [eax + 0x357], 0
+085a1d6c: jmp      0x85a1d8e
+085a1d6e: mov      eax, dword ptr [ebp + 8]
+085a1d71: mov      byte ptr [eax + 0x357], 1
+085a1d78: jmp      0x85a1d8e
+085a1d7a: mov      eax, dword ptr [ebp + 8]
+085a1d7d: mov      byte ptr [eax + 0x356], 0
+085a1d84: mov      eax, dword ptr [ebp + 8]
+085a1d87: mov      byte ptr [eax + 0x357], 0
+085a1d8e: mov      eax, dword ptr [ebp + 8]
+085a1d91: mov      eax, dword ptr [eax + 0xcac]
+085a1d97: mov      dword ptr [esp], eax
+085a1d9a: call     0x826b938 ; _ZNK8CDungeon22get_dimension_possibleEv
+085a1d9f: test     al, al
+085a1da1: setg     al
+085a1da4: test     al, al
+085a1da6: je       0x85a1dbc
+085a1da8: mov      eax, dword ptr [ebp + 8]
+085a1dab: mov      byte ptr [eax + 0x354], 1
+085a1db2: mov      eax, dword ptr [ebp + 8]
+085a1db5: mov      byte ptr [eax + 0x355], 1
+085a1dbc: mov      edx, dword ptr [ebp - 0x28]
+085a1dbf: mov      ecx, dword ptr [ebp + 8]
+085a1dc2: mov      eax, edx
+085a1dc4: add      eax, eax
+085a1dc6: add      eax, edx
+085a1dc8: shl      eax, 3
+085a1dcb: lea      eax, [ecx + eax]
+085a1dce: add      eax, 0x78
+085a1dd1: mov      eax, dword ptr [eax]
+085a1dd3: mov      dword ptr [esp], eax
+085a1dd6: call     0x815741c ; _ZNK15CUserCharacInfo20getCurCharacGrowTypeEv
+085a1ddb: movsx    esi, al
+085a1dde: mov      edx, dword ptr [ebp - 0x28]
+085a1de1: mov      ecx, dword ptr [ebp + 8]
+085a1de4: mov      eax, edx
+085a1de6: add      eax, eax
+085a1de8: add      eax, edx
+085a1dea: shl      eax, 3
+085a1ded: lea      eax, [ecx + eax]
+085a1df0: add      eax, 0x78
+085a1df3: mov      eax, dword ptr [eax]
+085a1df5: mov      dword ptr [esp], eax
+085a1df8: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a1dfd: mov      ebx, eax
+085a1dff: mov      edx, dword ptr [ebp - 0x28]
+085a1e02: mov      ecx, dword ptr [ebp + 8]
+085a1e05: mov      eax, edx
+085a1e07: add      eax, eax
+085a1e09: add      eax, edx
+085a1e0b: shl      eax, 3
+085a1e0e: lea      eax, [ecx + eax]
+085a1e11: add      eax, 0x78
+085a1e14: mov      eax, dword ptr [eax]
+085a1e16: mov      dword ptr [esp], eax
+085a1e19: call     0x80fdf20 ; _ZNK15CUserCharacInfo14get_charac_jobEv
+085a1e1e: mov      ecx, eax
+085a1e20: mov      edx, dword ptr [ebp - 0x28]
+085a1e23: mov      edi, dword ptr [ebp + 8]
+085a1e26: mov      eax, edx
+085a1e28: add      eax, eax
+085a1e2a: add      eax, edx
+085a1e2c: shl      eax, 3
+085a1e2f: lea      eax, [edi + eax]
+085a1e32: add      eax, 0x78
+085a1e35: mov      eax, dword ptr [eax]
+085a1e37: mov      eax, dword ptr [eax + 0x796f8]
+085a1e3d: mov      dword ptr [esp + 0xc], esi
+085a1e41: mov      dword ptr [esp + 8], ebx
+085a1e45: mov      dword ptr [esp + 4], ecx
+085a1e49: mov      dword ptr [esp], eax
+085a1e4c: call     0x84b9f6a ; _ZN10HistoryLog13WriteDunStartEP8_IO_FILEiii
+085a1e51: mov      eax, dword ptr [ebp + 8]
+085a1e54: mov      dword ptr [esp], eax
+085a1e57: call     0x8145780 ; _ZN6CParty10getManagerEv
+085a1e5c: mov      dword ptr [esp], eax
+085a1e5f: call     0x8690eca ; _ZNK5CUser12getMoveSpaceEv
+085a1e64: cmp      eax, 1
+085a1e67: setne    al
+085a1e6a: test     al, al
+085a1e6c: je       0x85a1eae
+085a1e6e: cmp      dword ptr [ebp - 0x6c], 1
+085a1e72: je       0x85a1e92
+085a1e74: mov      ebx, dword ptr [ebp + 0xc]
+085a1e77: call     0x860e15b ; _Z29GetInstanceDungeonEntranceLogv
+085a1e7c: mov      dword ptr [esp + 8], 0
+085a1e84: mov      dword ptr [esp + 4], ebx
+085a1e88: mov      dword ptr [esp], eax
+085a1e8b: call     0x860e1ee ; _ZN19CDungeonEntranceLog24IncrementDungeonEntranceEib
+085a1e90: jmp      0x85a1eae
+085a1e92: mov      ebx, dword ptr [ebp + 0xc]
+085a1e95: call     0x860e15b ; _Z29GetInstanceDungeonEntranceLogv
+085a1e9a: mov      dword ptr [esp + 8], 1
+085a1ea2: mov      dword ptr [esp + 4], ebx
+085a1ea6: mov      dword ptr [esp], eax
+085a1ea9: call     0x860e1ee ; _ZN19CDungeonEntranceLog24IncrementDungeonEntranceEib
+085a1eae: cmp      dword ptr [ebp - 0x6c], 1
+085a1eb2: je       0x85a1ed3
+085a1eb4: mov      edx, dword ptr [ebp - 0x28]
+085a1eb7: mov      ecx, dword ptr [ebp + 8]
+085a1eba: mov      eax, edx
+085a1ebc: add      eax, eax
+085a1ebe: add      eax, edx
+085a1ec0: shl      eax, 3
+085a1ec3: lea      eax, [ecx + eax]
+085a1ec6: add      eax, 0x78
+085a1ec9: mov      eax, dword ptr [eax]
+085a1ecb: mov      dword ptr [esp], eax
+085a1ece: call     0x85bfc9a ; _ZN15CUserCharacInfo28IncCurCharacDungeonPlayCountEv
+085a1ed3: cmp      dword ptr [ebp - 0x6c], 1
+085a1ed7: jne      0x85a1f10
+085a1ed9: mov      edx, dword ptr [ebp - 0x28]
+085a1edc: mov      ecx, dword ptr [ebp + 8]
+085a1edf: mov      eax, edx
+085a1ee1: add      eax, eax
+085a1ee3: add      eax, edx
+085a1ee5: shl      eax, 3
+085a1ee8: lea      eax, [ecx + eax]
+085a1eeb: add      eax, 0x78
+085a1eee: mov      eax, dword ptr [eax]
+085a1ef0: mov      dword ptr [esp], eax
+085a1ef3: call     0x80da27e ; _ZNK15CUserCharacInfo18getCurCharacInvenREv
+085a1ef8: mov      dword ptr [esp], eax
+085a1efb: call     0x80dd568 ; _ZN10CInventory15GetCreatureMgrWEv
+085a1f00: mov      dword ptr [esp + 4], 0
+085a1f08: mov      dword ptr [esp], eax
+085a1f0b: call     0x833c28a ; _ZN13user_creature12CCreatureMgr11TurnStomachEb
+085a1f10: mov      edx, dword ptr [ebp - 0x28]
+085a1f13: mov      ecx, dword ptr [ebp + 8]
+085a1f16: mov      eax, edx
+085a1f18: add      eax, eax
+085a1f1a: add      eax, edx
+085a1f1c: shl      eax, 3
+085a1f1f: lea      eax, [ecx + eax]
+085a1f22: add      eax, 0x78
+085a1f25: mov      eax, dword ptr [eax]
+085a1f27: mov      dword ptr [esp], eax
+085a1f2a: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+085a1f2f: movsx    ecx, ax
+085a1f32: mov      edx, dword ptr [ebp - 0x28]
+085a1f35: mov      ebx, dword ptr [ebp + 8]
+085a1f38: mov      eax, edx
+085a1f3a: add      eax, eax
+085a1f3c: add      eax, edx
+085a1f3e: shl      eax, 3
+085a1f41: lea      eax, [ebx + eax]
+085a1f44: add      eax, 0x78
+085a1f47: mov      eax, dword ptr [eax]
+085a1f49: mov      dword ptr [esp + 4], ecx
+085a1f4d: mov      dword ptr [esp], eax
+085a1f50: call     0x85bfb64 ; _ZN15CUserCharacInfo24set_level_before_dungeonEs
+085a1f55: cmp      dword ptr [ebp - 0x70], 0
+085a1f59: je       0x85a1f88
+085a1f5b: mov      ecx, dword ptr [ebp + 0xc]
+085a1f5e: mov      edx, dword ptr [ebp - 0x28]
+085a1f61: mov      ebx, dword ptr [ebp + 8]
+085a1f64: mov      eax, edx
+085a1f66: add      eax, eax
+085a1f68: add      eax, edx
+085a1f6a: shl      eax, 3
+085a1f6d: lea      eax, [ebx + eax]
+085a1f70: add      eax, 0x78
+085a1f73: mov      eax, dword ptr [eax]
+085a1f75: mov      dword ptr [esp + 8], ecx
+085a1f79: mov      dword ptr [esp + 4], eax
+085a1f7d: mov      eax, dword ptr [ebp + 8]
+085a1f80: mov      dword ptr [esp], eax
+085a1f83: call     0x85bb62a ; _ZN6CParty21SetProperDungeonEventEP5CUseri
+085a1f88: mov      eax, dword ptr [ebp + 8]
+085a1f8b: mov      dword ptr [esp], eax
+085a1f8e: call     0x85bf82a ; _ZN6CParty13SetEndRoutingEv
+085a1f93: mov      edx, dword ptr [ebp - 0x28]
+085a1f96: mov      ecx, dword ptr [ebp + 8]
+085a1f99: mov      eax, edx
+085a1f9b: add      eax, eax
+085a1f9d: add      eax, edx
+085a1f9f: shl      eax, 3
+085a1fa2: lea      eax, [ecx + eax]
+085a1fa5: add      eax, 0x78
+085a1fa8: mov      eax, dword ptr [eax]
+085a1faa: mov      dword ptr [esp], eax
+085a1fad: call     0x8230800 ; _ZN5CUser8getHadesEv
+085a1fb2: mov      dword ptr [esp + 8], 0
+085a1fba: mov      dword ptr [esp + 4], 2
+085a1fc2: mov      dword ptr [esp], eax
+085a1fc5: call     0x84b938c ; _ZN8XNuclear6CHades13StdCateUpdateEtt
+085a1fca: jmp      0x85a1fcd
+085a1fcc: nop
+085a1fcd: add      dword ptr [ebp - 0x28], 1
+085a1fd1: cmp      dword ptr [ebp - 0x28], 3
+085a1fd5: setle    al
+085a1fd8: test     al, al
+085a1fda: jne      0x85a19c5
+085a1fe0: mov      dword ptr [ebp - 0x20], 0
+085a1fe7: jmp      0x85a201f
+085a1fe9: mov      dword ptr [ebp - 0x1c], 0
+085a1ff0: jmp      0x85a2010
+085a1ff2: mov      ecx, dword ptr [ebp - 0x20]
+085a1ff5: mov      edx, dword ptr [ebp - 0x1c]
+085a1ff8: mov      eax, dword ptr [ebp + 8]
+085a1ffb: shl      ecx, 2
+085a1ffe: lea      edx, [ecx + edx]
+085a2001: add      edx, 0x78
+085a2004: mov      dword ptr [eax + edx*4 + 4], 0
+085a200c: add      dword ptr [ebp - 0x1c], 1
+085a2010: cmp      dword ptr [ebp - 0x1c], 3
+085a2014: setle    al
+085a2017: test     al, al
+085a2019: jne      0x85a1ff2
+085a201b: add      dword ptr [ebp - 0x20], 1
+085a201f: cmp      dword ptr [ebp - 0x20], 1
+085a2023: setle    al
+085a2026: test     al, al
+085a2028: jne      0x85a1fe9
+085a202a: mov      eax, dword ptr [ebp + 8]
+085a202d: mov      dword ptr [esp], eax
+085a2030: call     0x85b916e ; _ZN6CParty33Reset_party_overlapped_drop_ratioEv
+085a2035: mov      eax, dword ptr [ebp + 8]
+085a2038: mov      dword ptr [esp], eax
+085a203b: call     0x85a932a ; _ZN6CParty19check_passive_skillEv
+085a2040: mov      eax, dword ptr [ebp + 8]
+085a2043: mov      dword ptr [esp], eax
+085a2046: call     0x85b1fe0 ; _ZN6CParty21send_loadingcheck_msgEv
+085a204b: mov      eax, dword ptr [0x941f730]
+085a2050: mov      dword ptr [esp + 4], 0x57
+085a2058: mov      dword ptr [esp], eax
+085a205b: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+085a2060: mov      edx, dword ptr [eax]
+085a2062: add      edx, 0x34
+085a2065: mov      edx, dword ptr [edx]
+085a2067: mov      dword ptr [esp + 4], 0
+085a206f: mov      dword ptr [esp], eax
+085a2072: call     edx
+085a2074: test     al, al
+085a2076: je       0x85a208d
+085a2078: mov      dword ptr [esp + 4], 1
+085a2080: mov      eax, dword ptr [ebp + 8]
+085a2083: mov      dword ptr [esp], eax
+085a2086: call     0x85bca8a ; _ZN6CParty15SetWeekendEventEb
+085a208b: jmp      0x85a20a0
+085a208d: mov      dword ptr [esp + 4], 0
+085a2095: mov      eax, dword ptr [ebp + 8]
+085a2098: mov      dword ptr [esp], eax
+085a209b: call     0x85bca8a ; _ZN6CParty15SetWeekendEventEb
+085a20a0: mov      eax, dword ptr [ebp + 8]
+085a20a3: mov      dword ptr [esp + 4], eax
+085a20a7: lea      eax, [ebp - 0x94]
+085a20ad: mov      dword ptr [esp], eax
+085a20b0: call     0x8469976 ; _ZN10QuickParty16RewardData_ParamC1EP6CParty
+085a20b5: lea      eax, [ebp - 0xb0]
+085a20bb: mov      dword ptr [esp], eax
+085a20be: call     0x84699c6 ; _ZN10QuickParty17RewardData_ResultC2Ev
+085a20c3: lea      eax, [ebp - 0xb0]
+085a20c9: mov      dword ptr [esp + 0x10], eax
+085a20cd: mov      eax, dword ptr [ebp - 0x94]
+085a20d3: mov      edx, dword ptr [ebp - 0x90]
+085a20d9: mov      dword ptr [esp + 8], eax
+085a20dd: mov      dword ptr [esp + 0xc], edx
+085a20e1: mov      dword ptr [esp + 4], 9
+085a20e9: mov      eax, dword ptr [ebp + 8]
+085a20ec: mov      dword ptr [esp], eax
+085a20ef: call     0x859b8fa ; _ZN6CParty17set_random_rewardEN10QuickParty14RandomBuffTypeENS0_16RewardData_ParamERNS0_17RewardData_ResultE
+085a20f4: mov      eax, dword ptr [ebp + 8]
+085a20f7: mov      dword ptr [esp], eax
+085a20fa: call     0x85be05a ; _ZN6CParty27SendPartyMemberTagChracInfoEv
+085a20ff: mov      ebx, 0
+085a2104: jmp      0x85a2124
+085a2106: mov      ebx, edx
+085a2108: mov      esi, eax
+085a210a: lea      eax, [ebp - 0x84]
+085a2110: mov      dword ptr [esp], eax
+085a2113: call     0x858de80 ; _ZN11PacketGuardD1Ev
+085a2118: mov      eax, esi
+085a211a: mov      edx, ebx
+085a211c: mov      dword ptr [esp], eax
+085a211f: call     0x8ae3750 ; _Unwind_Resume
+085a2124: lea      eax, [ebp - 0x84]
+085a212a: mov      dword ptr [esp], eax
+085a212d: call     0x858de80 ; _ZN11PacketGuardD1Ev
+085a2132: mov      eax, ebx
+085a2134: add      esp, 0x20c
+085a213a: pop      ebx
+085a213b: pop      esi
+085a213c: pop      edi
+085a213d: pop      ebp
+085a213e: ret
+
+### 085aa39a size=569 _ZN6CParty21prepare_dungeon_clearEv
+085aa39a: push     ebp
+085aa39b: mov      ebp, esp
+085aa39d: push     ebx
+085aa39e: sub      esp, 0x24
+085aa3a1: mov      eax, dword ptr [ebp + 8]
+085aa3a4: movzx    eax, byte ptr [eax + 0x11a]
+085aa3ab: movzx    eax, al
+085aa3ae: mov      edx, dword ptr [ebp + 8]
+085aa3b1: add      edx, 0xc7c
+085aa3b7: mov      dword ptr [esp + 4], eax
+085aa3bb: mov      dword ptr [esp], edx
+085aa3be: call     0x82fee4a ; _ZN19CDungeonClearTracer17SetClearedDungeonEb
+085aa3c3: mov      eax, dword ptr [ebp + 8]
+085aa3c6: add      eax, 0xb24
+085aa3cb: mov      dword ptr [esp], eax
+085aa3ce: call     0x822cfa6 ; _ZN13CBattle_Field15check_end_pointEv
+085aa3d3: movzx    eax, al
+085aa3d6: mov      edx, dword ptr [ebp + 8]
+085aa3d9: add      edx, 0xc7c
+085aa3df: mov      dword ptr [esp + 4], eax
+085aa3e3: mov      dword ptr [esp], edx
+085aa3e6: call     0x82fee62 ; _ZN19CDungeonClearTracer11SetEndPointEb
+085aa3eb: mov      eax, dword ptr [ebp + 8]
+085aa3ee: add      eax, 0xb24
+085aa3f3: mov      dword ptr [esp], eax
+085aa3f6: call     0x830a0e8 ; _ZN13CBattle_Field16check_grid_clearEv
+085aa3fb: test     al, al
+085aa3fd: je       0x85aa5cd
+085aa403: mov      dword ptr [ebp - 0xc], 0
+085aa40a: jmp      0x85aa561
+085aa40f: mov      eax, dword ptr [ebp - 0xc]
+085aa412: mov      dword ptr [esp + 4], eax
+085aa416: mov      eax, dword ptr [ebp + 8]
+085aa419: mov      dword ptr [esp], eax
+085aa41c: call     0x85b4d12 ; _ZN6CParty15_checkValidUserEi
+085aa421: xor      eax, 1
+085aa424: test     al, al
+085aa426: jne      0x85aa559
+085aa42c: mov      eax, dword ptr [ebp + 8]
+085aa42f: mov      eax, dword ptr [eax + 0xcd8]
+085aa435: cmp      eax, 1
+085aa438: je       0x85aa55c
+085aa43e: mov      eax, dword ptr [ebp + 8]
+085aa441: add      eax, 0xb24
+085aa446: mov      dword ptr [esp], eax
+085aa449: call     0x822cffc ; _ZN13CBattle_Field11get_cur_mapEv
+085aa44e: mov      ebx, eax
+085aa450: mov      edx, dword ptr [ebp - 0xc]
+085aa453: mov      ecx, dword ptr [ebp + 8]
+085aa456: mov      eax, edx
+085aa458: add      eax, eax
+085aa45a: add      eax, edx
+085aa45c: shl      eax, 3
+085aa45f: lea      eax, [ecx + eax]
+085aa462: add      eax, 0x78
+085aa465: mov      eax, dword ptr [eax]
+085aa467: mov      dword ptr [esp], eax
+085aa46a: call     0x814aa5e ; _ZN5CUser18getCurCharacQuestWEv
+085aa46f: mov      dword ptr [esp + 0xc], 0
+085aa477: mov      dword ptr [esp + 8], ebx
+085aa47b: mov      dword ptr [esp + 4], 1
+085aa483: mov      dword ptr [esp], eax
+085aa486: call     0x86abdb0 ; _ZN9UserQuest15set_authen_dataE15QUEST_CONDITIONii
+085aa48b: mov      edx, dword ptr [ebp - 0xc]
+085aa48e: mov      ecx, dword ptr [ebp + 8]
+085aa491: mov      eax, edx
+085aa493: add      eax, eax
+085aa495: add      eax, edx
+085aa497: shl      eax, 3
+085aa49a: lea      eax, [ecx + eax]
+085aa49d: add      eax, 0x78
+085aa4a0: mov      eax, dword ptr [eax]
+085aa4a2: mov      eax, dword ptr [eax + 0x8e08c]
+085aa4a8: test     eax, eax
+085aa4aa: jle      0x85aa536
+085aa4b0: mov      edx, dword ptr [ebp - 0xc]
+085aa4b3: mov      ecx, dword ptr [ebp + 8]
+085aa4b6: mov      eax, edx
+085aa4b8: add      eax, eax
+085aa4ba: add      eax, edx
+085aa4bc: shl      eax, 3
+085aa4bf: lea      eax, [ecx + eax]
+085aa4c2: add      eax, 0x78
+085aa4c5: mov      eax, dword ptr [eax]
+085aa4c7: mov      dword ptr [esp], eax
+085aa4ca: call     0x80da27e ; _ZNK15CUserCharacInfo18getCurCharacInvenREv
+085aa4cf: mov      dword ptr [esp], eax
+085aa4d2: call     0x81b7408 ; _ZNK10CInventory15GetCreatureMgrREv
+085aa4d7: mov      dword ptr [esp], eax
+085aa4da: call     0x833debc ; _ZNK13user_creature12CCreatureMgr32IsGrowCreature_Equipped_CreatureEv
+085aa4df: xor      eax, 1
+085aa4e2: test     al, al
+085aa4e4: je       0x85aa536
+085aa4e6: mov      edx, dword ptr [ebp - 0xc]
+085aa4e9: mov      ecx, dword ptr [ebp + 8]
+085aa4ec: mov      eax, edx
+085aa4ee: add      eax, eax
+085aa4f0: add      eax, edx
+085aa4f2: shl      eax, 3
+085aa4f5: lea      eax, [ecx + eax]
+085aa4f8: add      eax, 0x78
+085aa4fb: mov      eax, dword ptr [eax]
+085aa4fd: mov      ebx, dword ptr [eax + 0x8e08c]
+085aa503: mov      edx, dword ptr [ebp - 0xc]
+085aa506: mov      ecx, dword ptr [ebp + 8]
+085aa509: mov      eax, edx
+085aa50b: add      eax, eax
+085aa50d: add      eax, edx
+085aa50f: shl      eax, 3
+085aa512: lea      eax, [ecx + eax]
+085aa515: add      eax, 0x78
+085aa518: mov      eax, dword ptr [eax]
+085aa51a: mov      dword ptr [esp], eax
+085aa51d: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+085aa522: mov      dword ptr [esp], eax
+085aa525: call     0x80dd568 ; _ZN10CInventory15GetCreatureMgrWEv
+085aa52a: mov      dword ptr [esp + 4], ebx
+085aa52e: mov      dword ptr [esp], eax
+085aa531: call     0x8339b06 ; _ZN13user_creature12CCreatureMgr7GainExpEi
+085aa536: mov      edx, dword ptr [ebp - 0xc]
+085aa539: mov      ecx, dword ptr [ebp + 8]
+085aa53c: mov      eax, edx
+085aa53e: add      eax, eax
+085aa540: add      eax, edx
+085aa542: shl      eax, 3
+085aa545: lea      eax, [ecx + eax]
+085aa548: add      eax, 0x78
+085aa54b: mov      eax, dword ptr [eax]
+085aa54d: mov      dword ptr [eax + 0x8e08c], 0
+085aa557: jmp      0x85aa55d
+085aa559: nop
+085aa55a: jmp      0x85aa55d
+085aa55c: nop
+085aa55d: add      dword ptr [ebp - 0xc], 1
+085aa561: cmp      dword ptr [ebp - 0xc], 3
+085aa565: setle    al
+085aa568: test     al, al
+085aa56a: jne      0x85aa40f
+085aa570: mov      eax, dword ptr [ebp + 8]
+085aa573: add      eax, 0xb24
+085aa578: mov      dword ptr [esp], eax
+085aa57b: call     0x822d05e ; _ZN13CBattle_Field18GetCurrentMapIndexEv
+085aa580: mov      edx, dword ptr [ebp + 8]
+085aa583: add      edx, 0xb24
+085aa589: mov      dword ptr [esp + 8], eax
+085aa58d: mov      dword ptr [esp + 4], 1
+085aa595: mov      dword ptr [esp], edx
+085aa598: call     0x85bf29a ; _ZN13CBattle_Field14ClearConditionE33ENUM_DUNGEON_CLEAR_CONDITION_TYPEi
+085aa59d: test     al, al
+085aa59f: je       0x85aa5ae
+085aa5a1: mov      eax, dword ptr [ebp + 8]
+085aa5a4: mov      dword ptr [esp], eax
+085aa5a7: call     0x85a9330 ; _ZN6CParty12ClearDungeonEv
+085aa5ac: jmp      0x85aa5cd
+085aa5ae: mov      eax, dword ptr [ebp + 8]
+085aa5b1: add      eax, 0xb24
+085aa5b6: mov      dword ptr [esp], eax
+085aa5b9: call     0x822cfa6 ; _ZN13CBattle_Field15check_end_pointEv
+085aa5be: test     al, al
+085aa5c0: je       0x85aa5cd
+085aa5c2: mov      eax, dword ptr [ebp + 8]
+085aa5c5: mov      dword ptr [esp], eax
+085aa5c8: call     0x85a9330 ; _ZN6CParty12ClearDungeonEv
+085aa5cd: add      esp, 0x24
+085aa5d0: pop      ebx
+085aa5d1: pop      ebp
+085aa5d2: ret

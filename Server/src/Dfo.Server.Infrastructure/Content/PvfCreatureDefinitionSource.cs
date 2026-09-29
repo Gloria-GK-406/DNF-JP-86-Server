@@ -146,13 +146,14 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             if (!relativePath.StartsWith(CreatureEquipmentPrefix, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var stem = StemOf(relativePath);
-            if (stem.Length == 0 || !creatureIdByStem.TryGetValue(stem, out var creatureId))
-                continue;
-
             var fileIndex = archive.FindFile($"{EquipmentDirectory}/{relativePath}");
             if (fileIndex < 0
-                || !TryReadCreatureEquipment(archive, tags, fileIndex, out var outputItemId))
+                || !TryReadCreatureEquipment(archive, tags, fileIndex, out var outputItemId, out var creatureId))
+                continue;
+
+            // Eggs and alternate equipment names need not share the .cre file stem.
+            // The explicit species is authoritative; filename matching is legacy fallback.
+            if (creatureId <= 0 && !creatureIdByStem.TryGetValue(StemOf(relativePath), out creatureId))
                 continue;
 
             index.TryAdd(itemTemplateId, creatureId);
@@ -167,9 +168,10 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         PvfArchive archive,
         CreatureTags tags,
         int fileIndex,
-        out int outputItemId)
+        out int outputItemId, out int creatureId)
     {
         outputItemId = 0;
+        creatureId = 0;
         if (!tags.EquipmentType.IsResolved)
             return false;
 
@@ -194,6 +196,8 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             }
             else if (section == tags.OutputIndex && token.Kind == PvfTokenKind.Int32)
                 outputItemId = token.Value;
+            else if (section == tags.CreatureSpecies && token.Kind == PvfTokenKind.Int32)
+                creatureId = token.Value;
         }
 
         return declaresCreatureType;
@@ -326,6 +330,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             Ambient = archive.GetTag("[ambient]").Offset;
             EquipmentType = archive.GetTag("[equipment type]");
             OutputIndex = archive.GetTag("[output index]").Offset;
+            CreatureSpecies = archive.GetTag("[creature species]").Offset;
             RoomList = archive.GetTag("[room list]").Offset;
         }
 
@@ -340,6 +345,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         public int Ambient { get; }
         public TagRef EquipmentType { get; }
         public int OutputIndex { get; }
+        public int CreatureSpecies { get; }
         public int RoomList { get; }
 
         public bool HasAmbientTags => Ambient >= 0 && RoomList >= 0;

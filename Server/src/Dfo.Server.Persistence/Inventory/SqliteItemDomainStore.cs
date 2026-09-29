@@ -75,6 +75,8 @@ internal sealed class SqliteItemDomainStore : IItemDomainStore
 internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant owner)
     : IItemDomainStoreSession, ISqliteStoreFacet
 {
+    internal static SqliteItemDomainStoreSession? ExistingIn(SqliteDatabaseParticipant owner) =>
+        owner.ExistingFacet<SqliteItemDomainStoreSession>(typeof(SqliteItemDomainStoreSession));
     /// <summary>What each named slot will hold, or null where it will be left empty.</summary>
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem?>> staged = [];
 
@@ -394,6 +396,9 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         static bool SameThing(Placing placing, Displaced row)
         {
             var core = InventoryItemCore.Decode(row.Core);
+            if (core.ItemKind == 5 && placing.Item.Core.ItemKind == 5
+                && core.Value == row.ItemUid && placing.Item.Core.Value == row.ItemUid)
+                return true;
             return core.ItemId == placing.Item.Core.ItemId
                 && core.ItemKind == placing.Item.Core.ItemKind
                 && core.Value == placing.Item.Core.Value;
@@ -435,12 +440,8 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// core: a row it lands on is a row already carrying that same UID. Change a pass to match on
     /// anything looser and this method's silence becomes a hole.
     ///
-    /// Third -- and this one is an asymmetry, not a coupling -- what is rescued across a rebuilt
-    /// world row is the six avatar columns. New creature creation supplies its eight columns to
-    /// <see cref="FillAsync"/>, and an unchanged move keeps the original row through Survivors.
-    /// A future operation that both moves a creature and changes its core in the same batch must
-    /// also carry its creature facts: this avatar-only retrieval cannot recover them for a rebuilt
-    /// row. The CERA purchase path creates new creatures and never performs that combined move.
+    /// Creature core changes retain the existing world row when its core UID still names that row;
+    /// a creature without a surviving row must supply creation facts instead.
     /// </remarks>
     private async ValueTask<IReadOnlyDictionary<int, object?[]>> CarriedAvatarsAsync(
         IReadOnlyDictionary<(ContainerId, int), Displaced> survivors,
@@ -619,6 +620,8 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         IReadOnlyDictionary<int, object?[]> carried,
         CancellationToken cancellationToken)
     {
+        if (item.Core.ItemKind == 5 && item.Core.Value > 0 && item.CreatureDetail is null)
+            throw new InvalidOperationException("A creature without its existing identity needs creation facts.");
         var facts = item.AvatarDetail is { } carriedByTheWrite
             ? FactsOf(carriedByTheWrite)
             : item.Core.ItemKind == AvatarKind

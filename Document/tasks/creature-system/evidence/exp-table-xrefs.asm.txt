@@ -1,0 +1,2 @@
+08360558: mov eax, dword ptr [eax*4 + 0x94fefa0] ; _ZNK12CDataManager22get_creature_level_expEi
+08a35df5: mov dword ptr [ebx*4 + 0x94fefa0], eax ; _Z18initCreatureScriptPKcS0_S0_

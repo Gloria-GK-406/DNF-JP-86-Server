@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -384,8 +385,15 @@ public sealed class MonsterDeathHandler(
     IGameMessageSender sender,
     ExperienceDiagnostics diagnostics,
     ILogger<MonsterDeathHandler> logger,
-    DungeonPartyRecipients? partyRecipients = null) : ClientMessageHandler<MonsterDeathRequest>
+    DungeonPartyRecipients? partyRecipients = null,
+    ICreatureRuntimeDomainService? creatures = null) : ClientMessageHandler<MonsterDeathRequest>
 {
+    private void QueueCreatureClear(SelectedSessionIdentity session, DungeonRunState run)
+    {
+        if (creatures is null || !run.Layout.ConsumesFatigue || !run.CurrentCellState.IsCleared) return;
+        creatures.QueueRoomExperience(session, run.RunId, run.CurrentCell, 1);
+    }
+
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         MonsterDeathRequest message,
@@ -589,6 +597,8 @@ public sealed class MonsterDeathHandler(
             autoKilled = deathChange.AutoKilledActorSequences;
         }
 
+        if (run is not null)
+            QueueCreatureClear(session, run);
         logger.LogInformation(
             "Monster death {ConnectionId} user={WireUserId}: actor={Actor} killedBy={KilledBy}",
             context.Connection.ConnectionId,
@@ -853,6 +863,8 @@ public sealed class MonsterDeathHandler(
             ? GameDropIdentity.ForKill(run, message.ActorSequence)
             : 0u;
 
+        foreach (var recipient in recipients)
+            QueueCreatureClear(recipient.Session, run);
         var sharedDeath = new MonsterDeathNotification(
             message.ActorSequence,
             dropped,

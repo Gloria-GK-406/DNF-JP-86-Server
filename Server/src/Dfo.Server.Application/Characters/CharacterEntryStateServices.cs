@@ -4,8 +4,10 @@ using Dfo.Server.Data.Notices;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Creatures;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Application.Characters;
@@ -230,7 +232,8 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterProgressionEntryProjection progression,
     ICharacterFeatureEntryProjection features,
     ICharacterDomainService characters, INoticeStateDomainService notices,
-    IPremiumServiceDomainService premiums) : ICharacterEntryStateDomainService
+    IPremiumServiceDomainService premiums,
+    ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -268,6 +271,17 @@ internal sealed class CharacterEntryStateDomainService(
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },
         };
+        var featureState = features.Build(storage.Features);
+        if (creatureStore is not null)
+        {
+            var access = stores ?? throw new InvalidOperationException("Creature projection requires store access.");
+            var creatureStates = await access.ReadAsync(creatureStore,
+                pets => pets.ReadAllAsync(characterId, cancellationToken)).ConfigureAwait(false);
+            featureState = featureState with
+            {
+                Pets = creatureStates.Select(CreatureRuntimeProjection.Build).ToArray()
+            };
+        }
         return new CharacterEntryState(
             characterId,
             publicState,
@@ -278,6 +292,6 @@ internal sealed class CharacterEntryStateDomainService(
             skillQuest.Skills,
             skillQuest.Quests,
             progression.Build(storage.Progression),
-            features.Build(storage.Features));
+            featureState);
     }
 }

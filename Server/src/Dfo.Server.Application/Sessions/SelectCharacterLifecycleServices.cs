@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -39,7 +40,8 @@ internal sealed class SelectedSessionCleanupService(
     ICharacterVitalRuntimeDomainService vitals,
     IPartyService parties,
     IDungeonRunDomainService dungeonRuns,
-    IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures) : ISelectedSessionCleanupDomainService
+    IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
+    ICreatureRuntimeDomainService? creatures = null) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -108,6 +110,8 @@ internal sealed class SelectedSessionCleanupService(
         }
         if (ownsSelectedCharacter)
         {
+            if (creatures is not null)
+                await RunAsync(() => creatures.LeaveAsync(session, CancellationToken.None));
             var run = dungeonRuns.Find(session.CharacterId);
             if (run is not null)
             {
@@ -242,7 +246,8 @@ internal sealed class SelectCharacterSessionEntryService(
     IPvpLobbyDomainService pvp,
     ICharacterPositionDomainService positions,
     ICharacterVitalRuntimeDomainService vitals,
-    SpiritPotionDomainService spiritPotion) : ISelectCharacterSessionEntryDomainService
+    SpiritPotionDomainService spiritPotion,
+    ICreatureRuntimeDomainService? creatures = null) : ISelectCharacterSessionEntryDomainService
 {
     public async ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
         SelectedSessionIdentity session, SelectCharacterResult result,
@@ -348,6 +353,7 @@ internal sealed class SelectCharacterSessionEntryService(
         if (sessions.FindByCharacter(session.CharacterId) != session)
             throw new InvalidOperationException("Cannot publish a replaced selection.");
         spiritPotion.Clear(session.CharacterId);
+        creatures?.Enter(session);
         runtimes.Publish(session, result.World.Channel.PersistsPosition);
         positions.Place(session, result.Character.Position);
         vitals.Publish(session, checked((byte)Math.Clamp(

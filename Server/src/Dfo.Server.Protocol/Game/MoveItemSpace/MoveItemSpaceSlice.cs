@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Protocol.Game.Creatures;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -226,6 +228,7 @@ public enum ItemMoveStatus
 /// <summary>Where the item ended up, or why it stayed.</summary>
 public sealed record ItemMoveResult(ItemMoveStatus Status, int MoveValue, int ItemId)
 {
+    public IReadOnlyList<CreatureRuntimeChange> CreatureChanges { get; init; } = [];
     /// <summary>A refusal decided before anything was read, so no template is named.</summary>
     public static ItemMoveResult Refused(ItemMoveStatus status) => new(status, 0, 0);
 
@@ -286,7 +289,8 @@ public sealed record MoveItemSpaceCommand(
 /// </remarks>
 public sealed class MoveItemSpaceCommandHandler(
     IBusinessInventorySlotDomainService inventory,
-    IItemMovementDomainService moves)
+    IItemMovementDomainService moves,
+    ICreatureRuntimeDomainService? creatures = null, ISelectedSessionDomainService? sessions = null)
     : ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>
 {
     /// <summary>A piece of equipment does not stack, so exactly one of it ever moves.</summary>
@@ -375,7 +379,21 @@ public sealed class MoveItemSpaceCommandHandler(
         && atTheOtherEnd is not null
         && atTheOtherEnd.ItemId == namedInstanceValue;
 
-    public async ValueTask<ItemMoveResult> HandleAsync(
+    public async ValueTask<ItemMoveResult> HandleAsync(CommandExecutionContext context,
+        MoveItemSpaceCommand command, CancellationToken cancellationToken)
+    {
+        var touchesPet = command.SourceSlot.Space == BusinessInventorySpace.WornCreature
+            || command.DestinationSlot.Space == BusinessInventorySpace.WornCreature;
+        var session = touchesPet ? sessions?.FindByCharacter(command.CharacterId) : null;
+        var before = creatures is not null && session is not null
+            ? await creatures.AdvanceAsync(session, cancellationToken).ConfigureAwait(false) : [];
+        var result = await MoveCoreAsync(context, command, cancellationToken).ConfigureAwait(false);
+        var after = creatures is not null && session is not null
+            ? await creatures.AdvanceAsync(session, cancellationToken).ConfigureAwait(false) : [];
+        return result with { CreatureChanges = [..before, ..after] };
+    }
+
+    private async ValueTask<ItemMoveResult> MoveCoreAsync(
         CommandExecutionContext context,
         MoveItemSpaceCommand command,
         CancellationToken cancellationToken)

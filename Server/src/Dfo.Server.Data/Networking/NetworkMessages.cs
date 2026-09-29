@@ -154,6 +154,9 @@ public enum ClientMessageType
 
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
+    GameRenameCreature = 0x0001_0064,
+    GameCreatureResponseReport = 0x0001_0065,
+    GameCreatureScriptMessage = 0x0001_007A,
     GameQuestClearCoupon = 0x0001_0204,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
@@ -271,7 +274,16 @@ public enum ServerMessageType
 
     // Whether the item was consumed. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
+    GameRenameCreature = 0x0001_0064,
     GameQuestClearCoupon = 0x0001_0204,
+
+    GameCreatureDeath = 0x0000_0064,
+    GameCreatureRename = 0x0000_0065,
+    GameCreatureExperience = 0x0000_0066,
+    GameCreatureState = 0x0000_0067,
+    GameCreatureResponse = 0x0000_0068,
+    GameCreatureEvolution = 0x0000_006A,
+    GameCreatureRevival = 0x0000_006B,
 
     // Where a moved item ended up, or why it did not move. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,

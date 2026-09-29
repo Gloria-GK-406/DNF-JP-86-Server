@@ -1,0 +1,333 @@
+
+### 08336cd8 size=36 _ZN13user_creature8CStomachC1Ev
+08336cd8: push     ebp
+08336cd9: mov      ebp, esp
+08336cdb: sub      esp, 0x18
+08336cde: mov      dword ptr [esp], 0x941f714
+08336ce5: call     0x80cbc9e ; _ZN11CSystemTime9getCurSecEv
+08336cea: mov      edx, dword ptr [ebp + 8]
+08336ced: mov      dword ptr [edx], eax
+08336cef: mov      eax, dword ptr [ebp + 8]
+08336cf2: mov      edx, 0x42c80000
+08336cf7: mov      dword ptr [eax + 4], edx
+08336cfa: leave
+08336cfb: ret
+
+### 08336cd8 size=36 _ZN13user_creature8CStomachC2Ev
+08336cd8: push     ebp
+08336cd9: mov      ebp, esp
+08336cdb: sub      esp, 0x18
+08336cde: mov      dword ptr [esp], 0x941f714
+08336ce5: call     0x80cbc9e ; _ZN11CSystemTime9getCurSecEv
+08336cea: mov      edx, dword ptr [ebp + 8]
+08336ced: mov      dword ptr [edx], eax
+08336cef: mov      eax, dword ptr [ebp + 8]
+08336cf2: mov      edx, 0x42c80000
+08336cf7: mov      dword ptr [eax + 4], edx
+08336cfa: leave
+08336cfb: ret
+
+### 08336cfc size=242 _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+08336cfc: push     ebp
+08336cfd: mov      ebp, esp
+08336cff: sub      esp, 0x48
+08336d02: mov      eax, dword ptr [ebp + 0x10]
+08336d05: mov      byte ptr [ebp - 0x1c], al
+08336d08: movzx    eax, byte ptr [ebp - 0x1c]
+08336d0c: xor      eax, 1
+08336d0f: test     al, al
+08336d11: je       0x8336d1d
+08336d13: mov      eax, 0x42c80000
+08336d18: jmp      0x8336de6
+08336d1d: mov      dword ptr [esp], 0x941f714
+08336d24: call     0x80cbc9e ; _ZN11CSystemTime9getCurSecEv
+08336d29: mov      dword ptr [ebp - 0x10], eax
+08336d2c: mov      eax, dword ptr [ebp + 8]
+08336d2f: mov      eax, dword ptr [eax]
+08336d31: mov      edx, dword ptr [ebp - 0x10]
+08336d34: mov      ecx, edx
+08336d36: sub      ecx, eax
+08336d38: mov      eax, ecx
+08336d3a: mov      dword ptr [ebp - 0x20], eax
+08336d3d: fild     dword ptr [ebp - 0x20]
+08336d40: fstp     dword ptr [ebp - 0xc]
+08336d43: mov      eax, dword ptr [ebp + 0xc]
+08336d46: cmp      eax, 1
+08336d49: je       0x8336d5b
+08336d4b: cmp      eax, 1
+08336d4e: jl       0x8336dd8
+08336d54: cmp      eax, 3
+08336d57: jg       0x8336dd8
+08336d59: jmp      0x8336d97
+08336d5b: mov      eax, dword ptr [ebp + 8]
+08336d5e: fld      dword ptr [eax + 4]
+08336d61: fld      dword ptr [ebp - 0xc]
+08336d64: fld      dword ptr [0x8c2f454]
+08336d6a: fdivp    st(1)
+08336d6c: faddp    st(1)
+08336d6e: mov      eax, dword ptr [ebp + 8]
+08336d71: fstp     dword ptr [eax + 4]
+08336d74: mov      eax, dword ptr [ebp + 8]
+08336d77: fld      dword ptr [eax + 4]
+08336d7a: fldz
+08336d7c: fucompp
+08336d7e: fnstsw   ax
+08336d80: test     ah, 0x45
+08336d83: sete     al
+08336d86: test     al, al
+08336d88: je       0x8336dd7
+08336d8a: mov      eax, dword ptr [ebp + 8]
+08336d8d: mov      edx, 0
+08336d92: mov      dword ptr [eax + 4], edx
+08336d95: jmp      0x8336dd8
+08336d97: mov      eax, dword ptr [ebp + 8]
+08336d9a: fld      dword ptr [eax + 4]
+08336d9d: fld      dword ptr [ebp - 0xc]
+08336da0: fld      dword ptr [0x8c2f458]
+08336da6: fdivp    st(1)
+08336da8: faddp    st(1)
+08336daa: mov      eax, dword ptr [ebp + 8]
+08336dad: fstp     dword ptr [eax + 4]
+08336db0: mov      eax, dword ptr [ebp + 8]
+08336db3: fld      dword ptr [eax + 4]
+08336db6: fld      dword ptr [0x8c2f450]
+08336dbc: fxch     st(1)
+08336dbe: fucompp
+08336dc0: fnstsw   ax
+08336dc2: sahf
+08336dc3: seta     al
+08336dc6: test     al, al
+08336dc8: je       0x8336dd8
+08336dca: mov      eax, dword ptr [ebp + 8]
+08336dcd: mov      edx, 0x42c80000
+08336dd2: mov      dword ptr [eax + 4], edx
+08336dd5: jmp      0x8336dd8
+08336dd7: nop
+08336dd8: mov      eax, dword ptr [ebp + 8]
+08336ddb: mov      edx, dword ptr [ebp - 0x10]
+08336dde: mov      dword ptr [eax], edx
+08336de0: mov      eax, dword ptr [ebp + 8]
+08336de3: mov      eax, dword ptr [eax + 4]
+08336de6: mov      dword ptr [ebp - 0x2c], eax
+08336de9: fld      dword ptr [ebp - 0x2c]
+08336dec: leave
+08336ded: ret
+
+### 08336dee size=94 _ZN13user_creature8CStomach13IsSaveStomachENS_14CREATURE_STATEE
+08336dee: push     ebp
+08336def: mov      ebp, esp
+08336df1: sub      esp, 0x10
+08336df4: mov      byte ptr [ebp - 1], 1
+08336df8: mov      eax, dword ptr [ebp + 0xc]
+08336dfb: cmp      eax, 1
+08336dfe: je       0x8336e0c
+08336e00: cmp      eax, 1
+08336e03: jl       0x8336e46
+08336e05: cmp      eax, 3
+08336e08: jg       0x8336e46
+08336e0a: jmp      0x8336e28
+08336e0c: mov      eax, dword ptr [ebp + 8]
+08336e0f: fld      dword ptr [eax + 4]
+08336e12: fldz
+08336e14: fucompp
+08336e16: fnstsw   ax
+08336e18: test     ah, 5
+08336e1b: sete     al
+08336e1e: test     al, al
+08336e20: je       0x8336e45
+08336e22: mov      byte ptr [ebp - 1], 0
+08336e26: jmp      0x8336e46
+08336e28: mov      eax, dword ptr [ebp + 8]
+08336e2b: fld      dword ptr [eax + 4]
+08336e2e: fld      dword ptr [0x8c2f450]
+08336e34: fxch     st(1)
+08336e36: fucompp
+08336e38: fnstsw   ax
+08336e3a: sahf
+08336e3b: jne      0x8336e46
+08336e3d: jp       0x8336e46
+08336e3f: mov      byte ptr [ebp - 1], 0
+08336e43: jmp      0x8336e46
+08336e45: nop
+08336e46: movzx    eax, byte ptr [ebp - 1]
+08336e4a: leave
+08336e4b: ret
+
+### 08336e4c size=25 _ZN13user_creature8CStomach6ResumeEv
+08336e4c: push     ebp
+08336e4d: mov      ebp, esp
+08336e4f: sub      esp, 0x18
+08336e52: mov      dword ptr [esp], 0x941f714
+08336e59: call     0x80cbc9e ; _ZN11CSystemTime9getCurSecEv
+08336e5e: mov      edx, dword ptr [ebp + 8]
+08336e61: mov      dword ptr [edx], eax
+08336e63: leave
+08336e64: ret
+
+### 08336e66 size=72 _ZN13user_creature8CStomach14IncrementValueEf
+08336e66: push     ebp
+08336e67: mov      ebp, esp
+08336e69: sub      esp, 4
+08336e6c: mov      eax, dword ptr [ebp + 8]
+08336e6f: fld      dword ptr [eax + 4]
+08336e72: fadd     dword ptr [ebp + 0xc]
+08336e75: mov      eax, dword ptr [ebp + 8]
+08336e78: fstp     dword ptr [eax + 4]
+08336e7b: mov      eax, dword ptr [ebp + 8]
+08336e7e: fld      dword ptr [eax + 4]
+08336e81: fld      dword ptr [0x8c2f450]
+08336e87: fxch     st(1)
+08336e89: fucompp
+08336e8b: fnstsw   ax
+08336e8d: sahf
+08336e8e: seta     al
+08336e91: test     al, al
+08336e93: je       0x8336ea0
+08336e95: mov      eax, dword ptr [ebp + 8]
+08336e98: mov      edx, 0x42c80000
+08336e9d: mov      dword ptr [eax + 4], edx
+08336ea0: mov      eax, dword ptr [ebp + 8]
+08336ea3: mov      eax, dword ptr [eax + 4]
+08336ea6: mov      dword ptr [ebp - 4], eax
+08336ea9: fld      dword ptr [ebp - 4]
+08336eac: leave
+08336ead: ret
+
+### 0833eef6 size=14 _ZN13user_creature8CStomach15SetStomachValueEf
+0833eef6: push     ebp
+0833eef7: mov      ebp, esp
+0833eef9: mov      eax, dword ptr [ebp + 8]
+0833eefc: mov      edx, dword ptr [ebp + 0xc]
+0833eeff: mov      dword ptr [eax + 4], edx
+0833ef02: pop      ebp
+0833ef03: ret
+
+### 08635e96 size=185 _ZN13TimerCreature12dispatch_sigEiij
+08635e96: push     ebp
+08635e97: mov      ebp, esp
+08635e99: sub      esp, 0x28
+08635e9c: call     0x80cc18e ; _Z14G_CGameManagerv
+08635ea1: mov      dword ptr [esp + 8], 1
+08635ea9: mov      edx, dword ptr [ebp + 0xc]
+08635eac: mov      dword ptr [esp + 4], edx
+08635eb0: mov      dword ptr [esp], eax
+08635eb3: call     0x82947a4 ; _ZN12CGameManager7getUserEii
+08635eb8: mov      dword ptr [ebp - 0x10], eax
+08635ebb: cmp      dword ptr [ebp - 0x10], 0
+08635ebf: jne      0x8635ecb
+08635ec1: mov      eax, 0
+08635ec6: jmp      0x8635f4d
+08635ecb: mov      eax, dword ptr [ebp - 0x10]
+08635ece: mov      dword ptr [esp], eax
+08635ed1: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08635ed6: movzx    eax, ax
+08635ed9: cmp      eax, dword ptr [ebp + 0x10]
+08635edc: setne    al
+08635edf: test     al, al
+08635ee1: je       0x8635eea
+08635ee3: mov      eax, 0
+08635ee8: jmp      0x8635f4d
+08635eea: mov      eax, dword ptr [ebp - 0x10]
+08635eed: mov      dword ptr [esp], eax
+08635ef0: call     0x80cbc4e ; _ZNK15CUserCharacInfo14getCurCharacNoEv
+08635ef5: cmp      eax, dword ptr [ebp + 0x14]
+08635ef8: setne    al
+08635efb: test     al, al
+08635efd: je       0x8635f06
+08635eff: mov      eax, 0
+08635f04: jmp      0x8635f4d
+08635f06: mov      eax, dword ptr [ebp - 0x10]
+08635f09: mov      dword ptr [esp], eax
+08635f0c: call     0x863bdc4 ; _ZN15CUserCharacInfo11isSaveInvenEv
+08635f11: mov      byte ptr [ebp - 9], al
+08635f14: mov      eax, dword ptr [ebp - 0x10]
+08635f17: mov      dword ptr [esp], eax
+08635f1a: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+08635f1f: mov      dword ptr [esp], eax
+08635f22: call     0x80dd568 ; _ZN10CInventory15GetCreatureMgrWEv
+08635f27: mov      dword ptr [esp], eax
+08635f2a: call     0x8339acc ; _ZN13user_creature12CCreatureMgr17CheckDiedCreatureEv
+08635f2f: mov      byte ptr [ebp - 0x11], al
+08635f32: movzx    eax, byte ptr [ebp - 9]
+08635f36: xor      eax, 1
+08635f39: test     al, al
+08635f3b: je       0x8635f48
+08635f3d: mov      eax, dword ptr [ebp - 0x10]
+08635f40: mov      dword ptr [esp], eax
+08635f43: call     0x84ebf18 ; _ZN15CUserCharacInfo16disableSaveInvenEv
+08635f48: mov      eax, 1
+08635f4d: leave
+08635f4e: ret
+
+### 0863c6fe size=28 _ZN13TimerCreatureC2Ev
+0863c6fe: push     ebp
+0863c6ff: mov      ebp, esp
+0863c701: sub      esp, 0x18
+0863c704: mov      eax, dword ptr [ebp + 8]
+0863c707: mov      dword ptr [esp], eax
+0863c70a: call     0x863bb30 ; _ZN8TimerSigC2Ev
+0863c70f: mov      eax, dword ptr [ebp + 8]
+0863c712: mov      dword ptr [eax], 0x8ce8e50
+0863c718: leave
+0863c719: ret
+
+### 0863c6fe size=28 _ZN13TimerCreatureC1Ev
+0863c6fe: push     ebp
+0863c6ff: mov      ebp, esp
+0863c701: sub      esp, 0x18
+0863c704: mov      eax, dword ptr [ebp + 8]
+0863c707: mov      dword ptr [esp], eax
+0863c70a: call     0x863bb30 ; _ZN8TimerSigC2Ev
+0863c70f: mov      eax, dword ptr [ebp + 8]
+0863c712: mov      dword ptr [eax], 0x8ce8e50
+0863c718: leave
+0863c719: ret
+
+### 08640002 size=48 _ZN13TimerCreatureD2Ev
+08640002: push     ebp
+08640003: mov      ebp, esp
+08640005: sub      esp, 0x18
+08640008: mov      eax, dword ptr [ebp + 8]
+0864000b: mov      dword ptr [eax], 0x8ce8e50
+08640011: mov      eax, dword ptr [ebp + 8]
+08640014: mov      dword ptr [esp], eax
+08640017: call     0x812c9e2 ; _ZN8TimerSigD2Ev
+0864001c: mov      eax, 0
+08640021: test     al, al
+08640023: je       0x8640030
+08640025: mov      eax, dword ptr [ebp + 8]
+08640028: mov      dword ptr [esp], eax
+0864002b: call     0x87244f0 ; _ZdlPv
+08640030: leave
+08640031: ret
+
+### 08640002 size=48 _ZN13TimerCreatureD1Ev
+08640002: push     ebp
+08640003: mov      ebp, esp
+08640005: sub      esp, 0x18
+08640008: mov      eax, dword ptr [ebp + 8]
+0864000b: mov      dword ptr [eax], 0x8ce8e50
+08640011: mov      eax, dword ptr [ebp + 8]
+08640014: mov      dword ptr [esp], eax
+08640017: call     0x812c9e2 ; _ZN8TimerSigD2Ev
+0864001c: mov      eax, 0
+08640021: test     al, al
+08640023: je       0x8640030
+08640025: mov      eax, dword ptr [ebp + 8]
+08640028: mov      dword ptr [esp], eax
+0864002b: call     0x87244f0 ; _ZdlPv
+08640030: leave
+08640031: ret
+
+### 08640032 size=30 _ZN13TimerCreatureD0Ev
+08640032: push     ebp
+08640033: mov      ebp, esp
+08640035: sub      esp, 0x18
+08640038: mov      eax, dword ptr [ebp + 8]
+0864003b: mov      dword ptr [esp], eax
+0864003e: call     0x8640002 ; _ZN13TimerCreatureD1Ev
+08640043: mov      eax, dword ptr [ebp + 8]
+08640046: mov      dword ptr [esp], eax
+08640049: call     0x87244f0 ; _ZdlPv
+0864004e: leave
+0864004f: ret

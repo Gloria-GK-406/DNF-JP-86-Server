@@ -1,0 +1,39 @@
+
+### 0833ef20 size=120 _ZN13user_creature13CCreatureItem3SetEPS0_
+0833ef20: push     ebp
+0833ef21: mov      ebp, esp
+0833ef23: sub      esp, 0x18
+0833ef26: mov      eax, dword ptr [ebp + 0xc]
+0833ef29: mov      dword ptr [esp], eax
+0833ef2c: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833ef31: mov      edx, dword ptr [ebp + 8]
+0833ef34: mov      dword ptr [edx + 4], eax
+0833ef37: mov      eax, dword ptr [ebp + 0xc]
+0833ef3a: mov      dword ptr [esp], eax
+0833ef3d: call     0x833ef98 ; _ZN13user_creature13CCreatureItem19GetCreatureItemTypeEv
+0833ef42: mov      edx, dword ptr [ebp + 8]
+0833ef45: mov      dword ptr [edx + 8], eax
+0833ef48: mov      eax, dword ptr [ebp + 0xc]
+0833ef4b: mov      dword ptr [esp], eax
+0833ef4e: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+0833ef53: mov      edx, dword ptr [ebp + 8]
+0833ef56: mov      dword ptr [edx + 0xc], eax
+0833ef59: mov      eax, dword ptr [ebp + 0xc]
+0833ef5c: mov      dword ptr [esp], eax
+0833ef5f: call     0x833efca ; _ZN13user_creature13CCreatureItem9GetSlotNoEv
+0833ef64: mov      edx, dword ptr [ebp + 8]
+0833ef67: mov      dword ptr [edx + 0x10], eax
+0833ef6a: mov      eax, dword ptr [ebp + 0xc]
+0833ef6d: mov      dword ptr [esp], eax
+0833ef70: call     0x833efd6 ; _ZN13user_creature13CCreatureItem11GetNoChargeEv
+0833ef75: mov      edx, dword ptr [ebp + 8]
+0833ef78: mov      byte ptr [edx + 0x14], al
+0833ef7b: mov      eax, dword ptr [ebp + 0xc]
+0833ef7e: mov      dword ptr [esp], eax
+0833ef81: call     0x833eff0 ; _ZN13user_creature13CCreatureItem7GetStatEv
+0833ef86: mov      edx, dword ptr [ebp + 8]
+0833ef89: mov      byte ptr [edx + 0x15], al
+0833ef8c: mov      eax, dword ptr [ebp + 8]
+0833ef8f: mov      dword ptr [eax + 0x18], 0
+0833ef96: leave
+0833ef97: ret

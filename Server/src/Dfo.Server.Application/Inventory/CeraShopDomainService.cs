@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
@@ -12,6 +13,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Application.Creatures;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -19,7 +21,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
     ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
-    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage) : ICeraShopDomainService
+    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
+    ICreatureDomainService? creatureDomains = null) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -100,12 +103,23 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (hasCreatures)
         {
-            var rows = await creatures.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
-            if (rows.Count > byte.MaxValue)
-                throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
-            pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
-                row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
-                row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
+            if (creatureDomains is not null)
+            {
+                var states = await creatureDomains.GetStore(session.CharacterId)
+                    .ReadAllAsync(cancellationToken).ConfigureAwait(false);
+                if (states.Count > byte.MaxValue)
+                    throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
+                pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
+            }
+            else
+            {
+                var rows = await creatures.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+                if (rows.Count > byte.MaxValue)
+                    throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
+                pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
+                    row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
+                    row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
+            }
         }
         AccountEntitlementEntryState? entitlements = null;
         IReadOnlyList<CharacterPremiumUsageSlotState> usage = [];
