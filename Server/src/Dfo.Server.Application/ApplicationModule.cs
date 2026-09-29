@@ -274,6 +274,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
         services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
+        services.TryAddSingleton<IInventorySortDomainService, InventorySortDomainService>();
         services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
         services.TryAddSingleton<ICeraShopRuleService, CeraShopRuleService>();

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
@@ -91,6 +92,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
             PvfDungeonExperienceProgressionPolicySource>();
         services.TryAddSingleton<IEquipmentRequirementDefinitionSource, PvfEquipmentRequirementDefinitionSource>();
+        services.TryAddSingleton<IInventorySortKeySource, PvfInventorySortKeySource>();
         services.TryAddSingleton<IPremiumServiceDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IQuestHelperPuppetDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,

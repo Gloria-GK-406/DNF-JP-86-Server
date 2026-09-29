@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-09-29 自动整理接入
+
+[CMD0014](game/client-to-server/0x0014.md) 装备默认请求 `00 01 00` 再次 WireCaptured；按 A21 分类接入事务整理和定向完整背包刷新。响应沿用 70/上游编排，CurrentImplementation，尚待实机。见[流程](patterns/flow-inventory-sort.md)。
+
 ## 2026-09-28 黑钻默认资格投影
 
 CMD0004 普通权益列表按服务器配置合成 type 56；CMD0041/NOTI01F7 改为无需购买提示，线布局不变。CurrentImplementation，黑钻显示尚待实机验收，不包含具体权益效果。见[黑钻默认权益](../Document/黑钻默认权益.md)。

@@ -158,6 +158,7 @@ public enum ClientMessageType
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
+    GameSortItem = 0x0001_0014,
 
     // Pausing and resuming a scripted moment inside a dungeon. See Game/StoryPause.
     GameStoryPause = 0x0001_00BF,
@@ -272,6 +273,7 @@ public enum ServerMessageType
 
     // Where a moved item ended up, or why it did not move. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
+    GameSortItem = 0x0001_0014,
 
     // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
     // See Game/StoryPause.

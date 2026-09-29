@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.InventorySort;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Protocol.Game.RecoverStamina;
@@ -192,6 +193,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<InventorySorted, InventorySortedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>(retryLimit: 0);
@@ -387,6 +389,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult,
             PortableDisjointItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -548,6 +552,7 @@ public sealed class ProtocolModule : IServerModule
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
+        services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
@@ -755,6 +760,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
             GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
+        services.AddGameCmdMessageDecoder<SortItemMessageDecoder>(GameProtocol.SortItemType, ClientMessageType.GameSortItem);
         services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(
             GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
         services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
@@ -882,6 +888,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();

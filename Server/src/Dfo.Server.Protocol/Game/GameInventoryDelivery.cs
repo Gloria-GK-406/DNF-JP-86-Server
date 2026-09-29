@@ -427,6 +427,10 @@ internal static class GameInventoryDelivery
     /// registered this frame would be the slice that owned it, which is the thing lifting it
     /// undid.
     /// </remarks>
-    public static void AddEncoders(IServiceCollection services) =>
+    public static void AddEncoders(IServiceCollection services)
+    {
         services.AddGameNotiMessageEncoder<InventoryDeltaMessage, InventoryDeltaEncoder>();
+        services.AddGameNotiMessageEncoder<InventoryFullSnapshotMessage, InventoryFullSnapshotEncoder>();
+        services.AddGameNotiMessageEncoder<InventoryLocksMessage, InventoryLocksEncoder>();
+    }
 }

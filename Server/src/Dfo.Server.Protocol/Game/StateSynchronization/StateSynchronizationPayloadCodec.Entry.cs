@@ -533,20 +533,9 @@ internal static partial class StateSynchronizationPayloadCodec
         return stream.ToArray();
     }
 
-    public static byte[] EncodeEquipmentLocks(
-        IReadOnlyList<InventoryEquipmentLockState> characterLocks,
-        IReadOnlyList<InventoryEquipmentLockState> accountLocks)
-    {
-        var locks = characterLocks.Concat(accountLocks).OrderBy(value => value.EquipmentLockId).ToArray();
-        if (locks.Length > ushort.MaxValue) throw CountError("equipment lock", "u16");
-        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(checked((ushort)locks.Length));
-        foreach (var value in locks)
-        {
-            writer.Write((byte)value.ContainerType); writer.Write(checked((ushort)value.SlotIndex)); writer.Write(value.State);
-            if (value.RemainingSeconds != 0) writer.Write(value.RemainingSeconds);
-        }
-        return stream.ToArray();
-    }
+    public static byte[] EncodeEquipmentLocks(IReadOnlyList<InventoryEquipmentLockState> characterLocks,
+        IReadOnlyList<InventoryEquipmentLockState> accountLocks) =>
+        GameInventorySnapshotCodec.EncodeEquipmentLocks(characterLocks, accountLocks);
 
     public static byte[] EncodeExpert(CharacterExpertJobEntryState expert)
     {
