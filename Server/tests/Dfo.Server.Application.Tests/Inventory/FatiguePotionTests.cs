@@ -23,10 +23,13 @@ public sealed class FatiguePotionTests
         public DateTimeOffset Now = Morning;
         public override DateTimeOffset GetUtcNow() => Now;
     }
-    private sealed class Content : IStackableActionDefinitionSource
+    private sealed class Content : IStackableActionDefinitionSource, IItemUsageRuleSource
     {
         public StackableActionDefinition Rule = new("[add fatigue]", 1, 85, 0, true)
-            { FatigueRecovery = 30, DailyUseLimit = 1, CooldownMilliseconds = 10000 };
+            { FatigueRecovery = 30 };
+        public ItemUsageRule Usage = new(1, 10000, true);
+        ValueTask<ItemUsageRule?> IItemUsageRuleSource.GetAsync(int id, CancellationToken token) =>
+            ValueTask.FromResult<ItemUsageRule?>(Usage);
         public ValueTask<StackableActionDefinition?> GetAsync(int id, CancellationToken token) => ValueTask.FromResult<StackableActionDefinition?>(Rule);
     }
     // Exercise the real shared SQLite transaction: the test bag writes through the same database participant.
@@ -50,6 +53,7 @@ public sealed class FatiguePotionTests
         {
             services.AddSingleton<TimeProvider>(clock);
             services.AddSingleton<IStackableActionDefinitionSource>(content);
+            services.AddSingleton<IItemUsageRuleSource>(content);
             services.AddSingleton<IOpeningInventoryDomainService, Bag>();
         });
     private static async Task Spend(LearningFixture f, ushort amount)
@@ -96,7 +100,7 @@ public sealed class FatiguePotionTests
         await Spend(f, 100); await Use(f, clock);
         Assert.Equal(1, f.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='consumable_used_2600026'"));
 
-        content.Rule = content.Rule with { DailyUseLimit = -1, CooldownMilliseconds = 86400000 };
+        content.Usage = new(-1, 86400000, true);
         await Use(f, clock, 7456);
         clock.Now = clock.Now.AddHours(23).AddMinutes(59);
         await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f, clock, 7456));
@@ -133,7 +137,8 @@ public sealed class FatiguePotionTests
     public async Task Three_use_item_allows_exactly_three_successes_and_checks_cooldown()
     {
         var clock = new Clock(); var content = new Content();
-        content.Rule = content.Rule with { DailyUseLimit = 3, FatigueRecovery = 50, CooldownMilliseconds = 1000 };
+        content.Rule = content.Rule with { FatigueRecovery = 50 };
+        content.Usage = new(3, 1000, true);
         await using var f = Fixture(clock, content);
         await f.SeedAsync(); await Spend(f, 188);
         await Use(f, clock, 416);

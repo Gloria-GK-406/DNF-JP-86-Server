@@ -18,7 +18,10 @@ public sealed class FatiguePotionContentTests
         Assert.True(rule.IsReadable);
         Assert.Equal("[add fatigue]", rule.Action);
         Assert.Equal(recovery, rule.FatigueRecovery);
-        Assert.Equal(limit, rule.DailyUseLimit);
-        Assert.Equal(cooldown, rule.CooldownMilliseconds);
+        var usage = await new PvfItemUsageRuleSource(provider).GetAsync(id, default);
+        Assert.NotNull(usage);
+        Assert.True(usage.IsReadable);
+        Assert.Equal(limit, usage.DailyLimit);
+        Assert.Equal(cooldown, usage.CooldownMilliseconds);
     }
 }

@@ -54,15 +54,9 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
             else if (token.Kind != Dfo.Pvf.Tokens.PvfTokenKind.Int32 || token.Value != 0)
                 unreadable = true;
         }
-        var limitTag = archive.GetTag("[total usable count]");
-        reader.Reset();
-        var limit = limitTag.IsResolved && reader.TryMovePast(limitTag)
-            ? PvfItemUseRuleDefinitionSource.FirstInt32(ref reader, limitTag, ref unreadable) : -1;
-        var cooldown = PvfItemUseRuleDefinitionSource.FirstInt32(ref reader,
-            archive.GetTag("[cool time]"), ref unreadable);
         return new(actionName, min, max, expiry,
-            !unreadable && min >= 0 && max >= min && limit >= -1 && cooldown >= 0
+            !unreadable && min >= 0 && max >= min
                 && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
-        { FatigueRecovery = recovery, DailyUseLimit = limit, CooldownMilliseconds = cooldown };
+        { FatigueRecovery = recovery };
     }
 }

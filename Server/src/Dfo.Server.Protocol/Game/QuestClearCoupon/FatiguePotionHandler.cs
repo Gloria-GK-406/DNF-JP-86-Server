@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
@@ -32,7 +33,8 @@ public sealed class UseFatiguePotionCommandHandler(IFatiguePotionDomainService p
 
 public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICommandBus commands, INotificationBus notifications,
-    ICharacterFatigueDomainService fatigue, IGameMessageSender sender, ILogger<FatiguePotionHandler> logger)
+    ICharacterFatigueDomainService fatigue, IGameMessageSender sender, ILogger<FatiguePotionHandler> logger,
+    ItemUsageProjectionDelivery itemUsageProjection, SelectedSessionTransitionGate transitions)
 {
     public async ValueTask HandleAsync(NetworkDispatchContext context, QuestClearCouponRequest request, CancellationToken ct)
     {
@@ -43,6 +45,9 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             await RefuseAsync(context, request, ct).ConfigureAwait(false);
             return;
         }
+        await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
+        if (sessions.FindByCharacter(session.CharacterId) != session
+            || sessions.FindByConnection(session.ConnectionId) != session) return;
         OpeningInventoryReceipt receipt;
         try
         {
@@ -54,6 +59,7 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             logger.LogInformation("Fatigue potion refused character={CharacterId} slot={Slot}: {Reason}",
                 session.CharacterId, request.SourceSlot, ex.Message);
             await RefuseAsync(context, request, ct).ConfigureAwait(false);
+            await itemUsageProjection.SendAsync(session, ct).ConfigureAwait(false);
             return;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -68,6 +74,7 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             new OpeningCompleted(receipt,
                 [new QuestClearCouponResponse(true, request.SourceSlot, request.Container) { Action = request.Action }],
                 FollowingMessages: [new FatigueNotification(balance)]), ct).ConfigureAwait(false);
+        await itemUsageProjection.SendAsync(session, ct).ConfigureAwait(false);
         logger.LogInformation("Fatigue potion used character={CharacterId} slot={Slot} remaining={Remaining}",
             session.CharacterId, request.SourceSlot, balance.Remaining);
     }

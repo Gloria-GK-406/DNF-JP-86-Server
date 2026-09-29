@@ -13,6 +13,17 @@ internal sealed class SqliteConsumableUsageTable(SqliteDatabase database) : ICon
             r => new ConsumableUsageRow(r.GetInt32(0), r.IsDBNull(1) ? null : DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(1))),
             token).ConfigureAwait(false)).SingleOrDefault();
 
+    public async ValueTask<IReadOnlyDictionary<int, ConsumableUsageRow>> ReadAllAsync(CharacterId id, CancellationToken token)
+    {
+        var rows = await database.ReadAllAsync(
+            "SELECT counter_key,value,last_consumed_at FROM character_daily_counters WHERE character_id=@id AND counter_key GLOB 'consumable_used_*'",
+            p => p.AddWithValue("@id", id.Value),
+            r => (Key: r.GetString(0), Row: new ConsumableUsageRow(r.GetInt32(1),
+                r.IsDBNull(2) ? null : DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(2)))), token).ConfigureAwait(false);
+        return rows.ToDictionary(x => int.Parse(x.Key["consumable_used_".Length..],
+            System.Globalization.CultureInfo.InvariantCulture), x => x.Row);
+    }
+
     public ValueTask<int> TryWriteAsync(CharacterId id, int itemId, ConsumableUsageRow? expected,
         int usedCount, DateTimeOffset usedAt, CancellationToken token) =>
         database.ExecuteAsync("""

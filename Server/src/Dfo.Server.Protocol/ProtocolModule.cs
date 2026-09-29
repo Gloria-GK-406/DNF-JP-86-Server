@@ -150,6 +150,9 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.AddHostedService<WeaknessRecoveryService>();
         services.AddHostedService<PremiumDailyRefreshService>();
+        services.AddSingleton<ItemUsageProjectionDelivery>();
+        services.AddHostedService<ItemUsageDailyRefreshService>();
+        services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ConsumeDungeonBuffCommand, PremiumSnapshotResult, ConsumeDungeonBuffCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult, ReadPremiumSnapshotCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Transactional);
