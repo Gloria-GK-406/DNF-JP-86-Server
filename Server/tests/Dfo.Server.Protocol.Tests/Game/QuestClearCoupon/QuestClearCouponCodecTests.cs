@@ -24,11 +24,12 @@ public sealed class QuestClearCouponCodecTests
     public void Fatigue_action_is_separate_from_quest_coupon_and_echoes_its_action()
     {
         var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,
-            Convert.FromHexString("45000000000000370000000000000000000000"));
+            Convert.FromHexString("480000000000003A0000000000000000000000"));
         Assert.False(request.IsSupported);
         Assert.True(request.IsFatiguePotion);
-        Assert.Equal(Convert.FromHexString("0145000037000000"),
-            QuestClearCouponPayloadCodec.Encode(new(true, 69, 0) { Action = 55 }));
+        Assert.False((request with { Action = 55 }).IsFatiguePotion);
+        Assert.Equal(Convert.FromHexString("014800003A000000"),
+            QuestClearCouponPayloadCodec.Encode(new(true, 72, 0) { Action = 58 }));
         Assert.False((request with { Reserved2 = 1 }).IsFatiguePotion);
         Assert.False((request with { Container = 1 }).IsFatiguePotion);
     }

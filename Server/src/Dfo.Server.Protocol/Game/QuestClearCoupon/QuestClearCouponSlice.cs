@@ -26,7 +26,7 @@ public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short
     public bool IsSupported => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
         && Action == 77 && Reserved2 == 0 && Reserved3 == 0;
     public bool IsFatiguePotion => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
-        && Action == 55 && Reserved2 == 0 && Reserved3 == 0;
+        && Action == 58 && Reserved2 == 0 && Reserved3 == 0;
 }
 
 internal static class QuestClearCouponPayloadCodec
@@ -66,10 +66,15 @@ internal static class QuestClearCouponPayloadCodec
     }
 }
 
-internal sealed class QuestClearCouponDecoder : IGameMessageDecoder
+internal sealed class QuestClearCouponDecoder(ILogger<QuestClearCouponDecoder>? logger = null) : IGameMessageDecoder
 {
-    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        QuestClearCouponPayloadCodec.Decode(metadata, body);
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        if (logger?.IsEnabled(LogLevel.Debug) == true)
+            logger.LogDebug("STACKABLE_ACTION capture metadata={Metadata} body({Length}B)={Body}",
+                metadata, body.Length, Convert.ToHexString(body));
+        return QuestClearCouponPayloadCodec.Decode(metadata, body);
+    }
 }
 
 public sealed record QuestClearCouponResponse(bool Succeeded, short SourceSlot, byte Container) : IGameCmdMessage
