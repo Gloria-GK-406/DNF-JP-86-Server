@@ -22,6 +22,24 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 public sealed class SelectCharacterPayloadCodecTests
 {
     [Fact]
+    public void Black_diamond_uses_ordinary_entry_list_and_does_not_occupy_devil_slots()
+    {
+        var result = SelectCharacterPayloadTestData.Create();
+        var grant = new AccountPremiumEntryState(56, 1731536000L);
+        var changed = result with { Account = result.Account with
+        {
+            Entitlements = new AccountEntitlementEntryState([grant]),
+        }};
+        var body = EncodeAcknowledgement(changed);
+        Assert.Equal(1, body[17]);
+        Assert.Equal(56, body[18]);
+        Assert.Equal(31536000L, BinaryPrimitives.ReadInt64LittleEndian(body.AsSpan(19, 8)));
+        Assert.Equal(1234, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(27, 4)));
+        Assert.Equal(new PremiumServiceStateMessage(new([]), [], DateTimeOffset.FromUnixTimeSeconds(1700000000)).EncodeBody(),
+            new PremiumServiceStateMessage(new([grant]), [], DateTimeOffset.FromUnixTimeSeconds(1700000000)).EncodeBody());
+    }
+
+    [Fact]
     public void Premium_snapshot_preserves_all_eight_unsigned_expiries_and_single_byte_counts()
     {
         var now=DateTimeOffset.FromUnixTimeSeconds(1700000000);
@@ -691,6 +709,7 @@ public sealed class SelectCharacterPayloadCodecTests
 
             var services = new ServiceCollection();
             services.AddSingleton(repository);
+            services.AddSingleton<Dfo.Server.Abstractions.Accounts.IPremiumServiceDomainService>(new Dfo.Server.Protocol.Tests.Support.CardPremiums());
             services.AddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService>(new Dfo.Server.Application.Tests.Support.NoticeStateStub());
             services.AddSingleton<ICharacterDomainService>(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
             services.AddSingleton<IQuestDefinitionSource>(new Row9QuestDefinitions(13502));

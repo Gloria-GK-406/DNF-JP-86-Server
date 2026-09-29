@@ -105,6 +105,9 @@ public enum ExperienceBonusKind
 
     /// <summary>精灵秘药；领域独立计账，A21 的专用显示槽尚未证实。</summary>
     SpiritPotion,
+
+    /// <summary>黑钻，通关结算专用加成。</summary>
+    BlackDiamond,
 }
 
 /// <summary>One reason a character earns more than the occasion is worth.</summary>

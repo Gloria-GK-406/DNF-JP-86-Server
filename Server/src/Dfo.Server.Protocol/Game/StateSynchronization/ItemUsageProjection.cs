@@ -1,0 +1,100 @@
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.World;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Protocol.Game.StateSynchronization;
+
+internal sealed record ItemUsageCountMessage(IReadOnlyList<ItemUsageState> Items) : GameStateSynchronizationMessage, IGameNotiMessage
+{
+    internal override ushort Type => 0x021E;
+    internal override byte[] EncodeBody()
+    {
+        var body = new byte[checked(1 + Items.Count * 5)];
+        body[0] = checked((byte)Items.Count);
+        for (var i = 0; i < Items.Count; i++)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(1 + i * 5), Items[i].ItemId);
+            body[5 + i * 5] = checked((byte)Items[i].UsedCount);
+        }
+        return body;
+    }
+    internal static IReadOnlyList<ItemUsageCountMessage> FullSnapshot(IReadOnlyList<ItemUsageState> items)
+    {
+        // Zero clears both client maps. Nonempty packets upsert, so chunking does not erase earlier chunks.
+        var messages = new List<ItemUsageCountMessage> { new([]) };
+        foreach (var chunk in items.Chunk(byte.MaxValue)) messages.Add(new(chunk));
+        // Validate the whole delivery before sending its reset frame. Never silently truncate a count.
+        foreach (var message in messages) _ = message.EncodeBody();
+        return messages;
+    }
+}
+
+public sealed record ReadItemUsageSnapshotCommand(SelectedSessionIdentity Session)
+    : ICommand<ItemUsageSnapshotResult>, IAccountCommand
+{
+    public AccountId AccountId => Session.AccountId;
+}
+public sealed record ItemUsageSnapshotResult(IReadOnlyList<ItemUsageState> Items, bool IsCurrent);
+public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService usage, ISelectedSessionDomainService sessions)
+    : ICommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult>
+{
+    public async ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
+        ReadItemUsageSnapshotCommand command, CancellationToken token)
+    {
+        if (sessions.FindByCharacter(command.Session.CharacterId) != command.Session) return new([], false);
+        return new(await usage.GetSnapshotAsync(command.Session.CharacterId, token).ConfigureAwait(false), true);
+    }
+}
+public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedSessionDomainService sessions, IGameMessageSender sender)
+{
+    // Callers hold the selected-session transition lease across read and delivery (including reset + chunks).
+    public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
+    {
+        var snapshot = await commands.SendAsync(new ReadItemUsageSnapshotCommand(session), token).ConfigureAwait(false);
+        if (!snapshot.IsCurrent || sessions.FindByCharacter(session.CharacterId) != session) return;
+        foreach (var message in ItemUsageCountMessage.FullSnapshot(snapshot.Items))
+            await sender.SendNotiAsync(session.ConnectionId, message, token).ConfigureAwait(false);
+    }
+}
+
+// One server timer only checks online sessions. Offline counters remain untouched and reset on read.
+public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery directory,
+    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    IDailyResetRuleService days, TimeProvider clock, ItemUsageProjectionDelivery delivery,
+    ILogger<ItemUsageDailyRefreshService> logger) : BackgroundService
+{
+    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
+    public async Task RefreshAsync(CancellationToken token)
+    {
+        var current = directory.Snapshot();
+        foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
+        foreach (var session in current)
+        {
+            var period = days.PeriodStart(clock.GetUtcNow());
+            if (delivered.TryGetValue(session, out var previous) && previous == period) continue;
+            try
+            {
+                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
+                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
+                await delivery.SendAsync(session, token).ConfigureAwait(false);
+                delivered[session] = period;
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception ex) { logger.LogWarning(ex, "Item usage projection failed character={CharacterId}", session.CharacterId); }
+        }
+    }
+    protected override async Task ExecuteAsync(CancellationToken token)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
+        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await RefreshAsync(token).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    }
+}

@@ -60,6 +60,12 @@ public sealed class DungeonCardSelectionProjectionDelivery(
                     accountMaterial.FinalCount)],
                 preparedAt));
         }
+        if (result.BlackDiamondDelivered is { } bonusDelivery)
+            actorFrames.Add(GameInventoryDelivery.Notification(bonusDelivery));
+        if (result.BlackDiamondAccountMaterial is { } bonusMaterial)
+            actorFrames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [new InventoryRuntimeValueState(bonusMaterial.VirtualSlotIndex, bonusMaterial.ItemId,
+                    bonusMaterial.FinalCount)], preparedAt));
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
         {
             actorFrames.Add(GameInventoryDelivery.CarriedGoldNotification(

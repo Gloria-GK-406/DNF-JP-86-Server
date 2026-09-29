@@ -29,7 +29,9 @@ public sealed class SelectCharacterAcceptedTranscriptTests
     // See patterns/data/traces/a21-entry-batch-diff-20260825.md.
     private static readonly string[] AcceptedKnightFrameSha256 =
     [
-        "55C07ECCFA9443FC8EFF74A0857ED4BF0F7EBB2ACEACC7836D7C9B8104B21853",
+        // 2026-09-29 fatigue: body+11=used, +13=total, +15=cumulative.
+        // Code regression baseline; first-field display is separately ClientVerified.
+        "0FD0CB22363516FC86B10D6A3C4DA5989EB2DE2007AF796A1BABF8E35220736A",
         "486451B3F7C6A4F913C62CD875328E561955AE243D1FA4DE835561797CDD703D",
         "B3433E48A2C46585B306871332720618B73D1AC7C959D4B651276F99BFB01C9B",
         "B9187663D16574D9D0D634D0281C9027D85A79C69918A236332220403837A33A",

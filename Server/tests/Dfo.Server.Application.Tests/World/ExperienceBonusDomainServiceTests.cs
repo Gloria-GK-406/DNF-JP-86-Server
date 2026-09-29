@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
@@ -52,9 +53,26 @@ public sealed class ExperienceBonusDomainServiceTests
     public void Expired_growth_does_not_contribute(long expiry) =>
         Assert.Empty(Collect(Service(premiums: [new(84, expiry)]), OtherDungeon));
 
+    [Theory]
+    [InlineData(ExperienceEvent.DungeonClear, true, true)]
+    [InlineData(ExperienceEvent.DungeonClear, false, false)]
+    [InlineData(ExperienceEvent.MonsterKill, true, false)]
+    [InlineData(ExperienceEvent.QuestCompletion, true, false)]
+    public void BlackDiamondIsOnlyGrantedForEligibleClear(ExperienceEvent occasion, bool enabled, bool expected)
+    {
+        var found = Collect(Service(blackDiamond: enabled, premiums: [new(56, 4_000_000_000)]), OtherDungeon, occasion);
+        Assert.Equal(expected ? 1 : 0, found.Count);
+        if (expected)
+        {
+            Assert.Equal(ExperienceBonusKind.BlackDiamond, found[0].Kind);
+            Assert.Equal(.05, found[0].Rate);
+        }
+    }
+
     private sealed class Rates : IPremiumServiceRuleService
     {
         public int GrowthBossEquipmentBonusPercent(int count) => count == 0 ? 0 : new[] {20,23,27,30}[count-1];
+        public double BlackDiamondExperienceBonusRate => .05;
         public double GrowthExperienceBonusRate => .2;
         public IReadOnlyList<int> QuestHelperMinimumDropRates => throw new NotSupportedException();
         public int DrawQuestHelperBonusCount(ulong seed) => throw new NotSupportedException();
@@ -174,11 +192,12 @@ public sealed class ExperienceBonusDomainServiceTests
         ChannelExperienceCatalog? channels = null,
         int channelId = Channel,
         IReadOnlyList<AccountPremiumRow>? premiums = null,
-        ISpiritPotionDomainService? potions = null) =>
+        ISpiritPotionDomainService? potions = null,
+        bool blackDiamond = false) =>
         new ExperienceBonusDomainService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
-            new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates()),
+            new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
             new OneChannel(channelId),
             new ExperienceRuleService(
                 new UnpricedKills(),

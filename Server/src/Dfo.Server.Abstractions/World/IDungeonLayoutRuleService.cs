@@ -108,7 +108,8 @@ public sealed record DungeonLayout(
     IReadOnlyDictionary<MazeCell, int> Rooms,
     byte BasisLevel = 1,
     double ExperienceWeight = 1.0,
-    DungeonRunPurpose Purpose = default)
+    DungeonRunPurpose Purpose = default,
+    bool ConsumesFatigue = true)
 {
 
     /// <summary>Resolve an absolute map level or a level relative to this dungeon.</summary>

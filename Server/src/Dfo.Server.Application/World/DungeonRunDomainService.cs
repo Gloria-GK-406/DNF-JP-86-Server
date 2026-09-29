@@ -110,6 +110,12 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         lock (this.gate)
         {
+            if (this.transactions?.Current is { } transaction)
+            {
+                var previous = frozen.ToDictionary(x => x.CharacterId, x => this.runsByCharacter.GetValueOrDefault(x.CharacterId));
+                transaction.Enlist(new object(), () => new EntryCommit(this, aggregate, previous));
+                return aggregate.EntryChange(DungeonEntryChangeKind.Prepared, aggregate.Leader.CharacterId);
+            }
             foreach (var participant in frozen)
                 this.DetachParticipant(participant.CharacterId);
 
@@ -452,6 +458,14 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             return null;
         }
 
+        if (!aggregate.Cells.ContainsKey(target) && (preparedCell is null || !preparedCell.IsComplete))
+            return null;
+        if (this.transactions?.Current is { } transaction)
+        {
+            var cell = aggregate.Cells.GetValueOrDefault(target) ?? aggregate.CreateCell(preparedCell!);
+            var movement = transaction.Enlist(new object(), () => new MoveCommit(this, aggregate, characterId, target, cell));
+            return movement.Preview;
+        }
         if (!aggregate.Cells.ContainsKey(target))
         {
             if (preparedCell is null || !preparedCell.IsComplete)
@@ -950,15 +964,17 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunId expectedRunId,
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
-        int? paidFlipCost) =>
-        this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost);
+        int? paidFlipCost,
+        ClearRewardCardFace? blackDiamond = null) =>
+        this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost, blackDiamond);
 
     private DungeonRunState? FixClearRewardCardsCore(
         CharacterId characterId,
         DungeonRunId? expectedRunId,
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
-        int? paidFlipCost)
+        int? paidFlipCost,
+        ClearRewardCardFace? blackDiamond = null)
     {
         ArgumentNullException.ThrowIfNull(free);
         ArgumentNullException.ThrowIfNull(paid);
@@ -972,7 +988,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
             var progress = aggregate.ProgressFor(characterId);
             progress.ClearRewardCards ??= new ClearRewardCardSet(
-                free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost);
+                free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost)
+            { BlackDiamond = blackDiamond };
             return aggregate.ViewFor(characterId);
         }
     }
@@ -1138,7 +1155,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 prepared.Key.Card.Kind,
                 prepared.Slot,
                 prepared.CharacterId,
-                prepared.Slot));
+                prepared.Slot)
+            {
+                Gold = cards.FaceOf(prepared.Key.Card.Kind).Gold,
+                Item = cards.SlotAt(prepared.Key.Card.Kind, prepared.Key.Card.Index)?.Item,
+            });
             // A free-card confirmation is private until every current participant has confirmed.
             // The wire index is not the shared display column; the party seat is.
             var ready = prepared.Key.Card.Kind is ClearRewardCardKind.Paid

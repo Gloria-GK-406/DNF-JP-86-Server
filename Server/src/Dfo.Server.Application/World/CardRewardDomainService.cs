@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.World;
@@ -10,11 +11,12 @@ namespace Dfo.Server.Application.World;
 /// The order is fixed and only the middle step is anybody else's: this prepares each face's
 /// occasion and each face's seed, the rules say what that occasion and that seed come to, and the
 /// run keeps the answer. Nothing here decides what a card holds, and nothing here reads the
-/// archive; the only two things it is handed are the rules and the run.
+/// archive; entitlement eligibility comes from the premium service.
 /// </remarks>
 internal sealed class CardRewardDomainService(
     IClearRewardRuleService cardRules,
-    IDungeonRunDomainService runs) : ICardRewardDomainService
+    IDungeonRunDomainService runs,
+    IPremiumServiceDomainService premiums) : ICardRewardDomainService
 {
     public async ValueTask<ClearRewardSettlementResult?> SettleAsync(
         ClearRewardSettlement settlement, CancellationToken cancellationToken)
@@ -69,16 +71,20 @@ internal sealed class CardRewardDomainService(
             ? cardRules.PaidFlipCost(run.Layout.BasisLevel)
             : null;
 
-        var free = this.FaceFor(run, settlement, ClearRewardCardKind.Free);
-        var paid = this.FaceFor(run, settlement, ClearRewardCardKind.Paid);
+        var accountId = run.Participants.Single(participant => participant.CharacterId == settlement.CharacterId).AccountId;
+        var eligible = await premiums.For(accountId).IsActiveAsync(
+            PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false);
+        var free = this.FaceFor(run, settlement, ClearRewardCardKind.Free, eligible);
+        var paid = this.FaceFor(run, settlement, ClearRewardCardKind.Paid, eligible);
+        var blackDiamond = eligible
+            ? this.FaceFor(run, settlement, ClearRewardCardKind.BlackDiamond, eligible)
+            : null;
 
         // The answer's price is read back off the cards rather than taken from the local, so that
         // a settlement which lost the race to another one reports the winner's price beside the
         // winner's faces instead of its own beside somebody else's.
-        var fixedRun = settlement.RunId == default
-            ? runs.FixClearRewardCards(settlement.CharacterId, free, paid, cost)
-            : runs.FixClearRewardCards(
-                settlement.CharacterId, settlement.RunId, free, paid, cost);
+        var fixedRun = runs.FixClearRewardCards(
+            settlement.CharacterId, run.RunId, free, paid, cost, blackDiamond);
         return fixedRun?.ClearRewardCards
             is { } fixedCards
             ? new ClearRewardSettlementResult(fixedCards, fixedCards.PaidFlipCost)
@@ -112,7 +118,7 @@ internal sealed class CardRewardDomainService(
     /// </para>
     /// </remarks>
     private ClearRewardCardFace FaceFor(
-        DungeonRunState run, ClearRewardSettlement settlement, ClearRewardCardKind kind) =>
+        DungeonRunState run, ClearRewardSettlement settlement, ClearRewardCardKind kind, bool eligible) =>
         cardRules.FaceFor(
             new ClearRewardOccasion(
                 kind,
@@ -123,8 +129,11 @@ internal sealed class CardRewardDomainService(
                 settlement.PartyMemberCount)
             {
                 Kills = run.Kills,
+                HasBlackDiamond = eligible,
             },
-            SeedFor(run, kind));
+            kind is ClearRewardCardKind.BlackDiamond
+                ? SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)
+                : SeedFor(run, kind));
 
     /// <summary>
     /// The seed one face of one clear is drawn from.

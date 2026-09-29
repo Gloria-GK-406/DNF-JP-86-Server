@@ -34,7 +34,7 @@ internal sealed class CharacterRosterService(
     ICharacterExpertJobTable expertJob,
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
-    IItemPlacementRuleService placementRules) : ICharacterRepository
+    IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -211,9 +211,9 @@ internal sealed class CharacterRosterService(
         RequireAccount(accountId);
         var row = await characters.FindBySlotAsync(accountId, slotIndex, cancellationToken)
             .ConfigureAwait(false);
-        return row is null
-            ? null
-            : new ActiveCharacterState(
+        if (row is null) return null;
+        var balance = await fatigue.BalanceOfAsync(new CharacterId(row.CharacterId), cancellationToken).ConfigureAwait(false);
+        return new ActiveCharacterState(
                 new CharacterIdentityState(
                     new CharacterId(row.CharacterId),
                     checked((ushort)row.SlotIndex),
@@ -221,7 +221,7 @@ internal sealed class CharacterRosterService(
                     checked((byte)row.Job),
                     checked((byte)row.GrowType)),
                 new CharacterProgressionState(checked((byte)row.Level), 0),
-                new CharacterFatigueState(188, 0),
+                new CharacterFatigueState(balance.Total, balance.Used) { ConsumedToday = balance.ConsumedToday },
                 row.Position,
                 // The client reads this as the character's creation time and the entry ACK carries
                 // it; a working A21 session sends a real Unix timestamp here, so a fixed epoch is a

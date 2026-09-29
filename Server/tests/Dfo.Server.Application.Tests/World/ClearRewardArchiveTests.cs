@@ -696,7 +696,7 @@ public sealed class ClearRewardArchiveTests
             {
                 var runs = new DungeonRunDomainService();
                 runs.Begin(Character, LayoutOf(dungeon, MazeRooms, seed), difficulty: (DungeonDifficulty)3);
-                var settled = await new CardRewardDomainService(rules, runs).SettleAsync(
+                var settled = await new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums()).SettleAsync(
                     new ClearRewardSettlement(Character, characterLevel), CancellationToken.None);
 
                 Assert.NotNull(settled);

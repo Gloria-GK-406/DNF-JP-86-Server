@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Notices;
 using Dfo.Server.Data.Notices;
 using System.Buffers.Binary;
@@ -228,7 +229,8 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterSkillQuestEntryProjection skillQuests,
     ICharacterProgressionEntryProjection progression,
     ICharacterFeatureEntryProjection features,
-    ICharacterDomainService characters, INoticeStateDomainService notices) : ICharacterEntryStateDomainService
+    ICharacterDomainService characters, INoticeStateDomainService notices,
+    IPremiumServiceDomainService premiums) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -259,6 +261,8 @@ internal sealed class CharacterEntryStateDomainService(
         }
         var publicState = profile.Public with
         {
+            HasBlackDiamond = await premiums.For(accountId)
+                .IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false),
             Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,

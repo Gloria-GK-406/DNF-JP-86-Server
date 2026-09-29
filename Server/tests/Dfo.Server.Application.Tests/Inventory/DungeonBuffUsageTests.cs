@@ -19,6 +19,7 @@ public sealed class DungeonBuffUsageTests
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
         public DoublePotRules ReadDoublePotRules() => new(8, new HashSet<int>());
         public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents() => new[] {20, 23, 27, 30};
+        public double ReadBlackDiamondExperienceBonusRate() => .05;
         public double ReadGrowthExperienceBonusRate() => 0.2;
         public PremiumContractLevels ReadContractLevels() => new(5, 10);
         public int ReadDungeonBuffDailyLimit() => 10;
@@ -119,6 +120,20 @@ public sealed class DungeonBuffUsageTests
         shop.Sql("UPDATE account_premiums SET end_time=4000000000");
         await refresh.RefreshAsync(default);
         Assert.Equal(3, shop.Sender.Messages.Count);
+    }
+
+    [Fact]
+    public async Task Rolling_default_black_diamond_does_not_refresh_devil_snapshot_every_minute()
+    {
+        using var shop = Fixture(false);
+        var premium = shop.Services.GetRequiredService<IPremiumServiceDomainService>().For(shop.Session.AccountId);
+        Assert.True(await premium.IsActiveAsync(PremiumServiceType.BlackDiamond, default));
+        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        await refresh.RefreshAsync(default);
+        Assert.Single(shop.Sender.Messages);
+        shop.Clock.Advance(TimeSpan.FromMinutes(1));
+        await refresh.RefreshAsync(default);
+        Assert.Single(shop.Sender.Messages);
     }
 
     [Dfo.Server.Testing.PvfFact]

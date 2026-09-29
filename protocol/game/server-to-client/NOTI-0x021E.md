@@ -66,3 +66,13 @@ A21 参照会话，归档于
 A21 的入场序列里有这一帧，紧跟 `0x0465`（section L 第 23 帧）。
 
 body 1 字节，参照值 `00`。服务端按常量下发（`UsableCountBaselineMessage`）。含义未解。
+
+## A21物品每日次数（2026-09-29）
+
+**ClientStatic + CurrentImplementation，非空通知效果待ClientVerified。** 本轮直接走读当前A21 dump，确认RVA0x00D85740处理器：`u8 count + count*(u32 itemId + u8 usedCount)`，无其他网络字段。0条目清空客户端两张次数表；非空仅更新指定物品。
+
+RVA0x012EB360写入使用次数；RVA0x012E07B0读取，RVA0x012E08A0以模板上限减去该值计算剩余。因此该byte是“已用”，不是“剩余”；上限来自物品模板。分组表分支的+0x434业务配置名尚未闭合，本服按用户要求不同疲劳药独立计次。
+
+服务端在登录、物品使用成功/业务拒绝及在线跨业务日投递完整快照：清空帧后按最多255项分包。次数超byte范围显式报错，不截断领域计数。这里取代原先仅登录下发空基线的行为，LIST_ITEM实例字段未改。
+
+完整证据与边界：[物品使用次数服务](../../../Document/outputs/fatigue-system-20260929/item-usage-service.md)。

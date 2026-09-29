@@ -176,9 +176,9 @@ public sealed class MonsterDeathCodecTests
             Assert.Equal(clientName, declared.ClientName);
         }
 
-        // Spirit potion is tracked separately in the domain; its wire slot remains unproven.
+        // Clear-only bonuses have no declared line in the monster EXP notification.
         var declarable = Enum.GetValues<ExperienceBonusKind>()
-            .Where(kind => kind is not (ExperienceBonusKind.Unlisted or ExperienceBonusKind.SpiritPotion));
+            .Where(kind => kind is not (ExperienceBonusKind.Unlisted or ExperienceBonusKind.SpiritPotion or ExperienceBonusKind.BlackDiamond));
         Assert.Equal(
             declarable.Order(),
             MonsterDeathPayloadCodec.NamedLines.Select(line => line.Kind).Order());

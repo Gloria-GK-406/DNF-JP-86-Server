@@ -75,6 +75,9 @@ public sealed class ClearRewardRateOptions
     /// <summary>What the clear-reward table's whole-number rates are shares of.</summary>
     public int RateBasis { get; set; } = 10000;
 
+    /// <summary>Temporary acceptance switch; never enabled by default.</summary>
+    public bool DebugGuaranteePaidEquipment { get; set; }
+
     /// <summary>
     /// Whether a card position that came up holding nothing is handed the fallback its card
     /// declares. See <see cref="ClearRewardBlankItemSwitches"/>; all three are off.

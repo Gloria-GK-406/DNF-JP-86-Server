@@ -107,6 +107,8 @@ public sealed record SelectCardResult(
     DungeonCardSelectionCommit? SelectionCommit = null,
     AccountMaterialChange? AccountMaterial = null)
 {
+    public CommittedInventoryUpdateState? BlackDiamondDelivered { get; init; }
+    public AccountMaterialChange? BlackDiamondAccountMaterial { get; init; }
     public AccountEntitlementEntryState Entitlements { get; init; } = new([]);
     public IReadOnlyList<CharacterPremiumUsageSlotState> Usage { get; init; } = [];
     public DungeonCardSelectionChange? Change => this.SelectionCommit?.Change ?? this.StaticChange;
@@ -172,6 +174,8 @@ public sealed class SelectCardCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        if (command.Kind is not (ClearRewardCardKind.Free or ClearRewardCardKind.Paid))
+            return SelectCardResult.Refused(SelectCardStatus.NoSuchPosition, command.Kind, command.Index);
         var run = runs.Find(command.CharacterId);
         if (run is null
             || (command.ExpectedRunId != default && run.RunId != command.ExpectedRunId))
@@ -228,6 +232,14 @@ public sealed class SelectCardCommandHandler(
                     .ConfigureAwait(false)
                 : null;
 
+            var bonus = command.Kind is ClearRewardCardKind.Free
+                ? fixedCards.BlackDiamond?.Slots.FirstOrDefault(slot => slot.Index == 0)?.Item : null;
+            var bonusDelivery = bonus is { } bonusPiece
+                ? await this.DeliverAsync(command.AccountId, command.CharacterId, bonusPiece, cancellationToken)
+                    .ConfigureAwait(false) : null;
+            if (bonus is not null && (bonusDelivery is null || (claim.Slot.Item is not null && delivery is null)))
+                throw new InvalidOperationException("The ordinary and black-diamond rewards could not both be delivered.");
+
             var commit = runs.CommitClearRewardCard(claim);
             if (!commit.IsDeferred && commit.Change is null)
             {
@@ -247,7 +259,11 @@ public sealed class SelectCardCommandHandler(
                 StaticChange: null,
                 SelectionCommit: commit,
                 AccountMaterial: delivery?.AccountMaterial)
-            { Entitlements = charge.Settlement!.Entitlements, Usage = charge.Settlement.Usage };
+            {
+                Entitlements = charge.Settlement!.Entitlements, Usage = charge.Settlement.Usage,
+                BlackDiamondDelivered = bonusDelivery?.CharacterItem,
+                BlackDiamondAccountMaterial = bonusDelivery?.AccountMaterial,
+            };
         }
         catch
         {

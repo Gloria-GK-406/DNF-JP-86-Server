@@ -198,9 +198,16 @@ public sealed record ClearRewardCardSet(
     ImmutableHashSet<ClearRewardCardId> Claimed,
     int? PaidFlipCost)
 {
+    public ClearRewardCardFace? BlackDiamond { get; init; }
+
     /// <summary>The face of that kind.</summary>
     public ClearRewardCardFace FaceOf(ClearRewardCardKind kind) =>
-        kind == ClearRewardCardKind.Paid ? this.Paid : this.Free;
+        kind switch
+        {
+            ClearRewardCardKind.Free => this.Free,
+            ClearRewardCardKind.Paid => this.Paid,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Only ordinary cards can be selected."),
+        };
 
     /// <summary>
     /// What sits at that position, or null when the face has no position under that number.
@@ -212,6 +219,8 @@ public sealed record ClearRewardCardSet(
     /// </remarks>
     public ClearRewardCardSlot? SlotAt(ClearRewardCardKind kind, int index)
     {
+        if (kind is not (ClearRewardCardKind.Free or ClearRewardCardKind.Paid))
+            return null;
         var slots = this.FaceOf(kind).Slots;
         return index >= 0 && index < slots.Count ? slots[index] : null;
     }
@@ -344,7 +353,11 @@ public sealed record DungeonCardSelection(
     ClearRewardCardKind Kind,
     int Index,
     CharacterId CharacterId,
-    byte Seat);
+    byte Seat)
+{
+    public int Gold { get; init; }
+    public ClearRewardCardItem? Item { get; init; }
+}
 
 /// <summary>A participant's card panel becoming available.</summary>
 public sealed record DungeonCardLayoutChange(
@@ -743,8 +756,11 @@ public interface IDungeonRunDomainService
         DungeonRunId expectedRunId,
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
-        int? paidFlipCost)
+        int? paidFlipCost,
+        ClearRewardCardFace? blackDiamond = null)
     {
+        if (blackDiamond is not null)
+            throw new NotSupportedException("This run service cannot freeze black-diamond rewards.");
         var current = Find(characterId);
         return current is not null && current.RunId == expectedRunId
             ? FixClearRewardCards(characterId, free, paid, paidFlipCost)

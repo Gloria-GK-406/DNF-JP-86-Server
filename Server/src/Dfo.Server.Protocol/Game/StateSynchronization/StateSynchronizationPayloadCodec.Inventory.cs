@@ -48,9 +48,9 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(0); // observed account-registration compatibility field
         writer.Write(checked((int)character.CreatedAt.ToUnixTimeSeconds()));
         writer.Write(characterId);
-        writer.Write((ushort)0); // observed leading fatigue compatibility field
+        writer.Write(character.Fatigue.Used); // A21 displays Total - Used (2026-09-20 verified).
         writer.Write(character.Fatigue.Total);
-        writer.Write(character.Fatigue.Used);
+        writer.Write(checked((ushort)Math.Min(ushort.MaxValue, character.Fatigue.ConsumedToday)));
         writer.Write(checked((byte)activePremiums.Length));
         foreach (var premium in activePremiums.OrderBy(value => value.PremiumType))
         {

@@ -144,7 +144,7 @@ public sealed class ClassificationRefusalTests
             new SqliteCharacterExpertJobTable(database.Value),
             new SqliteCharacterContainerStateTable(database.Value),
             new SqliteCharacterItemTable(database.Value),
-            Rules(declared));
+            Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue());
 
     private static IEntryInventoryLeasePersistence Assembly(
         TestDatabase database, ItemWorldClass declared) =>

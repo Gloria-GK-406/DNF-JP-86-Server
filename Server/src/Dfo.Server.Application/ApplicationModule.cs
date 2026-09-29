@@ -238,6 +238,9 @@ public sealed class ApplicationModule : IServerModule
         // composition this basis belongs to and why neither could be read out of the archive.
         services.TryAddSingleton(new ClearRewardRateOptions
         {
+            DebugGuaranteePaidEquipment = bool.TryParse(
+                configuration["ClearRewardRates:DebugGuaranteePaidEquipment"], out var guaranteedCard)
+                && guaranteedCard,
             RateBasis =
                 int.TryParse(configuration["ClearRewardRates:RateBasis"], out var cardBasis)
                 && cardBasis > 0
@@ -251,7 +254,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICardFlipCostDomainService, CardFlipCostDomainService>();
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
-        services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();
+        services.TryAddSingleton<DungeonVisitDomainService>();
+        services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();
         services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         // Runtime kill interpretation reads only the published Cell snapshot.
@@ -277,6 +281,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
         services.TryAddSingleton<ILotteryRandomSource, LotteryRandomSource>();
         services.TryAddSingleton<ILotteryResultSelector, WeightedLotteryResultSelector>();
+        services.TryAddSingleton<IVendingMachineDomainService, VendingMachineDomainService>();
         services.TryAddSingleton<ILotteryOpeningDomainService, LotteryOpeningDomainService>();
         services.TryAddSingleton<IPackageOpeningDomainService, PackageOpeningDomainService>();
         services.TryAddSingleton<IAvatarPackageOpeningDomainService, AvatarPackageOpeningDomainService>();
@@ -301,6 +306,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
         services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
+        services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
+        services.TryAddSingleton<IItemUsageDomainService, ItemUsageDomainService>();
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
         services.TryAddSingleton<IExperienceCalculationDomainService, ExperienceCalculationDomainService>();
@@ -331,11 +338,9 @@ public sealed class ApplicationModule : IServerModule
         // already read, and this reads the same rows for anyone who is not entry.
         services.TryAddSingleton<
             ICharacterSettingsDomainService, CharacterSettingsDomainService>();
-        // A character's fatigue -- the seam only. The implementation answers a fixed pair and
-        // records nothing, which is what its name says; the system that would record it is its own
-        // piece of work and this exists so that the places that spend fatigue call it now.
+        // Configured allowance plus persistent, business-day usage accounting.
         services.TryAddSingleton<
-            ICharacterFatigueDomainService, UnaccountedCharacterFatigueDomainService>();
+            ICharacterFatigueDomainService, CharacterFatigueDomainService>();
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),

@@ -54,33 +54,17 @@ internal sealed class ClearRewardRuleService(
     IDungeonDefinitionSource dungeons,
     ClearRewardRateOptions options) : IClearRewardRuleService
 {
-    /// <summary>
-    /// Which of the archive's six profiles a face's threshold is taken from.
-    /// </summary>
-    /// <remarks>
-    /// <b>The other half of the fourth of the five decisions this server makes about this file,
-    /// and the archive states it no more than the other four: <c>default</c>, for every face.</b>
-    /// See <see cref="ClearRewardRules"/> for the list of five, and
-    /// <see cref="ClearRewardRules.ChanceOf"/> for why a profile's rate is read as a threshold at
-    /// all.
-    /// <para>
-    /// <b>Not keyed on the kind of face.</b> The file's names -- <c>default</c>, <c>event</c>,
-    /// <c>event2</c> and three <c>pcroom</c> ones -- describe occasions rather than card types, and
-    /// nothing in it pairs one with the free card and another with the paid one. What the file does
-    /// give the paid card is its own three sections: <c>[gold card cost table]</c>,
-    /// <c>[gold card create rate]</c> and <c>[gold card blank item]</c>. A paid card is therefore a
-    /// card that costs money and has its own empty-handed fallback, not a card drawn at other odds,
-    /// and the two faces of one clear carry the same chance.
-    /// </para>
-    /// <para>
-    /// The other five profiles have no caller. The three PC-room ones are not for want of knowing
-    /// who is in a PC room -- this server carries that per character and per account already -- but
-    /// because the file gives no rule for choosing a profile at all, so taking one for an occasion
-    /// would be a threshold nobody could trace back. <c>default</c> is the one with no occasion
-    /// attached to it, which is why it is the one an ordinary clear is measured against.
-    /// </para>
-    /// </remarks>
+    // 70Reference: profiles 3/4/5 are pcroom default/event/bonus.
+    // Ordinary non-premium cards retain their existing default profile.
     private const string ThresholdProfile = ClearRewardProfiles.Default;
+
+    private static string ProfileFor(ClearRewardOccasion occasion) => occasion.Kind switch
+    {
+        ClearRewardCardKind.BlackDiamond => ClearRewardProfiles.PcRoomBonus,
+        ClearRewardCardKind.Free when occasion.HasBlackDiamond => ClearRewardProfiles.PcRoomDefault,
+        ClearRewardCardKind.Paid when occasion.HasBlackDiamond => ClearRewardProfiles.PcRoomEvent,
+        _ => ThresholdProfile,
+    };
 
     /// <summary>
     /// The odds one position of this occasion carries.
@@ -110,7 +94,7 @@ internal sealed class ClearRewardRuleService(
         ArgumentNullException.ThrowIfNull(occasion);
 
         var table = rates.Load(DropRateTables.ClearReward);
-        if (table.ProfileNamed(ThresholdProfile)?.BandFor(occasion.CharacterLevel) is not { } band
+        if (table.ProfileNamed(ProfileFor(occasion))?.BandFor(occasion.CharacterLevel) is not { } band
             || table.DifficultyRate((int)occasion.Difficulty) is not { } difficulty
             || table.PartyMemberRate(occasion.PartyMemberCount) is not { } party
             || ClearRewardRules.MapBaseRate(table.MapCountRates, occasion.MapMaxCount)
@@ -200,7 +184,8 @@ internal sealed class ClearRewardRuleService(
         // face this server has ever dealt.
         var gold = this.GoldOf(occasion, table, new DropRandom(seed));
 
-        var chance = this.ChanceOf(occasion);
+        var guarantee = options.DebugGuaranteePaidEquipment && occasion.Kind is ClearRewardCardKind.Paid;
+        var chance = guarantee ? new ClearRewardChance(options.RateBasis, options.RateBasis) : this.ChanceOf(occasion);
         if (chance.IsImpossible
             || table.Rarity is not { } ladder
             || ladder.HighestRoll <= 0
@@ -218,8 +203,9 @@ internal sealed class ClearRewardRuleService(
             slots.Add(
                 new ClearRewardCardSlot(
                     index,
-                    Draw(chance, ladder, grades, pool, random)
-                        ?? Fallback(fallback, random)));
+                    guarantee
+                        ? GuaranteedEquipment(grades, pool, random)
+                        : Draw(chance, ladder, grades, pool, random) ?? Fallback(fallback, random)));
         }
 
         return new ClearRewardCardFace(occasion.Kind, slots, gold);
@@ -253,15 +239,23 @@ internal sealed class ClearRewardRuleService(
     private IReadOnlyList<ClearRewardBlankItem> FallbackRowsFor(
         ClearRewardTable table, ClearRewardCardKind kind)
     {
-        var card = kind == ClearRewardCardKind.Paid
-            ? ClearRewardBlankCard.GoldCard
-            : ClearRewardBlankCard.Free;
+        var card = kind switch
+        {
+            ClearRewardCardKind.Paid => ClearRewardBlankCard.GoldCard,
+            ClearRewardCardKind.BlackDiamond => ClearRewardBlankCard.PcRoom,
+            _ => ClearRewardBlankCard.Free,
+        };
         if (!options.BlankItems.Allows(card))
             return [];
 
         // The free card's rows are the empty list because the archive declares it no section, and
         // it is not lent the paid card's; see ClearRewardBlankCard.Free.
-        return card == ClearRewardBlankCard.GoldCard ? table.GoldCardBlankItems : [];
+        return card switch
+        {
+            ClearRewardBlankCard.GoldCard => table.GoldCardBlankItems,
+            ClearRewardBlankCard.PcRoom => table.PcRoomCardBlankItems,
+            _ => [],
+        };
     }
 
     /// <summary>
@@ -384,6 +378,17 @@ internal sealed class ClearRewardRuleService(
     /// quiet miss into a clear that fails.
     /// </para>
     /// </remarks>
+    private static ClearRewardCardItem GuaranteedEquipment(
+        ItemGradeBand grades, DropItemPool pool, DropRandom random)
+    {
+        foreach (var rarity in Enum.GetValues<DropRarity>())
+        {
+            if (DropRules.Pick(pool, grades, rarity, random) is { } item)
+                return new ClearRewardCardItem(item.ItemId, 1, rarity, item.Durability);
+        }
+        throw new InvalidOperationException("Guaranteed gold-card equipment has no eligible equipment pool.");
+    }
+
     private static ClearRewardCardItem? Draw(
         ClearRewardChance chance,
         RarityLadder ladder,

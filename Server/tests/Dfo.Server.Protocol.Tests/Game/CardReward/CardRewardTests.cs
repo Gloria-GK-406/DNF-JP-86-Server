@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Transactions;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -41,6 +43,77 @@ namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 /// </remarks>
 public sealed class CardRewardTests
 {
+    private static readonly ClearRewardCardFace BonusFace = new(
+        ClearRewardCardKind.BlackDiamond, [new(0, new(7777, 1, DropRarity.Rare, 10))], 0);
+
+    [Fact]
+    public async Task Free_card_grants_both_rewards_once_and_paid_card_does_not_grant_the_bonus()
+    {
+        var world = new World(blackDiamond: BonusFace);
+        var result = await world.Flip(ClearRewardCardKind.Free, 0);
+        Assert.NotNull(result.Delivered);
+        Assert.NotNull(result.BlackDiamondDelivered);
+        Assert.Equal(2, world.Bag.Slots.Count);
+        Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
+        Assert.Equal(SelectCardStatus.AlreadyFlipped, (await world.Flip(ClearRewardCardKind.Free, 1)).Status);
+        Assert.Equal(2, world.Bag.AddCalls);
+        Assert.Null((await world.Flip(ClearRewardCardKind.Paid, 0)).BlackDiamondDelivered);
+        Assert.Equal(3, world.Bag.AddCalls);
+    }
+
+    [Fact]
+    public async Task Black_diamond_cannot_be_requested_as_a_third_selectable_card()
+    {
+        var world = new World(blackDiamond: BonusFace);
+        Assert.Equal(SelectCardStatus.NoSuchPosition,
+            (await world.Flip(ClearRewardCardKind.BlackDiamond, 0)).Status);
+        Assert.Equal(0, world.Bag.AddCalls);
+    }
+
+    [Fact]
+    public async Task Second_reward_failure_rolls_back_assets_and_releases_the_claim_for_retry()
+    {
+        var scope = new DomainTransactionScope();
+        var world = new World(blackDiamond: BonusFace, transactions: scope);
+        world.Bag.RefuseAtCall = 2;
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await using var lease = scope.Begin();
+            scope.Current!.Enlist(world, () => new AwardParticipant(world));
+            await world.Flip(ClearRewardCardKind.Free, 0);
+            await lease.CommitAsync(default);
+        });
+        Assert.Empty(world.Bag.Slots);
+        Assert.Equal(StartingGold, world.Gold.Total);
+        await using (var lease = scope.Begin())
+        {
+            scope.Current!.Enlist(world, () => new AwardParticipant(world));
+            var retry = await world.Flip(ClearRewardCardKind.Free, 0);
+            Assert.Null(retry.Change);
+            await lease.CommitAsync(default);
+            Assert.NotNull(retry.Change);
+        }
+        Assert.Equal(2, world.Bag.Slots.Count);
+        Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
+        Assert.Equal(SelectCardStatus.AlreadyFlipped, (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
+    }
+
+    // Transactional asset stand-in; persistence's SQLite atomicity is covered separately.
+    private sealed class AwardParticipant(World world) : ITransactionParticipant
+    {
+        private readonly int gold = world.Gold.Total;
+        private readonly Dictionary<int, InventoryItemCoreState> slots = new(world.Bag.Slots);
+        public bool CommitCanFail => true;
+        public ValueTask PrepareAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+        public ValueTask CommitAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+        public async ValueTask RollbackAsync(CancellationToken cancellationToken)
+        {
+            world.Bag.Slots.Clear();
+            foreach (var entry in this.slots) world.Bag.Slots.Add(entry.Key, entry.Value);
+            await world.Gold.AddGoldAsync(this.gold - world.Gold.Total, cancellationToken);
+        }
+    }
+
     /// <summary>
     /// The layout frame's body, transcribed from the reference session.
     /// </summary>
@@ -318,22 +391,15 @@ public sealed class CardRewardTests
         Assert.All(records, record => Assert.Equal(0x00, record.Trailer));
     }
 
-    /// <summary>
-    /// No reward reaches this frame, whatever the flip handed over.
-    /// </summary>
-    /// <remarks>
-    /// What a card holds is delivered in the clear's settlement notification and drawn from there.
-    /// A live run answered with every record empty and the clicked card still turned over with its
-    /// contents on it. Anything written here would land in a place nothing has been found to draw.
-    /// </remarks>
     [Fact]
-    public void The_answer_hands_over_nothing()
+    public void Empty_paid_reward_keeps_the_positional_gold_entry()
     {
-        foreach (var kind in (ClearRewardCardKind[])[
-            ClearRewardCardKind.Free, ClearRewardCardKind.Paid])
+        foreach (var column in (int[])[0, 1, 2, 3])
         {
-            foreach (var column in (int[])[0, 1, 2, 3])
-                Assert.All(ReadAnswer(kind, column), record => Assert.Empty(record.Entries));
+            Assert.All(ReadAnswer(ClearRewardCardKind.Free, column), record => Assert.Empty(record.Entries));
+            var paid = ReadAnswer(ClearRewardCardKind.Paid, column);
+            Assert.Equal([new CardEntry(0, 0)], paid[column].Entries);
+            Assert.All(paid.Where((_, index) => index != column), record => Assert.Empty(record.Entries));
         }
     }
 
@@ -369,6 +435,28 @@ public sealed class CardRewardTests
         Assert.Equal(1, records[2].FreeSeat);
         Assert.Equal(NoSeatByte, records[3].FreeSeat);
         Assert.Equal(NoSeatByte, records[3].GoldSeat);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 0)]
+    [InlineData(0, 123)]
+    [InlineData(1, 123)]
+    public void Paid_equipment_and_gold_survive_complete_panel_encoding(byte seat, int gold)
+    {
+        var paid = new DungeonCardSelection(ClearRewardCardKind.Paid, seat, new CharacterId(20), seat)
+        {
+            Gold = gold,
+            Item = new ClearRewardCardItem(31001, 1, DropRarity.Common, 10),
+        };
+        var frame = Assert.Single(new SelectCardResponseEncoder().Encode(new SelectCardResponse(
+            [new DungeonCardSelection(ClearRewardCardKind.Free, 0, new CharacterId(10), 0), paid])));
+        var records = CardPanelFrameReader.ReadSelectCardAnswer(frame[GameServerFrameEncoder.HeaderLength..]);
+        Assert.Equal(seat, records[seat].GoldSeat);
+        Assert.Equal([new CardEntry(0, gold), new CardEntry(31001, 1)], records[seat].Entries);
+        // A21 golden-card renderer requires count > 1, then reads index 1.
+        Assert.Equal(new CardEntry(31001, 1), records[seat].Entries[1]);
+        Assert.All(records.Where((_, index) => index != seat), record => Assert.Empty(record.Entries));
     }
 
     // ---- the flip's request ----------------------------------------------------------------
@@ -1156,7 +1244,7 @@ public sealed class CardRewardTests
             BasisLevel: 5,
             ExperienceWeight: 1.45);
 
-        private readonly DungeonRunDomainService _runs = new();
+        private readonly DungeonRunDomainService _runs;
         private readonly RefusingRules _rules;
         private readonly SelectCardCommandHandler _handler;
 
@@ -1166,13 +1254,16 @@ public sealed class CardRewardTests
             bool bagBound = true,
             BagAnswer bagAnswer = BagAnswer.OpensASlot,
             int startingGold = StartingGold,
-            int? paidFlipPrice = FixturePrice)
+            int? paidFlipPrice = FixturePrice,
+            ClearRewardCardFace? blackDiamond = null,
+            IDomainTransactionAccessor? transactions = null)
         {
+            this._runs = transactions is null ? new() : new(transactions);
             this._rules = new RefusingRules();
             this.Bag = new Bag(bagAnswer);
             this.Gold = new CarriedGold(startingGold);
 
-            ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs);
+            ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs, new Dfo.Server.Protocol.Tests.Support.CardPremiums());
             this._handler = new SelectCardCommandHandler(
                 cards,
                 this._runs,
@@ -1192,10 +1283,10 @@ public sealed class CardRewardTests
                 // there is nothing left for the rules to be asked, which is what the fixture's
                 // rule service refusing every member now says.
                 this._runs.FixClearRewardCards(
-                    Identity.CharacterId,
+                    Identity.CharacterId, run.RunId,
                     Face(ClearRewardCardKind.Free),
                     Face(ClearRewardCardKind.Paid),
-                    paidFlipPrice);
+                    paidFlipPrice, blackDiamond);
             }
 
             Assert.NotNull(this._runs.TryOpenClear(
@@ -1515,6 +1606,8 @@ public sealed class CardRewardTests
     private sealed class Bag(BagAnswer answer) : IItemContainer
     {
         public bool FailNextAdd { get; set; }
+        public int AddCalls { get; private set; }
+        public int RefuseAtCall { get; set; }
 
         /// <summary>The slot a pile already sits in, for the pile answer.</summary>
         public const int PileSlot = 7;
@@ -1545,6 +1638,9 @@ public sealed class CardRewardTests
         public ValueTask<ItemPlacementOutcome> AddAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
+            this.AddCalls++;
+            if (this.AddCalls == this.RefuseAtCall)
+                return ValueTask.FromResult<ItemPlacementOutcome>(new ItemPlacementOutcome.NoRoom());
             if (this.FailNextAdd)
             {
                 this.FailNextAdd = false;
@@ -1553,9 +1649,10 @@ public sealed class CardRewardTests
             switch (answer)
             {
                 case BagAnswer.OpensASlot:
-                    this.Slots[OpenedSlot] = StackableItemCore.Create(2, itemId, count);
+                    var openedSlot = OpenedSlot + this.Slots.Count;
+                    this.Slots[openedSlot] = StackableItemCore.Create(2, itemId, count);
                     return ValueTask.FromResult<ItemPlacementOutcome>(
-                        new ItemPlacementOutcome.PutInEmptySlot(OpenedSlot, count));
+                        new ItemPlacementOutcome.PutInEmptySlot(openedSlot, count));
 
                 case BagAnswer.JoinsAPile:
                     var pile = this.Slots[PileSlot];

@@ -60,7 +60,7 @@ public sealed class CeraShopPurchaseIntegrationTests
                 Assert.Equal(0x01f7, BinaryPrimitives.ReadUInt16LittleEndian(unavailable.AsSpan(1)));
                 Assert.Equal(0, unavailable[GameServerFrameEncoder.HeaderLength]);
                 var textLength = BinaryPrimitives.ReadInt32LittleEndian(unavailable.AsSpan(GameServerFrameEncoder.HeaderLength + 1));
-                Assert.Equal("黑钻网页服务暂未开放。", System.Text.Encoding.UTF8.GetString(unavailable.AsSpan(GameServerFrameEncoder.HeaderLength + 5, textLength)));
+                Assert.Equal("黑钻权益由服务器统一设置，无需购买。", System.Text.Encoding.UTF8.GetString(unavailable.AsSpan(GameServerFrameEncoder.HeaderLength + 5, textLength)));
                 Assert.Equal(GameServerFrameEncoder.HeaderLength + 5 + textLength, unavailable.Length);
             }
             await stream.WriteAsync(Frame(3, []), timeout.Token);

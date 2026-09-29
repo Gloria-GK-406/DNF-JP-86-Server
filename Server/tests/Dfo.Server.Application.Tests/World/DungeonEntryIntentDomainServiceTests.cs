@@ -14,6 +14,24 @@ public sealed class DungeonEntryIntentDomainServiceTests
         new AccountId(1), Character, new NetworkConnectionId("one"), 1, 10010);
 
     [Fact]
+    public void Refused_intent_can_be_restored_but_cannot_replace_newer_selection()
+    {
+        var service = new DungeonEntryIntentDomainService();
+        service.Record(Session, DungeonEntryIntent.Interactive);
+        var attempted = service.Consume(Session)!.Value;
+        service.RestoreIfAbsent(Session, attempted);
+        Assert.Equal(attempted, service.Consume(Session));
+        service.Record(Session, DungeonEntryIntent.Directed(144));
+        service.RestoreIfAbsent(Session, attempted);
+        Assert.Equal(DungeonEntryIntent.Directed(144), service.Consume(Session));
+        var replacement = Session with { ConnectionGeneration = Session.ConnectionGeneration + 1 };
+        service.Record(replacement, DungeonEntryIntent.Directed(150));
+        service.RestoreIfAbsent(Session, attempted);
+        Assert.Null(service.Consume(Session));
+        Assert.Equal(DungeonEntryIntent.Directed(150), service.Consume(replacement));
+    }
+
+    [Fact]
     public void AnIntentIsConsumedExactlyOnce()
     {
         var service = new DungeonEntryIntentDomainService();

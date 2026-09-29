@@ -25,6 +25,8 @@ public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short
     public ClientMessageType MessageType => ClientMessageType.GameQuestClearCoupon;
     public bool IsSupported => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
         && Action == 77 && Reserved2 == 0 && Reserved3 == 0;
+    public bool IsFatiguePotion => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
+        && Action == 58 && Reserved2 == 0 && Reserved3 == 0;
 }
 
 internal static class QuestClearCouponPayloadCodec
@@ -59,19 +61,25 @@ internal static class QuestClearCouponPayloadCodec
         success[0] = 1;
         BinaryPrimitives.WriteInt16LittleEndian(success.AsSpan(1), response.SourceSlot);
         success[3] = response.Container;
-        BinaryPrimitives.WriteUInt32LittleEndian(success.AsSpan(4), 77);
+        BinaryPrimitives.WriteUInt32LittleEndian(success.AsSpan(4), response.Action);
         return success;
     }
 }
 
-internal sealed class QuestClearCouponDecoder : IGameMessageDecoder
+internal sealed class QuestClearCouponDecoder(ILogger<QuestClearCouponDecoder>? logger = null) : IGameMessageDecoder
 {
-    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        QuestClearCouponPayloadCodec.Decode(metadata, body);
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        if (logger?.IsEnabled(LogLevel.Debug) == true)
+            logger.LogDebug("STACKABLE_ACTION capture metadata={Metadata} body({Length}B)={Body}",
+                metadata, body.Length, Convert.ToHexString(body));
+        return QuestClearCouponPayloadCodec.Decode(metadata, body);
+    }
 }
 
 public sealed record QuestClearCouponResponse(bool Succeeded, short SourceSlot, byte Container) : IGameCmdMessage
 {
+    public uint Action { get; init; } = 77;
     public ServerMessageType MessageType => ServerMessageType.GameQuestClearCoupon;
 }
 
@@ -123,11 +131,17 @@ public sealed class QuestClearCouponHandler(
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
-    ILogger<QuestClearCouponHandler> logger) : ClientMessageHandler<QuestClearCouponRequest>
+    ILogger<QuestClearCouponHandler> logger,
+    FatiguePotionHandler? fatiguePotions = null) : ClientMessageHandler<QuestClearCouponRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         QuestClearCouponRequest message, CancellationToken ct)
     {
+        if (message.IsFatiguePotion && fatiguePotions is not null)
+        {
+            await fatiguePotions.HandleAsync(context, message, ct).ConfigureAwait(false);
+            return;
+        }
         if (!message.IsSupported)
         {
             await RefuseAsync(context, message, ct).ConfigureAwait(false);

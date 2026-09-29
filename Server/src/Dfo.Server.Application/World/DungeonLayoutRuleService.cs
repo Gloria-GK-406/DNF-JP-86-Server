@@ -60,7 +60,7 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
             maze.Rooms,
             definition.BasisLevel,
             definition.ExperienceWeight,
-            purpose);
+            purpose, definition.ConsumesFatigue);
     }
 
     /// <remarks>

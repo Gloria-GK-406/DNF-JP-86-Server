@@ -190,6 +190,12 @@ public sealed class SelectCardHandler(
                 preparedAt));
         }
 
+        if (result.BlackDiamondDelivered is { } bonusDelivery)
+            frames.Add(GameInventoryDelivery.Notification(bonusDelivery));
+        if (result.BlackDiamondAccountMaterial is { } bonusMaterial)
+            frames.Add(GameInventoryDelivery.VirtualResourceNotification(
+                [new InventoryRuntimeValueState(bonusMaterial.VirtualSlotIndex, bonusMaterial.ItemId,
+                    bonusMaterial.FinalCount)], preparedAt));
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
             frames.Add(GameInventoryDelivery.CarriedGoldNotification(result.GoldCarried, preparedAt));
 

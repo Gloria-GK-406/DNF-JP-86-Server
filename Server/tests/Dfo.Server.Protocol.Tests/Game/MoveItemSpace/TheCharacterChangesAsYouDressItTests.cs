@@ -473,6 +473,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session) => null;
 
+        public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) { }
         public bool ClearExact(SelectedSessionIdentity session) => false;
     }
 

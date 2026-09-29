@@ -846,7 +846,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
         writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job));
+        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond));
         return stream.ToArray();
     }
 
@@ -936,8 +936,8 @@ internal static partial class StateSynchronizationPayloadCodec
     /// the captured 64 bytes leaves exactly one difference -- offset 59, holding 2, which is that
     /// third patch point at its default. Everything else matches byte for byte.
     ///
-    /// So the block is transcribed rather than modelled: what the other 61 bytes mean is not
-    /// established here, and the fields this replaced are not gone from the domain -- they simply
+    /// The block remains transcribed, except offset 1 now carries the ClientStatic black-diamond
+    /// name marker. The remaining unknown bytes are not established here, and the fields this replaced are not gone from the domain -- they simply
     /// have no known home on A21's wire. Writing them at the older client's offsets was not a
     /// partial answer but a wrong one: every field after the first sat at an offset A21 does not
     /// use, and the block being 17 bytes shorter means the frame ended in the wrong place too.
@@ -969,9 +969,12 @@ internal static partial class StateSynchronizationPayloadCodec
     /// </remarks>
     private const ushort SubtypeZeroTailChannel = 2;
 
-    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job)
+    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job, bool hasBlackDiamond)
     {
         var tail = SubtypeZeroFixedTail.ToArray();
+        // A21 read at VA013E2DB0 -> user info +0x2E8; name renderer selects diamond frame 3.
+        // Byte 0 is the separate premium PC-room flag and must not be changed here.
+        tail[1] = hasBlackDiamond ? (byte)1 : (byte)0;
         tail[SubtypeZeroTailExpertJobTypeOffset] = checked((byte)job.Type);
         // No expert job means no experience. The upstream projects the same way, and specifically
         // refuses to send the older sentinel of -1.

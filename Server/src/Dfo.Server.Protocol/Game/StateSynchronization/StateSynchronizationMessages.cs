@@ -592,6 +592,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<VillageObjectListMessage>(services);
         AddNoti<EpicBookBaselineMessage>(services);
         AddNoti<UsableCountBaselineMessage>(services);
+        AddNoti<ItemUsageCountMessage>(services);
         AddNoti<PartyBaselineMessage>(services);
         AddNoti<GuildMedalBaselineMessage>(services);
         AddNoti<ServerEventBaselineMessage>(services);

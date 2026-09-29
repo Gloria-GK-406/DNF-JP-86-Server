@@ -175,7 +175,10 @@ public sealed record CharacterIdentityState(
 
 public sealed record CharacterProgressionState(byte Level, uint Experience);
 
-public sealed record CharacterFatigueState(ushort Total, ushort Used);
+public sealed record CharacterFatigueState(ushort Total, ushort Used)
+{
+    public int ConsumedToday { get; init; }
+}
 
 public sealed record CharacterPositionState(
     byte TownId,
@@ -350,7 +353,8 @@ public sealed record CharacterPublicEntryState(
     CharacterAppearanceCompatibilityState Appearance,
     long VisibilityBits,
     uint CloneTitleItemId,
-    CharacterPublicIdentityEntryState? Identity = null);
+    CharacterPublicIdentityEntryState? Identity = null,
+    bool HasBlackDiamond = false);
 
 public sealed record CharacterSkillState(
     short Slot,

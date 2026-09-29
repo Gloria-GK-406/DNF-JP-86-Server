@@ -1508,6 +1508,8 @@ public sealed class DungeonRunDomainServiceTests
                 member.CharacterId, run.RunId, ClearRewardCardKind.Paid, 0));
         var afterDeparture = Assert.IsType<DungeonCardSelectionChange>(
             service.CommitClearRewardCard(remainingClaim).Change);
+        Assert.Equal(2, Assert.Single(afterDeparture.Selections, s => s.Kind == ClearRewardCardKind.Paid).Gold);
+        Assert.Equal(afterDeparture.Selections, service.Find(member.CharacterId)!.CardSelections);
         Assert.Equal([member.CharacterId], afterDeparture.Recipients);
         Assert.Null(service.Find(leader.CharacterId));
         Assert.Equal(run.RunId, service.Find(member.CharacterId)!.RunId);

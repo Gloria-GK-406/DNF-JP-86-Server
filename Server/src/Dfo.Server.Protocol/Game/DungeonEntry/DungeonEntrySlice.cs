@@ -84,12 +84,6 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
     public const byte MissingRequiredItem = 0x11;
 
     /// <summary>Not enough fatigue left to enter.</summary>
-    /// <remarks>
-    /// Nothing sends it. Entry reports what it costs to <see cref="ICharacterFatigueDomainService"/>
-    /// but nobody keeps that account and so nobody can find it short, which is a different state of
-    /// affairs from <see cref="DungeonUnavailable"/>: there the rule is known and unwritten, here
-    /// the balance this would be measured against does not exist yet.
-    /// </remarks>
     public const byte InsufficientFatigue = 0x16;
 
     /// <summary>Only the party leader may take a party in.</summary>
@@ -418,11 +412,8 @@ internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 /// Answers a dungeon selection with the run's shape and the room it opens in.
 /// </summary>
 /// <remarks>
-/// Nothing is committed on the character yet, and nothing is remembered about the run. This slice
-/// exists to learn whether the client accepts these three frames, which is the question every
-/// later piece depends on and none of which can be settled by reading the reference server. The
-/// run aggregate and the party that owns entry arrive after that answer. So does the charging of
-/// what an entry costs: the cost is reported here, to a fatigue seam that keeps no account of it.
+/// The visit domain checks party fatigue and commits the initial room plus its charge.
+/// This handler only delivers the resulting run and authoritative balance.
 ///
 /// No CMD reply. The reference server's success path produces none -- it delegates straight to the
 /// run's lifecycle and pushes notifications -- and registration is not an obligation to reply; see
@@ -450,30 +441,6 @@ public sealed class SelectDungeonHandler(
     ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null)
     : ClientMessageHandler<SelectDungeonRequest>
 {
-    /// <summary>What one entry reports as spent.</summary>
-    /// <remarks>
-    /// <b>No dungeon declares a cost, so this is not read off one.</b> The archive says only
-    /// whether a dungeon charges fatigue at all -- its <c>[no fatigue]</c> tag, which reaches this
-    /// server as <see cref="DungeonDefinition.ConsumesFatigue"/> and which nothing in the server
-    /// reads: the only reader is the test pinning the parse. Neither
-    /// <see cref="DungeonDefinition"/> nor <see cref="DungeonLayout"/> carries a number of points,
-    /// and no other content or table holds one either.
-    /// <para>
-    /// What there is, is the charge itself: a point for each newly entered room that holds
-    /// monsters (<c>Docs/DungeonEntryNotes.md</c> section 8, dictated 2026-08-27). An entry walks
-    /// into exactly one room, the run's first, so an entry's cost is that one point.
-    /// </para>
-    /// <para>
-    /// Three things that would change it are deliberately not asked here, because each belongs to
-    /// the fatigue system rather than to this frame: whether that first room holds any monsters,
-    /// whether the character has stood in it before, and whether this dungeon charges at all. Until
-    /// then this is the ordinary case stated plainly rather than a computation, and it is a
-    /// placeholder in the same sense as the seam it is reported to -- what changes when fatigue is
-    /// built is what this number is worked out from, not that a report happens here.
-    /// </para>
-    /// </remarks>
-    public const ushort FatigueAnEntryCosts = 1;
-
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         SelectDungeonRequest message,
@@ -496,6 +463,8 @@ public sealed class SelectDungeonHandler(
             || (intent.Value.Kind == DungeonEntryIntentKind.Directed
                 && intent.Value.DirectedDungeonId != message.DungeonId))
         {
+            if (intent is { } refusedIntent && selectedSessions.FindByCharacter(session.CharacterId) == session)
+                entryIntents.RestoreIfAbsent(session, refusedIntent);
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: invalid selection context intent={Intent} dungeon={DungeonId}",
                 context.Connection.ConnectionId,
@@ -533,6 +502,8 @@ public sealed class SelectDungeonHandler(
             session.AccountId, session.CharacterId, session.WireUserId, null));
         if (roster.LeaderWireUserId != session.WireUserId)
         {
+            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+                entryIntents.RestoreIfAbsent(session, intent.Value);
             await RefuseAsync(
                 context.Connection.ConnectionId,
                 SelectDungeonRefusal.NotPartyLeader,
@@ -647,7 +618,8 @@ public sealed class MoveMapHandler(
     DungeonRunDeliveryRegistry deliveryRegistry,
     IGameMessageSender sender,
     ILogger<MoveMapHandler> logger,
-    DungeonPartyRecipients? partyRecipients = null) : ClientMessageHandler<MoveMapRequest>
+    DungeonPartyRecipients? partyRecipients = null,
+    Fatigue.FatigueProjectionDelivery? fatigueProjection = null) : ClientMessageHandler<MoveMapRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -773,5 +745,8 @@ public sealed class MoveMapHandler(
                         value.Session.ConnectionId,
                         [RoomFor(value.Run)]))]),
             cancellationToken).ConfigureAwait(false);
+        if (fatigueProjection is not null)
+            foreach (var receiver in currentRecipients)
+                await fatigueProjection.SendAsync(receiver.Session, cancellationToken).ConfigureAwait(false);
     }
 }

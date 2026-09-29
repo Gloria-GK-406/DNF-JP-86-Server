@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
@@ -167,7 +168,8 @@ public sealed class SelectDungeonHandlerTests
             frame => Assert.IsType<UdpHostNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.Null(Assert.IsType<StartMapNotification>(frame).Run.Participant));
+            frame => Assert.Null(Assert.IsType<StartMapNotification>(frame).Run.Participant),
+            frame => Assert.Equal((ushort)1, Assert.IsType<FatigueNotification>(frame).Balance.Used));
     }
 
     /// <summary>
@@ -191,36 +193,22 @@ public sealed class SelectDungeonHandlerTests
         Assert.Empty(facts.ClearedQuestIds);
     }
 
-    /// <summary>
-    /// Entering reports what the entry costs to the fatigue seam, against this character.
-    /// </summary>
-    /// <remarks>
-    /// The number is written out here rather than read from
-    /// <see cref="SelectDungeonHandler.FatigueAnEntryCosts"/>. A test that takes its expectation
-    /// from the constant it is checking agrees with the handler about whatever that constant
-    /// becomes, which is the one change this exists to catch.
-    /// <para>
-    /// What it does not check is any effect of the report, because there is none: the seam's only
-    /// implementation keeps no account. That half is checked next door, in
-    /// <see cref="UnaccountedFatigueTests"/>.
-    /// </para>
-    /// </remarks>
+    /// <summary>Projection must not charge an entry already committed by the visit domain.</summary>
     [Fact]
-    public async Task Entry_reports_what_it_costs_to_the_fatigue_seam()
+    public async Task Entry_projection_does_not_charge_again()
     {
         var fatigue = new RecordingFatigue();
         var handler = Handler(new RecordingVisits(), fatigue: fatigue);
 
         await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-        var spent = Assert.Single(fatigue.Spent);
-        Assert.Equal(Identity.CharacterId, spent.CharacterId);
-        Assert.Equal((ushort)1, spent.Points);
+        // The visit domain owns charging; projection must never charge it again.
+        Assert.Empty(fatigue.Spent);
     }
 
     /// <summary>A refused selection reports nothing to the fatigue seam.</summary>
     /// <remarks>
-    /// The other half of <see cref="Entry_reports_what_it_costs_to_the_fatigue_seam"/>. That one
+    /// The other half of <see cref="Entry_projection_does_not_charge_again"/>. That one
     /// says a report happens; this one says where, and it is the half a call site slides past
     /// unnoticed: reported before the run has answered rather than after, a selection the archive
     /// refuses costs the character a point for a dungeon they never stood in. Nothing else in the
@@ -607,14 +595,7 @@ public sealed class SelectDungeonHandlerTests
             throw new NotSupportedException("A refused selection walks into no room.");
     }
 
-    /// <summary>
-    /// The fatigue seam, remembering what it is told and refusing everything else.
-    /// </summary>
-    /// <remarks>
-    /// Entry neither reads a balance nor gives points back, so both of those are defects this
-    /// fixture reports rather than absorbs: a balance read would mean something here had started
-    /// gating entry on fatigue, which is not this seam's doing and not this frame's.
-    /// </remarks>
+    /// <summary>Records accidental double charging by the projection layer.</summary>
     private sealed class RecordingFatigue : ICharacterFatigueDomainService
     {
         public List<(CharacterId CharacterId, ushort Points)> Spent { get; } = [];
@@ -628,7 +609,7 @@ public sealed class SelectDungeonHandlerTests
 
         public ValueTask<CharacterFatigueBalance> BalanceOfAsync(
             CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Entering a dungeon asks for no balance; nothing gates it.");
+            ValueTask.FromResult(new CharacterFatigueBalance(188, 1));
 
         public ValueTask RefundAsync(
             CharacterId characterId, ushort points, CancellationToken cancellationToken) =>
@@ -657,6 +638,8 @@ public sealed class SelectDungeonHandlerTests
             _intent = null;
             return current;
         }
+
+        public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) => _intent ??= intent;
 
         public bool ClearExact(SelectedSessionIdentity session)
         {

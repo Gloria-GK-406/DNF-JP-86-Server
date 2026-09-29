@@ -89,7 +89,10 @@ internal sealed record PlayResultNotification(
 /// <see cref="DungeonClearPayloadCodec.UnpricedPaidFlipCost"/> such a clear is reported with is a
 /// decision, made by the settlement that knows which case it is in rather than defaulted here.
 /// </param>
-internal sealed record PartyCardReward(byte Seat, IReadOnlyList<ClearRewardCardSlot> Cards, int Gold);
+internal sealed record PartyCardReward(byte Seat, IReadOnlyList<ClearRewardCardSlot> Cards, int Gold)
+{
+    public ClearRewardCardFace? BlackDiamond { get; init; }
+}
 
 internal sealed record ClearDungeonRewardNotification(
     uint ClearBase,
@@ -99,7 +102,8 @@ internal sealed record ClearDungeonRewardNotification(
     int PaidFlipCost,
     IReadOnlyList<PartyCardReward>? PartyCards = null,
     DungeonKillExperienceSummary? KillExperience = null,
-    ExperienceBreakdown? Experience = null)
+    ExperienceBreakdown? Experience = null,
+    ClearRewardCardFace? BlackDiamond = null)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
@@ -324,7 +328,8 @@ internal static class DungeonClearPayloadCodec
         int paidFlipCost = NoPaidFlipCost,
         IReadOnlyList<PartyCardReward>? partyCards = null,
         DungeonKillExperienceSummary? killExperience = null,
-        ExperienceBreakdown? experience = null)
+        ExperienceBreakdown? experience = null,
+        ClearRewardCardFace? blackDiamond = null)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
         using var writer = new BinaryWriter(stream);
@@ -339,6 +344,7 @@ internal static class DungeonClearPayloadCodec
             writer.Write(slot switch
             {
                 1 => experience?.SpiritPotion ?? 0u,
+                2 => experience?.BlackDiamond ?? 0u,
                 9 => experience?.GrowthContract ?? 0u,
                 18 => killExperience?.GrowthContract ?? 0u, // Already awarded kills; display only.
                 _ => 0u,
@@ -372,7 +378,7 @@ internal static class DungeonClearPayloadCodec
         WriteFreeRow(writer, cards, cardGold, partyCards);
         writer.Write(paidFlipCost); // paid-card cost
         WriteUnturnedRow(writer); // the gold row
-        WriteUnturnedRow(writer); // the black-diamond row
+        var bonusEntries = WriteBlackDiamondRow(writer, blackDiamond, partyCards);
 
         // The twenty-two byte trailer, field for field as the client reads it: two figures into
         // protected globals, a UI branch switch, a flag, and three more figures. All zero.
@@ -387,6 +393,7 @@ internal static class DungeonClearPayloadCodec
         var body = stream.ToArray();
         var expected = partyCards is null ? ClearRewardBodyLengthFor(freeCards)
             : ClearRewardBodyLength + partyCards.Count(card => RewardOf(card.Cards) is not null) * CardEntryLength;
+        expected += bonusEntries * CardEntryLength;
         if (body.Length != expected)
         {
             throw new InvalidDataException(
@@ -447,11 +454,37 @@ internal static class DungeonClearPayloadCodec
     /// A row whose every column declares nothing at all.
     /// </summary>
     /// <remarks>
-    /// The gold row and the black-diamond row. Their contents are what a player sees after paying
-    /// for a flip of them, and this server delivers neither, so declaring them empty is the honest
-    /// answer rather than an omission -- the reader consumes all three rows either way and the
-    /// trailer sits behind them. The reference server writes these two rows the same way.
+    /// Black-diamond eligibility and its personal reward are frozen with settlement.
+    /// Empty eligibility writes no entries; an eligible reward keeps the gold placeholder.
     /// </remarks>
+    private static int WriteBlackDiamondRow(BinaryWriter writer, ClearRewardCardFace? face,
+        IReadOnlyList<PartyCardReward>? partyCards)
+    {
+        var entries = 0;
+        for (var seat = 0; seat < WireCardColumnCount; seat++)
+        {
+            var bonus = partyCards is null ? (seat == RewardColumn ? face : null)
+                : partyCards.SingleOrDefault(member => member.Seat == seat)?.BlackDiamond;
+            if (bonus is null)
+            {
+                writer.Write((byte)0);
+                continue;
+            }
+            var item = RewardOf(bonus.Slots);
+            var count = item is null ? 1 : 2;
+            entries += count;
+            writer.Write((byte)count);
+            writer.Write(0);
+            writer.Write(bonus.Gold);
+            if (item is { } piece)
+            {
+                writer.Write(piece.ItemId);
+                writer.Write(piece.Quantity);
+            }
+        }
+        return entries;
+    }
+
     private static void WriteUnturnedRow(BinaryWriter writer)
     {
         for (var column = 0; column < WireCardColumnCount; column++)
@@ -640,7 +673,7 @@ internal sealed class ClearDungeonRewardEncoder
                 message.FreeCards,
                 message.CardGold,
                 message.PaidFlipCost,
-                message.PartyCards, message.KillExperience, message.Experience));
+                message.PartyCards, message.KillExperience, message.Experience, message.BlackDiamond));
 }
 
 /// <summary>
@@ -780,7 +813,7 @@ public sealed class SetPlayResultHandler(
                             run.RunId), cancellationToken).ConfigureAwait(false);
                     if (memberCards is not null)
                         partyCards.Add(new(participant.Slot, memberCards.Cards.Free.Slots,
-                            memberCards.Cards.Free.Gold));
+                            memberCards.Cards.Free.Gold) { BlackDiamond = memberCards.Cards.BlackDiamond });
                 }
             }
             var freeCards = settled.Cards.Free.Slots;
@@ -830,7 +863,7 @@ public sealed class SetPlayResultHandler(
                                 message.ClientRankPoint,
                                 settlement.QuestMaze),
                             new ClearDungeonRewardNotification(
-                                0, 0, freeCards, cardGold, paidFlipCost, partyCards),
+                                0, 0, freeCards, cardGold, paidFlipCost, partyCards, BlackDiamond: settled.Cards.BlackDiamond),
                         ],
                         []),
                     cancellationToken).ConfigureAwait(false);
@@ -947,9 +980,9 @@ public sealed class SetPlayResultHandler(
 
             // Render the earned reward, independent of any progression ceiling.
             frames.Add(award is null
-                ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost, partyCards)
+                ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost, partyCards, BlackDiamond: settled.Cards.BlackDiamond)
                 : new ClearDungeonRewardNotification(
-                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience, award.Breakdown));
+                    award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience, award.Breakdown, settled.Cards.BlackDiamond));
 
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,

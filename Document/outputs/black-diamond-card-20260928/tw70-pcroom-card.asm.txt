@@ -1,0 +1,414 @@
+70Reference: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256 cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+_ZN6CParty12clear_rewardEi
+085AEF51: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AEF55: 89 14 24                       mov dword ptr [esp], edx
+085AEF58: e8 27 c9 b1 ff                 call 0x80cb884
+085AEF5D: 8b 95 70 ff ff ff              mov edx, dword ptr [ebp - 0x90]
+085AEF63: 8b 4d 08                       mov ecx, dword ptr [ebp + 8]
+085AEF66: 89 d0                          mov eax, edx
+085AEF68: 01 c0                          add eax, eax
+085AEF6A: 01 d0                          add eax, edx
+085AEF6C: c1 e0 03                       shl eax, 3
+085AEF6F: 8d 04 01                       lea eax, [ecx + eax]
+085AEF72: 83 c0 78                       add eax, 0x78
+085AEF75: 8b 00                          mov eax, dword ptr [eax]
+085AEF77: c7 44 24 04 0c 00 00 00        mov dword ptr [esp + 4], 0xc
+085AEF7F: 89 04 24                       mov dword ptr [esp], eax
+085AEF82: e8 87 70 b3 ff                 call 0x80e600e
+085AEF87: 84 c0                          test al, al
+085AEF89: 74 07                          je 0x85aef92
+085AEF8B: b8 03 00 00 00                 mov eax, 3
+085AEF90: eb 05                          jmp 0x85aef97
+085AEF92: b8 00 00 00 00                 mov eax, 0
+085AEF97: 89 85 f4 fd ff ff              mov dword ptr [ebp - 0x20c], eax
+085AEF9D: 8d 85 10 fd ff ff              lea eax, [ebp - 0x2f0]
+085AEFA3: 89 04 24                       mov dword ptr [esp], eax
+085AEFA6: e8 5b bb b9 ff                 call 0x814ab06
+085AEFAB: c7 44 24 08 00 00 00 00        mov dword ptr [esp + 8], 0
+085AEFB3: 8d 85 10 fd ff ff              lea eax, [ebp - 0x2f0]
+085AEFB9: 83 c0 0c                       add eax, 0xc
+085AEFBC: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AF055: 03 55 08                       add edx, dword ptr [ebp + 8]
+085AF058: 83 c2 10                       add edx, 0x10
+085AF05B: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AF05F: 89 14 24                       mov dword ptr [esp], edx
+085AF062: e8 c7 b5 b9 ff                 call 0x814a62e
+085AF067: 8b 95 70 ff ff ff              mov edx, dword ptr [ebp - 0x90]
+085AF06D: 8b 4d 08                       mov ecx, dword ptr [ebp + 8]
+085AF070: 89 d0                          mov eax, edx
+085AF072: 01 c0                          add eax, eax
+085AF074: 01 d0                          add eax, edx
+085AF076: c1 e0 03                       shl eax, 3
+085AF079: 8d 04 01                       lea eax, [ecx + eax]
+085AF07C: 83 c0 78                       add eax, 0x78
+085AF07F: 8b 00                          mov eax, dword ptr [eax]
+085AF081: c7 44 24 04 0c 00 00 00        mov dword ptr [esp + 4], 0xc
+085AF089: 89 04 24                       mov dword ptr [esp], eax
+085AF08C: e8 7d 6f b3 ff                 call 0x80e600e
+085AF091: 84 c0                          test al, al
+085AF093: 74 07                          je 0x85af09c
+085AF095: b8 04 00 00 00                 mov eax, 4
+085AF09A: eb 05                          jmp 0x85af0a1
+085AF09C: b8 01 00 00 00                 mov eax, 1
+085AF0A1: 89 85 f4 fd ff ff              mov dword ptr [ebp - 0x20c], eax
+085AF0A7: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF0AD: 6b c0 7a                       imul eax, eax, 0x7a
+085AF0B0: 05 90 03 00 00                 add eax, 0x390
+085AF0B5: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AF0B8: 8d 50 10                       lea edx, [eax + 0x10]
+085AF0BB: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF602: e8 b3 f0 00 00                 call 0x85be6ba
+085AF607: 8b 85 38 ff ff ff              mov eax, dword ptr [ebp - 0xc8]
+085AF60D: 89 85 f0 fd ff ff              mov dword ptr [ebp - 0x210], eax
+085AF613: 8b 95 70 ff ff ff              mov edx, dword ptr [ebp - 0x90]
+085AF619: 8b 4d 08                       mov ecx, dword ptr [ebp + 8]
+085AF61C: 89 d0                          mov eax, edx
+085AF61E: 01 c0                          add eax, eax
+085AF620: 01 d0                          add eax, edx
+085AF622: c1 e0 03                       shl eax, 3
+085AF625: 8d 04 01                       lea eax, [ecx + eax]
+085AF628: 83 c0 78                       add eax, 0x78
+085AF62B: 8b 00                          mov eax, dword ptr [eax]
+085AF62D: c7 44 24 04 0c 00 00 00        mov dword ptr [esp + 4], 0xc
+085AF635: 89 04 24                       mov dword ptr [esp], eax
+085AF638: e8 d1 69 b3 ff                 call 0x80e600e
+085AF63D: 84 c0                          test al, al
+085AF63F: 0f 84 d0 01 00 00              je 0x85af815
+085AF645: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF64B: 6b c0 7a                       imul eax, eax, 0x7a
+085AF64E: 05 90 03 00 00                 add eax, 0x390
+085AF653: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AF656: 8d 50 10                       lea edx, [eax + 0x10]
+085AF659: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF65F: 6b c0 7a                       imul eax, eax, 0x7a
+085AF662: 05 70 05 00 00                 add eax, 0x570
+085AF667: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AF66A: 83 c0 18                       add eax, 0x18
+085AF66D: 89 54 24 04                    mov dword ptr [esp + 4], edx
+085AF671: 89 04 24                       mov dword ptr [esp], eax
+085AF674: e8 b5 af b9 ff                 call 0x814a62e
+085AF679: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF67F: 6b c0 7a                       imul eax, eax, 0x7a
+085AF682: 05 70 05 00 00                 add eax, 0x570
+085AF687: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AF68A: 83 c0 18                       add eax, 0x18
+085AF68D: c7 44 24 04 00 00 00 00        mov dword ptr [esp + 4], 0
+085AF695: 89 04 24                       mov dword ptr [esp], eax
+085AF698: e8 e7 c1 b1 ff                 call 0x80cb884
+085AF69D: c7 85 f4 fd ff ff 05 00 00 00  mov dword ptr [ebp - 0x20c], 5
+085AF6A7: 8d 85 10 fd ff ff              lea eax, [ebp - 0x2f0]
+085AF6AD: 89 04 24                       mov dword ptr [esp], eax
+085AF6B0: e8 1b 34 ba ff                 call 0x8152ad0
+085AF6B5: e8 e1 ca b1 ff                 call 0x80cc19b
+085AF6BA: 89 04 24                       mov dword ptr [esp], eax
+085AF6BD: e8 28 b0 b9 ff                 call 0x814a6ea
+085AF6C2: c7 44 24 04 02 00 00 00        mov dword ptr [esp + 4], 2
+085AF6CA: 89 04 24                       mov dword ptr [esp], eax
+085AF6CD: e8 fe b0 b9 ff                 call 0x814a7d0
+085AF6D2: 8b 10                          mov edx, dword ptr [eax]
+085AF6D4: 83 c2 08                       add edx, 8
+085AF6D7: 8b 0a                          mov ecx, dword ptr [edx]
+085AF6D9: 8d 95 10 fd ff ff              lea edx, [ebp - 0x2f0]
+085AF6DF: 89 54 24 08                    mov dword ptr [esp + 8], edx
+085AF6E3: 8d 95 b8 fd ff ff              lea edx, [ebp - 0x248]
+085AF6E9: 89 54 24 04                    mov dword ptr [esp + 4], edx
+085AF6ED: 89 04 24                       mov dword ptr [esp], eax
+085AF6F0: ff d1                          call ecx
+085AF6F2: 8d 85 10 fd ff ff              lea eax, [ebp - 0x2f0]
+085AF6F8: 89 04 24                       mov dword ptr [esp], eax
+085AF6FB: e8 32 b6 b9 ff                 call 0x814ad32
+085AF700: 83 f0 01                       xor eax, 1
+085AF703: 84 c0                          test al, al
+085AF705: 74 4f                          je 0x85af756
+085AF707: 8d 85 08 ff ff ff              lea eax, [ebp - 0xf8]
+085AF70D: 8d 95 10 fd ff ff              lea edx, [ebp - 0x2f0]
+085AF713: 89 54 24 04                    mov dword ptr [esp + 4], edx
+085AF717: 89 04 24                       mov dword ptr [esp], eax
+085AF71A: e8 e5 b5 b9 ff                 call 0x814ad04
+085AF71F: 83 ec 04                       sub esp, 4
+085AF722: 8d 85 08 ff ff ff              lea eax, [ebp - 0xf8]
+085AF728: 89 04 24                       mov dword ptr [esp], eax
+085AF72B: e8 f8 b5 b9 ff                 call 0x814ad28
+085AF730: 8b 95 70 ff ff ff              mov edx, dword ptr [ebp - 0x90]
+085AF736: 6b d2 7a                       imul edx, edx, 0x7a
+085AF739: 81 c2 ad 05 00 00              add edx, 0x5ad
+085AF73F: 03 55 08                       add edx, dword ptr [ebp + 8]
+085AF742: 83 c2 18                       add edx, 0x18
+085AF745: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AF749: 89 14 24                       mov dword ptr [esp], edx
+085AF74C: e8 dd ae b9 ff                 call 0x814a62e
+085AF751: e9 bf 00 00 00                 jmp 0x85af815
+085AF756: e8 40 ca b1 ff                 call 0x80cc19b
+085AF75B: 89 04 24                       mov dword ptr [esp], eax
+085AF75E: e8 87 af b9 ff                 call 0x814a6ea
+085AF763: c7 44 24 04 02 00 00 00        mov dword ptr [esp + 4], 2
+085AF76B: 89 04 24                       mov dword ptr [esp], eax
+085AF76E: e8 5d b0 b9 ff                 call 0x814a7d0
+085AF773: 89 45 98                       mov dword ptr [ebp - 0x68], eax
+085AF776: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF77C: 6b c0 7a                       imul eax, eax, 0x7a
+085AF77F: 05 ad 05 00 00                 add eax, 0x5ad
+085AF784: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AF787: 83 c0 18                       add eax, 0x18
+085AF78A: 89 04 24                       mov dword ptr [esp], eax
+085AF78D: e8 46 c0 b1 ff                 call 0x80cb7d8
+085AF792: 83 7d 98 00                    cmp dword ptr [ebp - 0x68], 0
+085AF796: 74 34                          je 0x85af7cc
+085AF798: a1 30 f7 41 09                 mov eax, dword ptr [0x941f730]
+085AF79D: c7 44 24 04 1d 00 00 00        mov dword ptr [esp + 4], 0x1d
+085AF7A5: 89 04 24                       mov dword ptr [esp], eax
+085AF7A8: e8 eb 61 b6 ff                 call 0x8115998
+085AF7AD: 8b 10                          mov edx, dword ptr [eax]
+085AF7AF: 83 c2 34                       add edx, 0x34
+085AF7B2: 8b 12                          mov edx, dword ptr [edx]
+085AF7B4: c7 44 24 04 00 00 00 00        mov dword ptr [esp + 4], 0
+085AF7BC: 89 04 24                       mov dword ptr [esp], eax
+085AF7BF: ff d2                          call edx
+085AF7C1: 84 c0                          test al, al
+085AF7C3: 74 07                          je 0x85af7cc
+085AF7C5: b8 01 00 00 00                 mov eax, 1
+085AF7CA: eb 05                          jmp 0x85af7d1
+085AF7CC: b8 00 00 00 00                 mov eax, 0
+085AF7D1: 84 c0                          test al, al
+085AF7D3: 74 40                          je 0x85af815
+085AF7D5: 8b 85 70 ff ff ff              mov eax, dword ptr [ebp - 0x90]
+085AF7DB: 6b c0 7a                       imul eax, eax, 0x7a
+085AF7DE: 05 ad 05 00 00                 add eax, 0x5ad
+085AF7E3: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AF7E6: 83 c0 18                       add eax, 0x18
+085AF7E9: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AF7ED: 8b 45 98                       mov eax, dword ptr [ebp - 0x68]
+085AF7F0: 89 04 24                       mov dword ptr [esp], eax
+085AF7F3: e8 14 98 f8 ff                 call 0x853900c
+085AF7F8: eb 1b                          jmp 0x85af815
+085AF7FA: 89 d3                          mov ebx, edx
+085AF7FC: 89 c6                          mov esi, eax
+085AF7FE: 8d 85 10 fd ff ff              lea eax, [ebp - 0x2f0]
+085AF804: 89 04 24                       mov dword ptr [esp], eax
+085AF807: e8 40 b3 b9 ff                 call 0x814ab4c
+085AF80C: 89 f0                          mov eax, esi
+085AF80E: 89 da                          mov edx, ebx
+085AF810: e9 77 19 00 00                 jmp 0x85b118c
+085AF815: 8d 85 10 fd ff ff              lea eax, [ebp - 0x2f0]
+085AF81B: 89 04 24                       mov dword ptr [esp], eax
+085AF81E: e8 29 b3 b9 ff                 call 0x814ab4c
+085B0AD1: e9 8a 00 00 00                 jmp 0x85b0b60
+085B0AD6: 8b 55 e0                       mov edx, dword ptr [ebp - 0x20]
+085B0AD9: 8b 4d 08                       mov ecx, dword ptr [ebp + 8]
+085B0ADC: 89 d0                          mov eax, edx
+085B0ADE: 01 c0                          add eax, eax
+085B0AE0: 01 d0                          add eax, edx
+085B0AE2: c1 e0 03                       shl eax, 3
+085B0AE5: 8d 04 01                       lea eax, [ecx + eax]
+085B0AE8: 83 c0 78                       add eax, 0x78
+085B0AEB: 8b 00                          mov eax, dword ptr [eax]
+085B0AED: c7 44 24 04 0c 00 00 00        mov dword ptr [esp + 4], 0xc
+085B0AF5: 89 04 24                       mov dword ptr [esp], eax
+085B0AF8: e8 11 55 b3 ff                 call 0x80e600e
+085B0AFD: 84 c0                          test al, al
+085B0AFF: 74 49                          je 0x85b0b4a
+085B0B01: 8b 45 e0                       mov eax, dword ptr [ebp - 0x20]
+085B0B04: 6b c0 7a                       imul eax, eax, 0x7a
+085B0B07: 05 70 05 00 00                 add eax, 0x570
+085B0B0C: 03 45 08                       add eax, dword ptr [ebp + 8]
+085B0B0F: 83 c0 18                       add eax, 0x18
+085B0B12: 89 c1                          mov ecx, eax
+085B0B14: 8b 55 e0                       mov edx, dword ptr [ebp - 0x20]
+085B0B17: 8b 5d 08                       mov ebx, dword ptr [ebp + 8]
+085B0B1A: 89 d0                          mov eax, edx
+085B0B1C: 01 c0                          add eax, eax
+085B0B1E: 01 d0                          add eax, edx
+085B0B20: c1 e0 03                       shl eax, 3
+085B0B23: 8d 04 03                       lea eax, [ebx + eax]
+085B0B26: 83 c0 78                       add eax, 0x78
+085B0B29: 8b 00                          mov eax, dword ptr [eax]
+085B0B2B: 8d 95 d8 fe ff ff              lea edx, [ebp - 0x128]
+085B0B31: 89 54 24 0c                    mov dword ptr [esp + 0xc], edx
+085B0B35: 89 4c 24 08                    mov dword ptr [esp + 8], ecx
+085B0B39: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085B0B3D: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085B0B40: 89 04 24                       mov dword ptr [esp], eax
+085B0B43: e8 76 c5 ff ff                 call 0x85ad0be
+085B0B48: eb 16                          jmp 0x85b0b60
+085B0B4A: c7 44 24 04 00 00 00 00        mov dword ptr [esp + 4], 0
+085B0B52: 8d 85 d8 fe ff ff              lea eax, [ebp - 0x128]
+085B0B58: 89 04 24                       mov dword ptr [esp], eax
+085B0B5B: e8 c0 ad b1 ff                 call 0x80cb920
+085B0B60: 83 45 e0 01                    add dword ptr [ebp - 0x20], 1
+085B0B64: 83 7d e0 03                    cmp dword ptr [ebp - 0x20], 3
+085B0B68: 0f 9e c0                       setle al
+085B0B6B: 84 c0                          test al, al
+085B0B6D: 0f 85 2f ff ff ff              jne 0x85b0aa2
+085B0B73: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+
+_ZN6CParty13dungeon_clearEv
+085AB736: 55                             push ebp
+085AB737: 89 e5                          mov ebp, esp
+085AB739: 56                             push esi
+085AB73A: 53                             push ebx
+085AB73B: 83 ec 50                       sub esp, 0x50
+085AB73E: c7 44 24 04 01 00 00 00        mov dword ptr [esp + 4], 1
+085AB746: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085AB749: 89 04 24                       mov dword ptr [esp], eax
+085AB74C: e8 cf 7d 00 00                 call 0x85b3520
+085AB751: c7 45 e0 00 00 00 00           mov dword ptr [ebp - 0x20], 0
+085AB758: 8d 45 d4                       lea eax, [ebp - 0x2c]
+085AB75B: 89 04 24                       mov dword ptr [esp], eax
+085AB75E: e8 e9 25 fe ff                 call 0x858dd4c
+085AB763: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085AB766: 89 04 24                       mov dword ptr [esp], eax
+085AB769: e8 fc e9 fe ff                 call 0x859a16a
+085AB76E: 89 45 e4                       mov dword ptr [ebp - 0x1c], eax
+085AB771: c7 45 ec 00 00 00 00           mov dword ptr [ebp - 0x14], 0
+085AB778: e9 95 03 00 00                 jmp 0x85abb12
+085AB77D: 8b 45 ec                       mov eax, dword ptr [ebp - 0x14]
+085AB780: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AB784: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085AB787: 89 04 24                       mov dword ptr [esp], eax
+085AB78A: e8 83 95 00 00                 call 0x85b4d12
+085AB78F: 83 f0 01                       xor eax, 1
+085AB792: 84 c0                          test al, al
+085AB794: 0f 85 73 03 00 00              jne 0x85abb0d
+085AB79A: c7 45 f0 00 00 00 00           mov dword ptr [ebp - 0x10], 0
+085AB7A1: 8b 45 ec                       mov eax, dword ptr [ebp - 0x14]
+085AB7A4: 6b c0 7a                       imul eax, eax, 0x7a
+085AB7A7: 05 90 03 00 00                 add eax, 0x390
+085AB7AC: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AB7AF: 83 c0 10                       add eax, 0x10
+085AB7B2: 89 c1                          mov ecx, eax
+085AB7B4: 8b 55 ec                       mov edx, dword ptr [ebp - 0x14]
+085AB7B7: 8b 5d 08                       mov ebx, dword ptr [ebp + 8]
+085AB7BA: 89 d0                          mov eax, edx
+085AB7BC: 01 c0                          add eax, eax
+085AB7BE: 01 d0                          add eax, edx
+085AB7C0: c1 e0 03                       shl eax, 3
+085AB7C3: 8d 04 03                       lea eax, [ebx + eax]
+085AB7C6: 83 c0 78                       add eax, 0x78
+085AB7C9: 8b 00                          mov eax, dword ptr [eax]
+085AB7CB: 8d 55 d4                       lea edx, [ebp - 0x2c]
+085AB7CE: 89 54 24 0c                    mov dword ptr [esp + 0xc], edx
+085AB7D2: 89 4c 24 08                    mov dword ptr [esp + 8], ecx
+085AB7D6: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AB7DA: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085AB7DD: 89 04 24                       mov dword ptr [esp], eax
+085AB7E0: e8 9f f3 ff ff                 call 0x85aab84
+085AB7E5: 01 45 f0                       add dword ptr [ebp - 0x10], eax
+085AB7E8: 8b 45 ec                       mov eax, dword ptr [ebp - 0x14]
+085AB7EB: 6b c0 7a                       imul eax, eax, 0x7a
+085AB7EE: 05 70 05 00 00                 add eax, 0x570
+085AB7F3: 03 45 08                       add eax, dword ptr [ebp + 8]
+085AB7F6: 83 c0 18                       add eax, 0x18
+085AB7F9: 89 c1                          mov ecx, eax
+085AB7FB: 8b 55 ec                       mov edx, dword ptr [ebp - 0x14]
+085AB7FE: 8b 5d 08                       mov ebx, dword ptr [ebp + 8]
+085AB801: 89 d0                          mov eax, edx
+085AB803: 01 c0                          add eax, eax
+085AB805: 01 d0                          add eax, edx
+085AB807: c1 e0 03                       shl eax, 3
+085AB80A: 8d 04 03                       lea eax, [ebx + eax]
+085AB80D: 83 c0 78                       add eax, 0x78
+085AB810: 8b 00                          mov eax, dword ptr [eax]
+085AB812: 8d 55 d4                       lea edx, [ebp - 0x2c]
+085AB815: 89 54 24 0c                    mov dword ptr [esp + 0xc], edx
+085AB819: 89 4c 24 08                    mov dword ptr [esp + 8], ecx
+085AB81D: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AB821: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085AB824: 89 04 24                       mov dword ptr [esp], eax
+085AB827: e8 58 f3 ff ff                 call 0x85aab84
+085AB82C: 01 45 f0                       add dword ptr [ebp - 0x10], eax
+085AB82F: 8b 45 ec                       mov eax, dword ptr [ebp - 0x14]
+085AB832: 0f be c0                       movsx eax, al
+085AB835: c7 44 24 08 01 00 00 00        mov dword ptr [esp + 8], 1
+085AB83D: 89 44 24 04                    mov dword ptr [esp + 4], eax
+085AB841: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085AB844: 89 04 24                       mov dword ptr [esp], eax
+085AB847: e8 d0 87 00 00                 call 0x85b401c
+085AB84C: 84 c0                          test al, al
+085AB84E: 0f 84 c6 01 00 00              je 0x85aba1a
+085AB854: 8b 45 ec                       mov eax, dword ptr [ebp - 0x14]
+085AB857: 8b 55 08                       mov edx, dword ptr [ebp + 8]
+085AB85A: 6b c0 7a                       imul eax, eax, 0x7a
+085AB85D: 8d 04 02                       lea eax, [edx + eax]
+085AB860: 05 9d 07 00 00                 add eax, 0x79d
+085AB865: 8b 40 12                       mov eax, dword ptr [eax + 0x12]
+085AB868: 89 c3                          mov ebx, eax
+085AB86A: e8 2c 09 b2 ff                 call 0x80cc19b
+085AB86F: 89 5c 24 04                    mov dword ptr [esp + 4], ebx
+085AB873: 89 04 24                       mov dword ptr [esp], eax
+085AB876: e8 b7 41 db ff                 call 0x835fa32
+085AB87B: 89 45 f4                       mov dword ptr [ebp - 0xc], eax
+085AB87E: 83 7d f4 00                    cmp dword ptr [ebp - 0xc], 0
+
+_ZN8WongWork12CClearReward10loadScriptEPKc
+085393F0: 8d 45 a4                       lea eax, [ebp - 0x5c]
+085393F3: 89 04 24                       mov dword ptr [esp], eax
+085393F6: e8 d5 d1 1c 00                 call 0x87065d0
+085393FB: 8d 45 a4                       lea eax, [ebp - 0x5c]
+085393FE: 89 04 24                       mov dword ptr [esp], eax
+08539401: e8 9c 33 38 00                 call 0x88bc7a2
+08539406: 83 f0 01                       xor eax, 1
+08539409: 84 c0                          test al, al
+0853940B: 74 0a                          je 0x8539417
+0853940D: be 00 00 00 00                 mov esi, 0
+08539412: e9 c4 01 00 00                 jmp 0x85395db
+08539417: c7 44 24 04 2e 98 c9 08        mov dword ptr [esp + 4], 0x8c9982e
+0853941F: 8d 45 a4                       lea eax, [ebp - 0x5c]
+08539422: 89 04 24                       mov dword ptr [esp], eax
+08539425: e8 77 75 b4 ff                 call 0x80809a1
+0853942A: 84 c0                          test al, al
+0853942C: 74 0c                          je 0x853943a
+0853942E: c7 45 c8 00 00 00 00           mov dword ptr [ebp - 0x38], 0
+08539435: e9 b2 00 00 00                 jmp 0x85394ec
+0853943A: c7 44 24 04 36 98 c9 08        mov dword ptr [esp + 4], 0x8c99836
+08539442: 8d 45 a4                       lea eax, [ebp - 0x5c]
+08539445: 89 04 24                       mov dword ptr [esp], eax
+08539448: e8 54 75 b4 ff                 call 0x80809a1
+0853944D: 84 c0                          test al, al
+0853944F: 74 0c                          je 0x853945d
+08539451: c7 45 c8 01 00 00 00           mov dword ptr [ebp - 0x38], 1
+08539458: e9 8f 00 00 00                 jmp 0x85394ec
+0853945D: c7 44 24 04 3c 98 c9 08        mov dword ptr [esp + 4], 0x8c9983c
+08539465: 8d 45 a4                       lea eax, [ebp - 0x5c]
+08539468: 89 04 24                       mov dword ptr [esp], eax
+0853946B: e8 31 75 b4 ff                 call 0x80809a1
+08539470: 84 c0                          test al, al
+08539472: 74 09                          je 0x853947d
+08539474: c7 45 c8 02 00 00 00           mov dword ptr [ebp - 0x38], 2
+0853947B: eb 6f                          jmp 0x85394ec
+0853947D: c7 44 24 04 43 98 c9 08        mov dword ptr [esp + 4], 0x8c99843
+08539485: 8d 45 a4                       lea eax, [ebp - 0x5c]
+08539488: 89 04 24                       mov dword ptr [esp], eax
+0853948B: e8 11 75 b4 ff                 call 0x80809a1
+08539490: 84 c0                          test al, al
+08539492: 74 09                          je 0x853949d
+08539494: c7 45 c8 03 00 00 00           mov dword ptr [ebp - 0x38], 3
+0853949B: eb 4f                          jmp 0x85394ec
+0853949D: c7 44 24 04 52 98 c9 08        mov dword ptr [esp + 4], 0x8c99852
+085394A5: 8d 45 a4                       lea eax, [ebp - 0x5c]
+085394A8: 89 04 24                       mov dword ptr [esp], eax
+085394AB: e8 f1 74 b4 ff                 call 0x80809a1
+085394B0: 84 c0                          test al, al
+085394B2: 74 09                          je 0x85394bd
+085394B4: c7 45 c8 04 00 00 00           mov dword ptr [ebp - 0x38], 4
+085394BB: eb 2f                          jmp 0x85394ec
+085394BD: c7 44 24 04 5f 98 c9 08        mov dword ptr [esp + 4], 0x8c9985f
+085394C5: 8d 45 a4                       lea eax, [ebp - 0x5c]
+085394C8: 89 04 24                       mov dword ptr [esp], eax
+085394CB: e8 d1 74 b4 ff                 call 0x80809a1
+085394D0: 84 c0                          test al, al
+085394D2: 74 09                          je 0x85394dd
+085394D4: c7 45 c8 05 00 00 00           mov dword ptr [ebp - 0x38], 5
+085394DB: eb 0f                          jmp 0x85394ec
+085394DD: bb 69 09 00 00                 mov ebx, 0x969
+085394E2: be 01 00 00 00                 mov esi, 1
+085394E7: e9 ef 00 00 00                 jmp 0x85395db
+085394EC: 8b 45 08                       mov eax, dword ptr [ebp + 8]
+085394EF: 8d 48 18                       lea ecx, [eax + 0x18]
+085394F2: 8b 55 c8                       mov edx, dword ptr [ebp - 0x38]
+085394F5: 89 d0                          mov eax, edx
+085394F7: 01 c0                          add eax, eax
+085394F9: 01 d0                          add eax, edx
+085394FB: c1 e0 02                       shl eax, 2
+085394FE: 8d 04 01                       lea eax, [ecx + eax]

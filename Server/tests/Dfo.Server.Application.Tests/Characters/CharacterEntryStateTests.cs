@@ -10,8 +10,10 @@ namespace Dfo.Server.Application.Tests.Characters;
 
 public sealed class CharacterEntryStateTests
 {
-    [Fact]
-    public async Task CharacterEntryState_DerivesCompleteTypedViewsFromRawSliceStorage()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CharacterEntryState_DerivesCompleteTypedViewsFromRawSliceStorage(bool blackDiamond)
     {
         var accountId = new AccountId(61);
         var characterId = new CharacterId(71);
@@ -23,12 +25,14 @@ public sealed class CharacterEntryStateTests
             new CharacterProgressionEntryProjection(),
             new CharacterFeatureEntryProjection(),
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
-                new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }), new Dfo.Server.Application.Tests.Support.NoticeStateStub());
+                new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }), new Dfo.Server.Application.Tests.Support.NoticeStateStub(),
+            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond });
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 
         Assert.Equal(new byte[] { 15,16 }, result.Settings.SeenNotices);
         Assert.Equal(7, result.Public.Condition.Stamina);
+        Assert.Equal(blackDiamond, result.Public.HasBlackDiamond);
         Assert.Equal(new CharacterPublicIdentityEntryState(8, 9, 10), result.Public.Identity);
         Assert.Equal(123, result.Public.DerivedStats.PhysicalAttack);
         Assert.Equal(11, result.Public.Extras.ManageLevel);

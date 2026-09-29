@@ -21,7 +21,7 @@ internal sealed class DungeonVisitDomainService(
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterDungeonDifficultyDomainService difficulties,
-    IDungeonDifficultyRuleService difficultyRules) : IDungeonVisitDomainService
+    IDungeonDifficultyRuleService difficultyRules, ICharacterFatigueDomainService fatigue) : IDungeonVisitDomainService
 {
     public bool DefersSelectionState(byte characterLevel) =>
         selection.DefersSelectionState(characterLevel);
@@ -79,6 +79,11 @@ internal sealed class DungeonVisitDomainService(
         if (layout is null)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
 
+        if (layout.ConsumesFatigue)
+            foreach (var participant in participants)
+                if ((await fatigue.BalanceOfAsync(participant.CharacterId, cancellationToken).ConfigureAwait(false)).Remaining == 0)
+                    return new(null, DungeonEntryFailure.InsufficientFatigue, participant.Slot);
+
         var runId = DungeonRunId.New();
         var startedAt = DateTimeOffset.UtcNow;
         var initialCell = await cells.CreateAsync(
@@ -91,14 +96,15 @@ internal sealed class DungeonVisitDomainService(
                 startedAt,
                 participants),
             cancellationToken).ConfigureAwait(false);
+        if (layout.ConsumesFatigue)
+            foreach (var participant in participants)
+                await fatigue.SpendAsync(participant.CharacterId, 1, cancellationToken).ConfigureAwait(false);
         var change = runs.PreparePartyEntry(
             participants, layout, difficulty, initialCell, runId, startedAt);
         var createdVisits = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => this.DescribeCreatedCell(
-                runs.Find(participant.CharacterId)
-                    ?? throw new InvalidOperationException(
-                        "A shared dungeon run was published without every participant index."),
+                change.Run with { Participant = participant },
                 firstEntry: true));
         return DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout, createdVisits, change));
     }
@@ -143,7 +149,11 @@ internal sealed class DungeonVisitDomainService(
             latest.RoomVersion,
             target,
             preparedCell);
-        return entered is null ? null : this.DescribeCreatedCell(entered, firstEntry);
+        if (entered is null) return null;
+        if (firstEntry && entered.Layout.ConsumesFatigue)
+            foreach (var participant in entered.Participants)
+                await fatigue.SpendAsync(participant.CharacterId, 1, cancellationToken).ConfigureAwait(false);
+        return this.DescribeCreatedCell(entered, firstEntry);
     }
 
     private DungeonRoomVisit DescribeCreatedCell(DungeonRunState run, bool firstEntry)

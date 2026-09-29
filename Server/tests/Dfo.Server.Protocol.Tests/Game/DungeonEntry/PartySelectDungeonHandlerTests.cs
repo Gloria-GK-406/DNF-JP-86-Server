@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Fatigue;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -146,8 +147,10 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Null(intents.Consume(Leader));
     }
 
-    [Fact]
-    public async Task The_leader_cancels_selection_for_every_member_and_restores_the_shared_town()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task The_leader_cancels_selection_for_every_member_and_restores_the_shared_town(bool refusedForFatigue)
     {
         var sessions = new Sessions(Leader, Member);
         var runtime = new PartyRuntime(
@@ -172,6 +175,21 @@ public sealed class PartySelectDungeonHandlerTests
             .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
                 NullLogger<BackToVillageHandler>.Instance)
             .BuildServiceProvider();
+        if (refusedForFatigue)
+        {
+            var visits = new RefusedVisits();
+            var selection = new SelectDungeonHandler(CurrentCharacterStub.Domain(), new UnchangedState(),
+                sessions, new RuntimeCurrentView(runtime), new Parties(Snapshot()),
+                services.GetRequiredService<IDungeonRunDomainService>(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
+                intents, visits, new RecordingQuestLogs(), new Fatigue(), sender, new RecordingCloser(),
+                services.GetRequiredService<TownAreaProjectionDelivery>(), NullLogger<SelectDungeonHandler>.Instance,
+                services.GetRequiredService<SelectedSessionTransitionGate>());
+            for (var i = 0; i < 2; i++)
+                await selection.HandleAsync(Dispatch(Leader), new SelectDungeonRequest(GameMessageMetadata.Empty, DungeonId, DungeonDifficulty.Normal, 0, 0), default);
+            Assert.Equal(2, visits.Attempts); // A repeated click still reaches fatigue validation.
+            Assert.Equal(2, sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>().Count());
+            Assert.All(sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>(), x => Assert.Equal(SelectDungeonRefusal.MemberBlocked, x.ErrorCode));
+        }
         var handler = ActivatorUtilities.CreateInstance<BackToVillageHandler>(services);
 
         await handler.HandleAsync(
@@ -179,7 +197,7 @@ public sealed class PartySelectDungeonHandlerTests
             new BackToVillageRequest(GameMessageMetadata.Empty),
             CancellationToken.None);
 
-        Assert.IsType<BackToVillageResponse>(sender.Messages(Leader.ConnectionId).First());
+        Assert.IsType<BackToVillageResponse>(sender.Messages(Leader.ConnectionId).First(x => x is not SelectDungeonRefusal));
         Assert.DoesNotContain(
             sender.Messages(Member.ConnectionId),
             frame => frame is BackToVillageResponse);
@@ -284,7 +302,8 @@ public sealed class PartySelectDungeonHandlerTests
             frame => Assert.IsType<UdpHostNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame));
+            frame => Assert.IsType<StartMapNotification>(frame),
+            frame => Assert.IsType<FatigueNotification>(frame));
         Assert.Collection(
             world.Sender.Messages(Member.ConnectionId),
             frame => Assert.IsType<ExtendedUserStateMessage>(frame),
@@ -295,7 +314,8 @@ public sealed class PartySelectDungeonHandlerTests
             frame => Assert.IsType<EnterSelectDungeonNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame));
+            frame => Assert.IsType<StartMapNotification>(frame),
+            frame => Assert.IsType<FatigueNotification>(frame));
         Assert.Equal(
             new[] { Leader.WireUserId, Member.WireUserId },
             Assert.Single(world.Sender.Messages(Member.ConnectionId)
@@ -342,9 +362,7 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Equal(leaderStart.Run.CurrentRoomMapId, memberStart.Run.CurrentRoomMapId);
         Assert.Equal(leaderStart.Actors, memberStart.Actors);
         Assert.Equal(leaderStart.Drops, memberStart.Drops);
-        Assert.Equal(
-            [Leader.CharacterId, Member.CharacterId],
-            world.Fatigue.Spent.Select(value => value.CharacterId));
+        Assert.Empty(world.Fatigue.Spent); // Charging belongs to the visit domain, not delivery.
     }
 
     [Fact]
@@ -787,12 +805,26 @@ public sealed class PartySelectDungeonHandlerTests
         public bool ForgetExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
 
+    private sealed class RefusedVisits : IDungeonVisitDomainService
+    {
+        public int Attempts { get; private set; }
+        public bool DefersSelectionState(byte level) => false;
+        public ValueTask<DungeonEntryAttempt> TryEnterPartyAsync(IReadOnlyList<DungeonRunParticipant> members, int dungeon, DungeonEntryFacts facts, CancellationToken token)
+        {
+            Attempts++;
+            return ValueTask.FromResult(new DungeonEntryAttempt(null, DungeonEntryFailure.InsufficientFatigue, 0));
+        }
+        public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId id, int dungeon, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId id, DungeonRunState state, MazeCell cell, CancellationToken token) => throw new NotSupportedException();
+    }
+
     private sealed class Intents : IDungeonEntryIntentDomainService
     {
         private readonly Dictionary<SelectedSessionIdentity, DungeonEntryIntent> values = [];
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) => values[session] = intent;
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session) =>
             values.Remove(session, out var value) ? value : null;
+        public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) => values.TryAdd(session, intent);
         public bool ClearExact(SelectedSessionIdentity session) => values.Remove(session);
     }
 
@@ -919,7 +951,7 @@ public sealed class PartySelectDungeonHandlerTests
             Spent.Add((characterId, points));
             return ValueTask.CompletedTask;
         }
-        public ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId characterId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId characterId, CancellationToken cancellationToken) => ValueTask.FromResult(new CharacterFatigueBalance(188, 1));
         public ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 

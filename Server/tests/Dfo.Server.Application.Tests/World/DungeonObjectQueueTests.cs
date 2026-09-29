@@ -84,8 +84,11 @@ public sealed class DungeonObjectQueueTests
         await using (var tx = scope.Begin())
         {
             service.ClaimObjectDestruction(Character, run.RunId, run.RoomVersion, 8961);
-            Assert.NotNull(service.TryMove(Character, run.RunId, run.RoomVersion, new(1, 0),
-                DungeonCellSeed.CompleteEmpty(new(1, 0), 11)));
+            Task externalMove;
+            using (ExecutionContext.SuppressFlow())
+                externalMove = Task.Run(() => Assert.NotNull(service.TryMove(Character, run.RunId, run.RoomVersion, new(1, 0),
+                    DungeonCellSeed.CompleteEmpty(new(1, 0), 11))));
+            await externalMove;
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await tx.CommitAsync(default));
         }
         var back = service.TryMove(Character, new(0, 0))!;

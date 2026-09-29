@@ -21,6 +21,19 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestClearCoupon;
 public sealed class QuestClearCouponCodecTests
 {
     [Fact]
+    public void Fatigue_action_is_separate_from_quest_coupon_and_echoes_its_action()
+    {
+        var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,
+            Convert.FromHexString("480000000000003A0000000000000000000000"));
+        Assert.False(request.IsSupported);
+        Assert.True(request.IsFatiguePotion);
+        Assert.False((request with { Action = 55 }).IsFatiguePotion);
+        Assert.Equal(Convert.FromHexString("014800003A000000"),
+            QuestClearCouponPayloadCodec.Encode(new(true, 72, 0) { Action = 58 }));
+        Assert.False((request with { Reserved2 = 1 }).IsFatiguePotion);
+        Assert.False((request with { Container = 1 }).IsFatiguePotion);
+    }
+    [Fact]
     public void Cmd_0204_is_registered_as_its_own_slice()
     {
         var services = new ServiceCollection();

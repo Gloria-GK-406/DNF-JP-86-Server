@@ -11,5 +11,8 @@ public interface IDungeonEntryIntentDomainService
 
     DungeonEntryIntent? Consume(SelectedSessionIdentity session);
 
+    /// <summary>Returns a refused attempt to selection without overwriting a newer intent.</summary>
+    void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent);
+
     bool ClearExact(SelectedSessionIdentity session);
 }
