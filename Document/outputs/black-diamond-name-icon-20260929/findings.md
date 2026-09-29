@@ -52,3 +52,7 @@ A21 实际有两个相邻字段，当前已由自身接收代码与图片资源�
 验证：CharacterEntryStateTests 3项通过；BlackDiamondNameIconTests、TownAreaProjectionDeliveryTests、BothScreensDrawTheSameCharacterTests 合计9项通过；Release publish成功。实机姓名图标仍待用户验收，不升级为ClientVerified。
 
 部署至 `artifacts/black-diamond-icon-20260929/runtime`，沿用上一运行版配置及绝对数据库路径；部署前以SQLite backup保存数据库至同级 `before-deploy.db`。未改动角色数据。
+
+## 实机验收（2026-09-29）
+
+用户反馈：“单人和多人验收通过，全部ok。”黑钻姓名图标的单人、多人数据信息投影与显示标记为 **ClientVerified**。此结论不扩展到客户端该字段的其他未调查消费者；关闭权益的逆向测试仍仅有自动化覆盖。
