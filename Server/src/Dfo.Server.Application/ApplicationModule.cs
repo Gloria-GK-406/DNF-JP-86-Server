@@ -238,6 +238,9 @@ public sealed class ApplicationModule : IServerModule
         // composition this basis belongs to and why neither could be read out of the archive.
         services.TryAddSingleton(new ClearRewardRateOptions
         {
+            DebugGuaranteePaidEquipment = bool.TryParse(
+                configuration["ClearRewardRates:DebugGuaranteePaidEquipment"], out var guaranteedCard)
+                && guaranteedCard,
             RateBasis =
                 int.TryParse(configuration["ClearRewardRates:RateBasis"], out var cardBasis)
                 && cardBasis > 0

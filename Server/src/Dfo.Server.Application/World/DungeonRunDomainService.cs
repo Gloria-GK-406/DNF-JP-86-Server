@@ -1155,7 +1155,11 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 prepared.Key.Card.Kind,
                 prepared.Slot,
                 prepared.CharacterId,
-                prepared.Slot));
+                prepared.Slot)
+            {
+                Gold = cards.FaceOf(prepared.Key.Card.Kind).Gold,
+                Item = cards.SlotAt(prepared.Key.Card.Kind, prepared.Key.Card.Index)?.Item,
+            });
             // A free-card confirmation is private until every current participant has confirmed.
             // The wire index is not the shared display column; the party seat is.
             var ready = prepared.Key.Card.Kind is ClearRewardCardKind.Paid

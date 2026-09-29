@@ -40,6 +40,20 @@ public sealed class ClearRewardRuleServiceTests
         Assert.Equal(0, service.FaceFor(bonus, Seed).Gold);
     }
 
+    [Fact]
+    public void Guaranteed_paid_equipment_does_not_change_free_cards()
+    {
+        var normal = ClearRewardFixture.Service(ClearRewardFixture.Table(), OnePiece());
+        var guaranteed = ClearRewardFixture.Service(ClearRewardFixture.Table(), OnePiece(), guaranteePaidEquipment: true);
+        for (ulong seed = 1; seed <= 50; seed++)
+        {
+            Assert.All(guaranteed.FaceFor(ClearRewardFixture.Occasion(ClearRewardCardKind.Paid), seed).Slots,
+                slot => Assert.NotNull(slot.Item));
+            Assert.Equal(normal.FaceFor(ClearRewardFixture.Occasion(), seed).Slots,
+                guaranteed.FaceFor(ClearRewardFixture.Occasion(), seed).Slots);
+        }
+    }
+
     /// <summary>An arbitrary seed. Nothing about the assertions depends on which one.</summary>
     private const ulong Seed = 0x0BAD_F00D_C0FF_EE01;
 
@@ -1539,7 +1553,8 @@ internal static class ClearRewardFixture
         GoldDropTable? gold = null,
         bool freeCardBlankItems = false,
         bool goldCardBlankItems = false,
-        bool pcRoomCardBlankItems = false) =>
+        bool pcRoomCardBlankItems = false,
+        bool guaranteePaidEquipment = false) =>
         new(
             new StubRates(table),
             new StubGoldTables(gold),
@@ -1548,6 +1563,7 @@ internal static class ClearRewardFixture
             new ClearRewardRateOptions
             {
                 RateBasis = basis,
+                DebugGuaranteePaidEquipment = guaranteePaidEquipment,
                 BlankItems =
                 {
                     FreeCard = freeCardBlankItems,

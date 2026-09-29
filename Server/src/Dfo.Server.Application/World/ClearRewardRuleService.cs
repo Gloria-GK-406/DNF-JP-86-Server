@@ -184,7 +184,8 @@ internal sealed class ClearRewardRuleService(
         // face this server has ever dealt.
         var gold = this.GoldOf(occasion, table, new DropRandom(seed));
 
-        var chance = this.ChanceOf(occasion);
+        var guarantee = options.DebugGuaranteePaidEquipment && occasion.Kind is ClearRewardCardKind.Paid;
+        var chance = guarantee ? new ClearRewardChance(options.RateBasis, options.RateBasis) : this.ChanceOf(occasion);
         if (chance.IsImpossible
             || table.Rarity is not { } ladder
             || ladder.HighestRoll <= 0
@@ -202,8 +203,9 @@ internal sealed class ClearRewardRuleService(
             slots.Add(
                 new ClearRewardCardSlot(
                     index,
-                    Draw(chance, ladder, grades, pool, random)
-                        ?? Fallback(fallback, random)));
+                    guarantee
+                        ? GuaranteedEquipment(grades, pool, random)
+                        : Draw(chance, ladder, grades, pool, random) ?? Fallback(fallback, random)));
         }
 
         return new ClearRewardCardFace(occasion.Kind, slots, gold);
@@ -376,6 +378,17 @@ internal sealed class ClearRewardRuleService(
     /// quiet miss into a clear that fails.
     /// </para>
     /// </remarks>
+    private static ClearRewardCardItem GuaranteedEquipment(
+        ItemGradeBand grades, DropItemPool pool, DropRandom random)
+    {
+        foreach (var rarity in Enum.GetValues<DropRarity>())
+        {
+            if (DropRules.Pick(pool, grades, rarity, random) is { } item)
+                return new ClearRewardCardItem(item.ItemId, 1, rarity, item.Durability);
+        }
+        throw new InvalidOperationException("Guaranteed gold-card equipment has no eligible equipment pool.");
+    }
+
     private static ClearRewardCardItem? Draw(
         ClearRewardChance chance,
         RarityLadder ladder,

@@ -391,22 +391,15 @@ public sealed class CardRewardTests
         Assert.All(records, record => Assert.Equal(0x00, record.Trailer));
     }
 
-    /// <summary>
-    /// No reward reaches this frame, whatever the flip handed over.
-    /// </summary>
-    /// <remarks>
-    /// What a card holds is delivered in the clear's settlement notification and drawn from there.
-    /// A live run answered with every record empty and the clicked card still turned over with its
-    /// contents on it. Anything written here would land in a place nothing has been found to draw.
-    /// </remarks>
     [Fact]
-    public void The_answer_hands_over_nothing()
+    public void Empty_paid_reward_keeps_the_positional_gold_entry()
     {
-        foreach (var kind in (ClearRewardCardKind[])[
-            ClearRewardCardKind.Free, ClearRewardCardKind.Paid])
+        foreach (var column in (int[])[0, 1, 2, 3])
         {
-            foreach (var column in (int[])[0, 1, 2, 3])
-                Assert.All(ReadAnswer(kind, column), record => Assert.Empty(record.Entries));
+            Assert.All(ReadAnswer(ClearRewardCardKind.Free, column), record => Assert.Empty(record.Entries));
+            var paid = ReadAnswer(ClearRewardCardKind.Paid, column);
+            Assert.Equal([new CardEntry(0, 0)], paid[column].Entries);
+            Assert.All(paid.Where((_, index) => index != column), record => Assert.Empty(record.Entries));
         }
     }
 
@@ -442,6 +435,28 @@ public sealed class CardRewardTests
         Assert.Equal(1, records[2].FreeSeat);
         Assert.Equal(NoSeatByte, records[3].FreeSeat);
         Assert.Equal(NoSeatByte, records[3].GoldSeat);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 0)]
+    [InlineData(0, 123)]
+    [InlineData(1, 123)]
+    public void Paid_equipment_and_gold_survive_complete_panel_encoding(byte seat, int gold)
+    {
+        var paid = new DungeonCardSelection(ClearRewardCardKind.Paid, seat, new CharacterId(20), seat)
+        {
+            Gold = gold,
+            Item = new ClearRewardCardItem(31001, 1, DropRarity.Common, 10),
+        };
+        var frame = Assert.Single(new SelectCardResponseEncoder().Encode(new SelectCardResponse(
+            [new DungeonCardSelection(ClearRewardCardKind.Free, 0, new CharacterId(10), 0), paid])));
+        var records = CardPanelFrameReader.ReadSelectCardAnswer(frame[GameServerFrameEncoder.HeaderLength..]);
+        Assert.Equal(seat, records[seat].GoldSeat);
+        Assert.Equal([new CardEntry(0, gold), new CardEntry(31001, 1)], records[seat].Entries);
+        // A21 golden-card renderer requires count > 1, then reads index 1.
+        Assert.Equal(new CardEntry(31001, 1), records[seat].Entries[1]);
+        Assert.All(records.Where((_, index) => index != seat), record => Assert.Empty(record.Entries));
     }
 
     // ---- the flip's request ----------------------------------------------------------------
@@ -1243,6 +1258,7 @@ public sealed class CardRewardTests
             ClearRewardCardFace? blackDiamond = null,
             IDomainTransactionAccessor? transactions = null)
         {
+            this._runs = transactions is null ? new() : new(transactions);
             this._rules = new RefusingRules();
             this.Bag = new Bag(bagAnswer);
             this.Gold = new CarriedGold(startingGold);
@@ -1258,7 +1274,6 @@ public sealed class CardRewardTests
 
             if (!inARun)
                 return;
-            this._runs = transactions is null ? new() : new(transactions);
 
             var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: Dfo.Server.Data.World.DungeonDifficulty.Adventure);
             if (cardsFixed)
@@ -1591,6 +1606,8 @@ public sealed class CardRewardTests
     private sealed class Bag(BagAnswer answer) : IItemContainer
     {
         public bool FailNextAdd { get; set; }
+        public int AddCalls { get; private set; }
+        public int RefuseAtCall { get; set; }
 
         /// <summary>The slot a pile already sits in, for the pile answer.</summary>
         public const int PileSlot = 7;
@@ -1606,8 +1623,6 @@ public sealed class CardRewardTests
                 ? new Dictionary<int, InventoryItemCoreState>
                 {
                     [PileSlot] = StackableItemCore.Create(2, FirstItemId, 1)
-        public int AddCalls { get; private set; }
-        public int RefuseAtCall { get; set; }
                         with { Durability = PileDurability },
                 }
                 : [];
@@ -1623,6 +1638,9 @@ public sealed class CardRewardTests
         public ValueTask<ItemPlacementOutcome> AddAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
+            this.AddCalls++;
+            if (this.AddCalls == this.RefuseAtCall)
+                return ValueTask.FromResult<ItemPlacementOutcome>(new ItemPlacementOutcome.NoRoom());
             if (this.FailNextAdd)
             {
                 this.FailNextAdd = false;
@@ -1639,9 +1657,6 @@ public sealed class CardRewardTests
                 case BagAnswer.JoinsAPile:
                     var pile = this.Slots[PileSlot];
                     this.Slots[PileSlot] = pile with { Value = pile.Value + count };
-            this.AddCalls++;
-            if (this.AddCalls == this.RefuseAtCall)
-                return ValueTask.FromResult<ItemPlacementOutcome>(new ItemPlacementOutcome.NoRoom());
                     return ValueTask.FromResult<ItemPlacementOutcome>(
                         new ItemPlacementOutcome.AddedToPile(
                             PileSlot, count, pile.Value + count));

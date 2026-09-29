@@ -353,7 +353,11 @@ public sealed record DungeonCardSelection(
     ClearRewardCardKind Kind,
     int Index,
     CharacterId CharacterId,
-    byte Seat);
+    byte Seat)
+{
+    public int Gold { get; init; }
+    public ClearRewardCardItem? Item { get; init; }
+}
 
 /// <summary>A participant's card panel becoming available.</summary>
 public sealed record DungeonCardLayoutChange(

@@ -709,6 +709,7 @@ public sealed class SelectCharacterPayloadCodecTests
 
             var services = new ServiceCollection();
             services.AddSingleton(repository);
+            services.AddSingleton<Dfo.Server.Abstractions.Accounts.IPremiumServiceDomainService>(new Dfo.Server.Protocol.Tests.Support.CardPremiums());
             services.AddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService>(new Dfo.Server.Application.Tests.Support.NoticeStateStub());
             services.AddSingleton<ICharacterDomainService>(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
             services.AddSingleton<IQuestDefinitionSource>(new Row9QuestDefinitions(13502));

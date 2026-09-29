@@ -38,8 +38,8 @@ public sealed record SelectCardRequest(
 /// The CMD answer under the same type: the whole panel's state after the flip.
 /// </summary>
 /// <remarks>
-/// <b>It carries no reward.</b> What a card holds was settled and sent with the clear's reward
-/// notification; this answer says which column of which row is now face up and whose flip it was.
+/// Free rewards arrive with settlement. This answer carries revealed paid rewards and
+/// the complete ownership snapshot so all party members see the same contents.
 /// The player's own client decides which column to turn, and never tells the server which one --
 /// the request's position byte is a written-in constant. See
 /// <see cref="CardRewardPayloadCodec.EncodeSelectCardResponse"/>.

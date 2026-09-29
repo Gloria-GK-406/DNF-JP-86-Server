@@ -11,10 +11,7 @@ namespace Dfo.Server.Protocol.Game.CardReward;
 /// <remarks>
 /// Both shapes are recorded in <c>protocol/game/client-to-server/0x0046.md</c> and
 /// <c>protocol/game/client-to-server/0x0047.md</c>, which is where the evidence for each field
-/// lives. What is worth saying here is the split: the layout is a transcribed constant, the request
-/// has one proven reading and one unproven one, and the answer carries no reward at all -- it says
-/// which column of which row is face up and whose flip it was, and the panel draws the contents
-/// from the clear's settlement notification.
+/// lives. Free contents arrive in settlement; paid contents arrive in the flip response.
 /// </remarks>
 internal static class CardRewardPayloadCodec
 {
@@ -173,47 +170,33 @@ internal static class CardRewardPayloadCodec
             : new SelectCardRequest(metadata, ClearRewardCardKind.Paid, position);
     }
 
-    /// <summary>
-    /// The whole card panel's state: which column of which row has been turned over, and by whom.
-    /// </summary>
-    /// <remarks>
-    /// <b>A state snapshot, not a report of what was won.</b> Eight records go out every time, one
-    /// per column, including the columns nobody has touched. Each record's two seat bytes say who
-    /// turned that column's free card and who turned its gold card, and <c>0xFF</c> says nobody
-    /// did.
-    /// <para>
-    /// <b>No reward reaches this frame.</b> What a card holds was already delivered in the clear's
-    /// settlement notification, and the panel draws it from there -- see
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c>. A live run that answered with every
-    /// record empty still turned the clicked card over with its contents on it, which is what
-    /// settles the division: this frame decides <i>whose</i> a column is, the settlement frame
-    /// decides <i>what is on it</i>, and the player's own click decides which column turns.
-    /// </para>
-    /// <para>
-    /// <b>Every record declares zero entries.</b> The reference server writes <c>0xFF</c> in the
-    /// entry count of its last four records, which declares two hundred and fifty-five pairs
-    /// inside a thirty-three byte frame. Nothing observable comes of it, but it is a frame that
-    /// cannot be walked to its end, so this server does not copy it.
-    /// </para>
-    /// </remarks>
+    /// <summary>Complete revealed-card snapshot; paid contents are supplied at flip time.</summary>
     public static byte[] EncodeSelectCardResponse(SelectCardResponse message)
     {
         ArgumentNullException.ThrowIfNull(message);
-
-        var payload = new byte[WirePositionCount * EmptyRecordLength];
-        var at = 0;
+        using var stream = new MemoryStream(WirePositionCount * EmptyRecordLength);
+        using var writer = new BinaryWriter(stream);
         for (var column = 0; column < WirePositionCount; column++)
         {
             var free = message.Selections.FirstOrDefault(selection =>
                 selection.Kind is ClearRewardCardKind.Free && selection.Index == column);
             var paid = message.Selections.FirstOrDefault(selection =>
                 selection.Kind is ClearRewardCardKind.Paid && selection.Index == column);
-            payload[at++] = free is null ? NoSeat : free.Seat;
-            payload[at++] = paid is null ? NoSeat : paid.Seat;
-            payload[at++] = 0; // no entries follow
-            payload[at++] = 0; // the record's trailing flag
+            writer.Write(free?.Seat ?? NoSeat);
+            writer.Write(paid?.Seat ?? NoSeat);
+            writer.Write((byte)(paid is null ? 0 : 1 + (paid.Item is not null ? 1 : 0)));
+            if (paid is not null)
+            {
+                writer.Write(0); // Positional gold placeholder; item rendering starts at entry 1.
+                writer.Write(paid.Gold);
+            }
+            if (paid?.Item is { } item)
+            {
+                writer.Write(item.ItemId);
+                writer.Write(item.Quantity);
+            }
+            writer.Write((byte)0);
         }
-
-        return GameCmdEnvelope.Accept(payload);
+        return GameCmdEnvelope.Accept(stream.ToArray());
     }
 }

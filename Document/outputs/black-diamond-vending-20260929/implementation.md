@@ -36,3 +36,8 @@ artifacts/black-diamond-vending-20260929/runtime。确认无10010/10011在线连
 本轮Application售货机测试12通过，Infrastructure测试2通过，均0跳过。覆盖两奖池所有正权重奖励的准备、高级机错币拒绝不扣、最后一币清槽、奖励数量差异。Release发布成功。
 
 无游戏连接时部署至artifacts/advanced-diamond-vending-20260929/runtime，主库backup至before-deploy.db，quick_check=ok。复用原配置及绝对主库，1123普通币98、高级币100。进程29608启动，bootstrap ready、stderr空。普通机连续单次抽取已验收；高级机等待用户实测。
+
+
+## 高级机用户验收
+
+用户确认四次抽取正常，17:00:56至17:01:02，2749933由100至96，7463与7464各增加20，与日志完全一致。两类机器连续单抽记ClientVerified；公告延期到聊天系统，其他边界见最终验收文档。
