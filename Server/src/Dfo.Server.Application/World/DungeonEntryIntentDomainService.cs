@@ -27,6 +27,9 @@ internal sealed class DungeonEntryIntentDomainService : IDungeonEntryIntentDomai
         return null;
     }
 
+    public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) =>
+        _intents.TryAdd(session.CharacterId, new OwnedIntent(session, intent));
+
     public bool ClearExact(SelectedSessionIdentity session)
     {
         if (!_intents.TryGetValue(session.CharacterId, out var owned) || owned.Session != session)

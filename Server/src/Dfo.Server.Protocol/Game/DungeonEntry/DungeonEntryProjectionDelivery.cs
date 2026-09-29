@@ -54,10 +54,17 @@ public sealed class DungeonEntryProjectionDelivery(
         DungeonEntryIntent intent,
         CancellationToken cancellationToken)
     {
+        void RestoreSelection()
+        {
+            if (selectedSessions.FindByCharacter(requester.CharacterId) == requester)
+                entryIntents.RestoreIfAbsent(requester, intent);
+        }
+
         var attachments = await ResolveAttachmentsAsync(
             requester, requesterRuntime, roster, cancellationToken).ConfigureAwait(false);
         if (attachments.BlockedSlot is { } blockedSlot)
         {
+            RestoreSelection();
             await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, blockedSlot,
                 cancellationToken).ConfigureAwait(false);
             return;
@@ -79,6 +86,7 @@ public sealed class DungeonEntryProjectionDelivery(
         var entered = attempt.Entry;
         if (entered is null)
         {
+            RestoreSelection();
             if (attempt.Failure == DungeonEntryFailure.InsufficientFatigue)
             {
                 await RefuseAsync(requesterConnection,

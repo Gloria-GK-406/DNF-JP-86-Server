@@ -463,6 +463,8 @@ public sealed class SelectDungeonHandler(
             || (intent.Value.Kind == DungeonEntryIntentKind.Directed
                 && intent.Value.DirectedDungeonId != message.DungeonId))
         {
+            if (intent is { } refusedIntent && selectedSessions.FindByCharacter(session.CharacterId) == session)
+                entryIntents.RestoreIfAbsent(session, refusedIntent);
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: invalid selection context intent={Intent} dungeon={DungeonId}",
                 context.Connection.ConnectionId,
@@ -500,6 +502,8 @@ public sealed class SelectDungeonHandler(
             session.AccountId, session.CharacterId, session.WireUserId, null));
         if (roster.LeaderWireUserId != session.WireUserId)
         {
+            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+                entryIntents.RestoreIfAbsent(session, intent.Value);
             await RefuseAsync(
                 context.Connection.ConnectionId,
                 SelectDungeonRefusal.NotPartyLeader,

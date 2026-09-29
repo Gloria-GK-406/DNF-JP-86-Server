@@ -639,6 +639,8 @@ public sealed class SelectDungeonHandlerTests
             return current;
         }
 
+        public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) => _intent ??= intent;
+
         public bool ClearExact(SelectedSessionIdentity session)
         {
             var found = _intent is not null;
