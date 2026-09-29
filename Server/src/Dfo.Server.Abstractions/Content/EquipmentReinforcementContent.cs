@@ -1,0 +1,62 @@
+namespace Dfo.Server.Abstractions.Content;
+
+/// <summary>One 19-column row from the A21 <c>normal</c> upgrade table.</summary>
+public sealed record EquipmentReinforcementRow(
+    int TargetLevel,
+    IReadOnlyList<double> Columns,
+    int FailureThreshold,
+    int PenaltyType,
+    int PenaltyValue,
+    int MaterialItemId,
+    int MaterialCount);
+
+/// <summary>Archive declarations used to plan, but not commit, an ordinary reinforcement.</summary>
+public sealed record EquipmentReinforcementTable(
+    IReadOnlyList<EquipmentReinforcementRow> Rows,
+    IReadOnlyList<int> BaseGoldByEquipmentLevel,
+    IReadOnlyList<double> CostWeightsByRarity,
+    IReadOnlyList<double> CostWeightsByEquipmentType,
+    IReadOnlyDictionary<int, double> CostWeightByCurrentLevel,
+    IReadOnlyDictionary<int, int> DestroyLevelByRarity,
+    IReadOnlyDictionary<int, int> MaxUpgradeLevelByRarity,
+    EquipmentReinforcementDestroyBonusDefinition DestroyBonus,
+    int NoticeLevel);
+
+/// <summary>Only explicitly declared rarity keys are present in these maps.</summary>
+public sealed record EquipmentReinforcementDestroyBonusDefinition(
+    int ItemId,
+    int MinimumCorrectedGrade,
+    int UpgradeLevelBase,
+    IReadOnlyDictionary<int, double> WeightByRarity,
+    IReadOnlyDictionary<int, int> GradeCorrectionByRarity);
+
+/// <summary>Template facts; instance durability and locks must still be checked by Application.</summary>
+public sealed record EquipmentReinforcementEquipmentDefinition(
+    int MinimumLevel,
+    int Grade,
+    int Rarity,
+    int EquipmentTypeWeightIndex,
+    ushort MaxDurability,
+    bool CanReinforce);
+
+public enum EquipmentReinforcementProtectionKind
+{
+    ResetToZero,
+    RetainLevel,
+}
+
+/// <summary>Action declaration only; the caller must separately validate ownership and expiry.</summary>
+public sealed record EquipmentReinforcementProtectionDefinition(
+    EquipmentReinforcementProtectionKind Kind,
+    int RetainedLevel);
+
+public interface IEquipmentReinforcementDefinitionSource
+{
+    ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken);
+
+    ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
+        int itemId, CancellationToken cancellationToken);
+
+    ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
+        int itemId, CancellationToken cancellationToken);
+}

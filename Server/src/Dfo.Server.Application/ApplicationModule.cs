@@ -297,6 +297,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
+        services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
+        services.TryAddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();
         services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
         services.TryAddSingleton<MailStackTransfers>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();

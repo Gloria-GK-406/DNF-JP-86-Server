@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-09-29 CMD0050 普通强化候选实现
+
+[请求](game/client-to-server/0x0050.md)与[结果](game/server-to-client/CMD-0x0050.md)已按 A21 静态读取路径、真实 PVF 和参考端规则接入普通强化；金币/材料/装备/破坏产物共命令事务，支持同连接同序列重放防二次消费。当前为 `CurrentImplementation + ClientStatic`，无普通强化实帧或 GUI 验收，增幅和高级模式仍分别待后续 Spec。
+
 ## 2026-09-29 自动整理接入
 
 [CMD0014](game/client-to-server/0x0014.md) 装备默认请求 `00 01 00` 再次 WireCaptured；按 A21 分类接入事务整理和定向完整背包刷新。响应沿用 70/上游编排，用户已反馈自动排序测试通过。整理锁按钮是独立缺口：CMD02CA 请求已捕获；部署 102449aa 后用户确认锁定、重登保持、解锁整理验收通过（ClientVerified，限用户报告范围）；独立 C2S02CB 仍无实帧。见[流程](patterns/flow-inventory-sort.md)。
