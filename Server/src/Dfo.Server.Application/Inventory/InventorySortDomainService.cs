@@ -8,15 +8,33 @@ internal sealed class InventorySortDomainService(
     ICharacterBusinessInventoryDomainService inventories, IInventorySortKeySource keys)
     : IInventorySortDomainService
 {
+    public async ValueTask<bool?> ChangeLockAsync(CharacterId character, BusinessSlot slot,
+        InventorySortLockAction action, CancellationToken ct)
+    {
+        if (!Enum.IsDefined(action) || !IsSortable(slot.Space)
+            || slot.Space == BusinessInventorySpace.AvatarEmblem || slot.Index < 0) return null;
+        var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(slot.Space))
+            .FindContainer(slot.Space);
+        if (container is null) return null;
+        var item = await container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
+        if (item is null) return null;
+        var locked = action == InventorySortLockAction.Toggle && item.Core.SortLockFlag != 1;
+        var flag = locked ? (byte)1 : (byte)0;
+        if (item.Core.SortLockFlag != flag)
+            await container.PutAsync(slot.Index, item.Core with { SortLockFlag = flag }, ct).ConfigureAwait(false);
+        return locked;
+    }
+
+    private static bool IsSortable(BusinessInventorySpace space) => space is
+        BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.Consumable
+        or BusinessInventorySpace.Material or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial
+        or BusinessInventorySpace.AvatarEmblem or BusinessInventorySpace.Avatar
+        or BusinessInventorySpace.CreatureEquipment or BusinessInventorySpace.CreatureConsumable;
+
     public async ValueTask<bool> SortAsync(CharacterId character, BusinessInventorySpace space,
         InventorySortOrder order, CancellationToken ct)
     {
-        if (!Enum.IsDefined(order) || space is not (BusinessInventorySpace.CarriedEquipment
-            or BusinessInventorySpace.Consumable or BusinessInventorySpace.Material
-            or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial
-            or BusinessInventorySpace.AvatarEmblem or BusinessInventorySpace.Avatar
-            or BusinessInventorySpace.CreatureEquipment or BusinessInventorySpace.CreatureConsumable))
-            return false;
+        if (!Enum.IsDefined(order) || !IsSortable(space)) return false;
         var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
         var items = await container.ReadAllAsync(ct).ConfigureAwait(false);
         var locked = items.Where(item => item.Core.SortLockFlag == 1).Select(item => item.SlotIndex).ToHashSet();

@@ -193,6 +193,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<InventorySorted, InventorySortedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
@@ -389,6 +390,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult,
             PortableDisjointItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
@@ -552,6 +555,8 @@ public sealed class ProtocolModule : IServerModule
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
+        services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
+        services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
         services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
@@ -760,6 +765,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
             GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
+        services.AddGameCmdMessageDecoder<SortLockDecoder>(GameProtocol.SortLockType, ClientMessageType.GameSortLock);
+        services.AddGameCmdMessageDecoder<SortUnlockDecoder>(GameProtocol.SortUnlockType, ClientMessageType.GameSortUnlock);
         services.AddGameCmdMessageDecoder<SortItemMessageDecoder>(GameProtocol.SortItemType, ClientMessageType.GameSortItem);
         services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(
             GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
@@ -888,6 +895,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
         services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();

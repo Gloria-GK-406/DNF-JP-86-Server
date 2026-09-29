@@ -21,6 +21,19 @@ public sealed class SortItemCodecTests
         Assert.Throws<InvalidDataException>(() => decoder.Decode(GameMessageMetadata.Empty, [0, 1, 0, 0]));
     }
 
+    [Fact]
+    public void Lock_capture_reads_list_and_little_endian_slot_and_unlock_is_explicit()
+    {
+        var request = Assert.IsType<SortLockRequest>(new SortLockDecoder().Decode(GameMessageMetadata.Empty, [0, 28, 0]));
+        Assert.Equal(new GameSlot(InventoryContainerType.Main, 28), request.Slot);
+        Assert.Equal(InventorySortLockAction.Toggle, request.Action);
+        var unlock = Assert.IsType<SortLockRequest>(new SortUnlockDecoder().Decode(GameMessageMetadata.Empty, [0, 60, 0]));
+        Assert.Equal(60, unlock.Slot.Index);
+        Assert.Equal(InventorySortLockAction.Unlock, unlock.Action);
+        Assert.Throws<InvalidDataException>(() => new SortLockDecoder().Decode(GameMessageMetadata.Empty, [0]));
+        Assert.Throws<InvalidDataException>(() => new SortUnlockDecoder().Decode(GameMessageMetadata.Empty, [0, 0, 0, 0]));
+    }
+
     [Theory]
     [InlineData(0, 9, BusinessInventorySpace.AvatarEmblem)]
     [InlineData(0, 10, BusinessInventorySpace.ExpertMaterial)]

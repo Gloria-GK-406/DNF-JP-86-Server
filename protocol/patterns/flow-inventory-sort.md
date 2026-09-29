@@ -10,3 +10,7 @@
 70 `DisPatcher_SortItem::send` 0x081C9DBA 与 A21 上游 SortItem handler 都采用 ACK→完整列表→锁列表。本服尚未观察新回包的客户端效果。
 
 [协议字段](../game/client-to-server/0x0014.md)；[实现、算法与测试边界](../../Document/自动整理实现与70端证据-20260929.md)。
+
+## 整理锁（2026-09-29）
+
+自动整理本体已获用户实机验收，整理锁是单独未完成的入口。CMD02CA 的 list/slot 映射到业务槽，在账号/在线用户事务内翻转 SortLockFlag。提交后锁定回复 CMD02CA、解锁回复 CMD02CB；body 都为 `01 list slot(i16)`。不发“获得物品”增量；重登时完整背包列表携带既有标记。另兼容上游显式 CMD02CB 解锁请求（无本轮实帧）。新锁定/解锁回包待实机。

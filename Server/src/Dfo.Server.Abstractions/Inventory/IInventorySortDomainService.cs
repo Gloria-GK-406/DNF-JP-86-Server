@@ -9,8 +9,14 @@ public interface IInventorySortKeySource
 {
     ValueTask<InventorySortKeys> GetAsync(int itemId, CancellationToken ct);
 }
+public enum InventorySortLockAction { Toggle, Unlock }
+
 public interface IInventorySortDomainService
 {
+    /// <summary>Returns the new lock state, or null for an unavailable target.</summary>
+    ValueTask<bool?> ChangeLockAsync(CharacterId character, BusinessSlot slot,
+        InventorySortLockAction action, CancellationToken ct);
+
     ValueTask<bool> SortAsync(CharacterId character, BusinessInventorySpace space,
         InventorySortOrder order, CancellationToken ct);
 }

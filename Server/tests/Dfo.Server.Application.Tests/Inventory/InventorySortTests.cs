@@ -137,6 +137,91 @@ public sealed class InventorySortTests
         Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=1 AND slot_index=12"));
     }
 
+    [Fact]
+    public async Task Lock_toggle_survives_reload_and_holds_position_until_unlocked()
+    {
+        using var shop = Fixture();
+        var core = StackableItemCore.Create(1, 3000, 55) with { Durability = 8, EnchantCardId = 42 };
+        await shop.SeedCore(12, core);
+        var uid = shop.Scalar("SELECT core_uid FROM item_slots WHERE slot_index=12");
+        var sorting = shop.Services.GetRequiredService<IInventorySortDomainService>();
+        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+        await using (var tx = scope.Begin())
+        {
+            Assert.True(await sorting.ChangeLockAsync(shop.Session.CharacterId,
+                new(BusinessInventorySpace.CarriedEquipment, 3), InventorySortLockAction.Toggle, default));
+            await tx.CommitAsync(default);
+        }
+        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        shop.Select(1); // Recreate the character's container view from persistent state.
+        var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+            .GetStore(shop.Session.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.CarriedEquipment);
+        Assert.Equal(core with { SortLockFlag = 1 }, (await bag.ReadSlotAsync(3, default))!.Core);
+        await Sort(shop, BusinessInventorySpace.CarriedEquipment);
+        Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE slot_index=12"));
+        await using (var tx = scope.Begin())
+        {
+            Assert.False(await sorting.ChangeLockAsync(shop.Session.CharacterId,
+                new(BusinessInventorySpace.CarriedEquipment, 3), InventorySortLockAction.Toggle, default));
+            await tx.CommitAsync(default);
+        }
+        await Sort(shop, BusinessInventorySpace.CarriedEquipment);
+        Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE slot_index=9"));
+        Assert.Equal(core, (await bag.ReadSlotAsync(0, default))!.Core);
+    }
+
+    [Fact]
+    public async Task Button_toggle_uses_distinct_lock_and_unlock_ack_and_unlock_is_idempotent()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(28, StackableItemCore.Create(1, 3000, 1));
+        var handler = shop.Services.GetRequiredService<SortLockHandler>();
+        foreach (var action in new[] { InventorySortLockAction.Toggle, InventorySortLockAction.Toggle,
+            InventorySortLockAction.Unlock, InventorySortLockAction.Unlock })
+            await handler.HandleAsync(new(shop.Connection),
+                new SortLockRequest(GameMessageMetadata.Empty, new(InventoryContainerType.Main, 28), action), default);
+        Assert.Equal(4, shop.Sender.Messages.Count);
+        for (var i = 0; i < 4; i++)
+        {
+            var frame = Encode(shop, shop.Sender.Messages[i]);
+            Assert.Equal(i == 0 ? 0x02CA : 0x02CB, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+            Assert.Equal(new byte[] { 1, 0, 28, 0 }, frame[15..]);
+        }
+    }
+
+    [Fact]
+    public async Task Invalid_and_empty_lock_targets_do_not_create_items_or_success_ack()
+    {
+        using var shop = Fixture();
+        var handler = shop.Services.GetRequiredService<SortLockHandler>();
+        foreach (var slot in new[] { new GameSlot(InventoryContainerType.Main, 28),
+            new GameSlot(InventoryContainerType.Main, 0), new GameSlot(InventoryContainerType.Main, -1),
+            new GameSlot(InventoryContainerType.Main, 400), new GameSlot(InventoryContainerType.Equipment, 12) })
+            await handler.HandleAsync(new(shop.Connection),
+                new SortLockRequest(GameMessageMetadata.Empty, slot, InventorySortLockAction.Toggle), default);
+        Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM item_slots"));
+    }
+
+    [Fact]
+    public async Task Lock_change_rollback_and_stale_session_leave_flag_clear()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(12, StackableItemCore.Create(1, 3000, 55));
+        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+        await using (var tx = scope.Begin())
+            Assert.True(await shop.Services.GetRequiredService<IInventorySortDomainService>().ChangeLockAsync(
+                shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 3), InventorySortLockAction.Toggle, default));
+        var old = shop.Session;
+        shop.Select(2);
+        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new SortLockCommand(
+            shop.OnlineUser, old, new(BusinessInventorySpace.CarriedEquipment, 3), InventorySortLockAction.Toggle));
+        Assert.Null(result.Receipt);
+        var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+            .GetStore(old.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.CarriedEquipment);
+        Assert.Equal((byte)0, (await bag.ReadSlotAsync(3, default))!.Core.SortLockFlag);
+    }
+
     private static byte[] Encode(ShopFixture shop, IServerNetworkMessage message)
     {
         var registration = shop.Services.GetServices<ServerMessageEncoderRegistration>()

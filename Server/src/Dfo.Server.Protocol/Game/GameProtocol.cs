@@ -13,6 +13,9 @@ internal static class GameProtocol
     /// </remarks>
     public const int SecretShopNpcId = 1000;
 
+    public const ushort SortLockType = 0x02CA;
+    public const ushort SortUnlockType = 0x02CB;
+
     public const ushort SortItemType = 0x0014;
 
     public const ushort LearnSkillType = 0x001D;

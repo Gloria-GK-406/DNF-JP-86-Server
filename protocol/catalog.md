@@ -2,7 +2,7 @@
 
 ## 2026-09-29 自动整理接入
 
-[CMD0014](game/client-to-server/0x0014.md) 装备默认请求 `00 01 00` 再次 WireCaptured；按 A21 分类接入事务整理和定向完整背包刷新。响应沿用 70/上游编排，CurrentImplementation，尚待实机。见[流程](patterns/flow-inventory-sort.md)。
+[CMD0014](game/client-to-server/0x0014.md) 装备默认请求 `00 01 00` 再次 WireCaptured；按 A21 分类接入事务整理和定向完整背包刷新。响应沿用 70/上游编排，用户已反馈自动排序测试通过。整理锁按钮是独立缺口：CMD02CA 请求已捕获；02CA/02CB 状态修改与应答已实现，尚待锁定 UI 实机。见[流程](patterns/flow-inventory-sort.md)。
 
 ## 2026-09-28 黑钻默认资格投影
 
