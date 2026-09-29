@@ -112,6 +112,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterRentalTable>(
             provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IPremiumServiceUsageTable, SqlitePremiumServiceUsageTable>();
+        services.TryAddSingleton<IConsumableUsageTable, SqliteConsumableUsageTable>();
         services.TryAddSingleton<ICharacterFatigueTable, SqliteCharacterFatigueTable>();
         services.TryAddSingleton<ICharacterDailyCounterTable>(
             provider => new SqliteCharacterDailyCounterTable(provider.GetRequiredService<SqliteDatabase>()));

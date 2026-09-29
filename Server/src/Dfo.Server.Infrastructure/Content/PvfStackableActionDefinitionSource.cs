@@ -32,6 +32,9 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         var unreadable = false;
         if (!PvfItemUseRuleDefinitionSource.TryReadFirstString(ref reader,
             archive.GetTag("[action type]"), out var action, ref unreadable)) return null;
+        var actionName = archive.ResolveString(action.Value);
+        var recovery = 0;
+        if (actionName == "[add fatigue]" && !reader.TryReadInt32(out recovery)) unreadable = true;
         var min = PvfItemUseRuleDefinitionSource.FirstInt32(ref reader,
             archive.GetTag("[minimum level]"), ref unreadable);
         var maximumTag = archive.GetTag("[maximum level]");
@@ -51,7 +54,15 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
             else if (token.Kind != Dfo.Pvf.Tokens.PvfTokenKind.Int32 || token.Value != 0)
                 unreadable = true;
         }
-        return new(archive.ResolveString(action.Value), min, max, expiry,
-            !unreadable && min >= 0 && max >= min);
+        var limitTag = archive.GetTag("[total usable count]");
+        reader.Reset();
+        var limit = limitTag.IsResolved && reader.TryMovePast(limitTag)
+            ? PvfItemUseRuleDefinitionSource.FirstInt32(ref reader, limitTag, ref unreadable) : -1;
+        var cooldown = PvfItemUseRuleDefinitionSource.FirstInt32(ref reader,
+            archive.GetTag("[cool time]"), ref unreadable);
+        return new(actionName, min, max, expiry,
+            !unreadable && min >= 0 && max >= min && limit >= -1 && cooldown >= 0
+                && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
+        { FatigueRecovery = recovery, DailyUseLimit = limit, CooldownMilliseconds = cooldown };
     }
 }
