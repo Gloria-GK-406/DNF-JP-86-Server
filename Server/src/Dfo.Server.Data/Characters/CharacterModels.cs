@@ -353,7 +353,8 @@ public sealed record CharacterPublicEntryState(
     CharacterAppearanceCompatibilityState Appearance,
     long VisibilityBits,
     uint CloneTitleItemId,
-    CharacterPublicIdentityEntryState? Identity = null);
+    CharacterPublicIdentityEntryState? Identity = null,
+    bool HasBlackDiamond = false);
 
 public sealed record CharacterSkillState(
     short Slot,
