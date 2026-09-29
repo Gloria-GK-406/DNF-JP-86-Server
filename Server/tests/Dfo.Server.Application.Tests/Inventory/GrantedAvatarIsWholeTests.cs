@@ -95,7 +95,7 @@ public sealed class GrantedAvatarIsWholeTests
                     .SessionIn(side.Scope.Current!)
                     .ReadAsync(
                         ContainerId.ForCharacter(
-                            new CharacterId(Character), InventoryContainerType.Main),
+                            new CharacterId(Character), InventoryContainerType.Avatar),
                         landed.SlotIndex,
                         token));
 
@@ -168,7 +168,7 @@ public sealed class GrantedAvatarIsWholeTests
                         new CharacterId(Character),
                         [
                             new InventoryContainerState(
-                                InventoryContainerType.Main, 0, [first]),
+                                InventoryContainerType.Avatar, 0, [first]),
                         ]),
                     1,
                     true),
@@ -248,7 +248,7 @@ public sealed class GrantedAvatarIsWholeTests
     private static async Task<ItemPlacementOutcome.PutInEmptySlot> GrantAsync(InventorySide side)
     {
         var granted = await side.InUseCaseAsync(token => side.Containers
-            .GetContainer(new CharacterId(Character), InventoryContainerType.Main)
+            .GetContainer(new CharacterId(Character), InventoryContainerType.Avatar)
             .AddAsync(AvatarItemId, 1, token));
         return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted);
     }
@@ -259,9 +259,9 @@ public sealed class GrantedAvatarIsWholeTests
         var loaded = await side.InUseCaseAsync(token =>
             new CharacterInventoryEntryDomainService(side.CharacterEntries)
                 .LoadAsync(new AccountId(Account), new CharacterId(Character), token));
-        var main = loaded.Containers.Single(
-            container => container.ContainerType == InventoryContainerType.Main);
-        return Assert.Single(main.Items, item => item.SlotIndex == slotIndex);
+        var avatar = loaded.Containers.Single(
+            container => container.ContainerType == InventoryContainerType.Avatar);
+        return Assert.Single(avatar.Items, item => item.SlotIndex == slotIndex);
     }
 
     private static ItemPlacementRuleService ArchiveRules(ServiceProvider content) =>
@@ -297,6 +297,7 @@ public sealed class GrantedAvatarIsWholeTests
             }
 
             side.BindMain(Character, placements: placements);
+            side.BindList(InventoryContainerType.Avatar, Character, placements: placements);
             await body(path, side);
         }
         finally

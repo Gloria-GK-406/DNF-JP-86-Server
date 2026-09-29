@@ -57,7 +57,7 @@ internal sealed class ItemUseEffectDomainService(
 
     public async ValueTask<ItemUseApplication> ApplyAsync(
         SelectedSessionIdentity session,
-        IItemContainer container,
+        IBusinessItemContainer container,
         ContainerSlotItem item,
         IReadOnlyList<IItemUseEffect> effects,
         CancellationToken cancellationToken)

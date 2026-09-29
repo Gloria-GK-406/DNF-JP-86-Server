@@ -1,6 +1,7 @@
 using System.Text;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.Mailbox;
@@ -32,7 +33,12 @@ internal static class MailSendWire
                 var slot = r.ReadUInt16(); var item = r.ReadInt32(); var quantity = r.ReadInt32();
                 if (!multi && item == 0 && quantity == 0 && type == 0 && slot is 0 or ushort.MaxValue) continue;
                 if (item <= 0 || quantity <= 0 || type is not (0 or 7)) throw new InvalidDataException("Invalid mail attachment.");
-                selections.Add(new((InventoryContainerType)type, slot, item, quantity));
+                BusinessSlot business;
+                try { business = new InventorySlotMappingRuleService().ToBusinessSlot(
+                    new GameSlot((InventoryContainerType)type, slot)); }
+                catch (InventorySlotMappingException e)
+                { throw new InvalidDataException("Invalid mail attachment slot.", e); }
+                selections.Add(new(business, item, quantity));
             }
             var body = Utf8.GetString(ReadString(r, 512));
             if (r.ReadUInt32() != 0 || stream.Position != stream.Length) throw new InvalidDataException("Unverified mail tail.");

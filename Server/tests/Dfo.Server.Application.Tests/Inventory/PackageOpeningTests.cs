@@ -20,6 +20,21 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class PackageOpeningTests
 {
+    [Fact]
+    public async Task Emblem_band_cannot_be_used_as_a_package_source_and_writes_nothing()
+    {
+        using var opening = new OpeningFixture();
+        var before = opening.Host.Scalar("SELECT COUNT(*) FROM item_slots");
+
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() =>
+            opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
+                new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session,
+                    new(289, ImmutableArray<int>.Empty))).AsTask());
+
+        Assert.Equal(OpeningRejection.InvalidRequest, error.Reason);
+        Assert.Equal(before, opening.Host.Scalar("SELECT COUNT(*) FROM item_slots"));
+    }
+
     [SkippableFact]
     public async Task Actual_seria_pool_has_readable_reward_creation_definitions()
     {
@@ -82,9 +97,10 @@ public sealed class PackageOpeningTests
         var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
             new AvatarPackageOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(66, choices.ToImmutable())));
         Assert.NotNull(result.Receipt); Assert.Equal(0, shop.Host.Count(itemId));
-        var avatars = result.Receipt.Updates.Single(u => u.ContainerType == InventoryContainerType.Avatar).Items;
-        Assert.Equal(avatarCount, avatars.Count);
-        Assert.All(avatars, item => { Assert.NotNull(item.Identity); Assert.Equal(30, item.AvatarDetail!.JewelSocket.Length); });
+        var avatars = result.Receipt.Updates.Where(u => u.Slot.Space == BusinessInventorySpace.Avatar).ToArray();
+        Assert.Equal(avatarCount, avatars.Length);
+        Assert.All(avatars, item => Assert.NotNull(item.Identity));
+        Assert.Equal(avatarCount, shop.Host.Scalar("SELECT count(*) FROM items WHERE avatar_expire_date IS NOT NULL"));
     }
 
     [SkippableFact]
@@ -160,7 +176,7 @@ public sealed class PackageOpeningTests
             new PackageOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(66, [])));
         Assert.NotNull(result.Receipt); Assert.True(result.Receipt.CreaturesChanged); Assert.Equal(0, shop.Host.Count(160));
         var pet = Assert.Single(result.Receipt.Pets);
-        var item = Assert.Single(Assert.Single(result.Receipt.Updates).Items);
+        var item = Assert.Single(result.Receipt.Updates);
         Assert.Equal(pet.PetKey, item.Identity!.Value.Value); Assert.Equal(5, item.Core.ItemKind);
     }
 
@@ -180,7 +196,7 @@ public sealed class PackageOpeningTests
         var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new PackageOpeningCommand(shop.Host.OnlineUser,
             shop.Host.Session, new(66, [selected.ItemId]), new(66, [new(selected.ItemId, ability)])));
         Assert.NotNull(result.Receipt);
-        var avatar = Assert.Single(Assert.Single(result.Receipt.Updates).Items);
+        var avatar = Assert.Single(result.Receipt.Updates);
         Assert.Equal(selected.ItemId, avatar.Core.ItemId); Assert.Equal(ability, avatar.Core.Attribute);
     }
 
@@ -244,7 +260,7 @@ public sealed class PackageOpeningTests
         var result = await opening.Package();
         Assert.NotNull(result.Receipt);
         Assert.Equal(3, opening.Host.Count(1)); Assert.Equal(0, opening.Host.Count(42));
-        Assert.Contains(result.Receipt.Updates.SelectMany(u => u.Items), item => item.SlotIndex == 1 && item.Core.ItemId == 1 && item.Core.Value == 3);
+        Assert.Contains(result.Receipt.Updates, item => item.Slot == new BusinessSlot(BusinessInventorySpace.VirtualResource, 1) && item.Core.ItemId == 1 && item.Core.Value == 3);
     }
 
     [Fact]
@@ -256,7 +272,7 @@ public sealed class PackageOpeningTests
         await opening.Host.Seed(80, 1001, 1);
         var result = await opening.Package();
         Assert.Equal(10, opening.Host.Count(3));
-        var equipment = Assert.Single(result.Receipt!.Updates.SelectMany(u => u.Items), i => i.Core.ItemId == 3000);
+        var equipment = Assert.Single(result.Receipt!.Updates, i => i.Core.ItemId == 3000);
         Assert.NotNull(equipment.Identity); Assert.Equal(45, equipment.Core.Durability); Assert.Equal(1, equipment.Core.SealFlag);
     }
 
@@ -270,10 +286,11 @@ public sealed class PackageOpeningTests
             with { Kind = OpeningPackageKind.AvatarPackage };
         await opening.Host.Seed(80, 1002, 1);
         var result = await opening.Avatar(2);
-        var avatar = Assert.Single(result.Receipt!.Updates.Single(u => u.ContainerType == InventoryContainerType.Avatar).Items);
+        var avatar = Assert.Single(result.Receipt!.Updates, u => u.Slot.Space == BusinessInventorySpace.Avatar);
         Assert.NotNull(avatar.Identity); Assert.Equal(2, avatar.Core.Attribute); Assert.Equal(0, avatar.Core.ExpireTime);
-        Assert.Equal(days == 0 ? 0 : opening.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
-        Assert.Equal(30, avatar.AvatarDetail.JewelSocket.Length); Assert.Equal(2, opening.Host.Count(3));
+        Assert.Equal(days == 0 ? 0 : opening.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(),
+            opening.Host.Scalar("SELECT avatar_expire_date FROM items WHERE avatar_expire_date IS NOT NULL LIMIT 1"));
+        Assert.Equal(2, opening.Host.Count(3));
         Assert.Equal(0, opening.Host.Count(1002));
     }
 
@@ -289,7 +306,7 @@ public sealed class PackageOpeningTests
         Assert.NotNull(request.AvatarInput);
         var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
             new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, request.Input!, request.AvatarInput));
-        Assert.Equal(2, Assert.Single(result.Receipt!.Updates.SelectMany(u => u.Items)).Core.Attribute);
+        Assert.Equal(2, Assert.Single(result.Receipt!.Updates).Core.Attribute);
     }
 
     [Fact]

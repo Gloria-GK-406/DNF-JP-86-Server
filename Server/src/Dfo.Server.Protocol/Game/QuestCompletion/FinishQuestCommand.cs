@@ -165,19 +165,19 @@ public sealed class FinishQuestCommandHandler(
                 foreach (var (itemId, count) in reward.Items)
                 {
                     var granted = await itemGrants.GrantAsync(
-                            command.AccountId, container, itemId, count,
+                            command.AccountId, command.CharacterId, containers, itemId, count,
                             cancellationToken)
                         .ConfigureAwait(false);
                     switch (granted)
                     {
-                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
+                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } grant:
                             placed.Add(new FinishedQuestItem(
-                                checked((ushort)topped.SlotIndex), (uint)itemId, (uint)topped.Added));
+                                checked((ushort)ItemGrantWireProjection.Index(grant, topped.SlotIndex)), (uint)itemId, (uint)topped.Added));
                             break;
 
-                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
+                        case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } grant:
                             placed.Add(new FinishedQuestItem(
-                                checked((ushort)opened.SlotIndex), (uint)itemId, (uint)opened.Count));
+                                checked((ushort)ItemGrantWireProjection.Index(grant, opened.SlotIndex)), (uint)itemId, (uint)opened.Count));
                             break;
 
                         case ItemGrantOutcome.AccountMaterial account:

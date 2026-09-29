@@ -1,10 +1,12 @@
 using System.Text;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Mail;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Mailbox;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,50 @@ namespace Dfo.Server.Application.Tests.Mail;
 
 public sealed class MailboxProtocolIntegrationTests
 {
+    [Fact]
+    public async Task Player_send_rejects_a_temporary_binding_without_reading_it_as_persistent_storage()
+    {
+        using var shop = CreateShop();
+        await shop.Seed(121, 1000, 5, 3);
+        var containers = shop.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var own = containers.GetContainer(shop.Session.CharacterId, InventoryContainerType.Main);
+        var temporary = new TemporaryMailContainer(own);
+        containers.Register(shop.Session.CharacterId, temporary);
+        Assert.True(containers.UseContainer(shop.Session.CharacterId, temporary.Id));
+
+        var request = new PlayerMailRequest(Encoding.UTF8.GetBytes("shop2"), 0, "temporary",
+            [new(new(BusinessInventorySpace.Material, 0), 1000, 1)]);
+        await shop.Services.GetRequiredService<MailboxSendHandler>().HandleAsync(new(shop.Connection),
+            new MailboxSendRequest(GameMessageMetadata.Empty, true, request), default);
+
+        Assert.NotEqual(0, Assert.IsType<MailboxSendResponse>(Assert.Single(shop.Sender.Messages)).Error);
+        Assert.Equal(5, shop.Scalar("SELECT count FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=121"));
+        Assert.Empty(await Mail(shop).InboxAsync(new(2)));
+    }
+
+    private sealed class TemporaryMailContainer(IItemContainer backing) : IItemContainer
+    {
+        public ContainerId Id { get; } = new("temporary:mail");
+        public InventoryContainerType Type => InventoryContainerType.Main;
+        public ContainerShape Shape => backing.Shape;
+        public bool IsRemovable => true;
+        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct) =>
+            backing.ReadSlotAsync(index, ct);
+        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int first, int second, CancellationToken ct) =>
+            backing.ReadSlotsAsync(first, second, ct);
+        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
+            backing.ReadAllAsync(ct);
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) =>
+            backing.SnapshotAsync(ct);
+        public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct) =>
+            throw new NotSupportedException();
+        public ValueTask ClearAsync(int index, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemPlacementOutcome> AddAsync(int item, int count, CancellationToken ct) =>
+            throw new NotSupportedException();
+        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct) =>
+            throw new NotSupportedException();
+    }
+
     [Fact]
     public async Task System_builder_projects_zero_sender_and_empty_name()
     {
@@ -34,7 +80,7 @@ public sealed class MailboxProtocolIntegrationTests
     {
         using var shop = CreateShop();
         await shop.Seed(121, 1000, 20, 3); await shop.Seed(122, 1000, 10, 3);
-        var selection = new MailSendSelection(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 122, 1000, 3);
+        var selection = new MailSendSelection(new(BusinessInventorySpace.Material, 1), 1000, 3);
         var request = new PlayerMailRequest(Encoding.UTF8.GetBytes("shop2"), 0, "selected", [selection]);
         var handler = shop.Services.GetRequiredService<MailboxSendHandler>();
         await handler.HandleAsync(new(shop.Connection), new MailboxSendRequest(GameMessageMetadata.Empty, false, request), default);
@@ -58,7 +104,7 @@ public sealed class MailboxProtocolIntegrationTests
         await shop.Seed(9, 3000, 0, 1); await shop.Seed(121, 1000, 20, 3);
         shop.Sql("CREATE TRIGGER fail_mail BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'test insert failure'); END;");
         var request = new PlayerMailRequest(Encoding.UTF8.GetBytes("shop2"), 30, "rollback",
-            [new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 9, 3000, 1), new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 121, 1000, 3)]);
+            [new(new(BusinessInventorySpace.CarriedEquipment, 0), 3000, 1), new(new(BusinessInventorySpace.Material, 0), 1000, 3)]);
         await shop.Services.GetRequiredService<MailboxSendHandler>().HandleAsync(new(shop.Connection), new MailboxSendRequest(GameMessageMetadata.Empty, true, request), default);
         Assert.NotEqual(0, Assert.IsType<MailboxSendResponse>(Assert.Single(shop.Sender.Messages)).Error);
         Assert.Equal(1, shop.Count(3000)); Assert.Equal(20, shop.Count(1000)); Assert.Equal(100000, shop.Gold);
@@ -73,7 +119,7 @@ public sealed class MailboxProtocolIntegrationTests
         await shop.Seed(121, 1000, 20, 3);
         var uid = shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=9");
         var request = new PlayerMailRequest(Encoding.UTF8.GetBytes("shop2"), 30, "邮件测试ABC123",
-            [new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 9, 3000, 1), new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 121, 1000, 3)]);
+            [new(new(BusinessInventorySpace.CarriedEquipment, 0), 3000, 1), new(new(BusinessInventorySpace.Material, 0), 1000, 3)]);
         await shop.Services.GetRequiredService<MailboxSendHandler>().HandleAsync(new(shop.Connection),
             new MailboxSendRequest(GameMessageMetadata.Empty, true, request), default);
         Assert.Equal(0, Assert.IsType<MailboxSendResponse>(shop.Sender.Messages.First()).Error);
@@ -100,7 +146,7 @@ public sealed class MailboxProtocolIntegrationTests
         using var shop = CreateShop();
         await shop.Seed(121, 1000, 20, 3);
         var request = new PlayerMailRequest(Encoding.UTF8.GetBytes("shop2"), 100001, "rollback",
-            [new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, 121, 1000, 3)]);
+            [new(new(BusinessInventorySpace.Material, 0), 1000, 3)]);
         await shop.Services.GetRequiredService<MailboxSendHandler>().HandleAsync(new(shop.Connection),
             new MailboxSendRequest(GameMessageMetadata.Empty, false, request), default);
         Assert.NotEqual(0, Assert.IsType<MailboxSendResponse>(Assert.Single(shop.Sender.Messages)).Error);

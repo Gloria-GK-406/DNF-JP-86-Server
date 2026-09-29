@@ -38,7 +38,7 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
     private const int ContractCreatureItemId = 63000;
 
     /// <summary>Where a worn creature sits. Not this outcome's to decide; it reads it.</summary>
-    private const int CreatureEquipSlot = 24;
+    private const int CreatureEquipSlot = 25;
 
     private const int Character = 77;
 
@@ -74,31 +74,48 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
             var scope = new DomainTransactionScope();
             _ = new SqliteDatabase(path, scope);
             var store = new SqliteItemDomainStore(path);
-            var main = ContainerId.ForCharacter(
-                new CharacterId(Character), InventoryContainerType.Main);
+            var pet = ContainerId.ForCharacter(
+                new CharacterId(Character), InventoryContainerType.Pet);
             var container = new PersistentItemContainer(
-                main,
+                pet,
                 new CharacterId(Character),
-                new ContainerShape(InventoryContainerType.Main, 0),
+                new ContainerShape(InventoryContainerType.Pet, 0),
                 store,
                 scope,
                 null!,
                 rules,
                 new ItemArrivalRuleService(),
                 new ItemSlotRuleService());
+            var registered = new CharacterContainerDomainService();
+            registered.Register(new CharacterId(Character), container);
+            var business = new CharacterBusinessInventoryDomainService(registered, rules,
+                new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>())
+                .GetStore(new CharacterId(Character), BusinessInventoryStoreKind.Creature)
+                .GetContainer(BusinessInventorySpace.CreatureInventory);
 
             await using var lease = scope.Begin();
-            var granted = await container.AddAsync(
+            var granted = await business.AddAsync(
                 ContractCreatureItemId, 1, CancellationToken.None);
-            var landed = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted);
+            var landed = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
 
             // What storage holds for the same template.
             var stored = await store.SessionIn(scope.Current!)
-                .ReadAsync(main, landed.SlotIndex, CancellationToken.None);
+                .ReadAsync(pet, landed.SlotIndex, CancellationToken.None);
             Assert.NotNull(stored);
             Assert.Equal(ContractCreatureItemId, stored!.Core.ItemId);
 
             Assert.Equal(fromTheArchive!.ItemKind, stored.Core.ItemKind);
+            Assert.True(stored.Core.Value > 0);
+            await lease.CommitAsync(CancellationToken.None);
+            using (var database = new Microsoft.Data.Sqlite.SqliteConnection(
+                new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path }.ToString()))
+            {
+                database.Open();
+                using var command = database.CreateCommand();
+                command.CommandText = "SELECT creature_field04 FROM items WHERE item_uid=@identity";
+                command.Parameters.AddWithValue("@identity", stored.Identity!.Value.Value);
+                Assert.Equal(100L, (long)command.ExecuteScalar()!);
+            }
 
             // And the number the two agree on is the one the entry path reads a creature by.
             Assert.Equal(

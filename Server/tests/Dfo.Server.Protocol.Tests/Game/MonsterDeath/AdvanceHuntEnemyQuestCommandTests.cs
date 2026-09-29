@@ -638,13 +638,13 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
 
         private ContainerSlotItem? Slot => this.Count == 0
             ? null
-            : new ContainerSlotItem(0,
+            : new ContainerSlotItem(177,
                 StackableItemCore.Create(6, 10149163, this.Count),
                 ItemWorldClass.Interchangeable);
 
         public ValueTask<ContainerSlotItem?> ReadSlotAsync(
             int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(slotIndex == 0 ? this.Slot : null);
+            ValueTask.FromResult(slotIndex == 177 ? this.Slot : null);
 
         public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
             CancellationToken cancellationToken) =>
@@ -659,7 +659,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             transactions?.Current?.Enlist(this, () => new BagChange(this, this.Count));
             this.Count += incoming;
             return ValueTask.FromResult<ItemPlacementOutcome>(
-                new ItemPlacementOutcome.AddedToPile(0, incoming, this.Count));
+                new ItemPlacementOutcome.AddedToPile(177, incoming, this.Count));
         }
 
         private sealed class BagChange(DirectGrantBag bag, int before)

@@ -45,8 +45,8 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         if (result is null) { writer.Write(message.Error); return stream.ToArray(); }
         var receipt = result.Receipt;
         var reward = receipt.Rewards[0];
-        var core = receipt.Updates.Single(x => x.ContainerType == InventoryContainerType.Main).Items.Single(x => x.SlotIndex == reward.Slot).Core;
-        writer.Write(checked((short)result.SourceSlot)); writer.Write(checked((short)reward.Slot));
+        var core = receipt.Updates.Single(x => x.Slot == reward.Slot).Core;
+        writer.Write(checked((short)OpeningWireSlots.RewardIndex(result.SourceSlot))); writer.Write(checked((short)OpeningWireSlots.RewardIndex(reward.Slot)));
         writer.Write(reward.ItemId); writer.Write(receipt.Rewards.Sum(x => x.Count)); writer.Write(core.Durability);
         writer.Write(core.Attribute); writer.Write(core.AmplifyType); writer.Write(core.AmplifyValue);
         // A21 0x0113F780 reads these fields unconditionally, including two length-prefixed values.
@@ -70,7 +70,7 @@ public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSe
 public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService opening) : ICommandHandler<LotteryOpeningCommand, LotteryOpeningResult>
 {
     public ValueTask<LotteryOpeningResult> HandleAsync(CommandExecutionContext context, LotteryOpeningCommand command, CancellationToken token) =>
-        opening.ExecuteAsync(command.Session, command.Slot, command.Mode, command.Sequence, token);
+        opening.ExecuteAsync(command.Session, OpeningWireSlots.FromMain(command.Slot), command.Mode, command.Sequence, token);
 }
 
 public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,

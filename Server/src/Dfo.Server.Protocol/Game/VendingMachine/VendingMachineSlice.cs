@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
@@ -41,20 +42,22 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
         using var writer = new BinaryWriter(stream);
         writer.Write(message.Result is null ? (byte)0 : (byte)1);
         if (message.Result is not { } result) { writer.Write(message.Error); return stream.ToArray(); }
-        writer.Write(checked((short)result.SourceSlot)); writer.Write(result.Remaining);
+        writer.Write(checked((short)OpeningWireSlots.RewardIndex(result.SourceSlot))); writer.Write(result.Remaining);
         writer.Write(result.Reward.ItemId); writer.Write(result.Reward.Count);
         writer.Write(-1); writer.Write(0); // No bonus pool in the captured ordinary machine.
         var slots = result.Receipt.Rewards.Select(r => r.Slot).ToHashSet();
-        var entries = result.Receipt.Updates.SelectMany(update => update.Items
-            .Where(item => slots.Contains(item.SlotIndex) && item.Core.ItemId == result.Reward.ItemId)
-            .Select(item => (update.ContainerType, Item: item))).ToArray();
-        if (entries.Length != slots.Count || entries.Any(e => e.ContainerType != InventoryContainerType.Main))
+        var entries = result.Receipt.Updates.Where(update => slots.Contains(update.Slot)
+            && update.Core.ItemId == result.Reward.ItemId)
+            .Select(update => (Wire: OpeningWireSlots.Project(update.Slot, new InventorySlotMappingRuleService()),
+                Item: new InventoryItemState(update.Identity,
+                    OpeningWireSlots.RewardIndex(update.Slot), update.Core))).ToArray();
+        if (entries.Length != slots.Count || entries.Any(e => e.Wire.Space != InventoryContainerType.Main))
             throw new InvalidDataException("Vending receipt does not match the native reward list.");
         writer.Write(checked((ushort)entries.Length));
         foreach (var entry in entries)
         {
-            writer.Write((byte)entry.ContainerType);
-            GameInventoryItemEntry.Write(writer, entry.Item, result.Receipt.PreparedAt, entry.ContainerType);
+            writer.Write((byte)entry.Wire.Space);
+            GameInventoryItemEntry.Write(writer, entry.Item, result.Receipt.PreparedAt, entry.Wire.Space);
         }
         return stream.ToArray();
     }
@@ -67,7 +70,8 @@ public sealed record VendingMachineCommand(OnlineUserId OnlineUserId, SelectedSe
 public sealed class VendingMachineCommandHandler(IVendingMachineDomainService vending) : ICommandHandler<VendingMachineCommand, VendingMachineResult>
 {
     public ValueTask<VendingMachineResult> HandleAsync(CommandExecutionContext context, VendingMachineCommand command, CancellationToken token) =>
-        vending.UseAsync(command.Session, command.MachineId, command.GroupId, command.Slot, command.Sequence, token);
+        vending.UseAsync(command.Session, command.MachineId, command.GroupId,
+            OpeningWireSlots.FromMain(command.Slot), command.Sequence, token);
 }
 public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,

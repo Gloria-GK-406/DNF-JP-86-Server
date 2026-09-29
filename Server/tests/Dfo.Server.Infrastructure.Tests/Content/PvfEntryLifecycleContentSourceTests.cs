@@ -10,6 +10,17 @@ public sealed class PvfEntryLifecycleContentSourceTests
     private static readonly DateTimeOffset PreparedAt =
         new(2026, 8, 4, 6, 0, 0, TimeSpan.FromHours(8));
 
+    [SkippableFact]
+    public async Task Known_creature_equipment_uses_the_first_pet_equipment_slot()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var placement = await new PvfItemPlacementDefinitionSource(provider).GetAsync(64016, default);
+        Assert.NotNull(placement);
+        Assert.Equal((byte)6, placement.ItemKind);
+        Assert.Equal(new BusinessSlotRange(BusinessInventorySpace.CreatureEquipment, 0, 48), placement.Destination);
+    }
+
     [Fact]
     public void DailyRefill_ParsesCompleteTuplesSkipsInvalidRowsAndRejectsTruncatedSection()
     {

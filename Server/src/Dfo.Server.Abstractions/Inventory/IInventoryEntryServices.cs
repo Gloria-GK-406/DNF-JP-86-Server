@@ -116,8 +116,7 @@ public interface IEquippedCreatureQuery
 }
 
 public sealed record DailyRefillCommittedGrant(
-    InventoryContainerType ContainerType,
-    int SlotIndex,
+    BusinessSlot Slot,
     int ItemId,
     int GrantedCount,
     int CommittedCount);

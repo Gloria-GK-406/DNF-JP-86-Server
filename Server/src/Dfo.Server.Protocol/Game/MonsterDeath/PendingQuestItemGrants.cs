@@ -60,19 +60,19 @@ internal static class PendingQuestItemGrants
             while (remaining > 0)
             {
                 var granted = await itemGrants.GrantAsync(
-                        accountId, bag, drop.ItemId, remaining,
+                        accountId, characterId, containers, drop.ItemId, remaining,
                         cancellationToken)
                     .ConfigureAwait(false);
                 switch (granted)
                 {
                     case ItemGrantOutcome.CharacterItem
-                        { Placement: ItemPlacementOutcome.AddedToPile topped } when topped.Added > 0:
-                        changed.Add(topped.SlotIndex);
+                        { Placement: ItemPlacementOutcome.AddedToPile topped } character when topped.Added > 0:
+                        changed.Add(MainQuestSlot(character, topped.SlotIndex));
                         remaining -= topped.Added;
                         break;
                     case ItemGrantOutcome.CharacterItem
-                        { Placement: ItemPlacementOutcome.PutInEmptySlot opened } when opened.Count > 0:
-                        changed.Add(opened.SlotIndex);
+                        { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character when opened.Count > 0:
+                        changed.Add(MainQuestSlot(character, opened.SlotIndex));
                         remaining -= opened.Count;
                         break;
                     case ItemGrantOutcome.AccountMaterial account:
@@ -105,6 +105,14 @@ internal static class PendingQuestItemGrants
             new CommittedInventoryUpdateState(
                 InventoryContainerType.Main, items, DateTimeOffset.UtcNow),
             accountChanges);
+    }
+
+    private static int MainQuestSlot(ItemGrantOutcome.CharacterItem grant, int localIndex)
+    {
+        var wire = ItemGrantWireProjection.Slot(grant, localIndex);
+        if (wire.Space != InventoryContainerType.Main)
+            throw new InvalidDataException($"Direct quest item cannot be projected into {wire.Space}.");
+        return wire.Index;
     }
 
     internal sealed record QuestItemGrant(

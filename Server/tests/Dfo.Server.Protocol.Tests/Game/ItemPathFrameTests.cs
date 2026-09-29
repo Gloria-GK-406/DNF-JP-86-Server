@@ -135,8 +135,8 @@ public sealed class ItemPathFrameTests
     /// <summary>Nothing is wearable here; these tests move things inside the bag.</summary>
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     private sealed class ConsumableBand : IItemPlacementDefinitionSource

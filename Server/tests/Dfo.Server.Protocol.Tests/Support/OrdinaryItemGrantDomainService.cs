@@ -1,5 +1,8 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Tests.Support;
 
@@ -8,13 +11,32 @@ internal sealed class OrdinaryItemGrantDomainService : IItemGrantDomainService
 {
     public async ValueTask<ItemGrantOutcome> GrantAsync(
         AccountId accountId,
-        IItemContainer characterContainer,
+        CharacterId characterId,
+        ICharacterContainerDomainService containers,
         int itemId,
         int count,
         CancellationToken cancellationToken)
     {
-        var placement = await characterContainer.AddAsync(itemId, count, cancellationToken)
+        var physical = containers.GetContainer(characterId, InventoryContainerType.Main);
+        var placement = await physical.AddAsync(itemId, count, cancellationToken)
             .ConfigureAwait(false);
-        return new ItemGrantOutcome.CharacterItem(placement);
+        var slot = placement switch
+        {
+            ItemPlacementOutcome.AddedToPile pile => pile.SlotIndex,
+            ItemPlacementOutcome.PutInEmptySlot opened => opened.SlotIndex,
+            _ => 9,
+        };
+        var business = LegacyInventoryStorageCoordinates.ToBusiness(
+            new(InventoryContainerType.Main, slot));
+        var local = placement switch
+        {
+            ItemPlacementOutcome.AddedToPile pile =>
+                new ItemPlacementOutcome.AddedToPile(business.Index, pile.Added, pile.Total),
+            ItemPlacementOutcome.PutInEmptySlot opened =>
+                new ItemPlacementOutcome.PutInEmptySlot(business.Index, opened.Count),
+            _ => placement,
+        };
+        return new ItemGrantOutcome.CharacterItem(
+            new BusinessItemContainer(business.Space, physical), local);
     }
 }

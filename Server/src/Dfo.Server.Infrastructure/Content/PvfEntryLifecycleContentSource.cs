@@ -167,7 +167,7 @@ internal sealed class PvfEntryLifecycleContentSource(
     {
         if (!stackables.TryGetValue(itemId, out var entry))
             return equipment.TryGetValue(itemId, out var equipmentPath)
-                ? WornPieceMetadata(ResolveWorldClass(archive, equipmentPath))
+                ? WornPieceMetadata(ReadEquipmentType(archive, equipmentPath))
                 : new RefillItemMetadata(0, 0, 0, -1, ItemWorldClass.Interchangeable);
 
         var limitTag = archive.GetTag("[stack limit]");
@@ -213,17 +213,19 @@ internal sealed class PvfEntryLifecycleContentSource(
     /// gives an avatar template the 8 rather than the 1.
     /// </para>
     /// </remarks>
-    private static RefillItemMetadata WornPieceMetadata(ItemWorldClass worldClass) =>
-        new(1,
-            worldClass switch
-            {
-                ItemWorldClass.Creature => CreatureItemKind,
-                ItemWorldClass.Avatar => AvatarItemKind,
-                _ => WornPieceItemKind,
-            },
-            9,
-            64,
-            worldClass);
+    private static RefillItemMetadata WornPieceMetadata(string? equipmentType)
+    {
+        var worldClass = ClassifyEquipmentType(equipmentType);
+        var normalized = (equipmentType ?? string.Empty).Replace("`", string.Empty).Trim().ToLowerInvariant();
+        var creatureEquipment = normalized is "[artifact red]" or "[artifact blue]" or "[artifact green]";
+        var kind = creatureEquipment ? (byte)6 : worldClass switch
+        {
+            ItemWorldClass.Creature => CreatureItemKind,
+            ItemWorldClass.Avatar => AvatarItemKind,
+            _ => WornPieceItemKind,
+        };
+        return new(1, kind, 9, 64, worldClass);
+    }
 
     /// <summary>
     /// Which sort of individual piece a template is, out of its own <c>[equipment type]</c>.
@@ -242,21 +244,24 @@ internal sealed class PvfEntryLifecycleContentSource(
     /// </para>
     /// </remarks>
     private static ItemWorldClass ResolveWorldClass(PvfArchive archive, string relativePath)
+        => ClassifyEquipmentType(ReadEquipmentType(archive, relativePath));
+
+    private static string? ReadEquipmentType(PvfArchive archive, string relativePath)
     {
         var fileIndex = archive.FindFile(EquipmentDirectory + "/" + relativePath);
         if (fileIndex < 0)
-            return ItemWorldClass.Equipment;
+            return null;
 
         var tag = archive.GetTag(EquipmentTypeTag);
         if (!tag.IsResolved)
-            return ItemWorldClass.Equipment;
+            return null;
 
         var reader = archive.OpenScript(fileIndex);
         return reader.TryMovePast(tag)
             && reader.TryReadSectionValue(out var value)
             && value.IsString
-            ? ClassifyEquipmentType(archive.ResolveString(value.Value))
-            : ItemWorldClass.Equipment;
+            ? archive.ResolveString(value.Value)
+            : null;
     }
 
     /// <summary>What an <c>[equipment type]</c> name says the piece is.</summary>

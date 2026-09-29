@@ -520,7 +520,7 @@ public sealed class SelectCharacterPreparationService(
             var items = new List<InventoryItemState>(container.Items.Count);
             foreach (var item in container.Items)
             {
-                if (item.SlotIndex != 24 || item.Core.ItemKind != 5)
+                if (item.SlotIndex != 25 || item.Core.ItemKind != 5)
                 {
                     items.Add(item);
                     continue;

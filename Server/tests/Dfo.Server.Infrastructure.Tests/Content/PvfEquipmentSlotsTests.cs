@@ -60,7 +60,7 @@ public sealed class PvfEquipmentSlotsTests
     public void Every_name_is_a_costume_slot_or_a_worn_one_and_the_worn_band_is_unchanged()
     {
         Assert.Equal(12, PvfEquipmentSlots.FirstWornSlot);
-        Assert.Equal(24, PvfEquipmentSlots.LastWornSlot);
+        Assert.Equal(25, PvfEquipmentSlots.LastWornSlot);
 
         var costumes = PvfEquipmentSlots.ByName
             .Where(pair => pair.Key.EndsWith("avatar]", StringComparison.OrdinalIgnoreCase))
@@ -72,10 +72,10 @@ public sealed class PvfEquipmentSlotsTests
         Assert.Equal(
             Enumerable.Range(0, 11).Select(value => (byte)value),
             costumes.Select(pair => pair.Value).OrderBy(value => value));
-        Assert.All(
-            worn,
-            pair => Assert.InRange(
-                pair.Value, PvfEquipmentSlots.FirstWornSlot, PvfEquipmentSlots.LastWornSlot));
+        Assert.All(worn, pair => Assert.InRange(pair.Value, (byte)12, (byte)28));
+        Assert.Equal(new Dfo.Server.Data.Inventory.BusinessSlot(
+            Dfo.Server.Data.Inventory.BusinessInventorySpace.WornCreature, 0),
+            PvfEquipmentSlots.BusinessByName["[creature]"]);
     }
 
     /// <summary>

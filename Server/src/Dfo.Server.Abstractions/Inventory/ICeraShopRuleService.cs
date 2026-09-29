@@ -18,7 +18,7 @@ public sealed record CeraShopQuote(ImmutableArray<int> ProductIds, ImmutableArra
 }
 public sealed record CeraShopSubscriptionGrant(PremiumServiceType Service, TimeSpan Duration);
 public sealed record CeraShopQuoteResult(CeraShopRejection Rejection, CeraShopQuote? Quote, string? Detail);
-public sealed record CeraShopSlotWrite(InventoryContainerType Container, int SlotIndex,
+public sealed record CeraShopSlotWrite(BusinessSlot Slot,
     InventoryItemCoreState Core, InventoryItemCreationFacts? CreationFacts);
 public sealed record CeraShopPurchasePlan(AccountCeraBalances Balances, int GoldCost,
     ImmutableArray<CeraShopSlotWrite> Writes);
@@ -29,6 +29,6 @@ public interface ICeraShopRuleService
     ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken);
     CeraShopPlanningResult Plan(CeraShopQuote quote,
-        IReadOnlyDictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>> held,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
         int gold, AccountCeraBalances balances, int identitySeed);
 }

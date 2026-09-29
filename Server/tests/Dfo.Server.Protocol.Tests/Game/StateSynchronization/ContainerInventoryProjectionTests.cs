@@ -143,8 +143,8 @@ public sealed class ContainerInventoryProjectionTests
 
         private sealed class NoWearables : IEquipmentSlotDefinitionSource
         {
-            public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-                ValueTask.FromResult<byte?>(null);
+            public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+                ValueTask.FromResult<BusinessSlot?>(null);
         }
 
         public async Task<InventoryContainerState> LoadContainerAsync(

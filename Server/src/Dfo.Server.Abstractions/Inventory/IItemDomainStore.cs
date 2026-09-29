@@ -23,9 +23,9 @@ public interface IItemDomainStore : IDomainStore<IItemDomainStoreSession>;
 /// One use case's reads and writes against one store of items.
 /// </summary>
 /// <remarks>
-/// Everything is addressed by container and slot. There is no identifier for an item here, which
-/// stays deliberate: a move is said as a clear and a write, and a session that took identities from
-/// its callers would be inviting them to hold one between a read and a write.
+/// Everything is addressed by container and slot. A write never accepts an item identity. Whole
+/// instance transfers may name the source position so settlement can preserve the exact row even
+/// when two pieces have identical core bytes; the row identity remains inside this store.
 ///
 /// A write carries the whole of what a slot holds, plus what the archive makes of it. The class is
 /// what settlement decides on: a thing with an identity keeps its row and is referred to from the
@@ -120,6 +120,13 @@ public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core)
     public ItemIdentity? Identity { get; init; }
 
     /// <summary>
+    /// For a whole-instance move, the position this write took the instance from. Settlement
+    /// resolves that position's identity inside the transaction; callers never carry a row key.
+    /// Null for creation, pile operations, and in-place updates.
+    /// </summary>
+    public ItemTransferSource? TransferFrom { get; init; }
+
+    /// <summary>
     /// The six facts this avatar carries. Required on a write that brings an avatar into the world;
     /// null on a read, null on the write of anything that is not an avatar, and null on the write
     /// that merely moves an avatar the world is already carrying, which has nothing to add to the
@@ -130,3 +137,5 @@ public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core)
     /// <summary>Creation facts for a new creature; existing world rows keep their own facts.</summary>
     public InventoryCreatureDetailState? CreatureDetail { get; init; }
 }
+
+public readonly record struct ItemTransferSource(ContainerId Container, int SlotIndex);

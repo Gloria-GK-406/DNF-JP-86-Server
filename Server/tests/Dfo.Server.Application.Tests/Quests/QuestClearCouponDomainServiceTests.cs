@@ -30,13 +30,13 @@ public sealed class QuestClearCouponDomainServiceTests
         var progress = new RecordingProgress(events);
         var service = Service(inventory, log, rules, progress);
 
-        var result = await service.UseAsync(Session, 69, Now, CancellationToken.None);
+        var result = await service.UseAsync(Session, new(BusinessInventorySpace.Consumable, 4), Now, CancellationToken.None);
 
         Assert.Equal([101, 102], result.CompletedQuestIds);
         Assert.Same(inventory.Receipt, result.Inventory);
         Assert.Equal(["source", "cleared", "rule", "complete", "report", "settle"], events);
         Assert.Equal([101, 102], progress.Facts!.Select(fact => Assert.IsType<QuestCleared>(fact).QuestId));
-        Assert.Equal([new OpeningSlotConsumption(69, 10_006_007, 1)], inventory.Consumed);
+        Assert.Equal([new OpeningSlotConsumption(new(BusinessInventorySpace.Consumable, 4), 10_006_007, 1)], inventory.Consumed);
         Assert.True(inventory.Grants.IsEmpty);
         Assert.Equal((byte)60, rules.Level);
         Assert.Equal((byte)0, rules.Job);
@@ -52,7 +52,7 @@ public sealed class QuestClearCouponDomainServiceTests
         var rules = new RecordingRule(events) { Selected = [] };
 
         var rejection = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await Service(inventory, log, rules).UseAsync(Session, 69, Now, CancellationToken.None));
+            await Service(inventory, log, rules).UseAsync(Session, new(BusinessInventorySpace.Consumable, 4), Now, CancellationToken.None));
 
         Assert.Equal(OpeningRejection.InvalidChoice, rejection.Reason);
         Assert.Equal(["source", "cleared", "rule"], events);
@@ -67,7 +67,7 @@ public sealed class QuestClearCouponDomainServiceTests
         var rules = new RecordingRule(events) { Selected = [101] };
 
         var rejection = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await Service(inventory, log, rules).UseAsync(Session, 69, Now, CancellationToken.None));
+            await Service(inventory, log, rules).UseAsync(Session, new(BusinessInventorySpace.Consumable, 4), Now, CancellationToken.None));
 
         Assert.Equal(OpeningRejection.InvalidChoice, rejection.Reason);
         Assert.Equal(["source", "cleared", "rule", "complete"], events);
@@ -82,7 +82,7 @@ public sealed class QuestClearCouponDomainServiceTests
         var rules = new RecordingRule(events) { Selected = [101] };
 
         var rejection = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await Service(inventory, log, rules).UseAsync(Session, 69, Now, CancellationToken.None));
+            await Service(inventory, log, rules).UseAsync(Session, new(BusinessInventorySpace.Consumable, 4), Now, CancellationToken.None));
 
         Assert.Equal(OpeningRejection.UnsupportedContent, rejection.Reason);
         Assert.Equal(["source"], events);
@@ -116,18 +116,18 @@ public sealed class QuestClearCouponDomainServiceTests
         public IReadOnlyList<OpeningSlotConsumption>? Consumed { get; private set; }
         public ImmutableArray<OpeningPreparedGrant> Grants { get; private set; }
         public OpeningInventoryReceipt Receipt { get; } = new(Session,
-            ImmutableArray<CommittedInventoryUpdateState>.Empty,
-            ImmutableArray<int>.Empty,
+            ImmutableArray<OpeningInventoryUpdate>.Empty,
+            ImmutableArray<BusinessSlot>.Empty,
             ImmutableArray<OpeningRewardDisplay>.Empty, Now);
 
         public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,
-            int slot, DateTimeOffset now, CancellationToken cancellationToken)
+            BusinessSlot slot, DateTimeOffset now, CancellationToken cancellationToken)
         {
             Assert.Equal(Session, session);
-            Assert.Equal(69, slot);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.Consumable, 4), slot);
             Assert.Equal(Now, now);
             events.Add("source");
-            return ValueTask.FromResult(new ContainerSlotItem(slot,
+            return ValueTask.FromResult(new ContainerSlotItem(slot.Index,
                 StackableItemCore.Create(2, ItemId, 2), ItemWorldClass.Interchangeable));
         }
 

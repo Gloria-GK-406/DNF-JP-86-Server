@@ -41,7 +41,7 @@ public sealed class CharacterEntryInventoryTests
                 new InventoryContainerState(
                     InventoryContainerType.Equipment,
                     0,
-                    [new InventoryItemState(new ItemIdentity(1), 24, Core(9001, 1, itemKind: 5))]),
+                    [new InventoryItemState(new ItemIdentity(1), 25, Core(9001, 1, itemKind: 5))]),
             ],
             [],
             new CharacterItemValueEntryState([], []),

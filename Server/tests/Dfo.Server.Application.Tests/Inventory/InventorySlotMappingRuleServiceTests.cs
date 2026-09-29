@@ -7,6 +7,41 @@ public sealed class InventorySlotMappingRuleServiceTests
 {
     private readonly InventorySlotMappingRuleService _rules = new();
 
+    [Theory]
+    [InlineData(24, BusinessInventorySpace.WornEquipment, 12)]
+    [InlineData(25, BusinessInventorySpace.WornCreature, 0)]
+    [InlineData(26, BusinessInventorySpace.WornCreatureEquipment, 0)]
+    [InlineData(28, BusinessInventorySpace.WornCreatureEquipment, 2)]
+    public void Upstream_a21_worn_slot_candidates_are_independent_of_legacy_storage(
+        int wireIndex, BusinessInventorySpace expectedSpace, int localIndex)
+    {
+        var business = new BusinessSlot(expectedSpace, localIndex);
+        Assert.Equal(business, _rules.ToBusinessSlot(new GameSlot(InventoryContainerType.Equipment, wireIndex)));
+        Assert.Equal(new GameSlot(InventoryContainerType.Equipment, wireIndex), _rules.ToGameSlot(business));
+    }
+
+    [Fact]
+    public void Legacy_worn_slot_24_requires_item_identity_to_distinguish_earring_and_creature()
+    {
+        var coordinate = new LegacyInventoryStorageCoordinate(InventoryContainerType.Equipment, 24);
+        Assert.Throws<InventorySlotMappingException>(() => LegacyInventoryStorageCoordinates.ToBusiness(coordinate));
+        Assert.Equal(new(BusinessInventorySpace.WornEquipment, 12),
+            LegacyInventoryStorageCoordinates.ToBusiness(coordinate, 1));
+        Assert.Equal(new(BusinessInventorySpace.WornCreature, 0),
+            LegacyInventoryStorageCoordinates.ToBusiness(coordinate, 5));
+        Assert.Throws<InvalidDataException>(() => LegacyInventoryStorageCoordinates.ToBusiness(coordinate, 8));
+    }
+
+    [Fact]
+    public void Existing_weapon_at_physical_12_remains_weapon_at_wire_12()
+    {
+        var physical = new LegacyInventoryStorageCoordinate(InventoryContainerType.Equipment, 12);
+        var business = LegacyInventoryStorageCoordinates.ToBusiness(physical, 1);
+        Assert.Equal(new(BusinessInventorySpace.WornEquipment, 0), business);
+        Assert.Equal(physical, LegacyInventoryStorageCoordinates.ToStorage(business));
+        Assert.Equal(new GameSlot(InventoryContainerType.Equipment, 12), _rules.ToGameSlot(business));
+    }
+
     public static TheoryData<GameSlot, BusinessSlot> Boundaries => new()
     {
         { new(InventoryContainerType.Main, 3), new(BusinessInventorySpace.QuickSlot, 0) },
@@ -28,12 +63,12 @@ public sealed class InventorySlotMappingRuleServiceTests
         { new(InventoryContainerType.PersonalCargo, 0), new(BusinessInventorySpace.PersonalCargo, 0) },
         { new(InventoryContainerType.PersonalCargo, 151), new(BusinessInventorySpace.PersonalCargo, 151) },
         { new(InventoryContainerType.Equipment, 0), new(BusinessInventorySpace.WornAvatar, 0) },
-        { new(InventoryContainerType.Equipment, 10), new(BusinessInventorySpace.WornAvatar, 10) },
-        { new(InventoryContainerType.Equipment, 11), new(BusinessInventorySpace.WornEquipment, 0) },
-        { new(InventoryContainerType.Equipment, 23), new(BusinessInventorySpace.WornEquipment, 12) },
-        { new(InventoryContainerType.Equipment, 24), new(BusinessInventorySpace.WornCreature, 0) },
-        { new(InventoryContainerType.Equipment, 25), new(BusinessInventorySpace.WornCreatureEquipment, 0) },
-        { new(InventoryContainerType.Equipment, 27), new(BusinessInventorySpace.WornCreatureEquipment, 2) },
+        { new(InventoryContainerType.Equipment, 11), new(BusinessInventorySpace.WornAvatar, 11) },
+        { new(InventoryContainerType.Equipment, 12), new(BusinessInventorySpace.WornEquipment, 0) },
+        { new(InventoryContainerType.Equipment, 24), new(BusinessInventorySpace.WornEquipment, 12) },
+        { new(InventoryContainerType.Equipment, 25), new(BusinessInventorySpace.WornCreature, 0) },
+        { new(InventoryContainerType.Equipment, 26), new(BusinessInventorySpace.WornCreatureEquipment, 0) },
+        { new(InventoryContainerType.Equipment, 28), new(BusinessInventorySpace.WornCreatureEquipment, 2) },
         { new(InventoryContainerType.Equipment, 29), new(BusinessInventorySpace.WornEquipmentExtension, 0) },
         { new(InventoryContainerType.Pet, 0), new(BusinessInventorySpace.CreatureInventory, 0) },
         { new(InventoryContainerType.Pet, 139), new(BusinessInventorySpace.CreatureInventory, 139) },
@@ -63,7 +98,7 @@ public sealed class InventorySlotMappingRuleServiceTests
         new(InventoryContainerType.Main, 2),
         new(InventoryContainerType.Main, 352),
         new(InventoryContainerType.Main, 359),
-        new(InventoryContainerType.Equipment, 28),
+        new(InventoryContainerType.Equipment, 32),
         new(InventoryContainerType.QuickSlot, 0),
         new((InventoryContainerType)255, 0),
         new(InventoryContainerType.Main, -1),

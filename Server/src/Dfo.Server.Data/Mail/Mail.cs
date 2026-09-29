@@ -25,7 +25,7 @@ public abstract record MailAsset
     public sealed record Stackable(int ItemId, int Count) : MailAsset
     {
         // Optional sender-side selection; received attachments contain only template and quantity.
-        public GameSlot? SourceSlot { get; init; }
+        public BusinessSlot? SourceSlot { get; init; }
     }
     public sealed record Gold(int Amount) : MailAsset;
 }
@@ -54,7 +54,7 @@ public sealed class MailBuilder(MailSource source, CharacterId recipient)
     public MailBuilder WithText(string subject, string content) { title = subject; body = content; return this; }
     public MailBuilder ExpiresAt(DateTimeOffset value) { expiresAt = value; return this; }
     public MailBuilder AddEquipment(ItemIdentity identity) { attachments.Add(new MailAsset.Equipment(identity)); return this; }
-    public MailBuilder AddStackable(int itemId, int count, GameSlot? sourceSlot = null) { attachments.Add(new MailAsset.Stackable(itemId, count) { SourceSlot = sourceSlot }); return this; }
+    public MailBuilder AddStackable(int itemId, int count, BusinessSlot? sourceSlot = null) { attachments.Add(new MailAsset.Stackable(itemId, count) { SourceSlot = sourceSlot }); return this; }
     public MailBuilder AddGold(int amount) { attachments.Add(new MailAsset.Gold(amount)); return this; }
     public Mail Build()
     {
@@ -80,9 +80,8 @@ public sealed record MailAttachment(long Id, MailAsset Asset, bool Claimed, bool
 public sealed record MailView(long Id, CharacterId Recipient, int SenderCharacterId, string SenderName,
     string Title, string Body, DateTimeOffset CreatedAt, DateTimeOffset? ExpiresAt, bool Read,
     ImmutableArray<MailAttachment> Attachments);
-public sealed record MailAssetChange(CharacterId Character, InventoryContainerType? Container, int? SlotIndex, int ItemId, int Count, int? GoldBalance)
+public sealed record MailAssetChange(CharacterId Character, BusinessSlot? Slot, int ItemId, int Count, int? GoldBalance)
 {
-    public string? ContainerId { get; init; }
     public AccountMaterialChange? AccountMaterial { get; init; }
 }
 public sealed record MailSendReceipt(long MailId, ImmutableArray<MailAssetChange> Changes);

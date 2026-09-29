@@ -36,7 +36,7 @@ public sealed class SqliteEquipmentTransferDomainStoreTests
             var grant = new DomainTransaction();
             var receiving = store.SessionIn(grant);
             Assert.True(await receiving.GrantAsync(Receiver, Identity,
-                new GameSlot(InventoryContainerType.Main, 9), CancellationToken.None));
+                new LegacyInventoryStorageCoordinate(InventoryContainerType.Main, 9), CancellationToken.None));
             await grant.CommitAsync(CancellationToken.None);
 
             Assert.Equal(Identity.Value, await SlotAsync(path, Receiver));
@@ -59,7 +59,7 @@ public sealed class SqliteEquipmentTransferDomainStoreTests
             Assert.NotNull(owned);
             Assert.True(await session.TakeAsync(Sender, owned, CancellationToken.None));
             Assert.False(await session.GrantAsync(Receiver, Identity,
-                new GameSlot(InventoryContainerType.Main, 9), CancellationToken.None));
+                new LegacyInventoryStorageCoordinate(InventoryContainerType.Main, 9), CancellationToken.None));
             await rollback.RollbackAsync();
 
             Assert.Equal(Identity.Value, await SlotAsync(path, Sender));

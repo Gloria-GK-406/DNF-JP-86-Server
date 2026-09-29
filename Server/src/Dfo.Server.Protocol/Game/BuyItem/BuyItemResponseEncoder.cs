@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Abstractions.Inventory;
 
 namespace Dfo.Server.Protocol.Game.BuyItem;
 
@@ -21,10 +22,11 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
         writer.Write(0); // Reference BUY_ITEM wallet field; no gameplay meaning has been established.
         writer.Write(receipt.Cera);
         var first = receipt.GrantedSlots[0];
+        var wire = new InventorySlotMappingRuleService().ToGameSlot(first.Slot);
         // BUY_ITEM's value is the added amount; the following inventory delta carries the final core.
         GameInventoryItemEntry.Write(writer,
-            first.Item with { Core = first.Item.Core with { Value = first.AddedCount } },
-            receipt.PreparedAt, InventoryContainerType.Main);
+            new InventoryItemState(null, wire.Index, first.Core with { Value = first.AddedCount }),
+            receipt.PreparedAt, wire.Space);
         writer.Write((byte)1);
         writer.Write(receipt.ItemId);
         writer.Write(receipt.Count);

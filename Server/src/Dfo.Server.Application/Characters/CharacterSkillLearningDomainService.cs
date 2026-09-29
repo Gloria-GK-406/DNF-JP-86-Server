@@ -20,7 +20,7 @@ internal sealed class CharacterSkillLearningDomainService(
     ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
     IDomainTransactionAccessor transactions, IPremiumServiceDomainService premiums,
-    IPremiumServiceRuleService premiumRules, ICharacterContainerDomainService containers,
+    IPremiumServiceRuleService premiumRules, ICharacterBusinessInventoryDomainService businessInventories,
     IOpeningInventoryDomainService inventory, ICharacterSkillResetRuleService resetRules, TimeProvider clock) : ICharacterSkillLearningDomainService
 {
     public async ValueTask<bool> SwapSlotsAsync(SelectedSessionIdentity session, int pageIndex, int first, int second, CancellationToken ct)
@@ -147,14 +147,22 @@ internal sealed class CharacterSkillLearningDomainService(
         OpeningInventoryReceipt? consumed = null;
         if (changes.Any(change => change.Refund != 0))
         {
-            var bag = containers.FindContainer(session.CharacterId, InventoryContainerType.Main);
-            var water = bag is null ? null : (await bag.ReadAllAsync(cancellationToken))
-                .Where(item => item.IsPile && item.ItemId == resetRules.ConsumableItemId && item.Count > 0
-                    && (item.Core.ExpireTime == 0 || item.Core.ExpireTime > clock.GetUtcNow().ToUnixTimeSeconds()))
-                .OrderBy(item => item.SlotIndex).FirstOrDefault();
+            var itemStore = businessInventories.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item);
+            (BusinessSlot Slot, ContainerSlotItem Item)? water = null;
+            foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable })
+            {
+                var bag = itemStore.FindContainer(space);
+                if (bag is null) continue;
+                var found = (await bag.ReadAllAsync(cancellationToken))
+                    .Where(item => item.IsPile && item.ItemId == resetRules.ConsumableItemId && item.Count > 0
+                        && (item.Core.ExpireTime == 0 || item.Core.ExpireTime > clock.GetUtcNow().ToUnixTimeSeconds()))
+                    .OrderBy(item => item.SlotIndex).FirstOrDefault();
+                if (found is not null) { water = (new(space, found.SlotIndex), found); break; }
+            }
             if (water is null) return new(CharacterSkillLearningRejection.ResetItemRequired);
-            _ = await inventory.SourceAsync(session, water.SlotIndex, clock.GetUtcNow(), cancellationToken);
-            consumed = await inventory.SettleAsync(session, [new(water.SlotIndex, water.ItemId, 1)],
+            var waterSlot = water.Value.Slot;
+            _ = await inventory.SourceAsync(session, waterSlot, clock.GetUtcNow(), cancellationToken);
+            consumed = await inventory.SettleAsync(session, [new(waterSlot, water.Value.Item.ItemId, 1)],
                 ImmutableArray<OpeningPreparedGrant>.Empty, clock.GetUtcNow(), cancellationToken);
         }
         // No rejection returns after the first write: storage failures must roll the whole batch back.

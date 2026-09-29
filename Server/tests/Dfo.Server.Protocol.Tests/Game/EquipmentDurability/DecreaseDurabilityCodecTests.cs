@@ -30,8 +30,11 @@ public sealed class DecreaseDurabilityCodecTests
     public void Success_and_failure_ack_match_the_upstream_two_byte_shape()
     {
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("wear"), 1, 10011);
-        var receipt = new EquipmentDurabilityReceipt(session, 12, 1);
+        var receipt = new EquipmentDurabilityReceipt(session,
+            new BusinessSlot(BusinessInventorySpace.WornEquipment, 0), 1);
         Assert.Equal(new byte[] { 1, 12 }, DecreaseDurabilityResponseEncoder.EncodeBody(new(receipt)));
+        Assert.Equal(new byte[] { 1, 30 }, DecreaseDurabilityResponseEncoder.EncodeBody(new(receipt with
+        { Slot = new(BusinessInventorySpace.WornEquipmentExtension, 1) })));
         Assert.Equal(new byte[] { 0, 17 }, DecreaseDurabilityResponseEncoder.EncodeBody(new(null, 17)));
     }
 }

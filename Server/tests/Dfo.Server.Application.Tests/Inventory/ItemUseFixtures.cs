@@ -171,8 +171,8 @@ internal abstract class FakeMainInventory(int characterId = 60)
     /// <summary>Nothing here is worn; these fixtures use items rather than put them on.</summary>
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     /// <summary>What the container holds of one item, in slot order.</summary>

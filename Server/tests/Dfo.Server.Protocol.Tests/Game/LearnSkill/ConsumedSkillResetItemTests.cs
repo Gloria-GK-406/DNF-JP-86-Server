@@ -14,8 +14,8 @@ public sealed class ConsumedSkillResetItemTests
     public async Task Last_water_is_cleared_after_skill_ack_with_empty_item_sentinel()
     {
         var session=SelectedSessionIdentity.Create(new(1),new(2),new("water"),1,10011);
-        var receipt=new OpeningInventoryReceipt(session,ImmutableArray<CommittedInventoryUpdateState>.Empty,
-            [69],ImmutableArray<OpeningRewardDisplay>.Empty,DateTimeOffset.UnixEpoch);
+        var receipt=new OpeningInventoryReceipt(session,ImmutableArray<OpeningInventoryUpdate>.Empty,
+            [new(BusinessInventorySpace.Consumable, 4)],ImmutableArray<OpeningRewardDisplay>.Empty,DateTimeOffset.UnixEpoch);
         var delivery=new OpeningCompletedHandler(new global::Dfo.Server.Protocol.Tests.Game.OneSession(session));
         var messages=await delivery.ComposeAsync(new NotificationRecipient(session.CharacterId,session.ConnectionId,session),
             new OpeningCompleted(receipt,[new LearnSkillResponse(null)]),default);

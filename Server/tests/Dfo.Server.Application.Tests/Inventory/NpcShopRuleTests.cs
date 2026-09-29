@@ -44,13 +44,17 @@ public sealed class NpcShopRuleTests
     {
         var rules = new NpcShopTestContent().Rules();
         var quote = (await rules.QuoteAsync(2, 15, 12, 5000, 3, default)).Quote!;
-        var plan = rules.Plan(quote, [Pile(121, 1000, 7, 3), Pile(122, 1000, 8, 3), Pile(3, 5000, 9)], 1000, 42);
+        var plan = rules.Plan(quote, new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+        {
+            [BusinessInventorySpace.Material] = [Pile(0, 1000, 7, 3), Pile(1, 1000, 8, 3)],
+            [BusinessInventorySpace.QuickSlot] = [Pile(0, 5000, 9)],
+        }, 1000, 42);
         Assert.Equal(NpcShopRejection.None, plan.Rejection);
         Assert.Equal(300, quote.GoldCost);
-        Assert.Equal(new[] { 121, 122 }, plan.Plan!.MaterialChanges.Select(change => change.SlotIndex));
+        Assert.Equal(new[] { new BusinessSlot(BusinessInventorySpace.Material, 0), new BusinessSlot(BusinessInventorySpace.Material, 1) }, plan.Plan!.MaterialChanges.Select(change => change.Slot));
         Assert.All(plan.Plan.MaterialChanges, change => Assert.Null(change.Core));
-        Assert.Equal(new[] { (3, 10, 1), (4, 2, 2) }, plan.Plan.GrantedSlots
-            .Select(slot => (slot.Item.SlotIndex, slot.Item.Core.Value, slot.AddedCount)));
+        Assert.Equal(new[] { (BusinessInventorySpace.QuickSlot, 0, 10, 1), (BusinessInventorySpace.QuickSlot, 1, 2, 2) }, plan.Plan.GrantedSlots
+            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.Value, slot.AddedCount)));
     }
 
     [Fact]
@@ -58,12 +62,16 @@ public sealed class NpcShopRuleTests
     {
         var rules = new NpcShopTestContent().Rules();
         var quote = (await rules.QuoteAsync(2, 15, 12, 5000, 1, default)).Quote!;
-        var held = new[] { 3, 4, 5, 6, 7, 8, 65, 66 }.Select(slot => Pile(slot, 5000, 10)).ToList();
-        held.Add(Pile(121, 1000, 5, 3));
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+        {
+            [BusinessInventorySpace.QuickSlot] = Enumerable.Range(0, 6).Select(slot => Pile(slot, 5000, 10)).ToArray(),
+            [BusinessInventorySpace.Consumable] = [Pile(0, 5000, 10), Pile(1, 5000, 10)],
+            [BusinessInventorySpace.Material] = [Pile(0, 1000, 5, 3)],
+        };
         var result = rules.Plan(quote, held, 1000, 42);
         Assert.Equal(NpcShopRejection.NoRoom, result.Rejection);
         Assert.Null(result.Plan);
-        Assert.Equal(5, held.Single(item => item.ItemId == 1000).Count);
+        Assert.Equal(5, Assert.Single(held[BusinessInventorySpace.Material]).Count);
     }
 
     [Fact]
@@ -71,8 +79,11 @@ public sealed class NpcShopRuleTests
     {
         var rules = new NpcShopTestContent().Rules();
         var quote = (await rules.QuoteAsync(2, 15, 12, 5000, 1, default)).Quote!;
-        Assert.Equal(NpcShopRejection.InsufficientGold, rules.Plan(quote, [], 99, 42).Rejection);
-        Assert.Equal(NpcShopRejection.InsufficientMaterials, rules.Plan(quote, [Pile(121, 1000, 4, 3)], 100, 42).Rejection);
+        Assert.Equal(NpcShopRejection.InsufficientGold, rules.Plan(quote,
+            new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>(), 99, 42).Rejection);
+        Assert.Equal(NpcShopRejection.InsufficientMaterials, rules.Plan(quote,
+            new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+            { [BusinessInventorySpace.Material] = [Pile(0, 1000, 4, 3)] }, 100, 42).Rejection);
     }
 
     [Fact]
@@ -122,6 +133,6 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
 
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken ct) => ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken ct) => ValueTask.FromResult<BusinessSlot?>(null);
     }
 }

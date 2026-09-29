@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
@@ -8,10 +9,11 @@ namespace Dfo.Server.Application.Inventory;
 
 // The registry exposes this operation; this collaborator owns routing and full-quantity delivery.
 internal sealed class CharacterContainerAddition(IItemPlacementRuleService placements,
-    IInventorySlotMappingRuleService mapping, IAccountMaterialRuleService accountRules,
+    IAccountMaterialRuleService accountRules,
     IAccountMaterialBagDomainService accountBags, ICharacterTable owners,
     DomainTransactionScope transactions, IItemDomainStore store,
-    IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules)
+    IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules,
+    ICreatureDefinitionSource? creatures = null)
 {
     public async ValueTask<ContainerAddition> AddAsync(ICharacterContainerDomainService containers,
         CharacterId character, int itemId, int count, CancellationToken ct)
@@ -34,12 +36,13 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
             {
                 var placement = await placements.PlacementForAsync(itemId, ct)
                     ?? throw new ContainerAdditionException(ContainerAdditionFailure.UnknownItem);
-                var type = mapping.ToGameSlot(new BusinessSlot(placement.Destination.Space, placement.Destination.FirstIndex)).Space;
+                var type = LegacyInventoryStorageCoordinates.ToStorage(
+                    new BusinessSlot(placement.Destination.Space, placement.Destination.FirstIndex)).List;
                 // Honor a character's current (possibly temporary) bag. Offline delivery uses
                 // the persistent bag without publishing a fictitious online registration.
                 var bag = containers.FindContainer(character, type) ?? new PersistentItemContainer(
                     ContainerId.ForCharacter(character, type), character, new(type, 0), store,
-                    transactions, null, placements, arrivals, slotRules, mapping);
+                    transactions, null, placements, arrivals, slotRules);
                 // Full-quantity rollback currently relies on the store-backed transaction contract.
                 // Do not mutate an arbitrary in-memory implementation that cannot be rolled back.
                 if (bag is not StoreBackedItemContainer)
@@ -47,11 +50,13 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
                 if (bag.Id.TryGetCharacterOwner(out var bagOwner, out var bagType)
                     && (bagOwner != character || bagType != type))
                     throw new InvalidOperationException("The selected container belongs to another character or inventory type.");
+                var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures);
                 var changes = new List<ContainerItemAddition>();
                 var remaining = count;
                 while (remaining > 0)
                 {
-                    var outcome = await bag.AddAsync(itemId, remaining, ct);
+                    var addition = await business.AddAsync(itemId, remaining, ct);
+                    var outcome = addition.Placement;
                     var (slot, added) = outcome switch
                     {
                         ItemPlacementOutcome.AddedToPile p => (p.SlotIndex, p.Added),
@@ -61,7 +66,8 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
                         _ => throw new InvalidOperationException("Unsupported container addition outcome.")
                     };
                     if (added <= 0 || added > remaining) throw new InvalidDataException("Invalid container addition progress.");
-                    changes.Add(new(bag.Id, bag.Type, slot, added));
+                    changes.Add(new(addition.Container.Id,
+                        new BusinessSlot(addition.Container.Space, slot), added));
                     remaining -= added;
                 }
                 result = new(changes);

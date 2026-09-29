@@ -84,18 +84,13 @@ public sealed record ContainerShape(InventoryContainerType ContainerType, ushort
 /// instance that served several characters would have to be trusted to keep them apart, and every
 /// caller would have to keep passing the one fact the container already knows.
 ///
-/// Two kinds of member sit here. The reads and writes are what a container is made of, and address
-/// one slot at a time. The verbs -- putting an arriving item away, topping a character up, moving
-/// something between two slots -- are what a container is asked to do, and each decides for itself
-/// whether it is allowed before carrying it out as some of those reads and writes.
+/// Reads and writes here address the legacy backing positions. Arrival and refill remain backend
+/// compatibility verbs; ordinary business movement uses local slots through the business store.
 ///
-/// The verbs used to live in the callers, which is what made "where does an arriving item go"
-/// something two of them had written out separately. Nothing beneath here learned anything by their
-/// moving in: the store is still told only to read and to write, and `ItemContainerOperations` --
-/// which composes a move without the store knowing what a move is -- is the standing proof that
-/// composition never needed the store's help. What makes a verb safe to express as several writes
-/// is the use case boundary: everything one request does settles together, so an operation made of
-/// four writes is still one change.
+/// Movement was removed from this physical interface so there is one admission and identity rule
+/// in the business movement service. The backend accepts a source position for an entire-instance
+/// write; settlement resolves its identity within the transaction. A multi-write operation still
+/// settles under one use case boundary.
 ///
 /// A verb answers with what happened rather than throwing, because "there was no room" and "the
 /// archive declares no such item" are ordinary answers that different callers treat differently --
@@ -103,6 +98,7 @@ public sealed record ContainerShape(InventoryContainerType ContainerType, ushort
 /// </remarks>
 public interface IItemContainer
 {
+    ValueTask FlushAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     ContainerId Id { get; }
 
     InventoryContainerType Type { get; }
@@ -154,6 +150,11 @@ public interface IItemContainer
     /// </remarks>
     ValueTask PutAsync(int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken);
 
+    /// <summary>Places an entire existing instance, naming its source position for settlement.</summary>
+    ValueTask PutTransferredAsync(int slotIndex, InventoryItemCoreState core,
+        ContainerId sourceContainer, int sourceSlotIndex, CancellationToken cancellationToken) =>
+        PutAsync(slotIndex, core, cancellationToken);
+
     /// <summary>Puts a newly created item with the instance facts it brings into the world.</summary>
     ValueTask PutNewAsync(int slotIndex, InventoryItemCoreState core, InventoryItemCreationFacts facts,
         CancellationToken cancellationToken)
@@ -191,21 +192,6 @@ public interface IItemContainer
     ValueTask<ItemPlacementOutcome> RefillAsync(
         ItemRefill refill, CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Moves what one slot holds to another slot of this same container.
-    /// </summary>
-    /// <remarks>
-    /// A count of zero, or one larger than the pile, means the whole pile: a plain drag leaves the
-    /// field at zero and only a split dialog fills it in.
-    ///
-    /// The two ends may arrive the other way round. When the slot moved from is empty, the caller
-    /// is naming the slot it wants filled, and the pile to put there is the one at the other end;
-    /// the reference server reads it the same way. What the container answers is what was moved,
-    /// not where it ended up, because a caller that echoes ends back to a client echoes the ones it
-    /// was sent rather than the ones the move used.
-    /// </remarks>
-    ValueTask<ItemMoveOutcome> MoveToAsync(
-        int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken);
 }
 
 /// <summary>What a daily rule owes, in the terms the container needs to place it.</summary>

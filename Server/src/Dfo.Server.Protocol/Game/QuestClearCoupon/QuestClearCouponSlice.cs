@@ -100,7 +100,7 @@ public sealed class QuestClearCouponCommandHandler(IQuestClearCouponDomainServic
 {
     public ValueTask<QuestClearCouponResult> HandleAsync(CommandExecutionContext context,
         QuestClearCouponCommand command, CancellationToken ct) =>
-        coupons.UseAsync(command.Session, command.SourceSlot, clock.GetUtcNow(), ct);
+        coupons.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), ct);
 }
 
 internal static class QuestClearCouponProjection

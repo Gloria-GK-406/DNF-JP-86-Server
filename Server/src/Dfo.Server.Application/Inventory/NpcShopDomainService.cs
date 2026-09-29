@@ -17,7 +17,8 @@ internal sealed class NpcShopDomainService(
     ITownAreaDomainService townAreas,
     ICharacterDomainService characters,
     IAccountTable accounts,
-    ICharacterContainerDomainService containers,
+    ICharacterBusinessInventoryDomainService inventories,
+    IItemPlacementRuleService placements,
     INpcShopRuleService rules,
     INpcShopPurchaseTable purchases) : INpcShopDomainService
 {
@@ -31,14 +32,35 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);
-        var bag = containers.FindContainer(session.CharacterId, InventoryContainerType.Main);
-        if (identity is null || bag is null)
+        if (identity is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
 
         var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken)
             .ConfigureAwait(false);
         if (priced.Quote is not { } quote)
             return NpcShopPurchaseResult.Refused(priced.Rejection);
+
+        var spaces = new HashSet<BusinessInventorySpace> { quote.Placement.Destination.Space };
+        if (ItemSlotRuleService.AllowsQuickSlot(quote.Placement.ItemKind))
+            spaces.Add(BusinessInventorySpace.QuickSlot);
+        foreach (var cost in quote.Materials)
+        {
+            var material = await placements.PlacementForAsync(cost.ItemId, cancellationToken).ConfigureAwait(false);
+            if (material is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.UnsupportedItem);
+            spaces.Add(material.Destination.Space);
+            if (ItemSlotRuleService.AllowsQuickSlot(material.ItemKind))
+                spaces.Add(BusinessInventorySpace.QuickSlot);
+        }
+        var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        foreach (var space in spaces)
+        {
+            var bag = inventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space))
+                .FindContainer(space);
+            if (bag is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.NoRoom);
+            bags.Add(space, bag);
+            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+        }
 
         NpcShopPurchaseKey? purchaseKey = null;
         if (quote.Definition.Limit is { } limit)
@@ -50,7 +72,6 @@ internal sealed class NpcShopDomainService(
         }
 
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
-        var held = await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false);
         var planned = rules.Plan(quote, held, gold, Random.Shared.Next(1, int.MaxValue));
         if (planned.Plan is not { } plan)
             return NpcShopPurchaseResult.Refused(planned.Rejection);
@@ -69,12 +90,12 @@ internal sealed class NpcShopDomainService(
         foreach (var change in plan.MaterialChanges)
         {
             if (change.Core is null)
-                await bag.ClearAsync(change.SlotIndex, cancellationToken).ConfigureAwait(false);
+                await bags[change.Slot.Space].ClearAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false);
             else
-                await bag.PutAsync(change.SlotIndex, change.Core, cancellationToken).ConfigureAwait(false);
+                await bags[change.Slot.Space].PutAsync(change.Slot.Index, change.Core, cancellationToken).ConfigureAwait(false);
         }
         foreach (var grant in plan.GrantedSlots)
-            await bag.PutAsync(grant.Item.SlotIndex, grant.Item.Core, cancellationToken).ConfigureAwait(false);
+            await bags[grant.Slot.Space].PutAsync(grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
         if (purchaseKey is not null
             && !await purchases.TryAddAsync(purchaseKey, quote.Count, quote.Definition.Limit!.Count, cancellationToken)
                 .ConfigureAwait(false))

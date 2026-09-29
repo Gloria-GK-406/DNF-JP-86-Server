@@ -79,7 +79,7 @@ public interface IItemUseEffectDomainService
     /// <summary>Applies the effects and answers what the slot holds afterwards.</summary>
     ValueTask<ItemUseApplication> ApplyAsync(
         SelectedSessionIdentity session,
-        IItemContainer container,
+        IBusinessItemContainer container,
         ContainerSlotItem item,
         IReadOnlyList<IItemUseEffect> effects,
         CancellationToken cancellationToken);

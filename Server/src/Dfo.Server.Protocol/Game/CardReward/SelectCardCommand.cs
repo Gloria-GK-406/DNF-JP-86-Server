@@ -313,26 +313,27 @@ public sealed class SelectCardCommandHandler(
         ClearRewardCardItem piece,
         CancellationToken cancellationToken)
     {
-        var container = containers.FindContainer(characterId, InventoryContainerType.Main);
-        if (container is null)
+        if (containers.FindContainer(characterId, InventoryContainerType.Main) is null)
             return null;
-
         var granted = await itemGrants.GrantAsync(
-                accountId, container, piece.ItemId, piece.Quantity, cancellationToken)
+                accountId, characterId, containers, piece.ItemId, piece.Quantity, cancellationToken)
             .ConfigureAwait(false);
         int slotIndex;
+        ItemGrantOutcome.CharacterItem? delivered = null;
         var opensASlot = false;
         switch (granted)
         {
             case ItemGrantOutcome.AccountMaterial account:
                 return new CardItemDelivery(null, account.Change);
 
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
+            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                 slotIndex = topped.SlotIndex;
+                delivered = character;
                 break;
 
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
+            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                 slotIndex = opened.SlotIndex;
+                delivered = character;
                 opensASlot = true;
                 break;
 
@@ -347,7 +348,7 @@ public sealed class SelectCardCommandHandler(
                     nameof(piece), granted, "No reading was decided for this outcome.");
         }
 
-        var landed = await container.ReadSlotAsync(slotIndex, cancellationToken)
+        var landed = await delivered!.Container.ReadSlotAsync(slotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (landed is null)
             return null;
@@ -359,7 +360,7 @@ public sealed class SelectCardCommandHandler(
             // a broken one. What it should carry was decided when the face was fixed and travels on
             // the card for exactly this moment; a pile it joined already carries one of its own.
             core = core with { Durability = piece.Durability };
-            await container.PutAsync(slotIndex, core, cancellationToken).ConfigureAwait(false);
+            await delivered.Container.PutAsync(slotIndex, core, cancellationToken).ConfigureAwait(false);
         }
 
         // Built from what was just written rather than re-read through the entry projection: that
@@ -369,8 +370,8 @@ public sealed class SelectCardCommandHandler(
         // is settlement's to hand out rather than this caller's to guess at.
         return new CardItemDelivery(
             new CommittedInventoryUpdateState(
-                container.Type,
-                [new InventoryItemState(null, slotIndex, core)],
+                ItemGrantWireProjection.Slot(delivered, slotIndex).Space,
+                [new InventoryItemState(null, ItemGrantWireProjection.Index(delivered, slotIndex), core)],
                 clock.GetUtcNow()),
             null);
     }

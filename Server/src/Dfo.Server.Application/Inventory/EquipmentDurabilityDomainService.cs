@@ -10,10 +10,10 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentDurabilityDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICharacterContainerDomainService containers) : IEquipmentDurabilityDomainService
+    ICharacterBusinessInventoryDomainService inventories) : IEquipmentDurabilityDomainService
 {
     public async ValueTask<EquipmentDurabilityResult> DecreaseAsync(SelectedSessionIdentity session,
-        byte slotIndex, CancellationToken cancellationToken)
+        BusinessSlot slot, CancellationToken cancellationToken)
     {
         if (sessions.Find(session.AccountId) != session
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
@@ -23,18 +23,20 @@ internal sealed class EquipmentDurabilityDomainService(
 
         // A21 worn slots: weapon, five armour pieces, support weapon, and charm. Accessories,
         // avatars, title and creature equipment do not receive this wear command upstream.
-        if (slotIndex is not (12 or >= 14 and <= 18 or 24 or 30))
+        if (slot is not ({ Space: BusinessInventorySpace.WornEquipment, Index: 0 or >= 2 and <= 6 or 12 }
+            or { Space: BusinessInventorySpace.WornEquipmentExtension, Index: 1 }))
             return new(EquipmentDurabilityRejection.InvalidSlot);
 
-        var bag = containers.FindContainer(session.CharacterId, InventoryContainerType.Equipment);
-        var item = bag is null ? null : await bag.ReadSlotAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+        var bag = inventories.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item)
+            .FindContainer(slot.Space);
+        var item = bag is null ? null : await bag.ReadSlotAsync(slot.Index, cancellationToken).ConfigureAwait(false);
         var equipment = EquipmentInstance.From(item);
         if (equipment is null)
             return new(EquipmentDurabilityRejection.ItemUnavailable);
 
         if (equipment.DecreaseDurability(1))
-            await bag!.PutAsync(slotIndex, equipment.Core, cancellationToken).ConfigureAwait(false);
+            await bag!.PutAsync(slot.Index, equipment.Core, cancellationToken).ConfigureAwait(false);
         return new(EquipmentDurabilityRejection.None,
-            new(session, slotIndex, equipment.Core.Durability));
+            new(session, slot, equipment.Core.Durability));
     }
 }

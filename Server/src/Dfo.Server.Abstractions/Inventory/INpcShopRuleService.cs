@@ -22,7 +22,9 @@ public interface INpcShopRuleService
     ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(
         int npcId, byte job, CancellationToken cancellationToken);
 
-    NpcShopPlanningResult Plan(NpcShopQuote quote, IReadOnlyList<ContainerSlotItem> held, int gold, int itemIdentitySeed);
+    NpcShopPlanningResult Plan(NpcShopQuote quote,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
+        int gold, int itemIdentitySeed);
 
     string PurchasePeriod(NpcShopPurchaseLimit limit, DateTimeOffset now);
 }

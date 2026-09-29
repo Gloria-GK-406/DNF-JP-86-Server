@@ -4,7 +4,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public sealed record OpeningSlotConsumption(int Slot, int ItemId, int Count);
+public sealed record OpeningSlotConsumption(BusinessSlot Slot, int ItemId, int Count);
 public sealed record OpeningPreparedGrant(OpeningReward Reward, OpeningRewardItemDefinition Item, int Expiration);
 public interface IPackageOpeningRuleService
 {

@@ -163,7 +163,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         // creature or none.
         items.SessionIn(accessor.Current!).Write(
             ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
-            new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 999))
+            new StoredItem(25, Core(itemKind: 5, itemId: 1, value: 999))
             {
                 Identity = new ItemIdentity(77),
             });
@@ -294,7 +294,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new DailyRefillMutationResult(
-                [new DailyRefillCommittedGrant(InventoryContainerType.Main, 65, 9001, 2, 2)]));
+                [new DailyRefillCommittedGrant(new(BusinessInventorySpace.Consumable, 0), 9001, 2, 2)]));
     }
 
     private sealed class FailingRefillMutation : IEntryInventoryMutationRepository

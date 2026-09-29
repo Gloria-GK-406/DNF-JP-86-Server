@@ -1,6 +1,7 @@
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -25,12 +26,12 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
 
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
-    private readonly Dictionary<int, byte?> _cache = [];
+    private readonly Dictionary<int, BusinessSlot?> _cache = [];
     private IReadOnlyDictionary<int, string>? _paths;
 
     public PvfEquipmentSlotDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
 
-    public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken)
+    public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
@@ -44,7 +45,7 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
         }
     }
 
-    private byte? Read(PvfArchive archive, int itemId)
+    private BusinessSlot? Read(PvfArchive archive, int itemId)
     {
         if (_paths is null)
         {
@@ -73,7 +74,7 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
             return null;
         }
 
-        return PvfEquipmentSlots.ByName.TryGetValue(archive.ResolveString(value.Value), out var slot)
+        return PvfEquipmentSlots.BusinessByName.TryGetValue(archive.ResolveString(value.Value), out var slot)
             ? slot
             : null;
     }

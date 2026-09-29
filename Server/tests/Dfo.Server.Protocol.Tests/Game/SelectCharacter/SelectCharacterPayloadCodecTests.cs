@@ -296,7 +296,7 @@ public sealed class SelectCharacterPayloadCodecTests
                             checked((int)source.World.PreparedAt.AddSeconds(300).ToUnixTimeSeconds()),
                             333, Enumerable.Range(0, 30).Select(value => (byte)value).ToArray(),
                             0x1122, 0x3344, 0)),
-                    new InventoryItemState(new ItemIdentity(13), 24, creature, Noti2CreatureMarker: 555),
+                    new InventoryItemState(new ItemIdentity(13), 25, creature, Noti2CreatureMarker: 555),
                 ]),
             ],
         };
@@ -358,8 +358,8 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(232)));
         Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(234)));
 
-        // Creature slot 24 carries the NOTI-2 creature marker after the enchant block.
-        Assert.Equal(24, populated[264]);
+        // Candidate creature slot 25 carries the NOTI-2 creature marker after the enchant block.
+        Assert.Equal(25, populated[264]);
         Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(265)));
         Assert.Equal(555u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(288)));
         Assert.Equal([0, 0], empty);
@@ -540,7 +540,7 @@ public sealed class SelectCharacterPayloadCodecTests
                     container.ContainerType == InventoryContainerType.Equipment
                         ? container with
                         {
-                            Items = [.. container.Items, new InventoryItemState(new ItemIdentity(99), 24, petCore)],
+                            Items = [.. container.Items, new InventoryItemState(new ItemIdentity(99), 25, petCore)],
                         }
                         : container).ToArray(),
             },

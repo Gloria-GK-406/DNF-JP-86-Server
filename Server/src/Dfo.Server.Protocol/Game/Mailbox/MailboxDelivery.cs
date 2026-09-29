@@ -6,6 +6,9 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Mail;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -15,6 +18,7 @@ namespace Dfo.Server.Protocol.Game.Mailbox;
 public sealed record MailboxCompleted(SelectedSessionIdentity Session, IGameCmdMessage Reply, MailboxResult Result) : INotification<MailboxCompleted>;
 public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<MailboxCompleted>
 {
+    private static readonly IInventorySlotMappingRuleService mappings = new InventorySlotMappingRuleService();
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, MailboxCompleted notice, CancellationToken token)
     {
         if (recipient.CharacterId != notice.Session.CharacterId || recipient.ConnectionId != notice.Session.ConnectionId
@@ -26,8 +30,15 @@ public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessio
         if (sending) frames.Add(notice.Reply);
         if (notice.Result.Assets is { } assets)
         {
-            frames.AddRange(assets.Updates.Select(GameInventoryDelivery.Notification));
-            frames.AddRange(assets.Cleared.Select(x => GameInventoryDelivery.ClearedSlotNotification(x.Container, x.Slot, assets.PreparedAt)));
+            frames.AddRange(assets.Updates.GroupBy(x => mappings.ToGameSlot(x.Slot).Space)
+                .Select(group => GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
+                    group.Select(x => new InventoryItemState(x.Identity,
+                        mappings.ToGameSlot(x.Slot).Index, x.Core)).ToArray(), assets.PreparedAt))));
+            frames.AddRange(assets.Cleared.Select(x =>
+            {
+                var wire = mappings.ToGameSlot(x);
+                return GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, assets.PreparedAt);
+            }));
             if (assets.Materials.Count > 0) frames.Add(GameInventoryDelivery.VirtualResourceNotification(assets.Materials, assets.PreparedAt));
             if (assets.Gold is { } gold) frames.Add(GameInventoryDelivery.CarriedGoldNotification(gold, assets.PreparedAt));
         }

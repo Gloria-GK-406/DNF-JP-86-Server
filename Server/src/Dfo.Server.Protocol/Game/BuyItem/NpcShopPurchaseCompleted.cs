@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -18,21 +19,27 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
         NotificationRecipient recipient, NpcShopPurchaseCompleted notification, CancellationToken cancellationToken)
     {
+        var slots = new InventorySlotMappingRuleService();
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || sessions.Find(receipt.Session.AccountId) != receipt.Session)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
         foreach (var change in receipt.MaterialChanges)
+        {
+            var wire = slots.ToGameSlot(change.Slot);
             messages.Add(change.Core is { } core
-                ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main,
-                    [new InventoryItemState(null, change.SlotIndex, core)], receipt.PreparedAt))
-                : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, change.SlotIndex, receipt.PreparedAt));
+                ? GameInventoryDelivery.Notification(new(wire.Space,
+                    [new InventoryItemState(null, wire.Index, core)], receipt.PreparedAt))
+                : GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
+        }
         messages.Add(new BuyItemResponse(receipt));
         if (receipt.GoldSpent)
             messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));
-        messages.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(InventoryContainerType.Main,
-            receipt.GrantedSlots.Select(slot => slot.Item).ToArray(), receipt.PreparedAt)));
+        foreach (var group in receipt.GrantedSlots.GroupBy(grant => slots.ToGameSlot(grant.Slot).Space))
+            messages.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
+                group.Select(grant => new InventoryItemState(null, slots.ToGameSlot(grant.Slot).Index,
+                    grant.Core)).ToArray(), receipt.PreparedAt)));
         if (notification.QuestProgress is { } progress)
         {
             messages.Add(new AcceptedQuestProgressMessage(

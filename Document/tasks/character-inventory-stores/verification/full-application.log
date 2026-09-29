@@ -1,0 +1,21 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:01.08]     Dfo.Server.Application.Tests.Notifications.NotificationHandlerArchitectureTests.ProductionNotificationHandlers_OnlyTakeDomainServices [FAIL]
+[xUnit.net 00:00:03.97]     Dfo.Server.Application.Tests.Inventory.GrantedAvatarIsWholeTests.The_archive_and_storage_answer_the_same_kind_for_one_avatar [FAIL]
+[xUnit.net 00:00:04.36]     Dfo.Server.Application.Tests.Inventory.ItemIdentityArchitectureTests.AnIdentityIsAlwaysOptionalWhereverAnItemIsDescribed [FAIL]
+[xUnit.net 00:00:04.89]     Dfo.Server.Application.Tests.Inventory.GrantedAvatarIsWholeTests.Two_granted_avatars_carry_two_drawn_identities_rather_than_two_counts [FAIL]
+[xUnit.net 00:00:05.85]     Dfo.Server.Application.Tests.Inventory.GrantedAvatarIsWholeTests.A_granted_avatar_is_loaded_saved_and_loaded_again_with_the_same_facts [FAIL]
+[xUnit.net 00:00:07.32]     Dfo.Server.Application.Tests.Inventory.CharacterContainerDomainServiceTests.Existing_storage_coordinates_round_trip_through_the_business_binding(businessSpace: WornEquipment, businessIndex: 2, containerType: Equipment, storageIndex: 13) [FAIL]
+[xUnit.net 00:00:08.23]     Dfo.Server.Application.Tests.Inventory.AvatarSlotRulesAfterTheKindChangeTests.A_quick_slot_refuses_the_avatar_the_archive_declares(slotIndex: 3) [FAIL]
+[xUnit.net 00:00:09.34]     Dfo.Server.Application.Tests.Inventory.DraggedAvatarStaysWholeTests.A_drag_of_one_moves_the_whole_avatar_and_empties_the_slot_it_came_from [FAIL]
+[xUnit.net 00:00:09.36]     Dfo.Server.Application.Tests.Inventory.AvatarSlotRulesAfterTheKindChangeTests.A_quick_slot_refuses_the_avatar_the_archive_declares(slotIndex: 8) [FAIL]
+[xUnit.net 00:00:09.79]     Dfo.Server.Application.Tests.Inventory.EquipmentRepairTests.Sixth_auto_repair_succeeds_seventh_is_rejected_and_next_period_recovers_quota [FAIL]
+[xUnit.net 00:00:09.94]     Dfo.Server.Application.Tests.Inventory.EquipmentRepairTests.Concurrent_automatic_requests_consume_one_use_and_do_not_share_character_quota [FAIL]
+[xUnit.net 00:00:10.36]     Dfo.Server.Application.Tests.Inventory.EquipmentRepairTests.Automatic_repair_is_free_repairs_worn_and_quick_slots_once_and_preserves_bag [FAIL]
+[xUnit.net 00:00:10.59]     Dfo.Server.Application.Tests.Inventory.AvatarSlotRulesAfterTheKindChangeTests.A_quick_slot_refuses_the_avatar_the_archive_declares(slotIndex: 5) [FAIL]
+[xUnit.net 00:00:10.84]     Dfo.Server.Application.Tests.Inventory.EquipmentRepairTests.Auto_repair_write_failure_rolls_back_usage_and_durability [FAIL]
+[xUnit.net 00:00:11.86]     Dfo.Server.Application.Tests.Inventory.DraggedAvatarStaysWholeTests.A_drag_of_one_onto_another_avatar_trades_the_two_slots [FAIL]
+[xUnit.net 00:00:12.73]     Dfo.Server.Application.Tests.Inventory.DraggedAvatarStaysWholeTests.An_avatar_that_was_dragged_is_loaded_again_with_the_same_identity_and_facts [FAIL]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\TestResults\inventory-application.trx
+
+失败!  - 失败:    16，通过:  2111，已跳过:     0，总计:  2127，持续时间: 31 s - Dfo.Server.Application.Tests.dll (net10.0)

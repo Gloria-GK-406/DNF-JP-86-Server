@@ -25,7 +25,7 @@ public sealed class BuyItemCodecTests
         var sessions = new SelectedSessionDomainService();
         sessions.Select(session);
         var receipt = new NpcShopPurchaseReceipt(session, 2000, 1, 100, 0, 0, false, [],
-            [new(new(null, 3, StackableItemCore.Create(2, 2000, 1)), 1)], DateTimeOffset.UnixEpoch);
+            [new(new(BusinessInventorySpace.QuickSlot, 0), StackableItemCore.Create(2, 2000, 1), 1)], DateTimeOffset.UnixEpoch);
         var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
             new NotificationRecipient(session.CharacterId, session.ConnectionId),
             new NpcShopPurchaseCompleted(receipt,
@@ -84,7 +84,8 @@ public sealed class BuyItemCodecTests
         var session = SelectedSessionIdentity.Create(new(1), new(2), new("codec"), 1, 10011);
         var final = StackableItemCore.Create(2, 5000, 10);
         var receipt = new NpcShopPurchaseReceipt(session, 5000, 3, 99700, 321, 77, true, [],
-            [new(new(null, 3, final), 1), new(new(null, 4, final with { Value = 2 }), 2)], DateTimeOffset.UnixEpoch);
+            [new(new(BusinessInventorySpace.QuickSlot, 0), final, 1),
+                new(new(BusinessInventorySpace.QuickSlot, 1), final with { Value = 2 }, 2)], DateTimeOffset.UnixEpoch);
         var body = BuyItemResponseEncoder.EncodeBody(new(receipt));
         Assert.Equal(127, body.Length);
         Assert.Equal(1, body[0]);

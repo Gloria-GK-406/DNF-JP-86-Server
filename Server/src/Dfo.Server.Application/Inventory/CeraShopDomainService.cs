@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
-    ICharacterTable characterRows, IAccountTable accounts, ICharacterContainerDomainService containers,
+    ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage) : ICeraShopDomainService
 {
@@ -42,13 +42,18 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (quoted.Quote is not { } quote)
             return CeraShopPurchaseResult.Refused(quoted.Rejection, quoted.Detail);
 
-        var bags = new Dictionary<InventoryContainerType, IItemContainer>();
-        var held = new Dictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>>();
-        foreach (var type in (InventoryContainerType[])[InventoryContainerType.Main, InventoryContainerType.Avatar, InventoryContainerType.Pet])
+        var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        var spaces = quote.Grants.Select(grant => grant.Placement.Destination.Space)
+            .Concat(quote.Grants.Where(grant => ItemSlotRuleService.AllowsQuickSlot(grant.Placement.ItemKind))
+                .Select(_ => BusinessInventorySpace.QuickSlot)).Distinct();
+        foreach (var space in spaces)
         {
-            if (containers.FindContainer(session.CharacterId, type) is not { } bag) continue;
-            bags.Add(type, bag);
-            held.Add(type, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+            var bag = stores.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space))
+                .FindContainer(space);
+            if (bag is null) continue;
+            bags.Add(space, bag);
+            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
         }
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
         var before = new AccountCeraBalances(checked((int)wallet.Cera), checked((int)wallet.TokenCera), checked((int)wallet.HappyTokenCera));
@@ -71,8 +76,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         foreach (var write in plan.Writes)
         {
             if (write.CreationFacts is { } facts)
-                await bags[write.Container].PutNewAsync(write.SlotIndex, write.Core, facts, cancellationToken).ConfigureAwait(false);
-            else await bags[write.Container].PutAsync(write.SlotIndex, write.Core, cancellationToken).ConfigureAwait(false);
+                await bags[write.Slot.Space].PutNewAsync(write.Slot.Index, write.Core, facts, cancellationToken).ConfigureAwait(false);
+            else await bags[write.Slot.Space].PutAsync(write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
         }
         await itemStore.SessionIn(transaction).ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -80,9 +85,11 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         // newly allocated world identities, which a pre-write plan cannot truthfully supply.
         var snapshot = await inventory.LoadAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         var updates = ImmutableArray.CreateBuilder<CommittedInventoryUpdateState>();
-        foreach (var group in plan.Writes.GroupBy(write => write.Container).OrderBy(group => group.Key))
+        foreach (var group in plan.Writes.GroupBy(write =>
+            LegacyInventoryStorageCoordinates.ToStorage(write.Slot).List).OrderBy(group => group.Key))
         {
-            var changedSlots = group.Select(write => write.SlotIndex).ToHashSet();
+            var changedSlots = group.Select(write =>
+                LegacyInventoryStorageCoordinates.ToStorage(write.Slot).Index).ToHashSet();
             var items = snapshot.Containers.Single(container => container.ContainerType == group.Key).Items
                 .Where(item => changedSlots.Contains(item.SlotIndex)).OrderBy(item => item.SlotIndex).ToArray();
             if (items.Length != changedSlots.Count)

@@ -4,8 +4,9 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Abstractions.Mail;
 
-public sealed record MailboxAssetProjection(IReadOnlyList<CommittedInventoryUpdateState> Updates,
-    IReadOnlyList<(InventoryContainerType Container, int Slot)> Cleared, IReadOnlyList<InventoryRuntimeValueState> Materials,
+public sealed record MailboxInventoryUpdate(BusinessSlot Slot, ItemIdentity? Identity, InventoryItemCoreState Core);
+public sealed record MailboxAssetProjection(IReadOnlyList<MailboxInventoryUpdate> Updates,
+    IReadOnlyList<BusinessSlot> Cleared, IReadOnlyList<InventoryRuntimeValueState> Materials,
     int? Gold, DateTimeOffset PreparedAt);
 public interface IMailboxAssetDomainService
 {

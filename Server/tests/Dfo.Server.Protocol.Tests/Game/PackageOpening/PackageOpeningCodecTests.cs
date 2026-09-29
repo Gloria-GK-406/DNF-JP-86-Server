@@ -12,7 +12,7 @@ namespace Dfo.Server.Protocol.Tests.Game.PackageOpening;
 
 public sealed class PackageOpeningCodecTests
 {
-    private static readonly OpeningRewardDisplay Reward = new(70, 10007368, 2, 123, 7, 0x12345678);
+    private static readonly OpeningRewardDisplay Reward = new(new(BusinessInventorySpace.Consumable, 5), 10007368, 2, 123, 7, 0x12345678);
     private static readonly OpeningInventoryReceipt Receipt = new(
         SelectedSessionIdentity.Create(new(1), new(2), new("opening-codec"), 1, 10011), [], [], [Reward], DateTimeOffset.UnixEpoch);
 

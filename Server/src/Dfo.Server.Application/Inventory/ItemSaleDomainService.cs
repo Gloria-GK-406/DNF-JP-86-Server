@@ -32,7 +32,7 @@ internal sealed class ItemSaleDomainService(
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null
             ? null
-            : await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         if (item is null)
             return new(ItemSaleRejection.ItemUnavailable);
         var quote = await rules.QuoteAsync(item, count, cancellationToken).ConfigureAwait(false);
@@ -54,9 +54,9 @@ internal sealed class ItemSaleDomainService(
         }
         var remaining = item.Count == quote.Count ? null : item.Core with { Value = item.Count - quote.Count };
         if (remaining is null)
-            await bound!.Container.ClearAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
+            await bound!.Container.ClearAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         else
-            await bound!.Container.PutAsync(bound.StorageIndex, remaining, cancellationToken).ConfigureAwait(false);
+            await bound!.Container.PutAsync(bound.Slot.Index, remaining, cancellationToken).ConfigureAwait(false);
         return new(ItemSaleRejection.None,
             new(session, slot, item.ItemId, quote.Count, gold, remaining, now));
     }

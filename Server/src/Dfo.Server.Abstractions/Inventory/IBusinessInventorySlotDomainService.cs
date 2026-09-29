@@ -4,7 +4,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Abstractions.Inventory;
 
 /// <summary>A business slot bound to the current backing container used by one character.</summary>
-public sealed record BoundInventorySlot(BusinessSlot Slot, IItemContainer Container, int StorageIndex);
+public sealed record BoundInventorySlot(BusinessSlot Slot, IBusinessItemContainer Container);
 
 /// <summary>An indivisible address inside one concrete persistence container.</summary>
 public readonly record struct InventoryStorageSlot(IItemContainer Container, int Index);

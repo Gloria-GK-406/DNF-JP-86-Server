@@ -113,10 +113,10 @@ public sealed class SkillBuildResetTests
     // Transactional stand-in payment: a scalar row makes rollback observable without reproducing inventory rules.
     private sealed class WaterInventory(SqliteDatabase db):IOpeningInventoryDomainService
     {
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,int slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);
+        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,BusinessSlot slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);
         public async ValueTask<OpeningInventoryReceipt> SettleAsync(SelectedSessionIdentity session,IReadOnlyList<OpeningSlotConsumption> consumed,ImmutableArray<OpeningPreparedGrant> grants,DateTimeOffset now,CancellationToken ct)
         {
-            Assert.Equal(new OpeningSlotConsumption(69,3,1),Assert.Single(consumed)); Assert.Empty(grants);
+            Assert.Equal(new OpeningSlotConsumption(new(BusinessInventorySpace.Consumable,4),3,1),Assert.Single(consumed)); Assert.Empty(grants);
             await db.ExecuteAsync("UPDATE characters SET bonus_tp=bonus_tp-1 WHERE character_id=71",_=>{},ct);
             return new(session,[],[],[],now);
         }
@@ -139,4 +139,3 @@ public sealed class SkillBuildResetTests
         public ValueTask<ItemMoveOutcome> MoveToAsync(int from,int to,int count,CancellationToken ct)=>throw new NotSupportedException();
     }
 }
-

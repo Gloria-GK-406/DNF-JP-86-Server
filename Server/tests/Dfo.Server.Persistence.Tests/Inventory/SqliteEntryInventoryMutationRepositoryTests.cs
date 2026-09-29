@@ -203,7 +203,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
 
             var grant = Assert.Single(first.Grants);
-            Assert.Equal(65, grant.SlotIndex);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.Consumable, 0), grant.Slot);
             Assert.Equal(5, grant.GrantedCount);
             Assert.Equal(5, grant.CommittedCount);
             Assert.Empty(second.Grants);
@@ -252,7 +252,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
 
             var seen = await side.InUseCaseAsync(async token =>
             {
-                var outcome = await bag.MoveToAsync(65, 66, 0, token).ConfigureAwait(false);
+                var outcome = await side.MoveAsync(new CharacterId(70),
+                    new(BusinessInventorySpace.Consumable, 0),
+                    new(BusinessInventorySpace.Consumable, 1), 0, token).ConfigureAwait(false);
                 Assert.IsType<ItemMoveOutcome.Moved>(outcome);
                 return await repository.ReadMainItemsAsync(new CharacterId(70), token)
                     .ConfigureAwait(false);
@@ -435,7 +437,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 CancellationToken.None);
 
             var grant = Assert.Single(joined.Grants);
-            Assert.Equal(65, grant.SlotIndex);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.Consumable, 0), grant.Slot);
             Assert.Equal(2, grant.GrantedCount);
             Assert.Equal(5, grant.CommittedCount);
         }
@@ -457,7 +459,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         {
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, 8, 80);
-            await SeedItemAsync(path, 80, 0, 2222, 5);
+            await SeedItemAsync(path, 80, 65, 2222, 5);
             var side = new InventorySide(path);
             side.BindMain(80);
             var repository = side.MutationsPerCall;
@@ -592,7 +594,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
 
             var grant = Assert.Single(result.Grants);
-            Assert.Equal(70, grant.SlotIndex);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.Consumable, 5), grant.Slot);
             Assert.Equal(3, grant.GrantedCount);
             Assert.Equal(5, grant.CommittedCount);
             await using var connection = Open(path);
@@ -632,7 +634,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             var result = await repository.ApplyDailyRefillAsync(
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
 
-            Assert.Equal(67, Assert.Single(result.Grants).SlotIndex);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.Consumable, 2), Assert.Single(result.Grants).Slot);
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }

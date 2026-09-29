@@ -5,12 +5,6 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// <summary>The one table that gives A21 game slots their business meaning.</summary>
 public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleService
 {
-    public BusinessSlot ToBusinessSlot(InventoryStorageSlot source)
-    {
-        ArgumentNullException.ThrowIfNull(source.Container);
-        return this.ToBusinessSlot(new GameSlot(source.Container.Type, source.Index));
-    }
-
     public BusinessSlot ToBusinessSlot(GameSlot source) => source.Space switch
     {
         InventoryContainerType.Main when In(source.Index, 3, 8) => Business(BusinessInventorySpace.QuickSlot, source.Index, 3),
@@ -22,11 +16,11 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         InventoryContainerType.Main when In(source.Index, 289, 351) => Business(BusinessInventorySpace.AvatarEmblem, source.Index, 289),
         InventoryContainerType.Avatar when In(source.Index, 0, 209) => Business(BusinessInventorySpace.Avatar, source.Index, 0),
         InventoryContainerType.PersonalCargo when In(source.Index, 0, 151) => Business(BusinessInventorySpace.PersonalCargo, source.Index, 0),
-        InventoryContainerType.Equipment when In(source.Index, 0, 10) => Business(BusinessInventorySpace.WornAvatar, source.Index, 0),
-        InventoryContainerType.Equipment when In(source.Index, 11, 23) => Business(BusinessInventorySpace.WornEquipment, source.Index, 11),
-        InventoryContainerType.Equipment when source.Index == 24 => new(BusinessInventorySpace.WornCreature, 0),
-        InventoryContainerType.Equipment when In(source.Index, 25, 27) => Business(BusinessInventorySpace.WornCreatureEquipment, source.Index, 25),
-        InventoryContainerType.Equipment when source.Index == 29 => new(BusinessInventorySpace.WornEquipmentExtension, 0),
+        InventoryContainerType.Equipment when In(source.Index, 0, 11) => Business(BusinessInventorySpace.WornAvatar, source.Index, 0),
+        InventoryContainerType.Equipment when In(source.Index, 12, 24) => Business(BusinessInventorySpace.WornEquipment, source.Index, 12),
+        InventoryContainerType.Equipment when source.Index == 25 => new(BusinessInventorySpace.WornCreature, 0),
+        InventoryContainerType.Equipment when In(source.Index, 26, 28) => Business(BusinessInventorySpace.WornCreatureEquipment, source.Index, 26),
+        InventoryContainerType.Equipment when In(source.Index, 29, 31) => Business(BusinessInventorySpace.WornEquipmentExtension, source.Index, 29),
         InventoryContainerType.Pet when In(source.Index, 0, 139) => Business(BusinessInventorySpace.CreatureInventory, source.Index, 0),
         InventoryContainerType.Pet when In(source.Index, 140, 188) => Business(BusinessInventorySpace.CreatureEquipment, source.Index, 140),
         InventoryContainerType.Pet when In(source.Index, 189, 239) => Business(BusinessInventorySpace.CreatureConsumable, source.Index, 189),
@@ -47,11 +41,11 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         BusinessInventorySpace.AvatarEmblem => Game(source, InventoryContainerType.Main, 289, 62),
         BusinessInventorySpace.Avatar => Game(source, InventoryContainerType.Avatar, 0, 209),
         BusinessInventorySpace.PersonalCargo => Game(source, InventoryContainerType.PersonalCargo, 0, 151),
-        BusinessInventorySpace.WornAvatar => Game(source, InventoryContainerType.Equipment, 0, 10),
-        BusinessInventorySpace.WornEquipment => Game(source, InventoryContainerType.Equipment, 11, 12),
-        BusinessInventorySpace.WornCreature => Game(source, InventoryContainerType.Equipment, 24, 0),
-        BusinessInventorySpace.WornCreatureEquipment => Game(source, InventoryContainerType.Equipment, 25, 2),
-        BusinessInventorySpace.WornEquipmentExtension => Game(source, InventoryContainerType.Equipment, 29, 0),
+        BusinessInventorySpace.WornAvatar => Game(source, InventoryContainerType.Equipment, 0, 11),
+        BusinessInventorySpace.WornEquipment => Game(source, InventoryContainerType.Equipment, 12, 12),
+        BusinessInventorySpace.WornCreature => Game(source, InventoryContainerType.Equipment, 25, 0),
+        BusinessInventorySpace.WornCreatureEquipment => Game(source, InventoryContainerType.Equipment, 26, 2),
+        BusinessInventorySpace.WornEquipmentExtension => Game(source, InventoryContainerType.Equipment, 29, 2),
         BusinessInventorySpace.CreatureInventory => Game(source, InventoryContainerType.Pet, 0, 139),
         BusinessInventorySpace.CreatureEquipment => Game(source, InventoryContainerType.Pet, 140, 48),
         BusinessInventorySpace.CreatureConsumable => Game(source, InventoryContainerType.Pet, 189, 50),

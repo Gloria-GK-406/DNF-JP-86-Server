@@ -202,7 +202,7 @@ public sealed class CeraShopPurchaseTests
         var rules=shop.Host.Services.GetRequiredService<ICeraShopRuleService>();
         var quote=await rules.QuoteAsync(CeraShopTestContent.Input(CeraShopTestContent.Entry(100538)),20,CeraShopTestContent.Now,default);
         Assert.NotNull(quote.Quote);
-        var plan=rules.Plan(quote.Quote,new Dictionary<InventoryContainerType,IReadOnlyList<ContainerSlotItem>>(),0,new(1000,0,0),1);
+        var plan=rules.Plan(quote.Quote,new Dictionary<BusinessInventorySpace,IReadOnlyList<ContainerSlotItem>>(),0,new(1000,0,0),1);
         Assert.NotNull(plan.Plan);
         Assert.Empty(plan.Plan.Writes);
     }

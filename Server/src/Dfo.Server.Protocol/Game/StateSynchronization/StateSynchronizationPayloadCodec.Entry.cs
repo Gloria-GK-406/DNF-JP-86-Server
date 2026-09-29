@@ -297,12 +297,10 @@ internal static partial class StateSynchronizationPayloadCodec
 
     /// <summary>The slot whose entry carries the creature marker.</summary>
     /// <remarks>
-    /// Twenty-four here and twenty-five in the upstream server's own slot table, where
-    /// twenty-four is the support weapon. Left as it is because nothing has put a creature in
-    /// either slot on the wire yet, so changing it would trade one unverified number for another;
-    /// recorded in <c>Docs/ProtocolScaffoldDissonances.md</c>.
+    /// Upstream A21 identifies 25; an A21 move capture remains pending. Legacy stored
+    /// positions are normalized before this entry projection runs.
     /// </remarks>
-    private const int Noti2CreatureSlot = 24;
+    private const int Noti2CreatureSlot = 25;
 
     private static byte[] EncodeSupportStats(CharacterPublicEntryState entry)
     {
@@ -827,7 +825,7 @@ internal static partial class StateSynchronizationPayloadCodec
         // writes below are the same eight fields, now read off the part rather than recomputed.
         var appearance = DrawnAppearance.Of(equipment);
         if (appearance.Count > byte.MaxValue) throw CountError("appearance", "u8");
-        var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
+        var creature = equipment.SingleOrDefault(item => item.SlotIndex == Noti2CreatureSlot && item.Core.ItemKind == 5);
         var pet = creature is null ? null : pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((byte)0); writer.Write((ushort)1);

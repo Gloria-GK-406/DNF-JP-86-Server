@@ -13,13 +13,18 @@ internal sealed class EquipmentTransferDomainService(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placements,
     IItemArrivalRuleService arrivals,
-    IInventorySlotMappingRuleService slots) : IEquipmentTransferDomainService
+    ICharacterBusinessInventoryDomainService inventories) : IEquipmentTransferDomainService
 {
-    public ValueTask<EquipmentTransferItem?> ReadOwnedAsync(
-        CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken) =>
-        this.ReadAsync(session => session.ReadOwnedAsync(characterId, identity, cancellationToken), cancellationToken);
+    public async ValueTask<EquipmentTransferOwnedItem?> ReadOwnedAsync(
+        CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken)
+    {
+        var stored = await this.ReadAsync(
+            session => session.ReadOwnedAsync(characterId, identity, cancellationToken), cancellationToken)
+            .ConfigureAwait(false);
+        return stored is null ? null : Business(stored);
+    }
 
-    public async ValueTask<EquipmentTransferItem> TakeAsync(
+    public async ValueTask<EquipmentTransferOwnedItem> TakeAsync(
         CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken)
     {
         var transaction = this.RequireTransaction();
@@ -29,7 +34,8 @@ internal sealed class EquipmentTransferDomainService(
             ?? throw new EquipmentTransferException(EquipmentTransferFailure.Missing);
         var placement = await placements.PlacementForAsync(item.Core.ItemId, cancellationToken)
             .ConfigureAwait(false);
-        if (item.ContainerType != InventoryContainerType.Main
+        var source = Business(item);
+        if (!CanCarry(source.Slot.Space)
             || placement is not { WorldClass: ItemWorldClass.Equipment }
             || item.Core.ItemKind != placement.ItemKind
             || item.Core.EquipmentLockId != 0
@@ -38,7 +44,7 @@ internal sealed class EquipmentTransferDomainService(
 
         if (!await session.TakeAsync(characterId, item, cancellationToken).ConfigureAwait(false))
             throw new EquipmentTransferException(EquipmentTransferFailure.StalePosition);
-        return item;
+        return source;
     }
 
     public async ValueTask<InventoryItemCoreState?> ReadDetachedAsync(
@@ -57,7 +63,7 @@ internal sealed class EquipmentTransferDomainService(
         return core;
     }
 
-    public async ValueTask<GameSlot> GrantAsync(
+    public async ValueTask<BusinessSlot> GrantAsync(
         CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken)
     {
         var transaction = this.RequireTransaction();
@@ -72,32 +78,37 @@ internal sealed class EquipmentTransferDomainService(
             || core.ItemKind != placement.ItemKind)
             throw new EquipmentTransferException(EquipmentTransferFailure.NotSendable);
 
-        var held = await itemSession.ReadAllAsync(
-            ContainerId.ForCharacter(characterId, InventoryContainerType.Main), cancellationToken)
-            .ConfigureAwait(false);
+        var target = inventories.GetStore(characterId,
+            BusinessInventoryOwnership.StoreOf(placement.Destination.Space));
         var occupied = new HashSet<BusinessSlot>();
-        foreach (var item in held)
+        var spaces = ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+            ? new[] { placement.Destination.Space, BusinessInventorySpace.QuickSlot }
+            : [placement.Destination.Space];
+        foreach (var space in spaces.Distinct())
         {
-            try
-            {
-                occupied.Add(slots.ToBusinessSlot(
-                    new GameSlot(InventoryContainerType.Main, item.SlotIndex)));
-            }
-            catch (InventorySlotMappingException)
-            {
-                // Virtual positions in the main list do not consume an item band slot.
-            }
+            var inventory = space == placement.Destination.Space ? target.GetContainer(space)
+                : inventories.GetStore(characterId, BusinessInventoryStoreKind.Item).GetContainer(space);
+            foreach (var item in await inventory.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                occupied.Add(new BusinessSlot(space, item.SlotIndex));
         }
         var arrival = arrivals.ForGrant([], 1, placement, occupied);
         if (arrival is not ItemArrival.IntoEmptySlot empty || empty.Count != 1)
             throw new EquipmentTransferException(EquipmentTransferFailure.NoRoom);
-        var slot = slots.ToGameSlot(empty.Slot);
-        if (slot.Space != InventoryContainerType.Main
-            || !await session.GrantAsync(characterId, identity, slot, cancellationToken)
+        var slot = LegacyInventoryStorageCoordinates.ToStorage(empty.Slot);
+        if (!await session.GrantAsync(characterId, identity, slot, cancellationToken)
                 .ConfigureAwait(false))
             throw new EquipmentTransferException(EquipmentTransferFailure.StalePosition);
-        return slot;
+        return empty.Slot;
     }
+
+    private static EquipmentTransferOwnedItem Business(EquipmentTransferItem stored) =>
+        new(stored.Identity, LegacyInventoryStorageCoordinates.ToBusiness(
+            new(stored.ContainerType, stored.SlotIndex), stored.Core.ItemKind), stored.Core);
+
+    private static bool CanCarry(BusinessInventorySpace space) =>
+        space.IsCarriedItemSpace() || space is BusinessInventorySpace.Avatar
+            or BusinessInventorySpace.CreatureInventory or BusinessInventorySpace.CreatureEquipment
+            or BusinessInventorySpace.CreatureConsumable;
 
     private IDomainTransaction RequireTransaction() => transactions.Current
         ?? throw new InvalidOperationException("Equipment transfer requires a use case transaction.");

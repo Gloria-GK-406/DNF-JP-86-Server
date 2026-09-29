@@ -18,7 +18,7 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
     private sealed record Completed(SelectedSessionIdentity Session, ushort Sequence, DateTimeOffset Expires);
     private readonly Dictionary<(CharacterId Character, ushort Sequence), Completed> completed = [];
     public async ValueTask<VendingMachineResult> UseAsync(SelectedSessionIdentity session, int machineId, int groupId,
-        int slot, ushort sequence, CancellationToken cancellationToken)
+        BusinessSlot slot, ushort sequence, CancellationToken cancellationToken)
     {
         var tx = transactions.Current ?? throw new InvalidOperationException("Vending requires a transaction.");
         var now = clock.GetUtcNow();
@@ -31,7 +31,8 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
         var definition = definitions.GetRequired(machineId, groupId);
         if (!await premiums.For(session.AccountId).IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false))
             throw new OpeningRejectedException(OpeningRejection.PremiumUnavailable, "Black diamond is inactive.");
-        var source = await inventory.SourceAsync(session, slot, now, cancellationToken).ConfigureAwait(false);
+        var sourceSlot = slot;
+        var source = await inventory.SourceAsync(session, sourceSlot, now, cancellationToken).ConfigureAwait(false);
         if (source.ItemId != definition.MaterialId || source.Count < definition.MaterialCount)
             throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "Wrong or insufficient vending coins.");
         var reward = Select(definition, random.NextInt64(definition.Rewards[^1].CumulativeWeight));
@@ -40,7 +41,7 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
         // if future content adds a special delivery channel not covered by this ACK.
         if (grants.Any(g => g.Item.PremiumType != 0 || g.Item.Placement.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature))
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Unsupported vending reward delivery.");
-        var receipt = await inventory.SettleAsync(session, [new(slot, definition.MaterialId, definition.MaterialCount)], grants, now, cancellationToken).ConfigureAwait(false);
+        var receipt = await inventory.SettleAsync(session, [new(sourceSlot, definition.MaterialId, definition.MaterialCount)], grants, now, cancellationToken).ConfigureAwait(false);
         tx.Enlist((this, session.CharacterId), () => new Remember(this, session.CharacterId, new(session, sequence, now.AddMinutes(1))));
         return new(receipt, slot, source.Count - definition.MaterialCount, reward);
     }

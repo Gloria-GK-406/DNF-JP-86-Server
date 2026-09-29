@@ -51,8 +51,9 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// <summary>An identifier the archive declares nothing under.</summary>
     private const int Unknown = 999999999;
 
-    /// <summary>A bag slot inside the equipment band, where a costume may sit.</summary>
+    /// <summary>A bag slot inside the equipment band.</summary>
     private const short BagSlot = 12;
+    private const short OtherBagSlot = 13;
 
     /// <summary>A bag slot in the consumable band, where one may not.</summary>
     private const short ConsumableBagSlot = 65;
@@ -84,11 +85,18 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                 (InventoryContainerType.Main, InventoryContainerType.Main),
                 (InventoryContainerType.Main, InventoryContainerType.Avatar),
                 (InventoryContainerType.Main, InventoryContainerType.Equipment),
+                (InventoryContainerType.Main, InventoryContainerType.Pet),
                 (InventoryContainerType.Avatar, InventoryContainerType.Main),
                 (InventoryContainerType.Avatar, InventoryContainerType.Avatar),
                 (InventoryContainerType.Avatar, InventoryContainerType.Equipment),
+                (InventoryContainerType.Avatar, InventoryContainerType.Pet),
                 (InventoryContainerType.Equipment, InventoryContainerType.Main),
                 (InventoryContainerType.Equipment, InventoryContainerType.Avatar),
+                (InventoryContainerType.Equipment, InventoryContainerType.Pet),
+                (InventoryContainerType.Pet, InventoryContainerType.Main),
+                (InventoryContainerType.Pet, InventoryContainerType.Avatar),
+                (InventoryContainerType.Pet, InventoryContainerType.Equipment),
+                (InventoryContainerType.Pet, InventoryContainerType.Pet),
             ],
             served);
     }
@@ -100,19 +108,17 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     [Dfo.Server.Testing.PvfFact]
     public async Task Whichever_end_holds_the_item_is_the_end_that_moves()
     {
-        foreach (var (first, second) in await this.CrossListPairsAsync())
+        foreach (var (first, firstSlot, second, secondSlot, itemId) in LegalCrossListPairs())
         {
-            var firstSlot = SlotIn(first);
-            var secondSlot = SlotIn(second);
             var side = this.Build();
-            side.Seed(second, secondSlot, Costume);
+            side.Seed(second, secondSlot, itemId);
 
             var result = await side.MoveAsync(first, firstSlot, second, secondSlot);
 
             Assert.Equal(ItemMoveStatus.Moved, result.Status);
-            Assert.Equal(Costume, result.ItemId);
+            Assert.Equal(itemId, result.ItemId);
             Assert.Equal(1, result.MoveValue);
-            Assert.Equal(Costume, (await side.ReadAsync(first, firstSlot))!.ItemId);
+            Assert.Equal(itemId, (await side.ReadAsync(first, firstSlot))!.ItemId);
             Assert.Null(await side.ReadAsync(second, secondSlot));
         }
     }
@@ -121,18 +127,16 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     [Dfo.Server.Testing.PvfFact]
     public async Task The_end_named_first_still_moves_when_it_is_the_one_holding_the_item()
     {
-        foreach (var (first, second) in await this.CrossListPairsAsync())
+        foreach (var (first, firstSlot, second, secondSlot, itemId) in LegalCrossListPairs())
         {
-            var firstSlot = SlotIn(first);
-            var secondSlot = SlotIn(second);
             var side = this.Build();
-            side.Seed(first, firstSlot, Costume);
+            side.Seed(first, firstSlot, itemId);
 
             var result = await side.MoveAsync(first, firstSlot, second, secondSlot);
 
             Assert.Equal(ItemMoveStatus.Moved, result.Status);
-            Assert.Equal(Costume, result.ItemId);
-            Assert.Equal(Costume, (await side.ReadAsync(second, secondSlot))!.ItemId);
+            Assert.Equal(itemId, result.ItemId);
+            Assert.Equal(itemId, (await side.ReadAsync(second, secondSlot))!.ItemId);
             Assert.Null(await side.ReadAsync(first, firstSlot));
         }
     }
@@ -315,14 +319,14 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         restated.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
         var echoed = await restated.MoveAsync(
-            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Avatar, AvatarSlot,
             InventoryContainerType.Equipment, WornCostumeSlot,
             sourceInstanceValue: Costume);
 
         Assert.Equal(ItemMoveStatus.MoveAlreadyMade, echoed.Status);
         Assert.Equal(Costume, echoed.ItemId);
         Assert.Equal(0, echoed.MoveValue);
-        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, BagSlot));
+        Assert.Null(await restated.ReadAsync(InventoryContainerType.Avatar, AvatarSlot));
         Assert.Equal(
             Costume,
             (await restated.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot))!.ItemId);
@@ -335,12 +339,12 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
         var result = await side.MoveAsync(
-            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Avatar, AvatarSlot,
             InventoryContainerType.Equipment, WornCostumeSlot,
             sourceInstanceValue: 0);
 
         Assert.Equal(ItemMoveStatus.Moved, result.Status);
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -350,12 +354,12 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
         var result = await side.MoveAsync(
-            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Avatar, AvatarSlot,
             InventoryContainerType.Equipment, WornCostumeSlot,
             sourceInstanceValue: Ordinary);
 
         Assert.Equal(ItemMoveStatus.Moved, result.Status);
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
     }
 
     /// <summary>
@@ -459,19 +463,19 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     public async Task A_restated_carry_across_does_not_carry_it_back()
     {
         var restated = this.Build();
-        restated.Seed(InventoryContainerType.Avatar, AvatarSlot, Costume);
+        restated.Seed(InventoryContainerType.Main, BagSlot, Ordinary);
 
         var echoed = await restated.MoveAsync(
-            InventoryContainerType.Avatar, AvatarSlot,
             InventoryContainerType.Main, BagSlot,
-            destinationInstanceValue: Costume);
+            InventoryContainerType.Main, OtherBagSlot,
+            destinationInstanceValue: Ordinary);
 
         Assert.Equal(ItemMoveStatus.MoveAlreadyMade, echoed.Status);
-        Assert.Equal(Costume, echoed.ItemId);
+        Assert.Equal(Ordinary, echoed.ItemId);
         Assert.Equal(
-            Costume,
-            (await restated.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
-        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, BagSlot));
+            Ordinary,
+            (await restated.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, OtherBagSlot));
     }
 
     /// <summary>
@@ -486,19 +490,19 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     public async Task A_restated_drag_inside_one_list_does_not_drag_it_back()
     {
         var restated = this.Build();
-        restated.Seed(InventoryContainerType.Main, BagSlot, Costume);
+        restated.Seed(InventoryContainerType.Main, BagSlot, Ordinary);
 
         var echoed = await restated.MoveAsync(
             InventoryContainerType.Main, BagSlot,
-            InventoryContainerType.Main, ConsumableBagSlot,
-            destinationInstanceValue: Costume);
+            InventoryContainerType.Main, OtherBagSlot,
+            destinationInstanceValue: Ordinary);
 
         Assert.Equal(ItemMoveStatus.MoveAlreadyMade, echoed.Status);
-        Assert.Equal(Costume, echoed.ItemId);
+        Assert.Equal(Ordinary, echoed.ItemId);
         Assert.Equal(
-            Costume,
+            Ordinary,
             (await restated.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
-        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, ConsumableBagSlot));
+        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, OtherBagSlot));
     }
 
     /// <summary>
@@ -532,11 +536,11 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     public async Task A_swap_onto_an_occupied_worn_slot_is_carried_out_whatever_either_end_names()
     {
         var side = this.Build();
-        side.Seed(InventoryContainerType.Main, BagSlot, Costume);
+        side.Seed(InventoryContainerType.Avatar, AvatarSlot, Costume);
         side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
         var result = await side.MoveAsync(
-            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Avatar, AvatarSlot,
             InventoryContainerType.Equipment, WornCostumeSlot,
             sourceInstanceValue: Costume,
             destinationInstanceValue: Costume);
@@ -547,7 +551,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             (await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot))!.ItemId);
         Assert.Equal(
             Costume,
-            (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+            (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
     }
 
     /// <summary>
@@ -563,16 +567,16 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     public async Task Dropping_a_piece_back_where_it_already_is_changes_nothing()
     {
         var side = this.Build();
-        side.Seed(InventoryContainerType.Main, BagSlot, Costume);
+        side.Seed(InventoryContainerType.Main, BagSlot, Ordinary);
 
         var result = await side.MoveAsync(
             InventoryContainerType.Main, BagSlot,
             InventoryContainerType.Main, BagSlot,
-            sourceInstanceValue: Costume,
-            destinationInstanceValue: Costume);
+            sourceInstanceValue: Ordinary,
+            destinationInstanceValue: Ordinary);
 
         Assert.NotEqual(ItemMoveStatus.MoveAlreadyMade, result.Status);
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Equal(Ordinary, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
     }
 
     /// <summary>
@@ -591,10 +595,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
         var result = await side.MoveAsync(
             InventoryContainerType.Avatar, AvatarSlot,
-            InventoryContainerType.Main, BagSlot);
+            InventoryContainerType.Equipment, WornCostumeSlot);
 
         Assert.Equal(ItemMoveStatus.Moved, result.Status);
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot))!.ItemId);
     }
 
     /// <summary>
@@ -618,13 +622,13 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
         var acknowledgement = (MoveItemSpaceResponse)Assert.Single(sender.Sent);
         Assert.Null(acknowledgement.ErrorCode);
-        Assert.Equal(InventoryContainerType.Main, acknowledgement.SourceSlot.Space);
-        Assert.Equal(BagSlot, acknowledgement.SourceSlot.Index);
+        Assert.Equal(InventoryContainerType.Avatar, acknowledgement.SourceSlot.Space);
+        Assert.Equal(AvatarSlot, acknowledgement.SourceSlot.Index);
         Assert.Equal(InventoryContainerType.Equipment, acknowledgement.DestinationSlot.Space);
         Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlot.Index);
         Assert.Equal(1, acknowledgement.MoveValue);
 
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
         Assert.Null(await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot));
     }
 
@@ -644,7 +648,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
         Assert.Equal(
             $"Move item space either-end character={Character}: item {Costume} "
-                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                + $"from list {(byte)InventoryContainerType.Avatar} slot {AvatarSlot} "
                 + $"to list {(byte)InventoryContainerType.Equipment} slot {WornCostumeSlot} "
                 + "count=1",
             Assert.Single(logger.Entries).Message);
@@ -653,18 +657,19 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// <summary>The drag that started all of this: a costume off the character, into the bag.</summary>
     private static MoveItemSpaceRequest TakeOffRequest() =>
         new(GameMessageMetadata.Empty,
-            new GameSlot(InventoryContainerType.Main, BagSlot),
+            new GameSlot(InventoryContainerType.Avatar, AvatarSlot),
             SourceInstanceValue: 0,
             MoveCount: 1,
             new GameSlot(InventoryContainerType.Equipment, WornCostumeSlot),
             DestinationInstanceValue: Costume);
 
-    /// <summary>A slot in each list that a costume is allowed to occupy.</summary>
+    /// <summary>A valid slot in each served list, used with empty ends.</summary>
     private static short SlotIn(InventoryContainerType type) => type switch
     {
         InventoryContainerType.Main => BagSlot,
         InventoryContainerType.Avatar => AvatarSlot,
         InventoryContainerType.Equipment => WornCostumeSlot,
+        InventoryContainerType.Pet => 0,
         _ => throw new ArgumentOutOfRangeException(
             nameof(type), type, "No costume slot was chosen for this list."),
     };
@@ -673,12 +678,16 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         ServedPairsAsync()
     {
         var served = new List<(InventoryContainerType, InventoryContainerType)>();
-        foreach (var first in Enum.GetValues<InventoryContainerType>())
+        foreach (var first in (InventoryContainerType[])
+            [InventoryContainerType.Main, InventoryContainerType.Avatar,
+             InventoryContainerType.Equipment, InventoryContainerType.Pet])
         {
-            foreach (var second in Enum.GetValues<InventoryContainerType>())
+            foreach (var second in (InventoryContainerType[])
+                [InventoryContainerType.Main, InventoryContainerType.Avatar,
+                 InventoryContainerType.Equipment, InventoryContainerType.Pet])
             {
                 var side = this.Build();
-                var result = await side.MoveAsync(first, 0, second, 1);
+                var result = await side.MoveAsync(first, SlotIn(first), second, SlotIn(second));
                 if (result.Status is not ItemMoveStatus.ListNotServed)
                     served.Add((first, second));
             }
@@ -691,12 +700,22 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         CrossListPairsAsync() =>
         [.. (await this.ServedPairsAsync()).Where(pair => pair.First != pair.Second)];
 
+    private static (InventoryContainerType First, short FirstSlot,
+        InventoryContainerType Second, short SecondSlot, int ItemId)[] LegalCrossListPairs() =>
+    [
+        (InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, 14, Ordinary),
+        (InventoryContainerType.Equipment, 14, InventoryContainerType.Main, BagSlot, Ordinary),
+        (InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, WornCostumeSlot, Costume),
+        (InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot, Costume),
+    ];
+
     private Side Build()
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
         foreach (var type in (InventoryContainerType[])
-            [InventoryContainerType.Main, InventoryContainerType.Avatar, InventoryContainerType.Equipment])
+            [InventoryContainerType.Main, InventoryContainerType.Avatar,
+             InventoryContainerType.Equipment, InventoryContainerType.Pet])
         {
             containers.Register(character, new SlotBook(type, character));
         }
@@ -759,20 +778,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                 CancellationToken.None);
 
         private static BusinessSlot ToBusinessSlot(
-            InventoryContainerType space, int index)
-        {
-            try
-            {
-                return new InventorySlotMappingRuleService().ToBusinessSlot(
-                    new GameSlot(space, index));
-            }
-            catch (InventorySlotMappingException)
-            {
-                return space == InventoryContainerType.Main
-                    ? new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0)
-                    : new BusinessSlot(BusinessInventorySpace.PersonalCargo, 0);
-            }
-        }
+            InventoryContainerType space, int index) =>
+            new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(space, index));
 
         public async ValueTask<ContainerSlotItem?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>

@@ -18,7 +18,7 @@ internal sealed class QuestClearCouponDomainService(
 
     public async ValueTask<QuestClearCouponResult> UseAsync(
         SelectedSessionIdentity session,
-        int sourceSlot,
+        BusinessSlot sourceSlot,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -26,7 +26,8 @@ internal sealed class QuestClearCouponDomainService(
 
         // Source validates the live selected character, ownership, usability and expiry before
         // any quest is changed. Settle checks the source again before consuming it.
-        var source = await inventory.SourceAsync(session, sourceSlot, now, cancellationToken)
+        var address = sourceSlot;
+        var source = await inventory.SourceAsync(session, address, now, cancellationToken)
             .ConfigureAwait(false);
         if (source.ItemId != CouponItemId)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent,
@@ -58,7 +59,7 @@ internal sealed class QuestClearCouponDomainService(
             cancellationToken).ConfigureAwait(false);
 
         var receipt = await inventory.SettleAsync(session,
-            [new OpeningSlotConsumption(sourceSlot, source.ItemId, 1)],
+            [new OpeningSlotConsumption(address, source.ItemId, 1)],
             ImmutableArray<OpeningPreparedGrant>.Empty, now, cancellationToken)
             .ConfigureAwait(false);
         return new QuestClearCouponResult(receipt, completed);

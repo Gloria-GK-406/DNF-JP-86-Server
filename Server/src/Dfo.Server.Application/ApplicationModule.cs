@@ -145,6 +145,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IObjectDropRuleService, ObjectDropRuleService>();
         services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
+        services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
+        services.TryAddSingleton<LegacyWornItemNormalizer>();
         services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
         // Where an item belongs, which slot it is worn in, and whether it is equipment at all --

@@ -68,11 +68,11 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task Expired_wear_qualification_refuses_equipping_but_allows_taking_off()
     {
-        var equip = Build(inBagAt: BagSlot, canWear: false);
-        await equip.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+        var equip = Build(inAvatarAt: AvatarSlot, canWear: false);
+        await equip.MoveAsync(InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, WornCostumeSlot);
         Assert.NotNull(Assert.IsType<MoveItemSpaceResponse>(Assert.Single(equip.Sender.Sent)).ErrorCode);
         var remove = Build(wornAt: WornCostumeSlot, canWear: false);
-        await remove.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Main, BagSlot);
+        await remove.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot);
         Assert.Null(Assert.IsType<MoveItemSpaceResponse>(remove.Sender.Sent[0]).ErrorCode);
     }
 
@@ -96,7 +96,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     {
         var world = Build(wornAt: WornCostumeSlot);
 
-        await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Main, BagSlot);
+        await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot, InventoryContainerType.Avatar, AvatarSlot);
 
         Assert.Collection(
             world.Sender.Sent,
@@ -292,11 +292,11 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     [Dfo.Server.Testing.PvfFact]
     public async Task Opening_dungeon_selection_after_dressing_reads_the_current_equipment()
     {
-        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        var world = Build(inAvatarAt: AvatarSlot, sessionCopyWears: OtherCostume);
         var before = await world.OpenDungeonSelectionAsync();
         Assert.Empty(before.Equipment);
 
-        await world.MoveAsync(InventoryContainerType.Main, BagSlot,
+        await world.MoveAsync(InventoryContainerType.Avatar, AvatarSlot,
             InventoryContainerType.Equipment, WornCostumeSlot);
 
         var after = await world.OpenDungeonSelectionAsync();
@@ -304,7 +304,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Same(before.Character, after.Character);
 
         await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot,
-            InventoryContainerType.Main, BagSlot);
+            InventoryContainerType.Avatar, AvatarSlot);
         Assert.Empty((await world.OpenDungeonSelectionAsync()).Equipment);
     }
 
@@ -384,7 +384,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         int? sessionCopyWears = null,
         bool storeRefusesToLoad = false,
         bool sessionRefusesReplacement = false,
-        bool shouldPersistPosition = false, bool canWear = true)
+        bool shouldPersistPosition = false, bool canWear = true,
+        short? inAvatarAt = null)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
@@ -393,6 +394,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         var worn = new SlotBook(InventoryContainerType.Equipment, character);
         if (inBagAt is { } bagSlot)
             bag.Seed(bagSlot, Costume);
+        if (inAvatarAt is { } avatarSlot)
+            avatars.Seed(avatarSlot, Costume);
         if (wornAt is { } wornSlot)
             worn.Seed(wornSlot, wornSlot == WornCostumeSlot ? Costume : OtherCostume);
         containers.Register(character, bag);

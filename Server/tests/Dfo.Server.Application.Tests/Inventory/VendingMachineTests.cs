@@ -55,7 +55,7 @@ public sealed class VendingMachineTests
         Assert.Equal(OpeningRejection.MissingMaterial,rejected.Reason);
         Assert.Equal(2,f.Host.Count(7454)); Assert.Equal(1,f.Host.Count(2749933));
         var result=await Use(f,slot:122,machine:3);
-        Assert.Equal(0,result.Remaining); Assert.Contains(122,result.Receipt.ClearedMainSlots);
+        Assert.Equal(0,result.Remaining); Assert.Contains(new BusinessSlot(BusinessInventorySpace.Material,1),result.Receipt.Cleared);
         Assert.Equal(5,result.Reward.Count); Assert.Equal(5,f.Host.Count(7463));
         Assert.Equal(0,f.Host.Count(2749933)); Assert.Equal(2,f.Host.Count(7454));
     }
@@ -63,7 +63,7 @@ public sealed class VendingMachineTests
     public async Task Last_coin_is_removed_and_missing_coin_cannot_grant()
     {
         using var f=Fixture(); await f.Host.Seed(121,7454,1);
-        var result=await Use(f); Assert.Equal(0,result.Remaining); Assert.Contains(121,result.Receipt.ClearedMainSlots);
+        var result=await Use(f); Assert.Equal(0,result.Remaining); Assert.Contains(new BusinessSlot(BusinessInventorySpace.Material,0),result.Receipt.Cleared);
         Assert.Equal(0,f.Host.Count(7454));
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,2)); Assert.Equal(4,f.Host.Count(7463));
     }

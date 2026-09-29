@@ -35,8 +35,10 @@ public sealed class FatiguePotionTests
     // Exercise the real shared SQLite transaction: the test bag writes through the same database participant.
     private sealed class Bag(SqliteDatabase db) : IOpeningInventoryDomainService
     {
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, int slot, DateTimeOffset now, CancellationToken token) =>
-            ValueTask.FromResult(new ContainerSlotItem(slot, StackableItemCore.Create(2, slot, 5), ItemWorldClass.Interchangeable));
+        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken token) =>
+            ValueTask.FromResult(new ContainerSlotItem(slot.Index,
+                StackableItemCore.Create(2, slot.Index switch { 0 => 2600026, 1 => 10000541, 2 => 7456, 3 => 416, _ => throw new InvalidOperationException() }, 5),
+                ItemWorldClass.Interchangeable));
         public async ValueTask<OpeningInventoryReceipt> SettleAsync(SelectedSessionIdentity session,
             IReadOnlyList<OpeningSlotConsumption> consumed, ImmutableArray<OpeningPreparedGrant> grants,
             DateTimeOffset now, CancellationToken token)
@@ -65,7 +67,9 @@ public sealed class FatiguePotionTests
     private static async Task Use(LearningFixture f, Clock clock, int item = 2600026)
     {
         await using var tx = f.Scope.Begin();
-        await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session, item, clock.Now, default);
+        var slot = item switch { 2600026 => 65, 10000541 => 66, 7456 => 67, 416 => 68, _ => throw new InvalidOperationException() };
+        await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,
+            new BusinessSlot(BusinessInventorySpace.Consumable, slot - 65), clock.Now, default);
         await tx.CommitAsync(default);
     }
 

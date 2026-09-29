@@ -109,7 +109,7 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(82000, shop.Gold);
         Assert.Equal(1, shop.Count(3000));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
-        var item = Assert.Single(receipt.GrantedSlots).Item;
+        var item = Assert.Single(receipt.GrantedSlots);
         Assert.True(item.Core.Value > 0);
         Assert.Equal(45, item.Core.Durability);
         Assert.Equal(1, receipt.Count);
@@ -129,8 +129,8 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(0, shop.Count(1000));
         Assert.Equal(12, shop.Count(5000));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
-        Assert.Equal(new[] { (3, 10, 1), (4, 2, 2) }, receipt.GrantedSlots
-            .Select(slot => (slot.Item.SlotIndex, slot.Item.Core.Value, slot.AddedCount)));
+        Assert.Equal(new[] { (BusinessInventorySpace.QuickSlot, 0, 10, 1), (BusinessInventorySpace.QuickSlot, 1, 2, 2) }, receipt.GrantedSlots
+            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.Value, slot.AddedCount)));
         Assert.All(receipt.MaterialChanges, change => Assert.Null(change.Core));
         Assert.Equal(5, shop.Sender.Messages.Count);
     }

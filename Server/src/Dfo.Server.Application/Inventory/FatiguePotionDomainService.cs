@@ -14,10 +14,11 @@ internal sealed class FatiguePotionDomainService(IOpeningInventoryDomainService 
     : IFatiguePotionDomainService
 {
     public async ValueTask<OpeningInventoryReceipt> UseAsync(SelectedSessionIdentity session,
-        int sourceSlot, DateTimeOffset now, CancellationToken token)
+        BusinessSlot sourceSlot, DateTimeOffset now, CancellationToken token)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Fatigue potion requires a transaction.");
-        var source = await inventory.SourceAsync(session, sourceSlot, now, token).ConfigureAwait(false);
+        var address = sourceSlot;
+        var source = await inventory.SourceAsync(session, address, now, token).ConfigureAwait(false);
         var rule = await definitions.GetAsync(source.ItemId, token).ConfigureAwait(false);
         if (rule is not { IsReadable: true, Action: "[add fatigue]", FatigueRecovery: > 0 and <= ushort.MaxValue })
             throw Rejected("Not a supported fatigue potion.");
@@ -30,7 +31,7 @@ internal sealed class FatiguePotionDomainService(IOpeningInventoryDomainService 
         if (balance.Used < rule.FatigueRecovery) throw Rejected("Not enough fatigue recovery space.");
 
         var receipt = await inventory.SettleAsync(session,
-            [new OpeningSlotConsumption(sourceSlot, source.ItemId, 1)], [], now, token).ConfigureAwait(false);
+            [new OpeningSlotConsumption(address, source.ItemId, 1)], [], now, token).ConfigureAwait(false);
         await fatigue.RefundAsync(session.CharacterId, checked((ushort)rule.FatigueRecovery), token).ConfigureAwait(false);
         try { await usage.RecordUseAsync(session.CharacterId, source.ItemId, token).ConfigureAwait(false); }
         catch (ItemUsageRejectedException ex) { throw Rejected(ex.Reason.ToString()); }

@@ -513,8 +513,8 @@ public sealed class FinishQuestCommandHandlerTests
 
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     private sealed class PersistentSettlementCharacter(ICharacterCarriedGoldTable gold) : ICharacter

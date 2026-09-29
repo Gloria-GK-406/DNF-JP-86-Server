@@ -45,7 +45,7 @@ public sealed class MagicBoxSingleOpeningCommandHandler(IMagicBoxOpeningDomainSe
     : ICommandHandler<MagicBoxSingleOpeningCommand, MagicBoxOpeningResult>
 {
     public ValueTask<MagicBoxOpeningResult> HandleAsync(CommandExecutionContext context, MagicBoxSingleOpeningCommand command, CancellationToken ct) =>
-        boxes.OpenAsync(command.Session, command.Input, clock.GetUtcNow(), ct);
+        boxes.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
 }
 public sealed class MagicBoxSingleOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<MagicBoxSingleOpeningHandler> logger)

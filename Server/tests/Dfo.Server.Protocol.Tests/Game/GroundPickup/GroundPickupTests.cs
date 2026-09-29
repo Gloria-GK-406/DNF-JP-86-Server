@@ -520,7 +520,7 @@ public sealed class GroundPickupTests
                 this.FailNextAdd = false;
                 throw new InvalidOperationException("injected persistent insert failure");
             }
-            var slot = this.Slots.Count;
+            var slot = 9 + this.Slots.Count;
             this.Slots[slot] = StackableItemCore.Create(1, itemId, count);
             this.Counts[slot] = count;
             return ValueTask.FromResult<ItemPlacementOutcome>(

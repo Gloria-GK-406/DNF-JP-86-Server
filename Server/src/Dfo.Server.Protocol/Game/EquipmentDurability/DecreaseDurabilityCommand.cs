@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.EquipmentDurability;
 
 public sealed record DecreaseDurabilityCommand(OnlineUserId OnlineUserId,
-    SelectedSessionIdentity Session, byte SlotIndex)
+    SelectedSessionIdentity Session, BusinessSlot Slot)
     : ICommand<EquipmentDurabilityResult>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
@@ -19,5 +19,5 @@ public sealed class DecreaseDurabilityCommandHandler(IEquipmentDurabilityDomainS
 {
     public ValueTask<EquipmentDurabilityResult> HandleAsync(CommandExecutionContext context,
         DecreaseDurabilityCommand command, CancellationToken cancellationToken) =>
-        durability.DecreaseAsync(command.Session, command.SlotIndex, cancellationToken);
+        durability.DecreaseAsync(command.Session, command.Slot, cancellationToken);
 }

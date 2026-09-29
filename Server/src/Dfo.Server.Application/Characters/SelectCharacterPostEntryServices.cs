@@ -94,7 +94,7 @@ internal sealed class SelectCharacterPetEntryService(
     AmbientStoreAccess stores) : ISelectCharacterPetEntryDomainService
 {
     /// <summary>The equipment slot the equipped creature sits in.</summary>
-    private const int EquippedCreatureSlot = 24;
+    private const int EquippedCreatureSlot = 25;
 
     /// <summary>What an item core says it is when it is a creature.</summary>
     private const byte CreatureItemKind = 5;

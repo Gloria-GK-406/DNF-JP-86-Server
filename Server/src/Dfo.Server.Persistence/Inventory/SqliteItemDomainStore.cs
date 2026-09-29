@@ -180,7 +180,16 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                 nameof(item));
         }
 
-        this.Staged(containerId)[item.SlotIndex] = item;
+        var slots = this.Staged(containerId);
+        if (item.TransferFrom is null
+            && slots.TryGetValue(item.SlotIndex, out var prior)
+            && prior?.TransferFrom is { } origin
+            && item.WorldClass is not ItemWorldClass.Interchangeable
+            && item.Core.ItemKind == prior.Core.ItemKind
+            && item.Core.ItemId == prior.Core.ItemId
+            && item.Core.Value == prior.Core.Value)
+            item = item with { TransferFrom = origin };
+        slots[item.SlotIndex] = item;
     }
 
     public void Clear(ContainerId containerId, int slotIndex)
@@ -340,6 +349,19 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         var open = placings
             .Where(placing => placing.Item.WorldClass is not ItemWorldClass.Interchangeable)
             .ToList();
+
+        foreach (var placing in open.Where(placing => placing.Item.TransferFrom is not null).ToArray())
+        {
+            var from = placing.Item.TransferFrom!.Value;
+            var row = displaced.SingleOrDefault(candidate =>
+                candidate.ContainerId == from.Container && candidate.SlotIndex == from.SlotIndex);
+            if (row is null || taken.Contains(row.ItemUid) || !SameThing(placing, row))
+                throw new InvalidOperationException(
+                    $"Transfer source {from.Container.Value}/{from.SlotIndex} does not hold the staged instance.");
+            survivors.Add((placing.ContainerId, placing.SlotIndex), row);
+            _ = taken.Add(row.ItemUid);
+            _ = open.Remove(placing);
+        }
 
         Claim((placing, row) => InPlace(placing, row) && SameContent(placing, row));
         Claim(SameContent);
