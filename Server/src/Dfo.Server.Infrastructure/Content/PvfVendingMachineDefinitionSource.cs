@@ -1,0 +1,70 @@
+using System.Collections.Frozen;
+using System.Collections.Immutable;
+using Dfo.Pvf.Tokens;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
+
+namespace Dfo.Server.Infrastructure.Content;
+
+internal sealed class PvfVendingMachineDefinitionSource(PvfArchiveProvider provider) : IVendingMachineDefinitionSource
+{
+    private FrozenDictionary<(int, int), VendingMachineDefinition>? definitions;
+    private readonly Lock gate = new();
+    public int Initialize()
+    {
+        lock (gate)
+        {
+            if (definitions is not null) return definitions.Count;
+            // This slice implements the captured ordinary black-diamond machine. Other machines
+            // have their own eligibility/event policies; do not authorize them by table presence.
+            var row = PvfListFile.Read(provider.Archive, "etc/vendingmachine.lst").Single(x => x.Id == 1);
+            var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/" + row.RelativePath);
+            var parsed = new Dictionary<(int, int), VendingMachineDefinition>();
+            int group = 0, material = 0, count = 0;
+            ImmutableArray<VendingReward> rewards = [];
+            foreach (var section in sections)
+            {
+                int[] Numbers() => section.Values.Select(t => t.Kind == PvfTokenKind.Int32 ? t.Value
+                    : throw new InvalidDataException($"Noninteger vending field {section.Name}.")).ToArray();
+                switch (section.Name)
+                {
+                    case "[item group]": group = material = count = 0; rewards = []; break;
+                    case "[group num]": group = Numbers().Single(); break;
+                    case "[material]":
+                        var values = Numbers();
+                        if (values.Length != 2) throw new InvalidDataException("Invalid vending material.");
+                        material = values[0]; count = values[1]; break;
+                    case "[output]": rewards = ParseRewards(Numbers()); break;
+                    case "[/output]": break;
+                    case "[/item group]":
+                        if (group <= 0 || material != 7454 || count != 1 || rewards.IsEmpty)
+                            throw new InvalidDataException("Unsupported ordinary diamond machine group.");
+                        parsed.Add((1, group), new(1, group, material, count, rewards)); break;
+                    default: throw new InvalidDataException($"Unsupported vending section {section.Name}.");
+                }
+            }
+            if (parsed.Count == 0) throw new InvalidDataException("Missing ordinary vending groups.");
+            definitions = parsed.ToFrozenDictionary();
+            return definitions.Count;
+        }
+    }
+    internal static ImmutableArray<VendingReward> ParseRewards(int[] values)
+    {
+        if (values.Length == 0 || values.Length % 4 != 0) throw new InvalidDataException("Invalid vending output rows.");
+        var result = ImmutableArray.CreateBuilder<VendingReward>();
+        long total = 0;
+        for (var i = 0; i < values.Length; i += 4)
+        {
+            if (values[i] <= 0 || values[i + 1] < 0 || values[i + 2] <= 0 || values[i + 3] is < 0 or > 1)
+                throw new InvalidDataException("Invalid vending output value.");
+            total = checked(total + values[i + 1]);
+            result.Add(new(new(values[i], values[i + 2]), total, values[i + 3] == 1));
+        }
+        if (total <= 0) throw new InvalidDataException("Empty vending probability mass.");
+        return result.ToImmutable();
+    }
+    public VendingMachineDefinition GetRequired(int machineId, int groupId) =>
+        (definitions ?? throw new InvalidOperationException("Vending cache is not initialized."))
+        .TryGetValue((machineId, groupId), out var definition) ? definition
+        : throw new OpeningRejectedException(OpeningRejection.InvalidRequest, $"Unknown vending machine/group {machineId}/{groupId}.");
+}

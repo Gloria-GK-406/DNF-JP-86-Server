@@ -102,6 +102,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
         services.TryAddSingleton<INpcShopDefinitionSource, PvfNpcShopDefinitionSource>();
         services.TryAddSingleton<ICeraShopDefinitionSource, PvfCeraShopDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IVendingMachineDefinitionSource, PvfVendingMachineDefinitionSource>();
         services.TryAddSingleton<PvfPackageOpeningDefinitionSource>();
         services.TryAddSingleton<IPackageOpeningDefinitionSource>(provider => provider.GetRequiredService<PvfPackageOpeningDefinitionSource>());
         services.TryAddSingleton<ILotteryDefinitionCache>(provider => provider.GetRequiredService<PvfPackageOpeningDefinitionSource>());

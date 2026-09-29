@@ -63,6 +63,8 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
             var worldCount = services.GetRequiredService<IWorldDropRuleService>().Initialize();
             logger.LogInformation("World drop tables initialized: {Count} levels in {ElapsedMs} ms", worldCount, worldTimer.ElapsedMilliseconds);
             await services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync(cancellationToken);
+            var vendingCount = services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IVendingMachineDefinitionSource>().Initialize();
+            logger.LogInformation("Vending machine definitions initialized: {Count} groups", vendingCount);
             var timer = System.Diagnostics.Stopwatch.StartNew();
             var count = await services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync(cancellationToken);
             logger.LogInformation("Lottery definitions initialized: {Count} pots in {ElapsedMs} ms", count, timer.ElapsedMilliseconds);

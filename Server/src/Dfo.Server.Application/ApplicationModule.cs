@@ -278,6 +278,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
         services.TryAddSingleton<ILotteryRandomSource, LotteryRandomSource>();
         services.TryAddSingleton<ILotteryResultSelector, WeightedLotteryResultSelector>();
+        services.TryAddSingleton<IVendingMachineDomainService, VendingMachineDomainService>();
         services.TryAddSingleton<ILotteryOpeningDomainService, LotteryOpeningDomainService>();
         services.TryAddSingleton<IPackageOpeningDomainService, PackageOpeningDomainService>();
         services.TryAddSingleton<IAvatarPackageOpeningDomainService, AvatarPackageOpeningDomainService>();
