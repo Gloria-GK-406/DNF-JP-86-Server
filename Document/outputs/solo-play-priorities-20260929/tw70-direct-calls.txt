@@ -1,0 +1,154 @@
+sample=E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+sha256=cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+Evidence: symbol names and direct call targets only; not a full semantic or wire proof.
+
+0828A12A size=459 _ZN13CAccountCargo12DepositMoneyEj
+  0828A136 -> 081625E6 _ZN4ARAD9SingletonI22ServiceRestrictManagerE3GetEv
+  0828A152 -> 0816E6B8 _ZN22ServiceRestrictManager12isRestrictedEP5CUserN16RestrictCategory4EnumEi
+  0828A173 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A19B -> 08288A02 _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+  0828A1C3 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A1DD -> 0817A188 _ZNK15CUserCharacInfo17getCurCharacMoneyEv
+  0828A215 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A231 -> 0828A4CA _ZN13CAccountCargo15CheckMoneyLimitEj
+  0828A255 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A26F -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  0828A28B -> 084FF54C _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+  0828A2AF -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A2C8 -> 0828A742 _ZN13CAccountCargo8AddMoneyEj
+  0828A2DB -> 0828A7DC _ZN13CAccountCargo15SendNotifyMoneyE14ENUM_CMDPACKET
+
+0828A2F6 size=467 _ZN13CAccountCargo13WithdrawMoneyEj
+  0828A302 -> 081625E6 _ZN4ARAD9SingletonI22ServiceRestrictManagerE3GetEv
+  0828A31E -> 0816E6B8 _ZN22ServiceRestrictManager12isRestrictedEP5CUserN16RestrictCategory4EnumEi
+  0828A33F -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A367 -> 08288A02 _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+  0828A38F -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A3A4 -> 0822F020 _ZN13CAccountCargo8GetMoneyEv
+  0828A3DD -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A3FB -> 0866AF1C _ZN5CUser10CheckMoneyEi
+  0828A41F -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A43B -> 0828A764 _ZN13CAccountCargo8SubMoneyEj
+  0828A44B -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  0828A46F -> 084FF29C _ZN10CInventory10gain_moneyEi15eMoneyAddReasonbi
+  0828A495 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828A4AF -> 0828A7DC _ZN13CAccountCargo15SendNotifyMoneyE14ENUM_CMDPACKET
+
+08289A4A size=568 _ZN13CAccountCargo20CheckInsertConditionER10Inven_Item
+  08289A59 -> 080CC19B _Z14G_CDataManagerv
+  08289A65 -> 0835FA32 _ZNK12CDataManager9find_itemEi
+  08289A83 -> 0828B5B4 _ZNK5CItem12isPackagableEv
+  08289AA2 -> 0828B5A8 _ZNK17stAmplifyOption_t7GetLockEv
+  08289AC4 -> 0828B5DE _ZNK5CUser20GetCharacExpandDataRE23ENUM_CHARAC_EXPAND_TYPE
+  08289AD0 -> 08541A96 _ZNK9item_lock9CItemLock13CheckItemLockEh
+  08289B4E -> 080F12E2 _ZNK5CItem13GetAttachTypeEv
+  08289B91 -> 08110B0A _ZNK19UpgradeSeparateInfo18IsTradeRestrictionEv
+  08289BB1 -> 0814589C _ZN5CUser8isGMUserEv
+  08289BE4 -> 08110C60 _ZNK5CItem15getUsablePeriodEv
+  08289BF3 -> 080F1306 _ZNK5CItem17getExpirationDateEv
+  08289C12 -> 08110C60 _ZNK5CItem15getUsablePeriodEv
+  08289C21 -> 080F1306 _ZNK5CItem17getExpirationDateEv
+  08289C60 -> 080CBC9E _ZN11CSystemTime9getCurSecEv
+
+0828AD72 size=832 _ZN13CAccountCargo18CreateAccountCargoEP5CUser
+  0828AD80 -> 0822FC30 _ZN5CUser19IsExistAccountCargoEv
+  0828AD9F -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828ADA9 -> 080CC19B _Z14G_CDataManagerv
+  0828ADBA -> 08120432 _ZNK15CUserCharacInfo13getCurCharacREv
+  0828ADE3 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828ADED -> 080CC19B _Z14G_CDataManagerv
+  0828ADFA -> 088C8056 _ZN18AccountCargoScript13GetCreateInfoEv
+  0828AE1E -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828AE28 -> 081625E6 _ZN4ARAD9SingletonI22ServiceRestrictManagerE3GetEv
+  0828AE47 -> 0816E6B8 _ZN22ServiceRestrictManager12isRestrictedEP5CUserN16RestrictCategory4EnumEi
+  0828AE66 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828AE87 -> 08288A02 _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+  0828AEAD -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828AEBD -> 080CB854 _ZN10Inven_ItemC2Ev
+  0828AEC2 -> 080CC19B _Z14G_CDataManagerv
+  0828AED6 -> 080DA27E _ZNK15CUserCharacInfo18getCurCharacInvenREv
+  0828AEEC -> 084FBF2C _ZNK10CInventory12GetInvenDataEiR10Inven_Item
+  0828AF27 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828AF47 -> 0817A188 _ZNK15CUserCharacInfo17getCurCharacMoneyEv
+  0828AF76 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828AF96 -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  0828AFC1 -> 0850400C _ZN10CInventory11delete_itemE10INVEN_TYPEii14eItemDelReasonb
+  0828AFF3 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B013 -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  0828B02F -> 084FF54C _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+  0828B051 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B077 -> 0828B3D0 _ZN13CAccountCargo16SendNotifyRecipeEP5CUserib
+  0828B089 -> 080DA36E _ZNK5CUser10get_acc_idEv
+  0828B096 -> 080C8C96 _ZNK5CUser6GetUIDEv
+  0828B0A6 -> 0843AE86 _ZN21DB_CreateAccountCargo11makeRequestEijj
+
+0828B0B2 size=798 _ZN13CAccountCargo19UpgradeAccountCargoEP5CUser
+  0828B0C0 -> 0822FC30 _ZN5CUser19IsExistAccountCargoEv
+  0828B0E2 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B0F2 -> 0822FC22 _ZN5CUser15GetAccountCargoEv
+  0828B100 -> 0822F012 _ZN13CAccountCargo11GetCapacityEv
+  0828B107 -> 080CC19B _Z14G_CDataManagerv
+  0828B118 -> 088C8124 _ZN18AccountCargoScript18GetNextUpgradeInfoEi
+  0828B13C -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B146 -> 081625E6 _ZN4ARAD9SingletonI22ServiceRestrictManagerE3GetEv
+  0828B165 -> 0816E6B8 _ZN22ServiceRestrictManager12isRestrictedEP5CUserN16RestrictCategory4EnumEi
+  0828B184 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B1A5 -> 08288A02 _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+  0828B1CB -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B1DB -> 080CB854 _ZN10Inven_ItemC2Ev
+  0828B1E0 -> 080CC19B _Z14G_CDataManagerv
+  0828B1F4 -> 080DA27E _ZNK15CUserCharacInfo18getCurCharacInvenREv
+  0828B20A -> 084FBF2C _ZNK10CInventory12GetInvenDataEiR10Inven_Item
+  0828B245 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B265 -> 0817A188 _ZNK15CUserCharacInfo17getCurCharacMoneyEv
+  0828B294 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B2B4 -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  0828B2DF -> 0850400C _ZN10CInventory11delete_itemE10INVEN_TYPEii14eItemDelReasonb
+  0828B311 -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B331 -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  0828B34D -> 084FF54C _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+  0828B36F -> 0867BF42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+  0828B395 -> 0828B3D0 _ZN13CAccountCargo16SendNotifyRecipeEP5CUserib
+  0828B3A7 -> 080DA36E _ZNK5CUser10get_acc_idEv
+  0828B3B4 -> 080C8C96 _ZNK5CUser6GetUIDEv
+  0828B3C4 -> 0843B15E _ZN22DB_UpgradeAccountCargo11makeRequestEijj
+
+083373D4 size=253 _ZN13user_creature9CCreature7UseFeedEP5CUserRi
+  08337411 -> 0834032A _ZN13user_creature17CPacketRespondentC1EP5CUserii
+  0833741C -> 08338478 _ZN13user_creature9CCreature13IsDieCreatureEv
+  0833742B -> 083408B6 _ZN13user_creature17CPacketRespondent29MakeNotipacketRevivalCreatureEv
+  08337436 -> 0834048A _ZN13user_creature17CPacketRespondent7SendAllEv
+  0833744D -> 08336E66 _ZN13user_creature8CStomach14IncrementValueEf
+  0833747B -> 0833EFBE _ZN13user_creature13CCreatureItem6GetUidEv
+  0833748E -> 08340918 _ZN13user_creature17CPacketRespondent27MakeNotipacketCreatureStateEii
+  08337499 -> 083403E0 _ZN13user_creature17CPacketRespondent4SendEv
+  083374A6 -> 0834036A _ZN13user_creature17CPacketRespondentD2Ev
+  083374B7 -> 0834036A _ZN13user_creature17CPacketRespondentD2Ev
+  083374C3 -> 08AE3750 _Unwind_Resume
+
+08337BBC size=412 _ZN13user_creature9CCreature15GainExpCreatureEiP5CUser
+  08337C01 -> 08336CFC _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+  08337C47 -> 083377B6 _ZN13user_creature9CCreature12CalculateExpEiRbP5CUser
+  08337C5B -> 0833F24C _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+  08337C99 -> 0834032A _ZN13user_creature17CPacketRespondentC1EP5CUserii
+  08337CA4 -> 0833F0CA _ZN13user_creature9CCreature14IsGrowCreatureEv
+  08337CCA -> 08340760 _ZN13user_creature17CPacketRespondent29MakeNotipacketGainExpCreatureEiib
+  08337CDB -> 0834036A _ZN13user_creature17CPacketRespondentD2Ev
+  08337CE7 -> 08AE3750 _Unwind_Resume
+  08337CF2 -> 0834036A _ZN13user_creature17CPacketRespondentD2Ev
+  08337D0C -> 083380FC _ZNK13user_creature9CCreature13IsAbleEvoluteEP5CUser
+  08337D32 -> 083381EA _ZN13user_creature9CCreature7EvoluteEP5CUser
+
+081CD446 size=300 _ZN24Dispatcher_HatchCreature7processEP5CUserR8MSG_BASER9ParamBase
+  081CD468 -> 081CD5AA _ZN24Dispatcher_HatchCreature11check_errorEP5CUserR8MSG_BASE
+  081CD499 -> 080DA36E _ZNK5CUser10get_acc_idEv
+  081CD4BB -> 085908D7 _Z8LineFunciPKcij
+  081CD4E2 -> 080F7845 _Z25GetInvenTypeFromItemSpace14ENUM_ITEMSPACE
+  081CD4EF -> 081803CA _ZNK15CUserCharacInfo21getCurCharacInvenRefREv
+  081CD4FF -> 084FC1DE _ZNK10CInventory11GetInvenRefEii
+  081CD513 -> 080DA36E _ZNK5CUser10get_acc_idEv
+  081CD533 -> 085908D7 _Z8LineFunciPKcij
+  081CD540 -> 080F783A _ZNK10Inven_Item12get_add_infoEv
+  081CD54D -> 080DA28E _ZN15CUserCharacInfo18getCurCharacInvenWEv
+  081CD555 -> 080DD568 _ZN10CInventory15GetCreatureMgrWEv
+  081CD561 -> 08339FA0 _ZN13user_creature12CCreatureMgr5HatchEi
