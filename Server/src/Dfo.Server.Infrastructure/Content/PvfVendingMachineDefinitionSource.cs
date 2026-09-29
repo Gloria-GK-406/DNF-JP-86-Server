@@ -15,32 +15,37 @@ internal sealed class PvfVendingMachineDefinitionSource(PvfArchiveProvider provi
         lock (gate)
         {
             if (definitions is not null) return definitions.Count;
-            // This slice implements the captured ordinary black-diamond machine. Other machines
-            // have their own eligibility/event policies; do not authorize them by table presence.
-            var row = PvfListFile.Read(provider.Archive, "etc/vendingmachine.lst").Single(x => x.Id == 1);
-            var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/" + row.RelativePath);
+            // Only captured ordinary (1) and advanced (3) black-diamond machines are enabled.
+            // Event machines still require their own policy and evidence.
             var parsed = new Dictionary<(int, int), VendingMachineDefinition>();
-            int group = 0, material = 0, count = 0;
-            ImmutableArray<VendingReward> rewards = [];
-            foreach (var section in sections)
+            var rows = PvfListFile.Read(provider.Archive, "etc/vendingmachine.lst");
+            foreach (var machineId in new[] { 1, 3 })
             {
-                int[] Numbers() => section.Values.Select(t => t.Kind == PvfTokenKind.Int32 ? t.Value
-                    : throw new InvalidDataException($"Noninteger vending field {section.Name}.")).ToArray();
-                switch (section.Name)
+                var row = rows.Single(x => x.Id == machineId);
+                var expectedCoin = machineId == 1 ? 7454 : 2749933;
+                var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/" + row.RelativePath);
+                int group = 0, material = 0, count = 0;
+                ImmutableArray<VendingReward> rewards = [];
+                foreach (var section in sections)
                 {
-                    case "[item group]": group = material = count = 0; rewards = []; break;
-                    case "[group num]": group = Numbers().Single(); break;
-                    case "[material]":
-                        var values = Numbers();
-                        if (values.Length != 2) throw new InvalidDataException("Invalid vending material.");
-                        material = values[0]; count = values[1]; break;
-                    case "[output]": rewards = ParseRewards(Numbers()); break;
-                    case "[/output]": break;
-                    case "[/item group]":
-                        if (group <= 0 || material != 7454 || count != 1 || rewards.IsEmpty)
-                            throw new InvalidDataException("Unsupported ordinary diamond machine group.");
-                        parsed.Add((1, group), new(1, group, material, count, rewards)); break;
-                    default: throw new InvalidDataException($"Unsupported vending section {section.Name}.");
+                    int[] Numbers() => section.Values.Select(t => t.Kind == PvfTokenKind.Int32 ? t.Value
+                        : throw new InvalidDataException($"Noninteger vending field {section.Name}.")).ToArray();
+                    switch (section.Name)
+                    {
+                        case "[item group]": group = material = count = 0; rewards = []; break;
+                        case "[group num]": group = Numbers().Single(); break;
+                        case "[material]":
+                            var values = Numbers();
+                            if (values.Length != 2) throw new InvalidDataException("Invalid vending material.");
+                            material = values[0]; count = values[1]; break;
+                        case "[output]": rewards = ParseRewards(Numbers()); break;
+                        case "[/output]": break;
+                        case "[/item group]":
+                            if (group <= 0 || material != expectedCoin || count != 1 || rewards.IsEmpty)
+                                throw new InvalidDataException("Unsupported black diamond machine group.");
+                            parsed.Add((machineId, group), new(machineId, group, material, count, rewards)); break;
+                        default: throw new InvalidDataException($"Unsupported vending section {section.Name}.");
+                    }
                 }
             }
             if (parsed.Count == 0) throw new InvalidDataException("Missing ordinary vending groups.");

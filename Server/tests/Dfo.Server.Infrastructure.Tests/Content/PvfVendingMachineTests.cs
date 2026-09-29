@@ -9,11 +9,14 @@ public sealed class PvfVendingMachineTests
         Skip.IfNot(ContentArchive.Available,ContentArchive.SkipReason);
         using var provider=ContentArchive.CreateProvider();
         var source=new PvfVendingMachineDefinitionSource(provider);
-        Assert.Equal(1,source.Initialize());
+        Assert.Equal(2,source.Initialize());
         var d=source.GetRequired(1,1); Assert.Equal(7454,d.MaterialId); Assert.Equal(1,d.MaterialCount);
         Assert.Equal(7463,d.Rewards[0].Reward.ItemId); Assert.Equal(4,d.Rewards[0].Reward.Count);
         Assert.Equal(1,d.Rewards[0].CumulativeWeight); Assert.True(d.Rewards[^1].CumulativeWeight>1000000);
-        provider.Dispose(); Assert.Same(d,source.GetRequired(1,1)); Assert.Equal(1,source.Initialize());
+        var advanced=source.GetRequired(3,1); Assert.Equal(2749933,advanced.MaterialId); Assert.Equal(1,advanced.MaterialCount);
+        Assert.Equal(5,advanced.Rewards[0].Reward.Count); Assert.Equal(37,advanced.Rewards.Length);
+        Assert.Throws<OpeningRejectedException>(()=>source.GetRequired(2,1));
+        provider.Dispose(); Assert.Same(d,source.GetRequired(1,1)); Assert.Equal(2,source.Initialize());
         Assert.Throws<OpeningRejectedException>(()=>source.GetRequired(999,1));
     }
     [Fact]

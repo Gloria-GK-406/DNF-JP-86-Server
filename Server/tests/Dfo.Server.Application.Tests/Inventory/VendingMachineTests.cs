@@ -48,6 +48,18 @@ public sealed class VendingMachineTests
         Assert.Equal(1,f.Host.Count(7454));
     }
     [Dfo.Server.Testing.PvfFact]
+    public async Task Advanced_machine_requires_its_coin_and_grants_its_own_reward_quantity()
+    {
+        using var f=Fixture(); await f.Host.Seed(121,7454,2); await f.Host.Seed(122,2749933,1);
+        var rejected=await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,machine:3));
+        Assert.Equal(OpeningRejection.MissingMaterial,rejected.Reason);
+        Assert.Equal(2,f.Host.Count(7454)); Assert.Equal(1,f.Host.Count(2749933));
+        var result=await Use(f,slot:122,machine:3);
+        Assert.Equal(0,result.Remaining); Assert.Contains(122,result.Receipt.ClearedMainSlots);
+        Assert.Equal(5,result.Reward.Count); Assert.Equal(5,f.Host.Count(7463));
+        Assert.Equal(0,f.Host.Count(2749933)); Assert.Equal(2,f.Host.Count(7454));
+    }
+    [Dfo.Server.Testing.PvfFact]
     public async Task Last_coin_is_removed_and_missing_coin_cannot_grant()
     {
         using var f=Fixture(); await f.Host.Seed(121,7454,1);
@@ -81,11 +93,12 @@ public sealed class VendingMachineTests
         f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Host.Session);
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));
     }
-    [Dfo.Server.Testing.PvfFact]
-    public async Task Every_positive_weight_reward_has_supported_current_delivery_content()
+    [Dfo.Server.Testing.PvfTheory]
+    [InlineData(1)] [InlineData(3)]
+    public async Task Every_positive_weight_reward_has_supported_current_delivery_content(int machine)
     {
         using var f=Fixture();
-        var d=f.Host.Services.GetRequiredService<IVendingMachineDefinitionSource>().GetRequired(1,1);
+        var d=f.Host.Services.GetRequiredService<IVendingMachineDefinitionSource>().GetRequired(machine,1);
         var rules=f.Host.Services.GetRequiredService<IPackageOpeningRuleService>();
         long before=0;
         foreach(var row in d.Rewards)

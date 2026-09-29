@@ -27,3 +27,12 @@ artifacts/black-diamond-vending-20260929/runtime。确认无10010/10011在线连
 ## 待用户验收
 
 普通机点击一次：减1币、动画完成、奖励图标/数量与背包一致；连续几次后重登仍保持。高级机、全服稀有奖公告未交付，不能按普通机验收推定通过。
+
+
+## 高级机扩展与部署
+
+用户授权实现并部署高级机；依据machine3/group1实测请求和pcroom4.vm的2749933×1材料、37条奖励，扩展白名单至1/3，复用普通机结算和响应。其他活动机未启用。
+
+本轮Application售货机测试12通过，Infrastructure测试2通过，均0跳过。覆盖两奖池所有正权重奖励的准备、高级机错币拒绝不扣、最后一币清槽、奖励数量差异。Release发布成功。
+
+无游戏连接时部署至artifacts/advanced-diamond-vending-20260929/runtime，主库backup至before-deploy.db，quick_check=ok。复用原配置及绝对主库，1123普通币98、高级币100。进程29608启动，bootstrap ready、stderr空。普通机连续单次抽取已验收；高级机等待用户实测。
