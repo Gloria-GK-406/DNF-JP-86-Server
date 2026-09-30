@@ -57,6 +57,7 @@ using Dfo.Server.Protocol.Game.RepairItem;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Protocol.Game.EnchantByBead;
+using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
@@ -211,6 +212,8 @@ public sealed class ProtocolModule : IServerModule
             EquipmentReinforcementCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentEnchantCompleted,
             EquipmentEnchantCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<MagicSealCompleted,
+            MagicSealCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<InventorySorted, InventorySortedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
@@ -416,6 +419,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<EnchantByBeadCommand, EquipmentEnchantResult,
             EnchantByBeadCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
+            MagicSealCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
@@ -619,6 +625,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ReinforceItemHandler>(ClientMessageType.GameReinforceItem);
         services.TryAddSingleton<EnchantByBeadReplayGuard>();
         services.RegisterMessageHandler<EnchantByBeadHandler>(ClientMessageType.GameEnchantByBead);
+        services.TryAddSingleton<MagicSealReplayGuard>();
+        services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
+        services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
         services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
@@ -820,6 +829,10 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ReinforceItemType, ClientMessageType.GameReinforceItem);
         services.AddGameCmdMessageDecoder<EnchantByBeadDecoder>(
             GameProtocol.EnchantByBeadType, ClientMessageType.GameEnchantByBead);
+        services.AddGameCmdMessageDecoder<UnsealRandomOptionDecoder>(
+            GameProtocol.UnsealRandomOptionType, ClientMessageType.GameUnsealRandomOption);
+        services.AddGameCmdMessageDecoder<ChangeRandomOptionDecoder>(
+            GameProtocol.ChangeRandomOptionType, ClientMessageType.GameChangeRandomOption);
         services.AddGameCmdMessageDecoder<CrystalContractDecoder>(0x0218, ClientMessageType.GameCrystalContract);
         services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
             GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
@@ -941,6 +954,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<ReinforceItemResponse, ReinforceItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<EnchantByBeadResponse, EnchantByBeadEncoder>();
+        services.AddGameCmdMessageEncoder<ChangeRandomOptionResponse, ChangeRandomOptionEncoder>();
         services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
         services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();

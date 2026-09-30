@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-09-30 魔法封印装备候选实现
+
+[解封 `0x0191`](game/client-to-server/0x0191.md) 与[词条变更 `0x01B6`](game/client-to-server/0x01B6.md) 已按 A21 静态请求宽度及真实 PVF 规则接入服务端事务；本服解封推装备/金币刷新，变更另发静态读法支持的最小成功 ACK。`0x0191` 未注册客户端响应 handler，两个请求的非哨兵第二字段均安全拒绝且不扣材料；`0x01B6` 的实际 S2C 实帧仍缺。[重铸 `0x0197`](game/client-to-server/0x0197.md) 与[重置 `0x01C8`](game/client-to-server/0x01C8.md) 因布局/版本差异隔离。状态仅 `CurrentImplementation + ClientStatic + ContentStatic`，没有 `ClientVerified`。固定样本与人工验收见 [Human Test List](../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md)。
+
 ## 2026-09-30 CMD0110 宝珠附魔取证
 
 [请求](game/client-to-server/0x0110.md)与[结果](game/server-to-client/CMD-0x0110.md)已复核 A21 客户端构包/接收静态路径：装备宝珠请求写六字节，成功结果读取目标列表与槽位，宠物目标共用请求号但走另一 UI 分支。当前仅 `ClientStatic + UpstreamReference + 70Reference`，本服附魔实现与用户实机验收仍在进行；另有不同的附魔师摊位 `0x025A` 入口，不能混为普通宝珠结算。

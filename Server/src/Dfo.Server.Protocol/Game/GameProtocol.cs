@@ -270,6 +270,8 @@ internal static class GameProtocol
     public const ushort DisjointItemType = 0x001A;
     public const ushort ReinforceItemType = 0x0050;
     public const ushort EnchantByBeadType = 0x0110;
+    public const ushort UnsealRandomOptionType = 0x0191;
+    public const ushort ChangeRandomOptionType = 0x01B6;
 
     public const ushort ShopPurchaseCountType = 0x02CC;
 

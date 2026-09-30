@@ -300,6 +300,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
         services.TryAddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();
         services.TryAddSingleton<IEquipmentEnchantDomainService, EquipmentEnchantDomainService>();
+        services.TryAddSingleton<IEquipmentMagicSealSeedSource, EquipmentMagicSealSeedSource>();
+        services.TryAddSingleton<IEquipmentMagicSealRuleService, EquipmentMagicSealRuleService>();
+        services.TryAddSingleton<IEquipmentMagicSealDomainService, EquipmentMagicSealDomainService>();
         services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
         services.TryAddSingleton<MailStackTransfers>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();

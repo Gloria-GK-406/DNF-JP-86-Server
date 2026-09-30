@@ -4,17 +4,17 @@ contract:
   path: ./TaskContract.md
   revision: 1
 phase: child_execution
-phase_state: in_progress
-active_attempt: spec-002
+phase_state: pending
+active_attempt: spec-003
 last_transition: child-created
-transition_evidence: "spec-002-equipment-enchantment has a ready contained TaskContract, parent resolves to the root, contributes_to SC-2, depends_on is an empty YAML sequence, routing selects Single Spec, and the sole prior attempt spec-001 is sealed. No other row is active."
+transition_evidence: "spec-003-magic-seal has a ready contained TaskContract, parent resolves to the root, contributes_to SC-3, depends_on is an empty YAML sequence, routing selects Single Spec; only sealed spec-001 and spec-002 precede it, with baseline 8ab85ebd."
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/solo-play-roadmap/Document/tasks/equipment-development
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/solo-play-roadmap
   branch: task/solo-play-roadmap
-  baseline: e1d4c216d702aa829fa69a0eba3c95c1ea9301db
-  baseline_evidence: "2026-09-29: linked Git worktree; main checkout stayed at 10ccbad2; status had only Document/tasks/equipment-development/ as declared task artifacts; dotnet build Server/86JP.Server.slnx --no-restore passed with 0 warnings and 0 errors."
+  baseline: 8ab85ebdcd5c872d6d7c762e8766a21ad015a7f9
+  baseline_evidence: "2026-09-30: one accepted bead-enchantment commit 8ab85ebd over e1d4c216; linked task worktree clean immediately after commit; main checkout stayed at 10ccbad2; current build and focused tests passed, with two known creature failures in real-PVF Application full run."
 ---
 
 # Multi-Spec Map
@@ -38,7 +38,7 @@ workspace:
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
 | SC-1 | 强化闭环 | satisfied | `spec-001` accepted commit `e1d4c216`; `attempts/spec-001-reinforcement/spec-result.md` 和验证记录 | 用户集中实机验收仍待执行，不计入本自动接受条件 | aligned |
-| SC-2 | 装备附魔闭环 | in_progress | `spec-002` 的 `0x0110` 宝珠路径已完成自动验证与独立审查，尚未接受 | `0x025A` 附魔师摊位是否纳入本次附魔范围待用户答复；用户 A21 GUI 验收待后续进行 | at_risk |
+| SC-2 | 装备附魔闭环 | satisfied | `spec-002` 的 `0x0110` 宝珠路径已在 `8ab85ebd` 接受，独立审查与自动验证见该子项记录 | 用户 A21 GUI 验收待后续进行；`0x025A` 附魔师摊位由用户明确排除 | aligned |
 | SC-3 | 魔法封印闭环 | not_started | none | 70/上游/A21/PVF 探查、方案、实现、验证与验收清单 | aligned |
 | SC-4 | 异次元属性闭环 | not_started | none | 70/上游/A21/PVF 探查、方案、实现、验证与验收清单 | aligned |
 | SC-5 | 锻造闭环 | not_started | none | 70/上游/A21/PVF 探查、方案、实现、验证与验收清单 | aligned |
@@ -50,4 +50,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
 | 1 | spec-001 | attempts/spec-001-reinforcement/TaskContract.md | 装备普通强化 | SC-1 | completed | attempts/spec-001-reinforcement/spec-result.md | e1d4c216d702aa829fa69a0eba3c95c1ea9301db |
-| 2 | spec-002 | attempts/spec-002-equipment-enchantment/TaskContract.md | 装备附魔 | SC-2 | running | pending | active |
+| 2 | spec-002 | attempts/spec-002-equipment-enchantment/TaskContract.md | 装备宝珠附魔 | SC-2 | completed | attempts/spec-002-equipment-enchantment/spec-result.md | 8ab85ebdcd5c872d6d7c762e8766a21ad015a7f9 |
+| 3 | spec-003 | attempts/spec-003-magic-seal/TaskContract.md | 魔法封印装备 | SC-3 | running | pending | active |
