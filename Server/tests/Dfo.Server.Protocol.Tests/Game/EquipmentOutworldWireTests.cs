@@ -5,6 +5,16 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class EquipmentOutworldWireTests
 {
+    [Theory]
+    [InlineData(0x12)]
+    [InlineData(0x14)]
+    [InlineData(0x15)]
+    public void State_rejection_preserves_the_specific_reason_byte(byte reason)
+    {
+        Assert.Equal(new byte[] { 0, reason },
+            InvestAmplifyOptionEncoder.EncodeBody(new(false, 0, ErrorCode: reason)));
+    }
+
     [Fact]
     public void Purify_has_exact_twelve_A21_bytes_and_compatible_result()
     {

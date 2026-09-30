@@ -91,8 +91,10 @@ public sealed class OutworldHandler(
         }
         if (result.Receipt is not { } receipt)
         {
-            logger.LogDebug("OUTWORLD rejected: {Reason}", result.Rejection);
             var errorCode = ErrorCode(result.Rejection);
+            logger.LogInformation("OUTWORLD rejected character={Character} action={Action} targetSlot={TargetSlot} targetItem={TargetItem} material={Material} selectedOption={SelectedOption} reason={Reason} errorCode={ErrorCode}",
+                session.CharacterId.Value, action, request.TargetSlot, request.TargetItemId,
+                request.MaterialItemId, request.SelectedOption, result.Rejection, errorCode);
             replay.RememberFailure(request, errorCode);
             await Reject(context, request, ct, errorCode).ConfigureAwait(false);
             return;
@@ -110,7 +112,9 @@ public sealed class OutworldHandler(
     {
         EquipmentOutworldRejection.UnsupportedContent => 0x08,
         EquipmentOutworldRejection.SameOption => 0x17,
-        EquipmentOutworldRejection.InvalidState => 0x14,
+        EquipmentOutworldRejection.AlreadyUpgraded => 0x12,
+        EquipmentOutworldRejection.AlreadyHasAmplifyOption => 0x14,
+        EquipmentOutworldRejection.NoAmplifyOption => 0x15,
         _ => 0x11,
     };
 

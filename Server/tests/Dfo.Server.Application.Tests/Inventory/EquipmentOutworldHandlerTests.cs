@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -125,6 +126,55 @@ public sealed class EquipmentOutworldHandlerTests
         Assert.Equal(1, shop.Count(1183));
     }
 
+    [Theory]
+    [InlineData(0, 10, 0, 0x12)]
+    [InlineData(0, 0, 0x80, 0x14)]
+    [InlineData(0, 0, 3, 0x14)]
+    [InlineData(1, 0, 0, 0x15)]
+    [InlineData(1, 0, 0x80, 0x15)]
+    public async Task State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(
+        byte action, byte upgradeLevel, byte amplifyType, byte expectedCode)
+    {
+        using var shop = Fixture();
+        var original = Piece(amplifyType) with { Attribute = upgradeLevel };
+        var materialId = action == 0 ? 1286 : 1188;
+        await shop.SeedCore(9, original);
+        await shop.Seed(121, materialId, 2);
+
+        await Send(shop, 7, false, action, materialId, 3);
+        await Send(shop, 7, false, action, materialId, 3);
+
+        Assert.Equal(2, shop.Sender.Messages.Count);
+        Assert.All(shop.Sender.Messages, message =>
+        {
+            var response = Assert.IsType<InvestAmplifyOptionResponse>(message);
+            Assert.False(response.Success);
+            Assert.Equal(expectedCode, response.ErrorCode);
+        });
+        Assert.Equal(2, shop.Count(materialId));
+        var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
+            .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
+        Assert.Equal(original, (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+    }
+
+    [Fact]
+    public async Task Pure_amplification_book_assigns_selected_strength_and_refreshes_equipment()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece(0));
+        await shop.Seed(121, 1286, 1);
+        await Send(shop, 7, false, 0, 1286, 3);
+        var response = Assert.IsType<InvestAmplifyOptionResponse>(shop.Sender.Messages[0]);
+        Assert.True(response.Success);
+        Assert.Equal((byte)3, response.AmplifyType);
+        Assert.Equal((ushort)5, response.AmplifyValue);
+        Assert.Equal(0, shop.Count(1286));
+        Assert.Equal(3, shop.Sender.Messages.Count);
+        var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
+            .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
+        Assert.Equal(Piece(3), (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+    }
+
     private static ShopFixture Fixture() => new(services =>
     {
         services.AddSingleton<IEquipmentOutworldContentSource>(new Content());
@@ -156,7 +206,8 @@ public sealed class EquipmentOutworldHandlerTests
             ValueTask.FromResult<EquipmentOutworldTable?>(new(55,
                 new Dictionary<int, int> { [1183] = 1 },
                 new Dictionary<int, int> { [10000408] = 1 },
-                new Dictionary<int, EquipmentOutworldMaterialDefinition> { [1184] = new(3, 1) },
+                new Dictionary<int, EquipmentOutworldMaterialDefinition>
+                    { [1184] = new(3, 1), [1286] = new(0, 1) },
                 new Dictionary<int, EquipmentOutworldMaterialDefinition>
                     { [1191] = new(2, 1), [1188] = new(3, 1) },
                 new Dictionary<int, IReadOnlyDictionary<byte, ushort>>

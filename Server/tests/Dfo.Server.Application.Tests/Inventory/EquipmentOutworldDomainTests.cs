@@ -64,8 +64,8 @@ public sealed class EquipmentOutworldDomainTests
     }
 
     [Theory]
-    [InlineData(EquipmentOutworldAction.Invest, 1184, 0x80, 3, EquipmentOutworldRejection.InvalidState)]
-    [InlineData(EquipmentOutworldAction.Twist, 1188, 0, 3, EquipmentOutworldRejection.InvalidState)]
+    [InlineData(EquipmentOutworldAction.Invest, 1184, 0x80, 3, EquipmentOutworldRejection.AlreadyHasAmplifyOption)]
+    [InlineData(EquipmentOutworldAction.Twist, 1188, 0, 3, EquipmentOutworldRejection.NoAmplifyOption)]
     [InlineData(EquipmentOutworldAction.Twist, 1188, 3, 3, EquipmentOutworldRejection.SameOption)]
     [InlineData(EquipmentOutworldAction.Purify, 1183, 3, 0, EquipmentOutworldRejection.InvalidState)]
     public async Task Invalid_state_cannot_spend(EquipmentOutworldAction action,
@@ -108,7 +108,7 @@ public sealed class EquipmentOutworldDomainTests
         await shop.SeedCore(9, original);
         await shop.Seed(121, 1188, 1);
         var result = await Apply(shop, EquipmentOutworldAction.Twist, 3, 1188);
-        Assert.Equal(EquipmentOutworldRejection.InvalidState, result.Rejection);
+        Assert.Equal(EquipmentOutworldRejection.AlreadyUpgraded, result.Rejection);
         Assert.Equal(original, await Read(shop));
         Assert.Equal(1, shop.Count(1188));
     }

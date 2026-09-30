@@ -21,6 +21,9 @@ public enum EquipmentOutworldRejection
     UnsupportedContent,
     InvalidState,
     SameOption,
+    AlreadyUpgraded,
+    AlreadyHasAmplifyOption,
+    NoAmplifyOption,
 }
 
 public sealed record EquipmentOutworldDecision(

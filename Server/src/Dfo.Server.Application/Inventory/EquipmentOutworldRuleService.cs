@@ -25,7 +25,7 @@ internal sealed class EquipmentOutworldRuleService(
             || !table.InitialValues.TryGetValue(definition.Rarity, out var values))
             return new(EquipmentOutworldRejection.UnsupportedContent);
         if (upgradeLevel != 0)
-            return new(EquipmentOutworldRejection.InvalidState);
+            return new(EquipmentOutworldRejection.AlreadyUpgraded);
 
         if (action == EquipmentOutworldAction.Purify)
         {
@@ -41,9 +41,10 @@ internal sealed class EquipmentOutworldRuleService(
                 false, seed);
         }
 
-        if (action == EquipmentOutworldAction.Invest && amplifyType != 0
-            || action == EquipmentOutworldAction.Twist && amplifyType is not (>= 1 and <= 4))
-            return new(EquipmentOutworldRejection.InvalidState);
+        if (action == EquipmentOutworldAction.Invest && amplifyType != 0)
+            return new(EquipmentOutworldRejection.AlreadyHasAmplifyOption);
+        if (action == EquipmentOutworldAction.Twist && amplifyType is not (>= 1 and <= 4))
+            return new(EquipmentOutworldRejection.NoAmplifyOption);
         var materials = action == EquipmentOutworldAction.Invest
             ? table.InvestMaterials : table.TwistMaterials;
         if (!materials.TryGetValue(materialItemId, out var material))
