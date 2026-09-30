@@ -1,5 +1,7 @@
 # A21 宠物协议与 PVF 证据（2026-09-29）
 
+2026-09-30更新：P01–P09已由用户验收；P10实发CMD0066、3B body `070000`，请求仍Unhandled，孵化未通过。以下静态矩阵保留原调查阶段，实际入口与普通行为的最新证据以 [本轮验收记录](a21-acceptance-20260930.md) 为准。
+
 范围：常规宠物的实例、穿戴、孵化、喂食、改名、成长、进化、技能与脚本消息。本文仅供当前宠物重构取证；`70Reference` 是玩法主规则的另一份证据，不从 A21 opcode 名称反推出规则。A21 静态登记所用客户端 SHA-256 为 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。
 
 证据级别：`ClientStatic` 指 A21 客户端注册表、构包/读包指令；`WireCaptured` 指 A21 实际帧；`PVF` 指此客户端目录的 `Script.pvf`；`ReferenceImplementation` 指 `ServerS4A21` 的服务端写法。后者只能指导候选实现，不能证明 A21 请求语义或真实客户端效果。尚无本文所述宠物操作的 `ClientVerified` 闭环。新增的接收端静态复核使用 `DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin`，SHA-256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，image base `0x00400000`；[反汇编切片](a21-pet-noti-handlers.asm.txt) 中列的是 VA，减 image base 才是协议登记表中的 RVA。

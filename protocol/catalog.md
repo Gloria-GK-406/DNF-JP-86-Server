@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-09-30 宠物普通路径验收与孵化请求取证
+
+用户确认P01–P09普通宠物路径实机通过，包括登录详情、移动穿戴、宠物装备、重登保存、改名、清房经验/饱食、喂食、城镇恢复与离线不累计。`ClientVerified`只覆盖验收列表的普通行为；错误、多人、进化/特殊成长和技能仍未闭合。[CMD0064改名](game/client-to-server/0x0064.md)已补限定验收结果；[CMD0066孵化](game/client-to-server/0x0066.md)实际请求 `070000` 已WireCaptured，但当前Unhandled、蛋未变化，孵化尚未验收。原始请求、只读快照及边界见 [本轮证据](../Document/tasks/creature-system/evidence/a21-acceptance-20260930.md)。
+
 ## 2026-09-30 武器锻造候选实现
 
 [请求 `0x01B7`](game/client-to-server/0x01B7.md) 的 A21 静态构包包含目标列表/槽/模板、材料槽、动态名与尾标志；本服只接 70/上游共同支持且 PVF 可结算的普通 variant0，卷券 variant1/2 隔离。真实 `etc/upgrade_separate.etc` 定义独立 `GenuineUpgrade` 上限、各级概率与材料；服务端在同事务扣料并保留装备 UID/普通强化字段，[锻造结果](game/server-to-client/CMD-0x01B7.md)按 A21 静态接收顺序编码且刷新两槽。证据状态是 `70Reference + UpstreamReference + ClientStatic + ContentStatic + CurrentImplementation`；动态名字语义、原服实帧与 GUI/重登仍待[人工验收](../Document/tasks/equipment-development/attempts/spec-005-forging/Human-Test-List.md)，不标 `ClientVerified`。

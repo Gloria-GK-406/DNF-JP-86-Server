@@ -1,0 +1,25 @@
+# Source lines 763-768
+2026-09-30 13:27:46.981 +08:00 info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RenameCreatureCommand handled by RenameCreatureCommandHandler as Transactional with execution 8767ddd2-d318-47f2-bb6e-5b9cdf547917 in 7.6259 ms
+2026-09-30 13:27:46.984 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:02-00-00-00 selector=0x00 type=0x0065 frame=33 CreatureRenameNotification
+2026-09-30 13:27:46.985 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:02-00-00-00 selector=0x01 type=0x0064 frame=19 RenameCreatureResponse
+# Source lines 2699-2710
+2026-09-30 13:31:24.994 +08:00 trce: Dfo.Server.Protocol.Game.UseStackable.UseStackableDecoder[0]
+      USE_STACKABLE capture metadata=GameMessageMetadata { Selector = 1, Type = 44, Checksum = 1327776203, Sequence = 364, InboundOrdinal = 365, SequenceIsFresh = True } body(15B)=BD0007970200001800000000000000
+2026-09-30 13:31:25.011 +08:00 info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command UseStackableCommand handled by UseStackableCommandHandler as Transactional with execution eab44e60-7dca-4f45-8fff-eaa2adef6b12 in 14.0212 ms
+2026-09-30 13:31:25.011 +08:00 info: Dfo.Server.Protocol.Game.UseStackable.UseStackableHandler[0]
+      Use stackable Game:02-00-00-00 character=2: used item 24 from slot 189, 119 left
+2026-09-30 13:31:25.012 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:02-00-00-00 selector=0x01 type=0x002C frame=27 UseStackableResponse
+2026-09-30 13:31:25.241 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:02-00-00-00 selector=0x00 type=0x0067 frame=23 CreatureStateNotification
+2026-09-30 13:31:31.911 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:02-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
+# Source lines 3697-3700
+2026-09-30 13:47:07.423 +08:00 warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:03-00-00-00: selector=0x01 type=0x0066 seq=31 body(3B)=070000
+2026-09-30 13:47:08.549 +08:00 dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:03-00-00-00 selector=0x01 type=0x04DD frame=16 ConnectionCheckResponse
