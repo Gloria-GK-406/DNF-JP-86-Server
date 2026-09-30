@@ -25,6 +25,31 @@ public sealed class CreatureTransformationDomainServiceTests
         new AccountId(1), new CharacterId(2), new NetworkConnectionId("transform"), 1, 10011);
 
     [Fact]
+    public async Task Egg_handle_follows_uid_after_move_and_returns_pet_that_can_grow()
+    {
+        var fixture = new Fixture(new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4),
+            BusinessInventorySpace.CreatureInventory);
+        await using var tx = fixture.Scope.Begin();
+        var pets = new FakeCreatureDomain(fixture.Store, fixture.Scope, fixture.Rules).Of(Session.CharacterId);
+        var egg = (await pets.FindEggAsync(500, default))!;
+        var container = fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory);
+        var core = (await container.ReadSlotAsync(0, default))!.Core;
+        await container.PutAsync(10, core, default);
+        var pet = await egg.BirthAsync(default);
+        Assert.NotNull(pet);
+        Assert.Equal(500, pet.ItemUid);
+        Assert.Equal(63023, (await pet.ReadAsync(default)).ItemTemplateId);
+        Assert.Equal(10, ((PetInstance)pet).BirthReceipt!.Slot.Index);
+        Assert.Null(await egg.BirthAsync(default));
+        Assert.Null(await pets.FindEggAsync(500, default));
+        await pet.AddExpAsync(2, default);
+        await pet.RenameAsync([0x42], default);
+        var state = await pet.ReadAsync(default);
+        Assert.Equal((2, 2, 100), (state.Experience, state.Level, state.Stomach));
+        Assert.Equal(new byte[] { 0x42 }, state.NameBytes);
+    }
+
+    [Fact]
     public async Task Hatch_reuses_egg_uid_and_initializes_creature_detail()
     {
         var egg = new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4);
@@ -52,7 +77,11 @@ public sealed class CreatureTransformationDomainServiceTests
         var result = await fixture.Service.EvolveAsync(Session, default);
 
         Assert.NotNull(result);
-        Assert.Equal(pet with { ItemTemplateId = 63001 }, result.After);
+        Assert.Equal(pet with
+        {
+            ItemTemplateId = 63001, NameBytes = result.After.NameBytes, ExactStomach = pet.ExactStomach
+        }, result.After);
+        Assert.Equal(pet.NameBytes, result.After.NameBytes);
         Assert.Equal(63001, result.Core.ItemId);
         Assert.Equal(500, result.Core.Value);
 
@@ -123,10 +152,9 @@ public sealed class CreatureTransformationDomainServiceTests
             {
                 ExperienceThresholds = [.. Enumerable.Range(1, 18).Select(x => x * 100), 2151]
             };
-            var service = new CreatureTransformationDomainService(domain, rules,
-                new FakeLifetimes(), new FakeSessions(), scope, TimeProvider.System);
             var runtime = new CreatureRuntimeDomainService(new SqliteCreatureDomainStore(path),
-                rules, scope, new FakeSessions(), TimeProvider.System, transformations: service);
+                new CreatureRuleService(rules, new FakeLifetimes()), scope, new FakeSessions(), TimeProvider.System, domain);
+            domain.Instances = runtime;
             runtime.Enter(Session);
             await runtime.AdvanceAsync(Session, default);
             await using (var transaction = scope.Begin())
@@ -184,11 +212,14 @@ public sealed class CreatureTransformationDomainServiceTests
     }
 
     private sealed class SqliteCreatureAdapter(string path, DomainTransactionScope scope)
-        : ICreatureDomainService, ICreatureStore
+        : ICreatureDomainService, ICreatureStore, ICharacterBusinessInventoryDomainService
     {
         private readonly SqliteCreatureDomainStore creatures = new(path);
         private readonly SqliteItemDomainStore items = new(path);
+        public ICreatureInstanceDomainService Instances { get; set; } = null!;
+        public ICreatureCollection Of(CharacterId characterId) => Instances.Of(characterId);
         public ICreatureStore GetStore(CharacterId characterId) => this;
+        public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) => this;
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
         public IBusinessItemContainer? FindContainer(BusinessInventorySpace space) => space switch
         {
@@ -263,8 +294,8 @@ public sealed class CreatureTransformationDomainServiceTests
         public Fixture(CreatureState state, BusinessInventorySpace space)
         {
             Store = new FakeCreatureStore(state, space);
-            Service = new CreatureTransformationDomainService(new FakeCreatureDomain(Store), Rules,
-                new FakeLifetimes(), new FakeSessions(), Scope, TimeProvider.System);
+            Service = new CreatureTransformationDomainService(new FakeCreatureDomain(Store, Scope, Rules),
+                new FakeSessions(), Scope);
         }
     }
 
@@ -297,9 +328,12 @@ public sealed class CreatureTransformationDomainServiceTests
             DateTimeOffset preparedAt, CancellationToken ct) => ValueTask.FromResult(default(CreatureEquipmentLifetime));
     }
 
-    private sealed class FakeCreatureDomain(FakeCreatureStore store) : ICreatureDomainService
+    private sealed class FakeCreatureDomain(FakeCreatureStore store, DomainTransactionScope scope, FakeRules rules) : ICreatureDomainService
     {
         public ICreatureStore GetStore(CharacterId characterId) => store;
+        public ICreatureCollection Of(CharacterId characterId) => TestCreatureCollection.Create(characterId,
+            scope.Current!, store, state => store.SaveAsync(state, default).GetAwaiter().GetResult(),
+            new CreatureRuleService(rules, new FakeLifetimes()));
     }
 
     private sealed class FakeCreatureStore : ICreatureStore
@@ -345,7 +379,7 @@ public sealed class CreatureTransformationDomainServiceTests
         public ContainerId StorageId => new("transform");
         public BusinessInventorySpace Space => space;
         public ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct) =>
-            ValueTask.FromResult(index == 0 ? Item : null);
+            ValueTask.FromResult(Item?.SlotIndex == index ? Item : null);
         public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
             ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(Item is null ? [] : [Item]);
         public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct)

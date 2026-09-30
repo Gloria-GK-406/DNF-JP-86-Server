@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Creatures;
@@ -11,11 +12,22 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Creatures;
 
 /// <summary>One shared online clock directory; persisted values never accrue offline time.</summary>
-internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, ICreatureRuleSource rules,
+internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, ICreatureRuleService rules,
     IDomainTransactionAccessor transactions, ISelectedSessionDomainService sessions,
-    TimeProvider clock, ICreatureDomainService? inventory = null,
-    ICreatureTransformationDomainService? transformations = null) : ICreatureRuntimeDomainService
+    TimeProvider clock, ICharacterBusinessInventoryDomainService? inventories = null)
+    : ICreatureRuntimeDomainService, ICreatureInstanceDomainService
 {
+    public ICreatureCollection Of(CharacterId characterId) => new CreatureCollection(() =>
+        CreateContext(transactions.Current ?? throw new InvalidOperationException(
+            "Creature instances require a use case."), characterId));
+
+    private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId) =>
+        new(characterId, tx, store.SessionIn(tx),
+            inventories?.GetStore(characterId, BusinessInventoryStoreKind.Creature), rules, clock,
+            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, tx, session) : null);
+
+    private bool IsCurrent(SelectedSessionIdentity session) => sessions.FindByCharacter(session.CharacterId) == session;
+    private DateTimeOffset Now => clock.GetUtcNow();
     private readonly object gate = new();
     private readonly Dictionary<CharacterId, Entry> entries = [];
     // Null means committed. Keep the key until session exit so repeated clear events are inert.
@@ -72,7 +84,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             if (!entries.TryGetValue(characterId, out var entry) || entry.Combat == combat) return;
             var now = clock.GetUtcNow();
             var balances = entry.Stomachs.ToDictionary(x => x.Key,
-                x => CreatureRules.AdvanceStomach(x.Value, now - entry.At,
+                x => PetInstance.AdvanceBalance(x.Value, now - entry.At,
                     entry.Combat && entry.Worn == x.Key));
             var revivals = entry.TownRevivals.ToHashSet();
             if (!combat && entry.Worn is { } worn && balances.GetValueOrDefault(worn) <= 0)
@@ -120,6 +132,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         var all = await pets.ReadAllAsync(session.CharacterId, ct).ConfigureAwait(false);
         var current = await pets.ReadCurrentAsync(session.CharacterId, ct).ConfigureAwait(false);
         var fighting = combat ?? previous.Combat;
+        var context = CreateContext(tx, session.CharacterId);
         var next = new Dictionary<int, double>();
         var changed = new List<CreatureRuntimeChange>();
         var nextDelay = TimeSpan.FromMinutes(6);
@@ -128,11 +141,11 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             var definition = await rules.GetAsync(state.ItemTemplateId, ct).ConfigureAwait(false);
             var oldValue = previous.Stomachs.GetValueOrDefault(state.ItemUid, state.Stomach);
             var elapsed = previous.Stomachs.ContainsKey(state.ItemUid) ? now - previous.At : TimeSpan.Zero;
-            var value = CreatureRules.AdvanceStomach(oldValue, elapsed,
-                previous.Combat && previous.Worn == state.ItemUid, definition?.HungerEnabled ?? true);
             var equipped = current?.ItemUid == state.ItemUid;
-            if (equipped && !fighting && value <= 0) value = 1;
-            var updated = state with { Stomach = (int)value, ExactStomach = value };
+            var updated = await new PetInstance(state.ItemUid, context).AdvanceStomachAsync(state,
+                oldValue, elapsed, previous.Combat && previous.Worn == state.ItemUid,
+                equipped && !fighting, previous.TownRevivals.Contains(state.ItemUid), ct).ConfigureAwait(false);
+            var value = updated.ExactStomach;
             next[state.ItemUid] = value;
             if (definition?.HungerEnabled != false)
             {
@@ -145,7 +158,6 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             if (state.Stomach != updated.Stomach || (oldValue > 0) != (value > 0)
                 || previous.TownRevivals.Contains(state.ItemUid))
             {
-                pets.Write(session.CharacterId, updated);
                 changed.Add(new(state with { ExactStomach = previous.TownRevivals.Contains(state.ItemUid) ? 0 : oldValue }, updated, equipped));
             }
         }
@@ -163,7 +175,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             var uid = reward.ResolveInitialPet ? current?.ItemUid : reward.CreatureKey;
             var pet = uid is { } id ? await pets.ReadAsync(session.CharacterId, id, ct).ConfigureAwait(false) : null;
             if (pet is not null)
-                await GainCoreAsync(tx, session, pet, reward.Amount, current?.ItemUid == uid, ct).ConfigureAwait(false);
+                await GainCoreAsync(tx, session, pet, reward.Amount, ct).ConfigureAwait(false);
             pending.Acknowledge(session, reward);
         }
         return changed;
@@ -173,86 +185,43 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     {
         if (sessions.FindByCharacter(session.CharacterId) != session) return null;
         var tx = transactions.Current ?? throw new InvalidOperationException("Feeding requires a use case.");
-        await AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
-        var pending = tx.Enlist(this, () => new Pending(this));
-        var entry = pending.Read(session.CharacterId);
-        if (entry?.Session != session) return null;
-        var pets = store.SessionIn(tx);
-        var pet = await pets.ReadCurrentAsync(session.CharacterId, ct).ConfigureAwait(false);
-        if (pet is null) return null;
-        pet = pet with { ExactStomach = entry.Stomachs.GetValueOrDefault(pet.ItemUid, pet.Stomach) };
-        var value = CreatureRules.Feed(entry.Stomachs.GetValueOrDefault(pet.ItemUid, pet.Stomach));
-        var after = pet with { Stomach = (int)value, ExactStomach = value };
-        pets.Write(session.CharacterId, after);
-        var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
-        balances[pet.ItemUid] = value;
-        pending.Write(session.CharacterId, entry with { Stomachs = balances });
-        var change = new CreatureRuntimeChange(pet, after, true);
-        tx.Enlist(this, () => new Pending(this)).Notify(session, [change]);
-        return change;
+        var context = CreateContext(tx, session.CharacterId);
+        var uid = await context.CurrentUidAsync(ct).ConfigureAwait(false);
+        if (uid is null) return null;
+        var pet = await Of(session.CharacterId).FindPetAsync(uid.Value, ct).ConfigureAwait(false);
+        return pet is null ? null : await pet.AddStomachAsync(30, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
         BusinessSlot eggSlot, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session || transformations is null) return null;
+        if (sessions.FindByCharacter(session.CharacterId) != session
+            || eggSlot.Space != BusinessInventorySpace.CreatureInventory || eggSlot.Index is < 0 or > 139) return null;
         var tx = transactions.Current ?? throw new InvalidOperationException("Hatching requires a use case.");
-        var receipt = await transformations.HatchAsync(session, eggSlot, ct).ConfigureAwait(false);
-        if (receipt is null) return null;
-
-        // The new creature has the egg's UID. Drop that UID's old clock balance in the
-        // same transaction, so the next tick starts from its reset stomach of 100.
-        var pending = tx.Enlist(this, () => new Pending(this));
-        if (pending.Read(session.CharacterId) is { } entry && entry.Session == session)
-        {
-            var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
-            balances.Remove(receipt.After.ItemUid);
-            pending.Write(session.CharacterId, entry with { Stomachs = balances, Due = clock.GetUtcNow() });
-        }
-        return receipt;
+        var context = CreateContext(tx, session.CharacterId);
+        var container = context.Inventory?.FindContainer(eggSlot.Space);
+        var item = container is null ? null : await container.ReadSlotAsync(eggSlot.Index, ct).ConfigureAwait(false);
+        if (item is null || item.ItemKind != 5 || item.Core.Value <= 0) return null;
+        var egg = await Of(session.CharacterId).FindEggAsync(item.Core.Value, ct).ConfigureAwait(false);
+        var born = egg is null ? null : await egg.BirthAsync(ct).ConfigureAwait(false);
+        return (born as PetInstance)?.BirthReceipt;
     }
 
     public async ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity session,
         int amount, CancellationToken ct)
     {
         if (sessions.FindByCharacter(session.CharacterId) != session) return null;
-        var tx = transactions.Current ?? throw new InvalidOperationException("Creature experience requires a use case.");
-        await AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
-        var pets = store.SessionIn(tx);
-        var pet = await pets.ReadCurrentAsync(session.CharacterId, ct).ConfigureAwait(false);
-        return pet is null ? null : await GainCoreAsync(tx, session, pet, amount, true, ct).ConfigureAwait(false);
+        var pet = await Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false);
+        return pet is null ? null : await pet.AddExpAsync(amount, ct).ConfigureAwait(false);
     }
 
     private async ValueTask<CreatureRuntimeChange?> GainCoreAsync(IDomainTransaction tx,
-        SelectedSessionIdentity session, CreatureState pet, int amount, bool equipped, CancellationToken ct)
+        SelectedSessionIdentity session, CreatureState pet, int amount, CancellationToken ct)
     {
-        var pets = store.SessionIn(tx);
-        if (pet is null || pet.Stomach <= 0 || pet.ModeFlag != 0 || amount <= 0) return null;
         var rule = await rules.GetAsync(pet.ItemTemplateId, ct).ConfigureAwait(false);
-        if (rule is null || rule.IsEgg || rule.HungerEnabled == false) return null;
-        if (inventory is not null)
-        {
-            var equipment = await inventory.GetStore(session.CharacterId)
-                .GetContainer(BusinessInventorySpace.WornCreatureEquipment).ReadAllAsync(ct).ConfigureAwait(false);
-            var bonuses = new List<float>();
-            foreach (var item in equipment)
-                if (await rules.GetArtifactExperienceAsync(item.ItemId, ct).ConfigureAwait(false) is { } artifact
-                    && pet.Level >= artifact.RequiredCreatureLevel)
-                    bonuses.Add(artifact.BonusPercent);
-            amount = CreatureRules.CalculateExperienceGain(amount, bonuses.Take(3).ToArray());
-        }
-        var growth = CreatureRules.GainExperience(rule, pet.Experience, amount);
-        var after = pet with { Experience = growth.Experience, Level = growth.Level };
-        if (pet.Experience == after.Experience && pet.Level == after.Level) return null;
-        pets.Write(session.CharacterId, after);
-        var transformation = equipped && growth.LevelChanged && transformations is not null
-            ? await transformations.EvolveAsync(session, ct).ConfigureAwait(false) : null;
-        var change = new CreatureRuntimeChange(pet, transformation?.After ?? after, equipped)
-        {
-            Transformation = transformation
-        };
-        tx.Enlist(this, () => new Pending(this)).Notify(session, [change]);
-        return change;
+        if (rule is null || rule.IsEgg) return null;
+        return await new PetInstance(pet.ItemUid, CreateContext(tx, session.CharacterId))
+            .AddExpCoreAsync(amount, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<CreatureRuntimeChange?> GainRoomExperienceAsync(SelectedSessionIdentity session,
@@ -285,6 +254,13 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     private async ValueTask<T> WithinAsync<T>(Func<IDomainTransaction, ValueTask<T>> action, CancellationToken ct)
     {
         if (transactions.Current is { } current) return await action(current).ConfigureAwait(false);
+        if (transactions is DomainTransactionScope scope)
+        {
+            await using var lease = scope.Begin();
+            var result = await action(scope.Current!).ConfigureAwait(false);
+            await lease.CommitAsync(ct).ConfigureAwait(false);
+            return result;
+        }
         var transaction = new DomainTransaction();
         try
         {
@@ -293,6 +269,38 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             return result;
         }
         catch { await transaction.RollbackAsync().ConfigureAwait(false); throw; }
+    }
+
+    private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, IDomainTransaction tx,
+        SelectedSessionIdentity session) : ICreatureInstanceRuntime
+    {
+        private Pending Pending => tx.Enlist(owner, () => new Pending(owner));
+        public void EnsureActive()
+        {
+            if (!owner.IsCurrent(session))
+                throw new InvalidOperationException("The creature's selected session has changed.");
+        }
+        public async ValueTask SynchronizeAsync(CancellationToken ct) =>
+            _ = await owner.AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
+        public double Stomach(int uid, double fallback) =>
+            Pending.Read(session.CharacterId)?.Stomachs.GetValueOrDefault(uid, fallback) ?? fallback;
+        public void SetStomach(int uid, double value)
+        {
+            var pending = Pending;
+            if (pending.Read(session.CharacterId) is not { } entry || entry.Session != session) return;
+            var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
+            balances[uid] = value;
+            pending.Write(session.CharacterId, entry with { Stomachs = balances, Due = owner.Now });
+        }
+        public void Notify(CreatureRuntimeChange change) => Pending.Notify(session, [change]);
+        public void ResetStomach(int uid)
+        {
+            var pending = Pending;
+            if (pending.Read(session.CharacterId) is not { } entry || entry.Session != session) return;
+            var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
+            balances.Remove(uid);
+            pending.Write(session.CharacterId, entry with { Stomachs = balances, Due = owner.Now });
+        }
     }
 
     private sealed class Pending(CreatureRuntimeDomainService owner) : ITransactionParticipant

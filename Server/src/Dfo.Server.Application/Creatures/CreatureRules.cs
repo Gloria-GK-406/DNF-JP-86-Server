@@ -4,7 +4,7 @@ namespace Dfo.Server.Application.Creatures;
 
 public readonly record struct CreatureExperienceResult(int Experience, int Level, bool LevelChanged);
 
-/// <summary>Pure 70-reference creature progression calculations; callers own transitions and persistence.</summary>
+/// <summary>Pure 70-reference arithmetic used by creature instances to implement their transitions.</summary>
 public static class CreatureRules
 {
     public static double AdvanceStomach(

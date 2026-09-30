@@ -9,8 +9,10 @@ namespace Dfo.Server.Application.Creatures;
 internal sealed class CreatureDomainService(
     ICharacterBusinessInventoryDomainService inventories,
     ICreatureDomainStore creatures,
-    IDomainTransactionAccessor transactions) : ICreatureDomainService
+    IDomainTransactionAccessor transactions,
+    ICreatureInstanceDomainService instances) : ICreatureDomainService
 {
+    public ICreatureCollection Of(CharacterId characterId) => instances.Of(characterId);
     public ICreatureStore GetStore(CharacterId characterId) =>
         new CreatureStore(characterId,
             inventories.GetStore(characterId, BusinessInventoryStoreKind.Creature),
@@ -35,13 +37,6 @@ internal sealed class CreatureDomainService(
 
         public ValueTask<CreatureState?> CurrentAsync(CancellationToken cancellationToken) =>
             this.Session().ReadCurrentAsync(characterId, cancellationToken);
-
-        public ValueTask SaveAsync(CreatureState creature, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            this.Session().Write(characterId, creature);
-            return ValueTask.CompletedTask;
-        }
 
         public ValueTask ReviveIfEmptyAsync(int itemUid, CancellationToken cancellationToken)
         {

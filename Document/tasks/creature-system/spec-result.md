@@ -16,3 +16,8 @@
 - 装备实现应沿用现有业务store/container和内部索引；宠物状态已移至`Abstractions/Creatures`、`Application/Creatures`、`Persistence/Creatures`，协议转换仍在Protocol边界。
 - 若改动通用物品持久化、创建、移动或登录，请覆盖宠物同UID/详情保持及带宠物登录回归；不要把宠物world item当普通堆叠物品重建。
 - 当前部署和数据库样本状态见阶段验证；用户尚未反馈新版实机结果，孵化C2S和特殊成长继续保持未完成。
+
+
+## 2026-09-30 实例模式结构重构
+
+已按用户新授权完成 `creatures.Of(characterId)`、按UID的 `PetInstance` 与 `EggInstance` 行为模型；饱食、经验/加成、改名、普通进化和出生转换由实例负责，事务内共享最新状态及小数余额，关闭业务store公开Save。代码保留既有UID、数据库和协议行为；新构建与相关回归/生产副本探针通过，独立复核approved。[示例及验证](./verification/instance-refactor-20260930.md)。当前实机服务未切换，本段不扩张既有ClientVerified范围；完整宠物Task状态不变。

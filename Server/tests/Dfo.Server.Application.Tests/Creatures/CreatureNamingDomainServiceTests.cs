@@ -66,6 +66,18 @@ public sealed class CreatureNamingDomainServiceTests
     private sealed class FakeCreatureDomain(FakeCreatureStore store) : ICreatureDomainService
     {
         public ICreatureStore GetStore(CharacterId characterId) => store;
+        public ICreatureCollection Of(CharacterId characterId) => TestCreatureCollection.Create(characterId,
+            new Dfo.Server.Application.Transactions.DomainTransaction(), store,
+            state => store.SaveAsync(state, default).GetAwaiter().GetResult(), new NamingRules());
+    }
+
+    private sealed class NamingRules : ICreatureRuleService
+    {
+        public ValueTask<CreatureRule?> GetAsync(int template, CancellationToken ct) =>
+            ValueTask.FromResult<CreatureRule?>(new(template, 20, 50, true, [2, 5], [], null, false));
+        public ValueTask<CreatureArtifactExperienceRule?> GetArtifactExperienceAsync(int template, CancellationToken ct) =>
+            ValueTask.FromResult<CreatureArtifactExperienceRule?>(null);
+        public ValueTask<int> BirthExpirationAsync(int template, DateTimeOffset at, CancellationToken ct) => ValueTask.FromResult(0);
     }
 
     private sealed class FakeCreatureStore(int cardId = 25, int wornUid = 500,

@@ -19,6 +19,77 @@ namespace Dfo.Server.Application.Tests.Creatures;
 public sealed class CreatureRuntimeDomainServiceTests
 {
     [Fact]
+    public async Task Instance_read_projects_the_current_combat_balance_without_writing_storage()
+    {
+        await using var f = new Fixture();
+        await f.SeedAsync();
+        f.Enter();
+        await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+        f.Clock.Advance(TimeSpan.FromSeconds(30));
+        f.Runtime.ChangeCombat(f.Session.CharacterId, false);
+        await using var tx = f.Scope.Begin();
+        var pet = (await f.Runtime.Of(f.Session.CharacterId).FindPetAsync(101, default))!;
+        var state = await pet.ReadAsync(default);
+        Assert.Equal(49.5, state.ExactStomach, 8);
+        Assert.Equal(49, state.Stomach);
+        Assert.Equal(50, await f.StomachAsync());
+    }
+
+    [Fact]
+    public async Task Two_handles_share_latest_progress_and_fractional_stomach_without_lost_updates()
+    {
+        await using var f = new Fixture();
+        await f.SeedAsync();
+        f.Enter();
+        await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+        f.Clock.Advance(TimeSpan.FromSeconds(30));
+        IPetInstance first;
+        await using (var tx = f.Scope.Begin())
+        {
+            var pets = f.Runtime.Of(f.Session.CharacterId);
+            first = (await pets.FindPetAsync(101, default))!;
+            var second = (await pets.CurrentPetAsync(default))!;
+            await first.AddStomachAsync(10, default);
+            await second.AddExpAsync(20, default);
+            await first.AddStomachAsync(5, default);
+            var state = await second.ReadAsync(default);
+            Assert.Equal(64.5, state.ExactStomach, 8);
+            Assert.Equal(110, state.Experience);
+            state.NameBytes[0] = 0;
+            Assert.Equal(0x80, (await first.ReadAsync(default)).NameBytes[0]);
+            await tx.CommitAsync(default);
+        }
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await first.AddStomachAsync(1, default));
+        f.Clock.Advance(TimeSpan.FromSeconds(30));
+        await f.Runtime.AdvanceAsync(f.Session, default);
+        Assert.Equal(64, await f.StomachAsync());
+        Assert.Equal(110, await f.ExperienceAsync());
+    }
+
+    [Fact]
+    public async Task Rolled_back_instance_is_unusable_and_fresh_lookup_sees_durable_state()
+    {
+        await using var f = new Fixture();
+        await f.SeedAsync();
+        f.Enter();
+        await f.Runtime.AdvanceAsync(f.Session, default);
+        IPetInstance pet;
+        await using (f.Scope.Begin())
+        {
+            pet = (await f.Runtime.Of(f.Session.CharacterId).FindPetAsync(101, default))!;
+            await pet.AddStomachAsync(30, default);
+            await pet.AddExpAsync(20, default);
+        }
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await pet.ReadAsync(default));
+        Assert.Empty(f.Runtime.DrainProjections());
+        await using var tx = f.Scope.Begin();
+        var fresh = (await f.Runtime.Of(f.Session.CharacterId).FindPetAsync(101, default))!;
+        var state = await fresh.ReadAsync(default);
+        Assert.Equal(50, state.Stomach);
+        Assert.Equal(90, state.Experience);
+    }
+
+    [Fact]
     public async Task ItemGrowthPetDoesNotReceiveOrdinaryRoomExperience()
     {
         await using var f = new Fixture();
@@ -343,7 +414,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             CharacterDatabaseSchema.Ensure(
                 new SqliteConnectionStringBuilder { DataSource = this.Path }.ToString());
             this.Runtime = new CreatureRuntimeDomainService(
-                new SqliteCreatureDomainStore(this.Path), this.Rules, this.Scope,
+                new SqliteCreatureDomainStore(this.Path), new CreatureRuleService(this.Rules), this.Scope,
                 this.Sessions, this.Clock);
         }
 

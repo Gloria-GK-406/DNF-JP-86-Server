@@ -148,9 +148,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
         services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
+        services.TryAddSingleton<ICreatureRuleService, CreatureRuleService>();
         services.TryAddSingleton<ICreatureDomainService, CreatureDomainService>();
         services.TryAddSingleton<ICreatureNamingDomainService, CreatureNamingDomainService>();
-        services.TryAddSingleton<ICreatureRuntimeDomainService, CreatureRuntimeDomainService>();
+        services.TryAddSingleton<CreatureRuntimeDomainService>();
+        services.TryAddSingleton<ICreatureRuntimeDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
+        services.TryAddSingleton<ICreatureInstanceDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
         services.TryAddSingleton<ICreatureTransformationDomainService, CreatureTransformationDomainService>();
         services.TryAddSingleton<LegacyWornItemNormalizer>();
         services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();

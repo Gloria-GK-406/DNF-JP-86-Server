@@ -12,7 +12,6 @@ internal sealed class CreatureNamingDomainService(
     // A21 Script.pvf: stackable/stackable.lst 25 -> cash/creature/rename_card.stk,
     // [stackable type] [creature] 1. The 70 creature name field is 12 bytes.
     private const int RenameCardTemplateId = 25;
-    private const int MaxNameBytes = 12;
 
     public async ValueTask<CreatureRenameReceipt?> RenameAsync(SelectedSessionIdentity session,
         BusinessSlot sourceSlot, byte[] nameBytes, CancellationToken cancellationToken)
@@ -21,9 +20,7 @@ internal sealed class CreatureNamingDomainService(
         ArgumentNullException.ThrowIfNull(nameBytes);
         if (sessions.FindByCharacter(session.CharacterId) != session
             || sourceSlot.Space != BusinessInventorySpace.CreatureConsumable
-            || sourceSlot.Index is < 0 or > 50
-            || nameBytes.Length > MaxNameBytes
-            || nameBytes.Any(value => value is 0 or < 0x20 or 0x7F))
+            || sourceSlot.Index is < 0 or > 50)
             return null;
 
         var store = creatures.GetStore(session.CharacterId);
@@ -43,11 +40,13 @@ internal sealed class CreatureNamingDomainService(
             || !card.IsPile || card.Count <= 0 || IsExpired(card.Core.ExpireTime, now))
             return null;
 
-        var renamed = current with { NameBytes = [.. nameBytes] };
+        var pet = await creatures.Of(session.CharacterId).CurrentPetAsync(cancellationToken).ConfigureAwait(false);
+        if (pet is null) return null;
+        var renamed = await pet.RenameAsync(nameBytes, cancellationToken).ConfigureAwait(false);
+        if (renamed is null) return null;
         InventoryItemCoreState? remaining = card.Count > 1
             ? card.Core with { Value = card.Count - 1 }
             : null;
-        await store.SaveAsync(renamed, cancellationToken).ConfigureAwait(false);
         if (remaining is null)
             await cardContainer.ClearAsync(sourceSlot.Index, cancellationToken).ConfigureAwait(false);
         else
