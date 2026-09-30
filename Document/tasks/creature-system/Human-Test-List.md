@@ -4,11 +4,11 @@
 
 ## 环境与准备
 
-- 使用现有 A21 协议客户端和登录器，角色 **1123**（CharacterId 2）。
-- 本次启动已有宠物运行包：`E:/Project/DNF/DNF-JP-86-Server/artifacts/creature-system-20260929/runtime`，对应宠物阶段交接；源码工作树 HEAD 为 `687f9de2`，后续装备五项改造未重新发布到此运行包。
+- 使用现有 A21 协议客户端和登录器，角色 **1123**（CharacterId 2）；本次实际运行客户端位于 `E:/Project/DNF/DNFClient-A21-protocol2`。
+- 当前服务更新为登录断线修复包：`E:/Project/DNF/DNF-JP-86-Server/artifacts/creature-login-fix-20260930/runtime`。完整发布当前 `task/solo-play-roadmap`，包含原已自动交付的装备五项改造；装备实机验收仍未进行。
 - 沿用现有数据库。启动前只读核验和备份均为 `quick_check=ok`；备份：`E:/Project/DNF/DNF-JP-86-Server/artifacts/creature-system-20260929/before-acceptance-20260930-130957.db`。
 - 启动前样本：三只宠物（佛拉斯、恰克斯、巴拉姆）、两枚 63022 蛋、红蓝绿装备各两件、饲料 120 个、改名卡 10 张。恰克斯 UID949 当前穿戴，三件宠物装备也已穿戴；各宠物/蛋的物品 UID 与 core 关联键一致。
-- 当前客户端的 FrameCapture 已启用，记录全部双向类型与出站调用栈。客户端日志为 `E:/Project/DNF/DNFClient-A21-protocol/clienthack-frame-capture.log`；此次服务日志为 `E:/Project/DNF/DNF-JP-86-Server/artifacts/creature-system-20260929/acceptance-20260930-130957.stdout.log` 及同名前缀 `.stderr.log`。
+- 当前客户端的 FrameCapture 配置为启用，但尚未找到实际帧日志文件；不能将配置状态视为已抓到帧。P-10前需要核对插件及输出路径。当前服务日志为 `E:/Project/DNF/DNF-JP-86-Server/artifacts/creature-login-fix-20260930/server.stdout.log` 和 `server.stderr.log`；原失败日志保留在 `artifacts/creature-system-20260929/acceptance-20260930-130957.stdout.log`。
 
 每步反馈编号、操作时间、实际结果。发生断线、物品消失、重复扣道具时停在该步并反馈，保留现场；无需反复尝试。
 
@@ -35,6 +35,6 @@
 
 ## 自动证据与判断边界
 
-已有阶段自动验证见 [completion-evidence.md](verification/completion-evidence.md)，当前任务范围见 [TaskContract.md](TaskContract.md)，规则来源见 [tw70.md](evidence/tw70.md)。本次只验证服务启动、引导接口和样本现状，没有重跑自动测试。
+已有阶段自动验证见 [completion-evidence.md](verification/completion-evidence.md)，当前任务范围见 [TaskContract.md](TaskContract.md)，规则来源见 [tw70.md](evidence/tw70.md)。首次P-01发生选角断线，修复与新鲜验证见 [login-disconnect-20260930.md](verification/login-disconnect-20260930.md)；P-01至P-10仍按用户反馈记录，不能由自动验证改为实机通过。
 
 装备交接记录中的两项真实PVF `CreatureGoesBackOnTests` 失败仍待定位；P-02的实机结果用于核对玩家可见路径，不替代自动测试修复。P-01至P-09通过也不能将P-10或后续条件项标记为已验收，完整宠物任务保持进行中。

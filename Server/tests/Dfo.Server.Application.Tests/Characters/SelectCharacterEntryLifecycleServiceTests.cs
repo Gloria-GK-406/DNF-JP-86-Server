@@ -32,7 +32,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!);
+            null!, null!, null!, null!);
 
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
 
@@ -56,7 +56,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new CharacterContainerDomainService(),
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -77,7 +77,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!);
+            null!, null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -205,7 +205,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), containers,
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, null!);
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 

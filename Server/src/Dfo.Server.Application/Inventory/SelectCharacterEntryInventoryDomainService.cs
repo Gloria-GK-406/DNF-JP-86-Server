@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
@@ -18,6 +20,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules,
+    ICharacterEntryPreparationRuleService preparationRules,
     IInventorySlotMappingRuleService? slotMappings = null) : ISelectCharacterEntryInventoryDomainService
 {
     private readonly IInventorySlotMappingRuleService slotMappings = slotMappings ?? new InventorySlotMappingRuleService();
@@ -26,6 +29,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     {
         var reloaded = await inventories.LoadAsync(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
+        reloaded = await SupportCreatureMarkerProjection.CompleteAsync(
+            reloaded, preparationRules, result.World.PreparedAt, cancellationToken).ConfigureAwait(false);
         BindContainers(session.CharacterId, reloaded);
         return result with { CharacterInventory = reloaded };
     }
@@ -105,6 +110,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
 
         var reloaded = await inventories.LoadAsync(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
+        reloaded = await SupportCreatureMarkerProjection.CompleteAsync(
+            reloaded, preparationRules, result.World.PreparedAt, cancellationToken).ConfigureAwait(false);
         var updated = result with { CharacterInventory = reloaded };
         var updates = committed.Grants
             .Select(value => slotMappings.ToGameSlot(value.Slot))

@@ -180,7 +180,7 @@ public sealed class SelectCharacterPreparationService(
             accountId,
             cancellationToken).ConfigureAwait(false);
         var preparedAt = timeProvider.GetUtcNow();
-        characterInventory = await CompleteCreatureMarkerAsync(
+        characterInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             characterInventory, preparationRules, preparedAt, cancellationToken).ConfigureAwait(false);
         accountEntry = await CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
@@ -486,7 +486,7 @@ public sealed class SelectCharacterPreparationService(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
         var supportInventory = await inventories.LoadAsync(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
-        supportInventory = await CompleteCreatureMarkerAsync(
+        supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
         var completed = relation with
@@ -502,43 +502,6 @@ public sealed class SelectCharacterPreparationService(
                     .Select(value => value == relation ? completed : value).ToArray(),
             },
         };
-    }
-
-    private static async ValueTask<CharacterInventoryEntryState> CompleteCreatureMarkerAsync(
-        CharacterInventoryEntryState inventory,
-        ICharacterEntryPreparationRuleService rules,
-        DateTimeOffset preparedAt,
-        CancellationToken cancellationToken)
-    {
-        if (!inventory.Containers.Any(container => container.ContainerType == InventoryContainerType.Equipment
-            && container.Items.Any(item => item.SlotIndex == 25 && item.Core.ItemKind == 5))) return inventory;
-        var containers = new List<InventoryContainerState>(inventory.Containers.Count);
-        foreach (var container in inventory.Containers)
-        {
-            if (container.ContainerType != InventoryContainerType.Equipment)
-            {
-                containers.Add(container);
-                continue;
-            }
-
-            var items = new List<InventoryItemState>(container.Items.Count);
-            foreach (var item in container.Items)
-            {
-                if (item.SlotIndex != 25 || item.Core.ItemKind != 5)
-                {
-                    items.Add(item);
-                    continue;
-                }
-
-                var lifetime = await rules.CreatureLifetimeAsync(
-                    item.Core.ItemId, preparedAt, cancellationToken).ConfigureAwait(false);
-                var marker = SupportCreatureMarkerProjection.Resolve(
-                    lifetime, item.Core.ExpireTime, item.Core.Marker16, preparedAt);
-                items.Add(item with { Noti2CreatureMarker = marker });
-            }
-            containers.Add(container with { Items = items });
-        }
-        return inventory with { Containers = containers };
     }
 
     private WorldContentSubject BuildContentSubject(
