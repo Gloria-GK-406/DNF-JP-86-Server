@@ -1,0 +1,159 @@
+using Dfo.Pvf;
+using Dfo.Pvf.Tokens;
+using Dfo.Server.Abstractions.Content;
+
+namespace Dfo.Server.Infrastructure.Content;
+
+/// <summary>Reads only A21 amplifyitem facts needed by purification and attribute selection.</summary>
+internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provider)
+    : IEquipmentOutworldContentSource
+{
+    private static readonly IReadOnlyDictionary<string, byte> Attributes =
+        new Dictionary<string, byte>(StringComparer.Ordinal)
+        {
+            ["physical defense"] = 1,
+            ["magical defense"] = 2,
+            ["physical attack"] = 3,
+            ["magical attack"] = 4,
+            ["all"] = 0,
+        };
+    private static readonly string[] RarityNames =
+        ["common", "uncommon", "rare", "unique", "epic", "chronicle", "legendary"];
+
+    private readonly Lock gate = new();
+    private bool loaded;
+    private EquipmentOutworldTable? table;
+
+    public ValueTask<EquipmentOutworldTable?> GetAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!loaded)
+            {
+                table = Read(provider.Archive);
+                loaded = true;
+            }
+            return ValueTask.FromResult(table);
+        }
+    }
+
+    private static EquipmentOutworldTable? Read(PvfArchive archive)
+    {
+        var sections = PvfNpcShopDefinitionSource.Sections(archive, "etc/amplifyitem.etc");
+        if (sections.Count == 0) return null;
+        var level = One(sections, "[equip level const]");
+        if (level?.Values is not { Count: 1 } || Int(level.Values[0]) is not int minimum
+            || minimum <= 0) return null;
+        var purify = ReadItemCounts(sections, "[purify material]");
+        var clear = ReadItemCounts(sections, "[purify only material]");
+        if (purify is null || clear is null) return null;
+        foreach (var name in new[] { "[purify only cera material]" })
+        {
+            var extra = ReadItemCounts(sections, name);
+            if (extra is null || extra.Keys.Any(clear.ContainsKey)) return null;
+            foreach (var pair in extra) clear[pair.Key] = pair.Value;
+        }
+        var invest = ReadOptions(archive, One(sections, "[invest option]"));
+        var twist = ReadOptions(archive, One(sections, "[reinvest option]"));
+        var weights = ReadRollWeights(archive, One(sections, "[option data]"), out var bases);
+        var rarityWeights = ReadRarityWeights(archive, One(sections, "[rarity weight]"));
+        if (invest is null || twist is null || weights is null || rarityWeights is null
+            || purify.Count == 0 || clear.Count == 0) return null;
+        var initial = new Dictionary<int, IReadOnlyDictionary<byte, ushort>>();
+        for (var rarity = 2; rarity < RarityNames.Length; rarity++)
+        {
+            if (!rarityWeights.TryGetValue(RarityNames[rarity], out var factor)) return null;
+            var values = new Dictionary<byte, ushort>();
+            foreach (var pair in bases)
+            {
+                var product = factor * pair.Value;
+                if (!double.IsFinite(product) || product < 1 || product > ushort.MaxValue)
+                    return null;
+                values[pair.Key] = (ushort)product; // upstream truncates positive product
+            }
+            initial[rarity] = values;
+        }
+        return new(minimum, purify, clear, invest, twist, initial, weights);
+    }
+
+    private static Dictionary<int, int>? ReadItemCounts(
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name)
+    {
+        var result = new Dictionary<int, int>();
+        foreach (var section in sections.Where(section => section.Name == name))
+        {
+            if (section.Values.Count == 0 || section.Values.Count % 2 != 0) return null;
+            for (var i = 0; i < section.Values.Count; i += 2)
+            {
+                if (Int(section.Values[i]) is not int id || id <= 0
+                    || Int(section.Values[i + 1]) is not int count || count <= 0
+                    || !result.TryAdd(id, count)) return null;
+            }
+        }
+        return result;
+    }
+
+    private static Dictionary<int, EquipmentOutworldMaterialDefinition>? ReadOptions(
+        PvfArchive archive, PvfNpcShopDefinitionSource.Section? section)
+    {
+        if (section is null || section.Values.Count == 0 || section.Values.Count % 3 != 0)
+            return null;
+        var result = new Dictionary<int, EquipmentOutworldMaterialDefinition>();
+        for (var i = 0; i < section.Values.Count; i += 3)
+        {
+            var name = Name(archive, section.Values[i]);
+            if (!Attributes.TryGetValue(name, out var attribute)
+                || Int(section.Values[i + 1]) is not int id || id <= 0
+                || Int(section.Values[i + 2]) is not int count || count <= 0
+                || !result.TryAdd(id, new(attribute, count))) return null;
+        }
+        return result;
+    }
+
+    private static List<EquipmentOutworldRollWeight>? ReadRollWeights(PvfArchive archive,
+        PvfNpcShopDefinitionSource.Section? section, out Dictionary<byte, int> bases)
+    {
+        bases = [];
+        if (section is null || section.Values.Count != 12) return null;
+        var result = new List<EquipmentOutworldRollWeight>(4);
+        for (var i = 0; i < section.Values.Count; i += 3)
+        {
+            var name = Name(archive, section.Values[i]);
+            if (!Attributes.TryGetValue(name, out var attribute) || attribute == 0
+                || Int(section.Values[i + 1]) is not int weight || weight <= 0
+                || Int(section.Values[i + 2]) is not int baseValue || baseValue <= 0
+                || !bases.TryAdd(attribute, baseValue)) return null;
+            result.Add(new(attribute, weight));
+        }
+        return result;
+    }
+
+    private static Dictionary<string, double>? ReadRarityWeights(PvfArchive archive,
+        PvfNpcShopDefinitionSource.Section? section)
+    {
+        if (section is null || section.Values.Count != 14) return null;
+        var result = new Dictionary<string, double>(StringComparer.Ordinal);
+        for (var i = 0; i < section.Values.Count; i += 2)
+        {
+            var name = Name(archive, section.Values[i]);
+            var value = section.Values[i + 1];
+            if (value.Kind != PvfTokenKind.Single || !RarityNames.Contains(name)
+                || !result.TryAdd(name, BitConverter.Int32BitsToSingle(value.Value))
+                || !double.IsFinite(result[name]) || result[name] <= 0) return null;
+        }
+        return result;
+    }
+
+    private static PvfNpcShopDefinitionSource.Section? One(
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name) =>
+        sections.Count(section => section.Name == name) == 1
+            ? sections.First(section => section.Name == name) : null;
+
+    private static int? Int(PvfToken token) => token.Kind == PvfTokenKind.Int32
+        ? token.Value : null;
+
+    private static string Name(PvfArchive archive, PvfToken token) => token.IsString
+        ? archive.ResolveString(token.Value).Trim().Trim('`', '[', ']').ToLowerInvariant()
+        : string.Empty;
+}

@@ -68,6 +68,24 @@ public sealed class EquipmentReinforcementDomainTests
         Assert.Equal(100_000, shop.Gold);
     }
 
+    [Theory]
+    [InlineData((byte)0x80)]
+    [InlineData((byte)3)]
+    public async Task Unidentified_or_identified_outworld_equipment_is_not_ordinary_reinforcement(byte amplifyType)
+    {
+        using var shop = Fixture(0);
+        var original = Piece(0) with { AmplifyType = amplifyType };
+        await shop.SeedCore(9, original);
+        await shop.Seed(121, 1000, 20, 3);
+
+        var result = await Reinforce(shop);
+
+        Assert.Equal(EquipmentReinforcementRejection.CannotReinforce, result.Rejection);
+        Assert.Equal(original, await Target(shop));
+        Assert.Equal(20, shop.Count(1000));
+        Assert.Equal(100_000, shop.Gold);
+    }
+
     [Fact]
     public async Task Level_above_upstream_admission_ceiling_refuses_without_spending()
     {

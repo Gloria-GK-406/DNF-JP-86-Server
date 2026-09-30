@@ -272,6 +272,8 @@ internal static class GameProtocol
     public const ushort EnchantByBeadType = 0x0110;
     public const ushort UnsealRandomOptionType = 0x0191;
     public const ushort ChangeRandomOptionType = 0x01B6;
+    public const ushort PurifyItemType = 0x00CC;
+    public const ushort InvestAmplifyOptionType = 0x00CD;
 
     public const ushort ShopPurchaseCountType = 0x02CC;
 
