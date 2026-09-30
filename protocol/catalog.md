@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-09-30 CMD0110 宝珠附魔取证
+
+[请求](game/client-to-server/0x0110.md)与[结果](game/server-to-client/CMD-0x0110.md)已复核 A21 客户端构包/接收静态路径：装备宝珠请求写六字节，成功结果读取目标列表与槽位，宠物目标共用请求号但走另一 UI 分支。当前仅 `ClientStatic + UpstreamReference + 70Reference`，本服附魔实现与用户实机验收仍在进行；另有不同的附魔师摊位 `0x025A` 入口，不能混为普通宝珠结算。
+
 ## 2026-09-29 CMD0050 普通强化候选实现
 
 [请求](game/client-to-server/0x0050.md)与[结果](game/server-to-client/CMD-0x0050.md)已按 A21 静态读取路径、真实 PVF 和参考端规则接入普通强化；金币/材料/装备/破坏产物共命令事务，支持同连接同序列重放防二次消费。当前为 `CurrentImplementation + ClientStatic`，无普通强化实帧或 GUI 验收，增幅和高级模式仍分别待后续 Spec。

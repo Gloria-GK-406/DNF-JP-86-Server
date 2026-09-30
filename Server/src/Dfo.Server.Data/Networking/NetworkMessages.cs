@@ -23,6 +23,7 @@ public enum ClientMessageType
     GameRecoverStamina = 0x0001_0009,
     GameDisjointItem = 0x0001_001A,
     GameReinforceItem = 0x0001_0050,
+    GameEnchantByBead = 0x0001_0110,
     GameDeleteItem = 0x0001_0012,
     GameCrystalContract = 0x0001_0218,
     GameLearnSkill = 0x0001_001D,
@@ -198,6 +199,7 @@ public enum ServerMessageType
     GameRecoverStamina = 0x0001_0009,
     GameDisjointItem = 0x0001_001A,
     GameReinforceItem = 0x0001_0050,
+    GameEnchantByBead = 0x0001_0110,
     GameDecreaseDurability = 0x0001_0030,
     GameDeleteItem = 0x0001_0012,
     GameCrystalContract = 0x0001_0218,
@@ -359,5 +361,13 @@ public sealed record GameMessageMetadata(
     uint Checksum,
     ushort Sequence)
 {
+    /// <summary>Server-observed ordinal of every inbound Game frame on this connection.
+    /// Set at the transport boundary, including frames without registered decoders.</summary>
+    public long? InboundOrdinal { get; init; }
+
+    /// <summary>True when this frame advances the connection-wide 16-bit counter by one.
+    /// Repeated or out-of-order frames do not advance the server's expected counter.</summary>
+    public bool SequenceIsFresh { get; init; }
+
     public static GameMessageMetadata Empty { get; } = new(0, 0, 0, 0);
 }
