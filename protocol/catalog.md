@@ -1,14 +1,35 @@
 # 协议清单
 
+## 2026-09-30 宠物常规范围收尾（当前状态）
+
+P01–P10由用户确认通过；实例重构及常规事务回归已交付。当前协议覆盖如下，布局/流程以各页人工区和[生命周期流程](patterns/flow-creature-lifecycle.md)为准；下方按日期保存的取证/部署状态为历史记录。原完整宠物任务的技能、特殊成长及条件验收没有因此完成，见[收尾及剩余范围](../Document/tasks/creature-system/verification/closeout-20260930.md)。
+
+| Command | Type | 当前入口/输出 | 当前证据及业务边界 | 文档 |
+|---:|---:|---|---|---|
+| `0x01` | `0x0064` | RenameCreatureMessageDecoder | ClientStatic；P05普通改名/扣卡/重登ClientVerified | [CMD0064](game/client-to-server/0x0064.md) |
+| `0x01` | `0x0065` | CreatureResponseReportDecoder | ClientStatic；仅严格解析记录，不执行回应/技能 | [CMD0065](game/client-to-server/0x0065.md) |
+| `0x01` | `0x0066` | HatchCreatureMessageDecoder | WireCaptured；P10普通63022蛋ClientVerified | [CMD0066](game/client-to-server/0x0066.md) |
+| `0x01` | `0x007A` | CreatureScriptMessageReportDecoder | ClientStatic；仅严格解析记录，不执行脚本效果 | [CMD007A](game/client-to-server/0x007A.md) |
+| `0x01` CMD | `0x0064` | RenameCreatureResponseEncoder | CurrentImplementation；P05普通成功效果通过，错误/全线级取值未实测 | [CMD0064响应](game/client-to-server/0x0064.md) |
+| `0x01` CMD | `0x0066` | HatchCreatureResponseEncoder | CurrentImplementation；P10普通成功效果通过，0002仅本服拒绝选择 | [CMD0066响应](game/client-to-server/0x0066.md) |
+| `0x00` NOTI | `0x0064` | CreatureDeathEncoder | ClientStatic + CurrentImplementation；零饱食死亡未单独验收 | [NOTI0064](game/server-to-client/NOTI-0x0064.md) |
+| `0x00` NOTI | `0x0065` | CreatureRenameEncoder | ClientStatic + CurrentImplementation；P05普通改名通过，多人广播待验 | [NOTI0065](game/server-to-client/NOTI-0x0065.md) |
+| `0x00` NOTI | `0x0066` | CreatureExperienceEncoder | ClientStatic + CurrentImplementation；P06普通经验通过，mode1含义未证 | [NOTI0066](game/server-to-client/NOTI-0x0066.md) |
+| `0x00` NOTI | `0x0067` | CreatureStateEncoder | ClientStatic + CurrentImplementation；P06–P09普通饱食效果通过 | [NOTI0067](game/server-to-client/NOTI-0x0067.md) |
+| `0x00` NOTI | `0x0068` | CreatureResponseEncoder | encoder已注册，业务不发送；回应语义/受众未证 | [NOTI0068](game/server-to-client/NOTI-0x0068.md) |
+| `0x00` NOTI | `0x0069` | CreatureListMessage / CreatureListUpdateEncoder | ClientStatic + CurrentImplementation；P01/P04/P10非空详情与重登通过，删除语义未证 | [NOTI0069](game/server-to-client/NOTI-0x0069.md) |
+| `0x00` NOTI | `0x006A` | CreatureEvolutionEncoder | ClientStatic + CurrentImplementation；普通单目标自动进化待实机 | [NOTI006A](game/server-to-client/NOTI-0x006A.md) |
+| `0x00` NOTI | `0x006B` | CreatureRevivalEncoder | ClientStatic + CurrentImplementation；复活条件流程待实机 | [NOTI006B](game/server-to-client/NOTI-0x006B.md) |
+
 ## 2026-09-30 宠物孵化实机验收通过
 
 用户确认P10通过，CMD0066普通63022蛋孵化路径记为ClientVerified；日志及数据库确认UID959→63023、同UID、初始状态，另一枚蛋保留。验收限列表中的普通路径，完整宠物任务仍在进行。见 [孵化验收结果](../Document/tasks/creature-system/verification/hatch-delivery-20260930.md#实机验收结果)。下方部署/取证阶段的待验状态为历史记录。
 
-## 2026-09-30 宠物孵化接线交付
+## 2026-09-30 宠物孵化接线交付（部署时历史）
 
 [CMD0066](game/client-to-server/0x0066.md)已按实际3B请求接入同UID、同槽孵化事务，提交后回成功标志并刷新原槽与详情；重复、非法位置、非蛋、过期及不匹配产物拒绝。生产模块/真实PVF/当前库副本重放与相关回归通过，新服务已部署。当前为`WireCaptured`请求加`CurrentImplementation`响应/业务，P10 GUI/重登尚待用户复验，未标ClientVerified；下节Unhandled为接线前取证时状态。见 [孵化交付](../Document/tasks/creature-system/verification/hatch-delivery-20260930.md)。
 
-## 2026-09-30 宠物普通路径验收与孵化请求取证
+## 2026-09-30 宠物普通路径验收与孵化请求取证（接线前历史）
 
 用户确认P01–P09普通宠物路径实机通过，包括登录详情、移动穿戴、宠物装备、重登保存、改名、清房经验/饱食、喂食、城镇恢复与离线不累计。`ClientVerified`只覆盖验收列表的普通行为；错误、多人、进化/特殊成长和技能仍未闭合。[CMD0064改名](game/client-to-server/0x0064.md)已补限定验收结果；[CMD0066孵化](game/client-to-server/0x0066.md)实际请求 `070000` 已WireCaptured，但当前Unhandled、蛋未变化，孵化尚未验收。原始请求、只读快照及边界见 [本轮证据](../Document/tasks/creature-system/evidence/a21-acceptance-20260930.md)。
 

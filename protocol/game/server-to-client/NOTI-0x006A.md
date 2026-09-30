@@ -53,3 +53,8 @@ BodyLength = 未知（字段集合已知不完整）
 ## A21 进化通知（2026-09-29）
 
 **ClientStatic / Confirmed**：A21 handler VA `0x01146890` 恰读 `u16 targetSpecies,u16 ownerUniqueId`，第二值用于查场景角色，第一值写其宠物状态字段。**70Reference / High 业务语义**：`CCreature::Evolute` 传目标 `.cre` 的 creature ID，70 通知写 `u8 targetCreatureId,u16 ownerUniqueId`；首字段版本线宽不同，不可将 70 的 3B 包直接发给 A21。70 自动进化改同一宠物对象和穿戴物品模板，UID及已有成长状态不重置。当前实现按 A21 4B 形状编码目标 species 与 owner ID，仅覆盖单目标、无任务前置的升级自动进化；A21 非空进化实帧和客户端效果待验证。见[70 通知反汇编](../../../Document/tasks/creature-system/evidence/evolve-notify.asm.txt)、[A21 接收切片](../../../Document/tasks/creature-system/evidence/a21-pet-noti-handlers.asm.txt)及[专项证据](../../../Document/tasks/creature-system/evidence/a21-protocol.md)。
+
+
+## 当前验收边界（2026-09-30）
+
+本服已接线普通单目标、无任务前置、升级触发进化，UID及名字/经验/饱食保留；自动验证通过。P01–P10没有独立验收进化动画、多人可见范围或特殊成长，保持ClientStatic + CurrentImplementation。 相关消息编排、事务提交与受众归[宠物生命周期流程](../../patterns/flow-creature-lifecycle.md)，此处不由服务端编码推定客户端实帧正确。

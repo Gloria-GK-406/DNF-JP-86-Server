@@ -247,9 +247,11 @@ public sealed class CreatureGoesBackOnTests
         {
             var bag = this.Containers.FindContainer(this.character, InventoryContainerType.Pet)!;
             await using var lease = this.scope.Begin();
-            await bag.PutAsync(
+            await bag.PutNewAsync(
                 slotIndex,
                 StackableItemCore.Create(CreatureKind, ContractCreatureItemId, 1),
+                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(
+                    100, 0, 0, 0, 0, 1, [], 0)),
                 CancellationToken.None);
             await lease.CommitAsync(CancellationToken.None);
         }

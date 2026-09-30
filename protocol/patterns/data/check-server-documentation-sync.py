@@ -110,7 +110,7 @@ def inbound_registrations(
 ) -> tuple[list[Registration], list[str]]:
     pattern = re.compile(
         r"AddGameCmdMessageDecoder<\s*(?P<decoder>[A-Za-z_]\w*)\s*>\s*"
-        r"\(\s*(?P<type>GameProtocol\.[A-Za-z_]\w*|0[xX][0-9A-Fa-f]+)",
+        r"\(\s*(?P<type>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+|0[xX][0-9A-Fa-f]+)",
         re.S,
     )
     rows: list[Registration] = []
@@ -531,6 +531,26 @@ def self_test() -> int:
         )
         if not any("catalog missing encoder-backed outbound NOTI 0x0013" in item for item in missing):
             print("self-test failed: outbound registration missing from catalog was not detected")
+            return 1
+        qualified = {source: sources[source].replace("GameProtocol.SampleType", "CreaturePayloadCodec.SampleType")}
+        qualified_inbound, qualified_errors = inbound_registrations(
+            qualified, source_root, resolve_constants(qualified)
+        )
+        if qualified_errors or qualified_inbound != inbound:
+            print("self-test failed: slice-qualified constant registration was not extracted")
+            return 1
+        helper_source = source_root / "Extensions.cs"
+        qualified[helper_source] = "public static void AddGameCmdMessageDecoder<TDecoder>(this IServiceCollection services) {}"
+        helper_inbound, helper_errors = inbound_registrations(
+            qualified, source_root, resolve_constants(qualified)
+        )
+        if helper_errors or helper_inbound != inbound:
+            print("self-test failed: generic extension declaration was treated as a registration")
+            return 1
+        unresolved = {source: sources[source].replace("GameProtocol.SampleType", "CreaturePayloadCodec.UnknownType")}
+        _, unresolved_errors = inbound_registrations(unresolved, source_root, resolve_constants(unresolved))
+        if not unresolved_errors:
+            print("self-test failed: unresolved qualified constant was silently accepted")
             return 1
         drifted = {source: sources[source].replace("GameProtocol.SampleType", "ResolveType()")}
         drifted_inbound, _ = inbound_registrations(

@@ -1,4 +1,4 @@
-# 宠物系统实机验收列表
+# 宠物系统实机验收列表（P01–P10已通过）
 
 日期：2026-09-30。用户已明确确认 P-01至P-09通过；P-10孵化也已由用户确认通过。请求来源见 [本轮验收证据](evidence/a21-acceptance-20260930.md)，新功能与验证见 [孵化交付](verification/hatch-delivery-20260930.md)。
 
@@ -35,6 +35,11 @@
 
 ## 自动证据与判断边界
 
-已有阶段自动验证见 [completion-evidence.md](verification/completion-evidence.md)，当前任务范围见 [TaskContract.md](TaskContract.md)，规则来源见 [tw70.md](evidence/tw70.md)。首次P-01发生选角断线，修复与新鲜验证见 [login-disconnect-20260930.md](verification/login-disconnect-20260930.md)；P-01至P-09依据用户明确反馈记录为通过，P-10仅确认请求取证，不能由自动验证改为实机通过。
+已有阶段自动验证见 [completion-evidence.md](verification/completion-evidence.md)，当前任务范围见 [TaskContract.md](TaskContract.md)，规则来源见 [tw70.md](evidence/tw70.md)。首次P-01发生选角断线，修复与新鲜验证见 [login-disconnect-20260930.md](verification/login-disconnect-20260930.md)；P-01至P-10均依据用户明确反馈记录为通过；孵化曾仅取得请求，随后实现并复验通过。不是由自动验证替代用户验收。
 
-装备交接记录中的两项真实PVF `CreatureGoesBackOnTests` 失败仍待定位；P-02的实机结果用于核对玩家可见路径，不替代自动测试修复。P-01至P-09通过也不能将P-10或后续条件项标记为已验收，完整宠物任务保持进行中。
+两项旧 `CreatureGoesBackOnTests` 失败已在本次收尾定位：测试seed以PutAsync创建没有详情的新宠物，被正确的持久化身份保护拒绝。seed改为PutNewAsync提供创建详情，真实PVF下三项全部通过，生产逻辑未改。P01–P10普通范围收尾；后续条件项和完整宠物任务仍不由此标完成，详见[当前收尾](verification/closeout-20260930.md)。
+
+
+## 当前源码与收尾
+
+实例重构 `923f3c28` 已通过相关自动回归、真实PVF/数据库副本生产探针和独立复核；用户随后认可并要求本部分收尾。P01–P10客户端行为验收来自重构前已交付的普通孵化版本，未伪称重构后的所有实机路径重新跑过。当前部署及装备强化衔接以[收尾记录](verification/closeout-20260930.md)为准。
