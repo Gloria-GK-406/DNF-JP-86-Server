@@ -59,6 +59,7 @@ using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Protocol.Game.EnchantByBead;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
+using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
@@ -217,6 +218,8 @@ public sealed class ProtocolModule : IServerModule
             MagicSealCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<OutworldCompleted,
             OutworldCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<ForgingCompleted,
+            ForgingCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<InventorySorted, InventorySortedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
@@ -428,6 +431,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<OutworldCommand, EquipmentOutworldResult,
             OutworldCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ForgingCommand, EquipmentForgingResult,
+            ForgingCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
@@ -637,6 +643,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<OutworldReplayGuard>();
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GamePurifyItem);
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GameInvestAmplifyOption);
+        services.TryAddSingleton<ForgingReplayGuard>();
+        services.RegisterMessageHandler<ForgingHandler>(ClientMessageType.GameSeparateUpgrade);
         services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
@@ -846,6 +854,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.PurifyItemType, ClientMessageType.GamePurifyItem);
         services.AddGameCmdMessageDecoder<InvestAmplifyOptionDecoder>(
             GameProtocol.InvestAmplifyOptionType, ClientMessageType.GameInvestAmplifyOption);
+        services.AddGameCmdMessageDecoder<ForgingDecoder>(
+            GameProtocol.SeparateUpgradeType, ClientMessageType.GameSeparateUpgrade);
         services.AddGameCmdMessageDecoder<CrystalContractDecoder>(0x0218, ClientMessageType.GameCrystalContract);
         services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
             GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
@@ -970,6 +980,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<ChangeRandomOptionResponse, ChangeRandomOptionEncoder>();
         services.AddGameCmdMessageEncoder<PurifyItemResponse, PurifyItemEncoder>();
         services.AddGameCmdMessageEncoder<InvestAmplifyOptionResponse, InvestAmplifyOptionEncoder>();
+        services.AddGameCmdMessageEncoder<ForgingResponse, ForgingEncoder>();
         services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
         services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();

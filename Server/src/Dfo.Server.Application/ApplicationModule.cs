@@ -306,6 +306,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentOutworldSeedSource, EquipmentOutworldSeedSource>();
         services.TryAddSingleton<IEquipmentOutworldRuleService, EquipmentOutworldRuleService>();
         services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
+        services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
+        services.TryAddSingleton<IEquipmentForgingRuleService, EquipmentForgingRuleService>();
+        services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
         services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
         services.TryAddSingleton<MailStackTransfers>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();

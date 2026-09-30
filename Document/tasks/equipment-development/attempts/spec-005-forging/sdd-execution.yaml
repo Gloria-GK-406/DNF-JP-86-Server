@@ -1,0 +1,44 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: ./TaskContract.md
+  revision: 1
+current_stage: verification
+state: completed
+artifacts:
+  spec: ./spec.md
+  result: ./spec-result.md
+  plan: ./plan.md
+  change_review: ./reviews/change-review.md
+  completion_evidence: ./verification/completion-evidence.md
+stages:
+- id: spec
+  reads: [contract]
+  skills: [writing-specs]
+  gate: none
+  done_when: the Spec defines result and evidence-based acceptance
+  writes: [spec]
+- id: plan
+  reads: [contract, spec]
+  skills: [writing-plans]
+  gate: none
+  done_when: the direct Plan covers the accepted Spec
+  writes: [plan]
+- id: implementation
+  reads: [plan]
+  skills: [executing-tasks, test-driven-development]
+  gate: auto
+  done_when: planned implementation and relevant self-checks complete
+- id: review
+  reads: [contract, spec, plan]
+  skills: [reviewing-work]
+  gate: auto
+  done_when: complete result independently approved
+  writes: [change_review]
+- id: verification
+  reads: [contract, change_review]
+  skills: [verification-before-completion]
+  gate: auto
+  done_when: fresh evidence proves success conditions
+  writes: [completion_evidence]
+parent_controller: E:/Project/DNF/DNF-JP-86-Server/.worktrees/solo-play-roadmap/Document/tasks/equipment-development/multi-spec-map.md

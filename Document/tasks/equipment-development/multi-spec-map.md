@@ -5,16 +5,16 @@ contract:
   revision: 1
 phase: child_execution
 phase_state: pending
-active_attempt: spec-004
+active_attempt: spec-005
 last_transition: child-created
-transition_evidence: "SC-4 remains open after sealed spec-001 through spec-003; spec-004-outworld-amplify is a ready contained TaskContract contributing only to SC-4, with no child dependencies and baseline 4dbd73b4."
+transition_evidence: "SC-5 is the only remaining gap; spec-005-forging has a ready contained TaskContract, completed routing decision, no unresolved dependencies, and baseline c15e6add. No prior running child remains."
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/solo-play-roadmap/Document/tasks/equipment-development
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/solo-play-roadmap
   branch: task/solo-play-roadmap
-  baseline: 4dbd73b48952c3158004167de6f02be14767df39
-  baseline_evidence: "2026-09-30: one accepted magic-seal commit 4dbd73b4 over 8ab85ebd; linked task worktree clean immediately after commit; main checkout stayed at 10ccbad2; fresh build and focused suites passed, with two known creature failures in real-PVF Application full run."
+  baseline: c15e6add5590d5f957210763a0b1c118a93982c3
+  baseline_evidence: "2026-09-30: one accepted outworld/amplify commit c15e6add over 4dbd73b4; linked task worktree clean immediately after commit; fresh build, focused suites, no-PVF Application, Networking, Protocol and real-PVF Infrastructure passed, with two known creature failures in real-PVF Application full run."
 ---
 
 # Multi-Spec Map
@@ -40,7 +40,7 @@ workspace:
 | SC-1 | 强化闭环 | satisfied | `spec-001` accepted commit `e1d4c216`; `attempts/spec-001-reinforcement/spec-result.md` 和验证记录 | 用户集中实机验收仍待执行，不计入本自动接受条件 | aligned |
 | SC-2 | 装备附魔闭环 | satisfied | `spec-002` 的 `0x0110` 宝珠路径已在 `8ab85ebd` 接受，独立审查与自动验证见该子项记录 | 用户 A21 GUI 验收待后续进行；`0x025A` 附魔师摊位由用户明确排除 | aligned |
 | SC-3 | 魔法封印闭环 | satisfied | `spec-003` accepted commit `4dbd73b4`; `attempts/spec-003-magic-seal/spec-result.md` 和验证记录 | 用户集中实机验收仍待执行；材料路径证据不足而安全拒绝 | aligned |
-| SC-4 | 异次元属性闭环 | not_started | none | 70/上游/A21/PVF 探查、方案、实现、验证与验收清单 | aligned |
+| SC-4 | 异次元属性闭环 | satisfied | `spec-004` accepted commit `c15e6add`; `attempts/spec-004-outworld-amplify/spec-result.md` 和验证记录 | 用户集中实机验收仍待执行；action2/污染装备自然产出留 D-004/D-005 | aligned |
 | SC-5 | 锻造闭环 | not_started | none | 70/上游/A21/PVF 探查、方案、实现、验证与验收清单 | aligned |
 
 ## Spec Attempts
@@ -52,4 +52,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 1 | spec-001 | attempts/spec-001-reinforcement/TaskContract.md | 装备普通强化 | SC-1 | completed | attempts/spec-001-reinforcement/spec-result.md | e1d4c216d702aa829fa69a0eba3c95c1ea9301db |
 | 2 | spec-002 | attempts/spec-002-equipment-enchantment/TaskContract.md | 装备宝珠附魔 | SC-2 | completed | attempts/spec-002-equipment-enchantment/spec-result.md | 8ab85ebdcd5c872d6d7c762e8766a21ad015a7f9 |
 | 3 | spec-003 | attempts/spec-003-magic-seal/TaskContract.md | 魔法封印装备 | SC-3 | completed | attempts/spec-003-magic-seal/spec-result.md | 4dbd73b48952c3158004167de6f02be14767df39 |
-| 4 | spec-004 | attempts/spec-004-outworld-amplify/TaskContract.md | 异界气息与异次元属性 | SC-4 | running | pending | active |
+| 4 | spec-004 | attempts/spec-004-outworld-amplify/TaskContract.md | 异界气息与异次元属性 | SC-4 | completed | attempts/spec-004-outworld-amplify/spec-result.md | c15e6add5590d5f957210763a0b1c118a93982c3 |
+| 5 | spec-005 | attempts/spec-005-forging/TaskContract.md | 装备锻造 | SC-5 | running | pending | active |

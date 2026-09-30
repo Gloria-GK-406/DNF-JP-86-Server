@@ -117,6 +117,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();
         services.TryAddSingleton<IEquipmentMagicSealContentSource, PvfEquipmentMagicSealContentSource>();
         services.TryAddSingleton<IEquipmentOutworldContentSource, PvfEquipmentOutworldContentSource>();
+        services.TryAddSingleton<IEquipmentForgingContentSource, PvfEquipmentForgingContentSource>();
         services.TryAddSingleton<IEquipmentDisjointDefinitionSource,
             PvfEquipmentDisjointDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
