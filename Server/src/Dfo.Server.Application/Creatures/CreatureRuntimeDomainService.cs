@@ -192,6 +192,26 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         return change;
     }
 
+    public async ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
+        BusinessSlot eggSlot, CancellationToken ct)
+    {
+        if (sessions.FindByCharacter(session.CharacterId) != session || transformations is null) return null;
+        var tx = transactions.Current ?? throw new InvalidOperationException("Hatching requires a use case.");
+        var receipt = await transformations.HatchAsync(session, eggSlot, ct).ConfigureAwait(false);
+        if (receipt is null) return null;
+
+        // The new creature has the egg's UID. Drop that UID's old clock balance in the
+        // same transaction, so the next tick starts from its reset stomach of 100.
+        var pending = tx.Enlist(this, () => new Pending(this));
+        if (pending.Read(session.CharacterId) is { } entry && entry.Session == session)
+        {
+            var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
+            balances.Remove(receipt.After.ItemUid);
+            pending.Write(session.CharacterId, entry with { Stomachs = balances, Due = clock.GetUtcNow() });
+        }
+        return receipt;
+    }
+
     public async ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity session,
         int amount, CancellationToken ct)
     {

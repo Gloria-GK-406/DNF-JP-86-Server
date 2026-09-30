@@ -62,8 +62,32 @@ public sealed class CreatureTransformationDomainServiceTests
         Assert.Equal(1, fixture.Store.Saves);
     }
 
-    [Fact]
-    public async Task Hatch_and_level_up_evolution_commit_core_and_details_on_the_same_sqlite_uid()
+    [Theory]
+    [InlineData("expired")]
+    [InlineData("not-egg")]
+    [InlineData("stale-session")]
+    [InlineData("wrong-slot")]
+    [InlineData("wrong-target")]
+    public async Task Invalid_hatch_is_refused_without_saving_creature(string cause)
+    {
+        var fixture = new Fixture(new CreatureState(500, cause == "not-egg" ? 63000 : 63022,
+            100, 0, 1, [], 0, 0, 0, 0), BusinessInventorySpace.CreatureInventory);
+        await using var tx = fixture.Scope.Begin();
+        if (cause == "expired")
+            await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).PutAsync(0,
+                StackableItemCore.Create(5, 63022, 500) with { ExpireTime = 1 }, default);
+        if (cause == "wrong-target")
+            fixture.Rules.Rules[63023] = fixture.Rules.Rules[63023] with { CreatureId = 99 };
+        var session = cause == "stale-session" ? Session with { ConnectionGeneration = 2 } : Session;
+        var slot = new BusinessSlot(BusinessInventorySpace.CreatureInventory, cause == "wrong-slot" ? 140 : 0);
+        Assert.Null(await fixture.Service.HatchAsync(session, slot, default));
+        Assert.Equal(0, fixture.Store.Saves);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Hatch_and_level_up_evolution_commit_or_rollback_core_details_and_clock_on_the_same_sqlite_uid(bool commit)
     {
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
             $"dfo-creature-transform-{Guid.NewGuid():N}.db");
@@ -104,17 +128,21 @@ public sealed class CreatureTransformationDomainServiceTests
             var runtime = new CreatureRuntimeDomainService(new SqliteCreatureDomainStore(path),
                 rules, scope, new FakeSessions(), TimeProvider.System, transformations: service);
             runtime.Enter(Session);
+            await runtime.AdvanceAsync(Session, default);
             await using (var transaction = scope.Begin())
             {
-                Assert.NotNull(await service.HatchAsync(Session,
+                Assert.NotNull(await runtime.HatchAsync(Session,
+                    new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), default));
+                Assert.Null(await runtime.HatchAsync(Session,
                     new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), default));
                 var growth = await runtime.GainExperienceAsync(Session, 1, default);
                 Assert.NotNull(growth?.Transformation);
                 Assert.Equal(2, growth.Transformation.CreatureId);
                 Assert.Equal(501, growth.After.ItemUid);
-                await transaction.CommitAsync(default);
+                if (commit) await transaction.CommitAsync(default);
             }
 
+            await runtime.AdvanceAsync(Session, default);
             await using (var connection = new SqliteConnection($"Data Source={path}"))
             {
                 await connection.OpenAsync();
@@ -128,13 +156,13 @@ public sealed class CreatureTransformationDomainServiceTests
                 await using var reader = await command.ExecuteReaderAsync();
                 Assert.True(await reader.ReadAsync());
                 Assert.Equal(500, reader.GetInt64(0));
-                Assert.Equal(63023, BinaryPrimitives.ReadInt32LittleEndian((byte[])reader.GetValue(1)));
-                Assert.Equal((100L, 0L, 1L, ""),
+                Assert.Equal(commit ? 63023 : 63022, BinaryPrimitives.ReadInt32LittleEndian((byte[])reader.GetValue(1)));
+                Assert.Equal(commit ? (100L, 0L, 1L, "") : (31L, 42L, 7L, "41"),
                     (reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetString(5)));
                 Assert.True(await reader.ReadAsync());
                 Assert.Equal(501, reader.GetInt64(0));
-                Assert.Equal(63001, BinaryPrimitives.ReadInt32LittleEndian((byte[])reader.GetValue(1)));
-                Assert.Equal((61L, 2151L, 20L, "41"),
+                Assert.Equal(commit ? 63001 : 63000, BinaryPrimitives.ReadInt32LittleEndian((byte[])reader.GetValue(1)));
+                Assert.Equal(commit ? (61L, 2151L, 20L, "41") : (61L, 2150L, 19L, "41"),
                     (reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetString(5)));
                 Assert.False(await reader.ReadAsync());
             }

@@ -1,5 +1,13 @@
 # 协议清单
 
+## 2026-09-30 宠物孵化实机验收通过
+
+用户确认P10通过，CMD0066普通63022蛋孵化路径记为ClientVerified；日志及数据库确认UID959→63023、同UID、初始状态，另一枚蛋保留。验收限列表中的普通路径，完整宠物任务仍在进行。见 [孵化验收结果](../Document/tasks/creature-system/verification/hatch-delivery-20260930.md#实机验收结果)。下方部署/取证阶段的待验状态为历史记录。
+
+## 2026-09-30 宠物孵化接线交付
+
+[CMD0066](game/client-to-server/0x0066.md)已按实际3B请求接入同UID、同槽孵化事务，提交后回成功标志并刷新原槽与详情；重复、非法位置、非蛋、过期及不匹配产物拒绝。生产模块/真实PVF/当前库副本重放与相关回归通过，新服务已部署。当前为`WireCaptured`请求加`CurrentImplementation`响应/业务，P10 GUI/重登尚待用户复验，未标ClientVerified；下节Unhandled为接线前取证时状态。见 [孵化交付](../Document/tasks/creature-system/verification/hatch-delivery-20260930.md)。
+
 ## 2026-09-30 宠物普通路径验收与孵化请求取证
 
 用户确认P01–P09普通宠物路径实机通过，包括登录详情、移动穿戴、宠物装备、重登保存、改名、清房经验/饱食、喂食、城镇恢复与离线不累计。`ClientVerified`只覆盖验收列表的普通行为；错误、多人、进化/特殊成长和技能仍未闭合。[CMD0064改名](game/client-to-server/0x0064.md)已补限定验收结果；[CMD0066孵化](game/client-to-server/0x0066.md)实际请求 `070000` 已WireCaptured，但当前Unhandled、蛋未变化，孵化尚未验收。原始请求、只读快照及边界见 [本轮证据](../Document/tasks/creature-system/evidence/a21-acceptance-20260930.md)。

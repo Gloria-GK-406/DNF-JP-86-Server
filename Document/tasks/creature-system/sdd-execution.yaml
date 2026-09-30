@@ -93,4 +93,4 @@ tasks:
     file: ./tasks/TASK-005-integration.md
     depends_on:
     - TASK-004
-    state: in_progress
+    state: todo

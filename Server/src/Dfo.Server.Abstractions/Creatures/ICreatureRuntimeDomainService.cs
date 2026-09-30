@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Creatures;
 
@@ -15,6 +16,8 @@ public sealed record CreatureRuntimeChange(CreatureState Before, CreatureState A
 /// <summary>Online creature clocks and actions. Durable actions join the current use case.</summary>
 public interface ICreatureRuntimeDomainService
 {
+    ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
+        BusinessSlot eggSlot, CancellationToken cancellationToken);
     void Enter(SelectedSessionIdentity session);
     void QueueRoomExperience(SelectedSessionIdentity session, DungeonRunId runId, MazeCell cell, int amount);
     IReadOnlyList<CreaturePendingProjection> DrainProjections();

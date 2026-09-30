@@ -48,6 +48,17 @@ internal sealed record RenameCreatureRequest(short Slot, byte List, byte[] NameB
     public GameMessageMetadata Metadata { get; init; } = GameMessageMetadata.Empty;
 }
 
+internal sealed record HatchCreatureRequest(byte List, short Slot) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameHatchCreature;
+    public GameMessageMetadata Metadata { get; init; } = GameMessageMetadata.Empty;
+}
+
+internal sealed record HatchCreatureResponse(bool Success, byte ErrorCode = 0) : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameHatchCreature;
+}
+
 internal sealed record RenameCreatureResponse(short? Slot = null, byte List = 7, byte ErrorCode = 0)
     : IGameCmdMessage
 {
@@ -68,6 +79,17 @@ internal static class CreaturePayloadCodec
     internal const ushort EvolutionNotificationType = 0x006A;
     internal const ushort RevivalNotificationType = 0x006B;
     internal const ushort RenameCommandType = 0x0064;
+    internal const ushort HatchCommandType = 0x0066;
+
+    public static HatchCreatureRequest DecodeHatchRequest(ReadOnlySpan<byte> body)
+    {
+        if (body.Length != 3)
+            throw new InvalidDataException("Creature hatch request must contain exactly three bytes.");
+        return new(body[0], BinaryPrimitives.ReadInt16LittleEndian(body[1..]));
+    }
+
+    public static byte[] EncodeHatchResult(HatchCreatureResponse response) =>
+        response.Success ? [1] : [0, response.ErrorCode];
 
     public static byte[] EncodeExperience(CreatureExperienceNotification notice)
     {
@@ -211,4 +233,16 @@ internal sealed class RenameCreatureResponseEncoder : GameCmdMessageEncoder<Rena
         OnePayload(CreaturePayloadCodec.RenameCommandType, message.Slot is { } slot
             ? CreaturePayloadCodec.EncodeRenameSuccess(slot, message.List)
             : CreaturePayloadCodec.EncodeRenameFailure(message.ErrorCode));
+}
+
+internal sealed class HatchCreatureMessageDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        CreaturePayloadCodec.DecodeHatchRequest(body) with { Metadata = metadata };
+}
+
+internal sealed class HatchCreatureResponseEncoder : GameCmdMessageEncoder<HatchCreatureResponse>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HatchCreatureResponse message) =>
+        OnePayload(CreaturePayloadCodec.HatchCommandType, CreaturePayloadCodec.EncodeHatchResult(message));
 }

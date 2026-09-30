@@ -162,6 +162,7 @@ public enum ClientMessageType
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
+    GameHatchCreature = 0x0001_0066,
     GameCreatureResponseReport = 0x0001_0065,
     GameCreatureScriptMessage = 0x0001_007A,
     GameQuestClearCoupon = 0x0001_0204,
@@ -288,6 +289,7 @@ public enum ServerMessageType
     // Whether the item was consumed. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
+    GameHatchCreature = 0x0001_0066,
     GameQuestClearCoupon = 0x0001_0204,
 
     GameCreatureDeath = 0x0000_0064,
