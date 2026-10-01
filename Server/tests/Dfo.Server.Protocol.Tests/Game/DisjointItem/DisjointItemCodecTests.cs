@@ -16,7 +16,7 @@ namespace Dfo.Server.Protocol.Tests.Game.DisjointItem;
 public sealed class DisjointItemCodecTests
 {
     [Fact]
-    public void System_disjoint_is_the_nine_byte_game_command()
+    public void Disjoint_is_the_nine_byte_game_command_and_provider_is_preserved()
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
@@ -26,10 +26,10 @@ public sealed class DisjointItemCodecTests
         var decoder = (IGameMessageDecoder)provider.GetRequiredService(registration.DecoderType);
 
         var request = Assert.IsType<DisjointItemRequest>(decoder.Decode(
-            GameMessageMetadata.Empty, Convert.FromHexString("090000FFFF00000000")));
+            GameMessageMetadata.Empty, Convert.FromHexString("090000FFFFE8030000")));
 
         Assert.Equal(ClientMessageType.GameDisjointItem, request.MessageType);
-        Assert.Equal(((short)9, InventoryContainerType.Main, (short)-1, 0),
+        Assert.Equal(((short)9, InventoryContainerType.Main, (short)-1, 1000),
             ((short)request.TargetSlot.Index, request.TargetSlot.Space, request.DisjointToolSlotIndex,
                 request.DisjointProviderId));
     }

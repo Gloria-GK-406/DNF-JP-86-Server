@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol.Game.ReinforceItem;
+using Dfo.Server.Protocol.Game.DisjointItem;
 using Dfo.Server.Protocol.Game.EnchantByBead;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.Forging;
@@ -48,6 +49,9 @@ internal static class EffectRequestTransport
             case ReinforceItemRequest x:
                 writer.Write(x.Method); writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId);
                 writer.Write(x.MaterialSlot); writer.Write(x.OptionalTicketSlot); writer.Write(x.ReportedItemNameBytes.Length); writer.Write(x.ReportedItemNameBytes); break;
+            case DisjointItemRequest x:
+                writer.Write(checked((short)x.TargetSlot.Index)); writer.Write((byte)x.TargetSlot.Space);
+                writer.Write(x.DisjointToolSlotIndex); writer.Write(x.DisjointProviderId); break;
             case EnchantByBeadRequest x:
                 writer.Write((byte)x.BeadList); writer.Write(x.BeadSlot); writer.Write((byte)x.TargetList); writer.Write(x.TargetSlot); break;
             case ForgingRequest x:

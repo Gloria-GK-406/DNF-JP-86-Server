@@ -42,7 +42,7 @@ public sealed class DisjointItemHandler(
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
             result = new(EquipmentDisjointRejection.NoSession);
-        else if (invalidToolSlot)
+        else if (invalidToolSlot || disjointToolSlot is null && message.DisjointProviderId <= 0)
             result = new(EquipmentDisjointRejection.InvalidRequest);
         else if (disjointToolSlot is not null && message.DisjointProviderId != 0)
             result = new(EquipmentDisjointRejection.InvalidRequest);

@@ -12,6 +12,78 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class EquipmentDisjointTests
 {
     [Fact]
+    public async Task Last_portable_machine_cannot_turn_a_later_request_into_free_npc_disjoint()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.SeedCore(10, Piece());
+        await shop.Seed(65, 2600469, 1);
+
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 80),
+            new(InventoryContainerType.Main, 9), 65, 0));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(12, shop.Count(1000));
+
+        // A21 clears the exhausted tool pointer but keeps the portable window's zero provider.
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 81),
+            new(InventoryContainerType.Main, 10), -1, 0));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(12, shop.Count(1000));
+        Assert.Equal(0, shop.Count(2600469));
+        var responses = shop.Sender.Messages.OfType<DisjointItemResponse>().ToArray();
+        Assert.Equal(2, responses.Length);
+        Assert.NotNull(responses[0].TargetSlot);
+        Assert.Null(responses[1].TargetSlot);
+        Assert.Equal(0x13, responses[1].ErrorCode);
+        await Assert.ThrowsAsync<InvalidDataException>(() => EffectRequestTransport.Send(shop,
+            new DisjointItemRequest(new(1, 0x001A, 0, 81), new(InventoryContainerType.Main, 10), -1, 0)).AsTask());
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(12, shop.Count(1000));
+
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 82),
+            new(InventoryContainerType.Main, 10), -1, 1000));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(24, shop.Count(1000));
+    }
+
+    [Theory]
+    [InlineData(-2, 0)]
+    [InlineData(-1, 0)]
+    [InlineData(-1, -1)]
+    [InlineData(-1, int.MinValue)]
+    [InlineData(65, 1000)]
+    public async Task Missing_or_ambiguous_disjoint_provider_never_removes_equipment_or_grants_rewards(short toolSlot, int provider)
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(65, 2600469, 1);
+        await Disjoint(shop, 9, provider, toolSlot);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(1, shop.Count(2600469));
+        Assert.Equal(0, shop.Count(1000));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Last_portable_machine_with_a_stale_tool_slot_is_also_refused()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.SeedCore(10, Piece());
+        await shop.Seed(65, 2600469, 1);
+        await Disjoint(shop, 9, disjointToolSlot: 65);
+        await Disjoint(shop, 10, disjointToolSlot: 65);
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(12, shop.Count(1000));
+        Assert.Equal(0x13, shop.Sender.Messages.OfType<DisjointItemResponse>().Last().ErrorCode);
+    }
+
+    [Fact]
     public async Task One_transaction_removes_the_piece_grants_materials_and_then_acknowledges()
     {
         using var shop = Fixture();
@@ -418,12 +490,13 @@ public sealed class EquipmentDisjointTests
     private static ValueTask Disjoint(
         ShopFixture shop,
         short slot,
-        int disjointProviderId = 0,
+        int? disjointProviderId = null,
         short disjointToolSlot = -1) =>
         shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
             new DisjointItemRequest(
                 GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot, disjointProviderId),
+                new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot,
+                disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0)),
             default);
 
     private sealed class FixedRules(IReadOnlyList<EquipmentDisjointReward> rewards)

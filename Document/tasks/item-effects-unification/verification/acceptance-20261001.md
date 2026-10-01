@@ -20,3 +20,9 @@ H01、H02、H04、H05、H06、H07按用户实测反馈记通过。H03只确认�
 原始脚本、备份与回执：`E:/Project/DNF/DNF-JP-86-Server/artifacts/effects-h08-protection-two-each-20261001/`。receipt/backup存在时脚本拒绝重复发放。
 
 两券共存时原规则优先超级券；H08需继续实际失败保护及无保护损毁分支。源码、概率和既有保护规则未修改。
+
+## 固定等级券版本上的后续验收反馈
+
+测试版本33e26f34，运行PID15484。用户反馈H08/H09通过；H10缺红字装备样本；H11宝珠附魔、魔法封印解封通过，赛丽亚处转换属性失败；H12确认client自带非武器过滤；H13只剩一台便携分解机仍可分解两次。H08/H09记ClientVerified，H11/H12分项记Partial，H10缺样本与H13待复验。
+
+H13运行日志：19:25:11.204 target Main/33、toolSlot86、providerId0进入PortableDisjointItemCommand；19:25:23.965 target Main/25、toolSlot-1、providerId0却进入NpcDisjointItemCommand并成功。这是解码后的现场日志，未新增归档原始帧，不将其标为WireCaptured。修复和复验条件见[H13记录](../../../Verification/H13-portable-disjoint-20261001.md)。
