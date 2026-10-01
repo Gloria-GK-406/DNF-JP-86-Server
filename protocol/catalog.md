@@ -1,5 +1,48 @@
 # 协议清单
 
+## 2026-10-01 0.2.0验收收口与新增接入
+
+用户确认C01/C02/S01/S02通过，当前交付范围验收完成；红字净化／清除／赋予／扭转等未验组合移交[#49](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/49)。普通强化保护、已辨识首饰增幅、普通武器锻造、宝珠附魔、魔法封印解封／转换、设计图、通关出售与当前城镇药剂沿各页的限定反馈记录。整体接受不新增原服实帧，不覆盖隔离入口或历史未测分支。见[0.2.0范围](../Document/releases/0.2.0.md)及[effect流程](patterns/flow-item-effects.md)。下方带日期的旧阶段状态保留作历史。
+
+新增于本PR的34个wire identity由当前注册／encoder与目标main对比取得。以下表只登记CurrentImplementation接入，不推断A21布局或GUI正确性；0065／007A等仅解析记录的入口不因此具有完整游戏行为。
+
+| Command | Type | 方向 | 当前代码入口／输出 | 证据边界 | 文档 |
+|---|---|---|---|---|---|
+| `0x01` | `0x0014` | C2S | `SortItemMessageDecoder` | 仅证明注册／编码接入 | [0x0014](game/client-to-server/0x0014.md) |
+| `0x01` | `0x0019` | C2S | `CompoundItemDecoder` | 仅证明注册／编码接入 | [0x0019](game/client-to-server/0x0019.md) |
+| `0x01` | `0x0050` | C2S | `ReinforceItemMessageDecoder` | 仅证明注册／编码接入 | [0x0050](game/client-to-server/0x0050.md) |
+| `0x01` | `0x0064` | C2S | `RenameCreatureMessageDecoder` | 仅证明注册／编码接入 | [0x0064](game/client-to-server/0x0064.md) |
+| `0x01` | `0x0065` | C2S | `CreatureResponseReportDecoder` | 仅证明注册／编码接入 | [0x0065](game/client-to-server/0x0065.md) |
+| `0x01` | `0x0066` | C2S | `HatchCreatureMessageDecoder` | 仅证明注册／编码接入 | [0x0066](game/client-to-server/0x0066.md) |
+| `0x01` | `0x007A` | C2S | `CreatureScriptMessageReportDecoder` | 仅证明注册／编码接入 | [0x007A](game/client-to-server/0x007A.md) |
+| `0x01` | `0x00CC` | C2S | `PurifyItemDecoder` | 仅证明注册／编码接入 | [0x00CC](game/client-to-server/0x00CC.md) |
+| `0x01` | `0x00CD` | C2S | `InvestAmplifyOptionDecoder` | 仅证明注册／编码接入 | [0x00CD](game/client-to-server/0x00CD.md) |
+| `0x01` | `0x00ED` | C2S | `TeleportDecoder` | 仅证明注册／编码接入 | [0x00ED](game/client-to-server/0x00ED.md) |
+| `0x01` | `0x0110` | C2S | `EnchantByBeadDecoder` | 仅证明注册／编码接入 | [0x0110](game/client-to-server/0x0110.md) |
+| `0x01` | `0x0191` | C2S | `UnsealRandomOptionDecoder` | 仅证明注册／编码接入 | [0x0191](game/client-to-server/0x0191.md) |
+| `0x01` | `0x01B6` | C2S | `ChangeRandomOptionDecoder` | 仅证明注册／编码接入 | [0x01B6](game/client-to-server/0x01B6.md) |
+| `0x01` | `0x01B7` | C2S | `ForgingDecoder` | 仅证明注册／编码接入 | [0x01B7](game/client-to-server/0x01B7.md) |
+| `0x01` | `0x02CA` | C2S | `SortLockDecoder` | 仅证明注册／编码接入 | [0x02CA](game/client-to-server/0x02CA.md) |
+| `0x01` | `0x02CB` | C2S | `SortUnlockDecoder` | 仅证明注册／编码接入 | [0x02CB](game/client-to-server/0x02CB.md) |
+| `0x01` CMD | `0x0014` | S2C | `SortItemResponse` | 仅证明注册／编码接入 | [0x0014](game/client-to-server/0x0014.md) |
+| `0x01` CMD | `0x0019` | S2C | `CompoundItemResponse` | 仅证明注册／编码接入 | [0x0019](game/server-to-client/CMD-0x0019.md) |
+| `0x01` CMD | `0x0050` | S2C | `ReinforceItemResponse` | 仅证明注册／编码接入 | [0x0050](game/server-to-client/CMD-0x0050.md) |
+| `0x01` CMD | `0x0064` | S2C | `RenameCreatureResponse` | 仅证明注册／编码接入 | [0x0064](game/client-to-server/0x0064.md) |
+| `0x01` CMD | `0x0066` | S2C | `HatchCreatureResponse` | 仅证明注册／编码接入 | [0x0066](game/client-to-server/0x0066.md) |
+| `0x01` CMD | `0x00CC` | S2C | `PurifyItemResponse` | 仅证明注册／编码接入 | [0x00CC](game/server-to-client/CMD-0x00CC.md) |
+| `0x01` CMD | `0x00CD` | S2C | `InvestAmplifyOptionResponse` | 仅证明注册／编码接入 | [0x00CD](game/server-to-client/CMD-0x00CD.md) |
+| `0x01` CMD | `0x00ED` | S2C | `TeleportResponse` | 仅证明注册／编码接入 | [0x00ED](game/server-to-client/CMD-0x00ED.md) |
+| `0x01` CMD | `0x0110` | S2C | `EnchantByBeadResponse` | 仅证明注册／编码接入 | [0x0110](game/server-to-client/CMD-0x0110.md) |
+| `0x01` CMD | `0x01B6` | S2C | `ChangeRandomOptionResponse` | 仅证明注册／编码接入 | [0x01B6](game/server-to-client/CMD-0x01B6.md) |
+| `0x01` CMD | `0x01B7` | S2C | `ForgingResponse` | 仅证明注册／编码接入 | [0x01B7](game/server-to-client/CMD-0x01B7.md) |
+| `0x01` CMD | `0x02CA` | S2C | `SortLockResponse` | 仅证明注册／编码接入；Locked动态分支 | [0x02CA](game/client-to-server/0x02CA.md) |
+| `0x01` CMD | `0x02CB` | S2C | `SortLockResponse` | 仅证明注册／编码接入 | [0x02CB](game/client-to-server/0x02CB.md) |
+| `0x00` NOTI | `0x0064` | S2C | `CreatureDeathNotification` | 仅证明注册／编码接入 | [0x0064](game/server-to-client/NOTI-0x0064.md) |
+| `0x00` NOTI | `0x0065` | S2C | `CreatureRenameNotification` | 仅证明注册／编码接入 | [0x0065](game/server-to-client/NOTI-0x0065.md) |
+| `0x00` NOTI | `0x0066` | S2C | `CreatureExperienceNotification`、`ExperienceNotification` | 仅证明注册／编码接入 | [0x0066](game/server-to-client/NOTI-0x0066.md) |
+| `0x00` NOTI | `0x0068` | S2C | `CreatureResponseNotification` | 仅证明注册／编码接入 | [0x0068](game/server-to-client/NOTI-0x0068.md) |
+| `0x00` NOTI | `0x006A` | S2C | `CreatureEvolutionNotification` | 仅证明注册／编码接入 | [0x006A](game/server-to-client/NOTI-0x006A.md) |
+
 ## 2026-10-01 第三轮验收修复
 
 [01B6词条转换](game/client-to-server/0x01B6.md)修正固定第二字段为0（解封仍-1）；[0016出售](game/client-to-server/0x0016.md)按通关run资格开放德利拉，普通购买拒绝通关专用商店。[00ED瞬移](game/client-to-server/0x00ED.md)城镇选择药剂接入统一effect，消耗／位置同事务，提交后当前场景与[00AC冷却](game/server-to-client/NOTI-0x00AC.md)投影；重复只刷新当前状态。新增范围为CurrentImplementation＋ClientStatic／ContentStatic，真实客户端HumanPending。H16满包错误修正一并部署；H19客户端旧PVF期限同步。见[第三轮验收表](../Document/tasks/item-effects-unification/human-test-list-20261001-round3.md)。下面带日期的旧缺陷状态保留作为历史，不扩大已通过范围。

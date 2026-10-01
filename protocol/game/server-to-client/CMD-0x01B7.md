@@ -7,3 +7,8 @@
 - `CurrentImplementation`：提交后发送该候选 ACK，并刷新目标装备与材料槽；同序号重复请求不再结算资产。锻造仅改 `GenuineUpgrade`，不改普通强化 `Attribute` 低5位（`ReinforcementLevel`）或独立附魔升级次数 `EnchantUpgradeCount`，不凭 PVF 推断金币费用。
 
 没有 A21 原服响应实帧、GUI 或重登验收；这是 `ClientStatic + UpstreamReference + CurrentImplementation`，不标 `ClientVerified`。参见[人工测试清单](../../../Document/tasks/equipment-development/attempts/spec-005-forging/Human-Test-List.md)。
+
+
+## 2026-10-01 0.2.0验收边界
+
+普通武器锻造／重登由用户确认通过；客户端过滤非武器不作为服务端非法包实机证据。仅当前variant0。 统一结果与遗留Issue见[版本收口](../../../Document/releases/0.2.0.md)；跨消息编排见[effect流程](../../patterns/flow-item-effects.md)。

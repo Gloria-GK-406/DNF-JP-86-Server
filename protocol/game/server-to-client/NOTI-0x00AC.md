@@ -109,3 +109,8 @@ BodyLength = 未知（字段集合已知不完整）
 `CurrentImplementation`：ItemUsageDomainService现将仍有效的无日次数上限冷却纳入快照；ItemUsageProjectionDelivery在登录既有次数同步后，另发本消息。每条秒数为`ceil((CooldownUntil - snapshot.At).TotalSeconds)`，超过255条分包；过期不发，不发明清零消息。021E只同步有DailyLimit的条目，不能用次数消息替代7518的24小时冷却。effect重放复用当前时间快照，不能重启冷却。已有LastUsedAt只读恢复，7518没有新的到期日写入。
 
 `AutomatedVerified`：秒数编码、无每日限额、分包、重新构建服务后仍守原deadline、跨每日06:00仍保持elapsed时间、deadline到期放行。客户端倒计时仍待[第四轮人工验收](../../../Document/tasks/item-effects-unification/human-test-list-20261001-round4.md)，未新增WireCaptured证据。
+
+
+## 2026-10-01 0.2.0验收边界
+
+用户确认C01（当时剩余23小时22分钟）、C02通过；该疲劳药登录／重登倒计时按原截止时间恢复。跨06:00仍为自动化证据，不称用户守候实测。 统一结果与遗留Issue见[版本收口](../../../Document/releases/0.2.0.md)；跨消息编排见[effect流程](../../patterns/flow-item-effects.md)。

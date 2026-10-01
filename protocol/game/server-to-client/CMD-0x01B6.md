@@ -16,3 +16,8 @@
 `CurrentImplementation`：成功顺序改为装备NOTI `0x000E` → 金币NOTI `0x000E` → CMD `0x01B6 01`。原先ACK在最前，窗口先读旧结果，背包随后更新，符合用户当场窗口“武力B”而tooltip“活力C”的反馈。请求格式、成功／失败body及品质抽取不变。
 
 `AutomatedVerified`：经注册encoder核对通知序列与实际装备词条字节；丢弃角色容器、从SQLite重建后，生产快照中的101字节装备记录与刚发送的delta一致。该检查不代替客户端显示验收；S02a／S02b仍待[用户复验](../../../Document/tasks/item-effects-unification/human-test-list-20261001-round4.md)。
+
+
+## 2026-10-01 0.2.0验收边界
+
+29d2b100部署后用户确认S02符合预期并验收完成。成功通知先装备／金币后ACK的GUI效果已被接受；未新增原服raw帧。 统一结果与遗留Issue见[版本收口](../../../Document/releases/0.2.0.md)；跨消息编排见[effect流程](../../patterns/flow-item-effects.md)。
