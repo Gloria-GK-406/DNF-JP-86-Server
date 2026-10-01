@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class EquipmentMagicSealDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
-    IBusinessInventorySlotDomainService slots,
+    IEquipmentDomainService equipments,
     IEquipmentMagicSealRuleService rules,
     IEquipmentMagicSealSeedSource seeds,
     ICharacterDomainService characters,
@@ -40,13 +40,12 @@ internal sealed class EquipmentMagicSealDomainService(
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
             || materialSlot is not null)
             return new(EquipmentMagicSealRejection.InvalidRequest);
-        BoundInventorySlot? bound;
-        try { bound = slots.Find(session.CharacterId, targetSlot); }
+        IEquipmentInstance? instance;
+        try { instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false); }
         catch (InventorySlotMappingException)
         { return new(EquipmentMagicSealRejection.InvalidRequest); }
-        var target = bound is null ? null
-            : await bound.Container.ReadSlotAsync(bound.Slot.Index, ct).ConfigureAwait(false);
-        if (target is null || target.WorldClass != ItemWorldClass.Equipment)
+        var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
+        if (target is null)
             return new(EquipmentMagicSealRejection.ItemUnavailable);
         if (target.Core.ExpireTime > 0
             && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
@@ -55,7 +54,7 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.Locked);
         var oldOptions = new[] { target.Core.RandomOption0, target.Core.RandomOption1,
             target.Core.RandomOption2 };
-        var decision = await rules.DecideAsync(target.ItemId, oldOptions,
+        var decision = await rules.DecideAsync(target.Core.ItemId, oldOptions,
             changeIndex, seeds.NextSeed(), ct).ConfigureAwait(false);
         if (decision.Rejection != EquipmentMagicSealRejection.None)
             return new(decision.Rejection);
@@ -70,17 +69,7 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.InsufficientGold);
         var gold = await character.TrySpendGoldAsync(decision.GoldCost, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Validated magic-seal gold changed during settlement.");
-        var changed = target.Core with
-        {
-            RandomOption0 = nextOptions[0],
-            RandomOption1 = nextOptions.Count > 1 ? nextOptions[1] : new(0, 0, 0),
-            RandomOption2 = nextOptions.Count > 2 ? nextOptions[2] : new(0, 0, 0),
-            RandomOptionState = 0,
-            RandomOptionChangedIndex = byte.MaxValue,
-            RandomOptionChangeState = 0,
-            RandomOptionChange = new(0, 0, 0),
-        };
-        await bound!.Container.PutAsync(bound.Slot.Index, changed, ct).ConfigureAwait(false);
+        var changed = (await instance!.SetMagicSealOptionsAsync(nextOptions, ct).ConfigureAwait(false)).Core;
         return new(EquipmentMagicSealRejection.None,
             new(session, targetSlot, changed, gold, decision.Seed, clock.GetUtcNow()));
     }

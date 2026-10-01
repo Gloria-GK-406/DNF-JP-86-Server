@@ -510,19 +510,19 @@ internal abstract class StoreBackedItemContainer(
     /// byte the core carries would be the reading the classification exists to replace, and a
     /// caller would then be told one thing on the way out and another on the way in.
     ///
-    /// Nothing about the row it was read from comes with it: not a key, not a name. The store's
-    /// vocabulary has none to give, which is what makes the round trip this file is watched for
-    /// impossible to write rather than merely absent.
+    /// Identity is a read-only address; writing still lets the store preserve its own row.
     /// </remarks>
     private protected async ValueTask<ContainerSlotItem?> ToSlotItemAsync(
-        StoredItem? stored, CancellationToken cancellationToken) =>
-        stored is null
-            ? null
-            : new ContainerSlotItem(
-                stored.SlotIndex,
-                stored.Core,
-                await placementRules.ClassifyAsync(stored.Core.ItemId, cancellationToken)
-                    .ConfigureAwait(false));
+        StoredItem? stored, CancellationToken cancellationToken)
+    {
+        if (stored is null) return null;
+        var worldClass = await placementRules.ClassifyAsync(stored.Core.ItemId, cancellationToken)
+            .ConfigureAwait(false);
+        return new(stored.SlotIndex, stored.Core, worldClass)
+        {
+            Identity = worldClass == ItemWorldClass.Interchangeable ? null : stored.Identity,
+        };
+    }
 }
 
 /// <summary>

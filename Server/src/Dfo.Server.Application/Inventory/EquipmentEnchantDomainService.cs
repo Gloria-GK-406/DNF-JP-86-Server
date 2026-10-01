@@ -12,7 +12,8 @@ internal sealed class EquipmentEnchantDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
-    IEquipmentEnchantContentSource content,
+    IEquipmentDomainService equipments,
+    IEquipmentEnchantRuleService rules,
     IMaterialConsumptionDomainService materials,
     TimeProvider clock) : IEquipmentEnchantDomainService
 {
@@ -48,9 +49,9 @@ internal sealed class EquipmentEnchantDomainService(
             return new(EquipmentEnchantRejection.ItemUnavailable);
         var bead = await beadBound.Container.ReadSlotAsync(beadBound.Slot.Index, ct)
             .ConfigureAwait(false);
-        var target = await targetBound.Container.ReadSlotAsync(targetBound.Slot.Index, ct)
-            .ConfigureAwait(false);
-        if (target is null || target.WorldClass != ItemWorldClass.Equipment)
+        var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
+        var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
+        if (target is null)
             return new(EquipmentEnchantRejection.ItemUnavailable);
         if (target.Core.ExpireTime > 0
             && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
@@ -63,26 +64,17 @@ internal sealed class EquipmentEnchantDomainService(
             || bead.Core.ExpireTime > 0
                 && bead.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentEnchantRejection.MaterialUnavailable);
-        // A21 storage uses EnchantUpgradeCount for normal reinforcement. An upgraded bead's
-        // independent enchant level cannot be represented safely in this equipment record.
-        if (bead.Core.EnchantUpgradeCount != 0)
-            return new(EquipmentEnchantRejection.UnsupportedContent);
-        var definition = await content.ResolveAsync(bead.ItemId, target.ItemId, ct)
-            .ConfigureAwait(false);
-        if (definition is null || definition.BeadItemId != bead.ItemId
-            || definition.CardItemId <= 0)
-            return new(EquipmentEnchantRejection.UnsupportedContent);
+        var cardId = await rules.CardAsync(bead.Core, target.Core.ItemId, ct).ConfigureAwait(false);
+        if (cardId is null) return new(EquipmentEnchantRejection.UnsupportedContent);
 
         var consumed = await materials.ConsumeAsync(session,
             [new(new MaterialLocation.Carried(beadSlot), bead.ItemId, 1)], ct)
             .ConfigureAwait(false);
         if (!consumed.Success)
             return new(EquipmentEnchantRejection.MaterialUnavailable);
-        var changed = target.Core with { EnchantCardId = definition.CardItemId };
-        await targetBound.Container.PutAsync(targetBound.Slot.Index, changed, ct)
-            .ConfigureAwait(false);
+        var changed = (await instance!.SetEnchantmentAsync(cardId.Value, ct).ConfigureAwait(false)).Core;
         return new(EquipmentEnchantRejection.None,
-            new(session, beadSlot, targetSlot, definition.CardItemId, changed,
+            new(session, beadSlot, targetSlot, cardId.Value, changed,
                 consumed.Debits[0].Remaining, clock.GetUtcNow()));
     }
 }

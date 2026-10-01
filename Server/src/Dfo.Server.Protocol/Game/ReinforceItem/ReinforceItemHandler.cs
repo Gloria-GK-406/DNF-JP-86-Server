@@ -130,7 +130,10 @@ public sealed class ReinforceItemHandler(
             NewLevel: receipt.NewLevel,
             TargetSlot: checked((short)slotMappings.ToGameSlot(receipt.TargetSlot).Index),
             DestroyRewards: receipt.DestroyRewards.Select(reward =>
-                new ReinforceItemReward(slotMappings.ToGameSlot(reward.Slot),
+                new ReinforceItemReward(reward.VirtualSlotIndex is { } virtualSlot
+                        ? new GameSlot(InventoryContainerType.Main, virtualSlot)
+                        : slotMappings.ToGameSlot(reward.Slot
+                            ?? throw new InvalidDataException("A physical reinforcement reward has no slot.")),
                     reward.ItemId, reward.Count)).ToArray());
 
     internal static byte ErrorCode(EquipmentReinforcementRejection rejection) => rejection switch

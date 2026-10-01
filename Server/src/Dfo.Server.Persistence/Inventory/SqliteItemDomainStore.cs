@@ -112,6 +112,7 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
 
         if (this.staged.TryGetValue(containerId, out var slots))
         {
+            var identities = await this.StagedIdentitiesAsync(cancellationToken).ConfigureAwait(false);
             foreach (var (slot, item) in slots)
             {
                 if (item is null)
@@ -120,7 +121,7 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                 }
                 else
                 {
-                    items[slot] = item;
+                    items[slot] = item with { Identity = identities.GetValueOrDefault((containerId, slot)) };
                 }
             }
         }
@@ -134,7 +135,9 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         if (this.staged.TryGetValue(containerId, out var slots)
             && slots.TryGetValue(slotIndex, out var held))
         {
-            return held;
+            if (held is null) return null;
+            var identities = await this.StagedIdentitiesAsync(cancellationToken).ConfigureAwait(false);
+            return held with { Identity = identities.GetValueOrDefault((containerId, slotIndex)) };
         }
 
         var place = OwnerOf(containerId);
@@ -192,6 +195,16 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
             && item.Core.Value == prior.Core.Value)
             item = item with { TransferFrom = origin };
         slots[item.SlotIndex] = item;
+    }
+
+    private async ValueTask<Dictionary<(ContainerId, int), ItemIdentity>> StagedIdentitiesAsync(
+        CancellationToken cancellationToken)
+    {
+        // Resolve exactly the rows settlement will preserve, without flushing or allocating new UIDs.
+        var survivors = Survivors(this.Placings(),
+            await this.DisplacedAsync(cancellationToken, includeTransferSources: true).ConfigureAwait(false));
+        return survivors.ToDictionary(pair => pair.Key,
+            pair => new ItemIdentity(checked((int)pair.Value.ItemUid)));
     }
 
     public void Clear(ContainerId containerId, int slotIndex)
@@ -295,14 +308,22 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     ];
 
     /// <summary>The rows standing in the positions this batch names, before it touches them.</summary>
-    private async ValueTask<List<Displaced>> DisplacedAsync(CancellationToken cancellationToken)
+    private async ValueTask<List<Displaced>> DisplacedAsync(CancellationToken cancellationToken,
+        bool includeTransferSources = false)
     {
         var displaced = new List<Displaced>();
-        foreach (var containerId in this.staged.Keys
-                     .OrderBy(containerId => containerId.Value, StringComparer.Ordinal))
+        var positions = this.staged.SelectMany(entry => entry.Value.Keys
+            .Select(slot => new ItemTransferSource(entry.Key, slot)));
+        if (includeTransferSources)
+            positions = positions.Concat(this.Placings()
+                .Where(placing => placing.Item.TransferFrom is not null)
+                .Select(placing => placing.Item.TransferFrom!.Value));
+        foreach (var group in positions.Distinct().GroupBy(position => position.Container)
+                     .OrderBy(group => group.Key.Value, StringComparer.Ordinal))
         {
+            var containerId = group.Key;
             var place = OwnerOf(containerId);
-            foreach (var slot in this.staged[containerId].Keys.Order())
+            foreach (var slot in group.Select(position => position.SlotIndex).Order())
             {
                 await using var command = await owner.CommandAsync(cancellationToken)
                     .ConfigureAwait(false);

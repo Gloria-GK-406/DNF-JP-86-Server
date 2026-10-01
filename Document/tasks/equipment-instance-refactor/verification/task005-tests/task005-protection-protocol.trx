@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="850df84e-11ee-46a5-9432-80d18055f659" name="Gloria@家庭台式机 2026-09-30 19:20:30" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-30T19:20:30.8618284+08:00" queuing="2026-09-30T19:20:30.8618285+08:00" start="2026-09-30T19:20:29.0955545+08:00" finish="2026-09-30T19:20:30.8662294+08:00" />
+  <TestSettings name="default" id="90ef9100-5d84-4405-b1f1-30e5433dd96e">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-30_19_20_30" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="0c7069ce-fe2b-419a-a93c-0dbea777db63" testId="336cbb94-7f33-ce41-4a17-f4fb8596b1ac" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Destruction_ack_appends_count_and_ten_bytes_per_reward" computerName="家庭台式机" duration="00:00:00.0005932" startTime="2026-09-30T19:20:30.7825078+08:00" endTime="2026-09-30T19:20:30.7825342+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0c7069ce-fe2b-419a-a93c-0dbea777db63" />
+    <UnitTestResult executionId="76894843-7581-4dff-8c9c-cb226773686e" testId="72888ea8-4240-c2e9-2f85-413187a8af5d" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_reads_method_slots_template_and_length_prefixed_name" computerName="家庭台式机" duration="00:00:00.0040111" startTime="2026-09-30T19:20:30.7825940+08:00" endTime="2026-09-30T19:20:30.7826224+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="76894843-7581-4dff-8c9c-cb226773686e" />
+    <UnitTestResult executionId="4a3d0c68-676a-4715-9472-2d2eec3640f9" testId="c63a4979-dfa6-22d2-5dc8-dfa573da39ea" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Error_ack_has_both_bytes_of_the_client_cmd_envelope" computerName="家庭台式机" duration="00:00:00.0567586" startTime="2026-09-30T19:20:30.7133540+08:00" endTime="2026-09-30T19:20:30.7744180+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4a3d0c68-676a-4715-9472-2d2eec3640f9" />
+    <UnitTestResult executionId="40eb5f62-2c5f-4a96-bf5e-15d877ad061b" testId="550fcc4a-0f15-7f50-76d2-3a15410dc1b3" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_refuses_name_length_past_the_body" computerName="家庭台式机" duration="00:00:00.0008653" startTime="2026-09-30T19:20:30.7816734+08:00" endTime="2026-09-30T19:20:30.7817443+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="40eb5f62-2c5f-4a96-bf5e-15d877ad061b" />
+    <UnitTestResult executionId="7b432441-ba1e-486e-80e9-d3617f6800ff" testId="75fae509-dc2f-41ee-f160-f9b1326ffab2" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_refuses_a_short_body(length: 15)" computerName="家庭台式机" duration="00:00:00.0001535" startTime="2026-09-30T19:20:30.7821386+08:00" endTime="2026-09-30T19:20:30.7821738+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7b432441-ba1e-486e-80e9-d3617f6800ff" />
+    <UnitTestResult executionId="bac2008f-d85d-4083-ade3-a55e27e2f377" testId="eb98d552-870c-d3c2-f401-808ca52c3fa9" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Success_ack_matches_the_A21_handler_read_sequence" computerName="家庭台式机" duration="00:00:00.0004302" startTime="2026-09-30T19:20:30.7823329+08:00" endTime="2026-09-30T19:20:30.7823637+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bac2008f-d85d-4083-ade3-a55e27e2f377" />
+    <UnitTestResult executionId="db87c878-9d4f-4847-912a-e47004712662" testId="541fa4ad-2d98-b1e2-bc4e-158ff47fc5e3" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_refuses_a_short_body(length: 0)" computerName="家庭台式机" duration="00:00:00.0002186" startTime="2026-09-30T19:20:30.7822346+08:00" endTime="2026-09-30T19:20:30.7822646+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db87c878-9d4f-4847-912a-e47004712662" />
+    <UnitTestResult executionId="66261c9a-fe27-4ca8-9c77-a971ebe1051b" testId="4c788682-5bbf-da54-943e-dc767aab7711" testName="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_keeps_non_utf8_reported_name_bytes_without_using_them_as_authority" computerName="家庭台式机" duration="00:00:00.0005373" startTime="2026-09-30T19:20:30.7824228+08:00" endTime="2026-09-30T19:20:30.7824483+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="66261c9a-fe27-4ca8-9c77-a971ebe1051b" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_refuses_a_short_body(length: 15)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="75fae509-dc2f-41ee-f160-f9b1326ffab2">
+      <Execution id="7b432441-ba1e-486e-80e9-d3617f6800ff" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Decoder_refuses_a_short_body" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_refuses_name_length_past_the_body" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="550fcc4a-0f15-7f50-76d2-3a15410dc1b3">
+      <Execution id="40eb5f62-2c5f-4a96-bf5e-15d877ad061b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Decoder_refuses_name_length_past_the_body" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_refuses_a_short_body(length: 0)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="541fa4ad-2d98-b1e2-bc4e-158ff47fc5e3">
+      <Execution id="db87c878-9d4f-4847-912a-e47004712662" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Decoder_refuses_a_short_body" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Error_ack_has_both_bytes_of_the_client_cmd_envelope" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="c63a4979-dfa6-22d2-5dc8-dfa573da39ea">
+      <Execution id="4a3d0c68-676a-4715-9472-2d2eec3640f9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Error_ack_has_both_bytes_of_the_client_cmd_envelope" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Destruction_ack_appends_count_and_ten_bytes_per_reward" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="336cbb94-7f33-ce41-4a17-f4fb8596b1ac">
+      <Execution id="0c7069ce-fe2b-419a-a93c-0dbea777db63" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Destruction_ack_appends_count_and_ten_bytes_per_reward" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Success_ack_matches_the_A21_handler_read_sequence" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="eb98d552-870c-d3c2-f401-808ca52c3fa9">
+      <Execution id="bac2008f-d85d-4083-ade3-a55e27e2f377" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Success_ack_matches_the_A21_handler_read_sequence" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_reads_method_slots_template_and_length_prefixed_name" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="72888ea8-4240-c2e9-2f85-413187a8af5d">
+      <Execution id="76894843-7581-4dff-8c9c-cb226773686e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Decoder_reads_method_slots_template_and_length_prefixed_name" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests.Decoder_keeps_non_utf8_reported_name_bytes_without_using_them_as_authority" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="4c788682-5bbf-da54-943e-dc767aab7711">
+      <Execution id="66261c9a-fe27-4ca8-9c77-a971ebe1051b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.ReinforceItemWireTests" name="Decoder_keeps_non_utf8_reported_name_bytes_without_using_them_as_authority" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="336cbb94-7f33-ce41-4a17-f4fb8596b1ac" executionId="0c7069ce-fe2b-419a-a93c-0dbea777db63" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="72888ea8-4240-c2e9-2f85-413187a8af5d" executionId="76894843-7581-4dff-8c9c-cb226773686e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c63a4979-dfa6-22d2-5dc8-dfa573da39ea" executionId="4a3d0c68-676a-4715-9472-2d2eec3640f9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="550fcc4a-0f15-7f50-76d2-3a15410dc1b3" executionId="40eb5f62-2c5f-4a96-bf5e-15d877ad061b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="75fae509-dc2f-41ee-f160-f9b1326ffab2" executionId="7b432441-ba1e-486e-80e9-d3617f6800ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="eb98d552-870c-d3c2-f401-808ca52c3fa9" executionId="bac2008f-d85d-4083-ade3-a55e27e2f377" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="541fa4ad-2d98-b1e2-bc4e-158ff47fc5e3" executionId="db87c878-9d4f-4847-912a-e47004712662" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4c788682-5bbf-da54-943e-dc767aab7711" executionId="66261c9a-fe27-4ca8-9c77-a971ebe1051b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="8" executed="8" passed="8" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.50]   Discovering: Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.77]   Discovered:  Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.79]   Starting:    Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.87]   Finished:    Dfo.Server.Protocol.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

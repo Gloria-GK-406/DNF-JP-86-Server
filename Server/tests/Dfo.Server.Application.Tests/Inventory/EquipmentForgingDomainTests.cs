@@ -18,7 +18,7 @@ public sealed class EquipmentForgingDomainTests
     public async Task Success_consumes_pvf_material_and_only_increments_genuine_upgrade()
     {
         using var shop = Fixture(0);
-        var original = Piece() with { EnchantUpgradeCount = 7, AmplifyType = 3,
+        var original = Piece() with { Attribute = 0xA7, EnchantUpgradeCount = 9, AmplifyType = 3,
             AmplifyValue = 5, EnchantCardId = 567, RandomOptionState = 3 };
         await shop.SeedCore(9, original);
         await shop.Seed(121, 3326, 50);
@@ -40,10 +40,10 @@ public sealed class EquipmentForgingDomainTests
     }
 
     [Fact]
-    public async Task Probability_failure_consumes_material_but_preserves_both_upgrade_fields()
+    public async Task Probability_failure_consumes_material_but_preserves_all_upgrade_fields()
     {
         using var shop = Fixture(5000);
-        var original = Piece() with { GenuineUpgrade = 1, EnchantUpgradeCount = 4 };
+        var original = Piece() with { GenuineUpgrade = 1, Attribute = 0xA4, EnchantUpgradeCount = 7 };
         await shop.SeedCore(9, original);
         await shop.Seed(121, 3326, 50);
 

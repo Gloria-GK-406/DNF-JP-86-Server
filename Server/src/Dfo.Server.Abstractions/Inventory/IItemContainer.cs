@@ -289,6 +289,8 @@ public abstract record ItemMoveOutcome
 public sealed record ContainerSlotItem(
     int SlotIndex, InventoryItemCoreState Core, ItemWorldClass WorldClass)
 {
+    public ItemIdentity? Identity { get; init; }
+
     public byte ItemKind => Core.ItemKind;
 
     public int ItemId => Core.ItemId;

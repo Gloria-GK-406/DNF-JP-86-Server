@@ -16,6 +16,8 @@ internal static class GameProtocol
     public const ushort SortLockType = 0x02CA;
     public const ushort SortUnlockType = 0x02CB;
 
+    public const ushort CompoundItemType = 0x0019;
+
     public const ushort SortItemType = 0x0014;
 
     public const ushort LearnSkillType = 0x001D;

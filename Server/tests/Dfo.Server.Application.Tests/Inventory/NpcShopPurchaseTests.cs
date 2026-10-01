@@ -359,6 +359,19 @@ internal sealed class ShopFixture : IDisposable
         command.CommandText = sql;
         return Convert.ToInt32(command.ExecuteScalar());
     }
+    public byte[] StoredCore(int slot, InventoryContainerType container = InventoryContainerType.Main)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var command = db.CreateCommand();
+        command.CommandText = "SELECT i.item_core FROM items i JOIN item_slots s ON s.core_uid=i.item_uid "
+            + "WHERE s.owner_scope='character' AND s.owner_id=$owner AND s.list_type=$list AND s.slot_index=$slot";
+        command.Parameters.AddWithValue("$owner", session.CharacterId.Value);
+        command.Parameters.AddWithValue("$list", (byte)container);
+        command.Parameters.AddWithValue("$slot", slot);
+        return (byte[])command.ExecuteScalar()!;
+    }
+
     public void Sql(string sql)
     {
         using var db = new SqliteConnection(ConnectionString);

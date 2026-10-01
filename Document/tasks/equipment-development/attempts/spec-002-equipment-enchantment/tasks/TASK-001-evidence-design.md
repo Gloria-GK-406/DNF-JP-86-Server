@@ -1,3 +1,5 @@
+> 2026-09-30实机语义更正：此前将 `EnchantUpgradeCount` 当普通强化等级的解释错误。普通强化为 `Attribute & 0x1F`（`ReinforcementLevel`）；`EnchantUpgradeCount` 是独立附魔升级次数。以下早先实现/测试记录保留其当时范围，不证明客户端普通强化等级正确。TASK-004纠正读写和wire/存储oracle；升级珠子效果仍不在当前支持范围，拒绝行为保持。
+
 # TASK-001 — 附魔四源取证与实施设计
 
 ## Task Unit Contract

@@ -216,7 +216,10 @@ public sealed record InventoryItemCoreState(
     byte TailUnknown3,
     byte RemainUseCount,
     byte SortLockFlag,
-    byte EquipmentLockId);
+    byte EquipmentLockId)
+{
+    public byte ReinforcementLevel => (byte)(Attribute & 0x1F);
+}
 
 /// <summary>What one position of a container holds, as the client is shown it.</summary>
 /// <remarks>

@@ -33,7 +33,8 @@ public sealed record EquipmentReinforcementSlotChange(
     BusinessSlot Slot,
     InventoryItemCoreState? Core);
 
-public sealed record EquipmentReinforcementReward(BusinessSlot Slot, int ItemId, int Count);
+public sealed record EquipmentReinforcementReward(BusinessSlot? Slot, int ItemId, int Count,
+    int? VirtualSlotIndex = null);
 
 /// <summary>Authoritative post-settlement values projected by the protocol after commit.</summary>
 public sealed record EquipmentReinforcementReceipt(

@@ -47,6 +47,8 @@ public sealed class PvfEquipmentReinforcementDefinitionSourceTests
         Assert.Equal(new EquipmentReinforcementProtectionDefinition(
                 EquipmentReinforcementProtectionKind.RetainLevel, 10),
             await source.GetProtectionAsync(10007840, default));
+        Assert.Null(await source.GetProtectionAsync(10004511, default)); // Amplification protection.
+        Assert.Null(await source.GetProtectionAsync(10007841, default)); // Super amplification protection.
         Assert.Null(await source.GetProtectionAsync(int.MaxValue, default));
     }
 

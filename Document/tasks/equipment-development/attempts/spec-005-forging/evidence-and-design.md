@@ -8,7 +8,7 @@
 | `UpstreamReference` | `ServerS4A21/Server/DfoServer/Network/Parsers/Inventory/SeparateUpgradeRequest.cs` 把 `0x01B7` 解析为 `u8 list, i16 target, i32 itemId, i16 material, i32 nameLength, name bytes, u8 variant`。`InventorySeparateUpgradeService.cs` 普通路径只接受武器、满耐久、未锁定目标，取 `GenuineUpgrade`，消耗 `upgrade_separate.etc` 材料，成功加一、失败保持。`SeparateUpgradeAckBuilder.cs` 的响应为成功标志、材料槽/余量、旧级、成功/失败、当前级、目标列表/槽；失败为标志+错误码。 | 其角色在线/数据库行为不是本服证明；卷券 variant1/2 隔离；舍入规则仅为上游实现线索。 |
 | `ClientStatic` | 原版 A21 `DNF.exe` SHA-256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD` 的协议普查给 `0x01B7` 构包 RVA `0x012FDB74`、CMD 响应 RVA `0x0119A040`。在解包 b1 SHA-256 `D7618A102251F1DB724F2514C74A4CC855DF26E6A4BC308F8EE9F2397DB0A99A`、image base `0x00400000` 上重读：构包 VA `0x016FDB66–0x016FDC21` 写 type、列表、槽、模板、材料槽，随后虚调用取动态字符串，再写尾部字节；响应 VA `0x0159A040–0x0159A161` 成功时顺序读 `u16,u32,u8,u8,u8,u8,u16`，失败分支 VA `0x0159A502` 读取错误码。 | 动态字符串的语义及长度来自 70/上游约束推断；无 A21 实帧或 GUI。本服只收与上游/70 共同支持的普通尾标志 `0`，不以名字决定扣料。 |
 | `ContentStatic` | A21 `Script.pvf` SHA-256 `F1FD58E6873F0A3EB050265BF912A01F2B2B0782A1BE17578BAF45B4D4BC2D41` 的 `etc/upgrade_separate.etc`：上限 `8`，首级成功权重 `10000`、二级 `5000`；材料等级表中 grade `77` 对应 `3326 × 39` 基数，rarity `2` 权重 `1`，二级材料权重 `1.11`。装备 `101010339` 是 Lv75、grade77、rarity2、满耐久45的刀类武器；材料 `3326` 名为“强烈的气息”，说明用于武器锻造。 | 表未声明金币费用，当前普通路径不收金币。PVF 不证明客户端面板、服务端错误文案或自然材料获取。 |
-| `CurrentImplementation` | 现有装备 core 独立保留 `GenuineUpgrade`，与 `EnchantUpgradeCount` 分别持久/投影；命令总线支持账户排它事务及材料消费。 | 必须用本 Spec 测试证明写回/重读及刷新，不把现有字段存在当成锻造闭环。 |
+| `CurrentImplementation` | 现有装备 core 独立保留 `GenuineUpgrade`，与普通强化 `Attribute` 低5位及独立附魔升级次数 `EnchantUpgradeCount` 分别持久/投影；命令总线支持账户排它事务及材料消费。 | 必须用本 Spec 测试证明写回/重读及刷新，不把现有字段存在当成锻造闭环。 |
 
 ## 可实现边界
 

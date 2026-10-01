@@ -52,7 +52,8 @@ public sealed class EquipmentOutworldDomainTests
         EquipmentOutworldAction action, int materialId, byte oldType, byte selected, byte expectedType)
     {
         using var shop = Fixture();
-        var original = Piece() with { AmplifyType = oldType, AmplifyValue = oldType == 0 ? (ushort)0 : (ushort)5 };
+        var original = Piece() with { AmplifyType = oldType, AmplifyValue = oldType == 0 ? (ushort)0 : (ushort)5,
+            Attribute = 0xA0, EnchantUpgradeCount = 7 };
         await shop.SeedCore(9, original);
         await shop.Seed(121, materialId, 1);
 
@@ -104,7 +105,7 @@ public sealed class EquipmentOutworldDomainTests
     {
         using var shop = Fixture();
         var original = Piece() with { AmplifyType = 1, AmplifyValue = 5,
-            EnchantUpgradeCount = 1 };
+            Attribute = 1 };
         await shop.SeedCore(9, original);
         await shop.Seed(121, 1188, 1);
         var result = await Apply(shop, EquipmentOutworldAction.Twist, 3, 1188);

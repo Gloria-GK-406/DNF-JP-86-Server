@@ -59,6 +59,7 @@ using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Protocol.Game.EnchantByBead;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
+using Dfo.Server.Protocol.Game.CompoundItem;
 using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
@@ -430,6 +431,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
             MagicSealCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<OutworldCommand, EquipmentOutworldResult,
             OutworldCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -643,6 +646,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<MagicSealReplayGuard>();
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
+        services.TryAddSingleton<CompoundItemReplayGuard>();
+        services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
         services.TryAddSingleton<OutworldReplayGuard>();
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GamePurifyItem);
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GameInvestAmplifyOption);
@@ -869,6 +874,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<MagicBoxSingleOpeningDecoder>(0x00D0, ClientMessageType.GameMagicBoxSingleOpening);
         services.AddGameCmdMessageDecoder<VendingMachineDecoder>(0x00D7, ClientMessageType.GameVendingMachine);
         services.AddGameCmdMessageDecoder<LotteryOpeningDecoder>(0x001B, ClientMessageType.GameLotteryOpening);
+        services.AddGameCmdMessageDecoder<CompoundItemDecoder>(GameProtocol.CompoundItemType, ClientMessageType.GameCompoundItem);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
@@ -972,6 +978,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<MagicBoxSingleOpeningResponse, MagicBoxSingleOpeningEncoder>();
         services.AddGameCmdMessageEncoder<VendingMachineResponse, VendingMachineEncoder>();
         services.AddGameCmdMessageEncoder<LotteryOpeningResponse, LotteryOpeningEncoder>();
+        services.AddGameCmdMessageEncoder<CompoundItemResponse, CompoundItemEncoder>();
         services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();

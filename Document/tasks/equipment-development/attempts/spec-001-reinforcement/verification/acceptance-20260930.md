@@ -1,5 +1,7 @@
 # 普通强化验收准备 — 2026-09-30
 
+> 以下PID33868及923f3c28是本日早先版本的历史准备。当前服务已切换为装备实例重构版PID42104，请使用[当前重构最后验收](../../../../equipment-instance-refactor/Human-Test-List.md)。原R-01/R-02尚未因切换被记为通过。
+
 状态：**待用户执行R-01、R-02**。宠物常规收尾完成后接续；没有据自动测试标记强化ClientVerified。完整清单仍在[Human-Test-List](../Human-Test-List.md)。
 
 ## 当前环境与只读基线

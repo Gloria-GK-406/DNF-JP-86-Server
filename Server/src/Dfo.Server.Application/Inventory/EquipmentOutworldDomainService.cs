@@ -12,6 +12,7 @@ internal sealed class EquipmentOutworldDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
+    IEquipmentDomainService equipments,
     IEquipmentOutworldRuleService rules,
     IEquipmentOutworldSeedSource seeds,
     IMaterialConsumptionDomainService materials,
@@ -47,11 +48,11 @@ internal sealed class EquipmentOutworldDomainService(
         }
         if (targetBound is null || materialBound is null)
             return new(EquipmentOutworldRejection.ItemUnavailable);
-        var target = await targetBound.Container.ReadSlotAsync(targetBound.Slot.Index, ct)
-            .ConfigureAwait(false);
-        if (target is null || target.WorldClass != ItemWorldClass.Equipment)
+        var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
+        var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
+        if (target is null)
             return new(EquipmentOutworldRejection.ItemUnavailable);
-        if (target.ItemId != expectedTargetItemId)
+        if (target.Core.ItemId != expectedTargetItemId)
             return new(EquipmentOutworldRejection.WrongItem);
         if (target.Core.ExpireTime > 0
             && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
@@ -67,8 +68,8 @@ internal sealed class EquipmentOutworldDomainService(
                 && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentOutworldRejection.MaterialUnavailable);
 
-        var decision = await rules.DecideAsync(action, target.ItemId, target.Core.AmplifyType,
-            target.Core.EnchantUpgradeCount, material.ItemId, selectedOption, seeds.NextSeed(), ct)
+        var decision = await rules.DecideAsync(action, target.Core.ItemId, target.Core.AmplifyType,
+            target.Core.ReinforcementLevel, material.ItemId, selectedOption, seeds.NextSeed(), ct)
             .ConfigureAwait(false);
         if (decision.Rejection != EquipmentOutworldRejection.None)
             return new(decision.Rejection);
@@ -79,12 +80,10 @@ internal sealed class EquipmentOutworldDomainService(
             .ConfigureAwait(false);
         if (!consumed.Success)
             return new(EquipmentOutworldRejection.MaterialUnavailable);
-        var changed = target.Core with { AmplifyType = decision.AmplifyType,
-            AmplifyValue = decision.AmplifyValue };
-        await targetBound.Container.PutAsync(targetBound.Slot.Index, changed, ct)
-            .ConfigureAwait(false);
+        var changed = (await instance!.SetDimensionalAttributeAsync(decision.AmplifyType,
+            decision.AmplifyValue, ct).ConfigureAwait(false)).Core;
         return new(EquipmentOutworldRejection.None,
-            new(session, action, targetSlot, target.ItemId, materialSlot, material.ItemId,
+            new(session, action, targetSlot, target.Core.ItemId, materialSlot, material.ItemId,
                 consumed.Debits[0].Remaining?.Value ?? 0, changed,
                 decision.Cleared, decision.Seed, clock.GetUtcNow()));
     }

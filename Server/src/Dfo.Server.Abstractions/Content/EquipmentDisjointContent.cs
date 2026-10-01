@@ -7,6 +7,9 @@ public sealed record EquipmentDisjointDefinition(
     int Rarity,
     bool CanDisjoint);
 
+/// <summary>Raw facts for the destructive reinforcement GetResult path, independently of NPC admission.</summary>
+public sealed record EquipmentDestructionDefinition(int Value, int Grade, int Rarity, int SaleRate);
+
 /// <summary>The archive-owned limit carried by one portable disjoint machine template.</summary>
 public sealed record PortableDisjointMachineDefinition(
     int Grade,
@@ -36,6 +39,9 @@ public sealed record EquipmentDisjointTable(
 
 public interface IEquipmentDisjointDefinitionSource
 {
+    ValueTask<EquipmentDestructionDefinition?> GetDestructionEquipmentAsync(
+        int itemId, CancellationToken cancellationToken) => ValueTask.FromResult<EquipmentDestructionDefinition?>(null);
+
     ValueTask<EquipmentDisjointDefinition?> GetEquipmentAsync(
         int itemId, CancellationToken cancellationToken);
 

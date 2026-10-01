@@ -12,6 +12,7 @@ internal sealed class EquipmentForgingDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
+    IEquipmentDomainService equipments,
     IEquipmentForgingRuleService rules,
     IEquipmentForgingRollSource rolls,
     IMaterialConsumptionDomainService materials,
@@ -47,11 +48,11 @@ internal sealed class EquipmentForgingDomainService(
         }
         if (targetBound is null || materialBound is null)
             return new(EquipmentForgingRejection.ItemUnavailable);
-        var target = await targetBound.Container.ReadSlotAsync(targetBound.Slot.Index, ct)
-            .ConfigureAwait(false);
-        if (target is null || target.WorldClass != ItemWorldClass.Equipment)
+        var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
+        var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
+        if (target is null)
             return new(EquipmentForgingRejection.ItemUnavailable);
-        if (target.ItemId != expectedTargetItemId)
+        if (target.Core.ItemId != expectedTargetItemId)
             return new(EquipmentForgingRejection.WrongItem);
         if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
             return new(EquipmentForgingRejection.Locked);
@@ -66,7 +67,7 @@ internal sealed class EquipmentForgingDomainService(
             || material.Core.ExpireTime > 0
                 && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentForgingRejection.MaterialUnavailable);
-        var decision = await rules.DecideAsync(target.ItemId, target.Core.Durability,
+        var decision = await rules.DecideAsync(target.Core.ItemId, target.Core.Durability,
             target.Core.GenuineUpgrade, material.ItemId, rolls.Next(), ct)
             .ConfigureAwait(false);
         if (decision.Rejection != EquipmentForgingRejection.None)
@@ -78,12 +79,9 @@ internal sealed class EquipmentForgingDomainService(
                 decision.MaterialCount)], ct).ConfigureAwait(false);
         if (!consumed.Success) return new(EquipmentForgingRejection.MaterialUnavailable);
         var changed = decision.Succeeded
-            ? target.Core with { GenuineUpgrade = decision.NewLevel }
+            ? (await instance!.SetForgingLevelAsync(decision.NewLevel, ct).ConfigureAwait(false)).Core
             : target.Core;
-        if (decision.Succeeded)
-            await targetBound.Container.PutAsync(targetBound.Slot.Index, changed, ct)
-                .ConfigureAwait(false);
-        return new(EquipmentForgingRejection.None, new(session, targetSlot, target.ItemId,
+        return new(EquipmentForgingRejection.None, new(session, targetSlot, target.Core.ItemId,
             materialSlot, material.ItemId, consumed.Debits[0].Remaining?.Value ?? 0,
             changed, target.Core.GenuineUpgrade, decision.NewLevel, decision.Succeeded,
             decision.SuccessWeight, decision.Roll, clock.GetUtcNow()));

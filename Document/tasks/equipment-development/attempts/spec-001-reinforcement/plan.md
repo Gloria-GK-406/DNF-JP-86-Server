@@ -14,7 +14,7 @@ state: ready
 
 ## Approach and Shared Decisions
 
-- 服务端从角色拥有的现有装备实例出发，按业务槽位定位并验证模板、身份与可强化性；`InventoryItemCoreState.EnchantUpgradeCount` 是当前持久化和投影中的等级字段，其他实例字段必须保留。材料、金币和保护券在同一命令事务中结算。请求中名称只参与可证实的协议校验，不作为资产权威。
+- 服务端从角色拥有的现有装备实例出发，按业务槽位定位并验证模板、身份与可强化性；普通强化为 `InventoryItemCoreState.Attribute` 低5位（`ReinforcementLevel`），高3位与独立附魔次数 `EnchantUpgradeCount` 必须保留。此前错误字段已由2026-09-30实机失败暴露，详见equipment-instance-refactor/TASK-004。材料、金币和保护券在同一命令事务中结算。请求中名称只参与可证实的协议校验，不作为资产权威。
 - 内容侧从本次 A21 `Script.pvf` 读取普通强化配置；70 端 `WongWork::CItemUpgrade` 与上游 `InventoryItemUpgradeService` 用于查规则分支及版本差异。先确认 A21 客户端 `CMD 0x0050` 的接收读取路径与必要的物品/金币刷新，再定出站结构。
 - 普通强化只消费自己的模式；增幅与锻造可共用解包基础，但业务必须分别保持未实现或交由后续 Spec。随机判定应能用确定输入验证边界，拒绝路径在触碰资产之前结束。对破坏产物先证明容量与实例去向，再允许提交。
 - 沿用现有 `Application` 领域服务、`Infrastructure` PVF 内容源、`Protocol` 消息切片及 `Persistence` 事务接缝，不让协议 handler 直接改仓库行；所有普通强化结果经命令事务确认后投递。

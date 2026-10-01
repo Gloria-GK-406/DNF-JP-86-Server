@@ -21,6 +21,7 @@ public sealed class EquipmentMagicSealDomainTests
         var original = StackableItemCore.Create(1, 3000, 1234) with
         {
             EnchantCardId = 3600,
+            Attribute = 0xA3,
             EnchantUpgradeCount = 8,
             SealFlag = 1,
         };

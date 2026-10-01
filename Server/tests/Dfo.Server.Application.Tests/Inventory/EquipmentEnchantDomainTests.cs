@@ -22,7 +22,8 @@ public sealed class EquipmentEnchantDomainTests
     public async Task Bead_commits_original_uid_and_only_card_field_for_carried_or_worn_equipment(bool worn)
     {
         using var shop = Fixture();
-        var original = Piece() with { EnchantCardId = 42, EnchantUpgradeCount = 9, RandomOptionState = 7 };
+        var original = Piece() with { EnchantCardId = 42, Attribute = 0xA7,
+            EnchantUpgradeCount = 9, RandomOptionState = 7 };
         await shop.SeedCore(worn ? 12 : 9, original,
             worn ? InventoryContainerType.Equipment : InventoryContainerType.Main);
         await shop.Seed(121, 1000, 2, 3);

@@ -10,6 +10,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
 {
     private readonly Lock gate = new();
     private readonly Dictionary<int, EquipmentDisjointDefinition?> equipmentCache = [];
+    private readonly Dictionary<int, EquipmentDestructionDefinition?> destructionCache = [];
     private readonly Dictionary<int, PortableDisjointMachineDefinition?> portableMachineCache = [];
     private Dictionary<int, string>? equipmentPaths;
     private Dictionary<int, string>? stackablePaths;
@@ -17,6 +18,68 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     private int? equipmentSaleRate;
     private bool tableRead;
     private EquipmentDisjointTable? table;
+
+    public ValueTask<EquipmentDestructionDefinition?> GetDestructionEquipmentAsync(
+        int itemId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!destructionCache.TryGetValue(itemId, out var definition))
+                destructionCache[itemId] = definition = ReadDestructionEquipment(itemId);
+            return ValueTask.FromResult(definition);
+        }
+    }
+
+    private EquipmentDestructionDefinition? ReadDestructionEquipment(int itemId)
+    {
+        var archive = provider.Archive;
+        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        if (!equipmentPaths.TryGetValue(itemId, out var relative)) return null;
+        var sections = DestructionRootSections(
+            PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative));
+        if (sections is null) return null;
+        var value = OneInt(sections, "[value]");
+        var grade = OneInt(sections, "[grade]");
+        var rarity = OneInt(sections, "[rarity]");
+        var randomOption = OneInt(sections, "[random option]");
+        if (sections.Any(section => section.Name == "[random option]") && randomOption is not (0 or 1))
+            return null;
+        var prices = PvfNpcShopDefinitionSource.Sections(archive, "equipment/pricetable.tbl");
+        if (value is not >= 0 || grade is not >= 0 || rarity is not >= 0
+            || prices.Count == 0 || prices[0].Values.Count != 3
+            || prices[0].Values.Any(token => token.Kind != PvfTokenKind.Int32 || token.Value < 0))
+            return null;
+        // 70 CEquipItem::IsRandomOption selects the third rate; ordinary equipment uses the first.
+        return new(value.Value, grade.Value, rarity.Value, prices[0].Values[randomOption == 1 ? 2 : 0].Value);
+    }
+
+    private static IReadOnlyList<PvfNpcShopDefinitionSource.Section>? DestructionRootSections(
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+    {
+        // Equipment attributes and skill-condition attributes share names such as [value].
+        // Explicit [/tag] delimiters identify structured scopes; retain only root attributes.
+        // Known skill containers must also close when a malformed script omits their final delimiter.
+        var containers = sections.Where(section => section.Name.StartsWith("[/", StringComparison.Ordinal)
+                && section.Name.EndsWith(']'))
+            .Select(section => "[" + section.Name[2..]).ToHashSet(StringComparer.Ordinal);
+        containers.UnionWith(["[all skill item container]", "[all skill item]",
+            "[skill apply condition]", "[extra condition]"]);
+        var scope = new Stack<string>();
+        var roots = new List<PvfNpcShopDefinitionSource.Section>();
+        foreach (var section in sections)
+        {
+            if (section.Name.StartsWith("[/", StringComparison.Ordinal))
+            {
+                if (scope.Count == 0 || "[" + section.Name[2..] != scope.Pop()) return null;
+                continue;
+            }
+            if (scope.Count == 0) roots.Add(section);
+            if (containers.Contains(section.Name)) scope.Push(section.Name);
+        }
+        return scope.Count == 0 ? roots : null;
+    }
 
     public ValueTask<EquipmentDisjointDefinition?> GetEquipmentAsync(
         int itemId, CancellationToken cancellationToken)

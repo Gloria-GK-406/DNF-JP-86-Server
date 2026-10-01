@@ -4,7 +4,7 @@
 
 ## 准备
 
-1. 使用隔离测试角色/数据库，准备真实 PVF 武器 `101010339`（Lv75、grade77、rarity2、满耐久45）及至少 `100` 个材料 `3326`“强烈的气息”。记录装备 UID、普通强化 `EnchantUpgradeCount`、锻造 `GenuineUpgrade`、金币与材料数。
+1. 使用隔离测试角色/数据库，准备真实 PVF 武器 `101010339`（Lv75、grade77、rarity2、满耐久45）及至少 `100` 个材料 `3326`“强烈的气息”。记录装备 UID、普通强化 `ReinforcementLevel`（`Attribute & 0x1F`），独立附魔升级次数 `EnchantUpgradeCount`、锻造 `GenuineUpgrade`、金币与材料数。
 2. 确认客户端原版/解包 SHA、PVF SHA 和服务端提交号；启用 `clienthack-frame-capture.log` 与服务端 Debug 日志。不要在正式存档直接改表造样本。
 
 ## 一轮操作

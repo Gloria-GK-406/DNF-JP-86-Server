@@ -125,12 +125,29 @@ public sealed class ItemIdentityArchitectureTests
             .Where(member => RowKeyNames.Contains(member.Name, StringComparer.Ordinal))
             .Where(member => !IsGateway(member.Owner))
             // A creature is always one world instance; its item UID is its domain identity.
-            .Where(member => member.Owner != typeof(CreatureState))
+            .Where(member => !IsWorldInstanceIdentity(member.Owner))
             .Select(member => $"{member.Owner.FullName}.{member.Name}")
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
 
         Assert.Empty(violations);
+    }
+
+    // These shapes describe singular world instances and cannot represent an interchangeable pile.
+    private static bool IsWorldInstanceIdentity(Type type) =>
+        type == typeof(CreatureState)
+        || type == typeof(EquipmentInstanceFacts)
+        || type == typeof(IEggInstance) || type == typeof(IPetInstance) || type == typeof(IEquipmentInstance)
+        || typeof(IEggInstance).IsAssignableFrom(type)
+        || typeof(IPetInstance).IsAssignableFrom(type)
+        || typeof(IEquipmentInstance).IsAssignableFrom(type);
+
+    [Fact]
+    public void WorldInstanceIdentityPermissionDoesNotAdmitGenericInventoryOrPiles()
+    {
+        Assert.False(IsWorldInstanceIdentity(typeof(ContainerSlotItem)));
+        Assert.False(IsWorldInstanceIdentity(typeof(InventoryItemState)));
+        Assert.False(IsWorldInstanceIdentity(typeof(ItemPile)));
     }
 
     /// <summary>What one member of one production type is, for both checks above.</summary>

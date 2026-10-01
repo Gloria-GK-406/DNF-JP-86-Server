@@ -12,6 +12,7 @@ internal sealed class EquipmentDisjointDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
+    IEquipmentDomainService equipments,
     IEquipmentDisjointRuleService rules,
     IEquipmentDisjointDefinitionSource definitions,
     IItemPlacementRuleService placements,
@@ -92,7 +93,7 @@ internal sealed class EquipmentDisjointDomainService(
             throw new InvalidDataException(
                 $"Stored item {equipment.ItemId} contradicts business slot "
                     + $"{targetSlot.Space}/{targetSlot.Index}.");
-        var instance = EquipmentInstance.From(equipment);
+        var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, cancellationToken).ConfigureAwait(false);
         if (instance is null)
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
@@ -105,8 +106,9 @@ internal sealed class EquipmentDisjointDomainService(
                 return new(EquipmentDisjointRejection.CannotDisjoint);
         }
 
+        var facts = await instance.ReadAsync(cancellationToken).ConfigureAwait(false);
         var decided = await rules.ResolveAsync(
-            instance.DisjointCandidate(), EquipmentDisjointSettings.System,
+            new(facts.Core.ItemId, facts.Core), EquipmentDisjointSettings.System,
             Random.Shared.Next(), cancellationToken)
             .ConfigureAwait(false);
         if (decided.Rejection != EquipmentDisjointRejection.None
@@ -136,7 +138,7 @@ internal sealed class EquipmentDisjointDomainService(
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        await bound!.Container.ClearAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+        await instance.DestroyAsync(cancellationToken).ConfigureAwait(false);
         foreach (var write in planned.Writes.OrderBy(entry => entry.Key.Space).ThenBy(entry => entry.Key.Index))
         {
             var target = slots.Get(session.CharacterId, write.Key);

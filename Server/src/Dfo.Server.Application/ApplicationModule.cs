@@ -148,6 +148,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
         services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
+        services.TryAddSingleton<IEquipmentDomainService, EquipmentDomainService>();
         services.TryAddSingleton<ICreatureRuleService, CreatureRuleService>();
         services.TryAddSingleton<ICreatureDomainService, CreatureDomainService>();
         services.TryAddSingleton<ICreatureNamingDomainService, CreatureNamingDomainService>();
@@ -288,6 +289,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
         services.TryAddSingleton<ICeraShopRuleService, CeraShopRuleService>();
         services.TryAddSingleton<ICeraShopDomainService, CeraShopDomainService>();
+        services.TryAddSingleton<IRecipeCraftRuleService, RecipeCraftRuleService>();
+        services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
         services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
         services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();
         services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
@@ -299,6 +302,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAvatarPackageOpeningDomainService, AvatarPackageOpeningDomainService>();
         services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
+        services.TryAddSingleton<IEquipmentRepairRuleService, EquipmentRepairRuleService>();
+        services.TryAddSingleton<IEquipmentEnchantRuleService, EquipmentEnchantRuleService>();
+        services.TryAddSingleton<IEquipmentReinforcementRuleService, EquipmentReinforcementRuleService>();
+        services.TryAddSingleton<IEquipmentReinforcementFailureRuleService, EquipmentReinforcementFailureRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
         services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
         services.TryAddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();

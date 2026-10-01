@@ -782,3 +782,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 ## 2026-09-29 黑钻阶段收尾
 
 [CMD00D7](game/client-to-server/0x00D7.md)普通/高级黑钻售货机连续单抽已实机验收；[CMD0047](game/client-to-server/0x0047.md)单人、多人黄金牌内容显示已验收。姓名黑钻图标、疲劳扣点/重登/零疲劳拒绝及疲劳药次数显示均按用户实测记录验收。黑钻5%通关经验仍为已实现/自动验证，尚无专项实机确认。公告延期到聊天系统#61。完整边界见[阶段收尾](../Document/黑钻最终验收-20260929.md)。
+
+## 2026-10-01 普通设计图制作
+
+[COMPOUND_ITEM 0x0019](game/client-to-server/0x0019.md)新增1287设计图9B实帧，接入PVF需求/产物规则、同事务消费/入包、[CMD结果](game/server-to-client/CMD-0x0019.md)及库存刷新。WireCaptured + ClientStatic + 70Reference + ContentStatic + CurrentImplementation；[人工验收](../Document/tasks/recipe-crafting/Human-Test-List.md)待执行，未标ClientVerified。

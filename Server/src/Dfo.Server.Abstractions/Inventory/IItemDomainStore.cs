@@ -75,7 +75,8 @@ public interface IItemDomainStoreSession : IDomainStoreSession<ContainerId, int,
 /// and a write leaves it unanswered because settlement is what decides which row a write lands on.
 /// It is there for the one question a slot number cannot answer -- <b>which</b> thing this is --
 /// which is what a caller needs before it can address that thing's own state anywhere else. It is
-/// answered out of the rows, so a read served from this session's own staged writes has none.
+/// answered out of the rows and their staged transfer mapping. A newly created item has none
+/// until its row is allocated; updates and moves preserve their existing identity on reads.
 /// </para>
 /// <para>
 /// <b>It is not a token to hold on to.</b> Nothing here accepts one back, and nothing may keep one
