@@ -44,3 +44,17 @@ H15 现场日志在 20:39:18 显示商品 101236 因 `PurchaseRestriction: Unimp
 用户反馈：“H14通过，client有检查 H16 单次多次都ok，但是在满了以后开显示正在适用防沉迷系统的限制。”H14 记 ClientVerified（缺材料由 client 检查，未据此声称非法请求服务端实机路径）；H16 单次／批量成功通过，满包提示待复验。
 
 用户授权：“先修改不需要部署，我继续测试”。当前修复仅改魔盒 CMD00D0／0450 的 NoRoom 失败字节 7E→02，协议自动检查通过，未切换运行服务。来源、回归结果及部署边界见 [H16 修复记录](../../../Verification/H16-magic-box-no-room-20261001.md)。
+
+## 后续验收反馈与 H18 / H19 / H11 / 地下城出售诊断
+
+用户确认 H17、H20、H22经验、H23、H24通过；H21后续再验。H11仍不能转换属性，地下城结束后的商店出售失败。相关问题未作为已完成处理。
+
+用户要求将疲劳改为1点，以继续H18；已为1123保留ConsumedToday=28、将Used28→187，总量188，剩余1。原子事务及全部其它业务行保持校验通过，随后独立连接重读一致；运行日志21:44:37已发FatigueNotification。无服务切换或新增物品。
+
+H19先前发的10006007还在Main109，数量1、实例ExpireTime=0。实际运行客户端为protocol2，其PVF与服务端／另外两客户端不同，保留[expiration date] 2015-09-22 06:00:00。先前只验证实例期限不足以证明客户端可用；待游戏退出后同步PVF，已有券可继续验收，无需再发一张。
+
+H11当前A21构包点RVA12EF0E3 push0，12EF0EC WriteI16：第二字段固定0；服务端MagicSealHandler要求MaterialSlot=-1，因此Change请求会在发领域命令前拒绝。现场连续发ChangeRandomOptionResponse，未见对应MagicSealCommand。不是词条生成或effect未保存；尚未修改此实现。
+
+21:40:18.737出售现场：NPC1000/Main43/数量1被ShopUnavailable拒绝，回CMD0016。此前Eplp state2 option2未离开地下城。ItemSaleDomainService要求城镇成员；同时PVF德利拉角色[simple shop]1000、[visible on dungeon clear]1，PvfNpcShopDefinitionSource只识别[item shop]，故有两个拒绝原因。后续修复需以当前角色已通关的地下城场景及明确商店资格放行，不能取消全部场景检查。NPC1000的真实商店为EquipmentShop_dungeon1.shp；尚未修改出售实现。
+
+数据回执、备份和诊断摘要：E:/Project/DNF/DNF-JP-86-Server/artifacts/h18-fatigue-one-20261001/（before.db、receipt.json、diagnosis.json）。H16修复558b8d6b仍未部署，服务PID18764保持。
