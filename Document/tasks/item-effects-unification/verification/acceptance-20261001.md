@@ -38,3 +38,9 @@ H13运行日志：19:25:11.204 target Main/33、toolSlot86、providerId0进入Po
 H15 现场日志在 20:39:18 显示商品 101236 因 `PurchaseRestriction: Unimplemented catalog purchase restriction` 拒绝；此时未进入结算。完成支持后的人工效果仍待复验，不能由自动购买测试提升为 ClientVerified。用户随后授权“你部署吧，然后给我一个待验收的新表格”。
 
 新表见 [第二轮待验收表](../human-test-list-20261001-round2.md)，实现、自动证据及历史规则边界见 [H15 记录](../../../Verification/H15-cera-restrictions-20261001.md)。H10、H11、H12 等原有未完成边界保持。
+
+## H14 通过与 H16 满包提示修订
+
+用户反馈：“H14通过，client有检查 H16 单次多次都ok，但是在满了以后开显示正在适用防沉迷系统的限制。”H14 记 ClientVerified（缺材料由 client 检查，未据此声称非法请求服务端实机路径）；H16 单次／批量成功通过，满包提示待复验。
+
+用户授权：“先修改不需要部署，我继续测试”。当前修复仅改魔盒 CMD00D0／0450 的 NoRoom 失败字节 7E→02，协议自动检查通过，未切换运行服务。来源、回归结果及部署边界见 [H16 修复记录](../../../Verification/H16-magic-box-no-room-20261001.md)。

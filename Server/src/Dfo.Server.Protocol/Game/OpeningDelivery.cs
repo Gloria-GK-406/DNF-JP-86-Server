@@ -80,7 +80,13 @@ internal static class OpeningPayloads
 
     public static byte[] Box(MagicBoxOpeningInput input, MagicBoxOpeningResult result, bool batch)
     {
-        if (result.Receipt is null) return [0, Error(result.Rejection)];
+        if (result.Receipt is null)
+        {
+            // A21 D16F44 / D17F65: 0x7E shows anti-addiction text (70005).
+            // Use the ordinary failure branch for inventory-full text (746).
+            var error = result.Rejection == OpeningRejection.NoRoom ? (byte)2 : Error(result.Rejection);
+            return [0, error];
+        }
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)1); writer.Write(input.ListType); writer.Write(result.Bonus.IsEmpty ? (byte)0 : (byte)1);

@@ -116,11 +116,24 @@ public sealed class PackageOpeningCodecTests
     [Fact]
     public void Failure_shapes_do_not_contain_success_lists()
     {
-        Assert.Equal(new byte[] { 0, 0x7E }, Body(Assert.Single(new MagicBoxBatchOpeningEncoder().Encode(new MagicBoxBatchOpeningResponse(null, new(OpeningRejection.NoRoom)))), 1, 0x0450));
         Assert.Equal(new byte[] { 0, 0x16 }, Body(Assert.Single(new MagicBoxSingleOpeningEncoder().Encode(new MagicBoxSingleOpeningResponse(null, new(OpeningRejection.MissingMaterial)))), 1, 0x00D0));
         Assert.Equal(new byte[] { 0, 2 }, Body(Assert.Single(new AvatarPackageOpeningEncoder().Encode(new AvatarPackageOpeningResponse(66, new(OpeningRejection.InvalidChoice)))), 1, 0x0207));
         Assert.Equal(Convert.FromHexString("0000FFFFFFFFFFFFFFFF000000000000000000000000"),
             Body(Assert.Single(new PackageOpeningEncoder().Encode(new PackageOpeningResponse(66, new(OpeningRejection.InvalidChoice)))), 1, 0x00A0));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Full_inventory_uses_the_box_inventory_message_instead_of_the_anti_addiction_branch(bool batch)
+    {
+        // A21 D16F44 / D17F65: 0x7E selects string 70005 (anti-addiction).
+        // The ordinary failure branch selects string 746 (inventory full).
+        var result = new MagicBoxOpeningResult(OpeningRejection.NoRoom);
+        var frame = batch
+            ? Assert.Single(new MagicBoxBatchOpeningEncoder().Encode(new MagicBoxBatchOpeningResponse(null, result)))
+            : Assert.Single(new MagicBoxSingleOpeningEncoder().Encode(new MagicBoxSingleOpeningResponse(null, result)));
+        Assert.Equal(new byte[] { 0, 2 }, Body(frame, 1, batch ? (ushort)0x0450 : (ushort)0x00D0));
     }
 
     [Fact]
