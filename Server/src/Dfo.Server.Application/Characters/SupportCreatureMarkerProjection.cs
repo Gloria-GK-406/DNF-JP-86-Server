@@ -1,10 +1,49 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Characters;
 
 /// <summary>Ports the legacy NOTI-2 creature lifetime precedence without leaking PVF into Networking.</summary>
 internal static class SupportCreatureMarkerProjection
 {
+    public static async ValueTask<CharacterInventoryEntryState> CompleteAsync(
+        CharacterInventoryEntryState inventory,
+        ICharacterEntryPreparationRuleService rules,
+        DateTimeOffset preparedAt,
+        CancellationToken cancellationToken)
+    {
+        if (!inventory.Containers.Any(container => container.ContainerType == InventoryContainerType.Equipment
+            && container.Items.Any(item => item.SlotIndex == 25 && item.Core.ItemKind == 5))) return inventory;
+        var containers = new List<InventoryContainerState>(inventory.Containers.Count);
+        foreach (var container in inventory.Containers)
+        {
+            if (container.ContainerType != InventoryContainerType.Equipment)
+            {
+                containers.Add(container);
+                continue;
+            }
+
+            var items = new List<InventoryItemState>(container.Items.Count);
+            foreach (var item in container.Items)
+            {
+                if (item.SlotIndex != 25 || item.Core.ItemKind != 5)
+                {
+                    items.Add(item);
+                    continue;
+                }
+
+                var lifetime = await rules.CreatureLifetimeAsync(
+                    item.Core.ItemId, preparedAt, cancellationToken).ConfigureAwait(false);
+                var marker = Resolve(
+                    lifetime, item.Core.ExpireTime, item.Core.Marker16, preparedAt);
+                items.Add(item with { Noti2CreatureMarker = marker });
+            }
+            containers.Add(container with { Items = items });
+        }
+        return inventory with { Containers = containers };
+    }
+
     public static uint Resolve(
         CreatureEquipmentLifetime lifetime,
         int coreExpireTime,

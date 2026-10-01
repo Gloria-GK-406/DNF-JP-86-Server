@@ -15,13 +15,63 @@ public sealed class ContainerAdditionTests
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         var material = await service.AddAsync(new(1), 9001, 5, default);
-        Assert.Equal(new[] { 121, 122, 123 }, material.Items.Select(x => x.SlotIndex));
+        Assert.Equal(new[] { 0, 1, 2 }, material.Items.Select(x => x.Slot.Index));
         Assert.Equal(new[] { 2, 2, 1 }, material.Items.Select(x => x.Count));
-        Assert.All(material.Items, x => Assert.Equal(InventoryContainerType.Main, x.Type));
+        Assert.All(material.Items, x => Assert.Equal(BusinessInventorySpace.Material, x.Slot.Space));
         var pet = await service.AddAsync(new(1), 9002, 1, default);
-        Assert.Equal(InventoryContainerType.Pet, Assert.Single(pet.Items).Type);
-        Assert.Equal(189, pet.Items[0].SlotIndex);
+        Assert.Equal(BusinessInventorySpace.CreatureConsumable, Assert.Single(pet.Items).Slot.Space);
+        Assert.Equal(0, pet.Items[0].Slot.Index);
         Assert.Equal(5, f.Count(9001));
+    }
+
+    [Fact]
+    public async Task Two_business_containers_can_both_hold_local_slot_zero()
+    {
+        using var f = Fixture();
+        var grants = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        grants.Register(new(1), new PersistentItemContainer(
+            ContainerId.ForCharacter(new(1), InventoryContainerType.Pet), new(1),
+            new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
+            f.Services.GetRequiredService<IItemPlacementRuleService>(),
+            f.Services.GetRequiredService<IItemArrivalRuleService>(),
+            f.Services.GetRequiredService<IItemSlotRuleService>()));
+        await grants.AddAsync(new(1), 9001, 1, default);
+        await grants.AddAsync(new(1), 9002, 1, default);
+
+        var stores = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>();
+        var item = stores.GetStore(new(1), BusinessInventoryStoreKind.Item)
+            .GetContainer(BusinessInventorySpace.Material);
+        var pet = stores.GetStore(new(1), BusinessInventoryStoreKind.Creature)
+            .GetContainer(BusinessInventorySpace.CreatureConsumable);
+        Assert.Equal(9001, (await item.ReadSlotAsync(0, default))!.ItemId);
+        Assert.Equal(9002, (await pet.ReadSlotAsync(0, default))!.ItemId);
+    }
+
+    [Fact]
+    public async Task Grant_routes_pet_consumable_to_pet_store_even_when_main_is_available()
+    {
+        using var f = Fixture();
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        containers.Register(new(1), new PersistentItemContainer(
+            ContainerId.ForCharacter(new(1), InventoryContainerType.Pet), new(1),
+            new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
+            f.Services.GetRequiredService<IItemPlacementRuleService>(),
+            f.Services.GetRequiredService<IItemArrivalRuleService>(),
+            f.Services.GetRequiredService<IItemSlotRuleService>()));
+        var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)
+            f.Services.GetRequiredService<IDomainTransactionAccessor>();
+        await using var lease = scope.Begin();
+        var outcome = await f.Services.GetRequiredService<IItemGrantDomainService>()
+            .GrantAsync(new(1), new(1), containers, 9002, 1, default);
+        await lease.CommitAsync(default);
+
+        var item = Assert.IsType<ItemGrantOutcome.CharacterItem>(outcome);
+        Assert.Equal(BusinessInventorySpace.CreatureConsumable, item.Container.Space);
+        Assert.Equal(0, Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(item.Placement).SlotIndex);
+        Assert.Equal(9002, (await item.Container.ReadSlotAsync(0, default))!.ItemId);
+        Assert.Equal(0, f.Count(9001));
     }
 
     [Fact]
@@ -76,6 +126,25 @@ public sealed class ContainerAdditionTests
         await service.AddAsync(new(1), 9001, 3, default);
         Assert.Null(service.FindContainer(new(1), InventoryContainerType.Main));
         Assert.Equal(3, f.Count(9001));
+    }
+
+    [SkippableFact]
+    public async Task Offline_creature_delivery_creates_details_without_online_registration()
+    {
+        Skip.If(new Dfo.Server.Infrastructure.Content.PvfContentOptions().ResolveArchivePath() is null,
+            "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        var containers = shop.Host.Services.GetRequiredService<ICharacterContainerDomainService>();
+        containers.Clear(shop.Host.Session.CharacterId);
+
+        var added = await containers.AddAsync(shop.Host.Session.CharacterId, 63000, 1, default);
+
+        var item = Assert.Single(added.Items);
+        Assert.Equal(BusinessInventorySpace.CreatureInventory, item.Slot.Space);
+        Assert.Equal(0, item.Slot.Index);
+        Assert.Null(containers.FindContainer(shop.Host.Session.CharacterId, InventoryContainerType.Pet));
+        Assert.Equal(1, shop.Host.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND list_type=7 AND slot_index=0"));
+        Assert.Equal(1, shop.Host.Scalar("SELECT COUNT(*) FROM item_slots s JOIN items i ON i.item_uid=s.core_uid WHERE s.owner_scope='character' AND s.owner_id=1 AND s.list_type=7 AND s.slot_index=0 AND i.creature_field04=100"));
     }
 
     private static ShopFixture Fixture() => new(s => s.AddSingleton<IItemPlacementDefinitionSource>(new Content()));

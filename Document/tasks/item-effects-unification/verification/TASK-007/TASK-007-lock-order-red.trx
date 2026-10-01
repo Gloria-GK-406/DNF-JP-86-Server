@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="095c2a73-5bb9-496a-b414-1556f6c24f93" name="Gloria@家庭台式机 2026-10-01 14:09:11" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:09:11.8700056+08:00" queuing="2026-10-01T14:09:11.8700058+08:00" start="2026-10-01T14:09:10.9210192+08:00" finish="2026-10-01T14:09:11.8745605+08:00" />
+  <TestSettings name="default" id="3b816b42-8a21-4437-bcbb-d29634db1acf">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_09_11" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="44b82710-a25b-49b4-b57e-2027d0b39f83" testId="4ffd219a-0472-85f4-81c2-ad1ea3ee52c6" testName="Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: True)" computerName="家庭台式机" duration="00:00:00.0120660" startTime="2026-10-01T14:09:11.7873655+08:00" endTime="2026-10-01T14:09:11.7874312+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="44b82710-a25b-49b4-b57e-2027d0b39f83">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure&#xD;
+Expected: True&#xD;
+Actual:   False</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 71&#xD;
+   at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 85&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8a7f1ab0-08e3-4f93-aa6e-5ec4fa5d5164" testId="3268214b-ec72-7cc6-5db8-776af0b3c4ae" testName="Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: False)" computerName="家庭台式机" duration="00:00:00.0232553" startTime="2026-10-01T14:09:11.7344847+08:00" endTime="2026-10-01T14:09:11.7684686+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8a7f1ab0-08e3-4f93-aa6e-5ec4fa5d5164">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure&#xD;
+Expected: True&#xD;
+Actual:   False</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 71&#xD;
+   at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 85&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="3268214b-ec72-7cc6-5db8-776af0b3c4ae">
+      <Execution id="8a7f1ab0-08e3-4f93-aa6e-5ec4fa5d5164" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests" name="TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="4ffd219a-0472-85f4-81c2-ad1ea3ee52c6">
+      <Execution id="44b82710-a25b-49b4-b57e-2027d0b39f83" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests" name="TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="4ffd219a-0472-85f4-81c2-ad1ea3ee52c6" executionId="44b82710-a25b-49b4-b57e-2027d0b39f83" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3268214b-ec72-7cc6-5db8-776af0b3c4ae" executionId="8a7f1ab0-08e3-4f93-aa6e-5ec4fa5d5164" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="0" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.22]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.44]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.46]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.51]       Assert.True() Failure&#xD;
+[xUnit.net 00:00:00.51]       Expected: True&#xD;
+[xUnit.net 00:00:00.51]       Actual:   False&#xD;
+[xUnit.net 00:00:00.51]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.51]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs(71,0): at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection)&#xD;
+[xUnit.net 00:00:00.51]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs(85,0): at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection)&#xD;
+[xUnit.net 00:00:00.52]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.53]       Assert.True() Failure&#xD;
+[xUnit.net 00:00:00.53]       Expected: True&#xD;
+[xUnit.net 00:00:00.53]       Actual:   False&#xD;
+[xUnit.net 00:00:00.53]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.53]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs(71,0): at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection)&#xD;
+[xUnit.net 00:00:00.53]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs(85,0): at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection)&#xD;
+[xUnit.net 00:00:00.53]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.53]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T14:09:11.7704858+08:00">
+        <Text>[xUnit.net 00:00:00.51]     Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: False) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T14:09:11.7878168+08:00">
+        <Text>[xUnit.net 00:00:00.53]     Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: True) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

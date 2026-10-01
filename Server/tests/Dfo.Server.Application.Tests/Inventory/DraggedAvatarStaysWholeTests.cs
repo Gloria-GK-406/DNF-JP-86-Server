@@ -96,7 +96,9 @@ public sealed class DraggedAvatarStaysWholeTests
 
             var target = await FreeSlotBesideAsync(side, content, AvatarItemId, landed.SlotIndex);
             var moved = await side.InUseCaseAsync(
-                token => bag.MoveToAsync(landed.SlotIndex, target, 1, token));
+                token => side.MoveAsync(new CharacterId(Character),
+                    new(BusinessInventorySpace.Avatar, landed.SlotIndex),
+                    new(BusinessInventorySpace.Avatar, target), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(1, AvatarItemId), moved);
 
@@ -144,7 +146,9 @@ public sealed class DraggedAvatarStaysWholeTests
 
             var target = await FreeSlotBesideAsync(side, content, AvatarItemId, landed.SlotIndex);
             _ = await side.InUseCaseAsync(
-                token => bag.MoveToAsync(landed.SlotIndex, target, 1, token));
+                token => side.MoveAsync(new CharacterId(Character),
+                    new(BusinessInventorySpace.Avatar, landed.SlotIndex),
+                    new(BusinessInventorySpace.Avatar, target), 1, token));
 
             var after = await OneItemAsync(side, target);
             Assert.Equal(before.Core.ItemId, after.Core.ItemId);
@@ -161,7 +165,7 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.Equal(facts.DeleteDate, served.DeleteDate);
 
             // And the slot it left is not among what the load serves.
-            Assert.DoesNotContain(await MainItemsAsync(side), item => item.SlotIndex == landed.SlotIndex);
+            Assert.DoesNotContain(await AvatarItemsAsync(side), item => item.SlotIndex == landed.SlotIndex);
         });
     }
 
@@ -200,7 +204,9 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.NotNull(wasSecond);
 
             var moved = await side.InUseCaseAsync(
-                token => bag.MoveToAsync(first.SlotIndex, second.SlotIndex, 1, token));
+                token => side.MoveAsync(new CharacterId(Character),
+                    new(BusinessInventorySpace.Avatar, first.SlotIndex),
+                    new(BusinessInventorySpace.Avatar, second.SlotIndex), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(1, AvatarItemId), moved);
 
@@ -241,7 +247,7 @@ public sealed class DraggedAvatarStaysWholeTests
 
         await WithASeededCharacterAsync(content, async side =>
         {
-            var bag = Bag(side);
+            var bag = MainBag(side);
             var rules = ArchiveRules(content);
             var placement = await rules.PlacementForAsync(PileItemId, CancellationToken.None);
             Assert.NotNull(placement);
@@ -259,7 +265,9 @@ public sealed class DraggedAvatarStaysWholeTests
 
             var target = await FreeSlotBesideAsync(side, content, PileItemId, opened.SlotIndex);
             var moved = await side.InUseCaseAsync(
-                token => bag.MoveToAsync(opened.SlotIndex, target, 1, token));
+                token => side.MoveAsync(new CharacterId(Character),
+                    LegacyInventoryStorageCoordinates.ToBusiness(new(InventoryContainerType.Main, opened.SlotIndex)),
+                    LegacyInventoryStorageCoordinates.ToBusiness(new(InventoryContainerType.Main, target)), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(1, PileItemId), moved);
 
@@ -275,6 +283,9 @@ public sealed class DraggedAvatarStaysWholeTests
     }
 
     private static IItemContainer Bag(InventorySide side) =>
+        side.Containers.GetContainer(new CharacterId(Character), InventoryContainerType.Avatar);
+
+    private static IItemContainer MainBag(InventorySide side) =>
         side.Containers.GetContainer(new CharacterId(Character), InventoryContainerType.Main);
 
     /// <summary>One item granted through the container verb every reward reaches.</summary>
@@ -301,7 +312,8 @@ public sealed class DraggedAvatarStaysWholeTests
             .PlacementForAsync(itemId, CancellationToken.None);
         Assert.NotNull(placement);
 
-        var taken = (await side.InUseCaseAsync(token => Bag(side).ReadAllAsync(token)))
+        var bag = itemId == PileItemId ? MainBag(side) : Bag(side);
+        var taken = (await side.InUseCaseAsync(token => bag.ReadAllAsync(token)))
             .Select(item => item.SlotIndex)
             .ToHashSet();
         var mappings = new InventorySlotMappingRuleService();
@@ -322,15 +334,15 @@ public sealed class DraggedAvatarStaysWholeTests
 
     /// <summary>What the entry load serves at that position of the character's main bag.</summary>
     private static async Task<InventoryItemState> OneItemAsync(InventorySide side, int slotIndex) =>
-        Assert.Single(await MainItemsAsync(side), item => item.SlotIndex == slotIndex);
+        Assert.Single(await AvatarItemsAsync(side), item => item.SlotIndex == slotIndex);
 
-    private static async Task<IReadOnlyList<InventoryItemState>> MainItemsAsync(InventorySide side)
+    private static async Task<IReadOnlyList<InventoryItemState>> AvatarItemsAsync(InventorySide side)
     {
         var loaded = await side.InUseCaseAsync(token =>
             new CharacterInventoryEntryDomainService(side.CharacterEntries)
                 .LoadAsync(new AccountId(Account), new CharacterId(Character), token));
         return loaded.Containers
-            .Single(container => container.ContainerType == InventoryContainerType.Main)
+            .Single(container => container.ContainerType == InventoryContainerType.Avatar)
             .Items;
     }
 
@@ -360,6 +372,7 @@ public sealed class DraggedAvatarStaysWholeTests
             }
 
             side.BindMain(Character, placements: placements);
+            side.BindList(InventoryContainerType.Avatar, Character, placements: placements);
             await body(side);
         }
         finally

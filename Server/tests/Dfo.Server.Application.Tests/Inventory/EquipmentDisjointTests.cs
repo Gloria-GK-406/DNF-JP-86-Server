@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -11,6 +12,111 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentDisjointTests
 {
+    [Theory]
+    [InlineData(65)]
+    [InlineData(3)]
+    public async Task Exhausted_portable_machine_is_cleared_before_success_ack(short toolSlot)
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(toolSlot, 2600469, 1);
+
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 90),
+            new(InventoryContainerType.Main, 9), toolSlot, 0));
+
+        var encoders = shop.Services.GetServices<ServerMessageEncoderRegistration>()
+            .ToDictionary(registration => registration.MessageType);
+        var frames = shop.Sender.Messages.SelectMany(message =>
+            ((IServerMessageEncoder)shop.Services.GetRequiredService(encoders[message.GetType()].EncoderType))
+                .Encode(message)).Select(frame => frame.ToArray()).ToArray();
+        // NOTI 000E must clear the tool before CMD 001A checks the native window's tool pointer.
+        Assert.Equal((byte)0, frames[0][0]);
+        Assert.Equal((ushort)0x000E, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frames[0].AsSpan(1)));
+        Assert.Equal(toolSlot, System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(frames[0].AsSpan(18)));
+        Assert.Equal(-1, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(frames[0].AsSpan(20)));
+        Assert.Equal((byte)1, frames[1][0]);
+        Assert.Equal((ushort)0x001A, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frames[1].AsSpan(1)));
+        Assert.Equal((short)9, System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(frames[2].AsSpan(18)));
+        Assert.Single(frames, frame => frame[0] == 0
+            && System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x000E
+            && System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(frame.AsSpan(18)) == toolSlot);
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(12, shop.Count(1000));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+    }
+
+    [Fact]
+    public async Task Last_portable_machine_cannot_turn_a_later_request_into_free_npc_disjoint()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.SeedCore(10, Piece());
+        await shop.Seed(65, 2600469, 1);
+
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 80),
+            new(InventoryContainerType.Main, 9), 65, 0));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(12, shop.Count(1000));
+
+        // A21 clears the exhausted tool pointer but keeps the portable window's zero provider.
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 81),
+            new(InventoryContainerType.Main, 10), -1, 0));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(12, shop.Count(1000));
+        Assert.Equal(0, shop.Count(2600469));
+        var responses = shop.Sender.Messages.OfType<DisjointItemResponse>().ToArray();
+        Assert.Equal(2, responses.Length);
+        Assert.NotNull(responses[0].TargetSlot);
+        Assert.Null(responses[1].TargetSlot);
+        Assert.Equal(0x13, responses[1].ErrorCode);
+        await Assert.ThrowsAsync<InvalidDataException>(() => EffectRequestTransport.Send(shop,
+            new DisjointItemRequest(new(1, 0x001A, 0, 81), new(InventoryContainerType.Main, 10), -1, 0)).AsTask());
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(12, shop.Count(1000));
+
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 82),
+            new(InventoryContainerType.Main, 10), -1, 1000));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(24, shop.Count(1000));
+    }
+
+    [Theory]
+    [InlineData(-2, 0)]
+    [InlineData(-1, 0)]
+    [InlineData(-1, -1)]
+    [InlineData(-1, int.MinValue)]
+    [InlineData(65, 1000)]
+    public async Task Missing_or_ambiguous_disjoint_provider_never_removes_equipment_or_grants_rewards(short toolSlot, int provider)
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(65, 2600469, 1);
+        await Disjoint(shop, 9, provider, toolSlot);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(1, shop.Count(2600469));
+        Assert.Equal(0, shop.Count(1000));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Last_portable_machine_with_a_stale_tool_slot_is_also_refused()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.SeedCore(10, Piece());
+        await shop.Seed(65, 2600469, 1);
+        await Disjoint(shop, 9, disjointToolSlot: 65);
+        await Disjoint(shop, 10, disjointToolSlot: 65);
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 10));
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(12, shop.Count(1000));
+        Assert.Equal(0x13, shop.Sender.Messages.OfType<DisjointItemResponse>().Last().ErrorCode);
+    }
+
     [Fact]
     public async Task One_transaction_removes_the_piece_grants_materials_and_then_acknowledges()
     {
@@ -240,6 +346,7 @@ public sealed class EquipmentDisjointTests
         Assert.Equal(1, shop.Count(2600469));
         Assert.Equal(12, shop.Count(1000));
         Assert.NotNull(Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).TargetSlot);
+        Assert.IsType<DisjointItemResponse>(shop.Sender.Messages[0]);
         Assert.Equal(2, shop.Sender.Messages.Count(message =>
             message.MessageType == ServerMessageType.GameStateSynchronization));
     }
@@ -351,6 +458,57 @@ public sealed class EquipmentDisjointTests
         Assert.Empty(shop.Sender.Messages);
     }
 
+    [Fact]
+    public async Task Last_portable_machine_frees_its_quick_slot_for_the_reward()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(121, 1000, 1000, 3);
+        await shop.Seed(122, 1000, 1000, 3);
+        await shop.Seed(3, 2600469, 1);
+        for (var slot = 4; slot <= 8; slot++) await shop.Seed(slot, 2000, 10);
+
+        await Disjoint(shop, 9, disjointToolSlot: 3);
+
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(2012, shop.Count(1000));
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
+        Assert.Equal(new DisjointItemMaterial(new(InventoryContainerType.Main, 3), 1000, 12),
+            Assert.Single(response.Materials!));
+    }
+
+    [Fact]
+    public async Task Unsupported_reward_refuses_disjoint_without_reporting_inventory_full()
+    {
+        using var shop = Fixture(rewards: [new(3000, 1)]);
+        await shop.SeedCore(9, Piece());
+
+        await Disjoint(shop, 9);
+
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Expired_portable_machine_refuses_without_consuming_tool_or_piece()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.SeedCore(65, StackableItemCore.Create(2, 2600469, 1) with { ExpireTime = 1 });
+
+        await Disjoint(shop, 9, disjointToolSlot: 65);
+
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(1, shop.Count(2600469));
+        Assert.Equal(0, shop.Count(1000));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
     private static ShopFixture Fixture(
         int equipmentLevel = 10,
         IReadOnlyList<EquipmentDisjointReward>? rewards = null) => new(services =>
@@ -367,12 +525,13 @@ public sealed class EquipmentDisjointTests
     private static ValueTask Disjoint(
         ShopFixture shop,
         short slot,
-        int disjointProviderId = 0,
+        int? disjointProviderId = null,
         short disjointToolSlot = -1) =>
         shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
             new DisjointItemRequest(
                 GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot, disjointProviderId),
+                new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot,
+                disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0)),
             default);
 
     private sealed class FixedRules(IReadOnlyList<EquipmentDisjointReward> rewards)

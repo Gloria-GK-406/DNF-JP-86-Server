@@ -1,0 +1,79 @@
+
+### 083380fc size=238 _ZNK13user_creature9CCreature13IsAbleEvoluteEP5CUser
+083380fc: push     ebp
+083380fd: mov      ebp, esp
+083380ff: push     esi
+08338100: push     ebx
+08338101: sub      esp, 0x20
+08338104: mov      eax, dword ptr [ebp + 8]
+08338107: mov      eax, dword ptr [eax + 0x44]
+0833810a: test     eax, eax
+0833810c: jne      0x8338118
+0833810e: mov      eax, 0
+08338113: jmp      0x83381e3
+08338118: mov      eax, dword ptr [ebp + 8]
+0833811b: mov      eax, dword ptr [eax + 0x44]
+0833811e: mov      dword ptr [esp], eax
+08338121: call     0x833f240 ; _ZN13user_creature15CCreatureScript17GetEvolutionLevelEv
+08338126: test     eax, eax
+08338128: sete     al
+0833812b: test     al, al
+0833812d: je       0x8338139
+0833812f: mov      eax, 0
+08338134: jmp      0x83381e3
+08338139: mov      eax, dword ptr [ebp + 8]
+0833813c: mov      eax, dword ptr [eax + 0x44]
+0833813f: mov      dword ptr [esp], eax
+08338142: call     0x833f240 ; _ZN13user_creature15CCreatureScript17GetEvolutionLevelEv
+08338147: mov      edx, dword ptr [ebp + 8]
+0833814a: mov      edx, dword ptr [edx + 0x2c]
+0833814d: cmp      eax, edx
+0833814f: setg     al
+08338152: test     al, al
+08338154: je       0x8338160
+08338156: mov      eax, 0
+0833815b: jmp      0x83381e3
+08338160: mov      eax, dword ptr [ebp + 8]
+08338163: mov      eax, dword ptr [eax + 0x44]
+08338166: mov      dword ptr [esp], eax
+08338169: call     0x833f134 ; _ZN13user_creature15CCreatureScript21IsExistEvolutionQuestEv
+0833816e: test     al, al
+08338170: je       0x83381de
+08338172: cmp      dword ptr [ebp + 0xc], 0
+08338176: je       0x83381d7
+08338178: lea      eax, [ebp - 0x14]
+0833817b: mov      dword ptr [esp], eax
+0833817e: call     0x858dd4c ; _ZN11PacketGuardC2Ev
+08338183: lea      ebx, [ebp - 0x14]
+08338186: mov      eax, dword ptr [ebp + 0xc]
+08338189: mov      dword ptr [esp], eax
+0833818c: call     0x819a8a6 ; _ZNK5CUser18getCurCharacQuestREv
+08338191: mov      dword ptr [esp + 4], ebx
+08338195: mov      dword ptr [esp], eax
+08338198: call     0x86abba8 ; _ZNK9UserQuest14get_quest_infoEPc
+0833819d: lea      eax, [ebp - 0x14]
+083381a0: mov      dword ptr [esp + 4], eax
+083381a4: mov      eax, dword ptr [ebp + 0xc]
+083381a7: mov      dword ptr [esp], eax
+083381aa: call     0x86485ba ; _ZN5CUser4SendER11PacketGuard
+083381af: jmp      0x83381cc
+083381b1: mov      ebx, edx
+083381b3: mov      esi, eax
+083381b5: lea      eax, [ebp - 0x14]
+083381b8: mov      dword ptr [esp], eax
+083381bb: call     0x858de80 ; _ZN11PacketGuardD1Ev
+083381c0: mov      eax, esi
+083381c2: mov      edx, ebx
+083381c4: mov      dword ptr [esp], eax
+083381c7: call     0x8ae3750 ; _Unwind_Resume
+083381cc: lea      eax, [ebp - 0x14]
+083381cf: mov      dword ptr [esp], eax
+083381d2: call     0x858de80 ; _ZN11PacketGuardD1Ev
+083381d7: mov      eax, 0
+083381dc: jmp      0x83381e3
+083381de: mov      eax, 1
+083381e3: add      esp, 0x20
+083381e6: pop      ebx
+083381e7: pop      esi
+083381e8: pop      ebp
+083381e9: ret

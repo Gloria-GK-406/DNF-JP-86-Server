@@ -1,0 +1,92 @@
+
+### VA 016F3360..016F33D0
+016F3360 mov      eax, dword ptr [ecx + 0x6c]
+016F3363 cmp      eax, dword ptr [ecx + 0x70]
+016F3366 je       0x16f3376
+016F3368 mov      eax, dword ptr [ecx + 0x70]
+016F336B cmp      dword ptr [ecx + 0x6c], eax
+016F336E je       0x16f3376
+016F3370 add      eax, -4
+016F3373 mov      dword ptr [ecx + 0x70], eax
+016F3376 ret
+016F3377 int3
+016F3378 int3
+016F3379 int3
+016F337A int3
+016F337B int3
+016F337C int3
+016F337D int3
+016F337E int3
+016F337F int3
+016F3380 push     ebp
+016F3381 mov      ebp, esp
+016F3383 mov      eax, dword ptr [ebp + 8]
+016F3386 sub      esp, 0xc
+016F3389 push     ebx
+016F338A push     esi
+016F338B push     edi
+016F338C push     1
+016F338E mov      ebx, ecx
+016F3390 mov      ecx, dword ptr [0x3a5c940]
+016F3396 push     eax
+016F3397 call     0x2752a80
+016F339C test     eax, eax
+016F339E je       0x16f344f
+016F33A4 add      eax, 0x198
+016F33A9 lea      ecx, [ebp - 0xc]
+016F33AC push     ecx
+016F33AD mov      ecx, eax
+016F33AF mov      dword ptr [ebp + 8], eax
+016F33B2 call     0xe56100
+016F33B7 mov      edi, dword ptr [ebp - 0xc]
+016F33BA mov      esi, dword ptr [ebp - 4]
+016F33BD lea      ecx, [ecx]
+016F33C0 mov      ecx, dword ptr [ebp + 8]
+016F33C3 lea      edx, [ebp - 0xc]
+016F33C6 push     edx
+016F33C7 call     0x293b470
+016F33CC test     edi, edi
+016F33CE je       0x16f343f
+
+### VA 01648AC0..01648B30
+01648AC0 push     ebp
+01648AC1 mov      ebp, esp
+01648AC3 mov      eax, dword ptr [ebp + 8]
+01648AC6 test     eax, eax
+01648AC8 je       0x1648b8b
+01648ACE cmp      eax, 0x1d
+01648AD1 je       0x1648b8b
+01648AD7 cmp      eax, 1
+01648ADA jne      0x1648ae3
+01648ADC mov      eax, dword ptr [0x3a5c9d0]
+01648AE1 pop      ebp
+01648AE2 ret
+01648AE3 cmp      eax, 2
+01648AE6 jne      0x1648aef
+01648AE8 mov      eax, dword ptr [0x3a5c9c0]
+01648AED pop      ebp
+01648AEE ret
+01648AEF cmp      eax, 0xc
+01648AF2 jne      0x1648afb
+01648AF4 mov      eax, dword ptr [0x3a5c9c4]
+01648AF9 pop      ebp
+01648AFA ret
+01648AFB cmp      eax, 4
+01648AFE jne      0x1648b0f
+01648B00 mov      ecx, dword ptr [0x3a5c9e8]
+01648B06 push     0
+01648B08 call     0x1705330
+01648B0D pop      ebp
+01648B0E ret
+01648B0F cmp      eax, 7
+01648B12 jne      0x1648b1b
+01648B14 mov      eax, dword ptr [0x3a5c9d4]
+01648B19 pop      ebp
+01648B1A ret
+01648B1B cmp      eax, 0x26
+01648B1E jne      0x1648b27
+01648B20 mov      eax, dword ptr [0x3a5c9d8]
+01648B25 pop      ebp
+01648B26 ret
+01648B27 cmp      eax, 0xb
+01648B2A jne      0x1648b33

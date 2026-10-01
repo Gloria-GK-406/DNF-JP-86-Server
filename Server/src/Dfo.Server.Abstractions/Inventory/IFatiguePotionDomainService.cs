@@ -5,6 +5,6 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IFatiguePotionDomainService
 {
-    ValueTask<OpeningInventoryReceipt> UseAsync(SelectedSessionIdentity session, int sourceSlot,
+    ValueTask<OpeningInventoryReceipt> UseAsync(SelectedSessionIdentity session, BusinessSlot sourceSlot,
         DateTimeOffset now, CancellationToken token);
 }

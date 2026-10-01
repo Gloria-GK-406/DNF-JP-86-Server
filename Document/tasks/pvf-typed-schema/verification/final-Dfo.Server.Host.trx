@@ -1,0 +1,350 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="100254e1-bd51-4876-a131-54f74adb3ef2" name="Gloria@家庭台式机 2026-10-01 18:14:33" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T18:14:33.5845114+08:00" queuing="2026-10-01T18:14:33.5845116+08:00" start="2026-10-01T18:14:31.7551375+08:00" finish="2026-10-01T18:15:14.2097024+08:00" />
+  <TestSettings name="default" id="6ee55c73-0632-4ea7-8202-58d90c5eea6e">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_18_14_33" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="aef6bcb3-c0de-400c-98ea-5d563a214692" testId="941959d5-11c4-889f-eb07-ea72ceabf578" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;Channel:Channels:0:Port&quot;, value: &quot;invalid&quot;, expectedOutput: &quot;Channel:Channels:0:Port&quot;)" computerName="家庭台式机" duration="00:00:03.4067005" startTime="2026-10-01T18:14:46.6026230+08:00" endTime="2026-10-01T18:14:50.0094351+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aef6bcb3-c0de-400c-98ea-5d563a214692" />
+    <UnitTestResult executionId="0dcb1c42-d783-4e5f-b7f0-51405d4b1608" testId="09c474f0-7a69-ff5e-fba8-4c0d14866579" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;missing&quot;)" computerName="家庭台式机" duration="00:00:06.5840433" startTime="2026-10-01T18:15:05.3820451+08:00" endTime="2026-10-01T18:15:11.9663061+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0dcb1c42-d783-4e5f-b7f0-51405d4b1608" />
+    <UnitTestResult executionId="9aa252fc-aca3-48a0-9cab-1d4d94b11970" testId="41d4fa7e-477a-8734-2270-443d0e187650" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap" computerName="家庭台式机" duration="00:00:02.1720638" startTime="2026-10-01T18:15:11.9666799+08:00" endTime="2026-10-01T18:15:14.1389847+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9aa252fc-aca3-48a0-9cab-1d4d94b11970" />
+    <UnitTestResult executionId="f3b6bd17-e43b-4841-b62d-0b2b2451a283" testId="0eabe429-fde2-08a1-19c2-ff59a68e663e" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;empty&quot;)" computerName="家庭台式机" duration="00:00:06.7667461" startTime="2026-10-01T18:14:58.6152815+08:00" endTime="2026-10-01T18:15:05.3819316+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f3b6bd17-e43b-4841-b62d-0b2b2451a283" />
+    <UnitTestResult executionId="fa1f7b85-29b8-47fb-8c7a-f3b424142198" testId="8e5ea03e-8c42-5ca2-855c-30ee8ee5191b" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: False)" computerName="家庭台式机" duration="00:00:04.1094620" startTime="2026-10-01T18:14:41.4908023+08:00" endTime="2026-10-01T18:14:45.6004119+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fa1f7b85-29b8-47fb-8c7a-f3b424142198" />
+    <UnitTestResult executionId="5c4c3be0-32d8-4c85-ade0-fb4ba27226bc" testId="650feac9-611d-b311-afdc-de15335a795b" testName="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules" computerName="家庭台式机" duration="00:00:00.6103563" startTime="2026-10-01T18:14:32.2353901+08:00" endTime="2026-10-01T18:14:32.8489319+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5c4c3be0-32d8-4c85-ade0-fb4ba27226bc" />
+    <UnitTestResult executionId="30a268c7-94f8-49f9-b6ac-717aab8c5ed0" testId="52457464-d545-4173-e367-64ea9c0ee2fb" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;Channel:Channels:0:Host&quot;, value: &quot;&quot;, expectedOutput: &quot;Channel:Channels:0:Host&quot;)" computerName="家庭台式机" duration="00:00:03.4115711" startTime="2026-10-01T18:14:53.6474397+08:00" endTime="2026-10-01T18:14:57.0589093+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="30a268c7-94f8-49f9-b6ac-717aab8c5ed0" />
+    <UnitTestResult executionId="6388298f-884b-45fe-8984-384b59ace2ce" testId="63d8aaef-c7c8-7926-b97f-1b61f01e4f27" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;GameLogin:EndpointPortA&quot;, value: &quot;65536&quot;, expectedOutput: &quot;GameLogin:EndpointPortA&quot;)" computerName="家庭台式机" duration="00:00:03.4045400" startTime="2026-10-01T18:14:36.2445791+08:00" endTime="2026-10-01T18:14:39.6477931+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6388298f-884b-45fe-8984-384b59ace2ce" />
+    <UnitTestResult executionId="71b82442-740a-44a2-a856-59848fa7eeca" testId="1a59c631-022f-e6ba-a0dc-c4498d543530" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets" computerName="家庭台式机" duration="00:00:02.7533971" startTime="2026-10-01T18:15:04.4823936+08:00" endTime="2026-10-01T18:15:07.2357897+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="71b82442-740a-44a2-a856-59848fa7eeca" />
+    <UnitTestResult executionId="245c1d5e-07a6-48d0-bc49-35da5746f10d" testId="e012fac4-6226-9582-ed5d-55a147644f2f" testName="Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests.HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity" computerName="家庭台式机" duration="00:00:02.9188652" startTime="2026-10-01T18:14:32.2353538+08:00" endTime="2026-10-01T18:14:35.1605384+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="245c1d5e-07a6-48d0-bc49-35da5746f10d" />
+    <UnitTestResult executionId="7c6f5e29-c1b4-4f60-b56d-ad01440e1f11" testId="7d899b16-59e9-0db8-173c-efb17e450bda" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.RealHttpRegistrationRaceAndCredentialFailuresKeepTheStableContract" computerName="家庭台式机" duration="00:00:02.9460873" startTime="2026-10-01T18:14:59.4064123+08:00" endTime="2026-10-01T18:15:02.3527136+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7c6f5e29-c1b4-4f60-b56d-ad01440e1f11" />
+    <UnitTestResult executionId="7762f0cd-a050-4f8b-9aae-be323a593054" testId="4cb9cc6a-6a4d-e97c-8a2a-c1884e430506" testName="Dfo.Server.Host.Tests.HostCompositionArchitectureTests.HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol" computerName="家庭台式机" duration="00:00:00.0071516" startTime="2026-10-01T18:14:32.2343131+08:00" endTime="2026-10-01T18:14:32.2475258+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7762f0cd-a050-4f8b-9aae-be323a593054" />
+    <UnitTestResult executionId="fa5f6167-d8e8-47f1-810e-d1914a2b2499" testId="a17a4808-d4c0-3013-4da3-0d205c27f944" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint" computerName="家庭台式机" duration="00:00:06.8138482" startTime="2026-10-01T18:14:32.2354007+08:00" endTime="2026-10-01T18:14:39.0526375+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fa5f6167-d8e8-47f1-810e-d1914a2b2499" />
+    <UnitTestResult executionId="dd933ea0-1cea-43cd-b34f-5d4902eb1aee" testId="2614ce0f-156f-33fe-fb4f-eda8fd531e7e" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;LauncherAuth:PublicChannel:Host&quot;, value: &quot;&quot;, expectedOutput: &quot;LauncherAuth:PublicChannel:Host&quot;)" computerName="家庭台式机" duration="00:00:03.6090240" startTime="2026-10-01T18:14:39.6479885+08:00" endTime="2026-10-01T18:14:43.2571887+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dd933ea0-1cea-43cd-b34f-5d4902eb1aee" />
+    <UnitTestResult executionId="0a6fb9d9-43c1-4a66-b367-e9c0f3cc66cf" testId="62cd2b4a-2cd2-827f-2055-154481a562fa" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: True)" computerName="家庭台式机" duration="00:00:02.4375667" startTime="2026-10-01T18:14:39.0531502+08:00" endTime="2026-10-01T18:14:41.4906137+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0a6fb9d9-43c1-4a66-b367-e9c0f3cc66cf" />
+    <UnitTestResult executionId="5032f160-3608-479f-8ba7-3b5ccf2f2a39" testId="68d3a007-49d4-c6a5-4d6f-4397e3352e54" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;LauncherAuth:LegacyMd5Migration:AllowedAccountIds:&quot;···, value: &quot;*&quot;, expectedOutput: &quot;Legacy MD5 migration&quot;)" computerName="家庭台式机" duration="00:00:03.6371908" startTime="2026-10-01T18:14:50.0095724+08:00" endTime="2026-10-01T18:14:53.6469868+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5032f160-3608-479f-8ba7-3b5ccf2f2a39" />
+    <UnitTestResult executionId="25a56e46-e896-4d7d-b2b1-19943f1a7a1c" testId="7cf60402-ff3e-9c03-abf3-7d16601fbed5" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: True)" computerName="家庭台式机" duration="00:00:00.9479188" startTime="2026-10-01T18:14:48.6725044+08:00" endTime="2026-10-01T18:14:49.6204367+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="25a56e46-e896-4d7d-b2b1-19943f1a7a1c" />
+    <UnitTestResult executionId="bf9f2651-b58d-49b6-9b0f-76c199677bb7" testId="ba1bf1ec-a50e-c3eb-aa86-c0b58271747c" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.Invalid_required_equipment_index_fails_before_listeners_start(duplicate: True)" computerName="家庭台式机" duration="00:00:09.7402286" startTime="2026-10-01T18:14:42.2594250+08:00" endTime="2026-10-01T18:14:51.9997970+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bf9f2651-b58d-49b6-9b0f-76c199677bb7" />
+    <UnitTestResult executionId="ace45e55-b41e-499d-8b8e-82edd59df66e" testId="bfe9f626-f371-1056-f60e-6c8359dafd72" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;unreadable&quot;)" computerName="家庭台式机" duration="00:00:06.6146795" startTime="2026-10-01T18:14:52.0002006+08:00" endTime="2026-10-01T18:14:58.6148767+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ace45e55-b41e-499d-8b8e-82edd59df66e" />
+    <UnitTestResult executionId="80f46755-14ae-4525-85be-88dc0876d174" testId="c2f83bdf-fb78-968a-53e9-92e2da96aba5" testName="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" computerName="家庭台式机" duration="00:00:00.0019577" startTime="2026-10-01T18:14:32.8496645+08:00" endTime="2026-10-01T18:14:32.8509190+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="80f46755-14ae-4525-85be-88dc0876d174" />
+    <UnitTestResult executionId="32780a47-bbc0-4720-af35-0955989bae76" testId="a9fc5767-987d-3dd8-be1c-fe83d4a0de4c" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.DisabledHttpApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener" computerName="家庭台式机" duration="00:00:02.3469435" startTime="2026-10-01T18:14:57.0593085+08:00" endTime="2026-10-01T18:14:59.4062168+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32780a47-bbc0-4720-af35-0955989bae76" />
+    <UnitTestResult executionId="71d3b30a-8e11-4570-91d5-66aa5ead34bd" testId="38657fb5-79f5-ea10-365d-ce9969652eff" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.Invalid_required_equipment_index_fails_before_listeners_start(duplicate: False)" computerName="家庭台式机" duration="00:00:10.0204367" startTime="2026-10-01T18:14:32.2353748+08:00" endTime="2026-10-01T18:14:42.2592285+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="71d3b30a-8e11-4570-91d5-66aa5ead34bd" />
+    <UnitTestResult executionId="2f4e8f90-2b4c-474c-b024-b951cbd3d926" testId="fa02e8cc-9194-5253-cd82-6fa352df7fbe" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.EnabledHttpApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap" computerName="家庭台式机" duration="00:00:02.1289123" startTime="2026-10-01T18:15:02.3532335+08:00" endTime="2026-10-01T18:15:04.4819852+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2f4e8f90-2b4c-474c-b024-b951cbd3d926" />
+    <UnitTestResult executionId="44384e1f-db18-497f-a13c-fa0b9f24a831" testId="0a0c3cbd-b972-4bc3-ada0-95abc220a223" testName="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: False)" computerName="家庭台式机" duration="00:00:03.0713293" startTime="2026-10-01T18:14:45.6008735+08:00" endTime="2026-10-01T18:14:48.6720878+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="44384e1f-db18-497f-a13c-fa0b9f24a831" />
+    <UnitTestResult executionId="02d544e3-a905-4e8c-b63f-0794899070ba" testId="7cfeac4e-1211-9971-dfb7-94699caf8454" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;Game:EndpointHost&quot;, value: &quot;&quot;, expectedOutput: &quot;Game:EndpointHost&quot;)" computerName="家庭台式机" duration="00:00:03.3449003" startTime="2026-10-01T18:14:43.2574734+08:00" endTime="2026-10-01T18:14:46.6024683+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="02d544e3-a905-4e8c-b63f-0794899070ba" />
+    <UnitTestResult executionId="75052f49-7986-49c9-8896-216b07aeb6bd" testId="cc4014a4-e903-cd28-54e5-81a4e87b447c" testName="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;LauncherAuth:PublicChannel:Port&quot;, value: &quot;0&quot;, expectedOutput: &quot;LauncherAuth:PublicChannel:Port&quot;)" computerName="家庭台式机" duration="00:00:04.0039787" startTime="2026-10-01T18:14:32.2354101+08:00" endTime="2026-10-01T18:14:36.2427846+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="75052f49-7986-49c9-8896-216b07aeb6bd" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;empty&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="0eabe429-fde2-08a1-19c2-ff59a68e663e">
+      <Execution id="f3b6bd17-e43b-4841-b62d-0b2b2451a283" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="InvalidRequiredChannelScript_FailsBeforeListenersStart" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;GameLogin:EndpointPortA&quot;, value: &quot;65536&quot;, expectedOutput: &quot;GameLogin:EndpointPortA&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="63d8aaef-c7c8-7926-b97f-1b61f01e4f27">
+      <Execution id="6388298f-884b-45fe-8984-384b59ace2ce" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;LauncherAuth:PublicChannel:Port&quot;, value: &quot;0&quot;, expectedOutput: &quot;LauncherAuth:PublicChannel:Port&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="cc4014a4-e903-cd28-54e5-81a4e87b447c">
+      <Execution id="75052f49-7986-49c9-8896-216b07aeb6bd" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="62cd2b4a-2cd2-827f-2055-154481a562fa">
+      <Execution id="0a6fb9d9-43c1-4a66-b367-e9c0f3cc66cf" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="8e5ea03e-8c42-5ca2-855c-30ee8ee5191b">
+      <Execution id="fa1f7b85-29b8-47fb-8c7a-f3b424142198" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.HostCompositionArchitectureTests.HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="4cb9cc6a-6a4d-e97c-8a2a-c1884e430506">
+      <Execution id="7762f0cd-a050-4f8b-9aae-be323a593054" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.HostCompositionArchitectureTests" name="HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.EnabledHttpApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="fa02e8cc-9194-5253-cd82-6fa352df7fbe">
+      <Execution id="2f4e8f90-2b4c-474c-b024-b951cbd3d926" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="EnabledHttpApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;LauncherAuth:PublicChannel:Host&quot;, value: &quot;&quot;, expectedOutput: &quot;LauncherAuth:PublicChannel:Host&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="2614ce0f-156f-33fe-fb4f-eda8fd531e7e">
+      <Execution id="dd933ea0-1cea-43cd-b34f-5d4902eb1aee" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="41d4fa7e-477a-8734-2270-443d0e187650">
+      <Execution id="9aa252fc-aca3-48a0-9cab-1d4d94b11970" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.Invalid_required_equipment_index_fails_before_listeners_start(duplicate: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="38657fb5-79f5-ea10-365d-ce9969652eff">
+      <Execution id="71d3b30a-8e11-4570-91d5-66aa5ead34bd" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="Invalid_required_equipment_index_fails_before_listeners_start" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.RealHttpRegistrationRaceAndCredentialFailuresKeepTheStableContract" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="7d899b16-59e9-0db8-173c-efb17e450bda">
+      <Execution id="7c6f5e29-c1b4-4f60-b56d-ad01440e1f11" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="RealHttpRegistrationRaceAndCredentialFailuresKeepTheStableContract" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="0a0c3cbd-b972-4bc3-ada0-95abc220a223">
+      <Execution id="44384e1f-db18-497f-a13c-fa0b9f24a831" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;Channel:Channels:0:Port&quot;, value: &quot;invalid&quot;, expectedOutput: &quot;Channel:Channels:0:Port&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="941959d5-11c4-889f-eb07-ea72ceabf578">
+      <Execution id="aef6bcb3-c0de-400c-98ea-5d563a214692" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.Invalid_required_equipment_index_fails_before_listeners_start(duplicate: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="ba1bf1ec-a50e-c3eb-aa86-c0b58271747c">
+      <Execution id="bf9f2651-b58d-49b6-9b0f-76c199677bb7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="Invalid_required_equipment_index_fails_before_listeners_start" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="650feac9-611d-b311-afdc-de15335a795b">
+      <Execution id="5c4c3be0-32d8-4c85-ade0-fb4ba27226bc" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.CarriedGoldCompositionTests" name="The_character_business_acts_through_resolves_from_the_assembled_modules" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;missing&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="09c474f0-7a69-ff5e-fba8-4c0d14866579">
+      <Execution id="0dcb1c42-d783-4e5f-b7f0-51405d4b1608" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="InvalidRequiredChannelScript_FailsBeforeListenersStart" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.DisabledHttpApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="a9fc5767-987d-3dd8-be1c-fe83d4a0de4c">
+      <Execution id="32780a47-bbc0-4720-af35-0955989bae76" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="DisabledHttpApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="1a59c631-022f-e6ba-a0dc-c4498d543530">
+      <Execution id="71b82442-740a-44a2-a856-59848fa7eeca" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;Game:EndpointHost&quot;, value: &quot;&quot;, expectedOutput: &quot;Game:EndpointHost&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="7cfeac4e-1211-9971-dfb7-94699caf8454">
+      <Execution id="02d544e3-a905-4e8c-b63f-0794899070ba" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;Channel:Channels:0:Host&quot;, value: &quot;&quot;, expectedOutput: &quot;Channel:Channels:0:Host&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="52457464-d545-4173-e367-64ea9c0ee2fb">
+      <Execution id="30a268c7-94f8-49f9-b6ac-717aab8c5ed0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;unreadable&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="bfe9f626-f371-1056-f60e-6c8359dafd72">
+      <Execution id="ace45e55-b41e-499d-8b8e-82edd59df66e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="InvalidRequiredChannelScript_FailsBeforeListenersStart" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="c2f83bdf-fb78-968a-53e9-92e2da96aba5">
+      <Execution id="80f46755-14ae-4525-85be-88dc0876d174" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.CarriedGoldCompositionTests" name="The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests.HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="e012fac4-6226-9582-ed5d-55a147644f2f">
+      <Execution id="245c1d5e-07a6-48d0-bc49-35da5746f10d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests" name="HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: &quot;LauncherAuth:LegacyMd5Migration:AllowedAccountIds:&quot;···, value: &quot;*&quot;, expectedOutput: &quot;Legacy MD5 migration&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="68d3a007-49d4-c6a5-4d6f-4397e3352e54">
+      <Execution id="5032f160-3608-479f-8ba7-3b5ccf2f2a39" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherHttpHostStartupTests" name="InvalidLauncherConfigurationFailsBeforeAnyListenerStarts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="7cf60402-ff3e-9c03-abf3-7d16601fbed5">
+      <Execution id="25a56e46-e896-4d7d-b2b1-19943f1a7a1c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="a17a4808-d4c0-3013-4da3-0d205c27f944">
+      <Execution id="fa5f6167-d8e8-47f1-810e-d1914a2b2499" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ComponentLifecycleTests" name="ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="941959d5-11c4-889f-eb07-ea72ceabf578" executionId="aef6bcb3-c0de-400c-98ea-5d563a214692" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="09c474f0-7a69-ff5e-fba8-4c0d14866579" executionId="0dcb1c42-d783-4e5f-b7f0-51405d4b1608" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="41d4fa7e-477a-8734-2270-443d0e187650" executionId="9aa252fc-aca3-48a0-9cab-1d4d94b11970" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0eabe429-fde2-08a1-19c2-ff59a68e663e" executionId="f3b6bd17-e43b-4841-b62d-0b2b2451a283" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8e5ea03e-8c42-5ca2-855c-30ee8ee5191b" executionId="fa1f7b85-29b8-47fb-8c7a-f3b424142198" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="650feac9-611d-b311-afdc-de15335a795b" executionId="5c4c3be0-32d8-4c85-ade0-fb4ba27226bc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="52457464-d545-4173-e367-64ea9c0ee2fb" executionId="30a268c7-94f8-49f9-b6ac-717aab8c5ed0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="63d8aaef-c7c8-7926-b97f-1b61f01e4f27" executionId="6388298f-884b-45fe-8984-384b59ace2ce" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1a59c631-022f-e6ba-a0dc-c4498d543530" executionId="71b82442-740a-44a2-a856-59848fa7eeca" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e012fac4-6226-9582-ed5d-55a147644f2f" executionId="245c1d5e-07a6-48d0-bc49-35da5746f10d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7d899b16-59e9-0db8-173c-efb17e450bda" executionId="7c6f5e29-c1b4-4f60-b56d-ad01440e1f11" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4cb9cc6a-6a4d-e97c-8a2a-c1884e430506" executionId="7762f0cd-a050-4f8b-9aae-be323a593054" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a17a4808-d4c0-3013-4da3-0d205c27f944" executionId="fa5f6167-d8e8-47f1-810e-d1914a2b2499" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2614ce0f-156f-33fe-fb4f-eda8fd531e7e" executionId="dd933ea0-1cea-43cd-b34f-5d4902eb1aee" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="62cd2b4a-2cd2-827f-2055-154481a562fa" executionId="0a6fb9d9-43c1-4a66-b367-e9c0f3cc66cf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="68d3a007-49d4-c6a5-4d6f-4397e3352e54" executionId="5032f160-3608-479f-8ba7-3b5ccf2f2a39" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7cf60402-ff3e-9c03-abf3-7d16601fbed5" executionId="25a56e46-e896-4d7d-b2b1-19943f1a7a1c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ba1bf1ec-a50e-c3eb-aa86-c0b58271747c" executionId="bf9f2651-b58d-49b6-9b0f-76c199677bb7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bfe9f626-f371-1056-f60e-6c8359dafd72" executionId="ace45e55-b41e-499d-8b8e-82edd59df66e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2f83bdf-fb78-968a-53e9-92e2da96aba5" executionId="80f46755-14ae-4525-85be-88dc0876d174" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a9fc5767-987d-3dd8-be1c-fe83d4a0de4c" executionId="32780a47-bbc0-4720-af35-0955989bae76" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="38657fb5-79f5-ea10-365d-ce9969652eff" executionId="71d3b30a-8e11-4570-91d5-66aa5ead34bd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fa02e8cc-9194-5253-cd82-6fa352df7fbe" executionId="2f4e8f90-2b4c-474c-b024-b951cbd3d926" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0a0c3cbd-b972-4bc3-ada0-95abc220a223" executionId="44384e1f-db18-497f-a13c-fa0b9f24a831" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7cfeac4e-1211-9971-dfb7-94699caf8454" executionId="02d544e3-a905-4e8c-b63f-0794899070ba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc4014a4-e903-cd28-54e5-81a4e87b447c" executionId="75052f49-7986-49c9-8896-216b07aeb6bd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="26" executed="26" passed="26" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.10]   Discovering: Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.14]   Discovered:  Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.15]   Starting:    Dfo.Server.Host.Tests&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=12443; GamePorts=12444&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: C:\Users\Gloria\AppData\Local\Temp\dfo-components-bfd637c8b596499d8f12fa0be7d3cd59\invalid.pvf (9 bytes, 2026-10-01 10:14:32Z)&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.IO.InvalidDataException: content unavailable&#xD;
+         at Dfo.Server.Host.Tests.ComponentLifecycleTests.FailingPreparation.InitializeAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 184&#xD;
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 56&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=12484; GamePorts=12485&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+info: IndependentDrops[0]&#xD;
+      Cached 3046 independent drop rows&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Extra drop content initialized: 0 tagged candidates&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Monster declared drops initialized: 552 tables&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      World drop tables initialized: 200 levels in 36 ms&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Vending machine definitions initialized: 2 groups&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Lottery definitions initialized: 1569 pots in 110 ms&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=12501; GamePorts=12502&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+info: IndependentDrops[0]&#xD;
+      Cached 3046 independent drop rows&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Extra drop content initialized: 0 tagged candidates&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Monster declared drops initialized: 552 tables&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      World drop tables initialized: 200 levels in 36 ms&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Vending machine definitions initialized: 2 groups&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Lottery definitions initialized: 1569 pots in 111 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=12527; GamePorts=12528&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+info: IndependentDrops[0]&#xD;
+      Cached 3046 independent drop rows&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Extra drop content initialized: 0 tagged candidates&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Monster declared drops initialized: 552 tables&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      World drop tables initialized: 200 levels in 37 ms&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Vending machine definitions initialized: 2 groups&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Lottery definitions initialized: 1569 pots in 92 ms&#xD;
+info: Microsoft.Hosting.Lifetime[14]&#xD;
+      Now listening on: http://127.0.0.1:12526&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\&#xD;
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]&#xD;
+      Request starting HTTP/1.1 GET http://127.0.0.1:12526/api/launcher/v1/bootstrap - - -&#xD;
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]&#xD;
+      Executing endpoint 'HTTP: GET /api/launcher/v1/bootstrap'&#xD;
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]&#xD;
+      Writing value of type 'BootstrapResponse' as Json.&#xD;
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]&#xD;
+      Executed endpoint 'HTTP: GET /api/launcher/v1/bootstrap'&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]&#xD;
+      Request finished HTTP/1.1 GET http://127.0.0.1:12526/api/launcher/v1/bootstrap - 200 - application/json;+charset=utf-8 39.0336ms&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=12558; GamePorts=12559&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Equipment content index initialized: 118479 templates&#xD;
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]&#xD;
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained&#xD;
+info: IndependentDrops[0]&#xD;
+      Cached 3046 independent drop rows&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Extra drop content initialized: 0 tagged candidates&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Monster declared drops initialized: 552 tables&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      World drop tables initialized: 200 levels in 22 ms&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Vending machine definitions initialized: 2 groups&#xD;
+info: Dfo.Server.GameServer[0]&#xD;
+      Lottery definitions initialized: 1569 pots in 51 ms&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[14]&#xD;
+      Now listening on: http://127.0.0.1:12557&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\&#xD;
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]&#xD;
+      Request starting HTTP/1.1 GET http://127.0.0.1:12557/api/launcher/v1/bootstrap - - -&#xD;
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]&#xD;
+      Executing endpoint 'HTTP: GET /api/launcher/v1/bootstrap'&#xD;
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]&#xD;
+      Writing value of type 'BootstrapResponse' as Json.&#xD;
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]&#xD;
+      Executed endpoint 'HTTP: GET /api/launcher/v1/bootstrap'&#xD;
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]&#xD;
+      Request finished HTTP/1.1 GET http://127.0.0.1:12557/api/launcher/v1/bootstrap - 200 - application/json;+charset=utf-8 7.4276ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:42.08]   Finished:    Dfo.Server.Host.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

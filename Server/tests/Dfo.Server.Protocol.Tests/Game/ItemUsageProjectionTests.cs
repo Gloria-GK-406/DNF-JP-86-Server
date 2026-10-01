@@ -7,6 +7,7 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using System.Buffers.Binary;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -26,6 +27,24 @@ public sealed class ItemUsageProjectionTests
         Assert.Equal(255, chunks[1].EncodeBody()[0]); Assert.Equal(1, chunks[2].EncodeBody()[0]);
         Assert.Throws<OverflowException>(() => ItemUsageCountMessage.FullSnapshot([new(1, 256, 300, null, null)]));
     }
+    [Fact]
+    public async Task Login_delivery_restores_unlimited_cooldown_in_seconds_without_creating_a_daily_quota()
+    {
+        var sessions = new Sessions(); var bus = new Bus(); var sender = new Sender();
+        bus.Items = [new(7518, 1, null, bus.At.AddMinutes(-2), bus.At.AddSeconds(86280)),
+            new(2600026, 1, 1, null, null)];
+        await new ItemUsageProjectionDelivery(bus, sessions, sender).SendAsync(sessions.Current!, default);
+        Assert.Equal(new ushort[] { 0x021E, 0x021E, 0x00AC }, sender.Types);
+        Assert.Equal(2600026, BinaryPrimitives.ReadInt32LittleEndian(sender.Bodies[1].AsSpan(1)));
+        Assert.Equal(Convert.FromHexString("015E1D000008510100"), sender.Bodies[2]);
+        Assert.Empty(ItemUsageCooldownProjection.Snapshot([new(7518, 1, null, null, bus.At)], bus.At));
+        var chunks = ItemUsageCooldownProjection.Snapshot(Enumerable.Range(1, 256)
+            .Select(id => new ItemUsageState(id, 1, null, null, bus.At.AddMilliseconds(1))).ToArray(), bus.At);
+        Assert.Equal(2, chunks.Count);
+        Assert.Equal(255, chunks[0].EncodeBody()[0]);
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(chunks[1].EncodeBody().AsSpan(5)));
+    }
+
     [Fact]
     public async Task Daily_worker_only_refreshes_changed_business_day_and_does_not_deliver_to_replaced_session()
     {
@@ -66,19 +85,25 @@ public sealed class ItemUsageProjectionTests
     private sealed class Bus : ICommandBus
     {
         public int Used = 1;
+        public DateTimeOffset At = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
+        public IReadOnlyList<ItemUsageState>? Items;
         public Action? BeforeReturn;
         public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken token = default) where T : notnull
         {
             Assert.IsType<ReadItemUsageSnapshotCommand>(command);
             BeforeReturn?.Invoke();
-            return ValueTask.FromResult((T)(object)new ItemUsageSnapshotResult([new(2600026, Used, 1, null, null)], true));
+            return ValueTask.FromResult((T)(object)new ItemUsageSnapshotResult(Items ?? [new(2600026, Used, 1, null, null)], true) { At = At });
         }
     }
     private sealed class Sender : IGameMessageSender
     {
         public List<byte[]> Bodies = [];
+        public List<ushort> Types = [];
         public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken token)
-        { Bodies.Add(Assert.IsType<ItemUsageCountMessage>(message).EncodeBody()); return ValueTask.CompletedTask; }
+        {
+            var state = Assert.IsAssignableFrom<GameStateSynchronizationMessage>(message);
+            Types.Add(state.Type); Bodies.Add(state.EncodeBody()); return ValueTask.CompletedTask;
+        }
         public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken token) => throw new NotSupportedException();
         public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken token) => throw new NotSupportedException();
     }

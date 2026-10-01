@@ -8,16 +8,14 @@ internal sealed class NpcShopRuleService(
     INpcShopDefinitionSource content,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IDailyRefillRuleService days,
-    IInventorySlotMappingRuleService? slotMappings = null) : INpcShopRuleService
+    IDailyRefillRuleService days) : INpcShopRuleService
 {
-    private readonly IInventorySlotMappingRuleService slotMappings =
-        slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<NpcShopQuoteResult> QuoteAsync(
         int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken)
     {
         var shop = await content.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false);
-        if (shop is null || shop.ShopId != shopId)
+        // Purchase currently admits town shops only; clear-room shops require a separate run authorization.
+        if (shop is null || shop.ShopId != shopId || shop.VisibleOnDungeonClear)
             return new(NpcShopRejection.ShopUnavailable, null);
         if (!OfferedItems(shop, job).Contains(itemId))
             return new(NpcShopRejection.ItemNotSold, null);
@@ -63,31 +61,35 @@ internal sealed class NpcShopRuleService(
     }
 
     public NpcShopPlanningResult Plan(
-        NpcShopQuote quote, IReadOnlyList<ContainerSlotItem> held, int gold, int itemIdentitySeed)
+        NpcShopQuote quote,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
+        int gold, int itemIdentitySeed)
     {
         if (gold < quote.GoldCost)
             return new(NpcShopRejection.InsufficientGold, null);
-        var standing = held.ToDictionary(item => item.SlotIndex);
+        var standing = held.SelectMany(group => group.Value.Select(item =>
+                (Slot: new BusinessSlot(group.Key, item.SlotIndex), Item: item)))
+            .ToDictionary(entry => entry.Slot, entry => entry.Item);
         var materialChanges = new List<NpcShopSlotChange>();
         foreach (var cost in quote.Materials)
         {
-            var available = standing.Values.Where(item => item.ItemId == cost.ItemId && item.IsPile)
-                .OrderBy(item => item.SlotIndex).ToArray();
-            if (available.Sum(item => (long)item.Count) < cost.Count)
+            var available = standing.Where(entry => entry.Value.ItemId == cost.ItemId && entry.Value.IsPile)
+                .OrderBy(entry => entry.Key.Space).ThenBy(entry => entry.Key.Index).ToArray();
+            if (available.Sum(entry => (long)entry.Value.Count) < cost.Count)
                 return new(NpcShopRejection.InsufficientMaterials, null);
             var remaining = cost.Count;
-            foreach (var pile in available)
+            foreach (var (slot, pile) in available)
             {
                 if (remaining == 0)
                     break;
                 var take = Math.Min(remaining, pile.Count);
                 remaining -= take;
                 var after = pile.Count == take ? null : pile.Core with { Value = pile.Count - take };
-                materialChanges.Add(new(pile.SlotIndex, after));
+                materialChanges.Add(new(slot, after));
                 if (after is null)
-                    standing.Remove(pile.SlotIndex);
+                    standing.Remove(slot);
                 else
-                    standing[pile.SlotIndex] = pile with { Core = after };
+                    standing[slot] = pile with { Core = after };
             }
         }
 
@@ -98,25 +100,24 @@ internal sealed class NpcShopRuleService(
             var placement = quote.Placement;
             var candidates = CandidateSlots(placement).ToArray();
             var arrival = arrivals.ForGrant(
-                candidates.Select(slot => (Slot: slot, Index: this.MainIndex(slot)))
-                    .Where(candidate => standing.TryGetValue(candidate.Index, out var item)
+                candidates
+                    .Where(slot => standing.TryGetValue(slot, out var item)
                         && item.ItemId == quote.Definition.ItemId && item.IsPile)
-                    .Select(candidate => new ItemPile(
-                        candidate.Slot, standing[candidate.Index].Count)).ToArray(),
+                    .Select(slot => new ItemPile(slot, standing[slot].Count)).ToArray(),
                 outstanding, placement,
-                candidates.Where(slot => standing.ContainsKey(this.MainIndex(slot))).ToHashSet());
-            int slot;
+                candidates.Where(standing.ContainsKey).ToHashSet());
+            BusinessSlot slot;
             int added;
             InventoryItemCoreState core;
             switch (arrival)
             {
                 case ItemArrival.OntoExistingPile pile:
-                    slot = this.MainIndex(pile.Slot);
+                    slot = pile.Slot;
                     added = pile.Added;
                     core = standing[slot].Core with { Value = pile.Total };
                     break;
                 case ItemArrival.IntoEmptySlot empty:
-                    slot = this.MainIndex(empty.Slot);
+                    slot = empty.Slot;
                     added = empty.Count;
                     core = StackableItemCore.Create(placement.ItemKind, quote.Definition.ItemId, added);
                     if (placement.WorldClass == ItemWorldClass.Equipment)
@@ -134,8 +135,8 @@ internal sealed class NpcShopRuleService(
             }
             if (added <= 0 || added > outstanding)
                 throw new InvalidOperationException("A shop arrival did not consume a positive bounded quantity.");
-            standing[slot] = new(slot, core, placement.WorldClass);
-            grants.Add(new(new InventoryItemState(null, slot, core), added));
+            standing[slot] = new(slot.Index, core, placement.WorldClass);
+            grants.Add(new(slot, core, added));
             outstanding -= added;
         }
         return new(NpcShopRejection.None, new(materialChanges, grants));
@@ -146,15 +147,6 @@ internal sealed class NpcShopRuleService(
 
     private static IEnumerable<int> OfferedItems(NpcShopDefinition shop, byte job) =>
         shop.Pages.Where(page => page.Job is null || page.Job == job).SelectMany(page => page.ItemIds).Distinct();
-
-    private int MainIndex(BusinessSlot slot)
-    {
-        var game = slotMappings.ToGameSlot(slot);
-        if (game.Space != InventoryContainerType.Main)
-            throw new InvalidDataException(
-                $"NPC shop placement {slot.Space}/{slot.Index} is not in the main inventory.");
-        return game.Index;
-    }
 
     private static IEnumerable<BusinessSlot> CandidateSlots(ItemPlacement placement)
     {

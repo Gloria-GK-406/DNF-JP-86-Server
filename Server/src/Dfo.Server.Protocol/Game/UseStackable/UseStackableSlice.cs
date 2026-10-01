@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
@@ -29,8 +32,9 @@ public sealed record UseStackableRequest(
     GameMessageMetadata Metadata,
     GameSlot Slot,
     int InstanceValue,
-    int ItemCode) : IClientNetworkMessage
+    int ItemCode) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameUseStackable;
 }
 
@@ -77,6 +81,8 @@ public sealed record UseStackableResponse(
     /// owns would blame them for it.
     /// </remarks>
     public const byte Silent = 2;
+
+    public CreatureRuntimeChange? CreatureChange { get; init; }
 
     public ServerMessageType MessageType => ServerMessageType.GameUseStackable;
 
@@ -199,7 +205,8 @@ public enum ItemUseStatus
 }
 
 /// <summary>What a use did, or why it did not.</summary>
-public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int RemainingCount)
+public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int RemainingCount,
+    CreatureRuntimeChange? CreatureChange = null)
 {
     public static ItemUseResult Refused(ItemUseStatus status, int itemId = 0) =>
         new(status, itemId, 0);
@@ -209,7 +216,7 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
 public sealed record UseStackableCommand(
     SelectedSessionIdentity Session,
     BusinessSlot Slot,
-    int ItemCode) : ICommand<ItemUseResult>
+    int ItemCode) : ICommand<ItemUseResult>, IRequestSettlementCommand
 {
     public CharacterId CharacterId => Session.CharacterId;
 }
@@ -233,7 +240,6 @@ public sealed record UseStackableCommand(
 public sealed class UseStackableCommandHandler(
     ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService inventory,
-    ICharacterDomainService characters,
     IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
 {
     public async ValueTask<ItemUseResult> HandleAsync(
@@ -246,14 +252,15 @@ public sealed class UseStackableCommandHandler(
         if (sessions.FindByCharacter(command.CharacterId) != command.Session)
             return ItemUseResult.Refused(ItemUseStatus.NoSession);
 
-        if (!command.Slot.Space.IsCarriedItemSpace())
+        if (!command.Slot.Space.IsCarriedItemSpace()
+            && command.Slot.Space != BusinessInventorySpace.CreatureConsumable)
             return ItemUseResult.Refused(ItemUseStatus.ListNotServed);
 
         var slot = inventory.Find(command.CharacterId, command.Slot);
         if (slot is null)
             return ItemUseResult.Refused(ItemUseStatus.NoBoundContainer);
 
-        var item = await slot.Container.ReadSlotAsync(slot.StorageIndex, cancellationToken)
+        var item = await slot.Container.ReadSlotAsync(slot.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
 
         // The client names what it believes it is using. A slot that holds something else means the
@@ -262,20 +269,12 @@ public sealed class UseStackableCommandHandler(
         if (item is null || command.ItemCode > 0 && item.ItemId != command.ItemCode)
             return ItemUseResult.Refused(ItemUseStatus.SlotDisagrees);
 
-        var verdict = await characters.Get(command.CharacterId)
-            .CanUseAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-        if (verdict is not ItemUsability.Allowed)
-            return ItemUseResult.Refused(StatusFor(verdict), item.ItemId);
-
-        var planned = await effects.PlanAsync(item.ItemId, item.SlotIndex, cancellationToken)
-            .ConfigureAwait(false);
-        var applied = await effects
-            .ApplyAsync(command.Session, slot.Container, item, planned, cancellationToken)
-            .ConfigureAwait(false);
-
-        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
+        var applied = await effects.UseAsync(command.Session, command.Slot, item, cancellationToken).ConfigureAwait(false);
+        if (applied.Status != ItemUsability.Allowed)
+            return ItemUseResult.Refused(StatusFor(applied.Status), item.ItemId);
+        var creatureChange = applied.Applied?.Changes<PetStomachChange>().LastOrDefault()?.Change;
+        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount, creatureChange);
     }
-
     /// <summary>
     /// The refusal the judgement gave, in this protocol's own terms.
     /// </summary>
@@ -362,7 +361,7 @@ public sealed class UseStackableHandler(
                 responseSlot.Index,
                 result.RemainingCount);
             return UseStackableResponse.Success(
-                responseSlot, message.InstanceValue, result.ItemId);
+                responseSlot, message.InstanceValue, result.ItemId) with { CreatureChange = result.CreatureChange };
         }
 
         logger.LogInformation(

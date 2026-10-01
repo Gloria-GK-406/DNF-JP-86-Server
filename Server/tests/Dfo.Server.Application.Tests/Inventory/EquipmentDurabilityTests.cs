@@ -24,8 +24,22 @@ public sealed class EquipmentDurabilityTests
         await Wear(shop, 12);
 
         Assert.Equal((ushort)1, await shop.Durability(InventoryContainerType.Equipment, 12));
-        Assert.Equal((byte)12, Assert.IsType<DecreaseDurabilityResponse>(
-            Assert.Single(shop.Sender.Messages)).Receipt!.SlotIndex);
+        Assert.Equal(new BusinessSlot(BusinessInventorySpace.WornEquipment, 0), Assert.IsType<DecreaseDurabilityResponse>(
+            Assert.Single(shop.Sender.Messages)).Receipt!.Slot);
+    }
+
+    [Fact]
+    public async Task Charm_slot_30_keeps_its_wear_command_behavior()
+    {
+        using var shop = new ShopFixture();
+        await shop.SeedCore(30, StackableItemCore.Create(1, 3000, 1234) with { Durability = 2 },
+            InventoryContainerType.Equipment);
+
+        await Wear(shop, 30);
+
+        Assert.Equal((ushort)1, await shop.Durability(InventoryContainerType.Equipment, 30));
+        Assert.Equal(new BusinessSlot(BusinessInventorySpace.WornEquipmentExtension, 1),
+            Assert.IsType<DecreaseDurabilityResponse>(Assert.Single(shop.Sender.Messages)).Receipt!.Slot);
     }
 
     [Fact]
@@ -41,7 +55,8 @@ public sealed class EquipmentDurabilityTests
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.Equal(2, shop.Sender.Messages.Count);
         Assert.All(shop.Sender.Messages, message =>
-            Assert.Equal((byte)12, Assert.IsType<DecreaseDurabilityResponse>(message).Receipt!.SlotIndex));
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.WornEquipment, 0),
+                Assert.IsType<DecreaseDurabilityResponse>(message).Receipt!.Slot));
     }
 
     [Fact]
@@ -70,7 +85,8 @@ public sealed class EquipmentDurabilityTests
         var old = shop.Session;
         shop.Select(2);
         var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new DecreaseDurabilityCommand(shop.OnlineUser, old, 12));
+            new DecreaseDurabilityCommand(shop.OnlineUser, old,
+                new BusinessSlot(BusinessInventorySpace.WornEquipment, 0)));
         Assert.Equal(EquipmentDurabilityRejection.NoSession, result.Rejection);
         Assert.Empty(shop.Sender.Messages);
     }

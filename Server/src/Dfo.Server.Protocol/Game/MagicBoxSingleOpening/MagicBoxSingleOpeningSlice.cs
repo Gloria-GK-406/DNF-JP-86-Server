@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -14,8 +15,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MagicBoxSingleOpening;
 
-public sealed record MagicBoxSingleOpeningRequest(GameMessageMetadata Metadata, MagicBoxOpeningInput? Input) : IClientNetworkMessage
+public sealed record MagicBoxSingleOpeningRequest(GameMessageMetadata Metadata, MagicBoxOpeningInput? Input) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameMagicBoxSingleOpening;
 }
 internal sealed class MagicBoxSingleOpeningDecoder : IGameMessageDecoder
@@ -37,7 +39,7 @@ internal sealed class MagicBoxSingleOpeningEncoder : GameCmdMessageEncoder<Magic
         OnePayload(0x00D0, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, false));
 }
 public sealed record MagicBoxSingleOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, MagicBoxOpeningInput Input)
-    : ICommand<MagicBoxOpeningResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<MagicBoxOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -45,7 +47,7 @@ public sealed class MagicBoxSingleOpeningCommandHandler(IMagicBoxOpeningDomainSe
     : ICommandHandler<MagicBoxSingleOpeningCommand, MagicBoxOpeningResult>
 {
     public ValueTask<MagicBoxOpeningResult> HandleAsync(CommandExecutionContext context, MagicBoxSingleOpeningCommand command, CancellationToken ct) =>
-        boxes.OpenAsync(command.Session, command.Input, clock.GetUtcNow(), ct);
+        boxes.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
 }
 public sealed class MagicBoxSingleOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<MagicBoxSingleOpeningHandler> logger)
@@ -61,8 +63,8 @@ public sealed class MagicBoxSingleOpeningHandler(ISelectedSessionDomainService s
         else
         {
             try { result = await commands.SendAsync(new MagicBoxSingleOpeningCommand(online.OnlineUserId, session, message.Input), ct).ConfigureAwait(false); }
-            catch (OpeningRejectedException failure) { result = new(failure.Reason, Detail: failure.Message); }
-            catch (Exception failure) when (failure is not OperationCanceledException)
+            catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) { result = new(failure.Reason, Detail: failure.Message); }
+            catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
             {
                 logger.LogError(failure, "Box opening storage failure for {ConnectionId}", context.Connection.ConnectionId);
                 result = new(OpeningRejection.StorageFailure);

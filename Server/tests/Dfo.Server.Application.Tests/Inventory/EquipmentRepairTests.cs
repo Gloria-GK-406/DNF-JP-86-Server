@@ -11,6 +11,27 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentRepairTests
 {
+    [Theory]
+    [InlineData(0xA0, 7, 113)]
+    [InlineData(0xA1, 0, 226)]
+    [InlineData(0xA1, 7, 226)]
+    public async Task Repair_quote_uses_attribute_reinforcement_and_preserves_independent_enchant_count(
+        byte attribute, byte enchantUpgrade, int expectedCost)
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(12, Piece(0) with { Attribute = attribute, EnchantUpgradeCount = enchantUpgrade },
+            InventoryContainerType.Equipment);
+
+        await Repair(shop, InventoryContainerType.Equipment, 12);
+
+        Assert.Equal(100000 - expectedCost, shop.Gold);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
+        var stored = shop.StoredCore(12, InventoryContainerType.Equipment);
+        Assert.Equal(attribute, stored[9]);
+        Assert.Equal(enchantUpgrade, stored[17]);
+        Assert.Equal((byte)0, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
+    }
+
     [Fact]
     public async Task Equipped_piece_costs_113_and_ack_observes_committed_gold_and_durability()
     {
@@ -275,6 +296,6 @@ public sealed class EquipmentRepairTests
             });
 
         public ValueTask<(float CostRate, IReadOnlyList<float> UpgradeRates)?> RatesAsync(CancellationToken ct) =>
-            ValueTask.FromResult<(float, IReadOnlyList<float>)?>((0.08415f, new float[] { 1 }));
+            ValueTask.FromResult<(float, IReadOnlyList<float>)?>((0.08415f, new float[] { 1, 2 }));
     }
 }

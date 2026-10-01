@@ -63,7 +63,7 @@ public sealed class SplitPileTests
                 new CharacterId(Character), InventoryContainerType.Main);
 
             var moved = await side.InUseCaseAsync(
-                token => bag.MoveToAsync(65, 66, 2, token));
+                token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.Consumable, 1), 2, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(2, PotionId), moved);
 
@@ -132,9 +132,9 @@ public sealed class SplitPileTests
             var bag = side.Containers.GetContainer(
                 new CharacterId(Character), InventoryContainerType.Main);
 
-            _ = await side.InUseCaseAsync(token => bag.MoveToAsync(65, 66, 2, token));
-            var newHalf = await side.InUseCaseAsync(token => bag.MoveToAsync(66, 67, 0, token));
-            var oldHalf = await side.InUseCaseAsync(token => bag.MoveToAsync(65, 68, 0, token));
+            _ = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.Consumable, 1), 2, token));
+            var newHalf = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Consumable, 1), new(BusinessInventorySpace.Consumable, 2), 0, token));
+            var oldHalf = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.Consumable, 3), 0, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(2, PotionId), newHalf);
             Assert.Equal(new ItemMoveOutcome.Moved(3, PotionId), oldHalf);
@@ -171,8 +171,8 @@ public sealed class SplitPileTests
             var bag = side.Containers.GetContainer(
                 new CharacterId(Character), InventoryContainerType.Main);
 
-            _ = await side.InUseCaseAsync(token => bag.MoveToAsync(65, 66, 2, token));
-            var poured = await side.InUseCaseAsync(token => bag.MoveToAsync(66, 65, 0, token));
+            _ = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.Consumable, 1), 2, token));
+            var poured = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Consumable, 1), new(BusinessInventorySpace.Consumable, 0), 0, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(2, PotionId), poured);
             Assert.Null(await SlotAsync(path, 66));

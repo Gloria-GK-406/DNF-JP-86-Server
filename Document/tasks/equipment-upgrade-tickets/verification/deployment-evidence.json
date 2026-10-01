@@ -1,0 +1,28 @@
+{
+  "dlls": {
+    "Dfo.Pvf.dll": "7e1eacb0861a7319efcb6b4c2d1812d7eea6799f42b118373560a8bae97f9786",
+    "Dfo.Server.Abstractions.dll": "65d7ebea66610889927a5fd79209c103a92481b157c0f213e0142b681a12cfd2",
+    "Dfo.Server.Application.dll": "23e768600fef8008288c0c23d985e43a2345fd0453e72243a1823b81472576a4",
+    "Dfo.Server.Data.dll": "b19909fc367b3423fc954a44a3194282d5995d775dc97704a6a72cdd19a14394",
+    "Dfo.Server.GameServer.dll": "0ccb5a5582115a4d9f69de429c3bbe2663781136a6bdb2c4ebdb669047b20ba5",
+    "Dfo.Server.Host.dll": "13bc79ba75950de5174af219c4846e3d4d84fce7c6157536971e1e9838d3d7af",
+    "Dfo.Server.HttpApi.dll": "29e5195b7844b2539bf4dab7a1676403ddfe29cc33526576aa513a0b7fdef4a3",
+    "Dfo.Server.Infrastructure.dll": "c372bc8f4f270c467e4e0b3443ce0cdc7fdb352f9ad191e5251645c4365ba94d",
+    "Dfo.Server.Networking.dll": "4fb2173c19dad316d0fc5dc06c083f9f92f6d08f48876c9dc4a0b7d33f606ca7",
+    "Dfo.Server.Persistence.dll": "dd79190508510f95ea704128ab45d332362c8f7053792a029c3e8170be8ac546",
+    "Dfo.Server.Protocol.dll": "662e2a5baee11394533f5dbe4b51295c633fb8b390d35a185997e22efa2a3ac5"
+  },
+  "pvfSha256": "3b2fe3da115fee949282558a864a319fc9ca197e1d1f22e656e74316a0f04b06",
+  "configSha256": "5eb7c901eff603a45205c84c47dcc00e65c7506fd7d2610a5606572f26be3f27",
+  "sourceFingerprint": "1dfc2dba02efc2a02659a3980d2457ff06e3204a45bdf10a3dad8528608758af",
+  "acceptedCommit": null,
+  "runtime": "E:\\Project\\DNF\\DNF-JP-86-Server\\artifacts\\equipment-upgrade-tickets-20261001\\runtime",
+  "runtimePid": 15484,
+  "oldPid": 3336,
+  "previousRuntime": "E:/Project/DNF/DNF-JP-86-Server/artifacts/effects-pvf-acceptance-20261001/runtime",
+  "database": "E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db",
+  "readyAt": "2026-10-01T19:07:59.220986+08:00",
+  "smokeReady": true,
+  "apiReady": true,
+  "tablesUnchanged": true
+}

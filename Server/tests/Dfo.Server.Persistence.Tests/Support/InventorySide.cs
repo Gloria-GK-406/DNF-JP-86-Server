@@ -61,6 +61,20 @@ internal sealed class InventorySide
     /// </remarks>
     public CharacterContainerDomainService Containers { get; } = new();
 
+    public ValueTask<ItemMoveOutcome> MoveAsync(CharacterId characterId,
+        BusinessSlot from, BusinessSlot into, int count, CancellationToken cancellationToken)
+    {
+        var inventory = new CharacterBusinessInventoryDomainService(this.Containers);
+        var source = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(from.Space))
+            .GetContainer(from.Space);
+        var destination = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(into.Space))
+            .GetContainer(into.Space);
+        var rules = new ItemPlacementRuleService(this.placements, new NoWearables());
+        return new ItemMovementDomainService(rules, new ItemSlotRuleService(), new NoWearables())
+            .MoveWithinBackingAsync(new(from, source), new(into, destination), count,
+                cancellationToken);
+    }
+
     public ICharacterInventoryEntryRepository CharacterEntries => this.Assembly;
 
     public IAccountInventoryEntryRepository AccountEntries => this.Assembly;
@@ -72,7 +86,10 @@ internal sealed class InventorySide
         new SqliteCharacterItemTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
         new DailyRefillRuleService(),
-        this.Containers,
+        new CharacterBusinessInventoryDomainService(this.Containers,
+            new ItemPlacementRuleService(this.placements, new NoWearables()),
+            new ItemArrivalRuleService()),
+        new ItemArrivalRuleService(),
         new ItemPlacementRuleService(this.placements, new NoWearables()));
 
     /// <summary>
@@ -128,10 +145,13 @@ internal sealed class InventorySide
     }
 
     /// <summary>Nothing here is worn; no test reached through this binding puts a piece on.</summary>
-    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource, IEquipmentWearDomainService
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
+
+        public ValueTask<bool> CanWearAsync(CharacterId characterId, int itemId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(false);
     }
 
     /// <summary>

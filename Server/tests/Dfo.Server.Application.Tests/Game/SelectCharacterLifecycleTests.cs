@@ -1430,6 +1430,7 @@ public sealed partial class SelectCharacterLifecycleTests
         public List<NetworkConnectionId> Closed { get; } = [];
         public Func<ValueTask>? OnClose { get; set; }
 
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
         public ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId, CancellationToken cancellationToken)
         {

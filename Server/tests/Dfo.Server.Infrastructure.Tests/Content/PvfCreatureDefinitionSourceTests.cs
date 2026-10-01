@@ -5,6 +5,15 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfCreatureDefinitionSourceTests
 {
     [SkippableFact]
+    public async Task Egg_and_hatched_equipment_resolve_the_declared_species_despite_different_names()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfCreatureDefinitionSource(provider);
+        Assert.Equal(20, (await source.FindByEquipmentAsync(63022, default))?.CreatureId);
+        Assert.Equal(20, (await source.FindByEquipmentAsync(63023, default))?.CreatureId);
+    }
+    [SkippableFact]
     public async Task Projects_every_creature_the_list_declares()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Concurrent;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -29,10 +30,10 @@ internal sealed class PvfDropItemPoolSource(PvfArchiveProvider provider) : IDrop
     private const string EquipmentList = "equipment/equipment.lst";
     private const string StackableList = "stackable/stackable.lst";
 
-    private const string GradeSection = "[grade]";
-    private const string RaritySection = "[rarity]";
-    private const string CreationRateSection = "[creation rate]";
-    private const string DurabilitySection = "[durability]";
+    private static readonly PvfField<int> GradeSection = PvfField.Int32("[grade]", optional: true);
+    private static readonly PvfField<int> RaritySection = PvfField.Int32("[rarity]", optional: true);
+    private static readonly PvfField<int> CreationRateSection = PvfField.Int32("[creation rate]", optional: true);
+    private static readonly PvfField<int> DurabilitySection = PvfField.Int32("[durability]", optional: true, minimum: 0, maximum: ushort.MaxValue);
 
     /// <remarks>
     /// <see cref="Lazy{T}"/> rather than the value directly, because a concurrent dictionary does
@@ -64,7 +65,7 @@ internal sealed class PvfDropItemPoolSource(PvfArchiveProvider provider) : IDrop
             if (fileIndex < 0)
                 continue;
 
-            if (ReadCreatable(archive, fileIndex) is not { } declared)
+            if (ReadCreatable(archive, itemPath) is not { } declared)
                 continue;
 
             var (grade, rarity, creationRate, durability) = declared;
@@ -103,43 +104,22 @@ internal sealed class PvfDropItemPoolSource(PvfArchiveProvider provider) : IDrop
     /// hundred tokens either way.
     /// </remarks>
     private static (int Grade, int Rarity, int CreationRate, ushort Durability)? ReadCreatable(
-        PvfArchive archive, int fileIndex)
+        PvfArchive archive, string path)
     {
-        int grade = -1, rarity = -1, creationRate = -1, durability = -1;
-        string? section = null;
-        var reader = archive.OpenScript(fileIndex);
-        while (reader.Read(out var token))
+        var document = PvfDocument.Open(archive, path).AtRoot();
+        int Read(PvfField<int> field)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                section = archive.ResolveString(token.Value);
-                continue;
-            }
-
-            if (token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            switch (section)
-            {
-                case GradeSection when grade < 0:
-                    grade = token.Value;
-                    break;
-                case RaritySection when rarity < 0:
-                    rarity = token.Value;
-                    break;
-                case CreationRateSection when creationRate < 0:
-                    creationRate = token.Value;
-                    break;
-                case DurabilitySection when durability < 0:
-                    durability = token.Value;
-                    break;
-            }
+            // Merged item definitions legally repeat these root declarations. Validate every
+            // occurrence, then keep the original first nonnegative projection.
+            var values = document.ReadAll(field);
+            return values.FirstOrDefault(value => value >= 0, -1);
         }
-
-        return creationRate < 0
-            ? null
-            : (grade, rarity, creationRate,
-                (ushort)Math.Clamp(durability, 0, ushort.MaxValue));
+        var grade = Read(GradeSection);
+        var rarity = Read(RaritySection);
+        var creationRate = Read(CreationRateSection);
+        var durability = Read(DurabilitySection);
+        return creationRate < 0 ? null : (grade, rarity, creationRate,
+            (ushort)Math.Clamp(durability, 0, ushort.MaxValue));
     }
 
     /// <summary>

@@ -1,0 +1,2761 @@
+
+### 0833cba6 size=2069 _ZN13user_creature18CCreatureScriptMgr22LoadCreatureScriptFileEv
+0833cba6: push     ebp
+0833cba7: mov      ebp, esp
+0833cba9: push     edi
+0833cbaa: push     esi
+0833cbab: push     ebx
+0833cbac: sub      esp, 0x6cc
+0833cbb2: mov      dword ptr [ebp - 0x60], 0
+0833cbb9: lea      eax, [ebp - 0x6b8]
+0833cbbf: mov      dword ptr [esp], eax
+0833cbc2: call     0x833e5ac ; _ZN14CreatureScriptC2Ev
+0833cbc7: mov      dword ptr [ebp - 0x20], 0
+0833cbce: lea      ebx, [ebp - 0x170]
+0833cbd4: mov      eax, 0
+0833cbd9: mov      edx, 0x40
+0833cbde: mov      edi, ebx
+0833cbe0: mov      ecx, edx
+0833cbe2: rep stosd dword ptr es:[edi], eax
+0833cbe4: lea      ebx, [ebp - 0x270]
+0833cbea: mov      eax, 0
+0833cbef: mov      edx, 0x40
+0833cbf4: mov      edi, ebx
+0833cbf6: mov      ecx, edx
+0833cbf8: rep stosd dword ptr es:[edi], eax
+0833cbfa: lea      ebx, [ebp - 0x370]
+0833cc00: mov      eax, 0
+0833cc05: mov      edx, 0x40
+0833cc0a: mov      edi, ebx
+0833cc0c: mov      ecx, edx
+0833cc0e: rep stosd dword ptr es:[edi], eax
+0833cc10: lea      eax, [ebp - 0x4a4]
+0833cc16: mov      dword ptr [esp], eax
+0833cc19: call     0x889037c ; _ZN10AttackInfoC1Ev
+0833cc1e: call     0x861cbb4 ; _ZN11sync_script21GetInstanceSyncScriptEv
+0833cc23: mov      dword ptr [esp], eax
+0833cc26: call     0x8624390 ; _ZN11sync_script11CSyncScript28truncate_creature_info_tableEv
+0833cc2b: xor      eax, 1
+0833cc2e: test     al, al
+0833cc30: je       0x833cc48
+0833cc32: mov      dword ptr [esp], 0x8c2db3c
+0833cc39: call     0x807e570 ;
+0833cc3e: mov      ebx, 0
+0833cc43: jmp      0x833d372
+0833cc48: lea      eax, [ebp - 0x64]
+0833cc4b: mov      dword ptr [esp + 4], 0x94ff5e0
+0833cc53: mov      dword ptr [esp], eax
+0833cc56: call     0x80e60f2 ; _ZNSt3mapIiSsSt4lessIiESaISt4pairIKiSsEEE5beginEv
+0833cc5b: sub      esp, 4
+0833cc5e: jmp      0x833d320
+0833cc63: lea      eax, [ebp - 0x64]
+0833cc66: mov      dword ptr [esp], eax
+0833cc69: call     0x80e61b8 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKiSsEEptEv
+0833cc6e: add      eax, 4
+0833cc71: mov      dword ptr [esp], eax
+0833cc74: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cc79: mov      dword ptr [ebp - 0x20], eax
+0833cc7c: cmp      dword ptr [ebp - 0x20], 0
+0833cc80: je       0x833d352
+0833cc86: mov      eax, dword ptr [ebp - 0x20]
+0833cc89: mov      dword ptr [esp + 4], eax
+0833cc8d: lea      eax, [ebp - 0x6b8]
+0833cc93: mov      dword ptr [esp], eax
+0833cc96: call     0x8a35e47 ; _Z20importCreatureScriptP14CreatureScriptPKc
+0833cc9b: xor      eax, 1
+0833cc9e: test     al, al
+0833cca0: je       0x833ccdf
+0833cca2: mov      eax, dword ptr [ebp - 0x20]
+0833cca5: mov      dword ptr [esp + 0x14], eax
+0833cca9: mov      dword ptr [esp + 0x10], 0x8c2db64
+0833ccb1: mov      dword ptr [esp + 0xc], 0xf6b
+0833ccb9: mov      dword ptr [esp + 8], 0x8c2ebc0
+0833ccc1: mov      dword ptr [esp + 4], 0x8c2d76a
+0833ccc9: mov      dword ptr [esp], 1
+0833ccd0: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+0833ccd5: mov      ebx, 0
+0833ccda: jmp      0x833d372
+0833ccdf: call     0x861cbb4 ; _ZN11sync_script21GetInstanceSyncScriptEv
+0833cce4: mov      dword ptr [esp], eax
+0833cce7: call     0x82a7208 ; _ZN11sync_script11CSyncScript8IsEnableEv
+0833ccec: test     al, al
+0833ccee: je       0x833d145
+0833ccf4: lea      eax, [ebp - 0x6b8]
+0833ccfa: add      eax, 0x11c
+0833ccff: mov      dword ptr [esp], eax
+0833cd02: call     0x8237a90 ; _ZNKSt6vectorISsSaISsEE4sizeEv
+0833cd07: test     eax, eax
+0833cd09: setne    al
+0833cd0c: test     al, al
+0833cd0e: je       0x833cf1c
+0833cd14: mov      dword ptr [esp + 4], 0
+0833cd1c: lea      eax, [ebp - 0x6b8]
+0833cd22: add      eax, 0x11c
+0833cd27: mov      dword ptr [esp], eax
+0833cd2a: call     0x8342d00 ; _ZNSt6vectorISsSaISsEE2atEj
+0833cd2f: mov      dword ptr [esp], eax
+0833cd32: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cd37: movzx    eax, byte ptr [eax]
+0833cd3a: test     al, al
+0833cd3c: setne    al
+0833cd3f: test     al, al
+0833cd41: je       0x833cf1c
+0833cd47: mov      dword ptr [esp + 4], 0
+0833cd4f: lea      eax, [ebp - 0x6b8]
+0833cd55: add      eax, 0x11c
+0833cd5a: mov      dword ptr [esp], eax
+0833cd5d: call     0x8342d00 ; _ZNSt6vectorISsSaISsEE2atEj
+0833cd62: mov      dword ptr [esp], eax
+0833cd65: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cd6a: mov      ebx, eax
+0833cd6c: lea      eax, [ebp - 0x6b8]
+0833cd72: add      eax, 0x170
+0833cd77: mov      dword ptr [esp], eax
+0833cd7a: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cd7f: mov      dword ptr [esp + 0xc], ebx
+0833cd83: mov      dword ptr [esp + 8], eax
+0833cd87: mov      dword ptr [esp + 4], 0x8c2db88
+0833cd8f: lea      eax, [ebp - 0x170]
+0833cd95: mov      dword ptr [esp], eax
+0833cd98: call     0x807e440 ;
+0833cd9d: mov      dword ptr [esp + 8], 0
+0833cda5: lea      eax, [ebp - 0x170]
+0833cdab: mov      dword ptr [esp + 4], eax
+0833cdaf: lea      eax, [ebp - 0x4a4]
+0833cdb5: mov      dword ptr [esp], eax
+0833cdb8: call     0x88d145a ; _Z22ImportAttackInfoScriptP10AttackInfoPKci
+0833cdbd: test     al, al
+0833cdbf: je       0x833cef2
+0833cdc5: mov      eax, dword ptr [ebp - 0x494]
+0833cdcb: mov      ecx, eax
+0833cdcd: fld      dword ptr [ebp - 0x4a4]
+0833cdd3: mov      edx, dword ptr [ebp - 0x658]
+0833cdd9: mov      eax, dword ptr [ebp - 0x650]
+0833cddf: mov      dword ptr [esp + 0x18], ecx
+0833cde3: fstp     qword ptr [esp + 0x10]
+0833cde7: mov      dword ptr [esp + 0xc], edx
+0833cdeb: mov      dword ptr [esp + 8], eax
+0833cdef: mov      dword ptr [esp + 4], 0x8c2db8d
+0833cdf7: lea      eax, [ebp - 0x270]
+0833cdfd: mov      dword ptr [esp], eax
+0833ce00: call     0x807e440 ;
+0833ce05: lea      eax, [ebp - 0x4a4]
+0833ce0b: add      eax, 0xa4
+0833ce10: mov      dword ptr [esp], eax
+0833ce13: call     0x8342d2c ; _ZNKSt3setI12ENUM_ELEMENTSt4lessIS0_ESaIS0_EE4sizeEv
+0833ce18: test     eax, eax
+0833ce1a: sete     al
+0833ce1d: test     al, al
+0833ce1f: je       0x833ce56
+0833ce21: lea      eax, [ebp - 0x270]
+0833ce27: mov      dword ptr [esp], eax
+0833ce2a: call     0x807e3b0 ;
+0833ce2f: mov      edx, eax
+0833ce31: lea      eax, [ebp - 0x270]
+0833ce37: add      eax, edx
+0833ce39: mov      dword ptr [esp + 8], 4
+0833ce41: mov      dword ptr [esp + 4], 0x8c2db99
+0833ce49: mov      dword ptr [esp], eax
+0833ce4c: call     0x807e440 ;
+0833ce51: jmp      0x833cf1c
+0833ce56: lea      eax, [ebp - 0x6c]
+0833ce59: lea      edx, [ebp - 0x4a4]
+0833ce5f: add      edx, 0xa4
+0833ce65: mov      dword ptr [esp + 4], edx
+0833ce69: mov      dword ptr [esp], eax
+0833ce6c: call     0x8342d40 ; _ZNKSt3setI12ENUM_ELEMENTSt4lessIS0_ESaIS0_EE5beginEv
+0833ce71: sub      esp, 4
+0833ce74: jmp      0x833cebc
+0833ce76: lea      eax, [ebp - 0x6c]
+0833ce79: mov      dword ptr [esp], eax
+0833ce7c: call     0x8342dbe ; _ZNKSt23_Rb_tree_const_iteratorI12ENUM_ELEMENTEdeEv
+0833ce81: mov      eax, dword ptr [eax]
+0833ce83: mov      ebx, eax
+0833ce85: lea      eax, [ebp - 0x270]
+0833ce8b: mov      dword ptr [esp], eax
+0833ce8e: call     0x807e3b0 ;
+0833ce93: mov      edx, eax
+0833ce95: lea      eax, [ebp - 0x270]
+0833ce9b: add      eax, edx
+0833ce9d: mov      dword ptr [esp + 8], ebx
+0833cea1: mov      dword ptr [esp + 4], 0x8c2db99
+0833cea9: mov      dword ptr [esp], eax
+0833ceac: call     0x807e440 ;
+0833ceb1: lea      eax, [ebp - 0x6c]
+0833ceb4: mov      dword ptr [esp], eax
+0833ceb7: call     0x8342da0 ; _ZNSt23_Rb_tree_const_iteratorI12ENUM_ELEMENTEppEv
+0833cebc: lea      eax, [ebp - 0x58]
+0833cebf: lea      edx, [ebp - 0x4a4]
+0833cec5: add      edx, 0xa4
+0833cecb: mov      dword ptr [esp + 4], edx
+0833cecf: mov      dword ptr [esp], eax
+0833ced2: call     0x8342d66 ; _ZNKSt3setI12ENUM_ELEMENTSt4lessIS0_ESaIS0_EE3endEv
+0833ced7: sub      esp, 4
+0833ceda: lea      eax, [ebp - 0x58]
+0833cedd: mov      dword ptr [esp + 4], eax
+0833cee1: lea      eax, [ebp - 0x6c]
+0833cee4: mov      dword ptr [esp], eax
+0833cee7: call     0x8342d8c ; _ZNKSt23_Rb_tree_const_iteratorI12ENUM_ELEMENTEneERKS1_
+0833ceec: test     al, al
+0833ceee: jne      0x833ce76
+0833cef0: jmp      0x833cf1c
+0833cef2: mov      edx, dword ptr [ebp - 0x658]
+0833cef8: mov      eax, dword ptr [ebp - 0x650]
+0833cefe: mov      dword ptr [esp + 0xc], edx
+0833cf02: mov      dword ptr [esp + 8], eax
+0833cf06: mov      dword ptr [esp + 4], 0x8c2db9d
+0833cf0e: lea      eax, [ebp - 0x270]
+0833cf14: mov      dword ptr [esp], eax
+0833cf17: call     0x807e440 ;
+0833cf1c: lea      eax, [ebp - 0x6b8]
+0833cf22: add      eax, 0x11c
+0833cf27: mov      dword ptr [esp], eax
+0833cf2a: call     0x8237a90 ; _ZNKSt6vectorISsSaISsEE4sizeEv
+0833cf2f: cmp      eax, 1
+0833cf32: seta     al
+0833cf35: test     al, al
+0833cf37: je       0x833d145
+0833cf3d: mov      dword ptr [esp + 4], 1
+0833cf45: lea      eax, [ebp - 0x6b8]
+0833cf4b: add      eax, 0x11c
+0833cf50: mov      dword ptr [esp], eax
+0833cf53: call     0x8342d00 ; _ZNSt6vectorISsSaISsEE2atEj
+0833cf58: mov      dword ptr [esp], eax
+0833cf5b: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cf60: movzx    eax, byte ptr [eax]
+0833cf63: test     al, al
+0833cf65: setne    al
+0833cf68: test     al, al
+0833cf6a: je       0x833d145
+0833cf70: mov      dword ptr [esp + 4], 1
+0833cf78: lea      eax, [ebp - 0x6b8]
+0833cf7e: add      eax, 0x11c
+0833cf83: mov      dword ptr [esp], eax
+0833cf86: call     0x8342d00 ; _ZNSt6vectorISsSaISsEE2atEj
+0833cf8b: mov      dword ptr [esp], eax
+0833cf8e: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cf93: mov      ebx, eax
+0833cf95: lea      eax, [ebp - 0x6b8]
+0833cf9b: add      eax, 0x170
+0833cfa0: mov      dword ptr [esp], eax
+0833cfa3: call     0x87064f0 ; _ZNKSs5c_strEv
+0833cfa8: mov      dword ptr [esp + 0xc], ebx
+0833cfac: mov      dword ptr [esp + 8], eax
+0833cfb0: mov      dword ptr [esp + 4], 0x8c2db88
+0833cfb8: lea      eax, [ebp - 0x170]
+0833cfbe: mov      dword ptr [esp], eax
+0833cfc1: call     0x807e440 ;
+0833cfc6: mov      dword ptr [esp + 8], 0
+0833cfce: lea      eax, [ebp - 0x170]
+0833cfd4: mov      dword ptr [esp + 4], eax
+0833cfd8: lea      eax, [ebp - 0x4a4]
+0833cfde: mov      dword ptr [esp], eax
+0833cfe1: call     0x88d145a ; _Z22ImportAttackInfoScriptP10AttackInfoPKci
+0833cfe6: test     al, al
+0833cfe8: je       0x833d11b
+0833cfee: mov      eax, dword ptr [ebp - 0x494]
+0833cff4: mov      ecx, eax
+0833cff6: fld      dword ptr [ebp - 0x4a4]
+0833cffc: mov      edx, dword ptr [ebp - 0x654]
+0833d002: mov      eax, dword ptr [ebp - 0x64c]
+0833d008: mov      dword ptr [esp + 0x18], ecx
+0833d00c: fstp     qword ptr [esp + 0x10]
+0833d010: mov      dword ptr [esp + 0xc], edx
+0833d014: mov      dword ptr [esp + 8], eax
+0833d018: mov      dword ptr [esp + 4], 0x8c2db8d
+0833d020: lea      eax, [ebp - 0x370]
+0833d026: mov      dword ptr [esp], eax
+0833d029: call     0x807e440 ;
+0833d02e: lea      eax, [ebp - 0x4a4]
+0833d034: add      eax, 0xa4
+0833d039: mov      dword ptr [esp], eax
+0833d03c: call     0x8342d2c ; _ZNKSt3setI12ENUM_ELEMENTSt4lessIS0_ESaIS0_EE4sizeEv
+0833d041: test     eax, eax
+0833d043: sete     al
+0833d046: test     al, al
+0833d048: je       0x833d07f
+0833d04a: lea      eax, [ebp - 0x370]
+0833d050: mov      dword ptr [esp], eax
+0833d053: call     0x807e3b0 ;
+0833d058: mov      edx, eax
+0833d05a: lea      eax, [ebp - 0x370]
+0833d060: add      eax, edx
+0833d062: mov      dword ptr [esp + 8], 4
+0833d06a: mov      dword ptr [esp + 4], 0x8c2db99
+0833d072: mov      dword ptr [esp], eax
+0833d075: call     0x807e440 ;
+0833d07a: jmp      0x833d145
+0833d07f: lea      eax, [ebp - 0x70]
+0833d082: lea      edx, [ebp - 0x4a4]
+0833d088: add      edx, 0xa4
+0833d08e: mov      dword ptr [esp + 4], edx
+0833d092: mov      dword ptr [esp], eax
+0833d095: call     0x8342d40 ; _ZNKSt3setI12ENUM_ELEMENTSt4lessIS0_ESaIS0_EE5beginEv
+0833d09a: sub      esp, 4
+0833d09d: jmp      0x833d0e5
+0833d09f: lea      eax, [ebp - 0x70]
+0833d0a2: mov      dword ptr [esp], eax
+0833d0a5: call     0x8342dbe ; _ZNKSt23_Rb_tree_const_iteratorI12ENUM_ELEMENTEdeEv
+0833d0aa: mov      eax, dword ptr [eax]
+0833d0ac: mov      ebx, eax
+0833d0ae: lea      eax, [ebp - 0x370]
+0833d0b4: mov      dword ptr [esp], eax
+0833d0b7: call     0x807e3b0 ;
+0833d0bc: mov      edx, eax
+0833d0be: lea      eax, [ebp - 0x370]
+0833d0c4: add      eax, edx
+0833d0c6: mov      dword ptr [esp + 8], ebx
+0833d0ca: mov      dword ptr [esp + 4], 0x8c2db99
+0833d0d2: mov      dword ptr [esp], eax
+0833d0d5: call     0x807e440 ;
+0833d0da: lea      eax, [ebp - 0x70]
+0833d0dd: mov      dword ptr [esp], eax
+0833d0e0: call     0x8342da0 ; _ZNSt23_Rb_tree_const_iteratorI12ENUM_ELEMENTEppEv
+0833d0e5: lea      eax, [ebp - 0x54]
+0833d0e8: lea      edx, [ebp - 0x4a4]
+0833d0ee: add      edx, 0xa4
+0833d0f4: mov      dword ptr [esp + 4], edx
+0833d0f8: mov      dword ptr [esp], eax
+0833d0fb: call     0x8342d66 ; _ZNKSt3setI12ENUM_ELEMENTSt4lessIS0_ESaIS0_EE3endEv
+0833d100: sub      esp, 4
+0833d103: lea      eax, [ebp - 0x54]
+0833d106: mov      dword ptr [esp + 4], eax
+0833d10a: lea      eax, [ebp - 0x70]
+0833d10d: mov      dword ptr [esp], eax
+0833d110: call     0x8342d8c ; _ZNKSt23_Rb_tree_const_iteratorI12ENUM_ELEMENTEneERKS1_
+0833d115: test     al, al
+0833d117: jne      0x833d09f
+0833d119: jmp      0x833d145
+0833d11b: mov      edx, dword ptr [ebp - 0x654]
+0833d121: mov      eax, dword ptr [ebp - 0x64c]
+0833d127: mov      dword ptr [esp + 0xc], edx
+0833d12b: mov      dword ptr [esp + 8], eax
+0833d12f: mov      dword ptr [esp + 4], 0x8c2db9d
+0833d137: lea      eax, [ebp - 0x370]
+0833d13d: mov      dword ptr [esp], eax
+0833d140: call     0x807e440 ;
+0833d145: mov      dword ptr [esp], 0x74
+0833d14c: call     0x8724450 ; _Znwj
+0833d151: mov      ebx, eax
+0833d153: mov      eax, ebx
+0833d155: mov      dword ptr [esp], eax
+0833d158: call     0x833c77e ; _ZN13user_creature15CCreatureScriptC2Ev
+0833d15d: jmp      0x833d174
+0833d15f: mov      esi, edx
+0833d161: mov      edi, eax
+0833d163: mov      dword ptr [esp], ebx
+0833d166: call     0x87244f0 ; _ZdlPv
+0833d16b: mov      eax, edi
+0833d16d: mov      edx, esi
+0833d16f: jmp      0x833d35a
+0833d174: mov      eax, ebx
+0833d176: mov      dword ptr [ebp - 0x60], eax
+0833d179: mov      eax, dword ptr [ebp - 0x60]
+0833d17c: lea      edx, [ebp - 0x6b8]
+0833d182: mov      dword ptr [esp + 4], edx
+0833d186: mov      dword ptr [esp], eax
+0833d189: call     0x833c8e8 ; _ZN13user_creature15CCreatureScript3SetEP14CreatureScript
+0833d18e: mov      eax, dword ptr [ebp + 8]
+0833d191: lea      edx, [ebp - 0x6b8]
+0833d197: mov      dword ptr [esp + 4], edx
+0833d19b: mov      dword ptr [esp], eax
+0833d19e: call     0x81934ac ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEEixERS3_
+0833d1a3: mov      eax, dword ptr [eax]
+0833d1a5: mov      dword ptr [ebp - 0x1c], eax
+0833d1a8: mov      eax, dword ptr [ebp - 0x60]
+0833d1ab: mov      edx, dword ptr [ebp - 0x1c]
+0833d1ae: mov      dword ptr [esp + 4], edx
+0833d1b2: mov      dword ptr [esp], eax
+0833d1b5: call     0x833f11a ; _ZN13user_creature15CCreatureScript9SetItemIdEi
+0833d1ba: mov      ebx, dword ptr [ebp - 0x1c]
+0833d1bd: call     0x861cbb4 ; _ZN11sync_script21GetInstanceSyncScriptEv
+0833d1c2: lea      edx, [ebp - 0x370]
+0833d1c8: mov      dword ptr [esp + 0x10], edx
+0833d1cc: lea      edx, [ebp - 0x270]
+0833d1d2: mov      dword ptr [esp + 0xc], edx
+0833d1d6: lea      edx, [ebp - 0x6b8]
+0833d1dc: mov      dword ptr [esp + 8], edx
+0833d1e0: mov      dword ptr [esp + 4], ebx
+0833d1e4: mov      dword ptr [esp], eax
+0833d1e7: call     0x8624414 ; _ZN11sync_script11CSyncScript26insert_creature_info_to_dbEjPK14CreatureScriptPKcS5_
+0833d1ec: xor      eax, 1
+0833d1ef: test     al, al
+0833d1f1: je       0x833d213
+0833d1f3: mov      eax, dword ptr [ebp - 0x6b8]
+0833d1f9: mov      dword ptr [esp + 4], eax
+0833d1fd: mov      dword ptr [esp], 0x8c2dba4
+0833d204: call     0x807db60 ;
+0833d209: mov      ebx, 0
+0833d20e: jmp      0x833d372
+0833d213: mov      eax, dword ptr [ebp + 8]
+0833d216: lea      ecx, [eax + 0x18]
+0833d219: lea      eax, [ebp - 0x68]
+0833d21c: lea      edx, [ebp - 0x6b8]
+0833d222: mov      dword ptr [esp + 8], edx
+0833d226: mov      dword ptr [esp + 4], ecx
+0833d22a: mov      dword ptr [esp], eax
+0833d22d: call     0x8342dcc ; _ZNSt3mapIiPN13user_creature15CCreatureScriptESt4lessIiESaISt4pairIKiS2_EEE4findERS6_
+0833d232: sub      esp, 4
+0833d235: mov      eax, dword ptr [ebp + 8]
+0833d238: lea      edx, [eax + 0x18]
+0833d23b: lea      eax, [ebp - 0x50]
+0833d23e: mov      dword ptr [esp + 4], edx
+0833d242: mov      dword ptr [esp], eax
+0833d245: call     0x8342df8 ; _ZNSt3mapIiPN13user_creature15CCreatureScriptESt4lessIiESaISt4pairIKiS2_EEE3endEv
+0833d24a: sub      esp, 4
+0833d24d: lea      eax, [ebp - 0x50]
+0833d250: mov      dword ptr [esp + 4], eax
+0833d254: lea      eax, [ebp - 0x68]
+0833d257: mov      dword ptr [esp], eax
+0833d25a: call     0x8342e1e ; _ZNKSt17_Rb_tree_iteratorISt4pairIKiPN13user_creature15CCreatureScriptEEEneERKS6_
+0833d25f: test     al, al
+0833d261: je       0x833d2b3
+0833d263: mov      dword ptr [esp + 0xc], 5
+0833d26b: mov      dword ptr [esp + 8], 0xfbe
+0833d273: mov      dword ptr [esp + 4], 0x8c2ebc0
+0833d27b: lea      eax, [ebp - 0x4c]
+0833d27e: mov      dword ptr [esp], eax
+0833d281: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0833d286: mov      dword ptr [esp + 0xc], 0xfbe
+0833d28e: mov      dword ptr [esp + 8], 0x8c2ebc0
+0833d296: mov      dword ptr [esp + 4], 0x8c2d761
+0833d29e: lea      eax, [ebp - 0x4c]
+0833d2a1: mov      dword ptr [esp], eax
+0833d2a4: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0833d2a9: mov      ebx, 0
+0833d2ae: jmp      0x833d372
+0833d2b3: lea      eax, [ebp - 0x2c]
+0833d2b6: lea      edx, [ebp - 0x60]
+0833d2b9: mov      dword ptr [esp + 8], edx
+0833d2bd: lea      edx, [ebp - 0x6b8]
+0833d2c3: mov      dword ptr [esp + 4], edx
+0833d2c7: mov      dword ptr [esp], eax
+0833d2ca: call     0x8342e32 ; _ZSt9make_pairIRiRPN13user_creature15CCreatureScriptEESt4pairINSt17__decay_and_stripIT_E6__typeENS6_IT0_E6__typeEEOS7_OSA_
+0833d2cf: sub      esp, 4
+0833d2d2: lea      eax, [ebp - 0x2c]
+0833d2d5: mov      dword ptr [esp + 4], eax
+0833d2d9: lea      eax, [ebp - 0x34]
+0833d2dc: mov      dword ptr [esp], eax
+0833d2df: call     0x8342e70 ; _ZNSt4pairIKiPN13user_creature15CCreatureScriptEEC1IiS3_EEOS_IT_T0_E
+0833d2e4: mov      eax, dword ptr [ebp + 8]
+0833d2e7: lea      ecx, [eax + 0x18]
+0833d2ea: lea      eax, [ebp - 0x3c]
+0833d2ed: lea      edx, [ebp - 0x34]
+0833d2f0: mov      dword ptr [esp + 8], edx
+0833d2f4: mov      dword ptr [esp + 4], ecx
+0833d2f8: mov      dword ptr [esp], eax
+0833d2fb: call     0x8342ea0 ; _ZNSt3mapIiPN13user_creature15CCreatureScriptESt4lessIiESaISt4pairIKiS2_EEE6insertERKS7_
+0833d300: sub      esp, 4
+0833d303: lea      eax, [ebp - 0x24]
+0833d306: mov      dword ptr [esp + 8], 0
+0833d30e: lea      edx, [ebp - 0x64]
+0833d311: mov      dword ptr [esp + 4], edx
+0833d315: mov      dword ptr [esp], eax
+0833d318: call     0x83416e4 ; _ZNSt17_Rb_tree_iteratorISt4pairIKiSsEEppEi
+0833d31d: sub      esp, 4
+0833d320: lea      eax, [ebp - 0x5c]
+0833d323: mov      dword ptr [esp + 4], 0x94ff5e0
+0833d32b: mov      dword ptr [esp], eax
+0833d32e: call     0x80e6118 ; _ZNSt3mapIiSsSt4lessIiESaISt4pairIKiSsEEE3endEv
+0833d333: sub      esp, 4
+0833d336: lea      eax, [ebp - 0x5c]
+0833d339: mov      dword ptr [esp + 4], eax
+0833d33d: lea      eax, [ebp - 0x64]
+0833d340: mov      dword ptr [esp], eax
+0833d343: call     0x80e613e ; _ZNKSt17_Rb_tree_iteratorISt4pairIKiSsEEneERKS3_
+0833d348: test     al, al
+0833d34a: jne      0x833cc63
+0833d350: jmp      0x833d353
+0833d352: nop
+0833d353: mov      ebx, 1
+0833d358: jmp      0x833d372
+0833d35a: mov      ebx, edx
+0833d35c: mov      esi, eax
+0833d35e: lea      eax, [ebp - 0x4a4]
+0833d364: mov      dword ptr [esp], eax
+0833d367: call     0x83415e2 ; _ZN10AttackInfoD2Ev
+0833d36c: mov      eax, esi
+0833d36e: mov      edx, ebx
+0833d370: jmp      0x833d382
+0833d372: lea      eax, [ebp - 0x4a4]
+0833d378: mov      dword ptr [esp], eax
+0833d37b: call     0x83415e2 ; _ZN10AttackInfoD2Ev
+0833d380: jmp      0x833d3a0
+0833d382: mov      ebx, edx
+0833d384: mov      esi, eax
+0833d386: lea      eax, [ebp - 0x6b8]
+0833d38c: mov      dword ptr [esp], eax
+0833d38f: call     0x8340ca4 ; _ZN14CreatureScriptD2Ev
+0833d394: mov      eax, esi
+0833d396: mov      edx, ebx
+0833d398: mov      dword ptr [esp], eax
+0833d39b: call     0x8ae3750 ; _Unwind_Resume
+0833d3a0: lea      eax, [ebp - 0x6b8]
+0833d3a6: mov      dword ptr [esp], eax
+0833d3a9: call     0x8340ca4 ; _ZN14CreatureScriptD2Ev
+0833d3ae: mov      eax, ebx
+0833d3b0: lea      esp, [ebp - 0xc]
+0833d3b3: add      esp, 0
+0833d3b6: pop      ebx
+0833d3b7: pop      esi
+0833d3b8: pop      edi
+0833d3b9: pop      ebp
+0833d3ba: ret
+
+### 08a35d37 size=272 _Z18initCreatureScriptPKcS0_S0_
+08a35d37: push     ebp
+08a35d38: mov      ebp, esp
+08a35d3a: push     ebx
+08a35d3b: sub      esp, 0x24
+08a35d3e: mov      dword ptr [esp + 8], 0x100
+08a35d46: mov      eax, dword ptr [ebp + 8]
+08a35d49: mov      dword ptr [esp + 4], eax
+08a35d4d: mov      dword ptr [esp], 0x94ff4e0
+08a35d54: call     0x807d8d0 ;
+08a35d59: mov      dword ptr [esp], 0x94ff4e0
+08a35d60: call     0x807e3b0 ;
+08a35d65: sub      eax, 1
+08a35d68: movzx    eax, byte ptr [eax + 0x94ff4e0]
+08a35d6f: cmp      al, 0x5c
+08a35d71: je       0x8a35dbc
+08a35d73: mov      dword ptr [esp], 0x94ff4e0
+08a35d7a: call     0x807e3b0 ;
+08a35d7f: sub      eax, 1
+08a35d82: movzx    eax, byte ptr [eax + 0x94ff4e0]
+08a35d89: cmp      al, 0x2f
+08a35d8b: je       0x8a35dbc
+08a35d8d: mov      dword ptr [esp + 8], 2
+08a35d95: mov      dword ptr [esp + 4], 0x8e1df2d
+08a35d9d: mov      dword ptr [esp], 0x94ff4e0
+08a35da4: call     0x807e3b0 ;
+08a35da9: add      eax, 0x94ff4e0
+08a35dae: mov      dword ptr [esp], eax
+08a35db1: mov      eax, dword ptr [esp]
+08a35db4: mov      dword ptr [esp], eax
+08a35db7: call     0x807d8a0 ;
+08a35dbc: mov      eax, dword ptr [ebp + 0x10]
+08a35dbf: mov      dword ptr [esp + 4], eax
+08a35dc3: mov      dword ptr [esp], 0x94ff4e0
+08a35dca: call     0x88bbd29 ; _Z18loadRDARScriptFilePKcS0_
+08a35dcf: xor      eax, 1
+08a35dd2: test     al, al
+08a35dd4: je       0x8a35ddd
+08a35dd6: mov      eax, 0
+08a35ddb: jmp      0x8a35e41
+08a35ddd: mov      dword ptr [ebp - 0xc], 0
+08a35de4: jmp      0x8a35e00
+08a35de6: mov      ebx, dword ptr [ebp - 0xc]
+08a35de9: mov      dword ptr [esp], 0
+08a35df0: call     0x88bc37b ; _Z7ScanIntPb
+08a35df5: mov      dword ptr [ebx*4 + 0x94fefa0], eax
+08a35dfc: add      dword ptr [ebp - 0xc], 1
+08a35e00: cmp      dword ptr [ebp - 0xc], 0x62
+08a35e04: setle    al
+08a35e07: test     al, al
+08a35e09: jne      0x8a35de6
+08a35e0b: mov      dword ptr [esp + 0xc], 0
+08a35e13: mov      eax, dword ptr [ebp + 0xc]
+08a35e16: mov      dword ptr [esp + 8], eax
+08a35e1a: mov      dword ptr [esp + 4], 0x94ff4e0
+08a35e22: mov      dword ptr [esp], 0x94ff5e0
+08a35e29: call     0x88bbd77 ; _Z22loadRDARScriptListFileP16STScriptFileListPKcS2_PSt3mapIiiSt4lessIiESaISt4pairIKiiEEE
+08a35e2e: xor      eax, 1
+08a35e31: test     al, al
+08a35e33: je       0x8a35e3c
+08a35e35: mov      eax, 0
+08a35e3a: jmp      0x8a35e41
+08a35e3c: mov      eax, 1
+08a35e41: add      esp, 0x24
+08a35e44: pop      ebx
+08a35e45: pop      ebp
+08a35e46: ret
+
+### 08a35e47 size=9647 _Z20importCreatureScriptP14CreatureScriptPKc
+08a35e47: push     ebp
+08a35e48: mov      ebp, esp
+08a35e4a: push     edi
+08a35e4b: push     esi
+08a35e4c: push     ebx
+08a35e4d: sub      esp, 0x2ac
+08a35e53: mov      eax, dword ptr [ebp + 0xc]
+08a35e56: mov      dword ptr [esp + 4], eax
+08a35e5a: mov      dword ptr [esp], 0x94ff4e0
+08a35e61: call     0x88bbd29 ; _Z18loadRDARScriptFilePKcS0_
+08a35e66: xor      eax, 1
+08a35e69: test     al, al
+08a35e6b: je       0x8a35e77
+08a35e6d: mov      ebx, 0
+08a35e72: jmp      0x8a383e9
+08a35e77: mov      eax, dword ptr [ebp + 8]
+08a35e7a: mov      dword ptr [esp], eax
+08a35e7d: call     0x833dfac ; _ZN14CreatureScript5clearEv
+08a35e82: mov      eax, dword ptr [ebp + 8]
+08a35e85: lea      edx, [eax + 0x170]
+08a35e8b: mov      eax, dword ptr [ebp + 0xc]
+08a35e8e: mov      dword ptr [esp + 0xc], eax
+08a35e92: mov      dword ptr [esp + 8], 0x94ff4e0
+08a35e9a: mov      dword ptr [esp + 4], 0x8e1df2f
+08a35ea2: mov      dword ptr [esp], edx
+08a35ea5: call     0x88bbc80 ; _Z16getDirectoryPathRSsPKcz
+08a35eaa: lea      eax, [ebp - 0x224]
+08a35eb0: mov      dword ptr [esp], eax
+08a35eb3: call     0x87065d0 ; _ZNSsC1Ev
+08a35eb8: lea      eax, [ebp - 0x228]
+08a35ebe: mov      dword ptr [esp], eax
+08a35ec1: call     0x87065d0 ; _ZNSsC1Ev
+08a35ec6: mov      dword ptr [ebp - 0x22c], 0
+08a35ed0: mov      byte ptr [ebp - 0x22d], 0
+08a35ed7: jmp      0x8a35ee3
+08a35ed9: nop
+08a35eda: jmp      0x8a35ee3
+08a35edc: nop
+08a35edd: jmp      0x8a35ee3
+08a35edf: nop
+08a35ee0: jmp      0x8a35ee3
+08a35ee2: nop
+08a35ee3: mov      dword ptr [esp + 4], 1
+08a35eeb: lea      eax, [ebp - 0x224]
+08a35ef1: mov      dword ptr [esp], eax
+08a35ef4: call     0x88bc85f ; _Z8ScanTypeRSsb
+08a35ef9: xor      eax, 1
+08a35efc: test     al, al
+08a35efe: jne      0x8a38372
+08a35f04: mov      dword ptr [esp + 4], 0x8e1edcc
+08a35f0c: lea      eax, [ebp - 0x224]
+08a35f12: mov      dword ptr [esp], eax
+08a35f15: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a35f1a: test     al, al
+08a35f1c: je       0x8a35f2e
+08a35f1e: mov      eax, dword ptr [ebp + 8]
+08a35f21: add      eax, 4
+08a35f24: mov      dword ptr [esp], eax
+08a35f27: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a35f2c: jmp      0x8a35ee3
+08a35f2e: mov      dword ptr [esp + 4], 0x8e22ac5
+08a35f36: lea      eax, [ebp - 0x224]
+08a35f3c: mov      dword ptr [esp], eax
+08a35f3f: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a35f44: test     al, al
+08a35f46: je       0x8a35f5c
+08a35f48: mov      dword ptr [esp], 0
+08a35f4f: call     0x88bc37b ; _Z7ScanIntPb
+08a35f54: mov      edx, dword ptr [ebp + 8]
+08a35f57: mov      dword ptr [edx + 0x18], eax
+08a35f5a: jmp      0x8a35ee3
+08a35f5c: mov      dword ptr [esp + 4], 0x8e1df4a
+08a35f64: lea      eax, [ebp - 0x224]
+08a35f6a: mov      dword ptr [esp], eax
+08a35f6d: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a35f72: test     al, al
+08a35f74: je       0x8a35f9f
+08a35f76: mov      dword ptr [esp], 0
+08a35f7d: call     0x88bc37b ; _Z7ScanIntPb
+08a35f82: mov      edx, dword ptr [ebp + 8]
+08a35f85: mov      dword ptr [edx + 8], eax
+08a35f88: mov      dword ptr [esp], 0
+08a35f8f: call     0x88bc37b ; _Z7ScanIntPb
+08a35f94: mov      edx, dword ptr [ebp + 8]
+08a35f97: mov      dword ptr [edx + 0xc], eax
+08a35f9a: jmp      0x8a35ee3
+08a35f9f: mov      dword ptr [esp + 4], 0x8e1edd3
+08a35fa7: lea      eax, [ebp - 0x224]
+08a35fad: mov      dword ptr [esp], eax
+08a35fb0: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a35fb5: test     al, al
+08a35fb7: je       0x8a35fd0
+08a35fb9: mov      dword ptr [esp], 0
+08a35fc0: call     0x88bc37b ; _Z7ScanIntPb
+08a35fc5: mov      edx, dword ptr [ebp + 8]
+08a35fc8: mov      dword ptr [edx + 0x10], eax
+08a35fcb: jmp      0x8a35ee3
+08a35fd0: mov      dword ptr [esp + 4], 0x8e1ede5
+08a35fd8: lea      eax, [ebp - 0x224]
+08a35fde: mov      dword ptr [esp], eax
+08a35fe1: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a35fe6: test     al, al
+08a35fe8: je       0x8a36019
+08a35fea: lea      eax, [ebp - 0x228]
+08a35ff0: mov      dword ptr [esp], eax
+08a35ff3: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a35ff8: lea      eax, [ebp - 0x228]
+08a35ffe: mov      dword ptr [esp], eax
+08a36001: call     0x87064f0 ; _ZNKSs5c_strEv
+08a36006: mov      dword ptr [esp], eax
+08a36009: call     0x88be12d ; _Z12getDrawLayerPKc
+08a3600e: mov      edx, dword ptr [ebp + 8]
+08a36011: mov      dword ptr [edx + 0x14], eax
+08a36014: jmp      0x8a35ee3
+08a36019: mov      dword ptr [esp + 4], 0x8e22ad6
+08a36021: lea      eax, [ebp - 0x224]
+08a36027: mov      dword ptr [esp], eax
+08a3602a: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3602f: test     al, al
+08a36031: je       0x8a3604a
+08a36033: mov      dword ptr [esp], 0
+08a3603a: call     0x88bc37b ; _Z7ScanIntPb
+08a3603f: mov      edx, dword ptr [ebp + 8]
+08a36042: mov      dword ptr [edx + 0x1c], eax
+08a36045: jmp      0x8a35ee3
+08a3604a: mov      dword ptr [esp + 4], 0x8e22aec
+08a36052: lea      eax, [ebp - 0x224]
+08a36058: mov      dword ptr [esp], eax
+08a3605b: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36060: test     al, al
+08a36062: je       0x8a3607b
+08a36064: mov      dword ptr [esp], 0
+08a3606b: call     0x88bc37b ; _Z7ScanIntPb
+08a36070: mov      edx, dword ptr [ebp + 8]
+08a36073: mov      dword ptr [edx + 0x20], eax
+08a36076: jmp      0x8a35ee3
+08a3607b: mov      dword ptr [esp + 4], 0x8e22aa7
+08a36083: lea      eax, [ebp - 0x224]
+08a36089: mov      dword ptr [esp], eax
+08a3608c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36091: test     al, al
+08a36093: je       0x8a360b1
+08a36095: mov      dword ptr [esp], 0
+08a3609c: call     0x88bc37b ; _Z7ScanIntPb
+08a360a1: test     eax, eax
+08a360a3: setne    dl
+08a360a6: mov      eax, dword ptr [ebp + 8]
+08a360a9: mov      byte ptr [eax + 0x24], dl
+08a360ac: jmp      0x8a35ee3
+08a360b1: mov      dword ptr [esp + 4], 0x8e1e0e7
+08a360b9: lea      eax, [ebp - 0x224]
+08a360bf: mov      dword ptr [esp], eax
+08a360c2: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a360c7: test     al, al
+08a360c9: je       0x8a3612a
+08a360cb: mov      dword ptr [esp], 0
+08a360d2: call     0x88bc37b ; _Z7ScanIntPb
+08a360d7: mov      edx, dword ptr [ebp + 8]
+08a360da: mov      dword ptr [edx + 0x28], eax
+08a360dd: mov      dword ptr [esp], 0
+08a360e4: call     0x88bc37b ; _Z7ScanIntPb
+08a360e9: mov      edx, dword ptr [ebp + 8]
+08a360ec: mov      dword ptr [edx + 0x2c], eax
+08a360ef: mov      dword ptr [esp], 0
+08a360f6: call     0x88bc37b ; _Z7ScanIntPb
+08a360fb: mov      edx, dword ptr [ebp + 8]
+08a360fe: mov      dword ptr [edx + 0x30], eax
+08a36101: mov      dword ptr [esp], 0
+08a36108: call     0x88bc37b ; _Z7ScanIntPb
+08a3610d: mov      edx, dword ptr [ebp + 8]
+08a36110: mov      dword ptr [edx + 0x34], eax
+08a36113: mov      dword ptr [esp], 0
+08a3611a: call     0x88bc37b ; _Z7ScanIntPb
+08a3611f: mov      edx, dword ptr [ebp + 8]
+08a36122: mov      dword ptr [edx + 0x38], eax
+08a36125: jmp      0x8a35ee3
+08a3612a: mov      dword ptr [esp + 4], 0x8e22abb
+08a36132: lea      eax, [ebp - 0x224]
+08a36138: mov      dword ptr [esp], eax
+08a3613b: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36140: test     al, al
+08a36142: je       0x8a3615b
+08a36144: mov      dword ptr [esp], 0
+08a3614b: call     0x88bc37b ; _Z7ScanIntPb
+08a36150: mov      edx, dword ptr [ebp + 8]
+08a36153: mov      dword ptr [edx + 0x3c], eax
+08a36156: jmp      0x8a35ee3
+08a3615b: mov      dword ptr [esp + 4], 0x8e22b07
+08a36163: lea      eax, [ebp - 0x224]
+08a36169: mov      dword ptr [esp], eax
+08a3616c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36171: test     al, al
+08a36173: je       0x8a3618c
+08a36175: mov      dword ptr [esp], 0
+08a3617c: call     0x88bc37b ; _Z7ScanIntPb
+08a36181: mov      edx, dword ptr [ebp + 8]
+08a36184: mov      dword ptr [edx + 0x40], eax
+08a36187: jmp      0x8a35ee3
+08a3618c: mov      dword ptr [esp + 4], 0x8e22b15
+08a36194: lea      eax, [ebp - 0x224]
+08a3619a: mov      dword ptr [esp], eax
+08a3619d: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a361a2: test     al, al
+08a361a4: je       0x8a361bd
+08a361a6: mov      dword ptr [esp], 0
+08a361ad: call     0x88bc37b ; _Z7ScanIntPb
+08a361b2: mov      edx, dword ptr [ebp + 8]
+08a361b5: mov      dword ptr [edx + 0x44], eax
+08a361b8: jmp      0x8a35ee3
+08a361bd: mov      dword ptr [esp + 4], 0x8e22b28
+08a361c5: lea      eax, [ebp - 0x224]
+08a361cb: mov      dword ptr [esp], eax
+08a361ce: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a361d3: test     al, al
+08a361d5: je       0x8a361ee
+08a361d7: mov      dword ptr [esp], 0
+08a361de: call     0x88bc37b ; _Z7ScanIntPb
+08a361e3: mov      edx, dword ptr [ebp + 8]
+08a361e6: mov      dword ptr [edx + 0x48], eax
+08a361e9: jmp      0x8a35ee3
+08a361ee: mov      dword ptr [esp + 4], 0x8e22b34
+08a361f6: lea      eax, [ebp - 0x224]
+08a361fc: mov      dword ptr [esp], eax
+08a361ff: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36204: test     al, al
+08a36206: je       0x8a3621f
+08a36208: mov      dword ptr [esp], 0
+08a3620f: call     0x88bc37b ; _Z7ScanIntPb
+08a36214: mov      edx, dword ptr [ebp + 8]
+08a36217: mov      dword ptr [edx + 0x4c], eax
+08a3621a: jmp      0x8a35ee3
+08a3621f: mov      dword ptr [esp + 4], 0x8e22b47
+08a36227: lea      eax, [ebp - 0x224]
+08a3622d: mov      dword ptr [esp], eax
+08a36230: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36235: test     al, al
+08a36237: je       0x8a362ca
+08a3623d: jmp      0x8a362af
+08a3623f: mov      dword ptr [esp + 4], 0x8e22b57
+08a36247: lea      eax, [ebp - 0x228]
+08a3624d: mov      dword ptr [esp], eax
+08a36250: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36255: test     al, al
+08a36257: je       0x8a36265
+08a36259: mov      eax, dword ptr [ebp + 8]
+08a3625c: mov      dword ptr [eax + 0x50], 1
+08a36263: jmp      0x8a362af
+08a36265: mov      dword ptr [esp + 4], 0x8e22b5b
+08a3626d: lea      eax, [ebp - 0x228]
+08a36273: mov      dword ptr [esp], eax
+08a36276: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3627b: test     al, al
+08a3627d: je       0x8a3628b
+08a3627f: mov      eax, dword ptr [ebp + 8]
+08a36282: mov      dword ptr [eax + 0x54], 1
+08a36289: jmp      0x8a362af
+08a3628b: mov      dword ptr [esp + 4], 0x8e22b60
+08a36293: lea      eax, [ebp - 0x228]
+08a36299: mov      dword ptr [esp], eax
+08a3629c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a362a1: test     al, al
+08a362a3: je       0x8a362af
+08a362a5: mov      eax, dword ptr [ebp + 8]
+08a362a8: mov      dword ptr [eax + 0x58], 1
+08a362af: lea      eax, [ebp - 0x228]
+08a362b5: mov      dword ptr [esp], eax
+08a362b8: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a362bd: test     al, al
+08a362bf: jne      0x8a3623f
+08a362c5: jmp      0x8a35ee3
+08a362ca: mov      dword ptr [esp + 4], 0x8e22b66
+08a362d2: lea      eax, [ebp - 0x224]
+08a362d8: mov      dword ptr [esp], eax
+08a362db: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a362e0: test     al, al
+08a362e2: je       0x8a362fb
+08a362e4: mov      dword ptr [esp], 0
+08a362eb: call     0x88bc37b ; _Z7ScanIntPb
+08a362f0: mov      edx, dword ptr [ebp + 8]
+08a362f3: mov      dword ptr [edx + 0x5c], eax
+08a362f6: jmp      0x8a35ee3
+08a362fb: mov      dword ptr [esp + 4], 0x8e22b7e
+08a36303: lea      eax, [ebp - 0x224]
+08a36309: mov      dword ptr [esp], eax
+08a3630c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36311: test     al, al
+08a36313: je       0x8a3632c
+08a36315: mov      dword ptr [esp], 0
+08a3631c: call     0x88bc37b ; _Z7ScanIntPb
+08a36321: mov      edx, dword ptr [ebp + 8]
+08a36324: mov      dword ptr [edx + 0x60], eax
+08a36327: jmp      0x8a35ee3
+08a3632c: mov      dword ptr [esp + 4], 0x8e22b89
+08a36334: lea      eax, [ebp - 0x224]
+08a3633a: mov      dword ptr [esp], eax
+08a3633d: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36342: test     al, al
+08a36344: je       0x8a3635d
+08a36346: mov      dword ptr [esp], 0
+08a3634d: call     0x88bc37b ; _Z7ScanIntPb
+08a36352: mov      edx, dword ptr [ebp + 8]
+08a36355: mov      dword ptr [edx + 0x64], eax
+08a36358: jmp      0x8a35ee3
+08a3635d: mov      dword ptr [esp + 4], 0x8e22b99
+08a36365: lea      eax, [ebp - 0x224]
+08a3636b: mov      dword ptr [esp], eax
+08a3636e: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36373: test     al, al
+08a36375: je       0x8a363db
+08a36377: lea      eax, [ebp - 0x228]
+08a3637d: mov      dword ptr [esp], eax
+08a36380: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36385: mov      dword ptr [esp + 4], 0x8e22ba6
+08a3638d: lea      eax, [ebp - 0x228]
+08a36393: mov      dword ptr [esp], eax
+08a36396: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3639b: test     al, al
+08a3639d: je       0x8a363ae
+08a3639f: mov      eax, dword ptr [ebp + 8]
+08a363a2: mov      dword ptr [eax + 0x68], 0
+08a363a9: jmp      0x8a35ee3
+08a363ae: mov      dword ptr [esp + 4], 0x8e22baf
+08a363b6: lea      eax, [ebp - 0x228]
+08a363bc: mov      dword ptr [esp], eax
+08a363bf: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a363c4: test     al, al
+08a363c6: je       0x8a35ed9
+08a363cc: mov      eax, dword ptr [ebp + 8]
+08a363cf: mov      dword ptr [eax + 0x68], 1
+08a363d6: jmp      0x8a35ee3
+08a363db: mov      dword ptr [esp + 4], 0x8e22bb9
+08a363e3: lea      eax, [ebp - 0x224]
+08a363e9: mov      dword ptr [esp], eax
+08a363ec: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a363f1: test     al, al
+08a363f3: je       0x8a36459
+08a363f5: lea      eax, [ebp - 0x228]
+08a363fb: mov      dword ptr [esp], eax
+08a363fe: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36403: mov      dword ptr [esp + 4], 0x8e22ba6
+08a3640b: lea      eax, [ebp - 0x228]
+08a36411: mov      dword ptr [esp], eax
+08a36414: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36419: test     al, al
+08a3641b: je       0x8a3642c
+08a3641d: mov      eax, dword ptr [ebp + 8]
+08a36420: mov      dword ptr [eax + 0x6c], 0
+08a36427: jmp      0x8a35ee3
+08a3642c: mov      dword ptr [esp + 4], 0x8e22baf
+08a36434: lea      eax, [ebp - 0x228]
+08a3643a: mov      dword ptr [esp], eax
+08a3643d: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36442: test     al, al
+08a36444: je       0x8a35edc
+08a3644a: mov      eax, dword ptr [ebp + 8]
+08a3644d: mov      dword ptr [eax + 0x6c], 1
+08a36454: jmp      0x8a35ee3
+08a36459: mov      dword ptr [esp + 4], 0x8e222d5
+08a36461: lea      eax, [ebp - 0x224]
+08a36467: mov      dword ptr [esp], eax
+08a3646a: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3646f: test     al, al
+08a36471: je       0x8a36486
+08a36473: mov      eax, dword ptr [ebp + 8]
+08a36476: add      eax, 0x70
+08a36479: mov      dword ptr [esp], eax
+08a3647c: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36481: jmp      0x8a35ee3
+08a36486: mov      dword ptr [esp + 4], 0x8e22bcb
+08a3648e: lea      eax, [ebp - 0x224]
+08a36494: mov      dword ptr [esp], eax
+08a36497: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3649c: test     al, al
+08a3649e: je       0x8a364b3
+08a364a0: mov      eax, dword ptr [ebp + 8]
+08a364a3: add      eax, 0x74
+08a364a6: mov      dword ptr [esp], eax
+08a364a9: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a364ae: jmp      0x8a35ee3
+08a364b3: mov      dword ptr [esp + 4], 0x8e22bd9
+08a364bb: lea      eax, [ebp - 0x224]
+08a364c1: mov      dword ptr [esp], eax
+08a364c4: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a364c9: test     al, al
+08a364cb: je       0x8a364e0
+08a364cd: mov      eax, dword ptr [ebp + 8]
+08a364d0: add      eax, 0x78
+08a364d3: mov      dword ptr [esp], eax
+08a364d6: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a364db: jmp      0x8a35ee3
+08a364e0: mov      dword ptr [esp + 4], 0x8e22be6
+08a364e8: lea      eax, [ebp - 0x224]
+08a364ee: mov      dword ptr [esp], eax
+08a364f1: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a364f6: test     al, al
+08a364f8: je       0x8a3650d
+08a364fa: mov      eax, dword ptr [ebp + 8]
+08a364fd: add      eax, 0x7c
+08a36500: mov      dword ptr [esp], eax
+08a36503: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36508: jmp      0x8a35ee3
+08a3650d: mov      dword ptr [esp + 4], 0x8e22bf3
+08a36515: lea      eax, [ebp - 0x224]
+08a3651b: mov      dword ptr [esp], eax
+08a3651e: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36523: test     al, al
+08a36525: je       0x8a3653a
+08a36527: mov      eax, dword ptr [ebp + 8]
+08a3652a: sub      eax, -0x80
+08a3652d: mov      dword ptr [esp], eax
+08a36530: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36535: jmp      0x8a35ee3
+08a3653a: mov      dword ptr [esp + 4], 0x8e22c04
+08a36542: lea      eax, [ebp - 0x224]
+08a36548: mov      dword ptr [esp], eax
+08a3654b: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36550: test     al, al
+08a36552: je       0x8a36569
+08a36554: mov      eax, dword ptr [ebp + 8]
+08a36557: add      eax, 0x84
+08a3655c: mov      dword ptr [esp], eax
+08a3655f: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36564: jmp      0x8a35ee3
+08a36569: mov      dword ptr [esp + 4], 0x8e22c1a
+08a36571: lea      eax, [ebp - 0x224]
+08a36577: mov      dword ptr [esp], eax
+08a3657a: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3657f: test     al, al
+08a36581: je       0x8a36598
+08a36583: mov      eax, dword ptr [ebp + 8]
+08a36586: add      eax, 0x88
+08a3658b: mov      dword ptr [esp], eax
+08a3658e: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36593: jmp      0x8a35ee3
+08a36598: mov      dword ptr [esp + 4], 0x8e22c31
+08a365a0: lea      eax, [ebp - 0x224]
+08a365a6: mov      dword ptr [esp], eax
+08a365a9: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a365ae: test     al, al
+08a365b0: je       0x8a365c7
+08a365b2: mov      eax, dword ptr [ebp + 8]
+08a365b5: add      eax, 0x8c
+08a365ba: mov      dword ptr [esp], eax
+08a365bd: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a365c2: jmp      0x8a35ee3
+08a365c7: mov      dword ptr [esp + 4], 0x8e22c40
+08a365cf: lea      eax, [ebp - 0x224]
+08a365d5: mov      dword ptr [esp], eax
+08a365d8: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a365dd: test     al, al
+08a365df: je       0x8a365f6
+08a365e1: mov      eax, dword ptr [ebp + 8]
+08a365e4: add      eax, 0x90
+08a365e9: mov      dword ptr [esp], eax
+08a365ec: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a365f1: jmp      0x8a35ee3
+08a365f6: mov      dword ptr [esp + 4], 0x8e22c54
+08a365fe: lea      eax, [ebp - 0x224]
+08a36604: mov      dword ptr [esp], eax
+08a36607: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3660c: test     al, al
+08a3660e: je       0x8a36625
+08a36610: mov      eax, dword ptr [ebp + 8]
+08a36613: add      eax, 0x94
+08a36618: mov      dword ptr [esp], eax
+08a3661b: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36620: jmp      0x8a35ee3
+08a36625: mov      dword ptr [esp + 4], 0x8e22c66
+08a3662d: lea      eax, [ebp - 0x224]
+08a36633: mov      dword ptr [esp], eax
+08a36636: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3663b: test     al, al
+08a3663d: je       0x8a36654
+08a3663f: mov      eax, dword ptr [ebp + 8]
+08a36642: add      eax, 0x98
+08a36647: mov      dword ptr [esp], eax
+08a3664a: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3664f: jmp      0x8a35ee3
+08a36654: mov      dword ptr [esp + 4], 0x8e22c77
+08a3665c: lea      eax, [ebp - 0x224]
+08a36662: mov      dword ptr [esp], eax
+08a36665: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3666a: test     al, al
+08a3666c: je       0x8a36683
+08a3666e: mov      eax, dword ptr [ebp + 8]
+08a36671: add      eax, 0x9c
+08a36676: mov      dword ptr [esp], eax
+08a36679: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3667e: jmp      0x8a35ee3
+08a36683: mov      dword ptr [esp + 4], 0x8e22c86
+08a3668b: lea      eax, [ebp - 0x224]
+08a36691: mov      dword ptr [esp], eax
+08a36694: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36699: test     al, al
+08a3669b: je       0x8a366b2
+08a3669d: mov      eax, dword ptr [ebp + 8]
+08a366a0: add      eax, 0xa0
+08a366a5: mov      dword ptr [esp], eax
+08a366a8: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a366ad: jmp      0x8a35ee3
+08a366b2: mov      dword ptr [esp + 4], 0x8e22c9a
+08a366ba: lea      eax, [ebp - 0x224]
+08a366c0: mov      dword ptr [esp], eax
+08a366c3: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a366c8: test     al, al
+08a366ca: je       0x8a366e1
+08a366cc: mov      eax, dword ptr [ebp + 8]
+08a366cf: add      eax, 0xa4
+08a366d4: mov      dword ptr [esp], eax
+08a366d7: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a366dc: jmp      0x8a35ee3
+08a366e1: mov      dword ptr [esp + 4], 0x8e22caf
+08a366e9: lea      eax, [ebp - 0x224]
+08a366ef: mov      dword ptr [esp], eax
+08a366f2: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a366f7: test     al, al
+08a366f9: je       0x8a36710
+08a366fb: mov      eax, dword ptr [ebp + 8]
+08a366fe: add      eax, 0xc8
+08a36703: mov      dword ptr [esp], eax
+08a36706: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3670b: jmp      0x8a35ee3
+08a36710: mov      dword ptr [esp + 4], 0x8e22cc4
+08a36718: lea      eax, [ebp - 0x224]
+08a3671e: mov      dword ptr [esp], eax
+08a36721: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36726: test     al, al
+08a36728: je       0x8a3673f
+08a3672a: mov      eax, dword ptr [ebp + 8]
+08a3672d: add      eax, 0xcc
+08a36732: mov      dword ptr [esp], eax
+08a36735: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3673a: jmp      0x8a35ee3
+08a3673f: mov      dword ptr [esp + 4], 0x8e22cd8
+08a36747: lea      eax, [ebp - 0x224]
+08a3674d: mov      dword ptr [esp], eax
+08a36750: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36755: test     al, al
+08a36757: je       0x8a3676e
+08a36759: mov      eax, dword ptr [ebp + 8]
+08a3675c: add      eax, 0xd0
+08a36761: mov      dword ptr [esp], eax
+08a36764: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36769: jmp      0x8a35ee3
+08a3676e: mov      dword ptr [esp + 4], 0x8e22ceb
+08a36776: lea      eax, [ebp - 0x224]
+08a3677c: mov      dword ptr [esp], eax
+08a3677f: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36784: test     al, al
+08a36786: je       0x8a3679d
+08a36788: mov      eax, dword ptr [ebp + 8]
+08a3678b: add      eax, 0xd8
+08a36790: mov      dword ptr [esp], eax
+08a36793: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36798: jmp      0x8a35ee3
+08a3679d: mov      dword ptr [esp + 4], 0x8e22d00
+08a367a5: lea      eax, [ebp - 0x224]
+08a367ab: mov      dword ptr [esp], eax
+08a367ae: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a367b3: test     al, al
+08a367b5: je       0x8a367cc
+08a367b7: mov      eax, dword ptr [ebp + 8]
+08a367ba: add      eax, 0xdc
+08a367bf: mov      dword ptr [esp], eax
+08a367c2: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a367c7: jmp      0x8a35ee3
+08a367cc: mov      dword ptr [esp + 4], 0x8e22d1a
+08a367d4: lea      eax, [ebp - 0x224]
+08a367da: mov      dword ptr [esp], eax
+08a367dd: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a367e2: test     al, al
+08a367e4: je       0x8a367fb
+08a367e6: mov      eax, dword ptr [ebp + 8]
+08a367e9: add      eax, 0xe0
+08a367ee: mov      dword ptr [esp], eax
+08a367f1: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a367f6: jmp      0x8a35ee3
+08a367fb: mov      dword ptr [esp + 4], 0x8e22d32
+08a36803: lea      eax, [ebp - 0x224]
+08a36809: mov      dword ptr [esp], eax
+08a3680c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36811: test     al, al
+08a36813: je       0x8a3682a
+08a36815: mov      eax, dword ptr [ebp + 8]
+08a36818: add      eax, 0xe4
+08a3681d: mov      dword ptr [esp], eax
+08a36820: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36825: jmp      0x8a35ee3
+08a3682a: mov      dword ptr [esp + 4], 0x8e22d49
+08a36832: lea      eax, [ebp - 0x224]
+08a36838: mov      dword ptr [esp], eax
+08a3683b: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36840: test     al, al
+08a36842: je       0x8a36859
+08a36844: mov      eax, dword ptr [ebp + 8]
+08a36847: add      eax, 0xa8
+08a3684c: mov      dword ptr [esp], eax
+08a3684f: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36854: jmp      0x8a35ee3
+08a36859: mov      dword ptr [esp + 4], 0x8e22d5d
+08a36861: lea      eax, [ebp - 0x224]
+08a36867: mov      dword ptr [esp], eax
+08a3686a: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3686f: test     al, al
+08a36871: je       0x8a36888
+08a36873: mov      eax, dword ptr [ebp + 8]
+08a36876: add      eax, 0xac
+08a3687b: mov      dword ptr [esp], eax
+08a3687e: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36883: jmp      0x8a35ee3
+08a36888: mov      dword ptr [esp + 4], 0x8e22d70
+08a36890: lea      eax, [ebp - 0x224]
+08a36896: mov      dword ptr [esp], eax
+08a36899: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3689e: test     al, al
+08a368a0: je       0x8a368b7
+08a368a2: mov      eax, dword ptr [ebp + 8]
+08a368a5: add      eax, 0xb0
+08a368aa: mov      dword ptr [esp], eax
+08a368ad: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a368b2: jmp      0x8a35ee3
+08a368b7: mov      dword ptr [esp + 4], 0x8e22d82
+08a368bf: lea      eax, [ebp - 0x224]
+08a368c5: mov      dword ptr [esp], eax
+08a368c8: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a368cd: test     al, al
+08a368cf: je       0x8a368e6
+08a368d1: mov      eax, dword ptr [ebp + 8]
+08a368d4: add      eax, 0xb8
+08a368d9: mov      dword ptr [esp], eax
+08a368dc: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a368e1: jmp      0x8a35ee3
+08a368e6: mov      dword ptr [esp + 4], 0x8e22d96
+08a368ee: lea      eax, [ebp - 0x224]
+08a368f4: mov      dword ptr [esp], eax
+08a368f7: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a368fc: test     al, al
+08a368fe: je       0x8a36915
+08a36900: mov      eax, dword ptr [ebp + 8]
+08a36903: add      eax, 0xbc
+08a36908: mov      dword ptr [esp], eax
+08a3690b: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36910: jmp      0x8a35ee3
+08a36915: mov      dword ptr [esp + 4], 0x8e22daf
+08a3691d: lea      eax, [ebp - 0x224]
+08a36923: mov      dword ptr [esp], eax
+08a36926: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3692b: test     al, al
+08a3692d: je       0x8a36944
+08a3692f: mov      eax, dword ptr [ebp + 8]
+08a36932: add      eax, 0xc0
+08a36937: mov      dword ptr [esp], eax
+08a3693a: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3693f: jmp      0x8a35ee3
+08a36944: mov      dword ptr [esp + 4], 0x8e22dc6
+08a3694c: lea      eax, [ebp - 0x224]
+08a36952: mov      dword ptr [esp], eax
+08a36955: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3695a: test     al, al
+08a3695c: je       0x8a36973
+08a3695e: mov      eax, dword ptr [ebp + 8]
+08a36961: add      eax, 0xc4
+08a36966: mov      dword ptr [esp], eax
+08a36969: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3696e: jmp      0x8a35ee3
+08a36973: mov      dword ptr [esp + 4], 0x8e22ddc
+08a3697b: lea      eax, [ebp - 0x224]
+08a36981: mov      dword ptr [esp], eax
+08a36984: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36989: test     al, al
+08a3698b: je       0x8a36a4c
+08a36991: mov      dword ptr [ebp - 0x40], 0xffffffff
+08a36998: lea      eax, [ebp - 0x228]
+08a3699e: mov      dword ptr [esp], eax
+08a369a1: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a369a6: mov      dword ptr [esp], 0
+08a369ad: call     0x88bc37b ; _Z7ScanIntPb
+08a369b2: mov      dword ptr [ebp - 0x22c], eax
+08a369b8: lea      eax, [ebp - 0x228]
+08a369be: mov      dword ptr [esp], eax
+08a369c1: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a369c6: cmp      dword ptr [ebp - 0x40], -1
+08a369ca: je       0x8a35edf
+08a369d0: lea      eax, [ebp - 0x228]
+08a369d6: mov      dword ptr [esp], eax
+08a369d9: call     0x87064f0 ; _ZNKSs5c_strEv
+08a369de: mov      edx, dword ptr [ebp - 0x22c]
+08a369e4: mov      dword ptr [esp + 0xc], eax
+08a369e8: mov      eax, dword ptr [ebp - 0x40]
+08a369eb: mov      dword ptr [esp + 8], eax
+08a369ef: mov      dword ptr [esp + 4], edx
+08a369f3: lea      eax, [ebp - 0x220]
+08a369f9: mov      dword ptr [esp], eax
+08a369fc: call     0x8a3dcc2 ; _ZN27CreatureAdditionalAnimationC2EiiPKc
+08a36a01: mov      eax, dword ptr [ebp + 8]
+08a36a04: lea      edx, [eax + 0xe8]
+08a36a0a: lea      eax, [ebp - 0x220]
+08a36a10: mov      dword ptr [esp + 4], eax
+08a36a14: mov      dword ptr [esp], edx
+08a36a17: call     0x8a40a76 ; _ZNSt6vectorI27CreatureAdditionalAnimationSaIS0_EE9push_backEOS0_
+08a36a1c: jmp      0x8a36a39
+08a36a1e: mov      ebx, edx
+08a36a20: mov      esi, eax
+08a36a22: lea      eax, [ebp - 0x220]
+08a36a28: mov      dword ptr [esp], eax
+08a36a2b: call     0x83467c8 ; _ZN27CreatureAdditionalAnimationD1Ev
+08a36a30: mov      eax, esi
+08a36a32: mov      edx, ebx
+08a36a34: jmp      0x8a38395
+08a36a39: lea      eax, [ebp - 0x220]
+08a36a3f: mov      dword ptr [esp], eax
+08a36a42: call     0x83467c8 ; _ZN27CreatureAdditionalAnimationD1Ev
+08a36a47: jmp      0x8a35ee3
+08a36a4c: mov      dword ptr [esp + 4], 0x8e22df3
+08a36a54: lea      eax, [ebp - 0x224]
+08a36a5a: mov      dword ptr [esp], eax
+08a36a5d: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36a62: test     al, al
+08a36a64: je       0x8a36a7b
+08a36a66: mov      eax, dword ptr [ebp + 8]
+08a36a69: add      eax, 0xf4
+08a36a6e: mov      dword ptr [esp], eax
+08a36a71: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36a76: jmp      0x8a35ee3
+08a36a7b: mov      dword ptr [esp + 4], 0x8e22e06
+08a36a83: lea      eax, [ebp - 0x224]
+08a36a89: mov      dword ptr [esp], eax
+08a36a8c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36a91: test     al, al
+08a36a93: je       0x8a36aaa
+08a36a95: mov      eax, dword ptr [ebp + 8]
+08a36a98: add      eax, 0xf8
+08a36a9d: mov      dword ptr [esp], eax
+08a36aa0: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36aa5: jmp      0x8a35ee3
+08a36aaa: mov      dword ptr [esp + 4], 0x8e22e1b
+08a36ab2: lea      eax, [ebp - 0x224]
+08a36ab8: mov      dword ptr [esp], eax
+08a36abb: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36ac0: test     al, al
+08a36ac2: je       0x8a36ad9
+08a36ac4: mov      eax, dword ptr [ebp + 8]
+08a36ac7: add      eax, 0xfc
+08a36acc: mov      dword ptr [esp], eax
+08a36acf: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36ad4: jmp      0x8a35ee3
+08a36ad9: mov      dword ptr [esp + 4], 0x8e22e2c
+08a36ae1: lea      eax, [ebp - 0x224]
+08a36ae7: mov      dword ptr [esp], eax
+08a36aea: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36aef: test     al, al
+08a36af1: je       0x8a36b08
+08a36af3: mov      eax, dword ptr [ebp + 8]
+08a36af6: add      eax, 0x100
+08a36afb: mov      dword ptr [esp], eax
+08a36afe: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36b03: jmp      0x8a35ee3
+08a36b08: mov      dword ptr [esp + 4], 0x8e22e3d
+08a36b10: lea      eax, [ebp - 0x224]
+08a36b16: mov      dword ptr [esp], eax
+08a36b19: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36b1e: test     al, al
+08a36b20: je       0x8a36b37
+08a36b22: mov      eax, dword ptr [ebp + 8]
+08a36b25: add      eax, 0x104
+08a36b2a: mov      dword ptr [esp], eax
+08a36b2d: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36b32: jmp      0x8a35ee3
+08a36b37: mov      dword ptr [esp + 4], 0x8e22e4d
+08a36b3f: lea      eax, [ebp - 0x224]
+08a36b45: mov      dword ptr [esp], eax
+08a36b48: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36b4d: test     al, al
+08a36b4f: je       0x8a36b6b
+08a36b51: mov      dword ptr [esp], 0
+08a36b58: call     0x88bc37b ; _Z7ScanIntPb
+08a36b5d: mov      edx, dword ptr [ebp + 8]
+08a36b60: mov      dword ptr [edx + 0x108], eax
+08a36b66: jmp      0x8a35ee3
+08a36b6b: mov      dword ptr [esp + 4], 0x8e22e5a
+08a36b73: lea      eax, [ebp - 0x224]
+08a36b79: mov      dword ptr [esp], eax
+08a36b7c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36b81: test     al, al
+08a36b83: je       0x8a36b9f
+08a36b85: mov      dword ptr [esp], 0
+08a36b8c: call     0x88bc37b ; _Z7ScanIntPb
+08a36b91: mov      edx, dword ptr [ebp + 8]
+08a36b94: mov      dword ptr [edx + 0x10c], eax
+08a36b9a: jmp      0x8a35ee3
+08a36b9f: mov      dword ptr [esp + 4], 0x8e22e67
+08a36ba7: lea      eax, [ebp - 0x224]
+08a36bad: mov      dword ptr [esp], eax
+08a36bb0: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36bb5: test     al, al
+08a36bb7: je       0x8a36bd3
+08a36bb9: mov      dword ptr [esp], 0
+08a36bc0: call     0x88bc37b ; _Z7ScanIntPb
+08a36bc5: mov      edx, dword ptr [ebp + 8]
+08a36bc8: mov      dword ptr [edx + 0x1b4], eax
+08a36bce: jmp      0x8a35ee3
+08a36bd3: mov      dword ptr [esp + 4], 0x8e22e84
+08a36bdb: lea      eax, [ebp - 0x224]
+08a36be1: mov      dword ptr [esp], eax
+08a36be4: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36be9: test     al, al
+08a36beb: je       0x8a36c07
+08a36bed: mov      dword ptr [esp], 0
+08a36bf4: call     0x88bc37b ; _Z7ScanIntPb
+08a36bf9: mov      edx, dword ptr [ebp + 8]
+08a36bfc: mov      dword ptr [edx + 0x1b8], eax
+08a36c02: jmp      0x8a35ee3
+08a36c07: mov      dword ptr [esp + 4], 0x8e1e363
+08a36c0f: lea      eax, [ebp - 0x224]
+08a36c15: mov      dword ptr [esp], eax
+08a36c18: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36c1d: test     al, al
+08a36c1f: je       0x8a36c65
+08a36c21: mov      eax, dword ptr [ebp + 8]
+08a36c24: add      eax, 0x110
+08a36c29: mov      dword ptr [esp], eax
+08a36c2c: call     0x83416c8 ; _ZNSt6vectorISsSaISsEE5clearEv
+08a36c31: jmp      0x8a36c4e
+08a36c33: mov      eax, dword ptr [ebp + 8]
+08a36c36: lea      edx, [eax + 0x110]
+08a36c3c: lea      eax, [ebp - 0x228]
+08a36c42: mov      dword ptr [esp + 4], eax
+08a36c46: mov      dword ptr [esp], edx
+08a36c49: call     0x86111d2 ; _ZNSt6vectorISsSaISsEE9push_backERKSs
+08a36c4e: lea      eax, [ebp - 0x228]
+08a36c54: mov      dword ptr [esp], eax
+08a36c57: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36c5c: test     al, al
+08a36c5e: jne      0x8a36c33
+08a36c60: jmp      0x8a35ee3
+08a36c65: mov      dword ptr [esp + 4], 0x8e22ea2
+08a36c6d: lea      eax, [ebp - 0x224]
+08a36c73: mov      dword ptr [esp], eax
+08a36c76: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36c7b: test     al, al
+08a36c7d: je       0x8a36cc3
+08a36c7f: mov      eax, dword ptr [ebp + 8]
+08a36c82: add      eax, 0x1a8
+08a36c87: mov      dword ptr [esp], eax
+08a36c8a: call     0x83416c8 ; _ZNSt6vectorISsSaISsEE5clearEv
+08a36c8f: jmp      0x8a36cac
+08a36c91: mov      eax, dword ptr [ebp + 8]
+08a36c94: lea      edx, [eax + 0x1a8]
+08a36c9a: lea      eax, [ebp - 0x228]
+08a36ca0: mov      dword ptr [esp + 4], eax
+08a36ca4: mov      dword ptr [esp], edx
+08a36ca7: call     0x86111d2 ; _ZNSt6vectorISsSaISsEE9push_backERKSs
+08a36cac: lea      eax, [ebp - 0x228]
+08a36cb2: mov      dword ptr [esp], eax
+08a36cb5: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36cba: test     al, al
+08a36cbc: jne      0x8a36c91
+08a36cbe: jmp      0x8a35ee3
+08a36cc3: mov      dword ptr [esp + 4], 0x8e1e4b7
+08a36ccb: lea      eax, [ebp - 0x224]
+08a36cd1: mov      dword ptr [esp], eax
+08a36cd4: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36cd9: test     al, al
+08a36cdb: je       0x8a36d21
+08a36cdd: mov      eax, dword ptr [ebp + 8]
+08a36ce0: add      eax, 0x11c
+08a36ce5: mov      dword ptr [esp], eax
+08a36ce8: call     0x83416c8 ; _ZNSt6vectorISsSaISsEE5clearEv
+08a36ced: jmp      0x8a36d0a
+08a36cef: mov      eax, dword ptr [ebp + 8]
+08a36cf2: lea      edx, [eax + 0x11c]
+08a36cf8: lea      eax, [ebp - 0x228]
+08a36cfe: mov      dword ptr [esp + 4], eax
+08a36d02: mov      dword ptr [esp], edx
+08a36d05: call     0x86111d2 ; _ZNSt6vectorISsSaISsEE9push_backERKSs
+08a36d0a: lea      eax, [ebp - 0x228]
+08a36d10: mov      dword ptr [esp], eax
+08a36d13: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36d18: test     al, al
+08a36d1a: jne      0x8a36cef
+08a36d1c: jmp      0x8a35ee3
+08a36d21: mov      dword ptr [esp + 4], 0x8e22eb2
+08a36d29: lea      eax, [ebp - 0x224]
+08a36d2f: mov      dword ptr [esp], eax
+08a36d32: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36d37: test     al, al
+08a36d39: je       0x8a36d7f
+08a36d3b: mov      eax, dword ptr [ebp + 8]
+08a36d3e: add      eax, 0x128
+08a36d43: mov      dword ptr [esp], eax
+08a36d46: call     0x83416c8 ; _ZNSt6vectorISsSaISsEE5clearEv
+08a36d4b: jmp      0x8a36d68
+08a36d4d: mov      eax, dword ptr [ebp + 8]
+08a36d50: lea      edx, [eax + 0x128]
+08a36d56: lea      eax, [ebp - 0x228]
+08a36d5c: mov      dword ptr [esp + 4], eax
+08a36d60: mov      dword ptr [esp], edx
+08a36d63: call     0x86111d2 ; _ZNSt6vectorISsSaISsEE9push_backERKSs
+08a36d68: lea      eax, [ebp - 0x228]
+08a36d6e: mov      dword ptr [esp], eax
+08a36d71: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36d76: test     al, al
+08a36d78: jne      0x8a36d4d
+08a36d7a: jmp      0x8a35ee3
+08a36d7f: mov      dword ptr [esp + 4], 0x8e22ec1
+08a36d87: lea      eax, [ebp - 0x224]
+08a36d8d: mov      dword ptr [esp], eax
+08a36d90: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36d95: test     al, al
+08a36d97: je       0x8a36dee
+08a36d99: mov      eax, dword ptr [ebp + 8]
+08a36d9c: add      eax, 0x134
+08a36da1: mov      dword ptr [esp], eax
+08a36da4: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+08a36da9: lea      eax, [ebp - 0x22d]
+08a36daf: mov      dword ptr [esp], eax
+08a36db2: call     0x88bc37b ; _Z7ScanIntPb
+08a36db7: mov      dword ptr [ebp - 0x22c], eax
+08a36dbd: movzx    eax, byte ptr [ebp - 0x22d]
+08a36dc4: xor      eax, 1
+08a36dc7: test     al, al
+08a36dc9: je       0x8a36dd1
+08a36dcb: nop
+08a36dcc: jmp      0x8a35ee3
+08a36dd1: mov      eax, dword ptr [ebp + 8]
+08a36dd4: lea      edx, [eax + 0x134]
+08a36dda: lea      eax, [ebp - 0x22c]
+08a36de0: mov      dword ptr [esp + 4], eax
+08a36de4: mov      dword ptr [esp], edx
+08a36de7: call     0x8111126 ; _ZNSt6vectorIiSaIiEE9push_backERKi
+08a36dec: jmp      0x8a36da9
+08a36dee: mov      dword ptr [esp + 4], 0x8e22ed6
+08a36df6: lea      eax, [ebp - 0x224]
+08a36dfc: mov      dword ptr [esp], eax
+08a36dff: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36e04: test     al, al
+08a36e06: je       0x8a36e5d
+08a36e08: mov      eax, dword ptr [ebp + 8]
+08a36e0b: add      eax, 0x140
+08a36e10: mov      dword ptr [esp], eax
+08a36e13: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+08a36e18: lea      eax, [ebp - 0x22d]
+08a36e1e: mov      dword ptr [esp], eax
+08a36e21: call     0x88bc37b ; _Z7ScanIntPb
+08a36e26: mov      dword ptr [ebp - 0x22c], eax
+08a36e2c: movzx    eax, byte ptr [ebp - 0x22d]
+08a36e33: xor      eax, 1
+08a36e36: test     al, al
+08a36e38: je       0x8a36e40
+08a36e3a: nop
+08a36e3b: jmp      0x8a35ee3
+08a36e40: mov      eax, dword ptr [ebp + 8]
+08a36e43: lea      edx, [eax + 0x140]
+08a36e49: lea      eax, [ebp - 0x22c]
+08a36e4f: mov      dword ptr [esp + 4], eax
+08a36e53: mov      dword ptr [esp], edx
+08a36e56: call     0x8111126 ; _ZNSt6vectorIiSaIiEE9push_backERKi
+08a36e5b: jmp      0x8a36e18
+08a36e5d: mov      dword ptr [esp + 4], 0x8e22ef0
+08a36e65: lea      eax, [ebp - 0x224]
+08a36e6b: mov      dword ptr [esp], eax
+08a36e6e: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36e73: test     al, al
+08a36e75: je       0x8a36ecc
+08a36e77: mov      eax, dword ptr [ebp + 8]
+08a36e7a: add      eax, 0x14c
+08a36e7f: mov      dword ptr [esp], eax
+08a36e82: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+08a36e87: lea      eax, [ebp - 0x22d]
+08a36e8d: mov      dword ptr [esp], eax
+08a36e90: call     0x88bc37b ; _Z7ScanIntPb
+08a36e95: mov      dword ptr [ebp - 0x22c], eax
+08a36e9b: movzx    eax, byte ptr [ebp - 0x22d]
+08a36ea2: xor      eax, 1
+08a36ea5: test     al, al
+08a36ea7: je       0x8a36eaf
+08a36ea9: nop
+08a36eaa: jmp      0x8a35ee3
+08a36eaf: mov      eax, dword ptr [ebp + 8]
+08a36eb2: lea      edx, [eax + 0x14c]
+08a36eb8: lea      eax, [ebp - 0x22c]
+08a36ebe: mov      dword ptr [esp + 4], eax
+08a36ec2: mov      dword ptr [esp], edx
+08a36ec5: call     0x8111126 ; _ZNSt6vectorIiSaIiEE9push_backERKi
+08a36eca: jmp      0x8a36e87
+08a36ecc: mov      dword ptr [esp + 4], 0x8e1f1c3
+08a36ed4: lea      eax, [ebp - 0x224]
+08a36eda: mov      dword ptr [esp], eax
+08a36edd: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36ee2: test     al, al
+08a36ee4: je       0x8a36f3b
+08a36ee6: mov      eax, dword ptr [ebp + 8]
+08a36ee9: add      eax, 0x158
+08a36eee: mov      dword ptr [esp], eax
+08a36ef1: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+08a36ef6: lea      eax, [ebp - 0x22d]
+08a36efc: mov      dword ptr [esp], eax
+08a36eff: call     0x88bc37b ; _Z7ScanIntPb
+08a36f04: mov      dword ptr [ebp - 0x22c], eax
+08a36f0a: movzx    eax, byte ptr [ebp - 0x22d]
+08a36f11: xor      eax, 1
+08a36f14: test     al, al
+08a36f16: je       0x8a36f1e
+08a36f18: nop
+08a36f19: jmp      0x8a35ee3
+08a36f1e: mov      eax, dword ptr [ebp + 8]
+08a36f21: lea      edx, [eax + 0x158]
+08a36f27: lea      eax, [ebp - 0x22c]
+08a36f2d: mov      dword ptr [esp + 4], eax
+08a36f31: mov      dword ptr [esp], edx
+08a36f34: call     0x8111126 ; _ZNSt6vectorIiSaIiEE9push_backERKi
+08a36f39: jmp      0x8a36ef6
+08a36f3b: mov      dword ptr [esp + 4], 0x8e2234f
+08a36f43: lea      eax, [ebp - 0x224]
+08a36f49: mov      dword ptr [esp], eax
+08a36f4c: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36f51: test     al, al
+08a36f53: je       0x8a36f99
+08a36f55: mov      eax, dword ptr [ebp + 8]
+08a36f58: add      eax, 0x164
+08a36f5d: mov      dword ptr [esp], eax
+08a36f60: call     0x83416c8 ; _ZNSt6vectorISsSaISsEE5clearEv
+08a36f65: jmp      0x8a36f82
+08a36f67: mov      eax, dword ptr [ebp + 8]
+08a36f6a: lea      edx, [eax + 0x164]
+08a36f70: lea      eax, [ebp - 0x228]
+08a36f76: mov      dword ptr [esp + 4], eax
+08a36f7a: mov      dword ptr [esp], edx
+08a36f7d: call     0x86111d2 ; _ZNSt6vectorISsSaISsEE9push_backERKSs
+08a36f82: lea      eax, [ebp - 0x228]
+08a36f88: mov      dword ptr [esp], eax
+08a36f8b: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a36f90: test     al, al
+08a36f92: jne      0x8a36f67
+08a36f94: jmp      0x8a35ee3
+08a36f99: mov      dword ptr [esp + 4], 0x8e22efb
+08a36fa1: lea      eax, [ebp - 0x224]
+08a36fa7: mov      dword ptr [esp], eax
+08a36faa: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a36faf: test     al, al
+08a36fb1: je       0x8a37053
+08a36fb7: mov      eax, dword ptr [ebp + 8]
+08a36fba: add      eax, 0x180
+08a36fbf: mov      dword ptr [esp], eax
+08a36fc2: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+08a36fc7: mov      dword ptr [esp], 0
+08a36fce: call     0x88bc37b ; _Z7ScanIntPb
+08a36fd3: mov      dword ptr [ebp - 0x3c], eax
+08a36fd6: mov      byte ptr [ebp - 0x22e], 0
+08a36fdd: mov      dword ptr [ebp - 0x38], 0
+08a36fe4: mov      dword ptr [ebp - 0x34], 0
+08a36feb: jmp      0x8a37041
+08a36fed: mov      byte ptr [ebp - 0x22e], 0
+08a36ff4: lea      eax, [ebp - 0x22e]
+08a36ffa: mov      dword ptr [esp], eax
+08a36ffd: call     0x88bc37b ; _Z7ScanIntPb
+08a37002: mov      dword ptr [ebp - 0x38], eax
+08a37005: movzx    eax, byte ptr [ebp - 0x22e]
+08a3700c: xor      eax, 1
+08a3700f: test     al, al
+08a37011: je       0x8a37019
+08a37013: nop
+08a37014: jmp      0x8a35ee3
+08a37019: mov      eax, dword ptr [ebp - 0x38]
+08a3701c: mov      dword ptr [ebp - 0x214], eax
+08a37022: mov      eax, dword ptr [ebp + 8]
+08a37025: lea      edx, [eax + 0x180]
+08a3702b: lea      eax, [ebp - 0x214]
+08a37031: mov      dword ptr [esp + 4], eax
+08a37035: mov      dword ptr [esp], edx
+08a37038: call     0x808e1ee ; _ZNSt6vectorIiSaIiEE9push_backEOi
+08a3703d: add      dword ptr [ebp - 0x34], 1
+08a37041: mov      eax, dword ptr [ebp - 0x34]
+08a37044: cmp      eax, dword ptr [ebp - 0x3c]
+08a37047: setl     al
+08a3704a: test     al, al
+08a3704c: jne      0x8a36fed
+08a3704e: jmp      0x8a35ee3
+08a37053: mov      dword ptr [esp + 4], 0x8e22f19
+08a3705b: lea      eax, [ebp - 0x224]
+08a37061: mov      dword ptr [esp], eax
+08a37064: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37069: test     al, al
+08a3706b: je       0x8a37087
+08a3706d: mov      dword ptr [esp], 0
+08a37074: call     0x88bc37b ; _Z7ScanIntPb
+08a37079: mov      edx, dword ptr [ebp + 8]
+08a3707c: mov      dword ptr [edx + 0x174], eax
+08a37082: jmp      0x8a35ee3
+08a37087: mov      dword ptr [esp + 4], 0x8e22f2b
+08a3708f: lea      eax, [ebp - 0x224]
+08a37095: mov      dword ptr [esp], eax
+08a37098: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3709d: test     al, al
+08a3709f: je       0x8a370bb
+08a370a1: mov      dword ptr [esp], 0
+08a370a8: call     0x88bc37b ; _Z7ScanIntPb
+08a370ad: mov      edx, dword ptr [ebp + 8]
+08a370b0: mov      dword ptr [edx + 0x178], eax
+08a370b6: jmp      0x8a35ee3
+08a370bb: mov      dword ptr [esp + 4], 0x8e22f43
+08a370c3: lea      eax, [ebp - 0x224]
+08a370c9: mov      dword ptr [esp], eax
+08a370cc: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a370d1: test     al, al
+08a370d3: je       0x8a370ef
+08a370d5: mov      dword ptr [esp], 0
+08a370dc: call     0x88bc37b ; _Z7ScanIntPb
+08a370e1: mov      edx, dword ptr [ebp + 8]
+08a370e4: mov      dword ptr [edx + 0x17c], eax
+08a370ea: jmp      0x8a35ee3
+08a370ef: mov      dword ptr [esp + 4], 0x8e22f55
+08a370f7: lea      eax, [ebp - 0x224]
+08a370fd: mov      dword ptr [esp], eax
+08a37100: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37105: test     al, al
+08a37107: je       0x8a3732d
+08a3710d: lea      eax, [ebp - 0x24c]
+08a37113: mov      dword ptr [esp], eax
+08a37116: call     0x833df50 ; _ZN25selectiveGrowCreatureInfoC2Ev
+08a3711b: mov      byte ptr [ebp - 0x2d], 1
+08a3711f: jmp      0x8a3731e
+08a37124: mov      dword ptr [esp + 4], 1
+08a3712c: lea      eax, [ebp - 0x224]
+08a37132: mov      dword ptr [esp], eax
+08a37135: call     0x88bc85f ; _Z8ScanTypeRSsb
+08a3713a: xor      eax, 1
+08a3713d: test     al, al
+08a3713f: je       0x8a37147
+08a37141: nop
+08a37142: jmp      0x8a35ee3
+08a37147: mov      dword ptr [esp + 4], 0x8e22f6f
+08a3714f: lea      eax, [ebp - 0x224]
+08a37155: mov      dword ptr [esp], eax
+08a37158: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3715d: test     al, al
+08a3715f: je       0x8a371c1
+08a37161: mov      eax, dword ptr [ebp + 8]
+08a37164: mov      edx, dword ptr [ebp - 0x24c]
+08a3716a: mov      dword ptr [eax + 0x18c], edx
+08a37170: mov      edx, dword ptr [ebp - 0x248]
+08a37176: mov      dword ptr [eax + 0x190], edx
+08a3717c: mov      edx, dword ptr [ebp - 0x244]
+08a37182: mov      dword ptr [eax + 0x194], edx
+08a37188: mov      edx, dword ptr [ebp - 0x240]
+08a3718e: mov      dword ptr [eax + 0x198], edx
+08a37194: mov      edx, dword ptr [ebp - 0x23c]
+08a3719a: mov      dword ptr [eax + 0x19c], edx
+08a371a0: mov      edx, dword ptr [ebp - 0x238]
+08a371a6: mov      dword ptr [eax + 0x1a0], edx
+08a371ac: mov      edx, dword ptr [ebp - 0x234]
+08a371b2: mov      dword ptr [eax + 0x1a4], edx
+08a371b8: mov      byte ptr [ebp - 0x2d], 0
+08a371bc: jmp      0x8a3731e
+08a371c1: mov      dword ptr [esp + 4], 0x8e22f8a
+08a371c9: lea      eax, [ebp - 0x224]
+08a371cf: mov      dword ptr [esp], eax
+08a371d2: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a371d7: test     al, al
+08a371d9: je       0x8a371f2
+08a371db: mov      dword ptr [esp], 0
+08a371e2: call     0x88bc37b ; _Z7ScanIntPb
+08a371e7: mov      dword ptr [ebp - 0x234], eax
+08a371ed: jmp      0x8a3731e
+08a371f2: mov      dword ptr [esp + 4], 0x8e22fa3
+08a371fa: lea      eax, [ebp - 0x224]
+08a37200: mov      dword ptr [esp], eax
+08a37203: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37208: test     al, al
+08a3720a: je       0x8a37234
+08a3720c: mov      dword ptr [esp], 0
+08a37213: call     0x88bc37b ; _Z7ScanIntPb
+08a37218: mov      dword ptr [ebp - 0x22c], eax
+08a3721e: mov      eax, dword ptr [ebp - 0x22c]
+08a37224: test     eax, eax
+08a37226: setne    al
+08a37229: mov      byte ptr [ebp - 0x24c], al
+08a3722f: jmp      0x8a3731e
+08a37234: mov      dword ptr [esp + 4], 0x8e22fb4
+08a3723c: lea      eax, [ebp - 0x224]
+08a37242: mov      dword ptr [esp], eax
+08a37245: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3724a: test     al, al
+08a3724c: je       0x8a37265
+08a3724e: mov      dword ptr [esp], 0
+08a37255: call     0x88bc37b ; _Z7ScanIntPb
+08a3725a: mov      dword ptr [ebp - 0x23c], eax
+08a37260: jmp      0x8a3731e
+08a37265: mov      dword ptr [esp + 4], 0x8e22fcc
+08a3726d: lea      eax, [ebp - 0x224]
+08a37273: mov      dword ptr [esp], eax
+08a37276: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3727b: test     al, al
+08a3727d: je       0x8a37296
+08a3727f: mov      dword ptr [esp], 0
+08a37286: call     0x88bc37b ; _Z7ScanIntPb
+08a3728b: mov      dword ptr [ebp - 0x238], eax
+08a37291: jmp      0x8a3731e
+08a37296: mov      dword ptr [esp + 4], 0x8e22fe4
+08a3729e: lea      eax, [ebp - 0x224]
+08a372a4: mov      dword ptr [esp], eax
+08a372a7: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a372ac: test     al, al
+08a372ae: je       0x8a372c4
+08a372b0: mov      dword ptr [esp], 0
+08a372b7: call     0x88bc37b ; _Z7ScanIntPb
+08a372bc: mov      dword ptr [ebp - 0x244], eax
+08a372c2: jmp      0x8a3731e
+08a372c4: mov      dword ptr [esp + 4], 0x8e22ffd
+08a372cc: lea      eax, [ebp - 0x224]
+08a372d2: mov      dword ptr [esp], eax
+08a372d5: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a372da: test     al, al
+08a372dc: je       0x8a372f2
+08a372de: mov      dword ptr [esp], 0
+08a372e5: call     0x88bc37b ; _Z7ScanIntPb
+08a372ea: mov      dword ptr [ebp - 0x240], eax
+08a372f0: jmp      0x8a3731e
+08a372f2: mov      dword ptr [esp + 4], 0x8e23016
+08a372fa: lea      eax, [ebp - 0x224]
+08a37300: mov      dword ptr [esp], eax
+08a37303: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37308: test     al, al
+08a3730a: je       0x8a3731e
+08a3730c: mov      dword ptr [esp], 0
+08a37313: call     0x88bc37b ; _Z7ScanIntPb
+08a37318: mov      dword ptr [ebp - 0x248], eax
+08a3731e: cmp      byte ptr [ebp - 0x2d], 0
+08a37322: jne      0x8a37124
+08a37328: jmp      0x8a35ee3
+08a3732d: mov      dword ptr [esp + 4], 0x8e23023
+08a37335: lea      eax, [ebp - 0x224]
+08a3733b: mov      dword ptr [esp], eax
+08a3733e: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37343: test     al, al
+08a37345: je       0x8a373a2
+08a37347: mov      eax, dword ptr [ebp + 8]
+08a3734a: add      eax, 0x208
+08a3734f: mov      dword ptr [esp], eax
+08a37352: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+08a37357: lea      eax, [ebp - 0x24d]
+08a3735d: mov      dword ptr [esp], eax
+08a37360: call     0x88bc37b ; _Z7ScanIntPb
+08a37365: mov      dword ptr [ebp - 0x2c], eax
+08a37368: movzx    eax, byte ptr [ebp - 0x24d]
+08a3736f: xor      eax, 1
+08a37372: test     al, al
+08a37374: je       0x8a3737c
+08a37376: nop
+08a37377: jmp      0x8a35ee3
+08a3737c: mov      eax, dword ptr [ebp - 0x2c]
+08a3737f: mov      dword ptr [ebp - 0x254], eax
+08a37385: mov      eax, dword ptr [ebp + 8]
+08a37388: lea      edx, [eax + 0x208]
+08a3738e: lea      eax, [ebp - 0x254]
+08a37394: mov      dword ptr [esp + 4], eax
+08a37398: mov      dword ptr [esp], edx
+08a3739b: call     0x8111126 ; _ZNSt6vectorIiSaIiEE9push_backERKi
+08a373a0: jmp      0x8a37357
+08a373a2: mov      dword ptr [esp + 4], 0x8e2303c
+08a373aa: lea      eax, [ebp - 0x224]
+08a373b0: mov      dword ptr [esp], eax
+08a373b3: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a373b8: test     al, al
+08a373ba: je       0x8a3758f
+08a373c0: lea      eax, [ebp - 0x22d]
+08a373c6: mov      dword ptr [esp], eax
+08a373c9: call     0x88bc37b ; _Z7ScanIntPb
+08a373ce: mov      dword ptr [ebp - 0x22c], eax
+08a373d4: movzx    eax, byte ptr [ebp - 0x22d]
+08a373db: xor      eax, 1
+08a373de: test     al, al
+08a373e0: je       0x8a3741f
+08a373e2: mov      eax, dword ptr [ebp + 0xc]
+08a373e5: mov      dword ptr [esp + 0x14], eax
+08a373e9: mov      dword ptr [esp + 0x10], 0x8e23050
+08a373f1: mov      dword ptr [esp + 0xc], 0x259e
+08a373f9: mov      dword ptr [esp + 8], 0x8e23901
+08a37401: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a37409: mov      dword ptr [esp], 0
+08a37410: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a37415: mov      ebx, 0
+08a3741a: jmp      0x8a383ad
+08a3741f: mov      edx, dword ptr [ebp - 0x22c]
+08a37425: mov      eax, dword ptr [ebp + 8]
+08a37428: mov      dword ptr [eax + 0x1bc], edx
+08a3742e: mov      eax, dword ptr [ebp + 8]
+08a37431: add      eax, 0x1c0
+08a37436: mov      dword ptr [esp], eax
+08a37439: call     0x834173e ; _ZNSt6vectorI21st_crature_id_item_idSaIS0_EE5clearEv
+08a3743e: lea      eax, [ebp - 0x22d]
+08a37444: mov      dword ptr [esp], eax
+08a37447: call     0x88bc37b ; _Z7ScanIntPb
+08a3744c: mov      dword ptr [ebp - 0x25c], eax
+08a37452: movzx    eax, byte ptr [ebp - 0x22d]
+08a37459: xor      eax, 1
+08a3745c: test     al, al
+08a3745e: je       0x8a374ac
+08a37460: mov      eax, dword ptr [ebp + 8]
+08a37463: add      eax, 0x1c0
+08a37468: mov      dword ptr [esp], eax
+08a3746b: call     0x8342c0e ; _ZNKSt6vectorI21st_crature_id_item_idSaIS0_EE4sizeEv
+08a37470: mov      dword ptr [esp + 0x18], eax
+08a37474: mov      eax, dword ptr [ebp + 0xc]
+08a37477: mov      dword ptr [esp + 0x14], eax
+08a3747b: mov      dword ptr [esp + 0x10], 0x8e23080
+08a37483: mov      dword ptr [esp + 0xc], 0x25a9
+08a3748b: mov      dword ptr [esp + 8], 0x8e23901
+08a37493: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a3749b: mov      dword ptr [esp], 0
+08a374a2: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a374a7: jmp      0x8a3754b
+08a374ac: lea      eax, [ebp - 0x22d]
+08a374b2: mov      dword ptr [esp], eax
+08a374b5: call     0x88bc37b ; _Z7ScanIntPb
+08a374ba: mov      dword ptr [ebp - 0x258], eax
+08a374c0: movzx    eax, byte ptr [ebp - 0x22d]
+08a374c7: xor      eax, 1
+08a374ca: test     al, al
+08a374cc: je       0x8a3751f
+08a374ce: mov      eax, dword ptr [ebp + 8]
+08a374d1: add      eax, 0x1c0
+08a374d6: mov      dword ptr [esp], eax
+08a374d9: call     0x8342c0e ; _ZNKSt6vectorI21st_crature_id_item_idSaIS0_EE4sizeEv
+08a374de: mov      dword ptr [esp + 0x18], eax
+08a374e2: mov      eax, dword ptr [ebp + 0xc]
+08a374e5: mov      dword ptr [esp + 0x14], eax
+08a374e9: mov      dword ptr [esp + 0x10], 0x8e23080
+08a374f1: mov      dword ptr [esp + 0xc], 0x25af
+08a374f9: mov      dword ptr [esp + 8], 0x8e23901
+08a37501: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a37509: mov      dword ptr [esp], 0
+08a37510: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a37515: mov      ebx, 0
+08a3751a: jmp      0x8a383ad
+08a3751f: mov      eax, dword ptr [ebp - 0x25c]
+08a37525: cmp      eax, -1
+08a37528: je       0x8a3754a
+08a3752a: mov      eax, dword ptr [ebp + 8]
+08a3752d: lea      edx, [eax + 0x1c0]
+08a37533: lea      eax, [ebp - 0x25c]
+08a37539: mov      dword ptr [esp + 4], eax
+08a3753d: mov      dword ptr [esp], edx
+08a37540: call     0x8a40a98 ; _ZNSt6vectorI21st_crature_id_item_idSaIS0_EE9push_backERKS0_
+08a37545: jmp      0x8a3743e
+08a3754a: nop
+08a3754b: mov      dword ptr [esp + 4], 1
+08a37553: lea      eax, [ebp - 0x224]
+08a37559: mov      dword ptr [esp], eax
+08a3755c: call     0x88bc85f ; _Z8ScanTypeRSsb
+08a37561: xor      eax, 1
+08a37564: test     al, al
+08a37566: jne      0x8a38375
+08a3756c: mov      dword ptr [esp + 4], 0x8e230c3
+08a37574: lea      eax, [ebp - 0x224]
+08a3757a: mov      dword ptr [esp], eax
+08a3757d: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37582: test     al, al
+08a37584: je       0x8a35ee2
+08a3758a: jmp      0x8a38376
+08a3758f: mov      dword ptr [esp + 4], 0x8e230d5
+08a37597: lea      eax, [ebp - 0x224]
+08a3759d: mov      dword ptr [esp], eax
+08a375a0: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a375a5: test     al, al
+08a375a7: je       0x8a375d7
+08a375a9: lea      eax, [ebp - 0x228]
+08a375af: mov      dword ptr [esp], eax
+08a375b2: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a375b7: mov      eax, dword ptr [ebp + 8]
+08a375ba: lea      edx, [eax + 0x1cc]
+08a375c0: lea      eax, [ebp - 0x228]
+08a375c6: mov      dword ptr [esp + 4], eax
+08a375ca: mov      dword ptr [esp], edx
+08a375cd: call     0x8707d00 ; _ZNSsaSERKSs
+08a375d2: jmp      0x8a35ee3
+08a375d7: mov      dword ptr [esp + 4], 0x8e230e2
+08a375df: lea      eax, [ebp - 0x224]
+08a375e5: mov      dword ptr [esp], eax
+08a375e8: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a375ed: test     al, al
+08a375ef: je       0x8a3761f
+08a375f1: lea      eax, [ebp - 0x228]
+08a375f7: mov      dword ptr [esp], eax
+08a375fa: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a375ff: mov      eax, dword ptr [ebp + 8]
+08a37602: lea      edx, [eax + 0x1d0]
+08a37608: lea      eax, [ebp - 0x228]
+08a3760e: mov      dword ptr [esp + 4], eax
+08a37612: mov      dword ptr [esp], edx
+08a37615: call     0x8707d00 ; _ZNSsaSERKSs
+08a3761a: jmp      0x8a35ee3
+08a3761f: mov      dword ptr [esp + 4], 0x8e230f4
+08a37627: lea      eax, [ebp - 0x224]
+08a3762d: mov      dword ptr [esp], eax
+08a37630: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37635: test     al, al
+08a37637: je       0x8a38294
+08a3763d: mov      byte ptr [ebp - 0x25], 1
+08a37641: jmp      0x8a38285
+08a37646: mov      dword ptr [esp + 4], 1
+08a3764e: lea      eax, [ebp - 0x224]
+08a37654: mov      dword ptr [esp], eax
+08a37657: call     0x88bc85f ; _Z8ScanTypeRSsb
+08a3765c: xor      eax, 1
+08a3765f: test     al, al
+08a37661: je       0x8a37669
+08a37663: nop
+08a37664: jmp      0x8a35ee3
+08a37669: mov      dword ptr [ebp - 0x260], 0xffffffff
+08a37673: mov      dword ptr [ebp - 0x24], 0xffffffff
+08a3767a: lea      eax, [ebp - 0x28c]
+08a37680: mov      dword ptr [esp], eax
+08a37683: call     0x8a3dd26 ; _ZN23CreatureScriptSkillInfoC2Ev
+08a37688: mov      dword ptr [esp + 4], 0x8e23101
+08a37690: lea      eax, [ebp - 0x224]
+08a37696: mov      dword ptr [esp], eax
+08a37699: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a3769e: test     al, al
+08a376a0: je       0x8a376ab
+08a376a2: mov      byte ptr [ebp - 0x25], 0
+08a376a6: jmp      0x8a3824d
+08a376ab: mov      dword ptr [esp + 4], 0x8e2310f
+08a376b3: lea      eax, [ebp - 0x224]
+08a376b9: mov      dword ptr [esp], eax
+08a376bc: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a376c1: test     al, al
+08a376c3: je       0x8a3824d
+08a376c9: mov      dword ptr [ebp - 0x260], 0xffffffff
+08a376d3: lea      eax, [ebp - 0x28c]
+08a376d9: mov      dword ptr [esp], eax
+08a376dc: call     0x8a3de50 ; _ZN23CreatureScriptSkillInfo5clearEv
+08a376e1: lea      eax, [ebp - 0x22d]
+08a376e7: mov      dword ptr [esp], eax
+08a376ea: call     0x88bc37b ; _Z7ScanIntPb
+08a376ef: mov      dword ptr [ebp - 0x260], eax
+08a376f5: movzx    eax, byte ptr [ebp - 0x22d]
+08a376fc: xor      eax, 1
+08a376ff: test     al, al
+08a37701: je       0x8a37745
+08a37703: mov      eax, dword ptr [ebp + 0xc]
+08a37706: mov      dword ptr [esp + 0x14], eax
+08a3770a: mov      dword ptr [esp + 0x10], 0x8e23050
+08a37712: mov      dword ptr [esp + 0xc], 0x25ea
+08a3771a: mov      dword ptr [esp + 8], 0x8e23901
+08a37722: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a3772a: mov      dword ptr [esp], 0
+08a37731: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a37736: mov      ebx, 0
+08a3773b: mov      esi, 0
+08a37740: jmp      0x8a3826f
+08a37745: mov      byte ptr [ebp - 0x1d], 1
+08a37749: jmp      0x8a38240
+08a3774e: mov      dword ptr [esp + 4], 1
+08a37756: lea      eax, [ebp - 0x224]
+08a3775c: mov      dword ptr [esp], eax
+08a3775f: call     0x88bc85f ; _Z8ScanTypeRSsb
+08a37764: xor      eax, 1
+08a37767: test     al, al
+08a37769: jne      0x8a3824c
+08a3776f: mov      eax, 0x94ff898
+08a37774: movzx    eax, byte ptr [eax]
+08a37777: test     al, al
+08a37779: jne      0x8a377eb
+08a3777b: mov      dword ptr [esp], 0x94ff898
+08a37782: call     0x8725330 ; __cxa_guard_acquire
+08a37787: test     eax, eax
+08a37789: setne    al
+08a3778c: test     al, al
+08a3778e: je       0x8a377eb
+08a37790: mov      esi, 0
+08a37795: mov      dword ptr [esp], 0x94ff8d8
+08a3779c: call     0x80f14d4 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEEC2Ev
+08a377a1: mov      dword ptr [esp], 0x94ff898
+08a377a8: call     0x8725250 ; __cxa_guard_release
+08a377ad: mov      eax, 0x80f137a
+08a377b2: mov      dword ptr [esp + 8], 0x8ae5848
+08a377ba: mov      dword ptr [esp + 4], 0x94ff8d8
+08a377c2: mov      dword ptr [esp], eax
+08a377c5: call     0x807ddd0 ;
+08a377ca: jmp      0x8a377eb
+08a377cc: mov      ebx, edx
+08a377ce: mov      edi, eax
+08a377d0: mov      eax, esi
+08a377d2: test     al, al
+08a377d4: jne      0x8a377e2
+08a377d6: mov      dword ptr [esp], 0x94ff898
+08a377dd: call     0x87252c0 ; __cxa_guard_abort
+08a377e2: mov      eax, edi
+08a377e4: mov      edx, ebx
+08a377e6: jmp      0x8a38254
+08a377eb: mov      eax, 0x94ff8a0
+08a377f0: movzx    eax, byte ptr [eax]
+08a377f3: test     al, al
+08a377f5: jne      0x8a37867
+08a377f7: mov      dword ptr [esp], 0x94ff8a0
+08a377fe: call     0x8725330 ; __cxa_guard_acquire
+08a37803: test     eax, eax
+08a37805: setne    al
+08a37808: test     al, al
+08a3780a: je       0x8a37867
+08a3780c: mov      esi, 0
+08a37811: mov      dword ptr [esp], 0x94ff8f0
+08a37818: call     0x8ad3522 ; _ZN8SpinLockC2Ev
+08a3781d: mov      dword ptr [esp], 0x94ff8a0
+08a37824: call     0x8725250 ; __cxa_guard_release
+08a37829: mov      eax, 0x8ad353e
+08a3782e: mov      dword ptr [esp + 8], 0x8ae5848
+08a37836: mov      dword ptr [esp + 4], 0x94ff8f0
+08a3783e: mov      dword ptr [esp], eax
+08a37841: call     0x807ddd0 ;
+08a37846: jmp      0x8a37867
+08a37848: mov      ebx, edx
+08a3784a: mov      edi, eax
+08a3784c: mov      eax, esi
+08a3784e: test     al, al
+08a37850: jne      0x8a3785e
+08a37852: mov      dword ptr [esp], 0x94ff8a0
+08a37859: call     0x87252c0 ; __cxa_guard_abort
+08a3785e: mov      eax, edi
+08a37860: mov      edx, ebx
+08a37862: jmp      0x8a38254
+08a37867: movzx    eax, byte ptr [0x94ff8f4]
+08a3786e: test     al, al
+08a37870: je       0x8a3792f
+08a37876: lea      eax, [ebp - 0x224]
+08a3787c: mov      dword ptr [esp], eax
+08a3787f: call     0x87064f0 ; _ZNKSs5c_strEv
+08a37884: mov      dword ptr [ebp - 0x20c], eax
+08a3788a: lea      eax, [ebp - 0x210]
+08a37890: lea      edx, [ebp - 0x20c]
+08a37896: mov      dword ptr [esp + 8], edx
+08a3789a: mov      dword ptr [esp + 4], 0x94ff8d8
+08a378a2: mov      dword ptr [esp], eax
+08a378a5: call     0x80f154e ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE4findERS4_
+08a378aa: sub      esp, 4
+08a378ad: lea      eax, [ebp - 0x210]
+08a378b3: mov      dword ptr [esp + 4], eax
+08a378b7: lea      eax, [ebp - 0x264]
+08a378bd: mov      dword ptr [esp], eax
+08a378c0: call     0x80f157a ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKPKciEEC1ERKSt17_Rb_tree_iteratorIS4_E
+08a378c5: lea      eax, [ebp - 0x204]
+08a378cb: mov      dword ptr [esp + 4], 0x94ff8d8
+08a378d3: mov      dword ptr [esp], eax
+08a378d6: call     0x80f158a ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE3endEv
+08a378db: sub      esp, 4
+08a378de: lea      eax, [ebp - 0x204]
+08a378e4: mov      dword ptr [esp + 4], eax
+08a378e8: lea      eax, [ebp - 0x208]
+08a378ee: mov      dword ptr [esp], eax
+08a378f1: call     0x80f157a ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKPKciEEC1ERKSt17_Rb_tree_iteratorIS4_E
+08a378f6: lea      eax, [ebp - 0x208]
+08a378fc: mov      dword ptr [esp + 4], eax
+08a37900: lea      eax, [ebp - 0x264]
+08a37906: mov      dword ptr [esp], eax
+08a37909: call     0x80f15b0 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKPKciEEneERKS5_
+08a3790e: test     al, al
+08a37910: je       0x8a37925
+08a37912: lea      eax, [ebp - 0x264]
+08a37918: mov      dword ptr [esp], eax
+08a3791b: call     0x80f15c4 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKPKciEEptEv
+08a37920: mov      eax, dword ptr [eax + 4]
+08a37923: jmp      0x8a3792a
+08a37925: mov      eax, 0xffffffff
+08a3792a: mov      dword ptr [ebp - 0x1c], eax
+08a3792d: jmp      0x8a3795f
+08a3792f: mov      dword ptr [esp], 0x94ff8f0
+08a37936: call     0x8ad3552 ; _ZN8SpinLock5enterEv
+08a3793b: movzx    eax, byte ptr [0x94ff8f4]
+08a37942: test     al, al
+08a37944: je       0x8a37958
+08a37946: mov      dword ptr [esp], 0x94ff8f0
+08a3794d: call     0x8ad3586 ; _ZN8SpinLock5leaveEv
+08a37952: nop
+08a37953: jmp      0x8a3776f
+08a37958: mov      dword ptr [ebp - 0x1c], 0
+08a3795f: mov      eax, dword ptr [ebp - 0x1c]
+08a37962: cmp      eax, 0x2623
+08a37967: je       0x8a37f11
+08a3796d: cmp      eax, 0x2623
+08a37972: jg       0x8a379c0
+08a37974: cmp      eax, 0x260c
+08a37979: je       0x8a37d16
+08a3797f: cmp      eax, 0x260c
+08a37984: jg       0x8a3799a
+08a37986: test     eax, eax
+08a37988: je       0x8a37a13
+08a3798e: cmp      eax, 0x25f6
+08a37993: je       0x8a37a13
+08a37995: jmp      0x8a38219
+08a3799a: cmp      eax, 0x2617
+08a3799f: je       0x8a37e1f
+08a379a5: cmp      eax, 0x261c
+08a379aa: je       0x8a37e92
+08a379b0: cmp      eax, 0x2612
+08a379b5: je       0x8a37daf
+08a379bb: jmp      0x8a38219
+08a379c0: cmp      eax, 0x2636
+08a379c5: je       0x8a38082
+08a379cb: cmp      eax, 0x2636
+08a379d0: jg       0x8a379ed
+08a379d2: cmp      eax, 0x262a
+08a379d7: je       0x8a37f90
+08a379dd: cmp      eax, 0x2631
+08a379e2: je       0x8a3800f
+08a379e8: jmp      0x8a38219
+08a379ed: cmp      eax, 0x2640
+08a379f2: je       0x8a38153
+08a379f8: cmp      eax, 0x2645
+08a379fd: je       0x8a381b4
+08a37a03: cmp      eax, 0x263b
+08a37a08: je       0x8a380ef
+08a37a0e: jmp      0x8a38219
+08a37a13: movzx    eax, byte ptr [0x94ff8f4]
+08a37a1a: xor      eax, 1
+08a37a1d: test     al, al
+08a37a1f: je       0x8a37a73
+08a37a21: mov      dword ptr [ebp - 0x1f0], 0x25f6
+08a37a2b: lea      eax, [ebp - 0x1f0]
+08a37a31: mov      dword ptr [esp + 8], eax
+08a37a35: mov      dword ptr [esp + 4], 0x8e2311c
+08a37a3d: lea      eax, [ebp - 0x1f8]
+08a37a43: mov      dword ptr [esp], eax
+08a37a46: call     0x82adfc8 ; _ZNSt4pairIKPKciEC1IRA14_S0_iEEOT_OT0_
+08a37a4b: lea      eax, [ebp - 0x200]
+08a37a51: lea      edx, [ebp - 0x1f8]
+08a37a57: mov      dword ptr [esp + 8], edx
+08a37a5b: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37a63: mov      dword ptr [esp], eax
+08a37a66: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37a6b: sub      esp, 4
+08a37a6e: jmp      0x8a37d16
+08a37a73: mov      byte ptr [ebp - 0x1d], 0
+08a37a77: mov      eax, dword ptr [ebp - 0x260]
+08a37a7d: cmp      eax, -1
+08a37a80: je       0x8a37a88
+08a37a82: cmp      dword ptr [ebp - 0x24], -1
+08a37a86: jne      0x8a37aca
+08a37a88: mov      eax, dword ptr [ebp + 0xc]
+08a37a8b: mov      dword ptr [esp + 0x14], eax
+08a37a8f: mov      dword ptr [esp + 0x10], 0x8e23050
+08a37a97: mov      dword ptr [esp + 0xc], 0x25fc
+08a37a9f: mov      dword ptr [esp + 8], 0x8e23901
+08a37aa7: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a37aaf: mov      dword ptr [esp], 0
+08a37ab6: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a37abb: mov      ebx, 0
+08a37ac0: mov      esi, 0
+08a37ac5: jmp      0x8a3826f
+08a37aca: cmp      dword ptr [ebp - 0x24], 0
+08a37ace: jne      0x8a37bf5
+08a37ad4: mov      eax, dword ptr [ebp + 8]
+08a37ad7: lea      edx, [eax + 0x1d4]
+08a37add: lea      eax, [ebp - 0x1ec]
+08a37ae3: mov      dword ptr [esp + 4], edx
+08a37ae7: mov      dword ptr [esp], eax
+08a37aea: call     0x8a40b38 ; _ZNSt3mapIi23CreatureScriptSkillInfoSt4lessIiESaISt4pairIKiS0_EEE3endEv
+08a37aef: sub      esp, 4
+08a37af2: mov      eax, dword ptr [ebp + 8]
+08a37af5: lea      ecx, [eax + 0x1d4]
+08a37afb: lea      eax, [ebp - 0x1e8]
+08a37b01: lea      edx, [ebp - 0x260]
+08a37b07: mov      dword ptr [esp + 8], edx
+08a37b0b: mov      dword ptr [esp + 4], ecx
+08a37b0f: mov      dword ptr [esp], eax
+08a37b12: call     0x8a40b0c ; _ZNSt3mapIi23CreatureScriptSkillInfoSt4lessIiESaISt4pairIKiS0_EEE4findERS4_
+08a37b17: sub      esp, 4
+08a37b1a: lea      eax, [ebp - 0x1ec]
+08a37b20: mov      dword ptr [esp + 4], eax
+08a37b24: lea      eax, [ebp - 0x1e8]
+08a37b2a: mov      dword ptr [esp], eax
+08a37b2d: call     0x8a40b5e ; _ZNKSt17_Rb_tree_iteratorISt4pairIKi23CreatureScriptSkillInfoEEeqERKS4_
+08a37b32: test     al, al
+08a37b34: je       0x8a38215
+08a37b3a: lea      eax, [ebp - 0x1b0]
+08a37b40: lea      edx, [ebp - 0x28c]
+08a37b46: mov      dword ptr [esp + 8], edx
+08a37b4a: lea      edx, [ebp - 0x260]
+08a37b50: mov      dword ptr [esp + 4], edx
+08a37b54: mov      dword ptr [esp], eax
+08a37b57: call     0x8a40b72 ; _ZSt9make_pairIi23CreatureScriptSkillInfoESt4pairINSt17__decay_and_stripIT_E6__typeENS2_IT0_E6__typeEEOS3_OS6_
+08a37b5c: sub      esp, 4
+08a37b5f: lea      eax, [ebp - 0x1b0]
+08a37b65: mov      dword ptr [esp + 4], eax
+08a37b69: lea      eax, [ebp - 0x1dc]
+08a37b6f: mov      dword ptr [esp], eax
+08a37b72: call     0x8a40d2c ; _ZNSt4pairIKi23CreatureScriptSkillInfoEC2IiS1_EEOS_IT_T0_E
+08a37b77: mov      eax, dword ptr [ebp + 8]
+08a37b7a: lea      ecx, [eax + 0x1d4]
+08a37b80: lea      eax, [ebp - 0x1e4]
+08a37b86: lea      edx, [ebp - 0x1dc]
+08a37b8c: mov      dword ptr [esp + 8], edx
+08a37b90: mov      dword ptr [esp + 4], ecx
+08a37b94: mov      dword ptr [esp], eax
+08a37b97: call     0x8a40d66 ; _ZNSt3mapIi23CreatureScriptSkillInfoSt4lessIiESaISt4pairIKiS0_EEE6insertERKS5_
+08a37b9c: sub      esp, 4
+08a37b9f: lea      eax, [ebp - 0x1dc]
+08a37ba5: mov      dword ptr [esp], eax
+08a37ba8: call     0x83459b6 ; _ZNSt4pairIKi23CreatureScriptSkillInfoED2Ev
+08a37bad: jmp      0x8a37be2
+08a37baf: mov      ebx, edx
+08a37bb1: mov      esi, eax
+08a37bb3: lea      eax, [ebp - 0x1dc]
+08a37bb9: mov      dword ptr [esp], eax
+08a37bbc: call     0x83459b6 ; _ZNSt4pairIKi23CreatureScriptSkillInfoED2Ev
+08a37bc1: mov      eax, esi
+08a37bc3: mov      edx, ebx
+08a37bc5: jmp      0x8a37bc7
+08a37bc7: mov      ebx, edx
+08a37bc9: mov      esi, eax
+08a37bcb: lea      eax, [ebp - 0x1b0]
+08a37bd1: mov      dword ptr [esp], eax
+08a37bd4: call     0x8a3e898 ; _ZNSt4pairIi23CreatureScriptSkillInfoED2Ev
+08a37bd9: mov      eax, esi
+08a37bdb: mov      edx, ebx
+08a37bdd: jmp      0x8a38254
+08a37be2: lea      eax, [ebp - 0x1b0]
+08a37be8: mov      dword ptr [esp], eax
+08a37beb: call     0x8a3e898 ; _ZNSt4pairIi23CreatureScriptSkillInfoED2Ev
+08a37bf0: jmp      0x8a38219
+08a37bf5: mov      eax, dword ptr [ebp + 8]
+08a37bf8: lea      edx, [eax + 0x1ec]
+08a37bfe: lea      eax, [ebp - 0x184]
+08a37c04: mov      dword ptr [esp + 4], edx
+08a37c08: mov      dword ptr [esp], eax
+08a37c0b: call     0x8a40b38 ; _ZNSt3mapIi23CreatureScriptSkillInfoSt4lessIiESaISt4pairIKiS0_EEE3endEv
+08a37c10: sub      esp, 4
+08a37c13: mov      eax, dword ptr [ebp + 8]
+08a37c16: lea      ecx, [eax + 0x1ec]
+08a37c1c: lea      eax, [ebp - 0x180]
+08a37c22: lea      edx, [ebp - 0x260]
+08a37c28: mov      dword ptr [esp + 8], edx
+08a37c2c: mov      dword ptr [esp + 4], ecx
+08a37c30: mov      dword ptr [esp], eax
+08a37c33: call     0x8a40b0c ; _ZNSt3mapIi23CreatureScriptSkillInfoSt4lessIiESaISt4pairIKiS0_EEE4findERS4_
+08a37c38: sub      esp, 4
+08a37c3b: lea      eax, [ebp - 0x184]
+08a37c41: mov      dword ptr [esp + 4], eax
+08a37c45: lea      eax, [ebp - 0x180]
+08a37c4b: mov      dword ptr [esp], eax
+08a37c4e: call     0x8a40b5e ; _ZNKSt17_Rb_tree_iteratorISt4pairIKi23CreatureScriptSkillInfoEEeqERKS4_
+08a37c53: test     al, al
+08a37c55: je       0x8a38218
+08a37c5b: lea      eax, [ebp - 0x148]
+08a37c61: lea      edx, [ebp - 0x28c]
+08a37c67: mov      dword ptr [esp + 8], edx
+08a37c6b: lea      edx, [ebp - 0x260]
+08a37c71: mov      dword ptr [esp + 4], edx
+08a37c75: mov      dword ptr [esp], eax
+08a37c78: call     0x8a40b72 ; _ZSt9make_pairIi23CreatureScriptSkillInfoESt4pairINSt17__decay_and_stripIT_E6__typeENS2_IT0_E6__typeEEOS3_OS6_
+08a37c7d: sub      esp, 4
+08a37c80: lea      eax, [ebp - 0x148]
+08a37c86: mov      dword ptr [esp + 4], eax
+08a37c8a: lea      eax, [ebp - 0x174]
+08a37c90: mov      dword ptr [esp], eax
+08a37c93: call     0x8a40d2c ; _ZNSt4pairIKi23CreatureScriptSkillInfoEC2IiS1_EEOS_IT_T0_E
+08a37c98: mov      eax, dword ptr [ebp + 8]
+08a37c9b: lea      ecx, [eax + 0x1ec]
+08a37ca1: lea      eax, [ebp - 0x17c]
+08a37ca7: lea      edx, [ebp - 0x174]
+08a37cad: mov      dword ptr [esp + 8], edx
+08a37cb1: mov      dword ptr [esp + 4], ecx
+08a37cb5: mov      dword ptr [esp], eax
+08a37cb8: call     0x8a40d66 ; _ZNSt3mapIi23CreatureScriptSkillInfoSt4lessIiESaISt4pairIKiS0_EEE6insertERKS5_
+08a37cbd: sub      esp, 4
+08a37cc0: lea      eax, [ebp - 0x174]
+08a37cc6: mov      dword ptr [esp], eax
+08a37cc9: call     0x83459b6 ; _ZNSt4pairIKi23CreatureScriptSkillInfoED2Ev
+08a37cce: jmp      0x8a37d03
+08a37cd0: mov      ebx, edx
+08a37cd2: mov      esi, eax
+08a37cd4: lea      eax, [ebp - 0x174]
+08a37cda: mov      dword ptr [esp], eax
+08a37cdd: call     0x83459b6 ; _ZNSt4pairIKi23CreatureScriptSkillInfoED2Ev
+08a37ce2: mov      eax, esi
+08a37ce4: mov      edx, ebx
+08a37ce6: jmp      0x8a37ce8
+08a37ce8: mov      ebx, edx
+08a37cea: mov      esi, eax
+08a37cec: lea      eax, [ebp - 0x148]
+08a37cf2: mov      dword ptr [esp], eax
+08a37cf5: call     0x8a3e898 ; _ZNSt4pairIi23CreatureScriptSkillInfoED2Ev
+08a37cfa: mov      eax, esi
+08a37cfc: mov      edx, ebx
+08a37cfe: jmp      0x8a38254
+08a37d03: lea      eax, [ebp - 0x148]
+08a37d09: mov      dword ptr [esp], eax
+08a37d0c: call     0x8a3e898 ; _ZNSt4pairIi23CreatureScriptSkillInfoED2Ev
+08a37d11: jmp      0x8a38219
+08a37d16: movzx    eax, byte ptr [0x94ff8f4]
+08a37d1d: xor      eax, 1
+08a37d20: test     al, al
+08a37d22: je       0x8a37d73
+08a37d24: mov      dword ptr [ebp - 0x10c], 0x260c
+08a37d2e: lea      eax, [ebp - 0x10c]
+08a37d34: mov      dword ptr [esp + 8], eax
+08a37d38: mov      dword ptr [esp + 4], 0x8e22b99
+08a37d40: lea      eax, [ebp - 0x114]
+08a37d46: mov      dword ptr [esp], eax
+08a37d49: call     0x82adff6 ; _ZNSt4pairIKPKciEC2IRA13_S0_iEEOT_OT0_
+08a37d4e: lea      eax, [ebp - 0x11c]
+08a37d54: lea      edx, [ebp - 0x114]
+08a37d5a: mov      dword ptr [esp + 8], edx
+08a37d5e: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37d66: mov      dword ptr [esp], eax
+08a37d69: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37d6e: sub      esp, 4
+08a37d71: jmp      0x8a37daf
+08a37d73: lea      eax, [ebp - 0x228]
+08a37d79: mov      dword ptr [esp], eax
+08a37d7c: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a37d81: mov      dword ptr [esp + 4], 0x8e2312a
+08a37d89: lea      eax, [ebp - 0x228]
+08a37d8f: mov      dword ptr [esp], eax
+08a37d92: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a37d97: test     al, al
+08a37d99: je       0x8a37da2
+08a37d9b: mov      eax, 1
+08a37da0: jmp      0x8a37da7
+08a37da2: mov      eax, 0
+08a37da7: mov      dword ptr [ebp - 0x24], eax
+08a37daa: jmp      0x8a38219
+08a37daf: movzx    eax, byte ptr [0x94ff8f4]
+08a37db6: xor      eax, 1
+08a37db9: test     al, al
+08a37dbb: je       0x8a37e0c
+08a37dbd: mov      dword ptr [ebp - 0xf8], 0x2612
+08a37dc7: lea      eax, [ebp - 0xf8]
+08a37dcd: mov      dword ptr [esp + 8], eax
+08a37dd1: mov      dword ptr [esp + 4], 0x8e23135
+08a37dd9: lea      eax, [ebp - 0x100]
+08a37ddf: mov      dword ptr [esp], eax
+08a37de2: call     0x82adff6 ; _ZNSt4pairIKPKciEC2IRA13_S0_iEEOT_OT0_
+08a37de7: lea      eax, [ebp - 0x108]
+08a37ded: lea      edx, [ebp - 0x100]
+08a37df3: mov      dword ptr [esp + 8], edx
+08a37df7: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37dff: mov      dword ptr [esp], eax
+08a37e02: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37e07: sub      esp, 4
+08a37e0a: jmp      0x8a37e1f
+08a37e0c: lea      eax, [ebp - 0x28c]
+08a37e12: mov      dword ptr [esp], eax
+08a37e15: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a37e1a: jmp      0x8a38219
+08a37e1f: movzx    eax, byte ptr [0x94ff8f4]
+08a37e26: xor      eax, 1
+08a37e29: test     al, al
+08a37e2b: je       0x8a37e7c
+08a37e2d: mov      dword ptr [ebp - 0xe4], 0x2617
+08a37e37: lea      eax, [ebp - 0xe4]
+08a37e3d: mov      dword ptr [esp + 8], eax
+08a37e41: mov      dword ptr [esp + 4], 0x8e23142
+08a37e49: lea      eax, [ebp - 0xec]
+08a37e4f: mov      dword ptr [esp], eax
+08a37e52: call     0x82adf6c ; _ZNSt4pairIKPKciEC2IRA16_S0_iEEOT_OT0_
+08a37e57: lea      eax, [ebp - 0xf4]
+08a37e5d: lea      edx, [ebp - 0xec]
+08a37e63: mov      dword ptr [esp + 8], edx
+08a37e67: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37e6f: mov      dword ptr [esp], eax
+08a37e72: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37e77: sub      esp, 4
+08a37e7a: jmp      0x8a37e92
+08a37e7c: lea      eax, [ebp - 0x28c]
+08a37e82: add      eax, 4
+08a37e85: mov      dword ptr [esp], eax
+08a37e88: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a37e8d: jmp      0x8a38219
+08a37e92: movzx    eax, byte ptr [0x94ff8f4]
+08a37e99: xor      eax, 1
+08a37e9c: test     al, al
+08a37e9e: je       0x8a37eef
+08a37ea0: mov      dword ptr [ebp - 0xd0], 0x261c
+08a37eaa: lea      eax, [ebp - 0xd0]
+08a37eb0: mov      dword ptr [esp + 8], eax
+08a37eb4: mov      dword ptr [esp + 4], 0x8e22ad6
+08a37ebc: lea      eax, [ebp - 0xd8]
+08a37ec2: mov      dword ptr [esp], eax
+08a37ec5: call     0x82ae080 ; _ZNSt4pairIKPKciEC2IRA22_S0_iEEOT_OT0_
+08a37eca: lea      eax, [ebp - 0xe0]
+08a37ed0: lea      edx, [ebp - 0xd8]
+08a37ed6: mov      dword ptr [esp + 8], edx
+08a37eda: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37ee2: mov      dword ptr [esp], eax
+08a37ee5: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37eea: sub      esp, 4
+08a37eed: jmp      0x8a37f11
+08a37eef: lea      eax, [ebp - 0x22d]
+08a37ef5: mov      dword ptr [esp], eax
+08a37ef8: call     0x88bc37b ; _Z7ScanIntPb
+08a37efd: mov      dword ptr [ebp - 0x284], eax
+08a37f03: movzx    eax, byte ptr [ebp - 0x22d]
+08a37f0a: test     al, al
+08a37f0c: jmp      0x8a38219
+08a37f11: movzx    eax, byte ptr [0x94ff8f4]
+08a37f18: xor      eax, 1
+08a37f1b: test     al, al
+08a37f1d: je       0x8a37f6e
+08a37f1f: mov      dword ptr [ebp - 0xbc], 0x2623
+08a37f29: lea      eax, [ebp - 0xbc]
+08a37f2f: mov      dword ptr [esp + 8], eax
+08a37f33: mov      dword ptr [esp + 4], 0x8e23152
+08a37f3b: lea      eax, [ebp - 0xc4]
+08a37f41: mov      dword ptr [esp], eax
+08a37f44: call     0x82ae052 ; _ZNSt4pairIKPKciEC2IRA20_S0_iEEOT_OT0_
+08a37f49: lea      eax, [ebp - 0xcc]
+08a37f4f: lea      edx, [ebp - 0xc4]
+08a37f55: mov      dword ptr [esp + 8], edx
+08a37f59: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37f61: mov      dword ptr [esp], eax
+08a37f64: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37f69: sub      esp, 4
+08a37f6c: jmp      0x8a37f90
+08a37f6e: lea      eax, [ebp - 0x22d]
+08a37f74: mov      dword ptr [esp], eax
+08a37f77: call     0x88bc37b ; _Z7ScanIntPb
+08a37f7c: mov      dword ptr [ebp - 0x280], eax
+08a37f82: movzx    eax, byte ptr [ebp - 0x22d]
+08a37f89: test     al, al
+08a37f8b: jmp      0x8a38219
+08a37f90: movzx    eax, byte ptr [0x94ff8f4]
+08a37f97: xor      eax, 1
+08a37f9a: test     al, al
+08a37f9c: je       0x8a37fed
+08a37f9e: mov      dword ptr [ebp - 0xa8], 0x262a
+08a37fa8: lea      eax, [ebp - 0xa8]
+08a37fae: mov      dword ptr [esp + 8], eax
+08a37fb2: mov      dword ptr [esp + 4], 0x8e23166
+08a37fba: lea      eax, [ebp - 0xb0]
+08a37fc0: mov      dword ptr [esp], eax
+08a37fc3: call     0x80f162c ; _ZNSt4pairIKPKciEC1IRA11_S0_iEEOT_OT0_
+08a37fc8: lea      eax, [ebp - 0xb8]
+08a37fce: lea      edx, [ebp - 0xb0]
+08a37fd4: mov      dword ptr [esp + 8], edx
+08a37fd8: mov      dword ptr [esp + 4], 0x94ff8d8
+08a37fe0: mov      dword ptr [esp], eax
+08a37fe3: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a37fe8: sub      esp, 4
+08a37feb: jmp      0x8a3800f
+08a37fed: lea      eax, [ebp - 0x22d]
+08a37ff3: mov      dword ptr [esp], eax
+08a37ff6: call     0x88bc37b ; _Z7ScanIntPb
+08a37ffb: mov      dword ptr [ebp - 0x27c], eax
+08a38001: movzx    eax, byte ptr [ebp - 0x22d]
+08a38008: test     al, al
+08a3800a: jmp      0x8a38219
+08a3800f: movzx    eax, byte ptr [0x94ff8f4]
+08a38016: xor      eax, 1
+08a38019: test     al, al
+08a3801b: je       0x8a3806c
+08a3801d: mov      dword ptr [ebp - 0x94], 0x2631
+08a38027: lea      eax, [ebp - 0x94]
+08a3802d: mov      dword ptr [esp + 8], eax
+08a38031: mov      dword ptr [esp + 4], 0x8e22c31
+08a38039: lea      eax, [ebp - 0x9c]
+08a3803f: mov      dword ptr [esp], eax
+08a38042: call     0x82ae194 ; _ZNSt4pairIKPKciEC1IRA15_S0_iEEOT_OT0_
+08a38047: lea      eax, [ebp - 0xa4]
+08a3804d: lea      edx, [ebp - 0x9c]
+08a38053: mov      dword ptr [esp + 8], edx
+08a38057: mov      dword ptr [esp + 4], 0x94ff8d8
+08a3805f: mov      dword ptr [esp], eax
+08a38062: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a38067: sub      esp, 4
+08a3806a: jmp      0x8a38082
+08a3806c: lea      eax, [ebp - 0x28c]
+08a38072: add      eax, 0x14
+08a38075: mov      dword ptr [esp], eax
+08a38078: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3807d: jmp      0x8a38219
+08a38082: movzx    eax, byte ptr [0x94ff8f4]
+08a38089: xor      eax, 1
+08a3808c: test     al, al
+08a3808e: je       0x8a380d9
+08a38090: mov      dword ptr [ebp - 0x80], 0x2636
+08a38097: lea      eax, [ebp - 0x80]
+08a3809a: mov      dword ptr [esp + 8], eax
+08a3809e: mov      dword ptr [esp + 4], 0x8e22ceb
+08a380a6: lea      eax, [ebp - 0x88]
+08a380ac: mov      dword ptr [esp], eax
+08a380af: call     0x82ae10a ; _ZNSt4pairIKPKciEC2IRA21_S0_iEEOT_OT0_
+08a380b4: lea      eax, [ebp - 0x90]
+08a380ba: lea      edx, [ebp - 0x88]
+08a380c0: mov      dword ptr [esp + 8], edx
+08a380c4: mov      dword ptr [esp + 4], 0x94ff8d8
+08a380cc: mov      dword ptr [esp], eax
+08a380cf: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a380d4: sub      esp, 4
+08a380d7: jmp      0x8a380ef
+08a380d9: lea      eax, [ebp - 0x28c]
+08a380df: add      eax, 0x18
+08a380e2: mov      dword ptr [esp], eax
+08a380e5: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a380ea: jmp      0x8a38219
+08a380ef: movzx    eax, byte ptr [0x94ff8f4]
+08a380f6: xor      eax, 1
+08a380f9: test     al, al
+08a380fb: je       0x8a3813d
+08a380fd: mov      dword ptr [ebp - 0x6c], 0x263b
+08a38104: lea      eax, [ebp - 0x6c]
+08a38107: mov      dword ptr [esp + 8], eax
+08a3810b: mov      dword ptr [esp + 4], 0x8e22d82
+08a38113: lea      eax, [ebp - 0x74]
+08a38116: mov      dword ptr [esp], eax
+08a38119: call     0x82ae052 ; _ZNSt4pairIKPKciEC2IRA20_S0_iEEOT_OT0_
+08a3811e: lea      eax, [ebp - 0x7c]
+08a38121: lea      edx, [ebp - 0x74]
+08a38124: mov      dword ptr [esp + 8], edx
+08a38128: mov      dword ptr [esp + 4], 0x94ff8d8
+08a38130: mov      dword ptr [esp], eax
+08a38133: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a38138: sub      esp, 4
+08a3813b: jmp      0x8a38153
+08a3813d: lea      eax, [ebp - 0x28c]
+08a38143: add      eax, 0x1c
+08a38146: mov      dword ptr [esp], eax
+08a38149: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a3814e: jmp      0x8a38219
+08a38153: movzx    eax, byte ptr [0x94ff8f4]
+08a3815a: xor      eax, 1
+08a3815d: test     al, al
+08a3815f: je       0x8a381a1
+08a38161: mov      dword ptr [ebp - 0x58], 0x2640
+08a38168: lea      eax, [ebp - 0x58]
+08a3816b: mov      dword ptr [esp + 8], eax
+08a3816f: mov      dword ptr [esp + 4], 0x8e230d5
+08a38177: lea      eax, [ebp - 0x60]
+08a3817a: mov      dword ptr [esp], eax
+08a3817d: call     0x82adff6 ; _ZNSt4pairIKPKciEC2IRA13_S0_iEEOT_OT0_
+08a38182: lea      eax, [ebp - 0x68]
+08a38185: lea      edx, [ebp - 0x60]
+08a38188: mov      dword ptr [esp + 8], edx
+08a3818c: mov      dword ptr [esp + 4], 0x94ff8d8
+08a38194: mov      dword ptr [esp], eax
+08a38197: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a3819c: sub      esp, 4
+08a3819f: jmp      0x8a381b4
+08a381a1: lea      eax, [ebp - 0x28c]
+08a381a7: add      eax, 0x20
+08a381aa: mov      dword ptr [esp], eax
+08a381ad: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a381b2: jmp      0x8a38219
+08a381b4: movzx    eax, byte ptr [0x94ff8f4]
+08a381bb: xor      eax, 1
+08a381be: test     al, al
+08a381c0: je       0x8a38202
+08a381c2: mov      dword ptr [ebp - 0x44], 0x2645
+08a381c9: lea      eax, [ebp - 0x44]
+08a381cc: mov      dword ptr [esp + 8], eax
+08a381d0: mov      dword ptr [esp + 4], 0x8e1e4b7
+08a381d8: lea      eax, [ebp - 0x4c]
+08a381db: mov      dword ptr [esp], eax
+08a381de: call     0x82adfc8 ; _ZNSt4pairIKPKciEC1IRA14_S0_iEEOT_OT0_
+08a381e3: lea      eax, [ebp - 0x54]
+08a381e6: lea      edx, [ebp - 0x4c]
+08a381e9: mov      dword ptr [esp + 8], edx
+08a381ed: mov      dword ptr [esp + 4], 0x94ff8d8
+08a381f5: mov      dword ptr [esp], eax
+08a381f8: call     0x80f1600 ; _ZNSt3mapIPKci10less_TCHARSaISt4pairIKS1_iEEE6insertERKS5_
+08a381fd: sub      esp, 4
+08a38200: jmp      0x8a38219
+08a38202: lea      eax, [ebp - 0x28c]
+08a38208: add      eax, 0x24
+08a3820b: mov      dword ptr [esp], eax
+08a3820e: call     0x88bc7a2 ; _Z7ScanStrPSs
+08a38213: jmp      0x8a38219
+08a38215: nop
+08a38216: jmp      0x8a38219
+08a38218: nop
+08a38219: movzx    eax, byte ptr [0x94ff8f4]
+08a38220: xor      eax, 1
+08a38223: test     al, al
+08a38225: je       0x8a3823f
+08a38227: mov      dword ptr [esp], 0x94ff8f0
+08a3822e: call     0x8ad3586 ; _ZN8SpinLock5leaveEv
+08a38233: mov      byte ptr [0x94ff8f4], 1
+08a3823a: jmp      0x8a3776f
+08a3823f: nop
+08a38240: cmp      byte ptr [ebp - 0x1d], 0
+08a38244: jne      0x8a3774e
+08a3824a: jmp      0x8a3824d
+08a3824c: nop
+08a3824d: mov      esi, 1
+08a38252: jmp      0x8a3826f
+08a38254: mov      ebx, edx
+08a38256: mov      esi, eax
+08a38258: lea      eax, [ebp - 0x28c]
+08a3825e: mov      dword ptr [esp], eax
+08a38261: call     0x83458a8 ; _ZN23CreatureScriptSkillInfoD2Ev
+08a38266: mov      eax, esi
+08a38268: mov      edx, ebx
+08a3826a: jmp      0x8a38395
+08a3826f: lea      eax, [ebp - 0x28c]
+08a38275: mov      dword ptr [esp], eax
+08a38278: call     0x83458a8 ; _ZN23CreatureScriptSkillInfoD2Ev
+08a3827d: test     esi, esi
+08a3827f: je       0x8a383ad
+08a38285: cmp      byte ptr [ebp - 0x25], 0
+08a38289: jne      0x8a37646
+08a3828f: jmp      0x8a35ee3
+08a38294: mov      dword ptr [esp + 4], 0x8e23171
+08a3829c: lea      eax, [ebp - 0x224]
+08a382a2: mov      dword ptr [esp], eax
+08a382a5: call     0x80809a1 ; _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+08a382aa: test     al, al
+08a382ac: je       0x8a38326
+08a382ae: lea      eax, [ebp - 0x22d]
+08a382b4: mov      dword ptr [esp], eax
+08a382b7: call     0x88bc37b ; _Z7ScanIntPb
+08a382bc: mov      dword ptr [ebp - 0x22c], eax
+08a382c2: movzx    eax, byte ptr [ebp - 0x22d]
+08a382c9: xor      eax, 1
+08a382cc: test     al, al
+08a382ce: je       0x8a3830d
+08a382d0: mov      eax, dword ptr [ebp + 0xc]
+08a382d3: mov      dword ptr [esp + 0x14], eax
+08a382d7: mov      dword ptr [esp + 0x10], 0x8e23050
+08a382df: mov      dword ptr [esp + 0xc], 0x266c
+08a382e7: mov      dword ptr [esp + 8], 0x8e23901
+08a382ef: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a382f7: mov      dword ptr [esp], 0
+08a382fe: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a38303: mov      ebx, 0
+08a38308: jmp      0x8a383ad
+08a3830d: mov      eax, dword ptr [ebp - 0x22c]
+08a38313: test     eax, eax
+08a38315: setne    dl
+08a38318: mov      eax, dword ptr [ebp + 8]
+08a3831b: mov      byte ptr [eax + 0x204], dl
+08a38321: jmp      0x8a35ee3
+08a38326: lea      eax, [ebp - 0x224]
+08a3832c: mov      dword ptr [esp], eax
+08a3832f: call     0x8706720 ; _ZNKSs4dataEv
+08a38334: mov      edx, dword ptr [ebp + 0xc]
+08a38337: mov      dword ptr [esp + 0x18], edx
+08a3833b: mov      dword ptr [esp + 0x14], eax
+08a3833f: mov      dword ptr [esp + 0x10], 0x8e23188
+08a38347: mov      dword ptr [esp + 0xc], 0x2674
+08a3834f: mov      dword ptr [esp + 8], 0x8e23901
+08a38357: mov      dword ptr [esp + 4], 0x8e1ec8f
+08a3835f: mov      dword ptr [esp], 0
+08a38366: call     0x8ad3c0a ; _ZN10LogManager9logFormatEiPKcS1_iS1_z
+08a3836b: mov      ebx, 0
+08a38370: jmp      0x8a383ad
+08a38372: nop
+08a38373: jmp      0x8a38376
+08a38375: nop
+08a38376: mov      eax, dword ptr [ebp + 0xc]
+08a38379: mov      dword ptr [esp + 4], eax
+08a3837d: mov      dword ptr [esp], 0x94ff5e0
+08a38384: call     0x88bae56 ; _ZNK16STScriptFileList19FindIndexByFullScanEPKc
+08a38389: mov      edx, dword ptr [ebp + 8]
+08a3838c: mov      dword ptr [edx], eax
+08a3838e: mov      ebx, 1
+08a38393: jmp      0x8a383ad
+08a38395: mov      ebx, edx
+08a38397: mov      esi, eax
+08a38399: lea      eax, [ebp - 0x228]
+08a3839f: mov      dword ptr [esp], eax
+08a383a2: call     0x8707be0 ; _ZNSsD2Ev
+08a383a7: mov      eax, esi
+08a383a9: mov      edx, ebx
+08a383ab: jmp      0x8a383bd
+08a383ad: lea      eax, [ebp - 0x228]
+08a383b3: mov      dword ptr [esp], eax
+08a383b6: call     0x8707be0 ; _ZNSsD2Ev
+08a383bb: jmp      0x8a383db
+08a383bd: mov      ebx, edx
+08a383bf: mov      esi, eax
+08a383c1: lea      eax, [ebp - 0x224]
+08a383c7: mov      dword ptr [esp], eax
+08a383ca: call     0x8707be0 ; _ZNSsD2Ev
+08a383cf: mov      eax, esi
+08a383d1: mov      edx, ebx
+08a383d3: mov      dword ptr [esp], eax
+08a383d6: call     0x8ae3750 ; _Unwind_Resume
+08a383db: lea      eax, [ebp - 0x224]
+08a383e1: mov      dword ptr [esp], eax
+08a383e4: call     0x8707be0 ; _ZNSsD2Ev
+08a383e9: mov      eax, ebx
+08a383eb: lea      esp, [ebp - 0xc]
+08a383ee: add      esp, 0
+08a383f1: pop      ebx
+08a383f2: pop      esi
+08a383f3: pop      edi
+08a383f4: pop      ebp
+08a383f5: ret

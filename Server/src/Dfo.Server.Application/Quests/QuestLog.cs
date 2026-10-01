@@ -229,62 +229,6 @@ internal sealed class QuestLog(
         return true;
     }
 
-    public async ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
-        IReadOnlyCollection<int> questIds, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(questIds);
-        if (questIds.Count == 0)
-            return [];
-
-        var selected = questIds.ToHashSet();
-        var newlyCleared = new List<int>();
-        await stores.ChangeAsync(store, async session =>
-        {
-            var carried = await session.Carried.ReadAllAsync(place, cancellationToken)
-                .ConfigureAwait(false);
-            var tracked = await session.Tracked.ReadAllAsync(place, cancellationToken)
-                .ConfigureAwait(false);
-            var cleared = await session.Cleared.ReadAllAsync(place, cancellationToken)
-                .ConfigureAwait(false);
-            var existingMarks = cleared.ToDictionary(row => row.QuestId, row => row.Mark);
-
-            foreach (var row in carried.Where(row => selected.Contains(row.QuestId)))
-                session.Carried.Clear(place, row.Slot);
-            foreach (var row in tracked.Where(row => selected.Contains(row.QuestId)))
-                session.Tracked.Clear(place, row.SlotIndex);
-
-            foreach (var questId in selected.Order())
-            {
-                if (existingMarks.TryGetValue(questId, out var mark) && mark != 0)
-                    continue;
-                session.Cleared.Write(place, new StoredClearedQuest(questId, IQuestLog.ClearedMark));
-                newlyCleared.Add(questId);
-            }
-        }, cancellationToken).ConfigureAwait(false);
-        return newlyCleared;
-    }
-
-    /// <remarks>
-    /// Written in terms of <see cref="CompleteAsync"/> rather than beside it, so the two verbs
-    /// cannot drift into writing the cleared list two different ways. What this adds is the gate.
-    /// </remarks>
-    public async ValueTask<QuestFinishVerdict> FinishAsync(
-        int questId, CancellationToken cancellationToken)
-    {
-        if (await this.FindCarriedAsync(questId, cancellationToken).ConfigureAwait(false)
-            is not { } carried)
-        {
-            return QuestFinishVerdict.NotCarried;
-        }
-
-        if (!new QuestTrigger(unchecked((uint)carried.TriggerValue)).IsComplete)
-            return QuestFinishVerdict.ObjectiveUnmet;
-
-        await this.CompleteAsync(questId, IQuestLog.ClearedMark, cancellationToken)
-            .ConfigureAwait(false);
-        return QuestFinishVerdict.Finished;
-    }
-
     public async ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken)
     {
         if (await this.FindCarriedAsync(questId, cancellationToken).ConfigureAwait(false)

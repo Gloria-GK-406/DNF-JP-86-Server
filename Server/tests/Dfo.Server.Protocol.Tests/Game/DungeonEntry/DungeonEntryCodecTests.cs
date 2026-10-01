@@ -618,8 +618,8 @@ public sealed class DungeonEntryCodecTests
     /// <summary>Nothing here is worn; these tests never put a piece on.</summary>
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>

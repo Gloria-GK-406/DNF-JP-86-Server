@@ -144,8 +144,7 @@ public sealed class QuestLogTests
         await using var fixture = await Fixture.CreateAsync();
         var log = fixture.Log();
         await log.AcceptAsync(Quest(1016, trigger: 0, objective: "meet npc"), CancellationToken.None);
-        Assert.Equal(
-            QuestFinishVerdict.Finished, await log.FinishAsync(1016, CancellationToken.None));
+        Assert.True(await log.CompleteAsync(1016, IQuestLog.ClearedMark, CancellationToken.None));
 
         var again = await log.AcceptAsync(Quest(1016), CancellationToken.None);
 
@@ -168,8 +167,7 @@ public sealed class QuestLogTests
         var daily = Quest(5000, trigger: 0, objective: "meet npc") with { Grade = QuestGrade.Daily };
         Assert.True(daily.IsRepeatable);
         await log.AcceptAsync(daily, CancellationToken.None);
-        Assert.Equal(
-            QuestFinishVerdict.Finished, await log.FinishAsync(5000, CancellationToken.None));
+        Assert.True(await log.CompleteAsync(5000, IQuestLog.ClearedMark, CancellationToken.None));
 
         var again = await log.AcceptAsync(daily, CancellationToken.None);
 
@@ -268,66 +266,6 @@ public sealed class QuestLogTests
 
         Assert.Empty(await log.CarriedAsync(CancellationToken.None));
         Assert.Equal([new ClearedQuest(1016, 2)], await log.ClearedAsync(CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task RewardlessBatchClearsCarriedAndUncarriedQuestsAndRemovesEveryTrackedMatch()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-        var log = fixture.Log();
-        await log.AcceptAsync(Quest(1016), CancellationToken.None);
-        await log.AcceptAsync(Quest(102), CancellationToken.None);
-        await log.TrackAsync([1016, 101, 102, 1016, 103], CancellationToken.None);
-        await fixture.SettleAsync();
-
-        var added = await log.CompleteWithoutRewardsAsync([1016, 101, 1016], CancellationToken.None);
-
-        Assert.Equal([101, 1016], added);
-        Assert.Equal([102], (await log.CarriedAsync(CancellationToken.None)).Select(row => row.QuestId));
-        Assert.Equal([101, 1016], (await log.ClearedAsync(CancellationToken.None)).Select(row => row.QuestId));
-        Assert.Equal([102, 103], await log.TrackedAsync(CancellationToken.None));
-        await fixture.SettleAsync();
-        Assert.Equal(1, await fixture.CountRowsAsync());
-        Assert.Equal(2, await fixture.CountRowsAsync("character_invisible_flags"));
-        Assert.Equal(2, await fixture.CountRowsAsync("character_quest_notify_selections"));
-    }
-
-    [Fact]
-    public async Task RewardlessBatchPreservesExistingClearMarksAndIsIdempotent()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-        var log = fixture.Log();
-        await log.AcceptAsync(Quest(1016), CancellationToken.None);
-        await log.CompleteAsync(1016, 2, CancellationToken.None);
-        await log.TrackAsync([1016, 101], CancellationToken.None);
-        await fixture.SettleAsync();
-
-        Assert.Empty(await log.CompleteWithoutRewardsAsync([1016, 1016], CancellationToken.None));
-        Assert.Equal([new ClearedQuest(1016, 2)], await log.ClearedAsync(CancellationToken.None));
-        Assert.Equal([101], await log.TrackedAsync(CancellationToken.None));
-        await fixture.SettleAsync();
-        Assert.Empty(await log.CompleteWithoutRewardsAsync([1016], CancellationToken.None));
-        Assert.Equal([new ClearedQuest(1016, 2)], await log.ClearedAsync(CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task RollingBackRewardlessBatchRestoresCarriedTrackedAndClearedState()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-        var log = fixture.Log();
-        await log.AcceptAsync(Quest(1016), CancellationToken.None);
-        await log.TrackAsync([1016, 102], CancellationToken.None);
-        await fixture.SettleAsync();
-
-        Assert.Equal([101, 1016], await log.CompleteWithoutRewardsAsync(
-            [1016, 101], CancellationToken.None));
-        Assert.Empty(await log.CarriedAsync(CancellationToken.None));
-        Assert.Equal([102], await log.TrackedAsync(CancellationToken.None));
-        await fixture.RollBackAsync();
-
-        Assert.Equal([1016], (await log.CarriedAsync(CancellationToken.None)).Select(row => row.QuestId));
-        Assert.Equal([1016, 102], await log.TrackedAsync(CancellationToken.None));
-        Assert.Empty(await log.ClearedAsync(CancellationToken.None));
     }
 
     [Fact]
@@ -475,44 +413,12 @@ public sealed class QuestLogTests
         await log.AcceptAsync(quest, CancellationToken.None);
         await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
 
-        Assert.Equal(
-            QuestFinishVerdict.Finished,
-            await log.FinishAsync(1016, CancellationToken.None));
+        Assert.True(await log.CompleteAsync(1016, IQuestLog.ClearedMark, CancellationToken.None));
 
         Assert.Empty(await log.CarriedAsync(CancellationToken.None));
         Assert.Equal(
             [new ClearedQuest(1016, IQuestLog.ClearedMark)],
             await log.ClearedAsync(CancellationToken.None));
-    }
-
-    /// <remarks>
-    /// The gate that stops a crafted frame finishing any carried quest by asking. The client will
-    /// not send this before the objective is met, so it is refused where a real client never goes.
-    /// </remarks>
-    [Fact]
-    public async Task AQuestWhoseObjectiveIsNotMetIsRefusedAndStaysCarried()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-        var log = fixture.Log();
-        await log.AcceptAsync(Quest(1016, trigger: 1, objective: "meet npc"), CancellationToken.None);
-
-        Assert.Equal(
-            QuestFinishVerdict.ObjectiveUnmet,
-            await log.FinishAsync(1016, CancellationToken.None));
-
-        Assert.Equal(
-            [new CarriedQuest(0, 1016, 1)], await log.CarriedAsync(CancellationToken.None));
-        Assert.Empty(await log.ClearedAsync(CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task HandingInAQuestNobodyIsCarryingSaysSo()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-
-        Assert.Equal(
-            QuestFinishVerdict.NotCarried,
-            await fixture.Log().FinishAsync(1016, CancellationToken.None));
     }
 
     /// <summary>Handed in once. The second attempt finds nothing to hand in.</summary>
@@ -526,11 +432,9 @@ public sealed class QuestLogTests
         await using var fixture = await Fixture.CreateAsync();
         var log = fixture.Log();
         await log.AcceptAsync(Quest(1016, trigger: 0, objective: "meet npc"), CancellationToken.None);
-        Assert.Equal(
-            QuestFinishVerdict.Finished, await log.FinishAsync(1016, CancellationToken.None));
+        Assert.True(await log.CompleteAsync(1016, IQuestLog.ClearedMark, CancellationToken.None));
 
-        Assert.Equal(
-            QuestFinishVerdict.NotCarried, await log.FinishAsync(1016, CancellationToken.None));
+        Assert.False(await log.CompleteAsync(1016, IQuestLog.ClearedMark, CancellationToken.None));
 
         Assert.Equal(
             [new ClearedQuest(1016, IQuestLog.ClearedMark)],

@@ -13,6 +13,8 @@ public readonly record struct CharacterFatigueBalance(ushort Total, ushort Used)
 /// <remarks>Mutations require a domain transaction. Refund restores balance without reducing cumulative daily spending.</remarks>
 public interface ICharacterFatigueDomainService
 {
+    ValueTask<CharacterFatigueBalance> BalanceAtAsync(CharacterId characterId, DateTimeOffset at, CancellationToken token) =>
+        ValueTask.FromException<CharacterFatigueBalance>(new NotSupportedException("Explicit-time fatigue read is unavailable."));
     ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId characterId, CancellationToken cancellationToken);
     ValueTask SpendAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);
     ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);

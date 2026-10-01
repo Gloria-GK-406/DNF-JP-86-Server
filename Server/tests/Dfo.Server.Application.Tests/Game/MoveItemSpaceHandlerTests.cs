@@ -357,8 +357,8 @@ public sealed class MoveItemSpaceHandlerTests
     /// <summary>Nothing is wearable here; these tests move things inside the bag.</summary>
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     private static readonly NetworkDispatchContext Context = new(
@@ -517,6 +517,8 @@ public sealed class MoveItemSpaceHandlerTests
     /// <summary>An inventory loader nobody reaches, because no session is published.</summary>
     private sealed class UnreachableInventory : ICharacterInventoryEntryDomainService
     {
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
         public ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
             throw new NotSupportedException(

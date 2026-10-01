@@ -1,0 +1,28 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.43]     Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadCodecTests.SelectCharacterPayload_Subtype0PetAliveTracksPetRuntimeField04 [FAIL]
+[xUnit.net 00:00:00.71]     Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadCodecTests.SelectCharacterPayload_SupportRelationIsOwnerCorrectAndLoadedEmptyRemainsEmpty [FAIL]
+[xUnit.net 00:00:00.72]     Dfo.Server.Protocol.Tests.Game.MonsterDeath.AdvanceHuntEnemyQuestCommandTests.One_object_pays_each_active_quest_owner_with_independent_holding_caps(memberQuest: 1776, before: 15, expected: 15) [FAIL]
+[xUnit.net 00:00:00.72]     Dfo.Server.Protocol.Tests.Game.MonsterDeath.AdvanceHuntEnemyQuestCommandTests.One_object_pays_each_active_quest_owner_with_independent_holding_caps(memberQuest: 9999, before: 5, expected: 5) [FAIL]
+[xUnit.net 00:00:00.72]     Dfo.Server.Protocol.Tests.Game.MonsterDeath.AdvanceHuntEnemyQuestCommandTests.One_object_pays_each_active_quest_owner_with_independent_holding_caps(memberQuest: 1776, before: 5, expected: 8) [FAIL]
+[xUnit.net 00:00:00.72]     Dfo.Server.Protocol.Tests.Game.MonsterDeath.AdvanceHuntEnemyQuestCommandTests.A_direct_quest_item_is_banked_for_its_owner_and_capped_again_at_kill_time [FAIL]
+[xUnit.net 00:00:00.73]     Dfo.Server.Protocol.Tests.Game.MonsterDeath.AdvanceHuntEnemyQuestCommandTests.Failure_in_second_inventory_rolls_back_both_owners_and_releases_object [FAIL]
+[xUnit.net 00:00:00.73]     Dfo.Server.Protocol.Tests.Game.MonsterDeath.AdvanceHuntEnemyQuestCommandTests.Object_claim_grants_only_its_owners_active_quest_item_and_commits_without_experience [FAIL]
+[xUnit.net 00:00:01.28]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Opening_dungeon_selection_after_dressing_reads_the_current_equipment [FAIL]
+[xUnit.net 00:00:01.28]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.A_request_naming_some_other_piece_on_its_empty_end_takes_the_piece_off [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.The_acknowledgement_for_a_reversed_move_names_the_two_cells_the_request_did [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheAvatarBagIsServedTests.A_move_inside_the_avatar_list_is_handed_to_that_list [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Expired_wear_qualification_refuses_equipping_but_allows_taking_off [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.A_swap_onto_an_occupied_worn_slot_is_carried_out_whatever_either_end_names [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheAvatarBagIsServedTests.A_costume_moves_from_the_avatar_list_into_the_bag [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.Neither_end_holding_anything_is_still_refused_as_both_slots_empty [FAIL]
+[xUnit.net 00:00:01.29]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Taking_a_costume_off_tells_the_client_the_character_is_no_longer_wearing_it [FAIL]
+[xUnit.net 00:00:01.30]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.The_line_a_move_leaves_names_the_list_at_both_ends [FAIL]
+[xUnit.net 00:00:01.30]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.The_end_named_first_still_moves_when_it_is_the_one_holding_the_item [FAIL]
+[xUnit.net 00:00:01.30]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.A_move_naming_neither_end_is_carried_out [FAIL]
+[xUnit.net 00:00:01.30]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.Whichever_end_holds_the_item_is_the_end_that_moves [FAIL]
+[xUnit.net 00:00:01.30]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.A_request_naming_nothing_on_its_empty_end_takes_the_piece_off [FAIL]
+[xUnit.net 00:00:01.31]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.EitherEndMayBeHoldingItTests.The_dispatch_serves_these_pairs_of_lists_and_no_others [FAIL]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\TestResults\inventory-protocol.trx
+
+失败!  - 失败:    23，通过:  1119，已跳过:     0，总计:  1142，持续时间: 1 s - Dfo.Server.Protocol.Tests.dll (net10.0)

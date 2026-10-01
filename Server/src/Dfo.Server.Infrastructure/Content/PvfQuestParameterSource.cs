@@ -1,3 +1,5 @@
+using Dfo.Pvf.Schema;
+using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 
@@ -10,12 +12,39 @@ namespace Dfo.Server.Infrastructure.Content;
 /// Parsed once and held, because it is one file that every quest completion reads and nothing
 /// rewrites while the process runs.
 ///
-/// The difficulty section alternates a quoted letter with an integer, and the two reward tables
-/// alternate a value with <c>-1</c>. The <c>-1</c>s are dropped rather than kept: keeping them
+/// The difficulty section alternates a quoted letter with an integer. Reward tables use a plain
+/// nonnegative sequence or value/<c>-1</c> pairs (the archive's experience table). The separators are dropped: keeping them
 /// would put every real value at twice its index and price every quest at half its level.
 /// </remarks>
 internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQuestParameterSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyDictionary<char, int>> DifficultyField = PvfField.Custom<IReadOnlyDictionary<char, int>>("[difficulty]",
+            (archive, values, path) =>
+            {
+                if (values.Count % 2 != 0) throw new InvalidDataException($"PVF '{path}', field '[difficulty]': incomplete letter/value pair.");
+                var result = new Dictionary<char, int>();
+                for (var i = 0; i < values.Count; i += 2)
+                {
+                    if (values[i].Kind != PvfTokenKind.QuotedString || values[i + 1].Kind != PvfTokenKind.Int32)
+                        throw new InvalidDataException($"PVF '{path}', field '[difficulty]': expected quoted letter and Int32.");
+                    var text = archive.ResolveString(values[i].Value).Trim().Trim('`');
+                    if (text.Length != 1) throw new InvalidDataException($"PVF '{path}', field '[difficulty]': expected one letter.");
+                    result[char.ToUpperInvariant(text[0])] = values[i + 1].Value;
+                }
+                return result;
+            }, optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ExpRewardTableField = PvfField.Custom<IReadOnlyList<int>>("[exp reward table]",
+            DecodeExperienceTable, optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> GoldRewardTableField = PvfField.Custom<IReadOnlyList<int>>("[gold reward table]",
+            DecodeGoldTable, optional: true);
+        internal static readonly PvfField<int> GreenLevelPenaltyField = PvfField.Int32("[green level penalty]", optional: true);
+        internal static readonly PvfField<int> GreyLevelPenaltyField = PvfField.Int32("[grey level penalty]", optional: true);
+        internal static readonly PvfField<int> EpicGreenLevelPenaltyField = PvfField.Int32("[epic green level penalty]", optional: true);
+        internal static readonly PvfField<int> EpicGreyLevelPenaltyField = PvfField.Int32("[epic grey level penalty]", optional: true);
+    }
+
     private const string ArchivePath = "n_Quest/questParameter.etc";
 
     private readonly Lock _gate = new();
@@ -35,57 +64,23 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
         var gold = new List<int>();
         var difficulty = new Dictionary<char, int>();
         var penalties = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        string? section = null;
-        char? pendingLetter = null;
-
-        var reader = provider.Archive.OpenScript(ArchivePath);
-        while (reader.Read(out var token))
+        var archive = provider.Archive;
+        var document = PvfDocument.Open(archive, ArchivePath);
+        foreach (var section in document.Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
+            if (IsSection(section.Name, Fields.DifficultyField))
+                foreach (var pair in Fields.DifficultyField.Decode(archive, section.Values, ArchivePath)) difficulty[pair.Key] = pair.Value;
+            else if (IsSection(section.Name, Fields.ExpRewardTableField))
+                experience.AddRange(Fields.ExpRewardTableField.Decode(archive, section.Values, ArchivePath));
+            else if (IsSection(section.Name, Fields.GoldRewardTableField))
+                gold.AddRange(Fields.GoldRewardTableField.Decode(archive, section.Values, ArchivePath));
+            else if (new[] { Fields.GreenLevelPenaltyField, Fields.GreyLevelPenaltyField,
+                Fields.EpicGreenLevelPenaltyField, Fields.EpicGreyLevelPenaltyField }
+                .FirstOrDefault(field => IsSection(section.Name, field)) is { } penalty)
             {
-                section = provider.Archive.ResolveString(token.Value);
-                pendingLetter = null;
-                continue;
-            }
-
-            if (section is null)
-                continue;
-
-            // The difficulty letters are the only quoted strings this file's numeric sections
-            // carry. Held until the integer that belongs to them arrives.
-            if (token.Kind == PvfTokenKind.QuotedString)
-            {
-                if (IsSection(section, "[difficulty]"))
-                {
-                    var text = provider.Archive.ResolveString(token.Value).Trim().Trim('`');
-                    pendingLetter = text.Length == 1 ? char.ToUpperInvariant(text[0]) : null;
-                }
-
-                continue;
-            }
-
-            if (token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            if (IsSection(section, "[difficulty]"))
-            {
-                if (pendingLetter is { } letter)
-                    difficulty[letter] = token.Value;
-                pendingLetter = null;
-            }
-            else if (IsSection(section, "[exp reward table]"))
-            {
-                if (token.Value >= 0)
-                    experience.Add(token.Value);
-            }
-            else if (IsSection(section, "[gold reward table]"))
-            {
-                if (token.Value >= 0)
-                    gold.Add(token.Value);
-            }
-            else if (IsPenalty(section))
-            {
-                penalties.TryAdd(section, token.Value);
+                var value = penalty.Decode(archive, section.Values, ArchivePath);
+                if (!penalties.TryAdd(penalty.Name, value))
+                    throw new InvalidDataException($"PVF '{ArchivePath}', field '{penalty.Name}': duplicate penalty.");
             }
         }
 
@@ -100,26 +95,48 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
         return new QuestParameters(
             experience,
             difficulty,
-            Penalty(penalties, "[green level penalty]", 80),
-            Penalty(penalties, "[grey level penalty]", 30),
-            Penalty(penalties, "[epic green level penalty]", 120),
-            Penalty(penalties, "[epic grey level penalty]", 140),
+            Penalty(penalties, Fields.GreenLevelPenaltyField, 80),
+            Penalty(penalties, Fields.GreyLevelPenaltyField, 30),
+            Penalty(penalties, Fields.EpicGreenLevelPenaltyField, 120),
+            Penalty(penalties, Fields.EpicGreyLevelPenaltyField, 140),
             gold);
     }
 
-    private static bool IsSection(string section, string name) =>
-        section.Equals(name, StringComparison.OrdinalIgnoreCase);
+    private static IReadOnlyList<int> DecodeExperienceTable(PvfArchive archive, IReadOnlyList<PvfToken> values, string path) =>
+        DecodeRewardTable(archive, values, path, Fields.ExpRewardTableField);
+
+    private static IReadOnlyList<int> DecodeGoldTable(PvfArchive archive, IReadOnlyList<PvfToken> values, string path) =>
+        DecodeRewardTable(archive, values, path, Fields.GoldRewardTableField);
+
+    private static IReadOnlyList<int> DecodeRewardTable(PvfArchive archive, IReadOnlyList<PvfToken> values, string path, PvfField field)
+    {
+        var numbers = PvfField.Int32List(field.Name).Decode(archive, values, path);
+        if (numbers.All(value => value >= 0)) return numbers;
+        if (numbers.Count % 2 != 0)
+            throw new InvalidDataException($"PVF '{path}', field '{field}': incomplete value/-1 pair.");
+        var result = new List<int>(numbers.Count / 2);
+        for (var i = 0; i < numbers.Count; i += 2)
+        {
+            if (numbers[i] < 0 || numbers[i + 1] != -1)
+                throw new InvalidDataException($"PVF '{path}', field '{field}': expected nonnegative value followed by -1.");
+            result.Add(numbers[i]);
+        }
+        return result.AsReadOnly();
+    }
+
+    private static bool IsSection(string section, PvfField name) =>
+        section.Equals(name.Name, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPenalty(string section) =>
-        IsSection(section, "[green level penalty]")
-        || IsSection(section, "[grey level penalty]")
-        || IsSection(section, "[epic green level penalty]")
-        || IsSection(section, "[epic grey level penalty]");
+        IsSection(section, Fields.GreenLevelPenaltyField)
+        || IsSection(section, Fields.GreyLevelPenaltyField)
+        || IsSection(section, Fields.EpicGreenLevelPenaltyField)
+        || IsSection(section, Fields.EpicGreyLevelPenaltyField);
 
     /// <remarks>
     /// The fallbacks are the reference server's own defaults for a file that omits a band, kept so
     /// a partial file prices quests the way that server would rather than at zero.
     /// </remarks>
-    private static int Penalty(IReadOnlyDictionary<string, int> source, string key, int fallback) =>
-        source.TryGetValue(key, out var value) ? value : fallback;
+    private static int Penalty(IReadOnlyDictionary<string, int> source, PvfField<int> key, int fallback) =>
+        source.TryGetValue(key.Name, out var value) ? value : fallback;
 }

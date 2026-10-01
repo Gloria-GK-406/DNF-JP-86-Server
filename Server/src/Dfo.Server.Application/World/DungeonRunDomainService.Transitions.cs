@@ -29,6 +29,7 @@ internal sealed partial class DungeonRunDomainService
                 {
                     owner.runsByCharacter.Add(id, next);
                     owner.weakness?.For(id).PauseRecovery();
+                    owner.creatures?.ChangeCombat(id, true);
                 }
             }
             return ValueTask.CompletedTask;

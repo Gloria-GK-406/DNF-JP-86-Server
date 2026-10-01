@@ -1,0 +1,13 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0064	0	改名卡在宠物消耗品列表中的来源槽位 i16；不是被改名宠物的穿戴槽	High	A21 ClientStatic VA 0x023CFEF0-0x023CFF5B 写 [esi+0x1C8]；Document/tasks/creature-system/evidence/a21-pet-rename-builder.asm.txt；PVF stackable.lst 25 为 rename_card，70 RenameCreature 先消费来源道具
+CMD	0x0064	2	来源列表 u8；A21 该改名构包分支要求其值为 7	Confirmed	A21 ClientStatic VA 0x023CFEF0-0x023CFF5B 检查 [esi+0x1CC]==7 并 WriteU8；Document/tasks/creature-system/evidence/a21-pet-rename-builder.asm.txt
+CMD	0x0064	3	新名字的 LE i32 字节数，随后为同长度原始字节；A21 构包处未证最大服务端可接受长度	High	A21 ClientStatic VA 0x023CFF10-0x023CFF5B 在 slot/list 后 WriteDString 且无改名尾字段；Document/tasks/creature-system/evidence/a21-pet-rename-builder.asm.txt
+CMD	0x007A	0	脚本消息模式 u8；A21 此构包分支无按 mode 附加名字字段	High	A21 ClientStatic VA 0x022C7D10-0x022C7F11；Document/tasks/creature-system/evidence/a21-pet-script-prefix.asm.txt；上游 PetCreatureScript 的条件尾字段不能替代 A21 分支指令
+CMD	0x007A	1	该 A21 构包分支恒写 0 的 u16；是否代表目标对象未证	Confirmed	A21 ClientStatic VA 0x022C7D10-0x022C7F11 WriteU16(0)；Document/tasks/creature-system/evidence/a21-pet-script-prefix.asm.txt
+CMD	0x007A	3	角色 characterId u32	High	A21 ClientStatic VA 0x022C7D10-0x022C7F11 读取对象 characterId 后 WriteU32；Document/tasks/creature-system/evidence/a21-pet-script-prefix.asm.txt
+CMD	0x007A	7	脚本消息 dstring 的 LE i32 字节长度，其后为该长度的正文；该发送分支没有额外尾字段	High	A21 ClientStatic VA 0x022C7D10-0x022C7F11 WriteDString 后 Finalize；Document/tasks/creature-system/evidence/a21-pet-script-prefix.asm.txt
+NOTI	0x0068	0	70 参考实现写宠物回应所属玩家的场景 uniqueId；A21 只确认恰读 u16 并调用状态方法	High	70Reference CCreatureMgr::ResponseCreature 0x0833a6d8 发 NOTI0068 owner uniqueId；A21 ClientStatic VA 0x01189D70；Document/tasks/creature-system/evidence/a21-protocol.md
+NOTI	0x0069	g1:5	ModeFlag；值为1时额外读两个 u8；每项线长随名字而变，不能按固定42/44字节解析	Confirmed	A21 ClientStatic VA 0x0116349F 条件读两字节并通过 dstring helper 读取名字；Document/tasks/creature-system/evidence/a21-pet-noti-handlers.asm.txt
+NOTI	0x0069	g1:13	宠物名字 dstring：LE i32 字节长度加原始字节；组尾另有 u8 tailFlag，普通项线长16+名字字节数	High	A21 ClientStatic VA 0x011634C5-0x011634D7 读 dstring 后再读 u8；Document/tasks/creature-system/evidence/a21-pet-noti-handlers.asm.txt
+NOTI	0x006A	0	目标宠物脚本 species ID；70 传目标 creature ID 且写 u8，A21 接收端恰读 u16，属于不同版本线宽	High	70Reference CCreature::Evolute 0x083383E2-0x083383EF 传目标脚本ID，MakeNotipacketEvoluteCreature 0x08340842 写 u8；Document/tasks/creature-system/evidence/evolve-notify.asm.txt；A21 ClientStatic VA 0x01146890 读 u16
+NOTI	0x006A	2	进化所属玩家的场景 uniqueId u16；A21 用该值找场景对象	High	70Reference MakeNotipacketEvoluteCreature 0x08340883-0x0834089B 写 CUser::get_unique_id；Document/tasks/creature-system/evidence/evolve-notify.asm.txt；A21 ClientStatic VA 0x01146890 读 u16 后查对象

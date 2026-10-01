@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
 using System.Collections.Immutable;
@@ -16,6 +17,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IDomainTransactionAccessor? transactions;
     private readonly IPartyService? parties;
     private readonly IWeaknessDomainService? weakness;
+    private readonly ICreatureRuntimeDomainService? creatures;
     private readonly object gate = new();
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
@@ -41,11 +43,13 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonRunDomainService(
         IDomainTransactionAccessor transactions,
         IPartyService parties,
-        IWeaknessDomainService? weakness = null)
+        IWeaknessDomainService? weakness = null,
+        ICreatureRuntimeDomainService? creatures = null)
     {
         this.transactions = transactions;
         this.parties = parties;
         this.weakness = weakness;
+        this.creatures = creatures;
     }
 
     internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
@@ -1262,6 +1266,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             return false;
 
         this.weakness?.For(characterId).ResumeRecovery();
+        this.creatures?.ChangeCombat(characterId, false);
         aggregate.ActiveParticipants.Remove(characterId);
         aggregate.ReadyParticipants.Remove(characterId);
         aggregate.DeadParticipants.Remove(characterId);

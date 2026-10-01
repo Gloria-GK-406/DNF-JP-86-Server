@@ -38,6 +38,8 @@ internal sealed class TouchSocketConnectionRegistry
         return false;
     }
 
+    public bool TryGet(NetworkConnectionId id, out ConnectionEntry? entry) => connections.TryGetValue(id, out entry);
+
     public ConnectionEntry Get(NetworkConnectionId connectionId) => connections.TryGetValue(connectionId, out var entry)
         ? entry
         : throw new InvalidOperationException($"Connection '{connectionId}' is not active.");

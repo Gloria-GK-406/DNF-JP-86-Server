@@ -17,6 +17,9 @@ public interface IPremiumServiceDomainService
 
 public interface IAccountPremiumServices
 {
+    ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAtAsync(DateTimeOffset at, CancellationToken token) =>
+        ValueTask.FromException<IReadOnlyList<AccountPremiumEntryState>>(new NotSupportedException("Explicit-time premium read is unavailable."));
+    ValueTask SetExpiryAsync(PremiumServiceType type, long expectedExpiry, long nextExpiry, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken);
     ValueTask<ushort> GetExtraFatigueAsync(CancellationToken cancellationToken);
     ValueTask<double> GetExperienceBonusRateAsync(CancellationToken cancellationToken);

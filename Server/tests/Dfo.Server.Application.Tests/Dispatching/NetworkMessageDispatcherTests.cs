@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Channel.Connect;
@@ -97,6 +98,66 @@ public sealed class NetworkMessageDispatcherTests
         services.AddNetworkMessageDispatching();
         configure(services);
         return services.BuildServiceProvider();
+    }
+
+    [Fact]
+    public async Task Blocked_physical_connection_stops_before_handler_lookup_without_login_authority()
+    {
+        await using var provider = BuildProvider(_ => { });
+        var connection = new NetworkConnectionContext(new("blocked"), NetworkEndpointKind.Game, 10011);
+        var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,1,10011);
+        var safety = provider.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>();
+        await safety.BlockAsync(new(session, connection), new IOException("unknown"), "test");
+        await provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection),new AlternativeConnectMessage(),default);
+        Assert.False(safety.IsBlocked(connection with { }));
+        await Assert.ThrowsAsync<KeyNotFoundException>(async () => await provider.GetRequiredService<INetworkMessageDispatcher>()
+            .DispatchAsync(new(connection with { }),new AlternativeConnectMessage(),default));
+    }
+
+    [Fact]
+    public async Task Already_queued_request_without_login_authority_is_rejected_before_uow_after_fence()
+    {
+        var probe = new QueuedProbe();
+        await using var provider = BuildProvider(services =>
+        {
+            services.RegisterMessageHandler<QueuedHandler>(ClientMessageType.ChannelConnect);
+            services.AddSingleton(probe);
+            services.AddSingleton<Dfo.Server.Application.Commands.ICommandPipelineBehavior<string>>(probe);
+            services.AddCommandHandler<QueuedCommand,string,QueuedCommandHandler>(Dfo.Server.Application.Commands.CommandExecutionKind.Transactional);
+        });
+        var connection = new NetworkConnectionContext(new("queued"),NetworkEndpointKind.Game,10011);
+        var serial = provider.GetRequiredService<Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate>();
+        var held = await serial.AcquireAsync(default);
+        var request = provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection),new ChannelConnectRequest(ChannelMessageMetadata.Empty),default).AsTask();
+        try
+        {
+            await probe.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var safety = provider.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>();
+            await safety.BlockAsync(new(Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,1,10011),connection),new IOException("unknown"),"test");
+        }
+        finally { await held.DisposeAsync(); }
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => request);
+        Assert.Equal(0,probe.HandlerCalls);
+    }
+    private sealed record QueuedCommand : Dfo.Server.Application.Commands.ICommand<string>;
+    private sealed class QueuedHandler(Dfo.Server.Application.Commands.ICommandBus bus) : ClientMessageHandler<ChannelConnectRequest>
+    {
+        protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ChannelConnectRequest message, CancellationToken ct) =>
+            _ = await bus.SendAsync(new QueuedCommand(),ct);
+    }
+    private sealed class QueuedCommandHandler(QueuedProbe probe) : Dfo.Server.Application.Commands.ICommandHandler<QueuedCommand,string>
+    {
+        public ValueTask<string> HandleAsync(Dfo.Server.Application.Commands.CommandExecutionContext context,QueuedCommand command,CancellationToken ct)
+        { probe.HandlerCalls++; return ValueTask.FromResult("paid"); }
+    }
+    private sealed class QueuedProbe : Dfo.Server.Application.Commands.ICommandPipelineBehavior<string>
+    {
+        public int Order => 56;
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int HandlerCalls;
+        public ValueTask<string> ExecuteAsync(Dfo.Server.Application.Commands.CommandExecutionContext context,Dfo.Server.Application.Commands.ICommand command,
+            Dfo.Server.Application.Commands.CommandExecutionDelegate<string> next,CancellationToken ct)
+        { Entered.TrySetResult(); return next(); }
     }
 
     private sealed class StubDecoder : IGameMessageDecoder

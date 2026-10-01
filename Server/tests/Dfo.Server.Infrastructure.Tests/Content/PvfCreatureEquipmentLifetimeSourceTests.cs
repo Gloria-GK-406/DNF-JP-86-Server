@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Pvf.Tokens;
 using System.Globalization;
@@ -42,8 +43,8 @@ public sealed class PvfCreatureEquipmentLifetimeSourceTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         var archive = provider.Archive;
-        var expiration = archive.GetTag("[expiration date]");
-        var usablePeriod = archive.GetTag("[usable period]");
+        var expiration = archive.GetTag(PvfField.Tokens("[expiration date]"));
+        var usablePeriod = archive.GetTag(PvfField.Tokens("[usable period]"));
         var candidate = default((int ItemId, int Days)?);
 
         foreach (var (itemId, relativePath) in PvfListFile.Read(archive, "equipment/equipment.lst"))

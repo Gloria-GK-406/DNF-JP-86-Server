@@ -51,7 +51,7 @@ internal sealed class PvfItemPlacementDefinitionSource(
                 : new ItemPlacement(
                     metadata.ItemKind,
                     metadata.StackLimit,
-                    RangeFromMainSlots(metadata.SlotStart, metadata.SlotEnd))
+                    DestinationFor(metadata))
                 {
                     WorldClass = metadata.WorldClass,
                 };
@@ -69,4 +69,14 @@ internal sealed class PvfItemPlacementDefinitionSource(
                 $"PVF item placement Main/{first}..{last} crosses business spaces.");
         return new(start.Space, start.Index, end.Index);
     }
+
+    private BusinessSlotRange DestinationFor(PvfEntryLifecycleContentSource.RefillItemMetadata metadata) =>
+        metadata switch
+        {
+            { WorldClass: ItemWorldClass.Avatar } => new(BusinessInventorySpace.Avatar, 0, 209),
+            { WorldClass: ItemWorldClass.Creature } => new(BusinessInventorySpace.CreatureInventory, 0, 139),
+            { ItemKind: 6 } => new(BusinessInventorySpace.CreatureEquipment, 0, 48),
+            { ItemKind: 7 } => new(BusinessInventorySpace.CreatureConsumable, 0, 50),
+            _ => RangeFromMainSlots(metadata.SlotStart, metadata.SlotEnd),
+        };
 }

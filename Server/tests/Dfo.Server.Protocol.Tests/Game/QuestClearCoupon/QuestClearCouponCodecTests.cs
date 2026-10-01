@@ -103,8 +103,8 @@ public sealed class QuestClearCouponCodecTests
     {
         var session = SelectedSessionIdentity.Create(new AccountId(1), new CharacterId(1123),
             new NetworkConnectionId("quest-clear"), 2, 10011);
-        var receipt = new OpeningInventoryReceipt(session, ImmutableArray<CommittedInventoryUpdateState>.Empty,
-            [69], ImmutableArray<OpeningRewardDisplay>.Empty, DateTimeOffset.UnixEpoch);
+        var receipt = new OpeningInventoryReceipt(session, ImmutableArray<OpeningInventoryUpdate>.Empty,
+            [new(BusinessInventorySpace.Consumable, 4)], ImmutableArray<OpeningRewardDisplay>.Empty, DateTimeOffset.UnixEpoch);
         var flags = new byte[30_000];
         flags[1016] = 1;
         var following = new IServerNetworkMessage[]

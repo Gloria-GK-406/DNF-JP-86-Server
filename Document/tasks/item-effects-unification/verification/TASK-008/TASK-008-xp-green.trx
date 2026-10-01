@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="1254b332-f9cf-4d7f-a82a-acf59696c5a0" name="Gloria@家庭台式机 2026-10-01 14:22:54" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:22:54.5101030+08:00" queuing="2026-10-01T14:22:54.5101031+08:00" start="2026-10-01T14:22:52.6959344+08:00" finish="2026-10-01T14:22:55.0299253+08:00" />
+  <TestSettings name="default" id="20844076-c95c-49f7-920b-3ef41af9cc3f">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_22_54" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="192b5a7a-940e-4e78-b113-67c68380b922" testId="ec14a2c6-c1e7-990a-8156-a24131bc054f" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_stale_or_different_recipient_cannot_write(otherCharacter: False)" computerName="家庭台式机" duration="00:00:00.0399349" startTime="2026-10-01T14:22:54.6980993+08:00" endTime="2026-10-01T14:22:54.7377345+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="192b5a7a-940e-4e78-b113-67c68380b922" />
+    <UnitTestResult executionId="d1bb7e1c-decf-4a43-86ec-207cea62fd35" testId="29a15663-64d2-0372-80c9-7ae837a1f1cb" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Different_result_commands_wait_for_prepare_then_price_committed_or_rolled_back_progress(fail: False)" computerName="家庭台式机" duration="00:00:00.1547160" startTime="2026-10-01T14:22:53.7974173+08:00" endTime="2026-10-01T14:22:53.9470993+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d1bb7e1c-decf-4a43-86ec-207cea62fd35" />
+    <UnitTestResult executionId="cb48e7da-0991-4562-8f5c-490a9bd14f3b" testId="ee2df5f9-f7f7-fc64-e24a-9e7788dc7a7b" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character(earned: 30)" computerName="家庭台式机" duration="00:00:00.3854502" startTime="2026-10-01T14:22:53.9483879+08:00" endTime="2026-10-01T14:22:54.3340972+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cb48e7da-0991-4562-8f5c-490a9bd14f3b" />
+    <UnitTestResult executionId="20ad085e-492e-40a3-9105-6193f89ccd27" testId="73387d6a-9e16-4be6-53df-ca5e2a38b650" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.All_three_commands_report_the_applied_award_and_exact_execution_context" computerName="家庭台式机" duration="00:00:00.0460870" startTime="2026-10-01T14:22:54.8606076+08:00" endTime="2026-10-01T14:22:54.9066596+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="20ad085e-492e-40a3-9105-6193f89ccd27" />
+    <UnitTestResult executionId="da45df85-27cb-4fe0-9a3b-99d37d074a96" testId="afbad7f2-1819-3ea9-03aa-8a5ecc636277" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Durable_unknown_result_blocks_the_same_recipient_before_another_payment" computerName="家庭台式机" duration="00:00:00.0422311" startTime="2026-10-01T14:22:54.7773596+08:00" endTime="2026-10-01T14:22:54.8195397+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="da45df85-27cb-4fe0-9a3b-99d37d074a96" />
+    <UnitTestResult executionId="e97e1b2d-5f8b-4f00-869c-256453eeb6f9" testId="84d6f616-f3d6-acd6-2d3e-dcf86f5289de" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Quest_flush_failure_after_experience_restores_both_durable_ledgers" computerName="家庭台式机" duration="00:00:00.0641162" startTime="2026-10-01T14:22:54.9068491+08:00" endTime="2026-10-01T14:22:54.9709978+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e97e1b2d-5f8b-4f00-869c-256453eeb6f9" />
+    <UnitTestResult executionId="cd42a097-19fb-4dd9-8b93-6da4abe5a911" testId="40dbd840-84b4-e65b-5c93-ef9ff1d81396" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character(earned: 0)" computerName="家庭台式机" duration="00:00:00.3634758" startTime="2026-10-01T14:22:54.3343007+08:00" endTime="2026-10-01T14:22:54.6976871+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cd42a097-19fb-4dd9-8b93-6da4abe5a911" />
+    <UnitTestResult executionId="647f80a1-6703-4a20-b358-49af19df6412" testId="866b1732-4e1c-9e83-cb5e-9b17a0001f8e" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Clear_late_prepare_failure_returns_no_success_and_leaves_the_next_award_usable" computerName="家庭台式机" duration="00:00:00.0407547" startTime="2026-10-01T14:22:54.8197142+08:00" endTime="2026-10-01T14:22:54.8604214+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="647f80a1-6703-4a20-b358-49af19df6412" />
+    <UnitTestResult executionId="906baccb-7d68-4a42-b4ea-3c27f2799ab9" testId="253070e6-6dd1-2d26-de0e-496307779675" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_stale_or_different_recipient_cannot_write(otherCharacter: True)" computerName="家庭台式机" duration="00:00:00.0393216" startTime="2026-10-01T14:22:54.7378851+08:00" endTime="2026-10-01T14:22:54.7771704+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="906baccb-7d68-4a42-b4ea-3c27f2799ab9" />
+    <UnitTestResult executionId="672cc87d-eddf-4604-a6d9-9325e206e07f" testId="42ae151d-6bb7-113e-dc19-705f1a5032a1" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Different_result_commands_wait_for_prepare_then_price_committed_or_rolled_back_progress(fail: True)" computerName="家庭台式机" duration="00:00:00.3365264" startTime="2026-10-01T14:22:53.4495654+08:00" endTime="2026-10-01T14:22:53.7917196+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="672cc87d-eddf-4604-a6d9-9325e206e07f" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character(earned: 0)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="40dbd840-84b4-e65b-5c93-ef9ff1d81396">
+      <Execution id="cd42a097-19fb-4dd9-8b93-6da4abe5a911" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="A_clear_cannot_award_another_accounts_character" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_stale_or_different_recipient_cannot_write(otherCharacter: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="ec14a2c6-c1e7-990a-8156-a24131bc054f">
+      <Execution id="192b5a7a-940e-4e78-b113-67c68380b922" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="A_stale_or_different_recipient_cannot_write" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Durable_unknown_result_blocks_the_same_recipient_before_another_payment" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="afbad7f2-1819-3ea9-03aa-8a5ecc636277">
+      <Execution id="da45df85-27cb-4fe0-9a3b-99d37d074a96" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="Durable_unknown_result_blocks_the_same_recipient_before_another_payment" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Different_result_commands_wait_for_prepare_then_price_committed_or_rolled_back_progress(fail: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="42ae151d-6bb7-113e-dc19-705f1a5032a1">
+      <Execution id="672cc87d-eddf-4604-a6d9-9325e206e07f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="Different_result_commands_wait_for_prepare_then_price_committed_or_rolled_back_progress" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_stale_or_different_recipient_cannot_write(otherCharacter: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="253070e6-6dd1-2d26-de0e-496307779675">
+      <Execution id="906baccb-7d68-4a42-b4ea-3c27f2799ab9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="A_stale_or_different_recipient_cannot_write" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Clear_late_prepare_failure_returns_no_success_and_leaves_the_next_award_usable" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="866b1732-4e1c-9e83-cb5e-9b17a0001f8e">
+      <Execution id="647f80a1-6703-4a20-b358-49af19df6412" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="Clear_late_prepare_failure_returns_no_success_and_leaves_the_next_award_usable" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Quest_flush_failure_after_experience_restores_both_durable_ledgers" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="84d6f616-f3d6-acd6-2d3e-dcf86f5289de">
+      <Execution id="e97e1b2d-5f8b-4f00-869c-256453eeb6f9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="Quest_flush_failure_after_experience_restores_both_durable_ledgers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.Different_result_commands_wait_for_prepare_then_price_committed_or_rolled_back_progress(fail: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="29a15663-64d2-0372-80c9-7ae837a1f1cb">
+      <Execution id="d1bb7e1c-decf-4a43-86ec-207cea62fd35" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="Different_result_commands_wait_for_prepare_then_price_committed_or_rolled_back_progress" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.All_three_commands_report_the_applied_award_and_exact_execution_context" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="73387d6a-9e16-4be6-53df-ca5e2a38b650">
+      <Execution id="20ad085e-492e-40a3-9105-6193f89ccd27" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="All_three_commands_report_the_applied_award_and_exact_execution_context" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character(earned: 30)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="ee2df5f9-f7f7-fc64-e24a-9e7788dc7a7b">
+      <Execution id="cb48e7da-0991-4562-8f5c-490a9bd14f3b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="A_clear_cannot_award_another_accounts_character" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="ec14a2c6-c1e7-990a-8156-a24131bc054f" executionId="192b5a7a-940e-4e78-b113-67c68380b922" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="29a15663-64d2-0372-80c9-7ae837a1f1cb" executionId="d1bb7e1c-decf-4a43-86ec-207cea62fd35" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ee2df5f9-f7f7-fc64-e24a-9e7788dc7a7b" executionId="cb48e7da-0991-4562-8f5c-490a9bd14f3b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="73387d6a-9e16-4be6-53df-ca5e2a38b650" executionId="20ad085e-492e-40a3-9105-6193f89ccd27" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="afbad7f2-1819-3ea9-03aa-8a5ecc636277" executionId="da45df85-27cb-4fe0-9a3b-99d37d074a96" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="84d6f616-f3d6-acd6-2d3e-dcf86f5289de" executionId="e97e1b2d-5f8b-4f00-869c-256453eeb6f9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="40dbd840-84b4-e65b-5c93-ef9ff1d81396" executionId="cd42a097-19fb-4dd9-8b93-6da4abe5a911" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="866b1732-4e1c-9e83-cb5e-9b17a0001f8e" executionId="647f80a1-6703-4a20-b358-49af19df6412" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="253070e6-6dd1-2d26-de0e-496307779675" executionId="906baccb-7d68-4a42-b4ea-3c27f2799ab9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="42ae151d-6bb7-113e-dc19-705f1a5032a1" executionId="672cc87d-eddf-4604-a6d9-9325e206e07f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="10" executed="10" passed="10" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.20]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.40]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.43]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.97]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

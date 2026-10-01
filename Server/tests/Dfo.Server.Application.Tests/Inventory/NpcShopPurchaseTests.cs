@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -32,6 +33,20 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class NpcShopPurchaseTests
 {
+    [Fact]
+    public async Task Dungeon_clear_shop_cannot_be_purchased_from_town_even_with_enough_payment()
+    {
+        using var shop = new ShopFixture();
+        shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
+        await shop.Seed(121, 1000, 100, 3);
+        await shop.Services.GetRequiredService<BuyItemHandler>().HandleAsync(new(shop.Connection),
+            new BuyItemRequest(GameMessageMetadata.Empty, 5000, 1, 1000, 1000), default);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(100, shop.Count(1000));
+        Assert.Equal(0, shop.Count(5000));
+        Assert.Null(Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt);
+    }
+
     [Fact]
     public async Task Buying_a_sought_item_completes_the_carried_quest_from_the_committed_bag()
     {
@@ -109,7 +124,7 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(82000, shop.Gold);
         Assert.Equal(1, shop.Count(3000));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
-        var item = Assert.Single(receipt.GrantedSlots).Item;
+        var item = Assert.Single(receipt.GrantedSlots);
         Assert.True(item.Core.Value > 0);
         Assert.Equal(45, item.Core.Durability);
         Assert.Equal(1, receipt.Count);
@@ -129,8 +144,8 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(0, shop.Count(1000));
         Assert.Equal(12, shop.Count(5000));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
-        Assert.Equal(new[] { (3, 10, 1), (4, 2, 2) }, receipt.GrantedSlots
-            .Select(slot => (slot.Item.SlotIndex, slot.Item.Core.Value, slot.AddedCount)));
+        Assert.Equal(new[] { (BusinessInventorySpace.QuickSlot, 0, 10, 1), (BusinessInventorySpace.QuickSlot, 1, 2, 2) }, receipt.GrantedSlots
+            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.Value, slot.AddedCount)));
         Assert.All(receipt.MaterialChanges, change => Assert.Null(change.Core));
         Assert.Equal(5, shop.Sender.Messages.Count);
     }
@@ -294,6 +309,7 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<TimeProvider>(Clock);
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
+        Sender.Services = provider;
         _ = provider.GetRequiredService<SqliteDatabase>();
         Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,2,0),(2,1,'shop2',12,2,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
@@ -359,6 +375,19 @@ internal sealed class ShopFixture : IDisposable
         command.CommandText = sql;
         return Convert.ToInt32(command.ExecuteScalar());
     }
+    public byte[] StoredCore(int slot, InventoryContainerType container = InventoryContainerType.Main)
+    {
+        using var db = new SqliteConnection(ConnectionString);
+        db.Open();
+        using var command = db.CreateCommand();
+        command.CommandText = "SELECT i.item_core FROM items i JOIN item_slots s ON s.core_uid=i.item_uid "
+            + "WHERE s.owner_scope='character' AND s.owner_id=$owner AND s.list_type=$list AND s.slot_index=$slot";
+        command.Parameters.AddWithValue("$owner", session.CharacterId.Value);
+        command.Parameters.AddWithValue("$list", (byte)container);
+        command.Parameters.AddWithValue("$slot", slot);
+        return (byte[])command.ExecuteScalar()!;
+    }
+
     public void Sql(string sql)
     {
         using var db = new SqliteConnection(ConnectionString);
@@ -385,7 +414,12 @@ internal sealed class ShopFixture : IDisposable
 
 internal sealed class ShopSender : INetworkMessageSender
 {
+    public IServiceProvider Services { get; set; } = null!;
     public List<IServerNetworkMessage> Messages { get; } = [];
+    public List<(NetworkConnectionContext Connection, IServerNetworkMessage[] Messages, byte[][] Frames)> Batches { get; } = [];
+    public Action? BeforeExplicit { get; set; }
+    public bool FailExplicit { get; set; }
+    public bool FailBatch { get; set; }
     public Action? BeforeSend { get; set; }
     public int Attempts { get; private set; }
     public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct)
@@ -395,6 +429,29 @@ internal sealed class ShopSender : INetworkMessageSender
         Messages.Add(message);
         return ValueTask.CompletedTask;
     }
-    public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct) =>
-        throw new NotSupportedException("Purchases use the registered event bus.");
+    public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct)
+    {
+        BeforeExplicit?.Invoke();
+        if (FailExplicit) throw new IOException("Fixture Explicit publication failed after settlement.");
+        foreach (var message in delivery.RequiredDirectMessages) Messages.Add(message);
+        foreach (var target in delivery.BestEffortTargets) Messages.AddRange(target.OrderedMessages);
+        return ValueTask.CompletedTask;
+    }
+    public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
+    {
+        var registrations = Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
+        var ownedMessages = messages.ToArray();
+        var frames = ownedMessages.SelectMany(message =>
+        {
+            var registration = registrations[message.GetType()];
+            Assert.Equal(connection.EndpointKind, registration.Endpoint);
+            return ((IServerMessageEncoder)Services.GetRequiredService(registration.EncoderType)).Encode(message);
+        }).Select(frame => frame.ToArray()).ToArray();
+        Assert.All(frames, frame => Assert.InRange(frame.Length, 15, 1_048_576));
+        BeforeSend?.Invoke();
+        Batches.Add((connection, ownedMessages, frames));
+        if (FailBatch) throw new IOException("Fixture batch transport failed after preencoding.");
+        Messages.AddRange(ownedMessages);
+        return ValueTask.CompletedTask;
+    }
 }

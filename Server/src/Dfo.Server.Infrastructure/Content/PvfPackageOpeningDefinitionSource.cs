@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Immutable;
 using System.Collections.Frozen;
 using System.Globalization;
@@ -11,6 +12,44 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provider,
     ICeraShopDefinitionSource items, IItemPlacementDefinitionSource placements) : IPackageOpeningDefinitionSource, ILotteryDefinitionCache
 {
+    private static readonly PvfFieldFamily PackageDataFields = new("[package data");
+
+    private static class Fields
+    {
+        internal static readonly PvfField<int> LotteryUseCostField = PvfField.Int32("[lottery use cost]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> LotteryUseNeedItemField = PvfField.Int32List("[lottery use need item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> IntDataField = PvfField.Int32List("[int data]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RandomboxField = PvfField.Tokens("[randombox]", optional: true);
+        internal static readonly PvfField<bool> CloseRandomboxField = PvfField.Marker("[/randombox]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> BoosterInfoField = PvfField.Tokens("[booster info]", optional: true);
+        internal static readonly PvfField<bool> CloseBoosterInfoField = PvfField.Marker("[/booster info]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> BoosterSelectCategoryField = PvfField.Int32List("[booster select category]", optional: true);
+        internal static readonly PvfField<bool> CloseBoosterSelectCategoryField = PvfField.Marker("[/booster select category]", optional: true);
+        internal static readonly PvfField<int> BoosterSelectionNumField = PvfField.Int32("[booster selection num]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> NeedMaterialField = PvfField.Int32List("[need material]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> SealingRemovalItemField = PvfField.Int32List("[sealing removal item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AvatarField = PvfField.Tokens("[avatar]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PackageDataIncludeUsablePeriodField = PvfField.Int32List("[package data include usable period]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> BroadcastField = PvfField.Tokens("[broadcast]", optional: true);
+        internal static readonly PvfField<int> UsableCountLimitField = PvfField.Int32("[usable count limit]", optional: true);
+        internal static readonly PvfField<int> UsableCountField = PvfField.Int32("[usable count]", optional: true);
+        internal static readonly PvfField<int> UseCountLimitField = PvfField.Int32("[use count limit]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PackageDataField = PvfField.Int32List("[package data]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> EquipmentField = PvfField.Tokens("[equipment]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> EtcField = PvfField.Tokens("[etc]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CreatureField = PvfField.Tokens("[creature]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> SpecialAvatarField = PvfField.Tokens("[special avatar]", optional: true);
+
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> UsablePeriodField = PvfField.Tokens("[usable period]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
+        internal static readonly PvfField<int> TypeField = PvfField.Int32("[type]", optional: true);
+        internal static readonly PvfField<int> ItemField = PvfField.Int32("[item]", optional: true);
+        internal static readonly PvfField<int> TermField = PvfField.Int32("[term]", optional: true);
+        internal static readonly PvfField<int> IsTermUnitMinuteField = PvfField.Int32("[is term unit minute]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> StackableTypeField = PvfField.Tokens("[stackable type]", optional: true);
+        internal static readonly PvfField<bool> CloseItemField = PvfField.Marker("[/item]", optional: true);
+    }
+
     private FrozenDictionary<int, OpeningPackageDefinition>? lotteryDefinitions;
 
     public OpeningPackageDefinition GetRequired(int itemId)
@@ -50,7 +89,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                         break;
                     }
                     typeFollows = token.Kind == PvfTokenKind.Identifier
-                        && provider.Archive.ResolveString(token.Value) == "[stackable type]";
+                        && provider.Archive.ResolveString(token.Value) == Fields.StackableTypeField.Name;
                 }
                 if (!isLottery) continue;
                 // Keep diagnostics: loading a definition does not authorize unsupported content.
@@ -140,10 +179,10 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         };
         // Catalog purchase restrictions do not restrict rewards. Instance diagnostics still do.
         var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, item.Source);
-        var periods = sections.Where(s => s.Name == "[usable period]").ToArray();
+        var periods = sections.Where(s => s.Name == Fields.UsablePeriodField.Name).ToArray();
         var period = periods.Length == 0 ? 0 : periods.Length == 1 && periods[0].Values.Count == 1
             && periods[0].Values[0].Kind == PvfTokenKind.Int32 ? periods[0].Values[0].Value : -1;
-        var expirations = sections.Where(s => s.Name == "[expiration date]").ToArray();
+        var expirations = sections.Where(s => s.Name == Fields.ExpirationDateField.Name).ToArray();
         var expiration = 0;
         if (expirations.Length > 0)
         {
@@ -160,7 +199,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         }
         var supported = period >= 0 && expiration >= 0 && item.Kind is not (CeraShopItemKind.Unknown or CeraShopItemKind.Service)
             && item.Diagnostics.All(d => d.Code is "PurchaseRestriction" or "MalformedPurchaseLevel"
-                || d.Code == "UnsupportedInstanceDeclaration" && d.Detail is "[usable period]" or "[expiration date]");
+                || d.Code == "UnsupportedInstanceDeclaration" && (d.Detail == Fields.UsablePeriodField.Name || d.Detail == Fields.ExpirationDateField.Name));
         return new(itemId, placement, item.Durability, item.Sealed,
             item.Avatar?.SelectableAbilities ?? [], item.Creature?.StartLevel, supported, period, expiration);
     }
@@ -174,28 +213,48 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
     {
         var result = new Dictionary<int, (int, TimeSpan)>();
+        foreach (var section in sections)
+        {
+            if (section.Name == Fields.TypeField.Name) Number(section, Fields.TypeField);
+            else if (section.Name == Fields.ItemField.Name) Number(section, Fields.ItemField);
+            else if (section.Name == Fields.TermField.Name) Number(section, Fields.TermField);
+            else if (section.Name == Fields.IsTermUnitMinuteField.Name) Number(section, Fields.IsTermUnitMinuteField);
+        }
         var type = 0;
         for (var i = 0; i < sections.Count; i++)
         {
             var section = sections[i];
-            if (section.Name == "[type]") type = Number(section);
-            if (type <= 0 || section.Name != "[item]") continue;
-            var item = Number(section);
-            var term = 0; var minutes = false;
+            if (section.Name == Fields.TypeField.Name) type = Number(section, Fields.TypeField);
+            if (section.Name != Fields.ItemField.Name) continue;
+            var item = Number(section, Fields.ItemField);
+            var term = 0; var minutes = false; var hasTerm = false; var hasUnit = false;
             for (var j = i + 1; j < sections.Count; j++)
             {
                 var next = sections[j];
-                if (next.Name is "[/item]" or "[item]" or "[type]") break;
-                if (next.Name == "[term]") term = Number(next);
-                if (next.Name == "[is term unit minute]") minutes = Number(next) == 1;
+                if (next.Name == Fields.CloseItemField.Name || next.Name == Fields.ItemField.Name || next.Name == Fields.TypeField.Name) break;
+                if (next.Name == Fields.TermField.Name)
+                {
+                    if (hasTerm) throw new InvalidDataException("Premium item: duplicate [term].");
+                    term = Number(next, Fields.TermField); hasTerm = true;
+                }
+                if (next.Name == Fields.IsTermUnitMinuteField.Name)
+                {
+                    if (hasUnit) throw new InvalidDataException("Premium item: duplicate [is term unit minute].");
+                    minutes = Number(next, Fields.IsTermUnitMinuteField) == 1; hasUnit = true;
+                }
             }
-            if (item > 0 && term > 0)
+            if (type > 0 && item > 0 && term > 0)
                 result[item] = (type, minutes ? TimeSpan.FromMinutes(term) : TimeSpan.FromDays(term));
         }
         return result;
 
-        static int Number(PvfNpcShopDefinitionSource.Section value) =>
-            value.Values.Count == 1 && value.Values[0].Kind == PvfTokenKind.Int32 ? value.Values[0].Value : 0;
+        // Archive-independent parser entry retains the same complete scalar oracle as typed Int32.
+        static int Number(PvfNpcShopDefinitionSource.Section value, PvfField<int> field)
+        {
+            if (value.Values.Count != 1 || value.Values[0].Kind != PvfTokenKind.Int32)
+                throw new InvalidDataException($"Premium item, field '{field.Name}': expected exactly one Int32.");
+            return value.Values[0].Value;
+        }
     }
 
     internal static OpeningPackageDefinition Parse(int id, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections,
@@ -204,7 +263,11 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         var errors = ImmutableArray.CreateBuilder<string>();
         var fixedRewards = ImmutableArray.CreateBuilder<OpeningReward>();
         var pools = ImmutableArray.CreateBuilder<OpeningRewardPool>();
-        var typeToken = sections.FirstOrDefault(s => s.Name == "[stackable type]")?.Values.FirstOrDefault();
+        var typeSections = sections.Where(section => section.Name == Fields.StackableTypeField.Name).ToArray();
+        if (typeSections.Length > 1) errors.Add("Duplicate stackable type");
+        if (typeSections.Length == 1 && (typeSections[0].Values.Count == 0 || !typeSections[0].Values[0].IsString ||
+            typeSections[0].Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))) errors.Add("Invalid stackable type");
+        var typeToken = typeSections.FirstOrDefault()?.Values.FirstOrDefault();
         var type = typeToken is { IsString: true } token ? text(token).ToLowerInvariant() : "";
         var kind = type switch
         {
@@ -221,24 +284,27 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             return section.Values.Where(t => t.Kind == PvfTokenKind.Int32).Select(t => t.Value).ToArray();
         }
         var goldCost = 0;
+        var costSeen = false;
         var material = 0; var materialCount = 0; var sourceCount = 1; var selectionCount = 0;
         var random = false; var booster = false; var selection = false;
         foreach (var section in sections)
         {
             var name = section.Name.ToLowerInvariant();
-            if (kind == OpeningPackageKind.Lottery && name == "[lottery use cost]")
+            if (kind == OpeningPackageKind.Lottery && name == Fields.LotteryUseCostField.Name)
             {
+                if (costSeen) errors.Add("Duplicate lottery cost");
+                costSeen = true;
                 var values = Numbers(section);
                 if (values.Length != 1 || values[0] < 0) errors.Add("Invalid lottery cost");
                 else goldCost = values[0];
                 continue;
             }
-            if (kind == OpeningPackageKind.Lottery && name == "[lottery use need item]")
+            if (kind == OpeningPackageKind.Lottery && name == Fields.LotteryUseNeedItemField.Name)
             {
                 errors.Add("Lottery material costs are not supported by this opening entry yet");
                 continue;
             }
-            if (kind == OpeningPackageKind.Lottery && name == "[int data]")
+            if (kind == OpeningPackageKind.Lottery && name == Fields.IntDataField.Name)
             {
                 var values = Numbers(section);
                 var entries = ImmutableArray.CreateBuilder<OpeningWeightedReward>();
@@ -251,30 +317,30 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 pools.Add(new(1, entries.ToImmutable()));
                 continue;
             }
-            if (name == "[randombox]") { random = true; continue; }
-            if (name == "[/randombox]") { random = false; continue; }
-            if (name == "[booster info]") { booster = true; continue; }
-            if (name == "[/booster info]") { booster = false; continue; }
-            if (name == "[booster select category]")
+            if (name == Fields.RandomboxField.Name) { random = true; continue; }
+            if (name == Fields.CloseRandomboxField.Name) { random = false; continue; }
+            if (name == Fields.BoosterInfoField.Name) { booster = true; continue; }
+            if (name == Fields.CloseBoosterInfoField.Name) { booster = false; continue; }
+            if (name == Fields.BoosterSelectCategoryField.Name)
             {
                 selection = true;
                 var category = Numbers(section);
                 if (category.Length != 2 || category.Any(value => value < 0)) errors.Add("Invalid selection category");
                 continue;
             }
-            if (name == "[/booster select category]") { selection = false; continue; }
+            if (name == Fields.CloseBoosterSelectCategoryField.Name) { selection = false; continue; }
             if (name.StartsWith("[/", StringComparison.Ordinal)) continue;
-            if (name is "[usable count limit]" or "[usable count]" or "[use count limit]") errors.Add("Unimplemented use restriction " + name);
-            if (name == "[booster selection num]")
+            if ((name == Fields.UsableCountLimitField.Name || name == Fields.UsableCountField.Name || name == Fields.UseCountLimitField.Name)) errors.Add("Unimplemented use restriction " + name);
+            if (name == Fields.BoosterSelectionNumField.Name)
             {
                 var ns = Numbers(section);
                 if (ns.Length != 1 || ns[0] < 0) errors.Add("Invalid selection count");
                 else selectionCount = ns[0];
             }
-            if (name == "[need material]" || random && name == "[sealing removal item]")
+            if (name == Fields.NeedMaterialField.Name || random && name == Fields.SealingRemovalItemField.Name)
             {
                 var ns = Numbers(section);
-                var start = name == "[sealing removal item]" ? 1 : 0;
+                var start = name == Fields.SealingRemovalItemField.Name ? 1 : 0;
                 if (ns.Length < start + 2 || (ns.Length - start) % 2 != 0
                     || start == 1 && ns[0] * 2 + 1 != ns.Length) { errors.Add("Invalid removal declaration"); continue; }
                 for (var i = start; i < ns.Length; i += 2)
@@ -287,23 +353,23 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                     else errors.Add("Multiple required materials");
                 }
             }
-            if (name is "[package data]" or "[package data include usable period]"
+            if ((name == Fields.PackageDataField.Name || name == Fields.PackageDataIncludeUsablePeriodField.Name)
                 || selection)
             {
                 var ns = Numbers(section);
-                if (selection && name is not ("[avatar]" or "[equipment]" or "[etc]" or "[creature]"))
+                if (selection && !(name == Fields.AvatarField.Name || name == Fields.EquipmentField.Name || name == Fields.EtcField.Name || name == Fields.CreatureField.Name))
                 { errors.Add("Unsupported selection declaration " + name); continue; }
-                var stride = selection && name == "[avatar]" ? 4 : name == "[package data include usable period]" ? 3 : 2;
+                var stride = selection && name == Fields.AvatarField.Name ? 4 : name == Fields.PackageDataIncludeUsablePeriodField.Name ? 3 : 2;
                 if (ns.Length == 0 || ns.Length % stride != 0) errors.Add("Invalid fixed reward " + name);
                 else for (var i = 0; i < ns.Length; i += stride)
                     // Avatar selection's two trailing fields are UI declaration fields in the reference reader.
                     // Creation uses the equipment's declared ability and the selected option supplied by the client.
                     fixedRewards.Add(new(ns[i], ns[i + 1], PeriodDays: stride == 3 ? ns[i + 2] : 0));
             }
-            else if (random && name == "[int data]" || booster)
+            else if (random && name == Fields.IntDataField.Name || booster)
             {
                 var ns = Numbers(section);
-                var stride = random || name == "[broadcast]" ? 4 : name is "[avatar]" or "[special avatar]" ? 5 : 3;
+                var stride = random || name == Fields.BroadcastField.Name ? 4 : (name == Fields.AvatarField.Name || name == Fields.SpecialAvatarField.Name) ? 5 : 3;
                 var start = random ? 3 : 1;
                 if (ns.Length <= start || (ns.Length - start) % stride != 0 || !random && ns[0] <= 0)
                 { errors.Add("Unsupported reward pool " + name); continue; }
@@ -318,7 +384,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 if (entries.All(e => e.Weight == 0)) errors.Add("Empty weight pool");
                 pools.Add(new(random ? 1 : ns[0], entries.ToImmutable()));
             }
-            else if (name.StartsWith("[package data", StringComparison.Ordinal)) errors.Add("Unsupported " + name);
+            else if (name.StartsWith(PackageDataFields.Prefix, StringComparison.Ordinal)) errors.Add("Unsupported " + name);
         }
         if (random || booster || selection) errors.Add("Unclosed reward section");
         if (kind == OpeningPackageKind.Selection && selectionCount <= 0 && fixedRewards.Count > 1)

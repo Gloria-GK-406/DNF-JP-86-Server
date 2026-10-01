@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -22,6 +23,15 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MonsterField = PvfField.Tokens("[monster]", optional: true);
+        internal static readonly PvfField<bool> CloseMonsterField = PvfField.Marker("[/monster]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AiCharacterField = PvfField.Tokens("[ai character]", optional: true);
+        internal static readonly PvfField<bool> CloseAiCharacterField = PvfField.Marker("[/ai character]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MinimumInfoField = PvfField.Tokens("[minimum info]", optional: true);
+    }
+
     private const string MapListPath = "map/map.lst";
     private const string MapDirectory = "map";
     private const string AiCharacterListPath = "aicharacter/aicharacter.lst";
@@ -116,97 +126,52 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
         if (fileIndex < 0)
             return [];
 
-        var monsterOpen = archive.GetTag("[monster]").Offset;
-        var monsterClose = archive.GetTag("[/monster]").Offset;
-        var aiOpen = archive.GetTag("[ai character]").Offset;
-        var aiClose = archive.GetTag("[/ai character]").Offset;
-
+        var path = $"{MapDirectory}/{relativePath}";
+        var document = PvfDocument.Open(archive, path);
+        foreach (var section in document.Sections)
+        {
+            if (Fields.CloseMonsterField.Matches(section.Name)) Fields.CloseMonsterField.Decode(archive, section.Values, path);
+            if (Fields.CloseAiCharacterField.Matches(section.Name)) Fields.CloseAiCharacterField.Decode(archive, section.Values, path);
+        }
         var monsters = new List<DungeonRoomActor>();
-        var aiCharacters = new List<DungeonRoomActor>();
-        var record = new List<int>();
-        var words = new List<string>();
-        var block = Block.None;
-
-        // A monster record is finished by its quoted rank, which arrives AFTER its last integer,
-        // so one cannot be emitted the moment its integers are complete. It is held until whatever
-        // comes next says it is over: the next record's first integer, or the end of the block.
-        void FlushMonster()
+        foreach (var values in document.ReadAll(Fields.MonsterField))
         {
-            if (record.Count == MonsterRecordIntegers)
+            var width = MonsterRecordIntegers + MonsterRecordWords;
+            Require(values.Count % width == 0, path, Fields.MonsterField, "truncated monster record");
+            for (var offset = 0; offset < values.Count; offset += width)
+            {
+                Require(values.Skip(offset).Take(MonsterRecordIntegers).All(token => token.Kind == PvfTokenKind.Int32)
+                    && values.Skip(offset + MonsterRecordIntegers).Take(MonsterRecordWords).All(token => token.Kind == PvfTokenKind.QuotedString),
+                    path, Fields.MonsterField, "expected eight Int32 values followed by two quoted words");
+                var record = values.Skip(offset).Take(MonsterRecordIntegers).Select(token => token.Value).ToArray();
+                Require(record[0] > 0 && record[6] is >= 0 and <= 127, path, Fields.MonsterField, "invalid monster id or random drop count");
+                var words = values.Skip(offset + MonsterRecordIntegers).Take(MonsterRecordWords)
+                    .Select(token => archive.ResolveString(token.Value)).ToArray();
+                Require(words.All(word => !string.IsNullOrWhiteSpace(word)), path, Fields.MonsterField, "missing placement or rank word");
                 monsters.Add(Monster(record, words));
-            record.Clear();
-            words.Clear();
+            }
         }
-
-        var reader = archive.OpenScript(fileIndex);
-        while (reader.Read(out var token))
+        var aiCharacters = new List<DungeonRoomActor>();
+        foreach (var values in document.ReadAll(Fields.AiCharacterField))
         {
-            if (token.Kind == PvfTokenKind.Identifier)
+            var width = AiCharacterRecordIntegers + MonsterRecordWords;
+            Require(values.Count % width == 0, path, Fields.AiCharacterField, "truncated AI character record");
+            for (var offset = 0; offset < values.Count; offset += width)
             {
-                var previous = block;
-                if (token.Value == monsterOpen)
-                {
-                    block = Block.Monster;
-                }
-                else if (token.Value == aiOpen)
-                {
-                    block = Block.AiCharacter;
-                }
-                else if (token.Value == monsterClose || token.Value == aiClose)
-                {
-                    block = Block.None;
-                }
-                else
-                {
-                    // Any other tag ends the block too. The observed maps close theirs properly,
-                    // but one that did not would otherwise swallow the next section's integers.
-                    block = Block.None;
-                }
-
-                if (previous == Block.Monster)
-                    FlushMonster();
-                record.Clear();
-                words.Clear();
-                continue;
-            }
-
-            if (block == Block.None)
-                continue;
-
-            // A monster record closes with two quoted words -- where it stands, and what rank it
-            // is -- and the rank is a field. An AI character's words are read from its own file
-            // instead, so they are still skipped there.
-            if (token.Kind == PvfTokenKind.QuotedString)
-            {
-                if (block == Block.Monster
-                    && record.Count == MonsterRecordIntegers
-                    && words.Count < MonsterRecordWords)
-                {
-                    words.Add(archive.ResolveString(token.Value));
-                }
-
-                continue;
-            }
-
-            if (token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            if (block == Block.Monster && record.Count == MonsterRecordIntegers)
-                FlushMonster();
-
-            record.Add(token.Value);
-            if (block == Block.AiCharacter && record.Count == AiCharacterRecordIntegers)
-            {
-                if (TryAiCharacter(archive, record[0], out var actor))
-                    aiCharacters.Add(actor);
-                record.Clear();
-                words.Clear();
+                Require(values.Skip(offset).Take(4).All(token => token.Kind == PvfTokenKind.Int32)
+                    && values.Skip(offset + 4).Take(2).All(token => token.Kind == PvfTokenKind.QuotedString)
+                    && values.Skip(offset + 6).Take(2).All(token => token.Kind == PvfTokenKind.Int32),
+                    path, Fields.AiCharacterField, "expected four Int32 values, two quoted words and two Int32 values");
+                Require(values[offset].Value > 0, path, Fields.AiCharacterField, "invalid AI character id");
+                if (TryAiCharacter(archive, values[offset].Value, out var actor)) aiCharacters.Add(actor);
             }
         }
-
-        if (block == Block.Monster)
-            FlushMonster();
         return [.. monsters, .. aiCharacters];
+    }
+
+    private static void Require(bool valid, string path, PvfField field, string reason)
+    {
+        if (!valid) throw new InvalidDataException($"PVF '{path}', field '{field}': {reason}.");
     }
 
     /// <remarks>
@@ -278,32 +243,17 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
         if (fileIndex < 0)
             return 0;
 
-        var minimumInfo = archive.GetTag("[minimum info]");
-        if (!minimumInfo.IsResolved)
-            return 0;
-
-        var reader = archive.OpenScript(fileIndex);
-        if (!reader.TryMovePast(minimumInfo))
-            return 0;
-
-        var seen = 0;
-        while (reader.Read(out var token))
-        {
-            if (token.Kind == PvfTokenKind.Identifier)
-                return 0;
-            if (token.Kind != PvfTokenKind.Int32)
-                continue;
-            if (++seen == AiCharacterLevelPosition)
-                return token.Value is > 0 and <= byte.MaxValue ? (byte)token.Value : (byte)0;
-        }
-
-        return 0;
+        var path = $"{AiCharacterDirectory}/{relativePath}";
+        var document = PvfDocument.Open(archive, path);
+        if (!document.TryRead(Fields.MinimumInfoField, out var values)) return 0;
+        Require(values.Count == 16 && values[0].Kind == PvfTokenKind.QuotedString
+            && values.Skip(1).Take(11).All(token => token.Kind == PvfTokenKind.Int32)
+            && values[12].Kind == PvfTokenKind.QuotedString
+            && values.Skip(13).All(token => token.Kind == PvfTokenKind.Int32),
+            path, Fields.MinimumInfoField, "expected name, eleven Int32 values, creature name and three Int32 values");
+        var level = values[AiCharacterLevelPosition].Value;
+        Require(level is > 0 and <= byte.MaxValue, path, Fields.MinimumInfoField, "level is outside [1, 255]");
+        return (byte)level;
     }
 
-    private enum Block
-    {
-        None,
-        Monster,
-        AiCharacter,
-    }
 }

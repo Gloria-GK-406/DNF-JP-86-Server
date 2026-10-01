@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -7,6 +8,66 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <summary>Projects the archive's quest scripts into neutral, validated definitions.</summary>
 internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> NameField = PvfField.String("[name]", optional: true);
+        internal static readonly PvfField<string> GradeField = PvfField.String("[grade]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> JobField = PvfField.Strings("[job]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> LevelField = PvfField.Int32List("[level]", optional: true);
+        internal static readonly PvfField<int> GrowTypeField = PvfField.Int32("[grow type]", optional: true);
+        internal static readonly PvfField<int> NpcIndexField = PvfField.Int32("[npc index]", optional: true);
+        internal static readonly PvfField<int> CompleteNpcIndexField = PvfField.Int32("[complete npc index]", optional: true);
+        internal static readonly PvfField<string> TypeField = PvfField.String("[type]", optional: true);
+        internal static readonly PvfField<int> SubTypeField = PvfField.Int32("[sub type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> IntDataField = PvfField.Int32List("[int data]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MonsterRewardItemField = PvfField.Tokens("[monster reward item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> EnemyRewardItemField = PvfField.Tokens("[enemy reward item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> DependGiveItemField = PvfField.Tokens("[depend give item]", optional: true);
+        internal static readonly PvfField<string> DifficultyField = PvfField.String("[difficulty]", optional: true);
+        internal static readonly PvfField<string> RewardTypeField = PvfField.String("[reward type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RewardIntDataField = PvfField.Tokens("[reward int data]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RewardSelectionIntDataField = PvfField.Tokens("[reward selection int data]", optional: true);
+        internal static readonly PvfField<int> GoldMultipleField = PvfField.Int32("[gold multiple]", optional: true);
+        internal static readonly PvfField<int> ExposedByNpcField = PvfField.Int32("[exposed by npc]", optional: true);
+        internal static readonly PvfField<int> EventField = PvfField.Int32("[event]", optional: true);
+        internal static readonly PvfField<int> CreatureKindField = PvfField.Int32("[creature kind]", optional: true);
+        internal static readonly PvfField<int> CreatureLevelField = PvfField.Int32("[creature level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ExpertjobLevelField = PvfField.Int32List("[expertjob level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> TargetCharacterField = PvfField.Custom<IReadOnlyList<string>>("[target character]",
+            (archive, values, path) =>
+            {
+                var jobs = new List<string>();
+                for (var index = 0; index < values.Count;)
+                {
+                    if (!values[index].IsString) throw new InvalidDataException($"PVF '{path}', field '[target character]': expected job string.");
+                    jobs.Add(archive.ResolveString(values[index++].Value));
+                    if (index < values.Count && values[index].Kind == PvfTokenKind.Int32)
+                    {
+                        if (index + 1 >= values.Count || values[index + 1].Kind != PvfTokenKind.Int32)
+                            throw new InvalidDataException($"PVF '{path}', field '[target character]': incomplete growtype/awakening pair.");
+                        index += 2;
+                    }
+                }
+                return jobs.AsReadOnly();
+            }, optional: true);
+        internal static readonly PvfField<int> JobChangeQuestField = PvfField.Int32("[job change quest]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PreRequiredQuestField = PvfField.Int32List("[pre required quest]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PreRequiredQuestAnswerField = PvfField.Int32List("[pre required quest answer]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> CollisionQuestField = PvfField.Int32List("[collision quest]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> AccountCollisionQuestField = PvfField.Int32List("[account collision quest]", optional: true);
+        internal static readonly PvfField<bool> SpecialRewardStatusField = PvfField.Custom<bool>("[special reward status]", (_, values, path) =>
+        {
+            if (values.Count == 0 || values.Count % 3 != 0)
+                throw new InvalidDataException($"PVF '{path}', field '[special reward status]': incomplete attribute/operator/value triple.");
+            for (var i = 0; i < values.Count; i += 3)
+                if (!values[i].IsString || !values[i + 1].IsString || values[i + 2].Kind is not (PvfTokenKind.Int32 or PvfTokenKind.Single)
+                    || values[i + 2].Kind == PvfTokenKind.Single && !float.IsFinite(values[i + 2].AsSingle()))
+                    throw new InvalidDataException($"PVF '{path}', field '[special reward status]': expected attribute/operator/finite-number triples.");
+            return true;
+        }, optional: true);
+        internal static readonly PvfField<int> IgnoreQuestLevel4ExpField = PvfField.Int32("[ignore quest level 4 exp]", optional: true);
+    }
+
     private const string ListPath = "n_quest/quest.lst";
     private const string QuestDirectory = "n_quest";
     private const string TrainingListPath = "n_quest/TrainingQuest.lst";
@@ -208,6 +269,35 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var paysAtCharacterLevel = false;
         List<int>? currentRelationshipGroup = null;
 
+        var scriptEntry = archive.GetEntry(fileIndex);
+        var scriptPath = $"{archive.ResolveString(scriptEntry.PathOffset)}/{archive.ResolveString(scriptEntry.NameOffset)}";
+        PvfDocument.Open(archive, scriptPath).ValidateFields(
+            Fields.NameField,
+            Fields.GradeField,
+            Fields.JobField,
+            Fields.LevelField,
+            Fields.GrowTypeField,
+            Fields.NpcIndexField,
+            Fields.CompleteNpcIndexField,
+            Fields.TypeField,
+            Fields.SubTypeField,
+            Fields.IntDataField,
+            Fields.DifficultyField,
+            Fields.RewardTypeField,
+            Fields.GoldMultipleField,
+            Fields.ExposedByNpcField,
+            Fields.EventField,
+            Fields.CreatureKindField,
+            Fields.CreatureLevelField,
+            Fields.ExpertjobLevelField,
+            Fields.TargetCharacterField,
+            Fields.JobChangeQuestField,
+            Fields.PreRequiredQuestField,
+            Fields.PreRequiredQuestAnswerField,
+            Fields.CollisionQuestField,
+            Fields.AccountCollisionQuestField,
+            Fields.SpecialRewardStatusField,
+            Fields.IgnoreQuestLevel4ExpField);
         var reader = archive.OpenScript(fileIndex);
         var section = -1;
         while (reader.Read(out var token))
@@ -1021,37 +1111,37 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
     {
         public QuestTags(PvfArchive archive)
         {
-            Name = Offset(archive, "[name]");
-            Grade = Offset(archive, "[grade]");
-            Job = Offset(archive, "[job]");
-            Level = Offset(archive, "[level]");
-            GrowType = Offset(archive, "[grow type]");
-            NpcIndex = Offset(archive, "[npc index]");
-            CompleteNpcIndex = Offset(archive, "[complete npc index]");
-            Type = Offset(archive, "[type]");
-            SubType = Offset(archive, "[sub type]");
-            IntData = Offset(archive, "[int data]");
-            MonsterRewardItem = Offset(archive, "[monster reward item]");
-            EnemyRewardItem = Offset(archive, "[enemy reward item]");
-            DependGiveItem = Offset(archive, "[depend give item]");
-            Difficulty = Offset(archive, "[difficulty]");
-            RewardType = Offset(archive, "[reward type]");
-            RewardIntData = Offset(archive, "[reward int data]");
-            RewardSelectionIntData = Offset(archive, "[reward selection int data]");
-            GoldMultiplier = Offset(archive, "[gold multiple]");
-            ExposedByNpc = Offset(archive, "[exposed by npc]");
-            Event = Offset(archive, "[event]");
-            CreatureKind = Offset(archive, "[creature kind]");
-            CreatureLevel = Offset(archive, "[creature level]");
-            ExpertJobLevel = Offset(archive, "[expertjob level]");
-            TargetCharacter = Offset(archive, "[target character]");
-            JobChangeQuest = Offset(archive, "[job change quest]");
-            PreRequiredQuest = Offset(archive, "[pre required quest]");
-            PreRequiredQuestAnswer = Offset(archive, "[pre required quest answer]");
-            CollisionQuest = Offset(archive, "[collision quest]");
-            AccountCollisionQuest = Offset(archive, "[account collision quest]");
-            SpecialRewardStatus = Offset(archive, "[special reward status]");
-            IgnoreQuestLevelForExperience = Offset(archive, "[ignore quest level 4 exp]");
+            Name = Offset(archive, Fields.NameField);
+            Grade = Offset(archive, Fields.GradeField);
+            Job = Offset(archive, Fields.JobField);
+            Level = Offset(archive, Fields.LevelField);
+            GrowType = Offset(archive, Fields.GrowTypeField);
+            NpcIndex = Offset(archive, Fields.NpcIndexField);
+            CompleteNpcIndex = Offset(archive, Fields.CompleteNpcIndexField);
+            Type = Offset(archive, Fields.TypeField);
+            SubType = Offset(archive, Fields.SubTypeField);
+            IntData = Offset(archive, Fields.IntDataField);
+            MonsterRewardItem = Offset(archive, Fields.MonsterRewardItemField);
+            EnemyRewardItem = Offset(archive, Fields.EnemyRewardItemField);
+            DependGiveItem = Offset(archive, Fields.DependGiveItemField);
+            Difficulty = Offset(archive, Fields.DifficultyField);
+            RewardType = Offset(archive, Fields.RewardTypeField);
+            RewardIntData = Offset(archive, Fields.RewardIntDataField);
+            RewardSelectionIntData = Offset(archive, Fields.RewardSelectionIntDataField);
+            GoldMultiplier = Offset(archive, Fields.GoldMultipleField);
+            ExposedByNpc = Offset(archive, Fields.ExposedByNpcField);
+            Event = Offset(archive, Fields.EventField);
+            CreatureKind = Offset(archive, Fields.CreatureKindField);
+            CreatureLevel = Offset(archive, Fields.CreatureLevelField);
+            ExpertJobLevel = Offset(archive, Fields.ExpertjobLevelField);
+            TargetCharacter = Offset(archive, Fields.TargetCharacterField);
+            JobChangeQuest = Offset(archive, Fields.JobChangeQuestField);
+            PreRequiredQuest = Offset(archive, Fields.PreRequiredQuestField);
+            PreRequiredQuestAnswer = Offset(archive, Fields.PreRequiredQuestAnswerField);
+            CollisionQuest = Offset(archive, Fields.CollisionQuestField);
+            AccountCollisionQuest = Offset(archive, Fields.AccountCollisionQuestField);
+            SpecialRewardStatus = Offset(archive, Fields.SpecialRewardStatusField);
+            IgnoreQuestLevelForExperience = Offset(archive, Fields.IgnoreQuestLevel4ExpField);
             TrainingLevel = Level;
         }
 
@@ -1090,7 +1180,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int IgnoreQuestLevelForExperience { get; }
         public int TrainingLevel { get; }
 
-        private static int Offset(PvfArchive archive, string tag) => archive.GetTag(tag).Offset;
+        private static int Offset(PvfArchive archive, PvfField tag) => archive.GetTag(tag).Offset;
     }
 
     private sealed record RawQuestDefinition(

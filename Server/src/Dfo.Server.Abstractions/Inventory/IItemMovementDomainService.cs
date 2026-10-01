@@ -29,6 +29,8 @@ public enum SlotAdmission
 /// </remarks>
 public interface IItemMovementDomainService
 {
+    ValueTask<ItemMoveOutcome> MoveWithinBackingAsync(BoundInventorySlot source,
+        BoundInventorySlot destination, int count, CancellationToken cancellationToken);
     ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken);
     /// <summary>
     /// The equipment slot this item is worn in, or null when nothing wearable is declared under

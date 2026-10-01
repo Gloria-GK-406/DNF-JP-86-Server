@@ -1,0 +1,36 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+  失败 Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: False) [23 ms]
+  错误消息:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 71
+   at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 85
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: True) [12 ms]
+  错误消息:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 71
+   at Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(Boolean returnToSelection) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\OnlineUsers\OnlineUserServiceTests.cs:line 85
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-007\TASK-007-lock-order-red.trx
+
+失败!  - 失败:     2，通过:     0，已跳过:     0，总计:     2，持续时间: 52 ms - Dfo.Server.Application.Tests.dll (net10.0)
+[xUnit.net 00:00:00.51]     Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: False) [FAIL]
+[xUnit.net 00:00:00.53]     Dfo.Server.Application.Tests.OnlineUsers.UserServiceTests.TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(returnToSelection: True) [FAIL]

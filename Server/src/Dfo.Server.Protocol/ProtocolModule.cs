@@ -1,3 +1,7 @@
+using Dfo.Server.Protocol.Game.Teleport;
+using Dfo.Server.Protocol.Game.Creatures;
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Protocol.Game.InventorySort;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Protocol.Game.RecoverStamina;
@@ -52,6 +56,12 @@ using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
 using Dfo.Server.Protocol.Game.RepairItem;
 using Dfo.Server.Protocol.Game.DisjointItem;
+using Dfo.Server.Protocol.Game.ReinforceItem;
+using Dfo.Server.Protocol.Game.EnchantByBead;
+using Dfo.Server.Protocol.Game.MagicSeal;
+using Dfo.Server.Protocol.Game.Outworld;
+using Dfo.Server.Protocol.Game.CompoundItem;
+using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
@@ -137,6 +147,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<PartyClientIdRegistry>();
         services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionDelivery, ReplayStateProjectionDelivery>();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
@@ -150,6 +161,16 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<FatigueNotification, FatigueEncoder>();
         services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.AddHostedService<WeaknessRecoveryService>();
+        services.AddHostedService<CreatureClockService>();
+        services.TryAddSingleton<CreatureProjectionDelivery>();
+        services.AddCommandHandler<AdvanceCreatureClockCommand, IReadOnlyList<CreatureRuntimeChange>, AdvanceCreatureClockCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddGameNotiMessageEncoder<CreatureExperienceNotification, CreatureExperienceEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureStateNotification, CreatureStateEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureDeathNotification, CreatureDeathEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureRevivalNotification, CreatureRevivalEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureRenameNotification, CreatureRenameEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureEvolutionNotification, CreatureEvolutionEncoder>();
+        services.AddGameNotiMessageEncoder<CreatureResponseNotification, CreatureResponseEncoder>();
         services.AddHostedService<PremiumDailyRefreshService>();
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
@@ -192,6 +213,18 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EquipmentReinforcementCompleted,
+            EquipmentReinforcementCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EquipmentEnchantCompleted,
+            EquipmentEnchantCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<MagicSealCompleted,
+            MagicSealCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<OutworldCompleted,
+            OutworldCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<ForgingCompleted,
+            ForgingCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<InventorySorted, InventorySortedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>(retryLimit: 0);
@@ -362,6 +395,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<HatchCreatureCommand, HatchCreatureResult, HatchCreatureCommandHandler>(
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
@@ -386,6 +423,29 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<PortableDisjointItemCommand, EquipmentDisjointResult,
             PortableDisjointItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReinforceItemCommand, EquipmentReinforcementResult,
+            ReinforceItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<EnchantByBeadCommand, EquipmentEnchantResult,
+            EnchantByBeadCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
+            MagicSealCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<OutworldCommand, EquipmentOutworldResult,
+            OutworldCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<ForgingCommand, EquipmentForgingResult,
+            ForgingCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
@@ -548,6 +608,9 @@ public sealed class ProtocolModule : IServerModule
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
+        services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
+        services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
+        services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
@@ -562,6 +625,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
+        services.RegisterMessageHandler<RenameCreatureHandler>(ClientMessageType.GameRenameCreature);
+        services.RegisterMessageHandler<HatchCreatureHandler>(ClientMessageType.GameHatchCreature);
+        services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
+        services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
@@ -576,6 +643,15 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
         services.RegisterMessageHandler<DisjointItemHandler>(ClientMessageType.GameDisjointItem);
+        services.RegisterMessageHandler<ReinforceItemHandler>(ClientMessageType.GameReinforceItem);
+        services.RegisterMessageHandler<EnchantByBeadHandler>(ClientMessageType.GameEnchantByBead);
+        services.RegisterMessageHandler<TeleportHandler>(ClientMessageType.GameTeleport);
+        services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
+        services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
+        services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
+        services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GamePurifyItem);
+        services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GameInvestAmplifyOption);
+        services.RegisterMessageHandler<ForgingHandler>(ClientMessageType.GameSeparateUpgrade);
         services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
@@ -755,6 +831,9 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
             GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
+        services.AddGameCmdMessageDecoder<SortLockDecoder>(GameProtocol.SortLockType, ClientMessageType.GameSortLock);
+        services.AddGameCmdMessageDecoder<SortUnlockDecoder>(GameProtocol.SortUnlockType, ClientMessageType.GameSortUnlock);
+        services.AddGameCmdMessageDecoder<SortItemMessageDecoder>(GameProtocol.SortItemType, ClientMessageType.GameSortItem);
         services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(
             GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
         services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
@@ -770,6 +849,20 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
         services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(
             GameProtocol.DisjointItemType, ClientMessageType.GameDisjointItem);
+        services.AddGameCmdMessageDecoder<ReinforceItemMessageDecoder>(
+            GameProtocol.ReinforceItemType, ClientMessageType.GameReinforceItem);
+        services.AddGameCmdMessageDecoder<EnchantByBeadDecoder>(
+            GameProtocol.EnchantByBeadType, ClientMessageType.GameEnchantByBead);
+        services.AddGameCmdMessageDecoder<UnsealRandomOptionDecoder>(
+            GameProtocol.UnsealRandomOptionType, ClientMessageType.GameUnsealRandomOption);
+        services.AddGameCmdMessageDecoder<ChangeRandomOptionDecoder>(
+            GameProtocol.ChangeRandomOptionType, ClientMessageType.GameChangeRandomOption);
+        services.AddGameCmdMessageDecoder<PurifyItemDecoder>(
+            GameProtocol.PurifyItemType, ClientMessageType.GamePurifyItem);
+        services.AddGameCmdMessageDecoder<InvestAmplifyOptionDecoder>(
+            GameProtocol.InvestAmplifyOptionType, ClientMessageType.GameInvestAmplifyOption);
+        services.AddGameCmdMessageDecoder<ForgingDecoder>(
+            GameProtocol.SeparateUpgradeType, ClientMessageType.GameSeparateUpgrade);
         services.AddGameCmdMessageDecoder<CrystalContractDecoder>(0x0218, ClientMessageType.GameCrystalContract);
         services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
             GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
@@ -780,6 +873,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<MagicBoxSingleOpeningDecoder>(0x00D0, ClientMessageType.GameMagicBoxSingleOpening);
         services.AddGameCmdMessageDecoder<VendingMachineDecoder>(0x00D7, ClientMessageType.GameVendingMachine);
         services.AddGameCmdMessageDecoder<LotteryOpeningDecoder>(0x001B, ClientMessageType.GameLotteryOpening);
+        services.AddGameCmdMessageDecoder<CompoundItemDecoder>(GameProtocol.CompoundItemType, ClientMessageType.GameCompoundItem);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
@@ -787,6 +881,15 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
             GameProtocol.UseStackableType, ClientMessageType.GameUseStackable);
+        services.AddGameCmdMessageDecoder<HatchCreatureMessageDecoder>(
+            CreaturePayloadCodec.HatchCommandType, ClientMessageType.GameHatchCreature);
+        services.AddGameCmdMessageDecoder<RenameCreatureMessageDecoder>(
+            CreaturePayloadCodec.RenameCommandType, ClientMessageType.GameRenameCreature);
+        services.AddGameCmdMessageDecoder<CreatureResponseReportDecoder>(
+            0x0065, ClientMessageType.GameCreatureResponseReport);
+        services.AddGameCmdMessageDecoder<CreatureScriptMessageReportDecoder>(
+            0x007A, ClientMessageType.GameCreatureScriptMessage);
+        services.AddGameCmdMessageDecoder<TeleportDecoder>(0x00ED, ClientMessageType.GameTeleport);
         services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
             GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
@@ -866,6 +969,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
+        services.AddGameCmdMessageEncoder<RenameCreatureResponse, RenameCreatureResponseEncoder>();
+        services.AddGameCmdMessageEncoder<HatchCreatureResponse, HatchCreatureResponseEncoder>();
+        services.AddGameCmdMessageEncoder<TeleportResponse, TeleportEncoder>();
+        services.AddGameNotiMessageEncoder<TeleportCooldownNotification, TeleportCooldownEncoder>();
         services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
@@ -873,6 +980,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<MagicBoxSingleOpeningResponse, MagicBoxSingleOpeningEncoder>();
         services.AddGameCmdMessageEncoder<VendingMachineResponse, VendingMachineEncoder>();
         services.AddGameCmdMessageEncoder<LotteryOpeningResponse, LotteryOpeningEncoder>();
+        services.AddGameCmdMessageEncoder<CompoundItemResponse, CompoundItemEncoder>();
         services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();
@@ -882,6 +990,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<ReinforceItemResponse, ReinforceItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<EnchantByBeadResponse, EnchantByBeadEncoder>();
+        services.AddGameCmdMessageEncoder<ChangeRandomOptionResponse, ChangeRandomOptionEncoder>();
+        services.AddGameCmdMessageEncoder<PurifyItemResponse, PurifyItemEncoder>();
+        services.AddGameCmdMessageEncoder<InvestAmplifyOptionResponse, InvestAmplifyOptionEncoder>();
+        services.AddGameCmdMessageEncoder<ForgingResponse, ForgingEncoder>();
+        services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
+        services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();

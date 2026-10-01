@@ -87,6 +87,7 @@ public sealed record TownAreaDefinition(
     int Operand1,
     int Operand2)
 {
+    public int MinimumLevel { get; init; }
     /// <summary>The value the content uses where an operand is absent.</summary>
     public const int NoOperand = -1;
 }

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
 
@@ -23,12 +24,11 @@ public sealed record GrantClearExperienceCommand(
     AccountId AccountId,
     CharacterId CharacterId,
     int DungeonId,
-    ClearCircumstances Clear) : ICommand<ClearExperienceResult>;
+    ClearCircumstances Clear, SelectedSessionIdentity? Session = null) : ICommand<ClearExperienceResult>, ISelectedSessionCommand;
 
 /// <summary>Calculate settlement and persist progression within one transaction.</summary>
 public sealed class GrantClearExperienceCommandHandler(
-    IExperienceCalculationDomainService calculation,
-    ICharacterExperienceDomainService grant)
+    ICharacterExperienceDomainService grant, TimeProvider clock)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
@@ -38,10 +38,9 @@ public sealed class GrantClearExperienceCommandHandler(
         ArgumentNullException.ThrowIfNull(context);
         if (context.ExecutionKind is not CommandExecutionKind.Transactional)
             throw new InvalidOperationException("Awarding experience requires a transaction.");
-        var award = await grant.AwardAsync(command.CharacterId,
-            level => calculation.CalculateAsync(new ClearExperienceContext(
+        var award = await grant.ApplyAwardAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, command.AccountId,
-                    command.CharacterId, command.DungeonId), command.Clear), level, cancellationToken),
+                    command.CharacterId, command.DungeonId), command.Clear), clock.GetUtcNow(), command.Session,
             cancellationToken).ConfigureAwait(false);
         return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0);
     }

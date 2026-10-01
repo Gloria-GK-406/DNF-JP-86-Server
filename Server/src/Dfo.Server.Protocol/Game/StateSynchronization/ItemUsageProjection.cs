@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,7 @@ internal sealed record ItemUsageCountMessage(IReadOnlyList<ItemUsageState> Items
     {
         // Zero clears both client maps. Nonempty packets upsert, so chunking does not erase earlier chunks.
         var messages = new List<ItemUsageCountMessage> { new([]) };
-        foreach (var chunk in items.Chunk(byte.MaxValue)) messages.Add(new(chunk));
+        foreach (var chunk in items.Where(item => item.DailyLimit is not null).ToArray().Chunk(byte.MaxValue)) messages.Add(new(chunk));
         // Validate the whole delivery before sending its reset frame. Never silently truncate a count.
         foreach (var message in messages) _ = message.EncodeBody();
         return messages;
@@ -42,15 +43,19 @@ public sealed record ReadItemUsageSnapshotCommand(SelectedSessionIdentity Sessio
 {
     public AccountId AccountId => Session.AccountId;
 }
-public sealed record ItemUsageSnapshotResult(IReadOnlyList<ItemUsageState> Items, bool IsCurrent);
-public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService usage, ISelectedSessionDomainService sessions)
+public sealed record ItemUsageSnapshotResult(IReadOnlyList<ItemUsageState> Items, bool IsCurrent)
+{
+    public DateTimeOffset At { get; init; }
+}
+public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService usage, ISelectedSessionDomainService sessions, TimeProvider clock)
     : ICommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult>
 {
     public async ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
         ReadItemUsageSnapshotCommand command, CancellationToken token)
     {
         if (sessions.FindByCharacter(command.Session.CharacterId) != command.Session) return new([], false);
-        return new(await usage.GetSnapshotAsync(command.Session.CharacterId, token).ConfigureAwait(false), true);
+        var at = clock.GetUtcNow();
+        return new(await usage.GetSnapshotAtAsync(command.Session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
     }
 }
 public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedSessionDomainService sessions, IGameMessageSender sender)
@@ -60,8 +65,25 @@ public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedS
     {
         var snapshot = await commands.SendAsync(new ReadItemUsageSnapshotCommand(session), token).ConfigureAwait(false);
         if (!snapshot.IsCurrent || sessions.FindByCharacter(session.CharacterId) != session) return;
-        foreach (var message in ItemUsageCountMessage.FullSnapshot(snapshot.Items))
+        var messages = ItemUsageCountMessage.FullSnapshot(snapshot.Items).Cast<IGameNotiMessage>()
+            .Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At)).ToArray();
+        foreach (var message in messages)
+        {
+            if (sessions.FindByCharacter(session.CharacterId) != session) return;
             await sender.SendNotiAsync(session.ConnectionId, message, token).ConfigureAwait(false);
+        }
+    }
+}
+
+internal static class ItemUsageCooldownProjection
+{
+    internal static IReadOnlyList<ItemCooldownStateMessage> Snapshot(IReadOnlyList<ItemUsageState> items, DateTimeOffset at)
+    {
+        var entries = items.Where(item => item.CooldownUntil > at).OrderBy(item => item.ItemId)
+            .Select((item, index) => new InventoryItemValueState(index, item.ItemId,
+                checked((int)Math.Ceiling((item.CooldownUntil!.Value - at).TotalSeconds)))).ToArray();
+        // 00AC upserts cooldowns. Do not invent a reset packet or restart an expired cooldown.
+        return entries.Chunk(byte.MaxValue).Select(chunk => new ItemCooldownStateMessage(chunk)).ToArray();
     }
 }
 

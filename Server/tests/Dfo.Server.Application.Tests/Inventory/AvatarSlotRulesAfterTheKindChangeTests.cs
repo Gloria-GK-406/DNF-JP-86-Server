@@ -83,7 +83,7 @@ public sealed class AvatarSlotRulesAfterTheKindChangeTests
             new BusinessSlot(BusinessInventorySpace.QuickSlot, slotIndex - 3), placement));
 
         Assert.True(SlotRules.CanOccupySlot(
-            new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), placement));
+            new BusinessSlot(BusinessInventorySpace.Avatar, 0), placement));
 
         Assert.True(SlotRules.CanOccupySlot(
             new BusinessSlot(BusinessInventorySpace.QuickSlot, slotIndex - 3),

@@ -53,7 +53,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
 
     private const short OtherAvatarSlot = 5;
 
-    /// <summary>A slot inside the bag's equipment band, which is where a costume may sit.</summary>
+    /// <summary>A slot inside the ordinary equipment band.</summary>
     private const short BagSlot = 12;
 
     /// <summary>Where the archive says the ordinary coat is worn.</summary>
@@ -66,17 +66,17 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     private const int OtherCostumeTemplate = 101500690;
 
     [Dfo.Server.Testing.PvfFact]
-    public async Task A_costume_moves_from_the_avatar_list_into_the_bag()
+    public async Task A_costume_cannot_leave_the_avatar_list_for_the_ordinary_equipment_bag()
     {
         var side = Build(avatarAt: AvatarSlot);
 
         var result = await side.MoveAsync(
             InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Main, BagSlot);
 
-        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(ItemMoveStatus.ItemCannotOccupySlot, result.Status);
         Assert.Equal(CostumeTemplate, result.ItemId);
-        Assert.Null(await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot));
-        Assert.Equal(CostumeTemplate, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Equal(CostumeTemplate, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
+        Assert.Null(await side.ReadAsync(InventoryContainerType.Main, BagSlot));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -123,7 +123,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
     }
 
-    /// <summary>A move inside one list is that list's own business, and reaches it.</summary>
+    /// <summary>A move inside one list uses local slots and changes that list.</summary>
     [Dfo.Server.Testing.PvfFact]
     public async Task A_move_inside_the_avatar_list_is_handed_to_that_list()
     {
@@ -133,9 +133,9 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Avatar, OtherAvatarSlot);
 
         Assert.Equal(ItemMoveStatus.Moved, result.Status);
-        Assert.Equal(
-            (AvatarSlot, OtherAvatarSlot),
-            side.Container(InventoryContainerType.Avatar).LastMove);
+        Assert.Null(await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot));
+        Assert.Equal(CostumeTemplate,
+            (await side.ReadAsync(InventoryContainerType.Avatar, OtherAvatarSlot))!.ItemId);
     }
 
     /// <summary>A costume is worn out of the avatar list, onto the slot the archive names for it.</summary>
@@ -302,10 +302,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         new()
         {
             { InventoryContainerType.PersonalCargo, InventoryContainerType.Main },
-            { InventoryContainerType.Main, InventoryContainerType.Pet },
             { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo },
             { InventoryContainerType.Avatar, InventoryContainerType.PersonalCargo },
-            { InventoryContainerType.QuickSlot, InventoryContainerType.Avatar },
         };
 
     [Dfo.Server.Testing.PvfTheory]
@@ -315,10 +313,25 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     {
         var side = Build(avatarAt: AvatarSlot, costumeInBagAt: BagSlot);
 
-        var result = await side.MoveAsync(source, 0, destination, 0);
+        var result = await side.MoveAsync(source, SlotIn(source), destination, SlotIn(destination));
 
         Assert.Equal(ItemMoveStatus.ListNotServed, result.Status);
     }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task A_bound_pet_list_is_served_even_when_both_slots_are_empty()
+    {
+        var side = Build();
+        var result = await side.MoveAsync(
+            InventoryContainerType.Main, BagSlot, InventoryContainerType.Pet, 0);
+        Assert.Equal(ItemMoveStatus.BothSlotsEmpty, result.Status);
+    }
+
+    private static short SlotIn(InventoryContainerType type) => type switch
+    {
+        InventoryContainerType.Main => BagSlot,
+        _ => 0,
+    };
 
     private Side Build(
         short? avatarAt = null,
@@ -334,6 +347,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         var bag = new RecordingContainer(InventoryContainerType.Main, character);
         var avatars = new RecordingContainer(InventoryContainerType.Avatar, character);
         var worn = new RecordingContainer(InventoryContainerType.Equipment, character);
+        var pet = new RecordingContainer(InventoryContainerType.Pet, character);
 
         if (avatarAt is { } inList)
             avatars.Seed(inList, CostumeTemplate);
@@ -350,6 +364,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         containers.Register(character, bag);
         containers.Register(character, avatars);
         containers.Register(character, worn);
+        containers.Register(character, pet);
 
         var mappings = new InventorySlotMappingRuleService();
         return new Side(
@@ -400,18 +415,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
                 CancellationToken.None);
 
         private static BusinessSlot ToBusinessSlot(
-            InventoryContainerType space, int index)
-        {
-            try
-            {
-                return new InventorySlotMappingRuleService().ToBusinessSlot(
-                    new GameSlot(space, index));
-            }
-            catch (InventorySlotMappingException)
-            {
-                return new BusinessSlot(BusinessInventorySpace.PersonalCargo, 0);
-            }
-        }
+            InventoryContainerType space, int index) =>
+            new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(space, index));
 
         public async ValueTask<ContainerSlotItem?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>

@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -8,6 +9,27 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfCreatureEquipmentLifetimeSource(PvfArchiveProvider provider)
     : ICreatureEquipmentLifetimeSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> ExpirationDateField = PvfField.Custom<string>("[expiration date]",
+            (archive, values, path) =>
+            {
+                var value = ReadScalar(archive, values, path, "[expiration date]");
+                if (value.Trim().Trim('`').Trim().Length > 0 && !TryParse(value, out _))
+                    throw new InvalidDataException($"PVF '{path}', field '[expiration date]': invalid date or duration.");
+                return value;
+            }, optional: true);
+        internal static readonly PvfField<string> UsablePeriodField = PvfField.Custom<string>("[usable period]",
+            (archive, values, path) =>
+            {
+                var value = ReadScalar(archive, values, path, "[usable period]");
+                var text = value.Trim().Trim('`').Trim();
+                if (text.Length > 0 && (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var days) || days < 0))
+                    throw new InvalidDataException($"PVF '{path}', field '[usable period]': expected nonnegative day count.");
+                return value;
+            }, optional: true);
+    }
+
     private const string EquipmentListPath = "equipment/equipment.lst";
     private readonly Lock gate = new();
     private Dictionary<int, Metadata>? metadata;
@@ -32,23 +54,24 @@ internal sealed class PvfCreatureEquipmentLifetimeSource(PvfArchiveProvider prov
 
     private static Dictionary<int, Metadata> Build(PvfArchive archive)
     {
-        var expiration = archive.GetTag("[expiration date]");
-        var usablePeriod = archive.GetTag("[usable period]");
         var result = new Dictionary<int, Metadata>();
-        if (!expiration.IsResolved && !usablePeriod.IsResolved) return result;
         foreach (var (itemId, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
         {
-            var reader = archive.OpenScript("equipment/" + relativePath);
-            var section = -1;
+            var path = "equipment/" + relativePath;
             string? expirationValue = null;
             string? usablePeriodValue = null;
-            while (reader.Read(out var token))
+            foreach (var section in PvfDocument.Open(archive, path).Sections)
             {
-                if (token.Kind == PvfTokenKind.Identifier) section = token.Value;
-                else if (expiration.IsResolved && expirationValue is null && section == expiration.Offset)
-                    expirationValue = ReadValue(archive, token);
-                else if (usablePeriod.IsResolved && usablePeriodValue is null && section == usablePeriod.Offset)
-                    usablePeriodValue = ReadValue(archive, token);
+                if (Fields.ExpirationDateField.Matches(section.Name))
+                {
+                    var value = Fields.ExpirationDateField.Decode(archive, section.Values, path);
+                    expirationValue ??= value;
+                }
+                else if (Fields.UsablePeriodField.Matches(section.Name))
+                {
+                    var value = Fields.UsablePeriodField.Decode(archive, section.Values, path);
+                    usablePeriodValue ??= value;
+                }
             }
             if (expirationValue is not null || usablePeriodValue is not null)
                 result.TryAdd(itemId, new Metadata(expirationValue, usablePeriodValue));
@@ -56,12 +79,13 @@ internal sealed class PvfCreatureEquipmentLifetimeSource(PvfArchiveProvider prov
         return result;
     }
 
-    private static string? ReadValue(PvfArchive archive, PvfToken token) => token.Kind switch
+    private static string ReadScalar(PvfArchive archive, IReadOnlyList<PvfToken> values, string path, string field)
     {
-        PvfTokenKind.Int32 => token.Value.ToString(CultureInfo.InvariantCulture),
-        _ when token.IsString => archive.ResolveString(token.Value),
-        _ => null,
-    };
+        if (values.Count != 1 || (values[0].Kind != PvfTokenKind.Int32 && !values[0].IsString))
+            throw new InvalidDataException($"PVF '{path}', field '{field}': expected exactly one Int32 or string.");
+        return values[0].Kind == PvfTokenKind.Int32
+            ? values[0].Value.ToString(CultureInfo.InvariantCulture) : archive.ResolveString(values[0].Value);
+    }
 
     internal static CreatureEquipmentLifetime ResolveMetadata(
         string? expiration,

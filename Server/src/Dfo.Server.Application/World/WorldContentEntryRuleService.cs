@@ -27,13 +27,13 @@ internal sealed class WorldContentEntryRuleService(
         ArgumentNullException.ThrowIfNull(subject);
 
         return new WorldContentEntryState(
-            await ResolveAvailableQuestsAsync(subject, cancellationToken).ConfigureAwait(false),
+            await ReadOffersAsync(subject, cancellationToken).ConfigureAwait(false),
             await ResolveDailyChallengeAsync(subject, cancellationToken).ConfigureAwait(false),
             await ResolveCollectionBoxesAsync(subject, cancellationToken).ConfigureAwait(false),
             await ResolvePetWelcomeAsync(subject, cancellationToken).ConfigureAwait(false));
     }
 
-    private async ValueTask<AvailableQuestEntryState> ResolveAvailableQuestsAsync(
+    public async ValueTask<AvailableQuestEntryState> ReadOffersAsync(
         WorldContentSubject subject,
         CancellationToken cancellationToken)
     {

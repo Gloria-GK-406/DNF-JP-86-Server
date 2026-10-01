@@ -49,5 +49,9 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic / Confirmed**：A21 handler VA `0x01146950` 恰读 `u16`，据此找场景角色并清宠物死亡标记。70/参考服填玩家场景 uniqueId；当前实现只在穿戴宠物饱食由零恢复为正数时向可见范围发送，具体顺序待实帧。见[接收切片](../../../Document/tasks/creature-system/evidence/a21-pet-noti-handlers.asm.txt)与[专项证据](../../../Document/tasks/creature-system/evidence/a21-protocol.md)。
+
+
+## 当前验收边界（2026-09-30）
+
+复活encoder与跨零状态投影已接线；零饱食条件场景没有由P01–P10单独实测，不升级ClientVerified。 相关消息编排、事务提交与受众归[宠物生命周期流程](../../patterns/flow-creature-lifecycle.md)，此处不由服务端编码推定客户端实帧正确。

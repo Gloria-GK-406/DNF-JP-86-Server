@@ -303,8 +303,8 @@ public sealed class AvatarCarrierRulesTests
 
     private sealed class NoWornSlots : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     private static async Task WithASeededCharacterAsync(Func<string, InventorySide, Task> body)

@@ -8,11 +8,11 @@ public interface ILotteryResultSelector
 {
     OpeningReward Roll(int potItemId);
 }
-public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, int SourceSlot, int GoldAfter);
+public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, BusinessSlot SourceSlot, int GoldAfter);
 public interface ILotteryOpeningDomainService
 {
-    ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, int slot,
-        ushort mode, ushort sequence, CancellationToken token);
+    ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, BusinessSlot slot,
+        ushort mode, CancellationToken token);
 }
 
 public interface ILotteryRandomSource

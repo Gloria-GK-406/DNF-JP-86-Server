@@ -42,7 +42,7 @@ public sealed class CreatureRevivalAddressesByIdentityTests
     private const int Character = 92;
 
     /// <summary>The equipment slot a worn creature stands in. Not this outcome's to decide.</summary>
-    private const int WornSlot = 24;
+    private const int WornSlot = 25;
 
     /// <summary>What an item core says it is when it is a creature.</summary>
     private const byte CreatureKind = 5;

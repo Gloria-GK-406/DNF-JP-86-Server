@@ -38,7 +38,7 @@ internal sealed class MaterialConsumptionDomainService(
             else if (cost.Location is MaterialLocation.Carried carried && carried.Slot.Space.IsCarriedItemSpace())
             {
                 var bound = slots.Find(session.CharacterId, carried.Slot);
-                var item = bound is null ? null : await bound.Container.ReadSlotAsync(bound.StorageIndex, ct);
+                var item = bound is null ? null : await bound.Container.ReadSlotAsync(bound.Slot.Index, ct);
                 if (item is null || !rules.IsConsumable(item, cost.ItemId))
                     return new("InvalidMaterial", []);
                 if (item.Count < cost.Count) return new("InsufficientBalance", []);
@@ -53,8 +53,8 @@ internal sealed class MaterialConsumptionDomainService(
             if (cost.Location is MaterialLocation.Account account)
                 change = await materials.Get(session.AccountId).ConsumeAsync(account.Kind, cost.Count, ct)
                     ?? throw new InvalidOperationException("Validated material balance changed during consumption.");
-            else if (remaining is null) await bound!.Container.ClearAsync(bound.StorageIndex, ct);
-            else await bound!.Container.PutAsync(bound.StorageIndex, remaining, ct);
+            else if (remaining is null) await bound!.Container.ClearAsync(bound.Slot.Index, ct);
+            else await bound!.Container.PutAsync(bound.Slot.Index, remaining, ct);
             debits.Add(new(cost, remaining, change));
         }
         return new(null, debits);

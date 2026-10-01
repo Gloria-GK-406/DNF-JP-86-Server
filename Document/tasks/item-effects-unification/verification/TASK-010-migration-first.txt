@@ -1,0 +1,217 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentForgingHandlerTests.Ticket_variants_reject_without_debit_and_replay_same_error(variant: 2) [461 ms]
+  错误消息:
+   System.IO.InvalidDataException : Effect request cannot retry a Rejected operation.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 59
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentForgingHandlerTests.Ticket_variants_reject_without_debit_and_replay_same_error(Byte variant) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentForgingHandlerTests.cs:line 67
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(action: 0, upgradeLevel: 0, amplifyType: 128, expectedCode: 20) [552 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(Byte action, Byte upgradeLevel, Byte amplifyType, Byte expectedCode) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 135
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Destruction_ack_and_one_virtual_delta_describe_committed_reward_and_replay_does_not_repeat_it [560 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 5
+Actual:   11
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Destruction_ack_and_one_virtual_delta_describe_committed_reward_and_replay_does_not_repeat_it() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementHandlerTests.cs:line 380
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentForgingHandlerTests.Ticket_variants_reject_without_debit_and_replay_same_error(variant: 1) [83 ms]
+  错误消息:
+   System.IO.InvalidDataException : Effect request cannot retry a Rejected operation.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 59
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentForgingHandlerTests.Ticket_variants_reject_without_debit_and_replay_same_error(Byte variant) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentForgingHandlerTests.cs:line 67
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.MagicSealHandlerTests.Replay_after_another_purchase_reports_current_gold_not_old_receipt [113 ms]
+  错误消息:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.MagicSealHandlerTests.Replay_after_another_purchase_reports_current_gold_not_old_receipt() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\MagicSealHandlerTests.cs:line 79
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(action: 1, upgradeLevel: 0, amplifyType: 0, expectedCode: 21) [117 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(Byte action, Byte upgradeLevel, Byte amplifyType, Byte expectedCode) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 135
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(action: 0, upgradeLevel: 10, amplifyType: 0, expectedCode: 18) [94 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(Byte action, Byte upgradeLevel, Byte amplifyType, Byte expectedCode) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 135
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentForgingHandlerTests.Success_commits_before_ack_and_replay_does_not_consume_twice [101 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 6
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentForgingHandlerTests.Success_commits_before_ack_and_replay_does_not_consume_twice() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentForgingHandlerTests.cs:line 28
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(action: 0, upgradeLevel: 0, amplifyType: 3, expectedCode: 20) [96 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(Byte action, Byte upgradeLevel, Byte amplifyType, Byte expectedCode) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 135
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.MagicSealHandlerTests.Replayed_unseal_projects_current_state_without_second_gold_debit [97 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 4
+Actual:   8
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.MagicSealHandlerTests.Replayed_unseal_projects_current_state_without_second_gold_debit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\MagicSealHandlerTests.cs:line 65
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(action: 1, upgradeLevel: 0, amplifyType: 128, expectedCode: 21) [93 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.State_rejections_have_distinct_wire_codes_and_preserve_assets_on_replay(Byte action, Byte upgradeLevel, Byte amplifyType, Byte expectedCode) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 135
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.Dynamic_action_two_is_rejected_without_asset_debit [78 ms]
+  错误消息:
+   System.IO.InvalidDataException : Effect request cannot retry a Rejected operation.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 59
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.Dynamic_action_two_is_rejected_without_asset_debit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 68
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Evicted_sequence_is_rejected_instead_of_spending_again [955 ms]
+  错误消息:
+   System.IO.InvalidDataException : Unknown, expired or conflicting effect request identity.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 51
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Evicted_sequence_is_rejected_instead_of_spending_again() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentEnchantHandlerTests.cs:line 155
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.Purify_commits_before_ack_and_replay_does_not_consume_again [86 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 6
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.Purify_commits_before_ack_and_replay_does_not_consume_again() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 29
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Switching_character_does_not_replay_the_previous_characters_ack [81 ms]
+  错误消息:
+   System.IO.InvalidDataException : Unknown, expired or conflicting effect request identity.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 51
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Switching_character_does_not_replay_the_previous_characters_ack() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementHandlerTests.cs:line 127
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Protected_failure_replay_returns_result_without_another_ticket_or_asset_debit(ticketId: 10007840, newLevel: 10) [77 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 4
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Protected_failure_replay_returns_result_without_another_ticket_or_asset_debit(Int32 ticketId, Byte newLevel) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementHandlerTests.cs:line 258
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.Same_option_failure_replay_keeps_the_original_error_code [67 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentOutworldHandlerTests.Same_option_failure_replay_keeps_the_original_error_code() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentOutworldHandlerTests.cs:line 89
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Sixteen_bit_sequence_wrap_accepts_new_request_but_rejects_old_one [102 ms]
+  错误消息:
+   System.IO.InvalidDataException : Unknown, expired or conflicting effect request identity.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 51
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Sixteen_bit_sequence_wrap_accepts_new_request_but_rejects_old_one() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentEnchantHandlerTests.cs:line 219
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Protected_failure_replay_returns_result_without_another_ticket_or_asset_debit(ticketId: 7804, newLevel: 0) [72 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 4
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Protected_failure_replay_returns_result_without_another_ticket_or_asset_debit(Int32 ticketId, Byte newLevel) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementHandlerTests.cs:line 258
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.A_partial_notification_failure_can_be_replayed_without_a_second_debit [69 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 4
+Actual:   7
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.A_partial_notification_failure_can_be_replayed_without_a_second_debit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentEnchantHandlerTests.cs:line 99
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Replay_after_a_later_enchant_refreshes_the_current_bead_count [73 ms]
+  错误消息:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Replay_after_a_later_enchant_refreshes_the_current_bead_count() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentEnchantHandlerTests.cs:line 204
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Same_sequence_replays_current_inventory_and_ack_while_changed_request_is_rejected [87 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 6
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Same_sequence_replays_current_inventory_and_ack_while_changed_request_is_rejected() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentEnchantHandlerTests.cs:line 42
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Same_connection_sequence_replay_returns_ack_without_spending_again [78 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: 4
+Actual:   9
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Same_connection_sequence_replay_returns_ack_without_spending_again() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementHandlerTests.cs:line 93
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Same_sequence_with_changed_request_is_rejected_instead_of_replaying_success [82 ms]
+  错误消息:
+   System.IO.InvalidDataException : Unknown, expired or conflicting effect request identity.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 51
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementHandlerTests.Same_sequence_with_changed_request_is_rejected_instead_of_replaying_success() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementHandlerTests.cs:line 107
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentAmplificationTests.Amplification_replay_spends_once_and_changed_mode_is_a_conflict [54 ms]
+  错误消息:
+   System.IO.InvalidDataException : Unknown, expired or conflicting effect request identity.
+  堆栈跟踪:
+     at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 51
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Inventory.EquipmentAmplificationTests.Amplification_replay_spends_once_and_changed_mode_is_a_conflict() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentAmplificationTests.cs:line 120
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Replay_delivery_cannot_overtake_a_later_enchant_on_the_same_connection [5 s]
+  错误消息:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Replay_delivery_cannot_overtake_a_later_enchant_on_the_same_connection() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentEnchantHandlerTests.cs:line 123
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-010-migration-first.trx
+
+失败!  - 失败:    26，通过:    81，已跳过:     0，总计:   107，持续时间: 7 s - Dfo.Server.Application.Tests.dll (net10.0)

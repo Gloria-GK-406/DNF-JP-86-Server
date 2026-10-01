@@ -1,0 +1,2713 @@
+
+### 0833705e size=67 _ZN13user_creature9CCreatureC1Ev
+0833705e: push     ebp
+0833705f: mov      ebp, esp
+08337061: sub      esp, 0x18
+08337064: mov      eax, dword ptr [ebp + 8]
+08337067: mov      dword ptr [esp], eax
+0833706a: call     0x8340c82 ; _ZN13user_creature13CCreatureItemC2Ev
+0833706f: mov      eax, dword ptr [ebp + 8]
+08337072: mov      dword ptr [eax], 0x8c2f4c0
+08337078: mov      eax, dword ptr [ebp + 8]
+0833707b: add      eax, 0x34
+0833707e: mov      dword ptr [esp], eax
+08337081: call     0x8336cd8 ; _ZN13user_creature8CStomachC2Ev
+08337086: mov      eax, dword ptr [ebp + 8]
+08337089: add      eax, 0x50
+0833708c: mov      dword ptr [esp], eax
+0833708f: call     0x833d636 ; _ZN13user_creature14COverSkillTimeC2Ev
+08337094: mov      eax, dword ptr [ebp + 8]
+08337097: mov      dword ptr [esp], eax
+0833709a: call     0x83370b0 ; _ZN13user_creature9CCreature5ResetEv
+0833709f: leave
+083370a0: ret
+
+### 0833705e size=67 _ZN13user_creature9CCreatureC2Ev
+0833705e: push     ebp
+0833705f: mov      ebp, esp
+08337061: sub      esp, 0x18
+08337064: mov      eax, dword ptr [ebp + 8]
+08337067: mov      dword ptr [esp], eax
+0833706a: call     0x8340c82 ; _ZN13user_creature13CCreatureItemC2Ev
+0833706f: mov      eax, dword ptr [ebp + 8]
+08337072: mov      dword ptr [eax], 0x8c2f4c0
+08337078: mov      eax, dword ptr [ebp + 8]
+0833707b: add      eax, 0x34
+0833707e: mov      dword ptr [esp], eax
+08337081: call     0x8336cd8 ; _ZN13user_creature8CStomachC2Ev
+08337086: mov      eax, dword ptr [ebp + 8]
+08337089: add      eax, 0x50
+0833708c: mov      dword ptr [esp], eax
+0833708f: call     0x833d636 ; _ZN13user_creature14COverSkillTimeC2Ev
+08337094: mov      eax, dword ptr [ebp + 8]
+08337097: mov      dword ptr [esp], eax
+0833709a: call     0x83370b0 ; _ZN13user_creature9CCreature5ResetEv
+0833709f: leave
+083370a0: ret
+
+### 083370a2 size=14 _ZN13user_creature9CCreatureD2Ev
+083370a2: push     ebp
+083370a3: mov      ebp, esp
+083370a5: mov      eax, dword ptr [ebp + 8]
+083370a8: mov      dword ptr [eax], 0x8c2f4c0
+083370ae: pop      ebp
+083370af: ret
+
+### 083370a2 size=14 _ZN13user_creature9CCreatureD1Ev
+083370a2: push     ebp
+083370a3: mov      ebp, esp
+083370a5: mov      eax, dword ptr [ebp + 8]
+083370a8: mov      dword ptr [eax], 0x8c2f4c0
+083370ae: pop      ebp
+083370af: ret
+
+### 083370b0 size=169 _ZN13user_creature9CCreature5ResetEv
+083370b0: push     ebp
+083370b1: mov      ebp, esp
+083370b3: sub      esp, 0x18
+083370b6: mov      eax, dword ptr [ebp + 8]
+083370b9: mov      dword ptr [eax + 8], 1
+083370c0: mov      eax, dword ptr [ebp + 8]
+083370c3: mov      dword ptr [eax + 0xc], 0
+083370ca: mov      eax, dword ptr [ebp + 8]
+083370cd: mov      dword ptr [eax + 0x10], 0
+083370d4: mov      eax, dword ptr [ebp + 8]
+083370d7: mov      dword ptr [eax + 0x3c], 2
+083370de: mov      eax, dword ptr [ebp + 8]
+083370e1: mov      byte ptr [eax + 0x40], 0
+083370e5: mov      eax, dword ptr [ebp + 8]
+083370e8: mov      dword ptr [eax + 0x44], 0
+083370ef: mov      eax, dword ptr [ebp + 8]
+083370f2: mov      dword ptr [eax + 0x48], 0
+083370f9: mov      eax, dword ptr [ebp + 8]
+083370fc: mov      dword ptr [eax + 0x2c], 1
+08337103: mov      eax, dword ptr [ebp + 8]
+08337106: mov      dword ptr [eax + 0x30], 0
+0833710d: mov      eax, dword ptr [ebp + 8]
+08337110: mov      byte ptr [eax + 0x14], 0
+08337114: mov      eax, dword ptr [ebp + 8]
+08337117: mov      byte ptr [eax + 0x4c], 1
+0833711b: mov      eax, dword ptr [ebp + 8]
+0833711e: mov      byte ptr [eax + 0x4d], 5
+08337122: mov      eax, dword ptr [ebp + 8]
+08337125: add      eax, 0x1c
+08337128: mov      dword ptr [esp + 8], 0xd
+08337130: mov      dword ptr [esp + 4], 0
+08337138: mov      dword ptr [esp], eax
+0833713b: call     0x807dcc0 ;
+08337140: mov      eax, dword ptr [ebp + 8]
+08337143: lea      edx, [eax + 0x34]
+08337146: mov      eax, 0
+0833714b: mov      dword ptr [esp + 4], eax
+0833714f: mov      dword ptr [esp], edx
+08337152: call     0x833eef6 ; _ZN13user_creature8CStomach15SetStomachValueEf
+08337157: leave
+08337158: ret
+
+### 0833715a size=470 _ZN13user_creature9CCreature8SetStateEP5CUserNS_14CREATURE_STATEE
+0833715a: push     ebp
+0833715b: mov      ebp, esp
+0833715d: push     edi
+0833715e: push     esi
+0833715f: push     ebx
+08337160: sub      esp, 0x6c
+08337163: mov      eax, dword ptr [ebp + 8]
+08337166: movzx    eax, byte ptr [eax + 0x4c]
+0833716a: movzx    edx, al
+0833716d: mov      eax, dword ptr [ebp + 8]
+08337170: mov      eax, dword ptr [eax + 0x3c]
+08337173: mov      ecx, dword ptr [ebp + 8]
+08337176: add      ecx, 0x34
+08337179: mov      dword ptr [esp + 8], edx
+0833717d: mov      dword ptr [esp + 4], eax
+08337181: mov      dword ptr [esp], ecx
+08337184: call     0x8336cfc ; _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+08337189: fstp     dword ptr [ebp - 0x20]
+0833718c: mov      eax, dword ptr [ebp + 8]
+0833718f: mov      eax, dword ptr [eax + 0x3c]
+08337192: cmp      eax, dword ptr [ebp + 0x10]
+08337195: je       0x833722e
+0833719b: cmp      dword ptr [ebp + 0x10], 1
+0833719f: jne      0x833722e
+083371a5: mov      eax, dword ptr [ebp + 8]
+083371a8: movzx    eax, byte ptr [eax + 0x4c]
+083371ac: test     al, al
+083371ae: je       0x833722e
+083371b0: fld      dword ptr [ebp - 0x20]
+083371b3: fld      qword ptr [0x8c2f460]
+083371b9: fmulp    st(1)
+083371bb: fnstcw   word ptr [ebp - 0x4a]
+083371be: movzx    eax, word ptr [ebp - 0x4a]
+083371c2: mov      ah, 0xc
+083371c4: mov      word ptr [ebp - 0x4c], ax
+083371c8: fldcw    word ptr [ebp - 0x4c]
+083371cb: fistp    dword ptr [ebp - 0x1c]
+083371ce: fldcw    word ptr [ebp - 0x4a]
+083371d1: mov      eax, dword ptr [ebp + 0xc]
+083371d4: mov      dword ptr [esp], eax
+083371d7: call     0x80cbc4e ; _ZNK15CUserCharacInfo14getCurCharacNoEv
+083371dc: mov      esi, eax
+083371de: mov      eax, dword ptr [ebp + 0xc]
+083371e1: mov      dword ptr [esp], eax
+083371e4: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+083371e9: movzx    edi, ax
+083371ec: mov      eax, dword ptr [ebp + 0xc]
+083371ef: mov      dword ptr [esp], eax
+083371f2: call     0x80c8c96 ; _ZNK5CUser6GetUIDEv
+083371f7: mov      ebx, eax
+083371f9: call     0x80f647c ; _Z12G_TimerQueuev
+083371fe: mov      dword ptr [esp + 0x18], esi
+08337202: mov      dword ptr [esp + 0x14], edi
+08337206: mov      edx, dword ptr [ebp - 0x1c]
+08337209: mov      dword ptr [esp + 0x10], edx
+0833720d: mov      dword ptr [esp + 0xc], 0x5c
+08337215: mov      dword ptr [esp + 8], ebx
+08337219: mov      dword ptr [esp + 4], 0
+08337221: mov      dword ptr [esp], eax
+08337224: call     0x8630e16 ; _ZN10TimerQueue11InsertTimerEN10TimerEntry8OBJ_TYPEEi13TIMER_MESSAGEiij
+08337229: jmp      0x8337318
+0833722e: mov      eax, dword ptr [ebp + 8]
+08337231: mov      eax, dword ptr [eax + 0x3c]
+08337234: cmp      eax, dword ptr [ebp + 0x10]
+08337237: je       0x8337318
+0833723d: cmp      dword ptr [ebp + 0x10], 3
+08337241: jne      0x8337318
+08337247: mov      eax, dword ptr [ebp + 8]
+0833724a: movzx    eax, byte ptr [eax + 0x4c]
+0833724e: test     al, al
+08337250: je       0x8337318
+08337256: mov      eax, dword ptr [ebp + 8]
+08337259: mov      dword ptr [esp], eax
+0833725c: call     0x8338478 ; _ZN13user_creature9CCreature13IsDieCreatureEv
+08337261: test     al, al
+08337263: je       0x8337318
+08337269: mov      dword ptr [esp + 0xc], 0
+08337271: mov      dword ptr [esp + 8], 0
+08337279: mov      eax, dword ptr [ebp + 0xc]
+0833727c: mov      dword ptr [esp + 4], eax
+08337280: lea      eax, [ebp - 0x40]
+08337283: mov      dword ptr [esp], eax
+08337286: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+0833728b: lea      eax, [ebp - 0x40]
+0833728e: mov      dword ptr [esp], eax
+08337291: call     0x83408b6 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketRevivalCreatureEv
+08337296: lea      eax, [ebp - 0x40]
+08337299: mov      dword ptr [esp], eax
+0833729c: call     0x834048a ; _ZN13user_creature17CPacketRespondent7SendAllEv
+083372a1: mov      eax, dword ptr [ebp + 8]
+083372a4: lea      edx, [eax + 0x34]
+083372a7: mov      eax, 0x3f800000
+083372ac: mov      dword ptr [esp + 4], eax
+083372b0: mov      dword ptr [esp], edx
+083372b3: call     0x833eef6 ; _ZN13user_creature8CStomach15SetStomachValueEf
+083372b8: lea      eax, [ebp - 0x40]
+083372bb: mov      dword ptr [esp], eax
+083372be: call     0x80cb8e6 ; _ZN18InterfacePacketBuf5clearEv
+083372c3: mov      eax, dword ptr [ebp + 8]
+083372c6: mov      dword ptr [esp], eax
+083372c9: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+083372ce: mov      dword ptr [esp + 8], 1
+083372d6: mov      dword ptr [esp + 4], eax
+083372da: lea      eax, [ebp - 0x40]
+083372dd: mov      dword ptr [esp], eax
+083372e0: call     0x8340918 ; _ZN13user_creature17CPacketRespondent27MakeNotipacketCreatureStateEii
+083372e5: lea      eax, [ebp - 0x40]
+083372e8: mov      dword ptr [esp], eax
+083372eb: call     0x83403e0 ; _ZN13user_creature17CPacketRespondent4SendEv
+083372f0: jmp      0x833730d
+083372f2: mov      ebx, edx
+083372f4: mov      esi, eax
+083372f6: lea      eax, [ebp - 0x40]
+083372f9: mov      dword ptr [esp], eax
+083372fc: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08337301: mov      eax, esi
+08337303: mov      edx, ebx
+08337305: mov      dword ptr [esp], eax
+08337308: call     0x8ae3750 ; _Unwind_Resume
+0833730d: lea      eax, [ebp - 0x40]
+08337310: mov      dword ptr [esp], eax
+08337313: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08337318: mov      eax, dword ptr [ebp + 8]
+0833731b: mov      edx, dword ptr [ebp + 0x10]
+0833731e: mov      dword ptr [eax + 0x3c], edx
+08337321: mov      eax, dword ptr [ebp + 8]
+08337324: mov      byte ptr [eax + 0x40], 1
+08337328: add      esp, 0x6c
+0833732b: pop      ebx
+0833732c: pop      esi
+0833732d: pop      edi
+0833732e: pop      ebp
+0833732f: ret
+
+### 08337330 size=82 _ZN13user_creature9CCreature5EquipEP5CUser
+08337330: push     ebp
+08337331: mov      ebp, esp
+08337333: sub      esp, 0x18
+08337336: mov      eax, dword ptr [ebp + 0xc]
+08337339: mov      dword ptr [esp], eax
+0833733c: call     0x867ed68 ; _ZN5CUser11is_fightingEv
+08337341: test     al, al
+08337343: je       0x8337361
+08337345: mov      dword ptr [esp + 8], 1
+0833734d: mov      eax, dword ptr [ebp + 0xc]
+08337350: mov      dword ptr [esp + 4], eax
+08337354: mov      eax, dword ptr [ebp + 8]
+08337357: mov      dword ptr [esp], eax
+0833735a: call     0x833715a ; _ZN13user_creature9CCreature8SetStateEP5CUserNS_14CREATURE_STATEE
+0833735f: jmp      0x833737b
+08337361: mov      dword ptr [esp + 8], 3
+08337369: mov      eax, dword ptr [ebp + 0xc]
+0833736c: mov      dword ptr [esp + 4], eax
+08337370: mov      eax, dword ptr [ebp + 8]
+08337373: mov      dword ptr [esp], eax
+08337376: call     0x833715a ; _ZN13user_creature9CCreature8SetStateEP5CUserNS_14CREATURE_STATEE
+0833737b: mov      eax, 1
+08337380: leave
+08337381: ret
+
+### 08337382 size=39 _ZN13user_creature9CCreature9DismantleEP5CUser
+08337382: push     ebp
+08337383: mov      ebp, esp
+08337385: sub      esp, 0x18
+08337388: mov      dword ptr [esp + 8], 2
+08337390: mov      eax, dword ptr [ebp + 0xc]
+08337393: mov      dword ptr [esp + 4], eax
+08337397: mov      eax, dword ptr [ebp + 8]
+0833739a: mov      dword ptr [esp], eax
+0833739d: call     0x833715a ; _ZN13user_creature9CCreature8SetStateEP5CUserNS_14CREATURE_STATEE
+083373a2: mov      eax, 1
+083373a7: leave
+083373a8: ret
+
+### 083373aa size=42 _ZN13user_creature9CCreature14RenameCreatureEPKc
+083373aa: push     ebp
+083373ab: mov      ebp, esp
+083373ad: sub      esp, 0x18
+083373b0: mov      eax, dword ptr [ebp + 8]
+083373b3: lea      edx, [eax + 0x1c]
+083373b6: mov      dword ptr [esp + 8], 0xc
+083373be: mov      eax, dword ptr [ebp + 0xc]
+083373c1: mov      dword ptr [esp + 4], eax
+083373c5: mov      dword ptr [esp], edx
+083373c8: call     0x807d8d0 ;
+083373cd: mov      eax, 1
+083373d2: leave
+083373d3: ret
+
+### 083373d4 size=253 _ZN13user_creature9CCreature7UseFeedEP5CUserRi
+083373d4: push     ebp
+083373d5: mov      ebp, esp
+083373d7: push     esi
+083373d8: push     ebx
+083373d9: sub      esp, 0x40
+083373dc: mov      eax, dword ptr [ebp + 8]
+083373df: movzx    eax, byte ptr [eax + 0x4c]
+083373e3: xor      eax, 1
+083373e6: test     al, al
+083373e8: je       0x83373f4
+083373ea: mov      ebx, 0
+083373ef: jmp      0x83374c8
+083373f4: mov      dword ptr [esp + 0xc], 0
+083373fc: mov      dword ptr [esp + 8], 0
+08337404: mov      eax, dword ptr [ebp + 0xc]
+08337407: mov      dword ptr [esp + 4], eax
+0833740b: lea      eax, [ebp - 0x28]
+0833740e: mov      dword ptr [esp], eax
+08337411: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08337416: mov      eax, dword ptr [ebp + 8]
+08337419: mov      dword ptr [esp], eax
+0833741c: call     0x8338478 ; _ZN13user_creature9CCreature13IsDieCreatureEv
+08337421: test     al, al
+08337423: je       0x833743b
+08337425: lea      eax, [ebp - 0x28]
+08337428: mov      dword ptr [esp], eax
+0833742b: call     0x83408b6 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketRevivalCreatureEv
+08337430: lea      eax, [ebp - 0x28]
+08337433: mov      dword ptr [esp], eax
+08337436: call     0x834048a ; _ZN13user_creature17CPacketRespondent7SendAllEv
+0833743b: mov      eax, dword ptr [ebp + 8]
+0833743e: lea      edx, [eax + 0x34]
+08337441: mov      eax, 0x41f00000
+08337446: mov      dword ptr [esp + 4], eax
+0833744a: mov      dword ptr [esp], edx
+0833744d: call     0x8336e66 ; _ZN13user_creature8CStomach14IncrementValueEf
+08337452: fnstcw   word ptr [ebp - 0x2a]
+08337455: movzx    eax, word ptr [ebp - 0x2a]
+08337459: mov      ah, 0xc
+0833745b: mov      word ptr [ebp - 0x2c], ax
+0833745f: fldcw    word ptr [ebp - 0x2c]
+08337462: fistp    dword ptr [ebp - 0x30]
+08337465: fldcw    word ptr [ebp - 0x2a]
+08337468: mov      edx, dword ptr [ebp - 0x30]
+0833746b: mov      eax, dword ptr [ebp + 0x10]
+0833746e: mov      dword ptr [eax], edx
+08337470: mov      eax, dword ptr [ebp + 0x10]
+08337473: mov      ebx, dword ptr [eax]
+08337475: mov      eax, dword ptr [ebp + 8]
+08337478: mov      dword ptr [esp], eax
+0833747b: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+08337480: mov      dword ptr [esp + 8], ebx
+08337484: mov      dword ptr [esp + 4], eax
+08337488: lea      eax, [ebp - 0x28]
+0833748b: mov      dword ptr [esp], eax
+0833748e: call     0x8340918 ; _ZN13user_creature17CPacketRespondent27MakeNotipacketCreatureStateEii
+08337493: lea      eax, [ebp - 0x28]
+08337496: mov      dword ptr [esp], eax
+08337499: call     0x83403e0 ; _ZN13user_creature17CPacketRespondent4SendEv
+0833749e: mov      ebx, eax
+083374a0: lea      eax, [ebp - 0x28]
+083374a3: mov      dword ptr [esp], eax
+083374a6: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+083374ab: jmp      0x83374c8
+083374ad: mov      ebx, edx
+083374af: mov      esi, eax
+083374b1: lea      eax, [ebp - 0x28]
+083374b4: mov      dword ptr [esp], eax
+083374b7: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+083374bc: mov      eax, esi
+083374be: mov      edx, ebx
+083374c0: mov      dword ptr [esp], eax
+083374c3: call     0x8ae3750 ; _Unwind_Resume
+083374c8: mov      eax, ebx
+083374ca: add      esp, 0x40
+083374cd: pop      ebx
+083374ce: pop      esi
+083374cf: pop      ebp
+083374d0: ret
+
+### 083374d2 size=155 _ZN13user_creature9CCreature11GetExpLevelEi
+083374d2: push     ebp
+083374d3: mov      ebp, esp
+083374d5: sub      esp, 0x28
+083374d8: mov      dword ptr [ebp - 0x10], 0
+083374df: mov      eax, dword ptr [ebp + 8]
+083374e2: movzx    eax, byte ptr [eax + 0x4c]
+083374e6: xor      eax, 1
+083374e9: test     al, al
+083374eb: je       0x833751e
+083374ed: mov      eax, dword ptr [ebp + 8]
+083374f0: mov      eax, dword ptr [eax + 0x44]
+083374f3: mov      dword ptr [esp], eax
+083374f6: call     0x833f356 ; _ZN13user_creature15CCreatureScript26GetGrowItemCountforLevelUpEv
+083374fb: mov      dword ptr [ebp - 0xc], eax
+083374fe: cmp      dword ptr [ebp - 0xc], 0
+08337502: jne      0x833750b
+08337504: mov      dword ptr [ebp - 0xc], 0x19
+0833750b: mov      eax, dword ptr [ebp + 0xc]
+0833750e: mov      edx, eax
+08337510: sar      edx, 0x1f
+08337513: idiv     dword ptr [ebp - 0xc]
+08337516: add      eax, 1
+08337519: mov      dword ptr [ebp - 0x10], eax
+0833751c: jmp      0x8337535
+0833751e: call     0x80cc19b ; _Z14G_CDataManagerv
+08337523: mov      edx, dword ptr [ebp + 0xc]
+08337526: mov      dword ptr [esp + 4], edx
+0833752a: mov      dword ptr [esp], eax
+0833752d: call     0x8360562 ; _ZNK12CDataManager22get_creature_exp_levelEi
+08337532: mov      dword ptr [ebp - 0x10], eax
+08337535: mov      eax, dword ptr [ebp + 8]
+08337538: mov      eax, dword ptr [eax + 0x44]
+0833753b: test     eax, eax
+0833753d: je       0x8337568
+0833753f: mov      eax, dword ptr [ebp + 8]
+08337542: mov      eax, dword ptr [eax + 0x44]
+08337545: mov      dword ptr [esp], eax
+08337548: call     0x833f24c ; _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+0833754d: cmp      eax, dword ptr [ebp - 0x10]
+08337550: setl     al
+08337553: test     al, al
+08337555: je       0x8337568
+08337557: mov      eax, dword ptr [ebp + 8]
+0833755a: mov      eax, dword ptr [eax + 0x44]
+0833755d: mov      dword ptr [esp], eax
+08337560: call     0x833f24c ; _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+08337565: mov      dword ptr [ebp - 0x10], eax
+08337568: mov      eax, dword ptr [ebp - 0x10]
+0833756b: leave
+0833756c: ret
+
+### 0833756e size=64 _ZN13user_creature9CCreature10isMaxLevelEv
+0833756e: push     ebp
+0833756f: mov      ebp, esp
+08337571: push     ebx
+08337572: sub      esp, 0x14
+08337575: mov      eax, dword ptr [ebp + 8]
+08337578: mov      eax, dword ptr [eax + 0x44]
+0833757b: test     eax, eax
+0833757d: je       0x83375a3
+0833757f: mov      eax, dword ptr [ebp + 8]
+08337582: mov      ebx, dword ptr [eax + 0x2c]
+08337585: mov      eax, dword ptr [ebp + 8]
+08337588: mov      eax, dword ptr [eax + 0x44]
+0833758b: mov      dword ptr [esp], eax
+0833758e: call     0x833f24c ; _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+08337593: cmp      ebx, eax
+08337595: setge    al
+08337598: test     al, al
+0833759a: je       0x83375a3
+0833759c: mov      eax, 1
+083375a1: jmp      0x83375a8
+083375a3: mov      eax, 0
+083375a8: add      esp, 0x14
+083375ab: pop      ebx
+083375ac: pop      ebp
+083375ad: ret
+
+### 083375ae size=237 _ZN13user_creature9CCreature9SetItemIdEi
+083375ae: push     ebp
+083375af: mov      ebp, esp
+083375b1: sub      esp, 0x38
+083375b4: mov      eax, dword ptr [ebp + 8]
+083375b7: mov      edx, dword ptr [ebp + 0xc]
+083375ba: mov      dword ptr [esp + 4], edx
+083375be: mov      dword ptr [esp], eax
+083375c1: call     0x833efb0 ; _ZN13user_creature13CCreatureItem9SetItemIdEi
+083375c6: mov      eax, dword ptr [ebp + 8]
+083375c9: mov      dword ptr [esp], eax
+083375cc: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+083375d1: mov      dword ptr [esp + 4], eax
+083375d5: mov      eax, dword ptr [ebp + 8]
+083375d8: mov      dword ptr [esp], eax
+083375db: call     0x833769c ; _ZN13user_creature9CCreature13GetCreatureIdEi
+083375e0: mov      dword ptr [ebp - 0xc], eax
+083375e3: call     0x8336bd0 ; _ZN13user_creature28GetInstanceCreatureScriptMgrEv
+083375e8: mov      edx, dword ptr [ebp - 0xc]
+083375eb: mov      dword ptr [esp + 4], edx
+083375ef: mov      dword ptr [esp], eax
+083375f2: call     0x833d49a ; _ZN13user_creature18CCreatureScriptMgr18FindCreatureScriptEi
+083375f7: mov      edx, dword ptr [ebp + 8]
+083375fa: mov      dword ptr [edx + 0x44], eax
+083375fd: mov      eax, dword ptr [ebp + 8]
+08337600: mov      eax, dword ptr [eax + 0x44]
+08337603: test     eax, eax
+08337605: jne      0x833763f
+08337607: mov      dword ptr [esp + 0xc], 5
+0833760f: mov      dword ptr [esp + 8], 0x56c
+08337617: mov      dword ptr [esp + 4], 0x8c2f420
+0833761f: lea      eax, [ebp - 0x1c]
+08337622: mov      dword ptr [esp], eax
+08337625: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0833762a: mov      dword ptr [esp + 4], 0x8c2d7ac
+08337632: lea      eax, [ebp - 0x1c]
+08337635: mov      dword ptr [esp], eax
+08337638: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0833763d: jmp      0x8337699
+0833763f: mov      eax, dword ptr [ebp + 8]
+08337642: mov      eax, dword ptr [eax + 0x44]
+08337645: mov      dword ptr [esp], eax
+08337648: call     0x833f320 ; _ZN13user_creature15CCreatureScript18IsItemGrowCreatureEv
+0833764d: test     al, al
+0833764f: je       0x833765a
+08337651: mov      eax, dword ptr [ebp + 8]
+08337654: mov      byte ptr [eax + 0x4c], 0
+08337658: jmp      0x8337661
+0833765a: mov      eax, dword ptr [ebp + 8]
+0833765d: mov      byte ptr [eax + 0x4c], 1
+08337661: mov      eax, dword ptr [ebp + 8]
+08337664: movzx    eax, byte ptr [eax + 0x4c]
+08337668: xor      eax, 1
+0833766b: test     al, al
+0833766d: je       0x8337699
+0833766f: mov      eax, dword ptr [ebp + 8]
+08337672: mov      eax, dword ptr [eax + 0x30]
+08337675: test     eax, eax
+08337677: jne      0x8337699
+08337679: mov      eax, dword ptr [ebp + 8]
+0833767c: mov      eax, dword ptr [eax + 0x30]
+0833767f: mov      dword ptr [ebp - 0x20], eax
+08337682: mov      byte ptr [ebp - 0x20], 5
+08337686: mov      edx, dword ptr [ebp - 0x20]
+08337689: mov      eax, dword ptr [ebp + 8]
+0833768c: mov      dword ptr [eax + 0x30], edx
+0833768f: movzx    edx, byte ptr [ebp - 0x20]
+08337693: mov      eax, dword ptr [ebp + 8]
+08337696: mov      byte ptr [eax + 0x4d], dl
+08337699: leave
+0833769a: ret
+
+### 0833769c size=89 _ZN13user_creature9CCreature13GetCreatureIdEi
+0833769c: push     ebp
+0833769d: mov      ebp, esp
+0833769f: sub      esp, 0x28
+083376a2: call     0x80cc19b ; _Z14G_CDataManagerv
+083376a7: mov      edx, dword ptr [ebp + 0xc]
+083376aa: mov      dword ptr [esp + 4], edx
+083376ae: mov      dword ptr [esp], eax
+083376b1: call     0x835fa32 ; _ZNK12CDataManager9find_itemEi
+083376b6: mov      dword ptr [ebp - 0xc], eax
+083376b9: cmp      dword ptr [ebp - 0xc], 0
+083376bd: jne      0x83376c6
+083376bf: mov      eax, 0xffffffff
+083376c4: jmp      0x83376f3
+083376c6: mov      eax, dword ptr [ebp - 0xc]
+083376c9: mov      dword ptr [esp], eax
+083376cc: call     0x80f12fa ; _ZNK5CItem12is_stackableEv
+083376d1: test     al, al
+083376d3: je       0x83376dc
+083376d5: mov      eax, 0xffffffff
+083376da: jmp      0x83376f3
+083376dc: mov      eax, dword ptr [ebp - 0xc]
+083376df: mov      dword ptr [esp], eax
+083376e2: call     0x833eebe ; _ZNK10CEquipItem20get_creature_speciesEv
+083376e7: mov      edx, dword ptr [ebp + 8]
+083376ea: mov      dword ptr [edx + 0x48], eax
+083376ed: mov      eax, dword ptr [ebp + 8]
+083376f0: mov      eax, dword ptr [eax + 0x48]
+083376f3: leave
+083376f4: ret
+
+### 083376f6 size=46 _ZN13user_creature9CCreature19IsAvailableArtifactEi
+083376f6: push     ebp
+083376f7: mov      ebp, esp
+083376f9: sub      esp, 0x18
+083376fc: mov      eax, dword ptr [ebp + 8]
+083376ff: mov      eax, dword ptr [eax + 0x44]
+08337702: test     eax, eax
+08337704: jne      0x833770d
+08337706: mov      eax, 0
+0833770b: jmp      0x8337722
+0833770d: mov      eax, dword ptr [ebp + 8]
+08337710: mov      eax, dword ptr [eax + 0x44]
+08337713: mov      edx, dword ptr [ebp + 0xc]
+08337716: mov      dword ptr [esp + 4], edx
+0833771a: mov      dword ptr [esp], eax
+0833771d: call     0x833cb38 ; _ZN13user_creature15CCreatureScript23IsAvailableArtifactSlotEi
+08337722: leave
+08337723: ret
+
+### 08337724 size=145 _ZN13user_creature9CCreature9GetAddExpEiP5CUser
+08337724: push     ebp
+08337725: mov      ebp, esp
+08337727: sub      esp, 0x38
+0833772a: mov      eax, 0
+0833772f: mov      dword ptr [ebp - 0x18], eax
+08337732: mov      dword ptr [ebp - 0x14], 0
+08337739: mov      eax, dword ptr [ebp + 0xc]
+0833773c: mov      dword ptr [esp + 4], eax
+08337740: mov      eax, dword ptr [ebp + 8]
+08337743: mov      dword ptr [esp], eax
+08337746: call     0x83376f6 ; _ZN13user_creature9CCreature19IsAvailableArtifactEi
+0833774b: test     al, al
+0833774d: je       0x83377aa
+0833774f: mov      eax, dword ptr [ebp + 0x10]
+08337752: mov      dword ptr [esp], eax
+08337755: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+0833775a: lea      edx, [eax + 0x6e8]
+08337760: mov      eax, dword ptr [ebp + 0xc]
+08337763: mov      dword ptr [esp + 4], eax
+08337767: mov      dword ptr [esp], edx
+0833776a: call     0x833be56 ; _ZN13user_creature12CCreatureMgr11GetArtifactEi
+0833776f: mov      dword ptr [ebp - 0x10], eax
+08337772: cmp      dword ptr [ebp - 0x10], 0
+08337776: je       0x83377aa
+08337778: mov      eax, dword ptr [ebp - 0x10]
+0833777b: mov      dword ptr [esp], eax
+0833777e: call     0x8337012 ; _ZN13user_creature9CArtifact23GetCreatureMinimumLevelEv
+08337783: mov      dword ptr [ebp - 0xc], eax
+08337786: cmp      dword ptr [ebp - 0xc], 0
+0833778a: je       0x833779c
+0833778c: mov      eax, dword ptr [ebp + 8]
+0833778f: mov      eax, dword ptr [eax + 0x2c]
+08337792: cmp      eax, dword ptr [ebp - 0xc]
+08337795: jge      0x833779c
+08337797: mov      eax, dword ptr [ebp - 0x18]
+0833779a: jmp      0x83377ad
+0833779c: mov      eax, dword ptr [ebp - 0x10]
+0833779f: mov      dword ptr [esp], eax
+083377a2: call     0x8336fc8 ; _ZN13user_creature9CArtifact19GetExperienceAmountEv
+083377a7: fstp     dword ptr [ebp - 0x18]
+083377aa: mov      eax, dword ptr [ebp - 0x18]
+083377ad: mov      dword ptr [ebp - 0x1c], eax
+083377b0: fld      dword ptr [ebp - 0x1c]
+083377b3: leave
+083377b4: ret
+
+### 083377b6 size=244 _ZN13user_creature9CCreature12CalculateExpEiRbP5CUser
+083377b6: push     ebp
+083377b7: mov      ebp, esp
+083377b9: sub      esp, 0x38
+083377bc: mov      eax, 0
+083377c1: mov      dword ptr [ebp - 0x18], eax
+083377c4: mov      eax, 0
+083377c9: mov      dword ptr [ebp - 0x14], eax
+083377cc: mov      eax, dword ptr [ebp + 0x14]
+083377cf: mov      dword ptr [esp + 8], eax
+083377d3: mov      dword ptr [esp + 4], 0x17
+083377db: mov      eax, dword ptr [ebp + 8]
+083377de: mov      dword ptr [esp], eax
+083377e1: call     0x8337724 ; _ZN13user_creature9CCreature9GetAddExpEiP5CUser
+083377e6: fld      dword ptr [ebp - 0x14]
+083377e9: faddp    st(1)
+083377eb: fstp     dword ptr [ebp - 0x14]
+083377ee: mov      eax, dword ptr [ebp + 0x14]
+083377f1: mov      dword ptr [esp + 8], eax
+083377f5: mov      dword ptr [esp + 4], 0x18
+083377fd: mov      eax, dword ptr [ebp + 8]
+08337800: mov      dword ptr [esp], eax
+08337803: call     0x8337724 ; _ZN13user_creature9CCreature9GetAddExpEiP5CUser
+08337808: fld      dword ptr [ebp - 0x14]
+0833780b: faddp    st(1)
+0833780d: fstp     dword ptr [ebp - 0x14]
+08337810: mov      eax, dword ptr [ebp + 0x14]
+08337813: mov      dword ptr [esp + 8], eax
+08337817: mov      dword ptr [esp + 4], 0x19
+0833781f: mov      eax, dword ptr [ebp + 8]
+08337822: mov      dword ptr [esp], eax
+08337825: call     0x8337724 ; _ZN13user_creature9CCreature9GetAddExpEiP5CUser
+0833782a: fld      dword ptr [ebp - 0x14]
+0833782d: faddp    st(1)
+0833782f: fstp     dword ptr [ebp - 0x14]
+08337832: fild     dword ptr [ebp + 0xc]
+08337835: fmul     dword ptr [ebp - 0x14]
+08337838: fld      dword ptr [0x8c2f450]
+0833783e: fdivp    st(1)
+08337840: fstp     dword ptr [ebp - 0x18]
+08337843: fld      dword ptr [ebp - 0x18]
+08337846: fnstcw   word ptr [ebp - 0x1a]
+08337849: movzx    eax, word ptr [ebp - 0x1a]
+0833784d: mov      ah, 0xc
+0833784f: mov      word ptr [ebp - 0x1c], ax
+08337853: fldcw    word ptr [ebp - 0x1c]
+08337856: fistp    dword ptr [ebp - 0x20]
+08337859: fldcw    word ptr [ebp - 0x1a]
+0833785c: mov      eax, dword ptr [ebp - 0x20]
+0833785f: add      eax, dword ptr [ebp + 0xc]
+08337862: mov      dword ptr [ebp - 0x10], eax
+08337865: mov      eax, dword ptr [ebp + 8]
+08337868: mov      eax, dword ptr [eax + 0x30]
+0833786b: mov      edx, eax
+0833786d: add      edx, dword ptr [ebp - 0x10]
+08337870: mov      eax, dword ptr [ebp + 8]
+08337873: mov      dword ptr [eax + 0x30], edx
+08337876: mov      eax, dword ptr [ebp + 8]
+08337879: mov      eax, dword ptr [eax + 0x30]
+0833787c: mov      dword ptr [esp + 4], eax
+08337880: mov      eax, dword ptr [ebp + 8]
+08337883: mov      dword ptr [esp], eax
+08337886: call     0x83374d2 ; _ZN13user_creature9CCreature11GetExpLevelEi
+0833788b: mov      dword ptr [ebp - 0xc], eax
+0833788e: mov      eax, dword ptr [ebp + 8]
+08337891: mov      eax, dword ptr [eax + 0x2c]
+08337894: cmp      eax, dword ptr [ebp - 0xc]
+08337897: jge      0x833789f
+08337899: mov      eax, dword ptr [ebp + 0x10]
+0833789c: mov      byte ptr [eax], 1
+0833789f: mov      eax, dword ptr [ebp + 8]
+083378a2: mov      edx, dword ptr [ebp - 0xc]
+083378a5: mov      dword ptr [eax + 0x2c], edx
+083378a8: leave
+083378a9: ret
+
+### 083378aa size=81 _ZN13user_creature9CCreature12vaildItemExpEi
+083378aa: push     ebp
+083378ab: mov      ebp, esp
+083378ad: sub      esp, 0x18
+083378b0: mov      eax, dword ptr [ebp + 8]
+083378b3: mov      eax, dword ptr [eax + 0x3c]
+083378b6: cmp      eax, 2
+083378b9: jne      0x83378c2
+083378bb: mov      eax, 0
+083378c0: jmp      0x83378f9
+083378c2: mov      eax, dword ptr [ebp + 8]
+083378c5: movzx    eax, byte ptr [eax + 0x4c]
+083378c9: test     al, al
+083378cb: je       0x83378d4
+083378cd: mov      eax, 0
+083378d2: jmp      0x83378f9
+083378d4: mov      eax, dword ptr [ebp + 8]
+083378d7: mov      eax, dword ptr [eax + 0x44]
+083378da: mov      edx, dword ptr [ebp + 0xc]
+083378dd: mov      dword ptr [esp + 4], edx
+083378e1: mov      dword ptr [esp], eax
+083378e4: call     0x833f280 ; _ZN13user_creature15CCreatureScript12validItemExpEi
+083378e9: test     al, al
+083378eb: je       0x83378f4
+083378ed: mov      eax, 1
+083378f2: jmp      0x83378f9
+083378f4: mov      eax, 0
+083378f9: leave
+083378fa: ret
+
+### 083378fc size=195 _ZN13user_creature9CCreature7GainExpEiP5CUser
+083378fc: push     ebp
+083378fd: mov      ebp, esp
+083378ff: push     ebx
+08337900: sub      esp, 0x14
+08337903: mov      eax, dword ptr [ebp + 8]
+08337906: mov      eax, dword ptr [eax + 0x44]
+08337909: test     eax, eax
+0833790b: jne      0x8337917
+0833790d: mov      eax, 0
+08337912: jmp      0x83379b9
+08337917: mov      eax, dword ptr [ebp + 8]
+0833791a: mov      eax, dword ptr [eax + 0x44]
+0833791d: mov      dword ptr [esp], eax
+08337920: call     0x833f34a ; _ZN13user_creature15CCreatureScript27GetTypeSelectEvolutionLevelEv
+08337925: cmp      eax, -1
+08337928: setne    al
+0833792b: test     al, al
+0833792d: je       0x8337953
+0833792f: mov      eax, dword ptr [ebp + 8]
+08337932: mov      ebx, dword ptr [eax + 0x2c]
+08337935: mov      eax, dword ptr [ebp + 8]
+08337938: mov      eax, dword ptr [eax + 0x44]
+0833793b: mov      dword ptr [esp], eax
+0833793e: call     0x833f34a ; _ZN13user_creature15CCreatureScript27GetTypeSelectEvolutionLevelEv
+08337943: cmp      ebx, eax
+08337945: setge    al
+08337948: test     al, al
+0833794a: je       0x8337953
+0833794c: mov      eax, 0
+08337951: jmp      0x83379b9
+08337953: mov      eax, dword ptr [ebp + 8]
+08337956: mov      ebx, dword ptr [eax + 0x2c]
+08337959: mov      eax, dword ptr [ebp + 8]
+0833795c: mov      eax, dword ptr [eax + 0x44]
+0833795f: mov      dword ptr [esp], eax
+08337962: call     0x833f24c ; _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+08337967: cmp      ebx, eax
+08337969: setge    al
+0833796c: test     al, al
+0833796e: je       0x8337977
+08337970: mov      eax, 0
+08337975: jmp      0x83379b9
+08337977: mov      eax, dword ptr [ebp + 8]
+0833797a: movzx    eax, byte ptr [eax + 0x4c]
+0833797e: xor      eax, 1
+08337981: test     al, al
+08337983: je       0x83379a0
+08337985: mov      eax, dword ptr [ebp + 0x10]
+08337988: mov      dword ptr [esp + 8], eax
+0833798c: mov      eax, dword ptr [ebp + 0xc]
+0833798f: mov      dword ptr [esp + 4], eax
+08337993: mov      eax, dword ptr [ebp + 8]
+08337996: mov      dword ptr [esp], eax
+08337999: call     0x83379c0 ; _ZN13user_creature9CCreature19GainItemExpCreatureEiP5CUser
+0833799e: jmp      0x83379b9
+083379a0: mov      eax, dword ptr [ebp + 0x10]
+083379a3: mov      dword ptr [esp + 8], eax
+083379a7: mov      eax, dword ptr [ebp + 0xc]
+083379aa: mov      dword ptr [esp + 4], eax
+083379ae: mov      eax, dword ptr [ebp + 8]
+083379b1: mov      dword ptr [esp], eax
+083379b4: call     0x8337bbc ; _ZN13user_creature9CCreature15GainExpCreatureEiP5CUser
+083379b9: add      esp, 0x14
+083379bc: pop      ebx
+083379bd: pop      ebp
+083379be: ret
+
+### 083379c0 size=508 _ZN13user_creature9CCreature19GainItemExpCreatureEiP5CUser
+083379c0: push     ebp
+083379c1: mov      ebp, esp
+083379c3: push     esi
+083379c4: push     ebx
+083379c5: sub      esp, 0x40
+083379c8: mov      byte ptr [ebp - 0x11], 0
+083379cc: mov      dword ptr [ebp - 0x10], 0
+083379d3: mov      eax, dword ptr [ebp + 8]
+083379d6: movzx    eax, byte ptr [eax + 0x4c]
+083379da: test     al, al
+083379dc: je       0x83379e8
+083379de: mov      eax, 0
+083379e3: jmp      0x8337bb5
+083379e8: mov      eax, dword ptr [ebp + 8]
+083379eb: mov      eax, dword ptr [eax + 0x44]
+083379ee: mov      edx, dword ptr [ebp + 0xc]
+083379f1: mov      dword ptr [esp + 4], edx
+083379f5: mov      dword ptr [esp], eax
+083379f8: call     0x833f2bc ; _ZN13user_creature15CCreatureScript15validItem_ATypeEi
+083379fd: test     al, al
+083379ff: je       0x8337a23
+08337a01: mov      eax, dword ptr [ebp + 8]
+08337a04: movzx    eax, byte ptr [eax + 0x4d]
+08337a08: mov      byte ptr [ebp - 0xa], al
+08337a0b: add      byte ptr [ebp - 0xa], 1
+08337a0f: cmp      byte ptr [ebp - 0xa], 0xa
+08337a13: jle      0x8337a19
+08337a15: mov      byte ptr [ebp - 0xa], 0xa
+08337a19: movzx    edx, byte ptr [ebp - 0xa]
+08337a1d: mov      eax, dword ptr [ebp + 8]
+08337a20: mov      byte ptr [eax + 0x4d], dl
+08337a23: mov      eax, dword ptr [ebp + 8]
+08337a26: mov      eax, dword ptr [eax + 0x44]
+08337a29: mov      edx, dword ptr [ebp + 0xc]
+08337a2c: mov      dword ptr [esp + 4], edx
+08337a30: mov      dword ptr [esp], eax
+08337a33: call     0x833f2ee ; _ZN13user_creature15CCreatureScript15validItem_BTypeEi
+08337a38: test     al, al
+08337a3a: je       0x8337a5e
+08337a3c: mov      eax, dword ptr [ebp + 8]
+08337a3f: movzx    eax, byte ptr [eax + 0x4d]
+08337a43: mov      byte ptr [ebp - 9], al
+08337a46: sub      byte ptr [ebp - 9], 1
+08337a4a: cmp      byte ptr [ebp - 9], 0
+08337a4e: jns      0x8337a54
+08337a50: mov      byte ptr [ebp - 9], 0
+08337a54: movzx    edx, byte ptr [ebp - 9]
+08337a58: mov      eax, dword ptr [ebp + 8]
+08337a5b: mov      byte ptr [eax + 0x4d], dl
+08337a5e: mov      eax, dword ptr [ebp + 8]
+08337a61: mov      eax, dword ptr [eax + 0x30]
+08337a64: mov      dword ptr [ebp - 0x18], eax
+08337a67: mov      eax, dword ptr [ebp + 8]
+08337a6a: movzx    eax, byte ptr [eax + 0x4d]
+08337a6e: mov      byte ptr [ebp - 0x18], al
+08337a71: movzx    eax, word ptr [ebp - 0x16]
+08337a75: add      eax, 1
+08337a78: mov      word ptr [ebp - 0x16], ax
+08337a7c: mov      edx, dword ptr [ebp - 0x18]
+08337a7f: mov      eax, dword ptr [ebp + 8]
+08337a82: mov      dword ptr [eax + 0x30], edx
+08337a85: movzx    eax, word ptr [ebp - 0x16]
+08337a89: cwde
+08337a8a: mov      dword ptr [esp + 4], eax
+08337a8e: mov      eax, dword ptr [ebp + 8]
+08337a91: mov      dword ptr [esp], eax
+08337a94: call     0x83374d2 ; _ZN13user_creature9CCreature11GetExpLevelEi
+08337a99: mov      dword ptr [ebp - 0x10], eax
+08337a9c: mov      eax, dword ptr [ebp + 8]
+08337a9f: mov      eax, dword ptr [eax + 0x2c]
+08337aa2: cmp      eax, dword ptr [ebp - 0x10]
+08337aa5: jge      0x8337aab
+08337aa7: mov      byte ptr [ebp - 0x11], 1
+08337aab: mov      eax, dword ptr [ebp + 8]
+08337aae: mov      edx, dword ptr [ebp - 0x10]
+08337ab1: mov      dword ptr [eax + 0x2c], edx
+08337ab4: mov      eax, dword ptr [ebp + 8]
+08337ab7: mov      ebx, dword ptr [eax + 0x2c]
+08337aba: mov      eax, dword ptr [ebp + 8]
+08337abd: mov      eax, dword ptr [eax + 0x44]
+08337ac0: mov      dword ptr [esp], eax
+08337ac3: call     0x833f24c ; _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+08337ac8: cmp      ebx, eax
+08337aca: jl       0x8337ad2
+08337acc: cmp      byte ptr [ebp - 0x11], 0
+08337ad0: je       0x8337ad9
+08337ad2: mov      eax, 1
+08337ad7: jmp      0x8337ade
+08337ad9: mov      eax, 0
+08337ade: test     al, al
+08337ae0: je       0x8337b5d
+08337ae2: mov      dword ptr [esp + 0xc], 0
+08337aea: mov      dword ptr [esp + 8], 0
+08337af2: mov      eax, dword ptr [ebp + 0x10]
+08337af5: mov      dword ptr [esp + 4], eax
+08337af9: lea      eax, [ebp - 0x38]
+08337afc: mov      dword ptr [esp], eax
+08337aff: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08337b04: mov      eax, dword ptr [ebp + 8]
+08337b07: mov      dword ptr [esp], eax
+08337b0a: call     0x833f0ca ; _ZN13user_creature9CCreature14IsGrowCreatureEv
+08337b0f: movzx    ecx, al
+08337b12: mov      eax, dword ptr [ebp + 8]
+08337b15: mov      edx, dword ptr [eax + 0x2c]
+08337b18: mov      eax, dword ptr [ebp + 8]
+08337b1b: mov      eax, dword ptr [eax + 0x30]
+08337b1e: mov      dword ptr [esp + 0xc], ecx
+08337b22: mov      dword ptr [esp + 8], edx
+08337b26: mov      dword ptr [esp + 4], eax
+08337b2a: lea      eax, [ebp - 0x38]
+08337b2d: mov      dword ptr [esp], eax
+08337b30: call     0x8340760 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketGainExpCreatureEiib
+08337b35: jmp      0x8337b52
+08337b37: mov      ebx, edx
+08337b39: mov      esi, eax
+08337b3b: lea      eax, [ebp - 0x38]
+08337b3e: mov      dword ptr [esp], eax
+08337b41: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08337b46: mov      eax, esi
+08337b48: mov      edx, ebx
+08337b4a: mov      dword ptr [esp], eax
+08337b4d: call     0x8ae3750 ; _Unwind_Resume
+08337b52: lea      eax, [ebp - 0x38]
+08337b55: mov      dword ptr [esp], eax
+08337b58: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08337b5d: cmp      byte ptr [ebp - 0x11], 0
+08337b61: je       0x8337b80
+08337b63: mov      eax, dword ptr [ebp + 0x10]
+08337b66: mov      dword ptr [esp + 4], eax
+08337b6a: mov      eax, dword ptr [ebp + 8]
+08337b6d: mov      dword ptr [esp], eax
+08337b70: call     0x8337d58 ; _ZN13user_creature9CCreature19IsAbleSelectEvoluteEP5CUser
+08337b75: test     al, al
+08337b77: je       0x8337b80
+08337b79: mov      eax, 1
+08337b7e: jmp      0x8337b85
+08337b80: mov      eax, 0
+08337b85: test     al, al
+08337b87: je       0x8337ba9
+08337b89: mov      eax, dword ptr [ebp + 0x10]
+08337b8c: mov      dword ptr [esp + 4], eax
+08337b90: mov      eax, dword ptr [ebp + 8]
+08337b93: mov      dword ptr [esp], eax
+08337b96: call     0x8337e48 ; _ZN13user_creature9CCreature13SelectEvoluteEP5CUser
+08337b9b: xor      eax, 1
+08337b9e: test     al, al
+08337ba0: je       0x8337ba9
+08337ba2: mov      eax, 0
+08337ba7: jmp      0x8337bb5
+08337ba9: mov      eax, dword ptr [ebp + 8]
+08337bac: mov      byte ptr [eax + 0x40], 1
+08337bb0: mov      eax, 1
+08337bb5: add      esp, 0x40
+08337bb8: pop      ebx
+08337bb9: pop      esi
+08337bba: pop      ebp
+08337bbb: ret
+
+### 08337bbc size=412 _ZN13user_creature9CCreature15GainExpCreatureEiP5CUser
+08337bbc: push     ebp
+08337bbd: mov      ebp, esp
+08337bbf: push     esi
+08337bc0: push     ebx
+08337bc1: sub      esp, 0x50
+08337bc4: mov      byte ptr [ebp - 0xd], 0
+08337bc8: mov      eax, dword ptr [ebp + 8]
+08337bcb: movzx    eax, byte ptr [eax + 0x4c]
+08337bcf: xor      eax, 1
+08337bd2: test     al, al
+08337bd4: je       0x8337be0
+08337bd6: mov      eax, 0
+08337bdb: jmp      0x8337d51
+08337be0: mov      eax, dword ptr [ebp + 8]
+08337be3: movzx    eax, byte ptr [eax + 0x4c]
+08337be7: movzx    edx, al
+08337bea: mov      eax, dword ptr [ebp + 8]
+08337bed: mov      eax, dword ptr [eax + 0x3c]
+08337bf0: mov      ecx, dword ptr [ebp + 8]
+08337bf3: add      ecx, 0x34
+08337bf6: mov      dword ptr [esp + 8], edx
+08337bfa: mov      dword ptr [esp + 4], eax
+08337bfe: mov      dword ptr [esp], ecx
+08337c01: call     0x8336cfc ; _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+08337c06: fnstcw   word ptr [ebp - 0x3a]
+08337c09: movzx    eax, word ptr [ebp - 0x3a]
+08337c0d: mov      ah, 0xc
+08337c0f: mov      word ptr [ebp - 0x3c], ax
+08337c13: fldcw    word ptr [ebp - 0x3c]
+08337c16: fistp    dword ptr [ebp - 0xc]
+08337c19: fldcw    word ptr [ebp - 0x3a]
+08337c1c: cmp      dword ptr [ebp - 0xc], 0
+08337c20: jg       0x8337c2c
+08337c22: mov      eax, 0
+08337c27: jmp      0x8337d51
+08337c2c: mov      eax, dword ptr [ebp + 0x10]
+08337c2f: mov      dword ptr [esp + 0xc], eax
+08337c33: lea      eax, [ebp - 0xd]
+08337c36: mov      dword ptr [esp + 8], eax
+08337c3a: mov      eax, dword ptr [ebp + 0xc]
+08337c3d: mov      dword ptr [esp + 4], eax
+08337c41: mov      eax, dword ptr [ebp + 8]
+08337c44: mov      dword ptr [esp], eax
+08337c47: call     0x83377b6 ; _ZN13user_creature9CCreature12CalculateExpEiRbP5CUser
+08337c4c: mov      eax, dword ptr [ebp + 8]
+08337c4f: mov      ebx, dword ptr [eax + 0x2c]
+08337c52: mov      eax, dword ptr [ebp + 8]
+08337c55: mov      eax, dword ptr [eax + 0x44]
+08337c58: mov      dword ptr [esp], eax
+08337c5b: call     0x833f24c ; _ZN13user_creature15CCreatureScript11GetMaxLevelEv
+08337c60: cmp      ebx, eax
+08337c62: jl       0x8337c6c
+08337c64: movzx    eax, byte ptr [ebp - 0xd]
+08337c68: test     al, al
+08337c6a: je       0x8337c73
+08337c6c: mov      eax, 1
+08337c71: jmp      0x8337c78
+08337c73: mov      eax, 0
+08337c78: test     al, al
+08337c7a: je       0x8337cf7
+08337c7c: mov      dword ptr [esp + 0xc], 0
+08337c84: mov      dword ptr [esp + 8], 0
+08337c8c: mov      eax, dword ptr [ebp + 0x10]
+08337c8f: mov      dword ptr [esp + 4], eax
+08337c93: lea      eax, [ebp - 0x30]
+08337c96: mov      dword ptr [esp], eax
+08337c99: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08337c9e: mov      eax, dword ptr [ebp + 8]
+08337ca1: mov      dword ptr [esp], eax
+08337ca4: call     0x833f0ca ; _ZN13user_creature9CCreature14IsGrowCreatureEv
+08337ca9: movzx    ecx, al
+08337cac: mov      eax, dword ptr [ebp + 8]
+08337caf: mov      edx, dword ptr [eax + 0x2c]
+08337cb2: mov      eax, dword ptr [ebp + 8]
+08337cb5: mov      eax, dword ptr [eax + 0x30]
+08337cb8: mov      dword ptr [esp + 0xc], ecx
+08337cbc: mov      dword ptr [esp + 8], edx
+08337cc0: mov      dword ptr [esp + 4], eax
+08337cc4: lea      eax, [ebp - 0x30]
+08337cc7: mov      dword ptr [esp], eax
+08337cca: call     0x8340760 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketGainExpCreatureEiib
+08337ccf: jmp      0x8337cec
+08337cd1: mov      ebx, edx
+08337cd3: mov      esi, eax
+08337cd5: lea      eax, [ebp - 0x30]
+08337cd8: mov      dword ptr [esp], eax
+08337cdb: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08337ce0: mov      eax, esi
+08337ce2: mov      edx, ebx
+08337ce4: mov      dword ptr [esp], eax
+08337ce7: call     0x8ae3750 ; _Unwind_Resume
+08337cec: lea      eax, [ebp - 0x30]
+08337cef: mov      dword ptr [esp], eax
+08337cf2: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08337cf7: movzx    eax, byte ptr [ebp - 0xd]
+08337cfb: test     al, al
+08337cfd: je       0x8337d1c
+08337cff: mov      eax, dword ptr [ebp + 0x10]
+08337d02: mov      dword ptr [esp + 4], eax
+08337d06: mov      eax, dword ptr [ebp + 8]
+08337d09: mov      dword ptr [esp], eax
+08337d0c: call     0x83380fc ; _ZNK13user_creature9CCreature13IsAbleEvoluteEP5CUser
+08337d11: test     al, al
+08337d13: je       0x8337d1c
+08337d15: mov      eax, 1
+08337d1a: jmp      0x8337d21
+08337d1c: mov      eax, 0
+08337d21: test     al, al
+08337d23: je       0x8337d45
+08337d25: mov      eax, dword ptr [ebp + 0x10]
+08337d28: mov      dword ptr [esp + 4], eax
+08337d2c: mov      eax, dword ptr [ebp + 8]
+08337d2f: mov      dword ptr [esp], eax
+08337d32: call     0x83381ea ; _ZN13user_creature9CCreature7EvoluteEP5CUser
+08337d37: xor      eax, 1
+08337d3a: test     al, al
+08337d3c: je       0x8337d45
+08337d3e: mov      eax, 0
+08337d43: jmp      0x8337d51
+08337d45: mov      eax, dword ptr [ebp + 8]
+08337d48: mov      byte ptr [eax + 0x40], 1
+08337d4c: mov      eax, 1
+08337d51: add      esp, 0x50
+08337d54: pop      ebx
+08337d55: pop      esi
+08337d56: pop      ebp
+08337d57: ret
+
+### 08337d58 size=239 _ZN13user_creature9CCreature19IsAbleSelectEvoluteEP5CUser
+08337d58: push     ebp
+08337d59: mov      ebp, esp
+08337d5b: push     esi
+08337d5c: push     ebx
+08337d5d: sub      esp, 0x20
+08337d60: mov      eax, dword ptr [ebp + 8]
+08337d63: mov      eax, dword ptr [eax + 0x44]
+08337d66: test     eax, eax
+08337d68: jne      0x8337d74
+08337d6a: mov      eax, 0
+08337d6f: jmp      0x8337e40
+08337d74: mov      eax, dword ptr [ebp + 8]
+08337d77: mov      eax, dword ptr [eax + 0x44]
+08337d7a: mov      dword ptr [esp], eax
+08337d7d: call     0x833f34a ; _ZN13user_creature15CCreatureScript27GetTypeSelectEvolutionLevelEv
+08337d82: cmp      eax, -1
+08337d85: sete     al
+08337d88: test     al, al
+08337d8a: je       0x8337d96
+08337d8c: mov      eax, 0
+08337d91: jmp      0x8337e40
+08337d96: mov      eax, dword ptr [ebp + 8]
+08337d99: mov      eax, dword ptr [eax + 0x44]
+08337d9c: mov      dword ptr [esp], eax
+08337d9f: call     0x833f34a ; _ZN13user_creature15CCreatureScript27GetTypeSelectEvolutionLevelEv
+08337da4: mov      edx, dword ptr [ebp + 8]
+08337da7: mov      edx, dword ptr [edx + 0x2c]
+08337daa: cmp      eax, edx
+08337dac: setg     al
+08337daf: test     al, al
+08337db1: je       0x8337dbd
+08337db3: mov      eax, 0
+08337db8: jmp      0x8337e40
+08337dbd: mov      eax, dword ptr [ebp + 8]
+08337dc0: mov      eax, dword ptr [eax + 0x44]
+08337dc3: mov      dword ptr [esp], eax
+08337dc6: call     0x833f134 ; _ZN13user_creature15CCreatureScript21IsExistEvolutionQuestEv
+08337dcb: test     al, al
+08337dcd: je       0x8337e3b
+08337dcf: cmp      dword ptr [ebp + 0xc], 0
+08337dd3: je       0x8337e34
+08337dd5: lea      eax, [ebp - 0x14]
+08337dd8: mov      dword ptr [esp], eax
+08337ddb: call     0x858dd4c ; _ZN11PacketGuardC2Ev
+08337de0: lea      ebx, [ebp - 0x14]
+08337de3: mov      eax, dword ptr [ebp + 0xc]
+08337de6: mov      dword ptr [esp], eax
+08337de9: call     0x819a8a6 ; _ZNK5CUser18getCurCharacQuestREv
+08337dee: mov      dword ptr [esp + 4], ebx
+08337df2: mov      dword ptr [esp], eax
+08337df5: call     0x86abba8 ; _ZNK9UserQuest14get_quest_infoEPc
+08337dfa: lea      eax, [ebp - 0x14]
+08337dfd: mov      dword ptr [esp + 4], eax
+08337e01: mov      eax, dword ptr [ebp + 0xc]
+08337e04: mov      dword ptr [esp], eax
+08337e07: call     0x86485ba ; _ZN5CUser4SendER11PacketGuard
+08337e0c: jmp      0x8337e29
+08337e0e: mov      ebx, edx
+08337e10: mov      esi, eax
+08337e12: lea      eax, [ebp - 0x14]
+08337e15: mov      dword ptr [esp], eax
+08337e18: call     0x858de80 ; _ZN11PacketGuardD1Ev
+08337e1d: mov      eax, esi
+08337e1f: mov      edx, ebx
+08337e21: mov      dword ptr [esp], eax
+08337e24: call     0x8ae3750 ; _Unwind_Resume
+08337e29: lea      eax, [ebp - 0x14]
+08337e2c: mov      dword ptr [esp], eax
+08337e2f: call     0x858de80 ; _ZN11PacketGuardD1Ev
+08337e34: mov      eax, 0
+08337e39: jmp      0x8337e40
+08337e3b: mov      eax, 1
+08337e40: add      esp, 0x20
+08337e43: pop      ebx
+08337e44: pop      esi
+08337e45: pop      ebp
+08337e46: ret
+
+### 08337e48 size=691 _ZN13user_creature9CCreature13SelectEvoluteEP5CUser
+08337e48: push     ebp
+08337e49: mov      ebp, esp
+08337e4b: push     esi
+08337e4c: push     ebx
+08337e4d: sub      esp, 0x70
+08337e50: mov      eax, dword ptr [ebp + 8]
+08337e53: mov      eax, dword ptr [eax + 0x44]
+08337e56: test     eax, eax
+08337e58: jne      0x8337ebd
+08337e5a: mov      eax, dword ptr [ebp + 8]
+08337e5d: mov      dword ptr [esp], eax
+08337e60: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08337e65: mov      ebx, eax
+08337e67: mov      eax, dword ptr [ebp + 0xc]
+08337e6a: mov      dword ptr [esp], eax
+08337e6d: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08337e72: movzx    esi, ax
+08337e75: mov      dword ptr [esp + 0xc], 5
+08337e7d: mov      dword ptr [esp + 8], 0x6a2
+08337e85: mov      dword ptr [esp + 4], 0x8c2f3e0
+08337e8d: lea      eax, [ebp - 0x38]
+08337e90: mov      dword ptr [esp], eax
+08337e93: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+08337e98: mov      dword ptr [esp + 0xc], ebx
+08337e9c: mov      dword ptr [esp + 8], esi
+08337ea0: mov      dword ptr [esp + 4], 0x8c2d7d4
+08337ea8: lea      eax, [ebp - 0x38]
+08337eab: mov      dword ptr [esp], eax
+08337eae: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+08337eb3: mov      ebx, 0
+08337eb8: jmp      0x83380f2
+08337ebd: mov      dword ptr [ebp - 0x18], 0
+08337ec4: mov      eax, dword ptr [ebp + 8]
+08337ec7: movzx    eax, byte ptr [eax + 0x4d]
+08337ecb: cmp      al, 4
+08337ecd: jbe      0x8337ee2
+08337ecf: mov      eax, dword ptr [ebp + 8]
+08337ed2: mov      eax, dword ptr [eax + 0x44]
+08337ed5: mov      dword ptr [esp], eax
+08337ed8: call     0x833f362 ; _ZN13user_creature15CCreatureScript17GET_ATypeCreatureEv
+08337edd: mov      dword ptr [ebp - 0x18], eax
+08337ee0: jmp      0x8337ef3
+08337ee2: mov      eax, dword ptr [ebp + 8]
+08337ee5: mov      eax, dword ptr [eax + 0x44]
+08337ee8: mov      dword ptr [esp], eax
+08337eeb: call     0x833f36e ; _ZN13user_creature15CCreatureScript17GET_BTypeCreatureEv
+08337ef0: mov      dword ptr [ebp - 0x18], eax
+08337ef3: cmp      dword ptr [ebp - 0x18], -1
+08337ef7: jne      0x8337f03
+08337ef9: mov      ebx, 0
+08337efe: jmp      0x83380f2
+08337f03: call     0x8336bd0 ; _ZN13user_creature28GetInstanceCreatureScriptMgrEv
+08337f08: mov      edx, dword ptr [ebp - 0x18]
+08337f0b: mov      dword ptr [esp + 4], edx
+08337f0f: mov      dword ptr [esp], eax
+08337f12: call     0x833d49a ; _ZN13user_creature18CCreatureScriptMgr18FindCreatureScriptEi
+08337f17: mov      dword ptr [ebp - 0x14], eax
+08337f1a: cmp      dword ptr [ebp - 0x14], 0
+08337f1e: jne      0x8337f2a
+08337f20: mov      ebx, 0
+08337f25: jmp      0x83380f2
+08337f2a: mov      eax, dword ptr [ebp - 0x14]
+08337f2d: mov      dword ptr [esp], eax
+08337f30: call     0x833f128 ; _ZN13user_creature15CCreatureScript9GetItemIdEv
+08337f35: mov      dword ptr [ebp - 0x10], eax
+08337f38: mov      eax, dword ptr [ebp - 0x10]
+08337f3b: mov      dword ptr [esp + 4], eax
+08337f3f: mov      eax, dword ptr [ebp + 8]
+08337f42: mov      dword ptr [esp], eax
+08337f45: call     0x83375ae ; _ZN13user_creature9CCreature9SetItemIdEi
+08337f4a: mov      dword ptr [ebp - 0xc], 0
+08337f51: mov      eax, dword ptr [ebp + 0xc]
+08337f54: mov      dword ptr [esp], eax
+08337f57: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+08337f5c: mov      dword ptr [esp + 8], 0x16
+08337f64: mov      dword ptr [esp + 4], 0
+08337f6c: mov      dword ptr [esp], eax
+08337f6f: call     0x84fc2ae ; _ZN10CInventory11GetInvenRefEii
+08337f74: mov      dword ptr [ebp - 0xc], eax
+08337f77: cmp      dword ptr [ebp - 0xc], 0
+08337f7b: jne      0x8337f87
+08337f7d: mov      ebx, 0
+08337f82: jmp      0x83380f2
+08337f87: mov      eax, dword ptr [ebp + 8]
+08337f8a: mov      dword ptr [esp], eax
+08337f8d: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08337f92: mov      edx, eax
+08337f94: mov      eax, dword ptr [ebp - 0xc]
+08337f97: mov      dword ptr [eax + 2], edx
+08337f9a: mov      eax, dword ptr [ebp + 0xc]
+08337f9d: mov      dword ptr [esp + 8], eax
+08337fa1: mov      dword ptr [esp + 4], 0x8a
+08337fa9: lea      eax, [ebp - 0x40]
+08337fac: mov      dword ptr [esp], eax
+08337faf: call     0x833f8ae ; _ZN13user_creature12CDBMsgSenderC2E19ENUM_INTERNALPACKETP5CUser
+08337fb4: mov      eax, dword ptr [ebp + 8]
+08337fb7: mov      dword ptr [esp], eax
+08337fba: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08337fbf: mov      ebx, eax
+08337fc1: mov      eax, dword ptr [ebp + 8]
+08337fc4: mov      dword ptr [esp], eax
+08337fc7: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+08337fcc: mov      dword ptr [esp + 8], ebx
+08337fd0: mov      dword ptr [esp + 4], eax
+08337fd4: lea      eax, [ebp - 0x40]
+08337fd7: mov      dword ptr [esp], eax
+08337fda: call     0x833fd74 ; _ZN13user_creature12CDBMsgSender15EvoluteCreatureEii
+08337fdf: xor      eax, 1
+08337fe2: test     al, al
+08337fe4: je       0x8338038
+08337fe6: mov      eax, dword ptr [ebp + 0xc]
+08337fe9: mov      dword ptr [esp], eax
+08337fec: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08337ff1: movzx    ebx, ax
+08337ff4: mov      dword ptr [esp + 0xc], 5
+08337ffc: mov      dword ptr [esp + 8], 0x6c9
+08338004: mov      dword ptr [esp + 4], 0x8c2f3e0
+0833800c: lea      eax, [ebp - 0x28]
+0833800f: mov      dword ptr [esp], eax
+08338012: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+08338017: mov      dword ptr [esp + 8], ebx
+0833801b: mov      dword ptr [esp + 4], 0x8c2d827
+08338023: lea      eax, [ebp - 0x28]
+08338026: mov      dword ptr [esp], eax
+08338029: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0833802e: mov      ebx, 0
+08338033: jmp      0x83380e7
+08338038: lea      eax, [ebp - 0x40]
+0833803b: mov      dword ptr [esp], eax
+0833803e: call     0x833f950 ; _ZN13user_creature12CDBMsgSender4SendEv
+08338043: mov      dword ptr [esp + 0xc], 0
+0833804b: mov      dword ptr [esp + 8], 0
+08338053: mov      eax, dword ptr [ebp + 0xc]
+08338056: mov      dword ptr [esp + 4], eax
+0833805a: lea      eax, [ebp - 0x60]
+0833805d: mov      dword ptr [esp], eax
+08338060: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08338065: mov      eax, dword ptr [ebp - 0x18]
+08338068: mov      dword ptr [esp + 4], eax
+0833806c: lea      eax, [ebp - 0x60]
+0833806f: mov      dword ptr [esp], eax
+08338072: call     0x8340842 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketEvoluteCreatureEi
+08338077: lea      eax, [ebp - 0x60]
+0833807a: mov      dword ptr [esp], eax
+0833807d: call     0x83404b8 ; _ZN13user_creature17CPacketRespondent20SendAccordingToPlaceEv
+08338082: mov      dword ptr [esp + 0xc], 0x16
+0833808a: mov      dword ptr [esp + 8], 3
+08338092: mov      dword ptr [esp + 4], 1
+0833809a: mov      eax, dword ptr [ebp + 0xc]
+0833809d: mov      dword ptr [esp], eax
+083380a0: call     0x867c65a ; _ZN5CUser18SendUpdateItemListENS_11eSendTargetE14ENUM_ITEMSPACEi
+083380a5: mov      ebx, 1
+083380aa: lea      eax, [ebp - 0x60]
+083380ad: mov      dword ptr [esp], eax
+083380b0: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+083380b5: jmp      0x83380e7
+083380b7: mov      ebx, edx
+083380b9: mov      esi, eax
+083380bb: lea      eax, [ebp - 0x60]
+083380be: mov      dword ptr [esp], eax
+083380c1: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+083380c6: mov      eax, esi
+083380c8: mov      edx, ebx
+083380ca: jmp      0x83380cc
+083380cc: mov      ebx, edx
+083380ce: mov      esi, eax
+083380d0: lea      eax, [ebp - 0x40]
+083380d3: mov      dword ptr [esp], eax
+083380d6: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+083380db: mov      eax, esi
+083380dd: mov      edx, ebx
+083380df: mov      dword ptr [esp], eax
+083380e2: call     0x8ae3750 ; _Unwind_Resume
+083380e7: lea      eax, [ebp - 0x40]
+083380ea: mov      dword ptr [esp], eax
+083380ed: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+083380f2: mov      eax, ebx
+083380f4: add      esp, 0x70
+083380f7: pop      ebx
+083380f8: pop      esi
+083380f9: pop      ebp
+083380fa: ret
+
+### 083381ea size=654 _ZN13user_creature9CCreature7EvoluteEP5CUser
+083381ea: push     ebp
+083381eb: mov      ebp, esp
+083381ed: push     esi
+083381ee: push     ebx
+083381ef: sub      esp, 0x70
+083381f2: mov      eax, dword ptr [ebp + 8]
+083381f5: mov      eax, dword ptr [eax + 0x44]
+083381f8: test     eax, eax
+083381fa: jne      0x833825f
+083381fc: mov      eax, dword ptr [ebp + 8]
+083381ff: mov      dword ptr [esp], eax
+08338202: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338207: mov      ebx, eax
+08338209: mov      eax, dword ptr [ebp + 0xc]
+0833820c: mov      dword ptr [esp], eax
+0833820f: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08338214: movzx    esi, ax
+08338217: mov      dword ptr [esp + 0xc], 5
+0833821f: mov      dword ptr [esp + 8], 0x743
+08338227: mov      dword ptr [esp + 4], 0x8c2f3a0
+0833822f: lea      eax, [ebp - 0x38]
+08338232: mov      dword ptr [esp], eax
+08338235: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0833823a: mov      dword ptr [esp + 0xc], ebx
+0833823e: mov      dword ptr [esp + 8], esi
+08338242: mov      dword ptr [esp + 4], 0x8c2d840
+0833824a: lea      eax, [ebp - 0x38]
+0833824d: mov      dword ptr [esp], eax
+08338250: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+08338255: mov      ebx, 0
+0833825a: jmp      0x833846f
+0833825f: mov      eax, dword ptr [ebp + 8]
+08338262: mov      eax, dword ptr [eax + 0x44]
+08338265: mov      dword ptr [esp], eax
+08338268: call     0x833f144 ; _ZN13user_creature15CCreatureScript22GetEvolutionCreatureIdEv
+0833826d: mov      dword ptr [ebp - 0x18], eax
+08338270: cmp      dword ptr [ebp - 0x18], 0
+08338274: jne      0x8338280
+08338276: mov      ebx, 0
+0833827b: jmp      0x833846f
+08338280: call     0x8336bd0 ; _ZN13user_creature28GetInstanceCreatureScriptMgrEv
+08338285: mov      edx, dword ptr [ebp - 0x18]
+08338288: mov      dword ptr [esp + 4], edx
+0833828c: mov      dword ptr [esp], eax
+0833828f: call     0x833d49a ; _ZN13user_creature18CCreatureScriptMgr18FindCreatureScriptEi
+08338294: mov      dword ptr [ebp - 0x14], eax
+08338297: cmp      dword ptr [ebp - 0x14], 0
+0833829b: jne      0x83382a7
+0833829d: mov      ebx, 0
+083382a2: jmp      0x833846f
+083382a7: mov      eax, dword ptr [ebp - 0x14]
+083382aa: mov      dword ptr [esp], eax
+083382ad: call     0x833f128 ; _ZN13user_creature15CCreatureScript9GetItemIdEv
+083382b2: mov      dword ptr [ebp - 0x10], eax
+083382b5: mov      eax, dword ptr [ebp - 0x10]
+083382b8: mov      dword ptr [esp + 4], eax
+083382bc: mov      eax, dword ptr [ebp + 8]
+083382bf: mov      dword ptr [esp], eax
+083382c2: call     0x83375ae ; _ZN13user_creature9CCreature9SetItemIdEi
+083382c7: mov      dword ptr [ebp - 0xc], 0
+083382ce: mov      eax, dword ptr [ebp + 0xc]
+083382d1: mov      dword ptr [esp], eax
+083382d4: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+083382d9: mov      dword ptr [esp + 8], 0x16
+083382e1: mov      dword ptr [esp + 4], 0
+083382e9: mov      dword ptr [esp], eax
+083382ec: call     0x84fc2ae ; _ZN10CInventory11GetInvenRefEii
+083382f1: mov      dword ptr [ebp - 0xc], eax
+083382f4: cmp      dword ptr [ebp - 0xc], 0
+083382f8: jne      0x8338304
+083382fa: mov      ebx, 0
+083382ff: jmp      0x833846f
+08338304: mov      eax, dword ptr [ebp + 8]
+08338307: mov      dword ptr [esp], eax
+0833830a: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833830f: mov      edx, eax
+08338311: mov      eax, dword ptr [ebp - 0xc]
+08338314: mov      dword ptr [eax + 2], edx
+08338317: mov      eax, dword ptr [ebp + 0xc]
+0833831a: mov      dword ptr [esp + 8], eax
+0833831e: mov      dword ptr [esp + 4], 0x8a
+08338326: lea      eax, [ebp - 0x40]
+08338329: mov      dword ptr [esp], eax
+0833832c: call     0x833f8ae ; _ZN13user_creature12CDBMsgSenderC2E19ENUM_INTERNALPACKETP5CUser
+08338331: mov      eax, dword ptr [ebp + 8]
+08338334: mov      dword ptr [esp], eax
+08338337: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833833c: mov      ebx, eax
+0833833e: mov      eax, dword ptr [ebp + 8]
+08338341: mov      dword ptr [esp], eax
+08338344: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+08338349: mov      dword ptr [esp + 8], ebx
+0833834d: mov      dword ptr [esp + 4], eax
+08338351: lea      eax, [ebp - 0x40]
+08338354: mov      dword ptr [esp], eax
+08338357: call     0x833fd74 ; _ZN13user_creature12CDBMsgSender15EvoluteCreatureEii
+0833835c: xor      eax, 1
+0833835f: test     al, al
+08338361: je       0x83383b5
+08338363: mov      eax, dword ptr [ebp + 0xc]
+08338366: mov      dword ptr [esp], eax
+08338369: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+0833836e: movzx    ebx, ax
+08338371: mov      dword ptr [esp + 0xc], 5
+08338379: mov      dword ptr [esp + 8], 0x763
+08338381: mov      dword ptr [esp + 4], 0x8c2f3a0
+08338389: lea      eax, [ebp - 0x28]
+0833838c: mov      dword ptr [esp], eax
+0833838f: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+08338394: mov      dword ptr [esp + 8], ebx
+08338398: mov      dword ptr [esp + 4], 0x8c2d827
+083383a0: lea      eax, [ebp - 0x28]
+083383a3: mov      dword ptr [esp], eax
+083383a6: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+083383ab: mov      ebx, 0
+083383b0: jmp      0x8338464
+083383b5: lea      eax, [ebp - 0x40]
+083383b8: mov      dword ptr [esp], eax
+083383bb: call     0x833f950 ; _ZN13user_creature12CDBMsgSender4SendEv
+083383c0: mov      dword ptr [esp + 0xc], 0
+083383c8: mov      dword ptr [esp + 8], 0
+083383d0: mov      eax, dword ptr [ebp + 0xc]
+083383d3: mov      dword ptr [esp + 4], eax
+083383d7: lea      eax, [ebp - 0x60]
+083383da: mov      dword ptr [esp], eax
+083383dd: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+083383e2: mov      eax, dword ptr [ebp - 0x18]
+083383e5: mov      dword ptr [esp + 4], eax
+083383e9: lea      eax, [ebp - 0x60]
+083383ec: mov      dword ptr [esp], eax
+083383ef: call     0x8340842 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketEvoluteCreatureEi
+083383f4: lea      eax, [ebp - 0x60]
+083383f7: mov      dword ptr [esp], eax
+083383fa: call     0x83404b8 ; _ZN13user_creature17CPacketRespondent20SendAccordingToPlaceEv
+083383ff: mov      dword ptr [esp + 0xc], 0x16
+08338407: mov      dword ptr [esp + 8], 3
+0833840f: mov      dword ptr [esp + 4], 1
+08338417: mov      eax, dword ptr [ebp + 0xc]
+0833841a: mov      dword ptr [esp], eax
+0833841d: call     0x867c65a ; _ZN5CUser18SendUpdateItemListENS_11eSendTargetE14ENUM_ITEMSPACEi
+08338422: mov      ebx, 1
+08338427: lea      eax, [ebp - 0x60]
+0833842a: mov      dword ptr [esp], eax
+0833842d: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338432: jmp      0x8338464
+08338434: mov      ebx, edx
+08338436: mov      esi, eax
+08338438: lea      eax, [ebp - 0x60]
+0833843b: mov      dword ptr [esp], eax
+0833843e: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338443: mov      eax, esi
+08338445: mov      edx, ebx
+08338447: jmp      0x8338449
+08338449: mov      ebx, edx
+0833844b: mov      esi, eax
+0833844d: lea      eax, [ebp - 0x40]
+08338450: mov      dword ptr [esp], eax
+08338453: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+08338458: mov      eax, esi
+0833845a: mov      edx, ebx
+0833845c: mov      dword ptr [esp], eax
+0833845f: call     0x8ae3750 ; _Unwind_Resume
+08338464: lea      eax, [ebp - 0x40]
+08338467: mov      dword ptr [esp], eax
+0833846a: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+0833846f: mov      eax, ebx
+08338471: add      esp, 0x70
+08338474: pop      ebx
+08338475: pop      esi
+08338476: pop      ebp
+08338477: ret
+
+### 08338478 size=64 _ZN13user_creature9CCreature13IsDieCreatureEv
+08338478: push     ebp
+08338479: mov      ebp, esp
+0833847b: sub      esp, 0x28
+0833847e: mov      eax, dword ptr [ebp + 8]
+08338481: movzx    eax, byte ptr [eax + 0x4c]
+08338485: movzx    edx, al
+08338488: mov      eax, dword ptr [ebp + 8]
+0833848b: mov      eax, dword ptr [eax + 0x3c]
+0833848e: mov      ecx, dword ptr [ebp + 8]
+08338491: add      ecx, 0x34
+08338494: mov      dword ptr [esp + 8], edx
+08338498: mov      dword ptr [esp + 4], eax
+0833849c: mov      dword ptr [esp], ecx
+0833849f: call     0x8336cfc ; _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+083384a4: fstp     dword ptr [ebp - 0xc]
+083384a7: fld      dword ptr [ebp - 0xc]
+083384aa: fld1
+083384ac: fucompp
+083384ae: fnstsw   ax
+083384b0: test     ah, 0x45
+083384b3: sete     al
+083384b6: leave
+083384b7: ret
+
+### 083384b8 size=53 _ZN13user_creature9CCreature17CheckDiedCreatureEP5CUser
+083384b8: push     ebp
+083384b9: mov      ebp, esp
+083384bb: sub      esp, 0x18
+083384be: mov      eax, dword ptr [ebp + 8]
+083384c1: mov      dword ptr [esp], eax
+083384c4: call     0x8338478 ; _ZN13user_creature9CCreature13IsDieCreatureEv
+083384c9: test     al, al
+083384cb: je       0x83384e6
+083384cd: mov      eax, dword ptr [ebp + 0xc]
+083384d0: mov      dword ptr [esp + 4], eax
+083384d4: mov      eax, dword ptr [ebp + 8]
+083384d7: mov      dword ptr [esp], eax
+083384da: call     0x8338536 ; _ZN13user_creature9CCreature3DieEP5CUser
+083384df: mov      eax, 1
+083384e4: jmp      0x83384eb
+083384e6: mov      eax, 0
+083384eb: leave
+083384ec: ret
+
+### 083384ee size=71 _ZN13user_creature9CCreature10GetStomachEv
+083384ee: push     ebp
+083384ef: mov      ebp, esp
+083384f1: sub      esp, 0x28
+083384f4: mov      eax, dword ptr [ebp + 8]
+083384f7: movzx    eax, byte ptr [eax + 0x4c]
+083384fb: movzx    edx, al
+083384fe: mov      eax, dword ptr [ebp + 8]
+08338501: mov      eax, dword ptr [eax + 0x3c]
+08338504: mov      ecx, dword ptr [ebp + 8]
+08338507: add      ecx, 0x34
+0833850a: mov      dword ptr [esp + 8], edx
+0833850e: mov      dword ptr [esp + 4], eax
+08338512: mov      dword ptr [esp], ecx
+08338515: call     0x8336cfc ; _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+0833851a: fnstcw   word ptr [ebp - 0xa]
+0833851d: movzx    eax, word ptr [ebp - 0xa]
+08338521: mov      ah, 0xc
+08338523: mov      word ptr [ebp - 0xc], ax
+08338527: fldcw    word ptr [ebp - 0xc]
+0833852a: fistp    dword ptr [ebp - 0x10]
+0833852d: fldcw    word ptr [ebp - 0xa]
+08338530: mov      eax, dword ptr [ebp - 0x10]
+08338533: leave
+08338534: ret
+
+### 08338536 size=116 _ZN13user_creature9CCreature3DieEP5CUser
+08338536: push     ebp
+08338537: mov      ebp, esp
+08338539: push     esi
+0833853a: push     ebx
+0833853b: sub      esp, 0x30
+0833853e: mov      dword ptr [esp + 0xc], 0
+08338546: mov      dword ptr [esp + 8], 0
+0833854e: mov      eax, dword ptr [ebp + 0xc]
+08338551: mov      dword ptr [esp + 4], eax
+08338555: lea      eax, [ebp - 0x28]
+08338558: mov      dword ptr [esp], eax
+0833855b: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08338560: lea      eax, [ebp - 0x28]
+08338563: mov      dword ptr [esp], eax
+08338566: call     0x83406fe ; _ZN13user_creature17CPacketRespondent26MakeNotipacketDiedCreatureEv
+0833856b: lea      eax, [ebp - 0x28]
+0833856e: mov      dword ptr [esp], eax
+08338571: call     0x834048a ; _ZN13user_creature17CPacketRespondent7SendAllEv
+08338576: mov      ebx, 1
+0833857b: lea      eax, [ebp - 0x28]
+0833857e: mov      dword ptr [esp], eax
+08338581: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338586: mov      eax, ebx
+08338588: add      esp, 0x30
+0833858b: pop      ebx
+0833858c: pop      esi
+0833858d: pop      ebp
+0833858e: ret
+0833858f: mov      ebx, edx
+08338591: mov      esi, eax
+08338593: lea      eax, [ebp - 0x28]
+08338596: mov      dword ptr [esp], eax
+08338599: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+0833859e: mov      eax, esi
+083385a0: mov      edx, ebx
+083385a2: mov      dword ptr [esp], eax
+083385a5: call     0x8ae3750 ; _Unwind_Resume
+
+### 083385aa size=588 _ZN13user_creature9CCreature16LoadCreatureItemEPNS_12CCreatureMgrEP10Inven_ItemP29SIG_CREATURE_ITEM_DETAIL_INFOP5CUser
+083385aa: push     ebp
+083385ab: mov      ebp, esp
+083385ad: push     ebx
+083385ae: sub      esp, 0x34
+083385b1: mov      eax, dword ptr [ebp + 0x14]
+083385b4: movzx    eax, byte ptr [eax + 0x27]
+083385b8: test     al, al
+083385ba: je       0x83385d1
+083385bc: mov      eax, dword ptr [ebp + 0x10]
+083385bf: mov      dword ptr [esp], eax
+083385c2: call     0x80cb7d8 ; _ZN10Inven_Item5resetEv
+083385c7: mov      eax, 0
+083385cc: jmp      0x83387f0
+083385d1: mov      eax, dword ptr [ebp + 0x14]
+083385d4: mov      edx, dword ptr [eax + 0x20]
+083385d7: mov      eax, dword ptr [ebp + 8]
+083385da: mov      dword ptr [eax + 0x30], edx
+083385dd: mov      eax, dword ptr [ebp + 0x10]
+083385e0: mov      eax, dword ptr [eax + 2]
+083385e3: mov      dword ptr [esp + 4], eax
+083385e7: mov      eax, dword ptr [ebp + 8]
+083385ea: mov      dword ptr [esp], eax
+083385ed: call     0x83375ae ; _ZN13user_creature9CCreature9SetItemIdEi
+083385f2: mov      eax, dword ptr [ebp + 0x14]
+083385f5: mov      edx, dword ptr [eax + 4]
+083385f8: mov      eax, dword ptr [ebp + 8]
+083385fb: mov      dword ptr [eax + 0xc], edx
+083385fe: mov      eax, dword ptr [ebp + 0x14]
+08338601: mov      edx, dword ptr [eax]
+08338603: mov      eax, dword ptr [ebp + 8]
+08338606: mov      dword ptr [eax + 0x10], edx
+08338609: mov      eax, dword ptr [ebp + 0x14]
+0833860c: movzx    eax, byte ptr [eax + 0x24]
+08338610: movsx    edx, al
+08338613: mov      eax, dword ptr [ebp + 8]
+08338616: mov      dword ptr [eax + 8], edx
+08338619: mov      eax, dword ptr [ebp + 0x14]
+0833861c: mov      eax, dword ptr [eax + 0x18]
+0833861f: mov      dword ptr [ebp - 0x1c], eax
+08338622: fild     dword ptr [ebp - 0x1c]
+08338625: mov      eax, dword ptr [ebp + 8]
+08338628: add      eax, 0x34
+0833862b: fstp     dword ptr [esp + 4]
+0833862f: mov      dword ptr [esp], eax
+08338632: call     0x833eef6 ; _ZN13user_creature8CStomach15SetStomachValueEf
+08338637: mov      eax, dword ptr [ebp + 0x14]
+0833863a: lea      edx, [eax + 8]
+0833863d: mov      eax, dword ptr [ebp + 8]
+08338640: add      eax, 0x1c
+08338643: mov      dword ptr [esp + 8], 0xc
+0833864b: mov      dword ptr [esp + 4], edx
+0833864f: mov      dword ptr [esp], eax
+08338652: call     0x807d8d0 ;
+08338657: mov      eax, dword ptr [ebp + 8]
+0833865a: movzx    eax, byte ptr [eax + 0x4c]
+0833865e: xor      eax, 1
+08338661: test     al, al
+08338663: je       0x8338691
+08338665: mov      eax, dword ptr [ebp + 8]
+08338668: mov      eax, dword ptr [eax + 0x30]
+0833866b: mov      dword ptr [ebp - 0x10], eax
+0833866e: movzx    eax, word ptr [ebp - 0xe]
+08338672: cwde
+08338673: mov      dword ptr [esp + 4], eax
+08338677: mov      eax, dword ptr [ebp + 8]
+0833867a: mov      dword ptr [esp], eax
+0833867d: call     0x83374d2 ; _ZN13user_creature9CCreature11GetExpLevelEi
+08338682: mov      edx, dword ptr [ebp + 8]
+08338685: mov      dword ptr [edx + 0x2c], eax
+08338688: mov      eax, dword ptr [ebp + 0x14]
+0833868b: mov      byte ptr [eax + 0x30], 0
+0833868f: jmp      0x83386b3
+08338691: mov      eax, dword ptr [ebp + 8]
+08338694: mov      eax, dword ptr [eax + 0x30]
+08338697: mov      dword ptr [esp + 4], eax
+0833869b: mov      eax, dword ptr [ebp + 8]
+0833869e: mov      dword ptr [esp], eax
+083386a1: call     0x83374d2 ; _ZN13user_creature9CCreature11GetExpLevelEi
+083386a6: mov      edx, dword ptr [ebp + 8]
+083386a9: mov      dword ptr [edx + 0x2c], eax
+083386ac: mov      eax, dword ptr [ebp + 0x14]
+083386af: mov      byte ptr [eax + 0x30], 1
+083386b3: mov      eax, dword ptr [ebp + 8]
+083386b6: mov      dword ptr [esp], eax
+083386b9: call     0x833756e ; _ZN13user_creature9CCreature10isMaxLevelEv
+083386be: mov      edx, dword ptr [ebp + 0x14]
+083386c1: mov      byte ptr [edx + 0x31], al
+083386c4: mov      eax, dword ptr [ebp + 0x14]
+083386c7: movzx    eax, byte ptr [eax + 0x26]
+083386cb: test     al, al
+083386cd: setne    dl
+083386d0: mov      eax, dword ptr [ebp + 8]
+083386d3: mov      byte ptr [eax + 0x14], dl
+083386d6: mov      eax, dword ptr [ebp + 0x14]
+083386d9: movzx    edx, byte ptr [eax + 0x27]
+083386dd: mov      eax, dword ptr [ebp + 8]
+083386e0: mov      byte ptr [eax + 0x15], dl
+083386e3: mov      eax, dword ptr [ebp + 0x14]
+083386e6: mov      edx, dword ptr [eax + 0x28]
+083386e9: mov      eax, dword ptr [ebp + 8]
+083386ec: mov      dword ptr [eax + 0x18], edx
+083386ef: mov      eax, dword ptr [ebp + 8]
+083386f2: movzx    eax, byte ptr [eax + 0x4c]
+083386f6: test     al, al
+083386f8: je       0x8338708
+083386fa: mov      eax, dword ptr [ebp + 8]
+083386fd: add      eax, 0x34
+08338700: mov      dword ptr [esp], eax
+08338703: call     0x8336e4c ; _ZN13user_creature8CStomach6ResumeEv
+08338708: mov      dword ptr [esp + 8], 2
+08338710: mov      eax, dword ptr [ebp + 0x18]
+08338713: mov      dword ptr [esp + 4], eax
+08338717: mov      eax, dword ptr [ebp + 8]
+0833871a: mov      dword ptr [esp], eax
+0833871d: call     0x833715a ; _ZN13user_creature9CCreature8SetStateEP5CUserNS_14CREATURE_STATEE
+08338722: mov      eax, dword ptr [ebp + 8]
+08338725: mov      byte ptr [eax + 0x40], 1
+08338729: mov      eax, dword ptr [ebp + 0x14]
+0833872c: mov      eax, dword ptr [eax]
+0833872e: cmp      eax, 0xee
+08338733: jne      0x8338758
+08338735: mov      eax, dword ptr [ebp + 8]
+08338738: mov      dword ptr [esp + 4], eax
+0833873c: mov      eax, dword ptr [ebp + 0xc]
+0833873f: mov      dword ptr [esp], eax
+08338742: call     0x83392f6 ; _ZN13user_creature12CCreatureMgr5EquipEPNS_9CCreatureE
+08338747: xor      eax, 1
+0833874a: test     al, al
+0833874c: je       0x8338758
+0833874e: mov      eax, 0
+08338753: jmp      0x83387f0
+08338758: mov      eax, dword ptr [ebp + 0x14]
+0833875b: mov      edx, dword ptr [eax + 4]
+0833875e: mov      eax, dword ptr [ebp + 8]
+08338761: mov      dword ptr [esp + 8], edx
+08338765: mov      dword ptr [esp + 4], eax
+08338769: mov      eax, dword ptr [ebp + 0xc]
+0833876c: mov      dword ptr [esp], eax
+0833876f: call     0x833a77e ; _ZN13user_creature12CCreatureMgr20RegisterCreatureItemEPNS_13CCreatureItemEi
+08338774: xor      eax, 1
+08338777: test     al, al
+08338779: je       0x8338782
+0833877b: mov      eax, 0
+08338780: jmp      0x83387f0
+08338782: mov      dword ptr [ebp - 0xc], 0
+08338789: mov      eax, dword ptr [ebp + 8]
+0833878c: mov      dword ptr [esp], eax
+0833878f: call     0x833efca ; _ZN13user_creature13CCreatureItem9GetSlotNoEv
+08338794: mov      ebx, eax
+08338796: mov      eax, dword ptr [ebp + 0x18]
+08338799: mov      dword ptr [esp], eax
+0833879c: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+083387a1: mov      dword ptr [esp + 8], ebx
+083387a5: mov      dword ptr [esp + 4], 3
+083387ad: mov      dword ptr [esp], eax
+083387b0: call     0x84fc2ae ; _ZN10CInventory11GetInvenRefEii
+083387b5: mov      dword ptr [ebp - 0xc], eax
+083387b8: mov      eax, dword ptr [ebp + 8]
+083387bb: mov      eax, dword ptr [eax + 0xc]
+083387be: mov      dword ptr [esp + 4], eax
+083387c2: mov      eax, dword ptr [ebp - 0xc]
+083387c5: mov      dword ptr [esp], eax
+083387c8: call     0x80cb884 ; _ZN10Inven_Item12set_add_infoEi
+083387cd: mov      eax, dword ptr [ebp + 8]
+083387d0: mov      eax, dword ptr [eax + 0x3c]
+083387d3: mov      edx, dword ptr [ebp + 8]
+083387d6: add      edx, 0x34
+083387d9: mov      dword ptr [esp + 4], eax
+083387dd: mov      dword ptr [esp], edx
+083387e0: call     0x8336dee ; _ZN13user_creature8CStomach13IsSaveStomachENS_14CREATURE_STATEE
+083387e5: mov      edx, dword ptr [ebp + 8]
+083387e8: mov      byte ptr [edx + 0x40], al
+083387eb: mov      eax, 1
+083387f0: add      esp, 0x34
+083387f3: pop      ebx
+083387f4: pop      ebp
+083387f5: ret
+
+### 083387f6 size=245 _ZN13user_creature9CCreature16SaveCreatureItemEP10Inven_ItemP29SIG_CREATURE_ITEM_DETAIL_INFOP5CUser
+083387f6: push     ebp
+083387f7: mov      ebp, esp
+083387f9: sub      esp, 0x28
+083387fc: mov      eax, dword ptr [ebp + 8]
+083387ff: movzx    eax, byte ptr [eax + 0x4c]
+08338803: movzx    edx, al
+08338806: mov      eax, dword ptr [ebp + 8]
+08338809: mov      eax, dword ptr [eax + 0x3c]
+0833880c: mov      ecx, dword ptr [ebp + 8]
+0833880f: add      ecx, 0x34
+08338812: mov      dword ptr [esp + 8], edx
+08338816: mov      dword ptr [esp + 4], eax
+0833881a: mov      dword ptr [esp], ecx
+0833881d: call     0x8336cfc ; _ZN13user_creature8CStomach15GetStomachValueENS_14CREATURE_STATEEb
+08338822: fnstcw   word ptr [ebp - 0xa]
+08338825: movzx    eax, word ptr [ebp - 0xa]
+08338829: mov      ah, 0xc
+0833882b: mov      word ptr [ebp - 0xc], ax
+0833882f: fldcw    word ptr [ebp - 0xc]
+08338832: fistp    dword ptr [ebp - 0x10]
+08338835: fldcw    word ptr [ebp - 0xa]
+08338838: mov      edx, dword ptr [ebp - 0x10]
+0833883b: mov      eax, dword ptr [ebp + 0x10]
+0833883e: mov      dword ptr [eax + 0x18], edx
+08338841: mov      eax, dword ptr [ebp + 8]
+08338844: mov      edx, dword ptr [eax + 0x30]
+08338847: mov      eax, dword ptr [ebp + 0x10]
+0833884a: mov      dword ptr [eax + 0x20], edx
+0833884d: mov      eax, dword ptr [ebp + 8]
+08338850: mov      edx, dword ptr [eax + 0xc]
+08338853: mov      eax, dword ptr [ebp + 0x10]
+08338856: mov      dword ptr [eax + 4], edx
+08338859: mov      eax, dword ptr [ebp + 8]
+0833885c: mov      eax, dword ptr [eax + 0x3c]
+0833885f: mov      edx, dword ptr [ebp + 8]
+08338862: add      edx, 0x34
+08338865: mov      dword ptr [esp + 4], eax
+08338869: mov      dword ptr [esp], edx
+0833886c: call     0x8336dee ; _ZN13user_creature8CStomach13IsSaveStomachENS_14CREATURE_STATEE
+08338871: mov      edx, dword ptr [ebp + 8]
+08338874: mov      byte ptr [edx + 0x40], al
+08338877: mov      eax, dword ptr [ebp + 8]
+0833887a: mov      dword ptr [esp], eax
+0833887d: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338882: mov      edx, eax
+08338884: mov      eax, dword ptr [ebp + 0xc]
+08338887: mov      dword ptr [eax + 2], edx
+0833888a: mov      eax, dword ptr [ebp + 8]
+0833888d: mov      dword ptr [esp], eax
+08338890: call     0x833efca ; _ZN13user_creature13CCreatureItem9GetSlotNoEv
+08338895: mov      edx, dword ptr [ebp + 0x10]
+08338898: mov      dword ptr [edx], eax
+0833889a: mov      eax, dword ptr [ebp + 8]
+0833889d: mov      eax, dword ptr [eax + 8]
+083388a0: mov      edx, eax
+083388a2: mov      eax, dword ptr [ebp + 0x10]
+083388a5: mov      byte ptr [eax + 0x24], dl
+083388a8: mov      eax, dword ptr [ebp + 8]
+083388ab: lea      edx, [eax + 0x1c]
+083388ae: mov      eax, dword ptr [ebp + 0x10]
+083388b1: add      eax, 8
+083388b4: mov      dword ptr [esp + 8], 0xc
+083388bc: mov      dword ptr [esp + 4], edx
+083388c0: mov      dword ptr [esp], eax
+083388c3: call     0x807d8d0 ;
+083388c8: mov      eax, dword ptr [ebp + 8]
+083388cb: movzx    eax, byte ptr [eax + 0x14]
+083388cf: mov      edx, eax
+083388d1: mov      eax, dword ptr [ebp + 0x10]
+083388d4: mov      byte ptr [eax + 0x26], dl
+083388d7: mov      eax, dword ptr [ebp + 8]
+083388da: movzx    edx, byte ptr [eax + 0x15]
+083388de: mov      eax, dword ptr [ebp + 0x10]
+083388e1: mov      byte ptr [eax + 0x27], dl
+083388e4: mov      eax, 1
+083388e9: leave
+083388ea: ret
+
+### 083388ec size=54 _ZN13user_creature9CCreature19IsEvolutionCreatureEi
+083388ec: push     ebp
+083388ed: mov      ebp, esp
+083388ef: sub      esp, 0x18
+083388f2: mov      eax, dword ptr [ebp + 8]
+083388f5: mov      eax, dword ptr [eax + 0x44]
+083388f8: test     eax, eax
+083388fa: je       0x833891b
+083388fc: mov      eax, dword ptr [ebp + 8]
+083388ff: mov      eax, dword ptr [eax + 0x44]
+08338902: mov      dword ptr [esp], eax
+08338905: call     0x833f144 ; _ZN13user_creature15CCreatureScript22GetEvolutionCreatureIdEv
+0833890a: cmp      eax, dword ptr [ebp + 0xc]
+0833890d: sete     al
+08338910: test     al, al
+08338912: je       0x833891b
+08338914: mov      eax, 1
+08338919: jmp      0x8338920
+0833891b: mov      eax, 0
+08338920: leave
+08338921: ret
+
+### 08338922 size=46 _ZN13user_creature9CCreature24IsEvolutionCreatureMultyEi
+08338922: push     ebp
+08338923: mov      ebp, esp
+08338925: sub      esp, 0x18
+08338928: mov      eax, dword ptr [ebp + 8]
+0833892b: mov      eax, dword ptr [eax + 0x44]
+0833892e: test     eax, eax
+08338930: je       0x8338949
+08338932: mov      eax, dword ptr [ebp + 8]
+08338935: mov      eax, dword ptr [eax + 0x44]
+08338938: mov      edx, dword ptr [ebp + 0xc]
+0833893b: mov      dword ptr [esp + 4], edx
+0833893f: mov      dword ptr [esp], eax
+08338942: call     0x833f1e0 ; _ZN13user_creature15CCreatureScript20isEvoluationCreatureEi
+08338947: jmp      0x833894e
+08338949: mov      eax, 0
+0833894e: leave
+0833894f: ret
+
+### 08338950 size=681 _ZN13user_creature9CCreature12EvoluteMultyEP5CUseri
+08338950: push     ebp
+08338951: mov      ebp, esp
+08338953: push     esi
+08338954: push     ebx
+08338955: sub      esp, 0x70
+08338958: mov      eax, dword ptr [ebp + 8]
+0833895b: mov      eax, dword ptr [eax + 0x44]
+0833895e: test     eax, eax
+08338960: jne      0x83389c5
+08338962: mov      eax, dword ptr [ebp + 8]
+08338965: mov      dword ptr [esp], eax
+08338968: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833896d: mov      ebx, eax
+0833896f: mov      eax, dword ptr [ebp + 0xc]
+08338972: mov      dword ptr [esp], eax
+08338975: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+0833897a: movzx    esi, ax
+0833897d: mov      dword ptr [esp + 0xc], 5
+08338985: mov      dword ptr [esp + 8], 0x843
+0833898d: mov      dword ptr [esp + 4], 0x8c2f360
+08338995: lea      eax, [ebp - 0x38]
+08338998: mov      dword ptr [esp], eax
+0833899b: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+083389a0: mov      dword ptr [esp + 0xc], ebx
+083389a4: mov      dword ptr [esp + 8], esi
+083389a8: mov      dword ptr [esp + 4], 0x8c2d840
+083389b0: lea      eax, [ebp - 0x38]
+083389b3: mov      dword ptr [esp], eax
+083389b6: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+083389bb: mov      ebx, 0
+083389c0: jmp      0x8338bf0
+083389c5: mov      eax, dword ptr [ebp + 8]
+083389c8: mov      eax, dword ptr [eax + 0x44]
+083389cb: mov      edx, dword ptr [ebp + 0x10]
+083389ce: mov      dword ptr [esp + 4], edx
+083389d2: mov      dword ptr [esp], eax
+083389d5: call     0x833f1e0 ; _ZN13user_creature15CCreatureScript20isEvoluationCreatureEi
+083389da: xor      eax, 1
+083389dd: test     al, al
+083389df: je       0x83389eb
+083389e1: mov      ebx, 0
+083389e6: jmp      0x8338bf0
+083389eb: mov      eax, dword ptr [ebp + 0x10]
+083389ee: mov      dword ptr [ebp - 0x18], eax
+083389f1: cmp      dword ptr [ebp - 0x18], 0
+083389f5: jne      0x8338a01
+083389f7: mov      ebx, 0
+083389fc: jmp      0x8338bf0
+08338a01: call     0x8336bd0 ; _ZN13user_creature28GetInstanceCreatureScriptMgrEv
+08338a06: mov      edx, dword ptr [ebp - 0x18]
+08338a09: mov      dword ptr [esp + 4], edx
+08338a0d: mov      dword ptr [esp], eax
+08338a10: call     0x833d49a ; _ZN13user_creature18CCreatureScriptMgr18FindCreatureScriptEi
+08338a15: mov      dword ptr [ebp - 0x14], eax
+08338a18: cmp      dword ptr [ebp - 0x14], 0
+08338a1c: jne      0x8338a28
+08338a1e: mov      ebx, 0
+08338a23: jmp      0x8338bf0
+08338a28: mov      eax, dword ptr [ebp - 0x14]
+08338a2b: mov      dword ptr [esp], eax
+08338a2e: call     0x833f128 ; _ZN13user_creature15CCreatureScript9GetItemIdEv
+08338a33: mov      dword ptr [ebp - 0x10], eax
+08338a36: mov      eax, dword ptr [ebp - 0x10]
+08338a39: mov      dword ptr [esp + 4], eax
+08338a3d: mov      eax, dword ptr [ebp + 8]
+08338a40: mov      dword ptr [esp], eax
+08338a43: call     0x83375ae ; _ZN13user_creature9CCreature9SetItemIdEi
+08338a48: mov      dword ptr [ebp - 0xc], 0
+08338a4f: mov      eax, dword ptr [ebp + 0xc]
+08338a52: mov      dword ptr [esp], eax
+08338a55: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+08338a5a: mov      dword ptr [esp + 8], 0x16
+08338a62: mov      dword ptr [esp + 4], 0
+08338a6a: mov      dword ptr [esp], eax
+08338a6d: call     0x84fc2ae ; _ZN10CInventory11GetInvenRefEii
+08338a72: mov      dword ptr [ebp - 0xc], eax
+08338a75: cmp      dword ptr [ebp - 0xc], 0
+08338a79: jne      0x8338a85
+08338a7b: mov      ebx, 0
+08338a80: jmp      0x8338bf0
+08338a85: mov      eax, dword ptr [ebp + 8]
+08338a88: mov      dword ptr [esp], eax
+08338a8b: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338a90: mov      edx, eax
+08338a92: mov      eax, dword ptr [ebp - 0xc]
+08338a95: mov      dword ptr [eax + 2], edx
+08338a98: mov      eax, dword ptr [ebp + 0xc]
+08338a9b: mov      dword ptr [esp + 8], eax
+08338a9f: mov      dword ptr [esp + 4], 0x8a
+08338aa7: lea      eax, [ebp - 0x40]
+08338aaa: mov      dword ptr [esp], eax
+08338aad: call     0x833f8ae ; _ZN13user_creature12CDBMsgSenderC2E19ENUM_INTERNALPACKETP5CUser
+08338ab2: mov      eax, dword ptr [ebp + 8]
+08338ab5: mov      dword ptr [esp], eax
+08338ab8: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338abd: mov      ebx, eax
+08338abf: mov      eax, dword ptr [ebp + 8]
+08338ac2: mov      dword ptr [esp], eax
+08338ac5: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+08338aca: mov      dword ptr [esp + 8], ebx
+08338ace: mov      dword ptr [esp + 4], eax
+08338ad2: lea      eax, [ebp - 0x40]
+08338ad5: mov      dword ptr [esp], eax
+08338ad8: call     0x833fd74 ; _ZN13user_creature12CDBMsgSender15EvoluteCreatureEii
+08338add: xor      eax, 1
+08338ae0: test     al, al
+08338ae2: je       0x8338b36
+08338ae4: mov      eax, dword ptr [ebp + 0xc]
+08338ae7: mov      dword ptr [esp], eax
+08338aea: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08338aef: movzx    ebx, ax
+08338af2: mov      dword ptr [esp + 0xc], 5
+08338afa: mov      dword ptr [esp + 8], 0x866
+08338b02: mov      dword ptr [esp + 4], 0x8c2f360
+08338b0a: lea      eax, [ebp - 0x28]
+08338b0d: mov      dword ptr [esp], eax
+08338b10: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+08338b15: mov      dword ptr [esp + 8], ebx
+08338b19: mov      dword ptr [esp + 4], 0x8c2d827
+08338b21: lea      eax, [ebp - 0x28]
+08338b24: mov      dword ptr [esp], eax
+08338b27: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+08338b2c: mov      ebx, 0
+08338b31: jmp      0x8338be5
+08338b36: lea      eax, [ebp - 0x40]
+08338b39: mov      dword ptr [esp], eax
+08338b3c: call     0x833f950 ; _ZN13user_creature12CDBMsgSender4SendEv
+08338b41: mov      dword ptr [esp + 0xc], 0
+08338b49: mov      dword ptr [esp + 8], 0
+08338b51: mov      eax, dword ptr [ebp + 0xc]
+08338b54: mov      dword ptr [esp + 4], eax
+08338b58: lea      eax, [ebp - 0x60]
+08338b5b: mov      dword ptr [esp], eax
+08338b5e: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08338b63: mov      eax, dword ptr [ebp - 0x18]
+08338b66: mov      dword ptr [esp + 4], eax
+08338b6a: lea      eax, [ebp - 0x60]
+08338b6d: mov      dword ptr [esp], eax
+08338b70: call     0x8340842 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketEvoluteCreatureEi
+08338b75: lea      eax, [ebp - 0x60]
+08338b78: mov      dword ptr [esp], eax
+08338b7b: call     0x83404b8 ; _ZN13user_creature17CPacketRespondent20SendAccordingToPlaceEv
+08338b80: mov      dword ptr [esp + 0xc], 0x16
+08338b88: mov      dword ptr [esp + 8], 3
+08338b90: mov      dword ptr [esp + 4], 1
+08338b98: mov      eax, dword ptr [ebp + 0xc]
+08338b9b: mov      dword ptr [esp], eax
+08338b9e: call     0x867c65a ; _ZN5CUser18SendUpdateItemListENS_11eSendTargetE14ENUM_ITEMSPACEi
+08338ba3: mov      ebx, 1
+08338ba8: lea      eax, [ebp - 0x60]
+08338bab: mov      dword ptr [esp], eax
+08338bae: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338bb3: jmp      0x8338be5
+08338bb5: mov      ebx, edx
+08338bb7: mov      esi, eax
+08338bb9: lea      eax, [ebp - 0x60]
+08338bbc: mov      dword ptr [esp], eax
+08338bbf: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338bc4: mov      eax, esi
+08338bc6: mov      edx, ebx
+08338bc8: jmp      0x8338bca
+08338bca: mov      ebx, edx
+08338bcc: mov      esi, eax
+08338bce: lea      eax, [ebp - 0x40]
+08338bd1: mov      dword ptr [esp], eax
+08338bd4: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+08338bd9: mov      eax, esi
+08338bdb: mov      edx, ebx
+08338bdd: mov      dword ptr [esp], eax
+08338be0: call     0x8ae3750 ; _Unwind_Resume
+08338be5: lea      eax, [ebp - 0x40]
+08338be8: mov      dword ptr [esp], eax
+08338beb: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+08338bf0: mov      eax, ebx
+08338bf2: add      esp, 0x70
+08338bf5: pop      ebx
+08338bf6: pop      esi
+08338bf7: pop      ebp
+08338bf8: ret
+
+### 08338bfa size=46 _ZN13user_creature9CCreature24IsEventEvolutionCreatureEi
+08338bfa: push     ebp
+08338bfb: mov      ebp, esp
+08338bfd: sub      esp, 0x18
+08338c00: mov      eax, dword ptr [ebp + 8]
+08338c03: mov      eax, dword ptr [eax + 0x44]
+08338c06: test     eax, eax
+08338c08: je       0x8338c21
+08338c0a: mov      eax, dword ptr [ebp + 8]
+08338c0d: mov      eax, dword ptr [eax + 0x44]
+08338c10: mov      edx, dword ptr [ebp + 0xc]
+08338c13: mov      dword ptr [esp + 4], edx
+08338c17: mov      dword ptr [esp], eax
+08338c1a: call     0x833f150 ; _ZN13user_creature15CCreatureScript25validEventEvlouteCreatureEi
+08338c1f: jmp      0x8338c26
+08338c21: mov      eax, 0
+08338c26: leave
+08338c27: ret
+
+### 08338c28 size=39 _ZN13user_creature9CCreature20GetSkillRecoveryTimeEv
+08338c28: push     ebp
+08338c29: mov      ebp, esp
+08338c2b: sub      esp, 0x18
+08338c2e: mov      eax, dword ptr [ebp + 8]
+08338c31: mov      eax, dword ptr [eax + 0x44]
+08338c34: test     eax, eax
+08338c36: jne      0x8338c3f
+08338c38: mov      eax, 0xffffffff
+08338c3d: jmp      0x8338c4d
+08338c3f: mov      eax, dword ptr [ebp + 8]
+08338c42: mov      eax, dword ptr [eax + 0x44]
+08338c45: mov      dword ptr [esp], eax
+08338c48: call     0x833f258 ; _ZN13user_creature15CCreatureScript20GetSkillRecoveryTimeEv
+08338c4d: leave
+08338c4e: ret
+
+### 08338c50 size=39 _ZN13user_creature9CCreature24GetOverSkillRecoveryTimeEv
+08338c50: push     ebp
+08338c51: mov      ebp, esp
+08338c53: sub      esp, 0x18
+08338c56: mov      eax, dword ptr [ebp + 8]
+08338c59: mov      eax, dword ptr [eax + 0x44]
+08338c5c: test     eax, eax
+08338c5e: jne      0x8338c67
+08338c60: mov      eax, 0xffffffff
+08338c65: jmp      0x8338c75
+08338c67: mov      eax, dword ptr [ebp + 8]
+08338c6a: mov      eax, dword ptr [eax + 0x44]
+08338c6d: mov      dword ptr [esp], eax
+08338c70: call     0x833f264 ; _ZN13user_creature15CCreatureScript24GetOverSkillRecoveryTimeEv
+08338c75: leave
+08338c76: ret
+
+### 08338c78 size=39 _ZN13user_creature9CCreature22GetLearnOverSkillLevelEv
+08338c78: push     ebp
+08338c79: mov      ebp, esp
+08338c7b: sub      esp, 0x18
+08338c7e: mov      eax, dword ptr [ebp + 8]
+08338c81: mov      eax, dword ptr [eax + 0x44]
+08338c84: test     eax, eax
+08338c86: jne      0x8338c8f
+08338c88: mov      eax, 0xffffffff
+08338c8d: jmp      0x8338c9d
+08338c8f: mov      eax, dword ptr [ebp + 8]
+08338c92: mov      eax, dword ptr [eax + 0x44]
+08338c95: mov      dword ptr [esp], eax
+08338c98: call     0x833f270 ; _ZN13user_creature15CCreatureScript22GetLearnOverSkillLevelEv
+08338c9d: leave
+08338c9e: ret
+
+### 08338ca0 size=661 _ZN13user_creature9CCreature11ItemEvoluteEP5CUseri
+08338ca0: push     ebp
+08338ca1: mov      ebp, esp
+08338ca3: push     esi
+08338ca4: push     ebx
+08338ca5: sub      esp, 0x70
+08338ca8: mov      eax, dword ptr [ebp + 8]
+08338cab: mov      eax, dword ptr [eax + 0x44]
+08338cae: test     eax, eax
+08338cb0: jne      0x8338d15
+08338cb2: mov      eax, dword ptr [ebp + 8]
+08338cb5: mov      dword ptr [esp], eax
+08338cb8: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338cbd: mov      ebx, eax
+08338cbf: mov      eax, dword ptr [ebp + 0xc]
+08338cc2: mov      dword ptr [esp], eax
+08338cc5: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08338cca: movzx    esi, ax
+08338ccd: mov      dword ptr [esp + 0xc], 5
+08338cd5: mov      dword ptr [esp + 8], 0x89b
+08338cdd: mov      dword ptr [esp + 4], 0x8c2f320
+08338ce5: lea      eax, [ebp - 0x38]
+08338ce8: mov      dword ptr [esp], eax
+08338ceb: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+08338cf0: mov      dword ptr [esp + 0xc], ebx
+08338cf4: mov      dword ptr [esp + 8], esi
+08338cf8: mov      dword ptr [esp + 4], 0x8c2d840
+08338d00: lea      eax, [ebp - 0x38]
+08338d03: mov      dword ptr [esp], eax
+08338d06: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+08338d0b: mov      ebx, 0
+08338d10: jmp      0x8338f2c
+08338d15: mov      eax, dword ptr [ebp + 8]
+08338d18: mov      eax, dword ptr [eax + 0x44]
+08338d1b: mov      edx, dword ptr [ebp + 0x10]
+08338d1e: mov      dword ptr [esp + 4], edx
+08338d22: mov      dword ptr [esp], eax
+08338d25: call     0x833cad8 ; _ZN13user_creature15CCreatureScript26GetItemEvolutionCreatureIdEi
+08338d2a: mov      dword ptr [ebp - 0x18], eax
+08338d2d: cmp      dword ptr [ebp - 0x18], 0
+08338d31: jne      0x8338d3d
+08338d33: mov      ebx, 0
+08338d38: jmp      0x8338f2c
+08338d3d: call     0x8336bd0 ; _ZN13user_creature28GetInstanceCreatureScriptMgrEv
+08338d42: mov      edx, dword ptr [ebp - 0x18]
+08338d45: mov      dword ptr [esp + 4], edx
+08338d49: mov      dword ptr [esp], eax
+08338d4c: call     0x833d49a ; _ZN13user_creature18CCreatureScriptMgr18FindCreatureScriptEi
+08338d51: mov      dword ptr [ebp - 0x14], eax
+08338d54: cmp      dword ptr [ebp - 0x14], 0
+08338d58: jne      0x8338d64
+08338d5a: mov      ebx, 0
+08338d5f: jmp      0x8338f2c
+08338d64: mov      eax, dword ptr [ebp - 0x14]
+08338d67: mov      dword ptr [esp], eax
+08338d6a: call     0x833f128 ; _ZN13user_creature15CCreatureScript9GetItemIdEv
+08338d6f: mov      dword ptr [ebp - 0x10], eax
+08338d72: mov      eax, dword ptr [ebp - 0x10]
+08338d75: mov      dword ptr [esp + 4], eax
+08338d79: mov      eax, dword ptr [ebp + 8]
+08338d7c: mov      dword ptr [esp], eax
+08338d7f: call     0x83375ae ; _ZN13user_creature9CCreature9SetItemIdEi
+08338d84: mov      dword ptr [ebp - 0xc], 0
+08338d8b: mov      eax, dword ptr [ebp + 0xc]
+08338d8e: mov      dword ptr [esp], eax
+08338d91: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+08338d96: mov      dword ptr [esp + 8], 0x16
+08338d9e: mov      dword ptr [esp + 4], 0
+08338da6: mov      dword ptr [esp], eax
+08338da9: call     0x84fc2ae ; _ZN10CInventory11GetInvenRefEii
+08338dae: mov      dword ptr [ebp - 0xc], eax
+08338db1: cmp      dword ptr [ebp - 0xc], 0
+08338db5: jne      0x8338dc1
+08338db7: mov      ebx, 0
+08338dbc: jmp      0x8338f2c
+08338dc1: mov      eax, dword ptr [ebp + 8]
+08338dc4: mov      dword ptr [esp], eax
+08338dc7: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338dcc: mov      edx, eax
+08338dce: mov      eax, dword ptr [ebp - 0xc]
+08338dd1: mov      dword ptr [eax + 2], edx
+08338dd4: mov      eax, dword ptr [ebp + 0xc]
+08338dd7: mov      dword ptr [esp + 8], eax
+08338ddb: mov      dword ptr [esp + 4], 0x8a
+08338de3: lea      eax, [ebp - 0x40]
+08338de6: mov      dword ptr [esp], eax
+08338de9: call     0x833f8ae ; _ZN13user_creature12CDBMsgSenderC2E19ENUM_INTERNALPACKETP5CUser
+08338dee: mov      eax, dword ptr [ebp + 8]
+08338df1: mov      dword ptr [esp], eax
+08338df4: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+08338df9: mov      ebx, eax
+08338dfb: mov      eax, dword ptr [ebp + 8]
+08338dfe: mov      dword ptr [esp], eax
+08338e01: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+08338e06: mov      dword ptr [esp + 8], ebx
+08338e0a: mov      dword ptr [esp + 4], eax
+08338e0e: lea      eax, [ebp - 0x40]
+08338e11: mov      dword ptr [esp], eax
+08338e14: call     0x833fd74 ; _ZN13user_creature12CDBMsgSender15EvoluteCreatureEii
+08338e19: xor      eax, 1
+08338e1c: test     al, al
+08338e1e: je       0x8338e72
+08338e20: mov      eax, dword ptr [ebp + 0xc]
+08338e23: mov      dword ptr [esp], eax
+08338e26: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+08338e2b: movzx    ebx, ax
+08338e2e: mov      dword ptr [esp + 0xc], 5
+08338e36: mov      dword ptr [esp + 8], 0x8bb
+08338e3e: mov      dword ptr [esp + 4], 0x8c2f320
+08338e46: lea      eax, [ebp - 0x28]
+08338e49: mov      dword ptr [esp], eax
+08338e4c: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+08338e51: mov      dword ptr [esp + 8], ebx
+08338e55: mov      dword ptr [esp + 4], 0x8c2d827
+08338e5d: lea      eax, [ebp - 0x28]
+08338e60: mov      dword ptr [esp], eax
+08338e63: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+08338e68: mov      ebx, 0
+08338e6d: jmp      0x8338f21
+08338e72: lea      eax, [ebp - 0x40]
+08338e75: mov      dword ptr [esp], eax
+08338e78: call     0x833f950 ; _ZN13user_creature12CDBMsgSender4SendEv
+08338e7d: mov      dword ptr [esp + 0xc], 0
+08338e85: mov      dword ptr [esp + 8], 0
+08338e8d: mov      eax, dword ptr [ebp + 0xc]
+08338e90: mov      dword ptr [esp + 4], eax
+08338e94: lea      eax, [ebp - 0x60]
+08338e97: mov      dword ptr [esp], eax
+08338e9a: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+08338e9f: mov      eax, dword ptr [ebp - 0x18]
+08338ea2: mov      dword ptr [esp + 4], eax
+08338ea6: lea      eax, [ebp - 0x60]
+08338ea9: mov      dword ptr [esp], eax
+08338eac: call     0x8340842 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketEvoluteCreatureEi
+08338eb1: lea      eax, [ebp - 0x60]
+08338eb4: mov      dword ptr [esp], eax
+08338eb7: call     0x83404b8 ; _ZN13user_creature17CPacketRespondent20SendAccordingToPlaceEv
+08338ebc: mov      dword ptr [esp + 0xc], 0x16
+08338ec4: mov      dword ptr [esp + 8], 3
+08338ecc: mov      dword ptr [esp + 4], 1
+08338ed4: mov      eax, dword ptr [ebp + 0xc]
+08338ed7: mov      dword ptr [esp], eax
+08338eda: call     0x867c65a ; _ZN5CUser18SendUpdateItemListENS_11eSendTargetE14ENUM_ITEMSPACEi
+08338edf: mov      ebx, 1
+08338ee4: lea      eax, [ebp - 0x60]
+08338ee7: mov      dword ptr [esp], eax
+08338eea: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338eef: jmp      0x8338f21
+08338ef1: mov      ebx, edx
+08338ef3: mov      esi, eax
+08338ef5: lea      eax, [ebp - 0x60]
+08338ef8: mov      dword ptr [esp], eax
+08338efb: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+08338f00: mov      eax, esi
+08338f02: mov      edx, ebx
+08338f04: jmp      0x8338f06
+08338f06: mov      ebx, edx
+08338f08: mov      esi, eax
+08338f0a: lea      eax, [ebp - 0x40]
+08338f0d: mov      dword ptr [esp], eax
+08338f10: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+08338f15: mov      eax, esi
+08338f17: mov      edx, ebx
+08338f19: mov      dword ptr [esp], eax
+08338f1c: call     0x8ae3750 ; _Unwind_Resume
+08338f21: lea      eax, [ebp - 0x40]
+08338f24: mov      dword ptr [esp], eax
+08338f27: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+08338f2c: mov      eax, ebx
+08338f2e: add      esp, 0x70
+08338f31: pop      ebx
+08338f32: pop      esi
+08338f33: pop      ebp
+08338f34: ret
+
+### 0833db2e size=909 _ZN13user_creature9CCreature12EventEvoluteEP5CUserii
+0833db2e: push     ebp
+0833db2f: mov      ebp, esp
+0833db31: push     esi
+0833db32: push     ebx
+0833db33: sub      esp, 0x90
+0833db39: mov      eax, dword ptr [ebp + 8]
+0833db3c: mov      eax, dword ptr [eax + 0x44]
+0833db3f: test     eax, eax
+0833db41: jne      0x833dba6
+0833db43: mov      eax, dword ptr [ebp + 8]
+0833db46: mov      dword ptr [esp], eax
+0833db49: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833db4e: mov      ebx, eax
+0833db50: mov      eax, dword ptr [ebp + 0xc]
+0833db53: mov      dword ptr [esp], eax
+0833db56: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+0833db5b: movzx    esi, ax
+0833db5e: mov      dword ptr [esp + 0xc], 5
+0833db66: mov      dword ptr [esp + 8], 0x10cc
+0833db6e: mov      dword ptr [esp + 4], 0x8c2ea20
+0833db76: lea      eax, [ebp - 0x50]
+0833db79: mov      dword ptr [esp], eax
+0833db7c: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0833db81: mov      dword ptr [esp + 0xc], ebx
+0833db85: mov      dword ptr [esp + 8], esi
+0833db89: mov      dword ptr [esp + 4], 0x8c2dc10
+0833db91: lea      eax, [ebp - 0x50]
+0833db94: mov      dword ptr [esp], eax
+0833db97: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0833db9c: mov      ebx, 0
+0833dba1: jmp      0x833deaf
+0833dba6: mov      eax, dword ptr [ebp + 0x10]
+0833dba9: mov      dword ptr [esp + 4], eax
+0833dbad: mov      eax, dword ptr [ebp + 8]
+0833dbb0: mov      dword ptr [esp], eax
+0833dbb3: call     0x833769c ; _ZN13user_creature9CCreature13GetCreatureIdEi
+0833dbb8: mov      dword ptr [ebp - 0x30], eax
+0833dbbb: call     0x8336bd0 ; _ZN13user_creature28GetInstanceCreatureScriptMgrEv
+0833dbc0: mov      edx, dword ptr [ebp - 0x30]
+0833dbc3: mov      dword ptr [esp + 4], edx
+0833dbc7: mov      dword ptr [esp], eax
+0833dbca: call     0x833d49a ; _ZN13user_creature18CCreatureScriptMgr18FindCreatureScriptEi
+0833dbcf: mov      dword ptr [ebp - 0x2c], eax
+0833dbd2: cmp      dword ptr [ebp - 0x2c], 0
+0833dbd6: jne      0x833dbe2
+0833dbd8: mov      ebx, 0
+0833dbdd: jmp      0x833deaf
+0833dbe2: mov      eax, dword ptr [ebp - 0x2c]
+0833dbe5: mov      dword ptr [esp], eax
+0833dbe8: call     0x833f128 ; _ZN13user_creature15CCreatureScript9GetItemIdEv
+0833dbed: mov      dword ptr [ebp - 0x28], eax
+0833dbf0: mov      eax, dword ptr [ebp + 8]
+0833dbf3: movzx    eax, byte ptr [eax + 0x4c]
+0833dbf7: mov      byte ptr [ebp - 0x21], al
+0833dbfa: mov      eax, dword ptr [ebp - 0x2c]
+0833dbfd: mov      dword ptr [esp], eax
+0833dc00: call     0x833f320 ; _ZN13user_creature15CCreatureScript18IsItemGrowCreatureEv
+0833dc05: xor      eax, 1
+0833dc08: test     al, al
+0833dc0a: je       0x833dc1e
+0833dc0c: movzx    eax, byte ptr [ebp - 0x21]
+0833dc10: xor      eax, 1
+0833dc13: test     al, al
+0833dc15: je       0x833dc1e
+0833dc17: mov      eax, 1
+0833dc1c: jmp      0x833dc23
+0833dc1e: mov      eax, 0
+0833dc23: test     al, al
+0833dc25: je       0x833dc7b
+0833dc27: mov      eax, dword ptr [ebp + 8]
+0833dc2a: mov      eax, dword ptr [eax + 0x30]
+0833dc2d: mov      dword ptr [ebp - 0x5c], eax
+0833dc30: mov      eax, dword ptr [ebp + 8]
+0833dc33: mov      eax, dword ptr [eax + 0x44]
+0833dc36: mov      dword ptr [esp], eax
+0833dc39: call     0x833f356 ; _ZN13user_creature15CCreatureScript26GetGrowItemCountforLevelUpEv
+0833dc3e: mov      dword ptr [ebp - 0x10], eax
+0833dc41: cmp      dword ptr [ebp - 0x10], 0
+0833dc45: jne      0x833dc4e
+0833dc47: mov      dword ptr [ebp - 0x10], 0x19
+0833dc4e: movzx    eax, word ptr [ebp - 0x5a]
+0833dc52: cwde
+0833dc53: mov      edx, eax
+0833dc55: sar      edx, 0x1f
+0833dc58: idiv     dword ptr [ebp - 0x10]
+0833dc5b: mov      dword ptr [ebp - 0xc], eax
+0833dc5e: mov      eax, dword ptr [ebp - 0xc]
+0833dc61: lea      ebx, [eax + 1]
+0833dc64: call     0x80cc19b ; _Z14G_CDataManagerv
+0833dc69: mov      dword ptr [esp + 4], ebx
+0833dc6d: mov      dword ptr [esp], eax
+0833dc70: call     0x836053c ; _ZNK12CDataManager22get_creature_level_expEi
+0833dc75: mov      edx, dword ptr [ebp + 8]
+0833dc78: mov      dword ptr [edx + 0x30], eax
+0833dc7b: mov      eax, dword ptr [ebp - 0x28]
+0833dc7e: mov      dword ptr [esp + 4], eax
+0833dc82: mov      eax, dword ptr [ebp + 8]
+0833dc85: mov      dword ptr [esp], eax
+0833dc88: call     0x83375ae ; _ZN13user_creature9CCreature9SetItemIdEi
+0833dc8d: call     0x80cc19b ; _Z14G_CDataManagerv
+0833dc92: mov      edx, dword ptr [ebp - 0x28]
+0833dc95: mov      dword ptr [esp + 4], edx
+0833dc99: mov      dword ptr [esp], eax
+0833dc9c: call     0x835fa32 ; _ZNK12CDataManager9find_itemEi
+0833dca1: mov      dword ptr [ebp - 0x20], eax
+0833dca4: cmp      dword ptr [ebp - 0x20], 0
+0833dca8: jne      0x833dcb4
+0833dcaa: mov      ebx, 0
+0833dcaf: jmp      0x833deaf
+0833dcb4: mov      eax, dword ptr [ebp - 0x20]
+0833dcb7: mov      dword ptr [esp], eax
+0833dcba: call     0x8110c60 ; _ZNK5CItem15getUsablePeriodEv
+0833dcbf: mov      dword ptr [ebp - 0x1c], eax
+0833dcc2: mov      eax, dword ptr [ebp - 0x20]
+0833dcc5: mov      dword ptr [esp], eax
+0833dcc8: call     0x80f1306 ; _ZNK5CItem17getExpirationDateEv
+0833dccd: mov      dword ptr [ebp - 0x18], eax
+0833dcd0: cmp      dword ptr [ebp - 0x1c], 0
+0833dcd4: jne      0x833dce7
+0833dcd6: cmp      dword ptr [ebp - 0x18], 0
+0833dcda: je       0x833dce7
+0833dcdc: mov      eax, dword ptr [ebp + 8]
+0833dcdf: mov      edx, dword ptr [ebp - 0x18]
+0833dce2: mov      dword ptr [eax + 0x18], edx
+0833dce5: jmp      0x833dcfd
+0833dce7: cmp      dword ptr [ebp - 0x1c], 0
+0833dceb: jne      0x833dcfd
+0833dced: cmp      dword ptr [ebp - 0x18], 0
+0833dcf1: jne      0x833dcfd
+0833dcf3: mov      eax, dword ptr [ebp + 8]
+0833dcf6: mov      dword ptr [eax + 0x18], 0
+0833dcfd: mov      dword ptr [ebp - 0x14], 0
+0833dd04: mov      eax, dword ptr [ebp + 0xc]
+0833dd07: mov      dword ptr [esp], eax
+0833dd0a: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+0833dd0f: mov      dword ptr [esp + 8], 0x16
+0833dd17: mov      dword ptr [esp + 4], 0
+0833dd1f: mov      dword ptr [esp], eax
+0833dd22: call     0x84fc2ae ; _ZN10CInventory11GetInvenRefEii
+0833dd27: mov      dword ptr [ebp - 0x14], eax
+0833dd2a: cmp      dword ptr [ebp - 0x14], 0
+0833dd2e: jne      0x833dd3a
+0833dd30: mov      ebx, 0
+0833dd35: jmp      0x833deaf
+0833dd3a: mov      eax, dword ptr [ebp + 8]
+0833dd3d: mov      dword ptr [esp], eax
+0833dd40: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833dd45: mov      edx, eax
+0833dd47: mov      eax, dword ptr [ebp - 0x14]
+0833dd4a: mov      dword ptr [eax + 2], edx
+0833dd4d: mov      eax, dword ptr [ebp + 0xc]
+0833dd50: mov      dword ptr [esp + 8], eax
+0833dd54: mov      dword ptr [esp + 4], 0x8a
+0833dd5c: lea      eax, [ebp - 0x58]
+0833dd5f: mov      dword ptr [esp], eax
+0833dd62: call     0x833f8ae ; _ZN13user_creature12CDBMsgSenderC2E19ENUM_INTERNALPACKETP5CUser
+0833dd67: mov      eax, dword ptr [ebp + 8]
+0833dd6a: mov      esi, dword ptr [eax + 0x30]
+0833dd6d: mov      eax, dword ptr [ebp + 8]
+0833dd70: mov      dword ptr [esp], eax
+0833dd73: call     0x833efa4 ; _ZN13user_creature13CCreatureItem9GetItemIdEv
+0833dd78: mov      ebx, eax
+0833dd7a: mov      eax, dword ptr [ebp + 8]
+0833dd7d: mov      dword ptr [esp], eax
+0833dd80: call     0x833efbe ; _ZN13user_creature13CCreatureItem6GetUidEv
+0833dd85: mov      dword ptr [esp + 0xc], esi
+0833dd89: mov      dword ptr [esp + 8], ebx
+0833dd8d: mov      dword ptr [esp + 4], eax
+0833dd91: lea      eax, [ebp - 0x58]
+0833dd94: mov      dword ptr [esp], eax
+0833dd97: call     0x833fddc ; _ZN13user_creature12CDBMsgSender20EventEvoluteCreatureEiii
+0833dd9c: xor      eax, 1
+0833dd9f: test     al, al
+0833dda1: je       0x833ddf5
+0833dda3: mov      eax, dword ptr [ebp + 0xc]
+0833dda6: mov      dword ptr [esp], eax
+0833dda9: call     0x80da37c ; _ZNK5CUser13get_unique_idEv
+0833ddae: movzx    ebx, ax
+0833ddb1: mov      dword ptr [esp + 0xc], 5
+0833ddb9: mov      dword ptr [esp + 8], 0x1104
+0833ddc1: mov      dword ptr [esp + 4], 0x8c2ea20
+0833ddc9: lea      eax, [ebp - 0x40]
+0833ddcc: mov      dword ptr [esp], eax
+0833ddcf: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0833ddd4: mov      dword ptr [esp + 8], ebx
+0833ddd8: mov      dword ptr [esp + 4], 0x8c2d827
+0833dde0: lea      eax, [ebp - 0x40]
+0833dde3: mov      dword ptr [esp], eax
+0833dde6: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0833ddeb: mov      ebx, 0
+0833ddf0: jmp      0x833dea4
+0833ddf5: lea      eax, [ebp - 0x58]
+0833ddf8: mov      dword ptr [esp], eax
+0833ddfb: call     0x833f950 ; _ZN13user_creature12CDBMsgSender4SendEv
+0833de00: mov      dword ptr [esp + 0xc], 0
+0833de08: mov      dword ptr [esp + 8], 0
+0833de10: mov      eax, dword ptr [ebp + 0xc]
+0833de13: mov      dword ptr [esp + 4], eax
+0833de17: lea      eax, [ebp - 0x7c]
+0833de1a: mov      dword ptr [esp], eax
+0833de1d: call     0x834032a ; _ZN13user_creature17CPacketRespondentC1EP5CUserii
+0833de22: mov      eax, dword ptr [ebp + 0x14]
+0833de25: mov      dword ptr [esp + 4], eax
+0833de29: lea      eax, [ebp - 0x7c]
+0833de2c: mov      dword ptr [esp], eax
+0833de2f: call     0x8340842 ; _ZN13user_creature17CPacketRespondent29MakeNotipacketEvoluteCreatureEi
+0833de34: lea      eax, [ebp - 0x7c]
+0833de37: mov      dword ptr [esp], eax
+0833de3a: call     0x83404b8 ; _ZN13user_creature17CPacketRespondent20SendAccordingToPlaceEv
+0833de3f: mov      dword ptr [esp + 0xc], 0x16
+0833de47: mov      dword ptr [esp + 8], 3
+0833de4f: mov      dword ptr [esp + 4], 1
+0833de57: mov      eax, dword ptr [ebp + 0xc]
+0833de5a: mov      dword ptr [esp], eax
+0833de5d: call     0x867c65a ; _ZN5CUser18SendUpdateItemListENS_11eSendTargetE14ENUM_ITEMSPACEi
+0833de62: mov      ebx, 1
+0833de67: lea      eax, [ebp - 0x7c]
+0833de6a: mov      dword ptr [esp], eax
+0833de6d: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+0833de72: jmp      0x833dea4
+0833de74: mov      ebx, edx
+0833de76: mov      esi, eax
+0833de78: lea      eax, [ebp - 0x7c]
+0833de7b: mov      dword ptr [esp], eax
+0833de7e: call     0x834036a ; _ZN13user_creature17CPacketRespondentD2Ev
+0833de83: mov      eax, esi
+0833de85: mov      edx, ebx
+0833de87: jmp      0x833de89
+0833de89: mov      ebx, edx
+0833de8b: mov      esi, eax
+0833de8d: lea      eax, [ebp - 0x58]
+0833de90: mov      dword ptr [esp], eax
+0833de93: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+0833de98: mov      eax, esi
+0833de9a: mov      edx, ebx
+0833de9c: mov      dword ptr [esp], eax
+0833de9f: call     0x8ae3750 ; _Unwind_Resume
+0833dea4: lea      eax, [ebp - 0x58]
+0833dea7: mov      dword ptr [esp], eax
+0833deaa: call     0x833f8d8 ; _ZN13user_creature12CDBMsgSenderD2Ev
+0833deaf: mov      eax, ebx
+0833deb1: add      esp, 0x90
+0833deb7: pop      ebx
+0833deb8: pop      esi
+0833deb9: pop      ebp
+0833deba: ret
+
+### 0833f04c size=12 _ZN13user_creature9CCreature6IsSaveEv
+0833f04c: push     ebp
+0833f04d: mov      ebp, esp
+0833f04f: mov      eax, dword ptr [ebp + 8]
+0833f052: movzx    eax, byte ptr [eax + 0x40]
+0833f056: pop      ebp
+0833f057: ret
+
+### 0833f058 size=11 _ZN13user_creature9CCreature7GetNameEv
+0833f058: push     ebp
+0833f059: mov      ebp, esp
+0833f05b: mov      eax, dword ptr [ebp + 8]
+0833f05e: add      eax, 0x1c
+0833f061: pop      ebp
+0833f062: ret
+
+### 0833f064 size=11 _ZN13user_creature9CCreature8GetStateEv
+0833f064: push     ebp
+0833f065: mov      ebp, esp
+0833f067: mov      eax, dword ptr [ebp + 8]
+0833f06a: mov      eax, dword ptr [eax + 0x3c]
+0833f06d: pop      ebp
+0833f06e: ret
+
+### 0833f070 size=29 _ZN13user_creature9CCreature10SetStomachEi
+0833f070: push     ebp
+0833f071: mov      ebp, esp
+0833f073: sub      esp, 0x18
+0833f076: fild     dword ptr [ebp + 0xc]
+0833f079: mov      eax, dword ptr [ebp + 8]
+0833f07c: add      eax, 0x34
+0833f07f: fstp     dword ptr [esp + 4]
+0833f083: mov      dword ptr [esp], eax
+0833f086: call     0x833eef6 ; _ZN13user_creature8CStomach15SetStomachValueEf
+0833f08b: leave
+0833f08c: ret
+
+### 0833f08e size=11 _ZN13user_creature9CCreature6GetExpEv
+0833f08e: push     ebp
+0833f08f: mov      ebp, esp
+0833f091: mov      eax, dword ptr [ebp + 8]
+0833f094: mov      eax, dword ptr [eax + 0x30]
+0833f097: pop      ebp
+0833f098: ret
+
+### 0833f09a size=11 _ZN13user_creature9CCreature8GetLevelEv
+0833f09a: push     ebp
+0833f09b: mov      ebp, esp
+0833f09d: mov      eax, dword ptr [ebp + 8]
+0833f0a0: mov      eax, dword ptr [eax + 0x2c]
+0833f0a3: pop      ebp
+0833f0a4: ret
+
+### 0833f0a6 size=12 _ZN13user_creature9CCreature10IsNoChargeEv
+0833f0a6: push     ebp
+0833f0a7: mov      ebp, esp
+0833f0a9: mov      eax, dword ptr [ebp + 8]
+0833f0ac: movzx    eax, byte ptr [eax + 0x14]
+0833f0b0: pop      ebp
+0833f0b1: ret
+
+### 0833f0b2 size=24 _ZN13user_creature9CCreature11SetNoChargeEb
+0833f0b2: push     ebp
+0833f0b3: mov      ebp, esp
+0833f0b5: sub      esp, 4
+0833f0b8: mov      eax, dword ptr [ebp + 0xc]
+0833f0bb: mov      byte ptr [ebp - 4], al
+0833f0be: mov      eax, dword ptr [ebp + 8]
+0833f0c1: movzx    edx, byte ptr [ebp - 4]
+0833f0c5: mov      byte ptr [eax + 0x14], dl
+0833f0c8: leave
+0833f0c9: ret
+
+### 0833f0ca size=15 _ZN13user_creature9CCreature14IsGrowCreatureEv
+0833f0ca: push     ebp
+0833f0cb: mov      ebp, esp
+0833f0cd: mov      eax, dword ptr [ebp + 8]
+0833f0d0: movzx    eax, byte ptr [eax + 0x4c]
+0833f0d4: xor      eax, 1
+0833f0d7: pop      ebp
+0833f0d8: ret
+
+### 0833f0da size=11 _ZN13user_creature9CCreature13GetCreatureIdEv
+0833f0da: push     ebp
+0833f0db: mov      ebp, esp
+0833f0dd: mov      eax, dword ptr [ebp + 8]
+0833f0e0: mov      eax, dword ptr [eax + 0x48]
+0833f0e3: pop      ebp
+0833f0e4: ret
+
+### 0833f0e6 size=11 _ZN13user_creature9CCreature16GetOverSkillTimeEv
+0833f0e6: push     ebp
+0833f0e7: mov      ebp, esp
+0833f0e9: mov      eax, dword ptr [ebp + 8]
+0833f0ec: add      eax, 0x50
+0833f0ef: pop      ebp
+0833f0f0: ret
+
+### 0833f0f2 size=16 _ZN13user_creature9CCreature16IsCreatureScriptEv
+0833f0f2: push     ebp
+0833f0f3: mov      ebp, esp
+0833f0f5: mov      eax, dword ptr [ebp + 8]
+0833f0f8: mov      eax, dword ptr [eax + 0x44]
+0833f0fb: test     eax, eax
+0833f0fd: setne    al
+0833f100: pop      ebp
+0833f101: ret

@@ -1,0 +1,11 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(404,55): error CS0246: 未能找到类型或命名空间名“IGameServerMessage”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(423,88): error CS0246: 未能找到类型或命名空间名“IGameServerMessage”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+
+生成失败。
+
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(404,55): error CS0246: 未能找到类型或命名空间名“IGameServerMessage”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(423,88): error CS0246: 未能找到类型或命名空间名“IGameServerMessage”(是否缺少 using 指令或程序集引用?) [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+    0 个警告
+    2 个错误
+
+已用时间 00:00:02.04

@@ -15,12 +15,7 @@ namespace Dfo.Server.Protocol.Game.MonsterDeath;
 public readonly record struct KilledMonster(int Code, int Level, MonsterRank Rank);
 
 /// <summary>What came of awarding a kill.</summary>
-/// <param name="Award">
-/// What was awarded, or nothing when no award happened -- no such character, or a row that would
-/// not take the write. Wrapped rather than returned bare because the command bus will not carry a
-/// nullable result, and the distinction is the point: an award of zero still knows where the
-/// character stands, and this does not.
-/// </param>
+/// <param name="Award">The applied reward, or null when the character does not exist.</param>
 public sealed record KillExperienceResult(ExperienceAward? Award);
 
 /// <summary>One character's kill, awarded.</summary>
@@ -31,7 +26,8 @@ public sealed record GrantKillExperienceCommand(
     int DungeonId,
     DungeonDifficulty Difficulty,
     double DungeonWeight,
-    int PartyMemberCount = 1) : ICommand<KillExperienceResult>;
+    int PartyMemberCount = 1,
+    SelectedSessionIdentity? Session = null) : ICommand<KillExperienceResult>, ISelectedSessionCommand;
 
 /// <summary>
 /// Works out what a kill was worth, adds what the character carries, and grants it.
@@ -48,8 +44,7 @@ public sealed record GrantKillExperienceCommand(
 /// </para>
 /// </remarks>
 public sealed class GrantKillExperienceCommandHandler(
-    IExperienceCalculationDomainService calculation,
-    ICharacterExperienceDomainService grant)
+    ICharacterExperienceDomainService grant, TimeProvider clock)
     : ICommandHandler<GrantKillExperienceCommand, KillExperienceResult>
 {
     public async ValueTask<KillExperienceResult> HandleAsync(
@@ -68,19 +63,16 @@ public sealed class GrantKillExperienceCommandHandler(
         }
 
         return new KillExperienceResult(
-            await AwardAsync(calculation, grant, command, cancellationToken)
+            await ApplyAwardAsync(grant, command, clock.GetUtcNow(), cancellationToken)
                 .ConfigureAwait(false));
     }
 
-    internal static ValueTask<ExperienceAward?> AwardAsync(
-        IExperienceCalculationDomainService calculation,
-        ICharacterExperienceDomainService grant,
-        GrantKillExperienceCommand command,
-        CancellationToken cancellationToken) => grant.AwardAsync(command.CharacterId,
-            level => calculation.CalculateAsync(new KillExperienceContext(
+    internal static ValueTask<ExperienceAward?> ApplyAwardAsync(
+        ICharacterExperienceDomainService grant, GrantKillExperienceCommand command,
+        DateTimeOffset at, CancellationToken cancellationToken) => grant.ApplyAwardAsync(
+            new KillExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.MonsterKill, command.AccountId,
                     command.CharacterId, command.DungeonId),
                 command.Monster.Level, command.Monster.Rank, command.Difficulty,
-                command.DungeonWeight, command.PartyMemberCount), level, cancellationToken),
-            cancellationToken);
+                command.DungeonWeight, command.PartyMemberCount), at, command.Session, cancellationToken);
 }

@@ -95,6 +95,10 @@ public interface IAccountInventoryEntryRepository
 
 public interface ICharacterInventoryEntryDomainService
 {
+    /// <summary>Reads current rows without selection-time maintenance or normalization.</summary>
+    ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken);
+
     ValueTask<CharacterInventoryEntryState> LoadAsync(
         AccountId accountId,
         CharacterId characterId,
@@ -116,8 +120,7 @@ public interface IEquippedCreatureQuery
 }
 
 public sealed record DailyRefillCommittedGrant(
-    InventoryContainerType ContainerType,
-    int SlotIndex,
+    BusinessSlot Slot,
     int ItemId,
     int GrantedCount,
     int CommittedCount);

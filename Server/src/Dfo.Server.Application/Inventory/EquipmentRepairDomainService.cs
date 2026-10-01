@@ -14,7 +14,8 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class EquipmentRepairDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
-    IEquipmentRepairDefinitionSource definitions, IPremiumServiceDomainService premiums,
+    IEquipmentDomainService equipments,
+    IEquipmentRepairRuleService rules, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService usage) : IEquipmentRepairDomainService
 {
     // A21 repair ACK excludes title, accessories, support and magic stone. These business
@@ -22,7 +23,7 @@ internal sealed class EquipmentRepairDomainService(
     private static readonly IReadOnlyList<BusinessSlot> AutoRepairSlots =
     [
         .. Enumerable.Range(0, 6).Select(i => new BusinessSlot(BusinessInventorySpace.QuickSlot, i)),
-        .. new[] { 1, 3, 4, 5, 6, 7 }.Select(i => new BusinessSlot(BusinessInventorySpace.WornEquipment, i)),
+        .. new[] { 0, 2, 3, 4, 5, 6 }.Select(i => new BusinessSlot(BusinessInventorySpace.WornEquipment, i)),
     ];
 
     public async ValueTask<EquipmentRepairResult> AutoRepairAsync(SelectedSessionIdentity session,
@@ -37,29 +38,30 @@ internal sealed class EquipmentRepairDomainService(
         if (!await entitlement.HasBenefitAsync(PremiumBenefit.AutoRepair, cancellationToken).ConfigureAwait(false))
             return new(EquipmentRepairRejection.MissingEntitlement);
 
-        var candidates = new List<(BoundInventorySlot Slot, InventoryItemCoreState Core)>();
+        var candidates = new List<(IEquipmentInstance Equipment, ushort Durability)>();
         var broken = false;
         foreach (var repairSlot in AutoRepairSlots)
         {
             var bound = slots.Find(session.CharacterId, repairSlot);
             if (bound is null) continue;
-            var item = await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
+            var item = await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
             if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
-            var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-            if (definition is null) return new(EquipmentRepairRejection.CannotRepair);
-            if (definition.MaxDurability == 0) continue;
-            if (item.Core.Durability > definition.MaxDurability) return new(EquipmentRepairRejection.CannotRepair);
-            broken |= item.Core.Durability == 0;
-            if (item.Core.Durability < definition.MaxDurability)
-                candidates.Add((bound, item.Core with { Durability = definition.MaxDurability }));
+            var instance = await equipments.Of(session.CharacterId).FindAtAsync(repairSlot, cancellationToken).ConfigureAwait(false);
+            if (instance is null) continue;
+            var facts = await instance.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var durability = await rules.AutoRepairDurabilityAsync(facts.Core, cancellationToken).ConfigureAwait(false);
+            if (durability is null) return new(EquipmentRepairRejection.CannotRepair);
+            broken |= durability > 0 && facts.Core.Durability == 0;
+            if (facts.Core.Durability < durability)
+                candidates.Add((instance, durability.Value));
         }
         // Do not trust the client's in-flight flag: stale/duplicate or forged requests must
         // not consume another use, nor turn automatic repair into discounted manual repair.
         if (!broken) return new(EquipmentRepairRejection.NoBrokenEquipment);
         if (!await usage.TryUseAutoRepairAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false))
             return new(EquipmentRepairRejection.DailyLimitReached);
-        foreach (var (bound, core) in candidates)
-            await bound.Container.PutAsync(bound.StorageIndex, core, cancellationToken).ConfigureAwait(false);
+        foreach (var (equipment, durability) in candidates)
+            await equipment.SetDurabilityAsync(durability, cancellationToken).ConfigureAwait(false);
         var gold = await characters.Get(session.CharacterId).GoldAsync(cancellationToken).ConfigureAwait(false);
         return new(EquipmentRepairRejection.None, new(session, null, gold))
         {
@@ -72,7 +74,7 @@ internal sealed class EquipmentRepairDomainService(
     [
         .. Enumerable.Range(0, 6)
             .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)),
-        .. Enumerable.Range(0, 12)
+        .. Enumerable.Range(0, 13)
             .Select(index => new BusinessSlot(BusinessInventorySpace.WornEquipment, index)),
     ];
 
@@ -84,21 +86,21 @@ internal sealed class EquipmentRepairDomainService(
             || online is not { State: OnlineUserState.CharacterActive }
             || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
             return new(EquipmentRepairRejection.NoSession);
-        var rates = await definitions.RatesAsync(cancellationToken).ConfigureAwait(false);
-        if (rates is null)
+        var rule = await rules.PrepareAsync(cancellationToken).ConfigureAwait(false);
+        if (rule is null)
             return new(EquipmentRepairRejection.CannotRepair);
 
-        var candidates = new List<(BoundInventorySlot Slot, EquipmentInstance Equipment, int Cost)>();
+        var candidates = new List<(IEquipmentInstance Equipment, EquipmentRepairQuote Quote)>();
         if (slot is null)
         {
             foreach (var repairSlot in RepairAllSlots)
             {
                 var bound = slots.Find(session.CharacterId, repairSlot);
                 if (bound is null) continue;
-                var item = await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken)
+                var item = await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken)
                     .ConfigureAwait(false);
                 if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
-                var candidate = await QuoteAsync(bound, item, rates.Value, cancellationToken)
+                var candidate = await QuoteAsync(session.CharacterId, repairSlot, rule, cancellationToken)
                     .ConfigureAwait(false);
                 if (candidate is not null) candidates.Add(candidate.Value);
                 // An unreadable occupied equipment slot must not turn "repair all" into a partial charge.
@@ -112,16 +114,16 @@ internal sealed class EquipmentRepairDomainService(
             var bound = slots.Find(session.CharacterId, slot.Value);
             var item = bound is null
                 ? null
-                : await bound.Container.ReadSlotAsync(bound.StorageIndex, cancellationToken).ConfigureAwait(false);
+                : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
             if (item is null) return new(EquipmentRepairRejection.ItemUnavailable);
             if (item.WorldClass != ItemWorldClass.Equipment)
                 return new(EquipmentRepairRejection.CannotRepair);
-            var candidate = await QuoteAsync(bound!, item, rates.Value, cancellationToken).ConfigureAwait(false);
+            var candidate = await QuoteAsync(session.CharacterId, slot.Value, rule, cancellationToken).ConfigureAwait(false);
             if (candidate is null) return new(EquipmentRepairRejection.CannotRepair);
             candidates.Add(candidate.Value);
         }
 
-        var total = candidates.Sum(x => (long)x.Cost);
+        var total = candidates.Sum(x => (long)x.Quote.Cost);
         if (total > int.MaxValue)
             return new(EquipmentRepairRejection.InsufficientGold);
         var character = characters.Get(session.CharacterId);
@@ -130,10 +132,9 @@ internal sealed class EquipmentRepairDomainService(
         var gold = await character.TrySpendGoldAsync((int)total, cancellationToken).ConfigureAwait(false);
         if (gold is null)
             return new(EquipmentRepairRejection.InsufficientGold);
-        foreach (var (bound, equipment, _) in candidates)
-            if (equipment.Core.Durability != equipment.OriginalDurability)
-                await bound.Container.PutAsync(bound.StorageIndex, equipment.Core, cancellationToken)
-                    .ConfigureAwait(false);
+        foreach (var (equipment, quote) in candidates)
+            if (quote.Write)
+                await equipment.SetDurabilityAsync(quote.Durability, cancellationToken).ConfigureAwait(false);
         return new(EquipmentRepairRejection.None, new(session, slot, gold.Value));
     }
 
@@ -146,18 +147,14 @@ internal sealed class EquipmentRepairDomainService(
             or BusinessInventorySpace.WornCreatureEquipment
             or BusinessInventorySpace.WornEquipmentExtension;
 
-    private async ValueTask<(BoundInventorySlot Slot, EquipmentInstance Equipment, int Cost)?> QuoteAsync(
-        BoundInventorySlot slot, ContainerSlotItem item,
-        (float CostRate, IReadOnlyList<float> UpgradeRates) rates,
+    private async ValueTask<(IEquipmentInstance Equipment, EquipmentRepairQuote Quote)?> QuoteAsync(
+        Dfo.Server.Data.Characters.CharacterId owner, BusinessSlot slot, IEquipmentRepairRule rule,
         CancellationToken cancellationToken)
     {
-        var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-        if (definition is null)
-            return null;
-        var equipment = EquipmentInstance.From(item);
-        var decision = equipment?.Repair(definition, rates);
-        return decision is { } repaired
-            ? (slot, equipment!, repaired.Cost)
-            : null;
+        var equipment = await equipments.Of(owner).FindAtAsync(slot, cancellationToken).ConfigureAwait(false);
+        if (equipment is null) return null;
+        var facts = await equipment.ReadAsync(cancellationToken).ConfigureAwait(false);
+        var quote = await rule.QuoteAsync(facts.Core, cancellationToken).ConfigureAwait(false);
+        return quote is null ? null : (equipment, quote);
     }
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.OnlineUsers;
@@ -16,6 +17,10 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<CommandHandlerRegistry>();
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<NetworkCommandAuthorization>();
+        services.TryAddSingleton<SelectedSessionSafety>();
+        services.TryAddSingleton<SelectedSessionCommandScope>();
+        services.TryAddSingleton<EffectOperationContext>();
+        services.TryAddSingleton<EffectOperationLedger>();
         services.TryAddSingleton<OnlineUserExecutionGate>();
         services.TryAddSingleton<SelectedSessionTransitionGate>();
         services.TryAddSingleton<AccountExecutionGate>();
@@ -30,6 +35,10 @@ public static class CommandDispatchingExtensions
         // and the container closes them per result type at resolution.
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(CommandLoggingBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(SelectedSessionExecutionBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(SelectedSessionSettlementBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(OnlineUserExecutionBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(

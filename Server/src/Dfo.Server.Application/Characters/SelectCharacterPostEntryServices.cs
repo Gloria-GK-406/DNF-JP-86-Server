@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -84,17 +85,16 @@ internal sealed class SelectCharacterQuestEntryService(
 }
 
 /// <remarks>
-/// Reviving reaches two kinds of state: which creature is equipped, which is an item, and what
-/// condition that creature is in, which is the character's. Both are kept in the same database and
-/// settle together, so a revival that cannot be written leaves nothing half done.
+/// The equipped item and its creature state settle in one database transaction.
 /// </remarks>
 internal sealed class SelectCharacterPetEntryService(
     ICharacterDomainStore characters,
     IItemDomainStore items,
-    AmbientStoreAccess stores) : ISelectCharacterPetEntryDomainService
+    AmbientStoreAccess stores,
+    ICreatureDomainService? creatureDomains = null) : ISelectCharacterPetEntryDomainService
 {
     /// <summary>The equipment slot the equipped creature sits in.</summary>
-    private const int EquippedCreatureSlot = 24;
+    private const int EquippedCreatureSlot = 25;
 
     /// <summary>What an item core says it is when it is a creature.</summary>
     private const byte CreatureItemKind = 5;
@@ -109,34 +109,41 @@ internal sealed class SelectCharacterPetEntryService(
                 .ConfigureAwait(false))
             throw new InvalidDataException("Entry mutation character ownership does not match.");
 
-        var equipment = ContainerId.ForCharacter(
-            session.CharacterId, InventoryContainerType.Equipment);
-        var equipped = await stores.ReadAsync(
-            items, held => held.ReadAsync(equipment, EquippedCreatureSlot, cancellationToken))
-            .ConfigureAwait(false);
-        if (equipped?.Core is not { ItemKind: CreatureItemKind } core || core.Value <= 0) return null;
-
-        // Which creature this is, read off the position that holds it rather than off a number
-        // inside its core. The core's value is what the wire carries for a creature and nothing
-        // said it was also the key the creature's condition is kept under; the two agreed only by
-        // luck, and where they did not, entry quietly failed to revive a dead creature. The
-        // identity is the key -- it is the number this same creature appears under in the list the
-        // frame writes, so the row found here and the entry the mutation has to appear in are the
-        // same creature by construction.
-        if (equipped.Identity is not { } worn) return null;
-
-        var creatureKey = (long)worn.Value;
-        var creature = await stores.ReadAsync(
-            characters, rows => rows.Creatures.ReadAsync(place, creatureKey, cancellationToken))
-            .ConfigureAwait(false);
-        if (creature is null || creature.Field04 > 0) return null;
-        await stores.ChangeAsync(characters, rows =>
+        long creatureKey;
+        int before;
+        if (creatureDomains is { } domain)
         {
-            rows.Creatures.Write(place, new StoredCreature(creatureKey, 1, OnlyWhenAtMostZero: true));
-            return ValueTask.CompletedTask;
-        }, cancellationToken).ConfigureAwait(false);
+            var creatureStore = domain.GetStore(session.CharacterId);
+            var current = await creatureStore.CurrentAsync(cancellationToken).ConfigureAwait(false);
+            if (current is null || current.Stomach > 0) return null;
+            creatureKey = current.ItemUid;
+            before = current.Stomach;
+            await creatureStore.ReviveIfEmptyAsync(current.ItemUid, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            // Compatibility for callers still constructing this service without the creature store.
+            var equipment = ContainerId.ForCharacter(
+                session.CharacterId, InventoryContainerType.Equipment);
+            var equipped = await stores.ReadAsync(
+                items, held => held.ReadAsync(equipment, EquippedCreatureSlot, cancellationToken))
+                .ConfigureAwait(false);
+            if (equipped?.Core is not { ItemKind: CreatureItemKind } core || core.Value <= 0) return null;
+            if (equipped.Identity is not { } worn) return null;
+            creatureKey = worn.Value;
+            var creature = await stores.ReadAsync(
+                characters, rows => rows.Creatures.ReadAsync(place, creatureKey, cancellationToken))
+                .ConfigureAwait(false);
+            if (creature is null || creature.Field04 > 0) return null;
+            before = creature.Field04;
+            await stores.ChangeAsync(characters, rows =>
+            {
+                rows.Creatures.Write(place, new StoredCreature(creatureKey, 1, OnlyWhenAtMostZero: true));
+                return ValueTask.CompletedTask;
+            }, cancellationToken).ConfigureAwait(false);
+        }
         var mutation = new PetRevivalMutation(
-            creatureKey, Math.Clamp(creature.Field04, 0, byte.MaxValue), 1);
+            creatureKey, Math.Clamp(before, 0, byte.MaxValue), 1);
         var pets = result.CharacterEntry.Features.Pets
             .Select(value => value.PetKey == mutation.CreatureKey
                 ? value with { Field04 = mutation.After } : value)

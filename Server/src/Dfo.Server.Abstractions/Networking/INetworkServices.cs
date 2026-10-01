@@ -30,6 +30,11 @@ public sealed record ExplicitMessageDelivery(
 
 public interface INetworkMessageSender
 {
+    /// <summary>Validates and encodes the whole ordered group before sending to the exact captured transport.</summary>
+    ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken) =>
+        ValueTask.FromException(new NotSupportedException("This sender does not support prepared typed batches."));
+
     ValueTask SendAsync(
         NetworkConnectionId connectionId,
         IServerNetworkMessage message,
@@ -47,6 +52,8 @@ public interface INetworkConnectionCloser
     /// Requests transport closure and returns once that request has been scheduled, not when the
     /// connection's close callbacks have completed.
     /// </summary>
+    ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken);
+
     ValueTask RequestCloseAsync(
         NetworkConnectionId connectionId,
         CancellationToken cancellationToken);

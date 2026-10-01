@@ -33,11 +33,11 @@ public sealed class CeraShopRuleTests
         var quote = await rules.QuoteAsync(CeraShopTestContent.Input(CeraShopTestContent.Entry(110001), CeraShopTestContent.Entry(110001)),
             85, CeraShopTestContent.Now, default);
         var stock = CeraShopTestContent.EmptyStock();
-        stock[InventoryContainerType.Main] = [new(3, StackableItemCore.Create(2, 6000, 9), ItemWorldClass.Interchangeable)];
+        stock[BusinessInventorySpace.QuickSlot] = [new(0, StackableItemCore.Create(2, 6000, 9), ItemWorldClass.Interchangeable)];
         var plan = rules.Plan(quote.Quote!, stock, 0, new(100000, 0, 0), 1).Plan!;
         Assert.Equal(99960, plan.Balances.Cera);
         Assert.Equal(new[] { 10, 10, 10, 10, 10, 9 }, plan.Writes.Select(write => write.Core.Value));
-        Assert.Equal(9, stock[InventoryContainerType.Main][0].Count);
+        Assert.Equal(9, stock[BusinessInventorySpace.QuickSlot][0].Count);
     }
 
     [Fact]
@@ -47,12 +47,14 @@ public sealed class CeraShopRuleTests
         var quote = await rules.QuoteAsync(CeraShopTestContent.Input(CeraShopTestContent.Entry(110000), CeraShopTestContent.Entry(110001)),
             85, CeraShopTestContent.Now, default);
         var stock = CeraShopTestContent.EmptyStock();
-        stock[InventoryContainerType.Main] = new[] { 3, 4, 5, 6, 7, 8, 65, 66 }
-            .Select(slot => new ContainerSlotItem(slot, StackableItemCore.Create(2, 3, slot == 3 ? 9 : 10), ItemWorldClass.Interchangeable)).ToArray();
+        stock[BusinessInventorySpace.QuickSlot] = Enumerable.Range(0, 6)
+            .Select(slot => new ContainerSlotItem(slot, StackableItemCore.Create(2, 3, slot == 0 ? 9 : 10), ItemWorldClass.Interchangeable)).ToArray();
+        stock[BusinessInventorySpace.Consumable] = Enumerable.Range(0, 2)
+            .Select(slot => new ContainerSlotItem(slot, StackableItemCore.Create(2, 3, 10), ItemWorldClass.Interchangeable)).ToArray();
         var result = rules.Plan(quote.Quote!, stock, 0, new(100000, 0, 0), 1);
         Assert.Equal(CeraShopRejection.NoRoom, result.Rejection);
         Assert.Null(result.Plan);
-        Assert.Equal(9, stock[InventoryContainerType.Main][0].Count);
+        Assert.Equal(9, stock[BusinessInventorySpace.QuickSlot][0].Count);
     }
 
     [Theory]
@@ -75,7 +77,7 @@ public sealed class CeraShopRuleTests
         var quote = await rules.QuoteAsync(input, 85, CeraShopTestContent.Now, default);
         var plan = rules.Plan(quote.Quote!, CeraShopTestContent.EmptyStock(), 0, new(100000, 0, 0), 1).Plan!;
         var write = Assert.Single(plan.Writes);
-        Assert.Equal(InventoryContainerType.Avatar, write.Container);
+        Assert.Equal(BusinessInventorySpace.Avatar, write.Slot.Space);
         Assert.Equal(1, write.Core.Attribute);
         Assert.Equal(CeraShopTestContent.Now.AddDays(7).ToUnixTimeSeconds(), write.CreationFacts!.Avatar!.ExpireDate);
         Assert.Equal(30, write.CreationFacts.Avatar.JewelSocket.Length);
@@ -90,8 +92,9 @@ public sealed class CeraShopRuleTests
         var quote = await rules.QuoteAsync(CeraShopTestContent.Input(CeraShopTestContent.Entry(105016), CeraShopTestContent.Entry(101075)),
             85, CeraShopTestContent.Now, default);
         var plan = rules.Plan(quote.Quote!, CeraShopTestContent.EmptyStock(), 0, new(100000, 0, 0), 1).Plan!;
-        Assert.Equal(new[] { (0, (byte)5), (140, (byte)6) }, plan.Writes.Select(write => (write.SlotIndex, write.Core.ItemKind)));
-        Assert.All(plan.Writes, write => Assert.Equal(InventoryContainerType.Pet, write.Container));
+        Assert.Equal(new[] { (BusinessInventorySpace.CreatureInventory, 0, (byte)5),
+            (BusinessInventorySpace.CreatureEquipment, 0, (byte)6) },
+            plan.Writes.Select(write => (write.Slot.Space, write.Slot.Index, write.Core.ItemKind)));
         Assert.Equal(new(100, 0, 0, 0, 0, 1, [], 0), plan.Writes[0].CreationFacts!.Creature! with { CreatureText = [] });
     }
 
@@ -134,8 +137,8 @@ public sealed class CeraShopRuleTests
         var quote = new CeraShopQuote([110000], [new(110000, 0, 3600, CeraShopPaymentMode.Ordinary)],
             [new(item, new ItemPlacement(2, 100,
                 new(BusinessInventorySpace.Consumable, 0, 55)), 1, 0, 0)]);
-        var held = new Dictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>>
-            { [InventoryContainerType.Main] = [] };
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+            { [BusinessInventorySpace.Consumable] = [], [BusinessInventorySpace.QuickSlot] = [] };
 
         var result = rules.Plan(quote, held, 1000, new(100000, 0, 0), 7700);
 
@@ -143,7 +146,7 @@ public sealed class CeraShopRuleTests
         Assert.Equal(96400, result.Plan.Balances.Cera);
         var write = Assert.Single(result.Plan.Writes);
         Assert.Equal((3, 1), (write.Core.ItemId, write.Core.Value));
-        Assert.Equal(InventoryContainerType.Main, write.Container);
-        Assert.Empty(held[InventoryContainerType.Main]);
+        Assert.Equal(BusinessInventorySpace.QuickSlot, write.Slot.Space);
+        Assert.Empty(held[BusinessInventorySpace.Consumable]);
     }
 }

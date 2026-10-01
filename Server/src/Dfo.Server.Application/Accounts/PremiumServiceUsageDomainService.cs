@@ -18,9 +18,10 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
     private const string DungeonBuff = "premium_dungeon_buff_used";
     private const string AutoRepair = "premium_auto_repair_used";
     private const string FreeWeakness = "premium_free_weakness_used";
-    public async ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAsync(CharacterId id, CancellationToken token)
+    public ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAsync(CharacterId id, CancellationToken token) =>
+        ReadAtAsync(id, clock.GetUtcNow(), token);
+    public async ValueTask<IReadOnlyList<CharacterPremiumUsageSlotState>> ReadAtAsync(CharacterId id, DateTimeOffset now, CancellationToken token)
     {
-        var now = clock.GetUtcNow();
         var lottery = CurrentUsage(await counters.ReadAsync(id, DoublePot, token).ConfigureAwait(false), now);
         var row = await counters.ReadAsync(id, FreeWeakness, token).ConfigureAwait(false);
         var weakness = CurrentUsage(row, now);
@@ -47,6 +48,27 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
         await WriteRequiredAsync(id, DoublePot, round, used + 1, now, token).ConfigureAwait(false);
         await WriteRequiredAsync(id, DoublePotTotal, total, totalUsed + 1, now, token).ConfigureAwait(false);
         return true;
+    }
+
+    public async ValueTask<DoublePotUsageFacts> DoublePotFactsAsync(AccountId accountId, CharacterId id,
+        DateTimeOffset at, CancellationToken token)
+    {
+        var eligible = await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false)
+            && (await premiums.For(accountId).ReadAsync(token).ConfigureAwait(false)).Any(x => x.PremiumType == (int)PremiumServiceType.DoublePot && x.ExpiresAtUnixSeconds > at.ToUnixTimeSeconds());
+        var round = await counters.ReadAsync(id, DoublePot, token).ConfigureAwait(false);
+        var total = await counters.ReadAsync(id, DoublePotTotal, token).ConfigureAwait(false);
+        return new(eligible, new(round, total), CurrentUsage(round, at), CurrentUsage(total ?? round, at),
+            rules.DoublePotDailyLimit, rules.DoublePotTotalDailyLimit, at);
+    }
+
+    public async ValueTask ApplyDoublePotAsync(AccountId accountId, CharacterId id,
+        DoublePotUsageDecision decision, CancellationToken token)
+    {
+        if (transactions.Current is null || decision.NextRound is < 0 or > 255 || decision.NextTotal is < 0 or > 255
+            || !await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false))
+            throw new InvalidOperationException("Invalid decided double-pot counter change.");
+        await WriteRequiredAsync(id, DoublePot, decision.Expected.Round, decision.NextRound, decision.At, token).ConfigureAwait(false);
+        await WriteRequiredAsync(id, DoublePotTotal, decision.Expected.Total, decision.NextTotal, decision.At, token).ConfigureAwait(false);
     }
 
     public async ValueTask RenewDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token)

@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
@@ -58,7 +59,7 @@ public sealed class CostumeSlotsWereMeasuredTests
         var read = await new PvfEquipmentSlotDefinitionSource(provider)
             .GetAsync(itemId, CancellationToken.None);
 
-        Assert.Equal(slot, read);
+        Assert.Equal(new BusinessSlot(BusinessInventorySpace.WornAvatar, slot), read);
         Assert.Equal(slot, PvfEquipmentSlots.ByName[equipmentType]);
     }
 

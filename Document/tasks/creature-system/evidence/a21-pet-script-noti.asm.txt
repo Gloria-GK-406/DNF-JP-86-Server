@@ -1,0 +1,127 @@
+
+### VA 01191DD0..01191FA5
+01191DD0 push     ebp
+01191DD1 mov      ebp, esp
+01191DD3 push     -1
+01191DD5 push     0x2d75f2b
+01191DDA mov      eax, dword ptr fs:[0]
+01191DE0 push     eax
+01191DE1 sub      esp, 0xa44
+01191DE7 mov      eax, dword ptr [0x399cee0]
+01191DEC xor      eax, ebp
+01191DEE mov      dword ptr [ebp - 0x10], eax
+01191DF1 push     ebx
+01191DF2 push     eax
+01191DF3 lea      eax, [ebp - 0xc]
+01191DF6 mov      dword ptr fs:[0], eax
+01191DFC xor      ebx, ebx
+01191DFE lea      eax, [ebp - 0xa35]
+01191E04 push     1
+01191E06 push     eax
+01191E07 mov      byte ptr [ebp - 0xa35], bl
+01191E0D mov      dword ptr [ebp - 0xa3c], ebx
+01191E13 mov      byte ptr [ebp - 0xa40], bl
+01191E19 call     0x27c5230
+01191E1E lea      ecx, [ebp - 0xa3c]
+01191E24 push     ecx
+01191E25 call     0x27c52a0
+01191E2A lea      edx, [ebp - 0xa40]
+01191E30 push     1
+01191E32 push     edx
+01191E33 call     0x27c5230
+01191E38 push     0x27f
+01191E3D call     0x28c14c0
+01191E42 push     eax
+01191E43 lea      eax, [ebp - 0x210]
+01191E49 push     0x100
+01191E4E push     eax
+01191E4F call     0x274fcb0
+01191E54 add      esp, 0x24
+01191E57 cmp      byte ptr [ebp - 0xa35], bl
+01191E5D jne      0x1191ea0
+01191E5F lea      ecx, [ebp - 0x210]
+01191E65 push     ecx
+01191E66 push     0x280
+01191E6B call     0x28c14c0
+01191E70 add      esp, 4
+01191E73 push     eax
+01191E74 lea      edx, [ebp - 0xa14]
+01191E7A push     0x802
+01191E7F push     edx
+01191E80 call     0x442570
+01191E85 mov      ecx, dword ptr [0x3a5c9b8]
+01191E8B add      esp, 0x10
+01191E8E push     ebx
+01191E8F lea      eax, [ebp - 0xa14]
+01191E95 push     eax
+01191E96 push     0xfa
+01191E9B call     0x2304c70
+01191EA0 push     8
+01191EA2 mov      dword ptr [ebp - 0xa34], ebx
+01191EA8 call     0x423460
+01191EAD add      esp, 4
+01191EB0 cmp      eax, ebx
+01191EB2 je       0x119200c
+01191EB8 mov      dword ptr [ebp - 0xa34], eax
+01191EBE xor      ecx, ecx
+01191EC0 mov      dword ptr [eax], ecx
+01191EC2 xor      edx, edx
+01191EC4 mov      dword ptr [eax + 4], edx
+01191EC7 mov      edx, dword ptr [ebp - 0xa34]
+01191ECD lea      ecx, [ebp - 0xa34]
+01191ED3 mov      dword ptr [edx], ecx
+01191ED5 xor      eax, eax
+01191ED7 mov      dword ptr [ebp - 0xa1c], 7
+01191EE1 mov      dword ptr [ebp - 0xa20], ebx
+01191EE7 mov      word ptr [ebp - 0xa30], ax
+01191EEE mov      ecx, dword ptr [ebp - 0xa3c]
+01191EF4 push     ecx
+01191EF5 mov      dword ptr [ebp - 4], ebx
+01191EF8 call     0x19e2ef0
+01191EFD push     eax
+01191EFE lea      edx, [ebp - 0xa34]
+01191F04 push     edx
+01191F05 call     0x228abc0
+01191F0A add      esp, 0xc
+01191F0D test     al, al
+01191F0F je       0x1191fb2
+01191F15 cmp      dword ptr [ebp - 0xa20], ebx
+01191F1B je       0x1191fb2
+01191F21 mov      eax, dword ptr [ebp + 8]
+01191F24 cmp      eax, 0x72
+01191F27 jne      0x1191f63
+01191F29 cmp      dword ptr [ebp - 0xa1c], 8
+01191F30 mov      eax, dword ptr [ebp - 0xa30]
+01191F36 jae      0x1191f3e
+01191F38 lea      eax, [ebp - 0xa30]
+01191F3E mov      ecx, dword ptr [ebp - 0xa40]
+01191F44 mov      edx, dword ptr [ebp - 0xa3c]
+01191F4A push     ebx
+01191F4B push     ecx
+01191F4C push     -1
+01191F4E push     1
+01191F50 push     eax
+01191F51 movzx    eax, byte ptr [ebp - 0xa35]
+01191F58 push     edx
+01191F59 push     eax
+01191F5A lea      ecx, [ebp - 0x210]
+01191F60 push     ecx
+01191F61 jmp      0x1191fa0
+01191F63 cmp      eax, 0x77
+01191F66 jne      0x1191fb2
+01191F68 cmp      dword ptr [ebp - 0xa1c], 8
+01191F6F mov      eax, dword ptr [ebp - 0xa30]
+01191F75 jae      0x1191f7d
+01191F77 lea      eax, [ebp - 0xa30]
+01191F7D mov      edx, dword ptr [ebp - 0xa40]
+01191F83 movzx    ecx, byte ptr [ebp - 0xa35]
+01191F8A push     ebx
+01191F8B push     edx
+01191F8C push     -1
+01191F8E push     2
+01191F90 push     eax
+01191F91 mov      eax, dword ptr [ebp - 0xa3c]
+01191F97 push     eax
+01191F98 push     ecx
+01191F99 lea      edx, [ebp - 0x210]
+01191F9F push     edx

@@ -1,5 +1,115 @@
 # 协议清单
 
+## 2026-10-01 0.2.0验收收口与新增接入
+
+用户确认C01/C02/S01/S02通过，当前交付范围验收完成；红字净化／清除／赋予／扭转等未验组合移交[#49](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/49)。普通强化保护、已辨识首饰增幅、普通武器锻造、宝珠附魔、魔法封印解封／转换、设计图、通关出售与当前城镇药剂沿各页的限定反馈记录。整体接受不新增原服实帧，不覆盖隔离入口或历史未测分支。见[0.2.0范围](../Document/releases/0.2.0.md)及[effect流程](patterns/flow-item-effects.md)。下方带日期的旧阶段状态保留作历史。
+
+新增于本PR的34个wire identity由当前注册／encoder与目标main对比取得。以下表只登记CurrentImplementation接入，不推断A21布局或GUI正确性；0065／007A等仅解析记录的入口不因此具有完整游戏行为。
+
+| Command | Type | 方向 | 当前代码入口／输出 | 证据边界 | 文档 |
+|---|---|---|---|---|---|
+| `0x01` | `0x0014` | C2S | `SortItemMessageDecoder` | 仅证明注册／编码接入 | [0x0014](game/client-to-server/0x0014.md) |
+| `0x01` | `0x0019` | C2S | `CompoundItemDecoder` | 仅证明注册／编码接入 | [0x0019](game/client-to-server/0x0019.md) |
+| `0x01` | `0x0050` | C2S | `ReinforceItemMessageDecoder` | 仅证明注册／编码接入 | [0x0050](game/client-to-server/0x0050.md) |
+| `0x01` | `0x0064` | C2S | `RenameCreatureMessageDecoder` | 仅证明注册／编码接入 | [0x0064](game/client-to-server/0x0064.md) |
+| `0x01` | `0x0065` | C2S | `CreatureResponseReportDecoder` | 仅证明注册／编码接入 | [0x0065](game/client-to-server/0x0065.md) |
+| `0x01` | `0x0066` | C2S | `HatchCreatureMessageDecoder` | 仅证明注册／编码接入 | [0x0066](game/client-to-server/0x0066.md) |
+| `0x01` | `0x007A` | C2S | `CreatureScriptMessageReportDecoder` | 仅证明注册／编码接入 | [0x007A](game/client-to-server/0x007A.md) |
+| `0x01` | `0x00CC` | C2S | `PurifyItemDecoder` | 仅证明注册／编码接入 | [0x00CC](game/client-to-server/0x00CC.md) |
+| `0x01` | `0x00CD` | C2S | `InvestAmplifyOptionDecoder` | 仅证明注册／编码接入 | [0x00CD](game/client-to-server/0x00CD.md) |
+| `0x01` | `0x00ED` | C2S | `TeleportDecoder` | 仅证明注册／编码接入 | [0x00ED](game/client-to-server/0x00ED.md) |
+| `0x01` | `0x0110` | C2S | `EnchantByBeadDecoder` | 仅证明注册／编码接入 | [0x0110](game/client-to-server/0x0110.md) |
+| `0x01` | `0x0191` | C2S | `UnsealRandomOptionDecoder` | 仅证明注册／编码接入 | [0x0191](game/client-to-server/0x0191.md) |
+| `0x01` | `0x01B6` | C2S | `ChangeRandomOptionDecoder` | 仅证明注册／编码接入 | [0x01B6](game/client-to-server/0x01B6.md) |
+| `0x01` | `0x01B7` | C2S | `ForgingDecoder` | 仅证明注册／编码接入 | [0x01B7](game/client-to-server/0x01B7.md) |
+| `0x01` | `0x02CA` | C2S | `SortLockDecoder` | 仅证明注册／编码接入 | [0x02CA](game/client-to-server/0x02CA.md) |
+| `0x01` | `0x02CB` | C2S | `SortUnlockDecoder` | 仅证明注册／编码接入 | [0x02CB](game/client-to-server/0x02CB.md) |
+| `0x01` CMD | `0x0014` | S2C | `SortItemResponse` | 仅证明注册／编码接入 | [0x0014](game/client-to-server/0x0014.md) |
+| `0x01` CMD | `0x0019` | S2C | `CompoundItemResponse` | 仅证明注册／编码接入 | [0x0019](game/server-to-client/CMD-0x0019.md) |
+| `0x01` CMD | `0x0050` | S2C | `ReinforceItemResponse` | 仅证明注册／编码接入 | [0x0050](game/server-to-client/CMD-0x0050.md) |
+| `0x01` CMD | `0x0064` | S2C | `RenameCreatureResponse` | 仅证明注册／编码接入 | [0x0064](game/client-to-server/0x0064.md) |
+| `0x01` CMD | `0x0066` | S2C | `HatchCreatureResponse` | 仅证明注册／编码接入 | [0x0066](game/client-to-server/0x0066.md) |
+| `0x01` CMD | `0x00CC` | S2C | `PurifyItemResponse` | 仅证明注册／编码接入 | [0x00CC](game/server-to-client/CMD-0x00CC.md) |
+| `0x01` CMD | `0x00CD` | S2C | `InvestAmplifyOptionResponse` | 仅证明注册／编码接入 | [0x00CD](game/server-to-client/CMD-0x00CD.md) |
+| `0x01` CMD | `0x00ED` | S2C | `TeleportResponse` | 仅证明注册／编码接入 | [0x00ED](game/server-to-client/CMD-0x00ED.md) |
+| `0x01` CMD | `0x0110` | S2C | `EnchantByBeadResponse` | 仅证明注册／编码接入 | [0x0110](game/server-to-client/CMD-0x0110.md) |
+| `0x01` CMD | `0x01B6` | S2C | `ChangeRandomOptionResponse` | 仅证明注册／编码接入 | [0x01B6](game/server-to-client/CMD-0x01B6.md) |
+| `0x01` CMD | `0x01B7` | S2C | `ForgingResponse` | 仅证明注册／编码接入 | [0x01B7](game/server-to-client/CMD-0x01B7.md) |
+| `0x01` CMD | `0x02CA` | S2C | `SortLockResponse` | 仅证明注册／编码接入；Locked动态分支 | [0x02CA](game/client-to-server/0x02CA.md) |
+| `0x01` CMD | `0x02CB` | S2C | `SortLockResponse` | 仅证明注册／编码接入 | [0x02CB](game/client-to-server/0x02CB.md) |
+| `0x00` NOTI | `0x0064` | S2C | `CreatureDeathNotification` | 仅证明注册／编码接入 | [0x0064](game/server-to-client/NOTI-0x0064.md) |
+| `0x00` NOTI | `0x0065` | S2C | `CreatureRenameNotification` | 仅证明注册／编码接入 | [0x0065](game/server-to-client/NOTI-0x0065.md) |
+| `0x00` NOTI | `0x0066` | S2C | `CreatureExperienceNotification`、`ExperienceNotification` | 仅证明注册／编码接入 | [0x0066](game/server-to-client/NOTI-0x0066.md) |
+| `0x00` NOTI | `0x0068` | S2C | `CreatureResponseNotification` | 仅证明注册／编码接入 | [0x0068](game/server-to-client/NOTI-0x0068.md) |
+| `0x00` NOTI | `0x006A` | S2C | `CreatureEvolutionNotification` | 仅证明注册／编码接入 | [0x006A](game/server-to-client/NOTI-0x006A.md) |
+
+## 2026-10-01 第三轮验收修复
+
+[01B6词条转换](game/client-to-server/0x01B6.md)修正固定第二字段为0（解封仍-1）；[0016出售](game/client-to-server/0x0016.md)按通关run资格开放德利拉，普通购买拒绝通关专用商店。[00ED瞬移](game/client-to-server/0x00ED.md)城镇选择药剂接入统一effect，消耗／位置同事务，提交后当前场景与[00AC冷却](game/server-to-client/NOTI-0x00AC.md)投影；重复只刷新当前状态。新增范围为CurrentImplementation＋ClientStatic／ContentStatic，真实客户端HumanPending。H16满包错误修正一并部署；H19客户端旧PVF期限同步。见[第三轮验收表](../Document/tasks/item-effects-unification/human-test-list-20261001-round3.md)。下面带日期的旧缺陷状态保留作为历史，不扩大已通过范围。
+
+| Command | Type | 当前入口／输出 | 证据边界 | 文档 |
+|---:|---:|---|---|---|
+| `0x01` | `0x00ED` | TeleportDecoder | 当前城镇选择变体；RuntimeLog／ContentStatic／CurrentImplementation，待实机 | [请求](game/client-to-server/0x00ED.md) |
+| `0x01` CMD | `0x00ED` | TeleportResponse | 当前仅发送拒绝，成功沿NOTI投影；ClientStatic，待实机 | [拒绝响应](game/server-to-client/CMD-0x00ED.md) |
+| `0x00` NOTI | `0x00AC` | TeleportCooldownNotification、ItemCooldownStateMessage | 秒数布局ClientStatic／CurrentImplementation，待实机 | [冷却](game/server-to-client/NOTI-0x00AC.md) |
+
+## 2026-09-30 宠物常规范围收尾（当前状态）
+
+P01–P10由用户确认通过；实例重构及常规事务回归已交付。当前协议覆盖如下，布局/流程以各页人工区和[生命周期流程](patterns/flow-creature-lifecycle.md)为准；下方按日期保存的取证/部署状态为历史记录。原完整宠物任务的技能、特殊成长及条件验收没有因此完成，见[收尾及剩余范围](../Document/tasks/creature-system/verification/closeout-20260930.md)。
+
+| Command | Type | 当前入口/输出 | 当前证据及业务边界 | 文档 |
+|---:|---:|---|---|---|
+| `0x01` | `0x0064` | RenameCreatureMessageDecoder | ClientStatic；P05普通改名/扣卡/重登ClientVerified | [CMD0064](game/client-to-server/0x0064.md) |
+| `0x01` | `0x0065` | CreatureResponseReportDecoder | ClientStatic；仅严格解析记录，不执行回应/技能 | [CMD0065](game/client-to-server/0x0065.md) |
+| `0x01` | `0x0066` | HatchCreatureMessageDecoder | WireCaptured；P10普通63022蛋ClientVerified | [CMD0066](game/client-to-server/0x0066.md) |
+| `0x01` | `0x007A` | CreatureScriptMessageReportDecoder | ClientStatic；仅严格解析记录，不执行脚本效果 | [CMD007A](game/client-to-server/0x007A.md) |
+| `0x01` CMD | `0x0064` | RenameCreatureResponseEncoder | CurrentImplementation；P05普通成功效果通过，错误/全线级取值未实测 | [CMD0064响应](game/client-to-server/0x0064.md) |
+| `0x01` CMD | `0x0066` | HatchCreatureResponseEncoder | CurrentImplementation；P10普通成功效果通过，0002仅本服拒绝选择 | [CMD0066响应](game/client-to-server/0x0066.md) |
+| `0x00` NOTI | `0x0064` | CreatureDeathEncoder | ClientStatic + CurrentImplementation；零饱食死亡未单独验收 | [NOTI0064](game/server-to-client/NOTI-0x0064.md) |
+| `0x00` NOTI | `0x0065` | CreatureRenameEncoder | ClientStatic + CurrentImplementation；P05普通改名通过，多人广播待验 | [NOTI0065](game/server-to-client/NOTI-0x0065.md) |
+| `0x00` NOTI | `0x0066` | CreatureExperienceEncoder | ClientStatic + CurrentImplementation；P06普通经验通过，mode1含义未证 | [NOTI0066](game/server-to-client/NOTI-0x0066.md) |
+| `0x00` NOTI | `0x0067` | CreatureStateEncoder | ClientStatic + CurrentImplementation；P06–P09普通饱食效果通过 | [NOTI0067](game/server-to-client/NOTI-0x0067.md) |
+| `0x00` NOTI | `0x0068` | CreatureResponseEncoder | encoder已注册，业务不发送；回应语义/受众未证 | [NOTI0068](game/server-to-client/NOTI-0x0068.md) |
+| `0x00` NOTI | `0x0069` | CreatureListMessage / CreatureListUpdateEncoder | ClientStatic + CurrentImplementation；P01/P04/P10非空详情与重登通过，删除语义未证 | [NOTI0069](game/server-to-client/NOTI-0x0069.md) |
+| `0x00` NOTI | `0x006A` | CreatureEvolutionEncoder | ClientStatic + CurrentImplementation；普通单目标自动进化待实机 | [NOTI006A](game/server-to-client/NOTI-0x006A.md) |
+| `0x00` NOTI | `0x006B` | CreatureRevivalEncoder | ClientStatic + CurrentImplementation；复活条件流程待实机 | [NOTI006B](game/server-to-client/NOTI-0x006B.md) |
+
+## 2026-09-30 宠物孵化实机验收通过
+
+用户确认P10通过，CMD0066普通63022蛋孵化路径记为ClientVerified；日志及数据库确认UID959→63023、同UID、初始状态，另一枚蛋保留。验收限列表中的普通路径，完整宠物任务仍在进行。见 [孵化验收结果](../Document/tasks/creature-system/verification/hatch-delivery-20260930.md#实机验收结果)。下方部署/取证阶段的待验状态为历史记录。
+
+## 2026-09-30 宠物孵化接线交付（部署时历史）
+
+[CMD0066](game/client-to-server/0x0066.md)已按实际3B请求接入同UID、同槽孵化事务，提交后回成功标志并刷新原槽与详情；重复、非法位置、非蛋、过期及不匹配产物拒绝。生产模块/真实PVF/当前库副本重放与相关回归通过，新服务已部署。当前为`WireCaptured`请求加`CurrentImplementation`响应/业务，P10 GUI/重登尚待用户复验，未标ClientVerified；下节Unhandled为接线前取证时状态。见 [孵化交付](../Document/tasks/creature-system/verification/hatch-delivery-20260930.md)。
+
+## 2026-09-30 宠物普通路径验收与孵化请求取证（接线前历史）
+
+用户确认P01–P09普通宠物路径实机通过，包括登录详情、移动穿戴、宠物装备、重登保存、改名、清房经验/饱食、喂食、城镇恢复与离线不累计。`ClientVerified`只覆盖验收列表的普通行为；错误、多人、进化/特殊成长和技能仍未闭合。[CMD0064改名](game/client-to-server/0x0064.md)已补限定验收结果；[CMD0066孵化](game/client-to-server/0x0066.md)实际请求 `070000` 已WireCaptured，但当前Unhandled、蛋未变化，孵化尚未验收。原始请求、只读快照及边界见 [本轮证据](../Document/tasks/creature-system/evidence/a21-acceptance-20260930.md)。
+
+## 2026-09-30 武器锻造候选实现
+
+[请求 `0x01B7`](game/client-to-server/0x01B7.md) 的 A21 静态构包包含目标列表/槽/模板、材料槽、动态名与尾标志；本服只接 70/上游共同支持且 PVF 可结算的普通 variant0，卷券 variant1/2 隔离。真实 `etc/upgrade_separate.etc` 定义独立 `GenuineUpgrade` 上限、各级概率与材料；服务端在同事务扣料并保留装备 UID/普通强化字段，[锻造结果](game/server-to-client/CMD-0x01B7.md)按 A21 静态接收顺序编码且刷新两槽。证据状态是 `70Reference + UpstreamReference + ClientStatic + ContentStatic + CurrentImplementation`；动态名字语义、原服实帧与 GUI/重登仍待[人工验收](../Document/tasks/equipment-development/attempts/spec-005-forging/Human-Test-List.md)，不标 `ClientVerified`。
+
+## 2026-09-30 异界气息与异次元属性候选实现
+
+[净化 `0x00CC`](game/client-to-server/0x00CC.md) 的 A21 静态普通分支为 12B；[属性赋予/扭转 `0x00CD`](game/client-to-server/0x00CD.md) 的 action0/1 为 14B，action2 另有未闭合动态尾。本服按真实 PVF `etc/amplifyitem.etc` 接入已闭合的净化、清除、赋予和扭转材料路径，装备/材料同事务，[00CC 结果](game/server-to-client/CMD-0x00CC.md)、[00CD 结果](game/server-to-client/CMD-0x00CD.md)与两槽刷新；action2 隔离，普通强化继续拒绝非零 `AmplifyType`。证据状态仅 `70Reference + UpstreamReference + ClientStatic + ContentStatic + CurrentImplementation`；污染装备自然生成路径、实际 S2C 帧与 GUI/重登效果仍待[人工验收](../Document/tasks/equipment-development/attempts/spec-004-outworld-amplify/Human-Test-List.md)，不标 `ClientVerified`。
+
+## 2026-09-30 魔法封印装备候选实现
+
+[解封 `0x0191`](game/client-to-server/0x0191.md) 与[词条变更 `0x01B6`](game/client-to-server/0x01B6.md) 已按 A21 静态请求宽度及真实 PVF 规则接入服务端事务；本服解封推装备/金币刷新，变更另发静态读法支持的最小成功 ACK。`0x0191` 未注册客户端响应 handler，两个请求的非哨兵第二字段均安全拒绝且不扣材料；`0x01B6` 的实际 S2C 实帧仍缺。[重铸 `0x0197`](game/client-to-server/0x0197.md) 与[重置 `0x01C8`](game/client-to-server/0x01C8.md) 因布局/版本差异隔离。状态仅 `CurrentImplementation + ClientStatic + ContentStatic`，没有 `ClientVerified`。固定样本与人工验收见 [Human Test List](../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md)。
+
+## 2026-09-30 CMD0110 宝珠附魔取证
+
+[请求](game/client-to-server/0x0110.md)与[结果](game/server-to-client/CMD-0x0110.md)已复核 A21 客户端构包/接收静态路径：装备宝珠请求写六字节，成功结果读取目标列表与槽位，宠物目标共用请求号但走另一 UI 分支。当前仅 `ClientStatic + UpstreamReference + 70Reference`，本服附魔实现与用户实机验收仍在进行；另有不同的附魔师摊位 `0x025A` 入口，不能混为普通宝珠结算。
+
+## 2026-09-29 CMD0050 普通强化候选实现
+
+[请求](game/client-to-server/0x0050.md)与[结果](game/server-to-client/CMD-0x0050.md)已按 A21 静态读取路径、真实 PVF 和参考端规则接入普通强化；金币/材料/装备/破坏产物共命令事务，支持同连接同序列重放防二次消费。普通强化已有用户 GUI、保护券和重登反馈。2026-10-01 `method=1` 增幅事务已接入独立 `etc/amplifyupgrade.etc`，成功率、费用、失败处罚、保护券与返奖按增幅规则；高级 `method=2` 保持拒绝。增幅当前为 `ContentStatic + UpstreamReference + ClientStatic + CurrentImplementation`，实机确认待[验收清单](../Document/equipment-amplification-and-crystal-notifications.md)，不提前标记 ClientVerified。
+
+## 2026-09-29 自动整理接入
+
+[CMD0014](game/client-to-server/0x0014.md) 装备默认请求 `00 01 00` 再次 WireCaptured；按 A21 分类接入事务整理和定向完整背包刷新。响应沿用 70/上游编排，用户已反馈自动排序测试通过。整理锁按钮是独立缺口：CMD02CA 请求已捕获；部署 102449aa 后用户确认锁定、重登保持、解锁整理验收通过（ClientVerified，限用户报告范围）；独立 C2S02CB 仍无实帧。见[流程](patterns/flow-inventory-sort.md)。
+
 ## 2026-09-28 黑钻默认资格投影
 
 CMD0004 普通权益列表按服务器配置合成 type 56；CMD0041/NOTI01F7 改为无需购买提示，线布局不变。CurrentImplementation，黑钻显示尚待实机验收，不包含具体权益效果。见[黑钻默认权益](../Document/黑钻默认权益.md)。
@@ -124,7 +234,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
 | `0x01` | `0x00C2` | `FRAME_LAG_STATISTICS` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
 | `0x01` | `0x00C5` | `SAVE_GAME_OPTION_1` | Report / 无响应 | 实现服务端功能 | [0x00C5.md](game/client-to-server/0x00C5.md) |
-| `0x01` | `0x00D0` | `USE_RANDOMBOX_ITEM` | Mutation / 有响应 | ClientVerified（A21 赛丽亚魔盒单开；原始逐帧未归档） | [0x00D0.md](game/client-to-server/0x00D0.md) |
+| `0x01` | `0x00D0` | `USE_RANDOMBOX_ITEM` | Mutation / 有响应 | ClientVerified（单开成功；满包错误码已修未部署、提示待复验；原始逐帧未归档） | [0x00D0.md](game/client-to-server/0x00D0.md) |
 | `0x01` | `0x00FA` | `LODING_TIME_REPORT`（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | `LAG_STATISTICS`（多态信封） | Report / 当前 raw 消费且有意无响应 | 未知（接入不等于布局/语义闭合） | [0x0117.md](game/client-to-server/0x0117.md) |
 | `0x01` | `0x0122` | `ADD_UNITED_SERVER_FRIEND` | Query / 有响应 | 已观察，未实现（本次组队范围外） | [0x0122.md](game/client-to-server/0x0122.md) |
@@ -140,7 +250,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
 | `0x01` | `0x02C1` | `CONTENTS_PLAY_INFO` | Query / 有响应 | 实现服务端功能 | [0x02C1.md](game/client-to-server/0x02C1.md) |
 | `0x01` | `0x02CC` | `SHOP_PURCHASE_COUNT` | Query / 有响应 | 实现服务端功能（A21，待实机） | [0x02CC.md](game/client-to-server/0x02CC.md) |
-| `0x01` | `0x0450` | `USE_RANDOMBOX_ITEM_EXPAND` | Mutation / 有响应 | ClientVerified（A21 赛丽亚魔盒批量；原始逐帧未归档） | [0x0450.md](game/client-to-server/0x0450.md) |
+| `0x01` | `0x0450` | `USE_RANDOMBOX_ITEM_EXPAND` | Mutation / 有响应 | ClientVerified（批量成功；满包错误码已修未部署、提示待复验；原始逐帧未归档） | [0x0450.md](game/client-to-server/0x0450.md) |
 | `0x01` | `0x04DD` | `CHECK_USER_CONNECTION` | Query / 有响应 | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 
 ## Game / Server → Client
@@ -178,7 +288,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x00` NOTI | `0x00CA` | `VILLAGE_OBJECT_LIST` | Notification | 实现服务端功能 | [NOTI-0x00CA.md](game/server-to-client/NOTI-0x00CA.md) |
 | `0x00` NOTI | `0x0165` | `CHARAC_INVISIBLE_FALGS` | Notification | 实现服务端功能 | [NOTI-0x0165.md](game/server-to-client/NOTI-0x0165.md) |
 | `0x00` NOTI | `0x021E` | `SET_USABLE_COUNT_INFO` | Notification | 实现服务端功能 | [NOTI-0x021E.md](game/server-to-client/NOTI-0x021E.md) |
-| `0x00` NOTI | `0x0344` | `BUY_RESTRICT_ITEM_LIST`（A21 号，A12 为 `0x02DA`） | Notification | 实现服务端功能 | [NOTI-0x0344.md](game/server-to-client/NOTI-0x0344.md) |
+| `0x00` NOTI | `0x0344` | `BUY_RESTRICT_ITEM_LIST`（A21 号，A12 为 `0x02DA`） | Notification | ClientStatic；限购实现／实机待验收 | [NOTI-0x0344.md](game/server-to-client/NOTI-0x0344.md) |
 | `0x00` NOTI | `0x036A` | `CONTRACT_OF_CUBE_INFO`（A21 号，A12 为 `0x0300`） | Notification | 实现服务端功能 | [NOTI-0x036A.md](game/server-to-client/NOTI-0x036A.md) |
 | `0x00` NOTI | `0x03C1` | `EQUIPMENT_RENTAL_LIST`（A21 号，A12 为 `0x0357`） | Notification | 实现服务端功能 | [NOTI-0x03C1.md](game/server-to-client/NOTI-0x03C1.md) |
 | `0x00` NOTI | `0x0465` | `EPIC_BOOK_INFO` | Notification | 实现服务端功能 | [NOTI-0x0465.md](game/server-to-client/NOTI-0x0465.md) |
@@ -725,3 +835,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 ## 2026-09-29 黑钻阶段收尾
 
 [CMD00D7](game/client-to-server/0x00D7.md)普通/高级黑钻售货机连续单抽已实机验收；[CMD0047](game/client-to-server/0x0047.md)单人、多人黄金牌内容显示已验收。姓名黑钻图标、疲劳扣点/重登/零疲劳拒绝及疲劳药次数显示均按用户实测记录验收。黑钻5%通关经验仍为已实现/自动验证，尚无专项实机确认。公告延期到聊天系统#61。完整边界见[阶段收尾](../Document/黑钻最终验收-20260929.md)。
+
+## 2026-10-01 普通设计图制作
+
+[COMPOUND_ITEM 0x0019](game/client-to-server/0x0019.md)新增1287设计图9B实帧，接入PVF需求/产物规则、同事务消费/入包、[CMD结果](game/server-to-client/CMD-0x0019.md)及库存刷新。WireCaptured + ClientStatic + 70Reference + ContentStatic + CurrentImplementation；[人工验收](../Document/tasks/recipe-crafting/Human-Test-List.md)待执行，未标ClientVerified。

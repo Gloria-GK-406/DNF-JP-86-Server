@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5df9a0db-0d4d-44b3-92ec-171786615cfd" name="Gloria@家庭台式机 2026-10-01 15:21:15" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T15:21:15.3619093+08:00" queuing="2026-10-01T15:21:15.3619094+08:00" start="2026-10-01T15:21:14.2176710+08:00" finish="2026-10-01T15:21:15.3659600+08:00" />
+  <TestSettings name="default" id="654dbb56-1bf3-437b-a6e9-af1f0ea23366">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_15_21_15" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="50e5a2a7-d2a2-4bcb-8d5f-066a88d47d62" testId="6fc3c15f-1b99-0b2f-a939-a62b7616c602" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request" computerName="家庭台式机" duration="00:00:00.3119386" startTime="2026-10-01T15:21:14.9524438+08:00" endTime="2026-10-01T15:21:15.2758244+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="50e5a2a7-d2a2-4bcb-8d5f-066a88d47d62">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 2&#xD;
+Actual:   1</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\EffectOperationReplayTests.cs:line 32&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="6fc3c15f-1b99-0b2f-a939-a62b7616c602">
+      <Execution id="50e5a2a7-d2a2-4bcb-8d5f-066a88d47d62" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="6fc3c15f-1b99-0b2f-a939-a62b7616c602" executionId="50e5a2a7-d2a2-4bcb-8d5f-066a88d47d62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.19]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.39]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.41]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.74]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.74]       Expected: 2&#xD;
+[xUnit.net 00:00:00.74]       Actual:   1&#xD;
+[xUnit.net 00:00:00.74]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.74]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\EffectOperationReplayTests.cs(32,0): at Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request()&#xD;
+[xUnit.net 00:00:00.74]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.75]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T15:21:15.2778127+08:00">
+        <Text>[xUnit.net 00:00:00.74]     Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

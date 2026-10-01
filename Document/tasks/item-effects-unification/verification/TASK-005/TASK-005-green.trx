@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c5e77a9c-da26-431d-9f65-5ea7a0e057f6" name="Gloria@家庭台式机 2026-10-01 13:28:59" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T13:28:59.2375380+08:00" queuing="2026-10-01T13:28:59.2375394+08:00" start="2026-10-01T13:28:57.4036717+08:00" finish="2026-10-01T13:28:59.2413143+08:00" />
+  <TestSettings name="default" id="23f46d78-68ec-4fa8-9793-c8fb5bacd1dd">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_13_28_59" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f5f16767-8a71-4152-996d-5bf2d81c60c8" testId="546f39f5-f441-330b-66d2-03d84089e0f5" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Reward_fills_every_pile_instead_of_silently_losing_the_remainder" computerName="家庭台式机" duration="00:00:00.6278537" startTime="2026-10-01T13:28:58.5237759+08:00" endTime="2026-10-01T13:28:59.1553208+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f5f16767-8a71-4152-996d-5bf2d81c60c8" />
+    <UnitTestResult executionId="ccfb53db-f434-4534-b449-d4e903dcce23" testId="c37c622b-baa0-7813-b717-bf935a58f5d3" testName="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests.A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone" computerName="家庭台式机" duration="00:00:00.2268589" startTime="2026-10-01T13:28:58.5249422+08:00" endTime="2026-10-01T13:28:58.7557956+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ccfb53db-f434-4534-b449-d4e903dcce23" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests.A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="c37c622b-baa0-7813-b717-bf935a58f5d3">
+      <Execution id="ccfb53db-f434-4534-b449-d4e903dcce23" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests" name="A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Reward_fills_every_pile_instead_of_silently_losing_the_remainder" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="546f39f5-f441-330b-66d2-03d84089e0f5">
+      <Execution id="f5f16767-8a71-4152-996d-5bf2d81c60c8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Reward_fills_every_pile_instead_of_silently_losing_the_remainder" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="546f39f5-f441-330b-66d2-03d84089e0f5" executionId="f5f16767-8a71-4152-996d-5bf2d81c60c8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c37c622b-baa0-7813-b717-bf935a58f5d3" executionId="ccfb53db-f434-4534-b449-d4e903dcce23" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.45]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.71]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.73]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.38]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

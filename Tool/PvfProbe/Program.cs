@@ -1,5 +1,6 @@
 using System.Text;
 using Dfo.Pvf;
+using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 
 // Ad-hoc reader for Script.pvf, for the questions that come up while working out a protocol:
@@ -255,7 +256,7 @@ switch (args[0])
                     break;
                 }
 
-                if (token.Kind == PvfTokenKind.Identifier && text == "[name]")
+                if (token.Kind == PvfTokenKind.Identifier && ProbeFields.Name.Matches(text))
                     armed = true;
             }
         }
@@ -496,4 +497,9 @@ static void Dump(PvfArchive archive, string path, int maxTokens)
         Console.WriteLine(line.ToString().TrimEnd());
     if (written >= maxTokens)
         Console.WriteLine($"-- stopped at {maxTokens} tokens");
+}
+
+internal static class ProbeFields
+{
+    internal static readonly PvfField<string> Name = PvfField.String("[name]", optional: true);
 }

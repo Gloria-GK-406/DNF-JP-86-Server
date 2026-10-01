@@ -16,6 +16,27 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 public sealed class CeraShopStorageTests
 {
     [Fact]
+    public async Task Restriction_compare_and_set_persists_only_matching_account_state_and_requires_transaction()
+    {
+        using var fixture = new StorageFixture();
+        var table = new SqliteAccountPurchaseRestrictionTable(fixture.Database);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await table.TrySetAsync(new(1),32,null,100,default));
+        await using (var transaction = fixture.Scope.Begin())
+        {
+            Assert.True(await table.TrySetAsync(new(1),32,null,100,default));
+            Assert.False(await table.TrySetAsync(new(1),32,null,200,default));
+            Assert.False(await table.TrySetAsync(new(1),32,99,200,default));
+            Assert.False(await table.TrySetAsync(new(2),32,100,200,default));
+            Assert.True(await table.TrySetAsync(new(1),32,100,200,default));
+            await transaction.CommitAsync(default);
+        }
+        var reopened = new SqliteAccountPurchaseRestrictionTable(new SqliteDatabase(
+            new SqliteConnectionStringBuilder(fixture.Database.ConnectionString).DataSource, fixture.Scope));
+        Assert.Equal(200, Assert.Single(await reopened.ReadAsync(new(1),default)).EndsAtUnixSeconds);
+        Assert.Empty(await reopened.ReadAsync(new(2),default));
+    }
+
+    [Fact]
     public async Task New_creature_reloads_with_all_facts_and_the_same_wire_identity()
     {
         using var fixture = new StorageFixture();

@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="da371fd5-9480-438e-b901-882cbcbbe5d9" name="Gloria@家庭台式机 2026-10-01 15:31:09" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T15:31:09.1525249+08:00" queuing="2026-10-01T15:31:09.1525252+08:00" start="2026-10-01T15:31:07.4815723+08:00" finish="2026-10-01T15:31:09.4283357+08:00" />
+  <TestSettings name="default" id="357942c8-5285-4164-8fd0-1d1f00a08307">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_15_31_09" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="12e47345-7518-47d1-bc5c-911c281b1ff7" testId="320bb84d-ffe1-a67c-d128-326c8c2ff1b9" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus" computerName="家庭台式机" duration="00:00:00.0506022" startTime="2026-10-01T15:31:09.2668007+08:00" endTime="2026-10-01T15:31:09.3197133+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="12e47345-7518-47d1-bc5c-911c281b1ff7" />
+    <UnitTestResult executionId="ddb5b174-16b7-48f8-bd6a-dfe69b90537e" testId="cce41086-00cf-45ab-f7e1-b84d36accecd" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state" computerName="家庭台式机" duration="00:00:00.0531951" startTime="2026-10-01T15:31:08.9555078+08:00" endTime="2026-10-01T15:31:09.0085655+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ddb5b174-16b7-48f8-bd6a-dfe69b90537e" />
+    <UnitTestResult executionId="b6f6d6f6-2c9c-404c-8577-d9ce72588f54" testId="2bb14253-b7e1-4dc3-4d09-8f34dbfc387b" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 3)" computerName="家庭台式机" duration="00:00:00.0426478" startTime="2026-10-01T15:31:08.8669158+08:00" endTime="2026-10-01T15:31:08.9095338+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b6f6d6f6-2c9c-404c-8577-d9ce72588f54" />
+    <UnitTestResult executionId="7312956e-0002-45ae-8db8-34851bd90779" testId="5e925524-5081-d9d0-3d78-2af470e68ac6" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Window_counts_every_inbound_frame_including_unknown_types(otherFrames: 127, accepted: True)" computerName="家庭台式机" duration="00:00:00.1128439" startTime="2026-10-01T15:31:08.6761118+08:00" endTime="2026-10-01T15:31:08.7830420+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7312956e-0002-45ae-8db8-34851bd90779" />
+    <UnitTestResult executionId="ac916034-a691-4801-b565-2e586041170a" testId="7eee15e1-062b-9d4c-06a1-23e1e4c3c91f" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Confirmed_SQL_abort_retries_the_exact_same_fingerprint" computerName="家庭台式机" duration="00:00:00.0480374" startTime="2026-10-01T15:31:09.0087555+08:00" endTime="2026-10-01T15:31:09.0652286+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ac916034-a691-4801-b565-2e586041170a">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: No exception was thrown&#xD;
+Expected: typeof(Microsoft.Data.Sqlite.SqliteException)</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Confirmed_SQL_abort_retries_the_exact_same_fingerprint() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\EffectOperationReplayTests.cs:line 81&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="3194f0e3-f791-448c-b9c2-9156efede2f2" testId="6fc3c15f-1b99-0b2f-a939-a62b7616c602" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request" computerName="家庭台式机" duration="00:00:00.0487541" startTime="2026-10-01T15:31:09.3202765+08:00" endTime="2026-10-01T15:31:09.3691514+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3194f0e3-f791-448c-b9c2-9156efede2f2" />
+    <UnitTestResult executionId="8088958c-8a10-4871-b69d-593087a37f1f" testId="74e7fe84-183d-23e7-d544-009f38193303" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 0)" computerName="家庭台式机" duration="00:00:00.0430349" startTime="2026-10-01T15:31:08.7843307+08:00" endTime="2026-10-01T15:31:08.8264114+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8088958c-8a10-4871-b69d-593087a37f1f" />
+    <UnitTestResult executionId="6290a48e-4e81-43fc-8fca-90fa8deeebfa" testId="144a4217-4548-c3b8-4970-a88b8b8d6787" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Batch_IO_failure_keeps_committed_state_and_uses_later_current_quantity" computerName="家庭台式机" duration="00:00:00.0494174" startTime="2026-10-01T15:31:09.2172418+08:00" endTime="2026-10-01T15:31:09.2666219+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6290a48e-4e81-43fc-8fca-90fa8deeebfa" />
+    <UnitTestResult executionId="c613dc30-0429-407b-ae6c-a8ca82d7ad0d" testId="1e87e38a-192b-f9ba-82e0-f52765fd0e17" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Metadata_empty_cannot_bypass_real_dispatcher" computerName="家庭台式机" duration="00:00:00.0428466" startTime="2026-10-01T15:31:09.0690774+08:00" endTime="2026-10-01T15:31:09.1076809+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c613dc30-0429-407b-ae6c-a8ca82d7ad0d" />
+    <UnitTestResult executionId="b92ba8a7-3092-43b7-8d60-21a730ebd189" testId="0f2a884c-221a-77ca-ffc0-2602802f88d1" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 1)" computerName="家庭台式机" duration="00:00:00.0402879" startTime="2026-10-01T15:31:08.8265350+08:00" endTime="2026-10-01T15:31:08.8667930+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b92ba8a7-3092-43b7-8d60-21a730ebd189" />
+    <UnitTestResult executionId="76916344-52ce-420c-9277-6419e758395a" testId="9c7e6b0f-973e-d27e-7aec-f54e37c8ecb0" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Identical_parameters_on_the_next_fresh_sequence_are_a_new_use" computerName="家庭台式机" duration="00:00:00.0467773" startTime="2026-10-01T15:31:09.1706152+08:00" endTime="2026-10-01T15:31:09.2170665+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="76916344-52ce-420c-9277-6419e758395a" />
+    <UnitTestResult executionId="8d828f2c-83b6-4066-83da-12eb90a66552" testId="4744a343-5e34-29aa-115d-e5eb17f6aefc" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 2)" computerName="家庭台式机" duration="00:00:00.0455364" startTime="2026-10-01T15:31:08.9096598+08:00" endTime="2026-10-01T15:31:08.9552118+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8d828f2c-83b6-4066-83da-12eb90a66552" />
+    <UnitTestResult executionId="49db1221-3708-47f3-8d27-bdaa50661edd" testId="b7c4a295-259c-6ee8-c624-1fbec925f159" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Window_counts_every_inbound_frame_including_unknown_types(otherFrames: 128, accepted: False)" computerName="家庭台式机" duration="00:00:00.2904743" startTime="2026-10-01T15:31:08.3754244+08:00" endTime="2026-10-01T15:31:08.6700981+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="49db1221-3708-47f3-8d27-bdaa50661edd" />
+    <UnitTestResult executionId="53df4fa3-693a-4265-868f-32a88815015d" testId="3b548175-c4b9-8673-5274-8a6b7ab4d019" testName="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_full_ushort_round_is_a_legal_new_use_and_65535_to_zero_is_fresh" computerName="家庭台式机" duration="00:00:00.0623168" startTime="2026-10-01T15:31:09.1298090+08:00" endTime="2026-10-01T15:31:09.1701762+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="53df4fa3-693a-4265-868f-32a88815015d" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Window_counts_every_inbound_frame_including_unknown_types(otherFrames: 128, accepted: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="b7c4a295-259c-6ee8-c624-1fbec925f159">
+      <Execution id="49db1221-3708-47f3-8d27-bdaa50661edd" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Window_counts_every_inbound_frame_including_unknown_types" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 3)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="2bb14253-b7e1-4dc3-4d09-8f34dbfc387b">
+      <Execution id="b6f6d6f6-2c9c-404c-8577-d9ce72588f54" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Full_raw_identity_conflicts_never_pay_or_refresh" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Metadata_empty_cannot_bypass_real_dispatcher" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="1e87e38a-192b-f9ba-82e0-f52765fd0e17">
+      <Execution id="c613dc30-0429-407b-ae6c-a8ca82d7ad0d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Metadata_empty_cannot_bypass_real_dispatcher" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 0)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="74e7fe84-183d-23e7-d544-009f38193303">
+      <Execution id="8088958c-8a10-4871-b69d-593087a37f1f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Full_raw_identity_conflicts_never_pay_or_refresh" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_full_ushort_round_is_a_legal_new_use_and_65535_to_zero_is_fresh" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="3b548175-c4b9-8673-5274-8a6b7ab4d019">
+      <Execution id="53df4fa3-693a-4265-868f-32a88815015d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="A_full_ushort_round_is_a_legal_new_use_and_65535_to_zero_is_fresh" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 2)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="4744a343-5e34-29aa-115d-e5eb17f6aefc">
+      <Execution id="8d828f2c-83b6-4066-83da-12eb90a66552" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Full_raw_identity_conflicts_never_pay_or_refresh" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="320bb84d-ffe1-a67c-d128-326c8c2ff1b9">
+      <Execution id="12e47345-7518-47d1-bc5c-911c281b1ff7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="An_inherited_closed_operation_cannot_downgrade_to_trusted_direct_bus" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Identical_parameters_on_the_next_fresh_sequence_are_a_new_use" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="9c7e6b0f-973e-d27e-7aec-f54e37c8ecb0">
+      <Execution id="76916344-52ce-420c-9277-6419e758395a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Identical_parameters_on_the_next_fresh_sequence_are_a_new_use" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Batch_IO_failure_keeps_committed_state_and_uses_later_current_quantity" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="144a4217-4548-c3b8-4970-a88b8b8d6787">
+      <Execution id="6290a48e-4e81-43fc-8fca-90fa8deeebfa" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Batch_IO_failure_keeps_committed_state_and_uses_later_current_quantity" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Full_raw_identity_conflicts_never_pay_or_refresh(conflict: 1)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="0f2a884c-221a-77ca-ffc0-2602802f88d1">
+      <Execution id="b92ba8a7-3092-43b7-8d60-21a730ebd189" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Full_raw_identity_conflicts_never_pay_or_refresh" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Confirmed_SQL_abort_retries_the_exact_same_fingerprint" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="7eee15e1-062b-9d4c-06a1-23e1e4c3c91f">
+      <Execution id="ac916034-a691-4801-b565-2e586041170a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Confirmed_SQL_abort_retries_the_exact_same_fingerprint" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="6fc3c15f-1b99-0b2f-a939-a62b7616c602">
+      <Execution id="3194f0e3-f791-448c-b9c2-9156efede2f2" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="A_use_already_durable_before_sender_failure_cannot_consume_twice_on_the_same_raw_request" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Window_counts_every_inbound_frame_including_unknown_types(otherFrames: 127, accepted: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="5e925524-5081-d9d0-3d78-2af470e68ac6">
+      <Execution id="7312956e-0002-45ae-8db8-34851bd90779" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Window_counts_every_inbound_frame_including_unknown_types" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="cce41086-00cf-45ab-f7e1-b84d36accecd">
+      <Execution id="ddb5b174-16b7-48f8-bd6a-dfe69b90537e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests" name="Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="320bb84d-ffe1-a67c-d128-326c8c2ff1b9" executionId="12e47345-7518-47d1-bc5c-911c281b1ff7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cce41086-00cf-45ab-f7e1-b84d36accecd" executionId="ddb5b174-16b7-48f8-bd6a-dfe69b90537e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2bb14253-b7e1-4dc3-4d09-8f34dbfc387b" executionId="b6f6d6f6-2c9c-404c-8577-d9ce72588f54" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5e925524-5081-d9d0-3d78-2af470e68ac6" executionId="7312956e-0002-45ae-8db8-34851bd90779" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7eee15e1-062b-9d4c-06a1-23e1e4c3c91f" executionId="ac916034-a691-4801-b565-2e586041170a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6fc3c15f-1b99-0b2f-a939-a62b7616c602" executionId="3194f0e3-f791-448c-b9c2-9156efede2f2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="74e7fe84-183d-23e7-d544-009f38193303" executionId="8088958c-8a10-4871-b69d-593087a37f1f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="144a4217-4548-c3b8-4970-a88b8b8d6787" executionId="6290a48e-4e81-43fc-8fca-90fa8deeebfa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1e87e38a-192b-f9ba-82e0-f52765fd0e17" executionId="c613dc30-0429-407b-ae6c-a8ca82d7ad0d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0f2a884c-221a-77ca-ffc0-2602802f88d1" executionId="b92ba8a7-3092-43b7-8d60-21a730ebd189" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9c7e6b0f-973e-d27e-7aec-f54e37c8ecb0" executionId="76916344-52ce-420c-9277-6419e758395a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4744a343-5e34-29aa-115d-e5eb17f6aefc" executionId="8d828f2c-83b6-4066-83da-12eb90a66552" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b7c4a295-259c-6ee8-c624-1fbec925f159" executionId="49db1221-3708-47f3-8d27-bdaa50661edd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3b548175-c4b9-8673-5274-8a6b7ab4d019" executionId="53df4fa3-693a-4265-868f-32a88815015d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="14" executed="14" passed="13" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.32]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.53]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.56]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.26]       Assert.Throws() Failure: No exception was thrown&#xD;
+[xUnit.net 00:00:01.26]       Expected: typeof(Microsoft.Data.Sqlite.SqliteException)&#xD;
+[xUnit.net 00:00:01.26]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.26]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\EffectOperationReplayTests.cs(81,0): at Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Confirmed_SQL_abort_retries_the_exact_same_fingerprint()&#xD;
+[xUnit.net 00:00:01.26]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:01.57]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T15:31:09.0671538+08:00">
+        <Text>[xUnit.net 00:00:01.26]     Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Confirmed_SQL_abort_retries_the_exact_same_fingerprint [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

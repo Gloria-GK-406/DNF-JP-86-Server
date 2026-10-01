@@ -108,7 +108,8 @@ internal sealed class DomainTransaction : IDomainTransaction
             }
             catch (Exception violation)
             {
-                throw new InvalidOperationException(
+                throw new TransactionOutcomeUncertainException(
+                    TransactionUncertaintyReason.NonFallibleCommitContractViolation,
                     $"'{participant.GetType().Name}' declared that its commit cannot fail, and it " +
                     "failed. The transaction is now partly applied and cannot be taken back.",
                     violation);
@@ -117,6 +118,9 @@ internal sealed class DomainTransaction : IDomainTransaction
     }
 
     public ValueTask RollbackAsync()
+        => this.AbortAsync(cause: null);
+
+    internal ValueTask AbortAsync(Exception? cause)
     {
         if (this.settled)
         {
@@ -124,7 +128,7 @@ internal sealed class DomainTransaction : IDomainTransaction
         }
 
         this.settled = true;
-        return this.RollbackEnlistedAsync(cause: null);
+        return this.RollbackEnlistedAsync(cause);
     }
 
     private async ValueTask RollbackEnlistedAsync(Exception? cause)
@@ -149,10 +153,13 @@ internal sealed class DomainTransaction : IDomainTransaction
             return;
         }
 
-        throw cause is null
+        var causes = cause is null
             ? new AggregateException("Rolling back the transaction failed.", failures)
             : new AggregateException(
                 "Rolling back the transaction failed while unwinding another failure.",
                 failures.Prepend(cause));
+        throw new TransactionOutcomeUncertainException(
+            TransactionUncertaintyReason.RollbackFailure,
+            "The transaction could not confirm a complete rollback.", causes);
     }
 }

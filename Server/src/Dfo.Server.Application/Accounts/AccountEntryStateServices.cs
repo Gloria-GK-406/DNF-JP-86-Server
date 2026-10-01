@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Notices;
 using Dfo.Server.Data.Notices;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
@@ -114,7 +115,7 @@ internal sealed class AccountRelationCompatibilityEntryProjection
             checked((byte)storage.PcRoomPlayTimeStates[0]));
     }
 
-    private static IReadOnlyList<AccountCompatibilityEntryState> ResolveAccountCompatibilityEntries(
+    internal static IReadOnlyList<AccountCompatibilityEntryState> ResolveAccountCompatibilityEntries(
         IReadOnlyList<(int CharacterSlotIndex, int SortOrder, int EntryId, int SentinelOrValue, int Flag)> entries,
         IReadOnlyList<(int CharacterId, int SlotIndex, int Level)> roster)
     {
@@ -145,7 +146,8 @@ internal sealed class AccountEntryStateDomainService(
     IAccountWalletEntitlementEntryProjection walletEntitlements,
     IAccountProgressionEntryProjection progression,
     IAccountRelationCompatibilityEntryProjection relations,
-    INoticeStateDomainService notices) : IAccountEntryStateDomainService
+    INoticeStateDomainService notices, ICeraShopPurchaseRestrictionDomainService restrictions,
+    TimeProvider clock) : IAccountEntryStateDomainService
 {
     public async ValueTask<AccountEntryState> LoadAsync(
         AccountId accountId,
@@ -161,7 +163,11 @@ internal sealed class AccountEntryStateDomainService(
             commerce.Wallet,
             commerce.Entitlements,
             progression.Build(storage.Progression),
-            relations.Build(storage.Relations, storage.Progression.Roster));
+            relations.Build(storage.Relations, storage.Progression.Roster) with
+            {
+                Unknown730Entries = (await restrictions.ReadAsync(accountId, clock.GetUtcNow(), cancellationToken)
+                    .ConfigureAwait(false)).Entries,
+            });
     }
 
     public async ValueTask<AccountSettingsEntryState> LoadSettingsAsync(

@@ -151,10 +151,10 @@ public sealed class SelectCharacterPreparationService(
             throw new InvalidDataException("Selected character is absent from the account roster.");
         }
 
-        var characterInventory = await characterInventoryEntries.LoadAsync(
-            accountId,
-            character.Identity.CharacterId,
-            cancellationToken).ConfigureAwait(false);
+        var characterInventory = await (selectionEntry
+            ? characterInventoryEntries.LoadAsync(accountId, character.Identity.CharacterId, cancellationToken)
+            : characterInventoryEntries.ReadCurrentAsync(accountId, character.Identity.CharacterId, cancellationToken))
+            .ConfigureAwait(false);
         var accountInventory = await accountInventoryEntries.LoadAsync(
             accountId,
             character.Identity.CharacterId,
@@ -180,10 +180,12 @@ public sealed class SelectCharacterPreparationService(
             accountId,
             cancellationToken).ConfigureAwait(false);
         var preparedAt = timeProvider.GetUtcNow();
+        characterInventory = await SupportCreatureMarkerProjection.CompleteAsync(
+            characterInventory, preparationRules, preparedAt, cancellationToken).ConfigureAwait(false);
         accountEntry = await CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
             characters, characterInventoryEntries, characterEntries,
-            preparationRules, preparedAt,
+            preparationRules, preparedAt, selectionEntry,
             cancellationToken).ConfigureAwait(false);
 
         var contentSubject = BuildContentSubject(character, characterEntry, characterInventory);
@@ -466,6 +468,7 @@ public sealed class SelectCharacterPreparationService(
         ICharacterEntryStateDomainService entries,
         ICharacterEntryPreparationRuleService preparationRules,
         DateTimeOffset preparedAt,
+        bool selectionEntry,
         CancellationToken cancellationToken)
     {
         var ownerRelations = account.Relations.CharacterRelations
@@ -482,9 +485,11 @@ public sealed class SelectCharacterPreparationService(
             accountId, summary.SlotIndex, cancellationToken).ConfigureAwait(false);
         var supportEntry = await entries.LoadAsync(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
-        var supportInventory = await inventories.LoadAsync(
-            accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
-        supportInventory = await CompleteSupportCreatureMarkerAsync(
+        var supportInventory = await (selectionEntry
+            ? inventories.LoadAsync(accountId, relation.SupportCharacterId, cancellationToken)
+            : inventories.ReadCurrentAsync(accountId, relation.SupportCharacterId, cancellationToken))
+            .ConfigureAwait(false);
+        supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
         var completed = relation with
@@ -500,41 +505,6 @@ public sealed class SelectCharacterPreparationService(
                     .Select(value => value == relation ? completed : value).ToArray(),
             },
         };
-    }
-
-    private static async ValueTask<CharacterInventoryEntryState> CompleteSupportCreatureMarkerAsync(
-        CharacterInventoryEntryState inventory,
-        ICharacterEntryPreparationRuleService rules,
-        DateTimeOffset preparedAt,
-        CancellationToken cancellationToken)
-    {
-        var containers = new List<InventoryContainerState>(inventory.Containers.Count);
-        foreach (var container in inventory.Containers)
-        {
-            if (container.ContainerType != InventoryContainerType.Equipment)
-            {
-                containers.Add(container);
-                continue;
-            }
-
-            var items = new List<InventoryItemState>(container.Items.Count);
-            foreach (var item in container.Items)
-            {
-                if (item.SlotIndex != 24 || item.Core.ItemKind != 5)
-                {
-                    items.Add(item);
-                    continue;
-                }
-
-                var lifetime = await rules.CreatureLifetimeAsync(
-                    item.Core.ItemId, preparedAt, cancellationToken).ConfigureAwait(false);
-                var marker = SupportCreatureMarkerProjection.Resolve(
-                    lifetime, item.Core.ExpireTime, item.Core.Marker16, preparedAt);
-                items.Add(item with { Noti2CreatureMarker = marker });
-            }
-            containers.Add(container with { Items = items });
-        }
-        return inventory with { Containers = containers };
     }
 
     private WorldContentSubject BuildContentSubject(

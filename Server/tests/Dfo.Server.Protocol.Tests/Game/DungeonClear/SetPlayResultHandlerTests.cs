@@ -524,6 +524,23 @@ public sealed class SetPlayResultHandlerTests
         Assert.Equal(RecordingCards.FreeFace.Slots, reward.FreeCards);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task After_payment_lost_claim_cancel_or_missing_progress_never_releases_for_repayment(int mode)
+    {
+        var run = new OneRun(default) { FailPublication = mode < 2, CancelPublication = mode == 1 };
+        var ledger = new SkillPointLedger();
+        var bus = new FixedAward(false, awarded: mode != 2) { AfterAward = mode == 2 ? () => ledger.Progress = null : null };
+        var failures = new List<Exception>();
+        await Settle(bus: bus, ledger: ledger, run: run, reports: 2, continueAfterFailure: true, failures: failures);
+        Assert.Equal(1, bus.TimesAsked);
+        Assert.Equal(0, run.ReleaseCount);
+        var failure = Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(Assert.Single(failures));
+        Assert.Equal(Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure, failure.Reason);
+    }
+
     /// <summary>What the character held before the run.</summary>
     private const uint StartingExperience = 1000;
 
@@ -541,7 +558,7 @@ public sealed class SetPlayResultHandlerTests
         PurposeSettlementRules? rules = null,
         DungeonRunParticipant? leader = null,
         bool includeOnlyLeader = false,
-        bool continueAfterFailure = false)
+        bool continueAfterFailure = false, OneRun? run = null, List<Exception>? failures = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -557,7 +574,7 @@ public sealed class SetPlayResultHandlerTests
             new OneSession(session),
             runtime,
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            new OneRun(purpose, leader, includeOnlyLeader),
+            run ?? new OneRun(purpose, leader, includeOnlyLeader),
             rules ?? new PurposeSettlementRules(canComplete),
             cards ?? new RecordingCards(),
             bus ?? new FixedAward(leveledUp, awarded),
@@ -577,9 +594,10 @@ public sealed class SetPlayResultHandlerTests
                     new SetPlayResultRequest(default!, ClientRankPoint: 80),
                     CancellationToken.None);
             }
-            catch (InvalidOperationException) when (continueAfterFailure && report + 1 < reports)
+            catch (Exception failure) when (continueAfterFailure && report + 1 < reports)
             {
-                // The next report is the retry this fixture is explicitly exercising.
+                failures?.Add(failure);
+                // The next report exercises whether the claim is still payable.
             }
         }
 
@@ -609,6 +627,7 @@ public sealed class SetPlayResultHandlerTests
         ExperienceBreakdown? bonusAward = null)
         : ICommandBus
     {
+        public Action? AfterAward { get; init; }
         private int remainingFailures = failuresBeforeSuccess;
         /// <summary>Whether the settlement got as far as pricing the run.</summary>
         public bool WasAsked => this.TimesAsked > 0;
@@ -620,7 +639,8 @@ public sealed class SetPlayResultHandlerTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            Assert.IsType<GrantClearExperienceCommand>(command);
+            var clear = Assert.IsType<GrantClearExperienceCommand>(command);
+            Assert.Equal(SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010), clear.Session);
             this.TimesAsked++;
             if (this.remainingFailures-- > 0)
                 throw new InvalidOperationException("injected durable clear failure");
@@ -641,6 +661,7 @@ public sealed class SetPlayResultHandlerTests
             // worth, and the handler is what has to decide they may not be reported.
             var result = new ClearExperienceResult(
                 awarded ? award : null, ClearBase, RankBonus);
+            AfterAward?.Invoke();
             return ValueTask.FromResult((TResult)(object)result);
         }
     }
@@ -739,6 +760,9 @@ public sealed class SetPlayResultHandlerTests
         DungeonRunParticipant? leader = null,
         bool includeOnlyLeader = false) : IDungeonRunDomainService
     {
+        public bool FailPublication { get; init; }
+        public bool CancelPublication { get; init; }
+        public int ReleaseCount { get; private set; }
         private bool _settled;
         private bool _settlementClaimed;
 
@@ -762,6 +786,8 @@ public sealed class SetPlayResultHandlerTests
 
         public DungeonRunState? CommitSettlement(DungeonSettlementClaim claim)
         {
+            if (CancelPublication) throw new OperationCanceledException("after durable award");
+            if (FailPublication) return null;
             if (!this._settlementClaimed || this._settled)
                 return null;
             this._settlementClaimed = false;
@@ -771,6 +797,7 @@ public sealed class SetPlayResultHandlerTests
 
         public bool ReleaseSettlement(DungeonSettlementClaim claim)
         {
+            ReleaseCount++;
             if (!this._settlementClaimed)
                 return false;
             this._settlementClaimed = false;

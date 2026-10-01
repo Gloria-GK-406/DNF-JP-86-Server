@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 
@@ -17,11 +18,11 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
     : IExperienceParameterSource
 {
     private const string ArchivePath = "Etc/ServerParameter.etc";
-    private const string DifficultySection = "[dungeon difficulty exp bonusrate]";
-    private const string PartySection = "[party user number exp bonusrate]";
-    private const string MonsterSection = "[monster exp bonusrate]";
-    private const string ClearSection = "[clear exp bonusrate]";
-    private const string ClearRankSection = "[clear rank exp bonusrate]";
+    private static readonly PvfField<IReadOnlyList<double>> DifficultySection = PvfField.Numbers("[dungeon difficulty exp bonusrate]", optional: true);
+    private static readonly PvfField<IReadOnlyList<double>> PartySection = PvfField.Numbers("[party user number exp bonusrate]", optional: true);
+    private static readonly PvfField<double> MonsterSection = PvfField.Number("[monster exp bonusrate]", optional: true);
+    private static readonly PvfField<double> ClearSection = PvfField.Number("[clear exp bonusrate]", optional: true);
+    private static readonly PvfField<IReadOnlyList<double>> ClearRankSection = PvfField.Numbers("[clear rank exp bonusrate]", optional: true);
 
     private readonly Lock _gate = new();
     private ExperienceParameters? _parameters;
@@ -41,41 +42,19 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
         var monster = new List<double>();
         var clear = new List<double>();
         var clearRank = new List<double>();
-        string? section = null;
-
-        var reader = provider.Archive.OpenScript(ArchivePath);
-        while (reader.Read(out var token))
+        var archive = provider.Archive;
+        foreach (var section in PvfDocument.Open(archive, ArchivePath).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                section = provider.Archive.ResolveString(token.Value);
-                continue;
-            }
-
-            // Both numeric forms are collected, because the sections disagree about which they
-            // use: the five difficulty rates are all singles -- 2, 3 and 4 included, stored as
-            // 2.0f and so on -- while the four party rates are all plain integers. A reader that
-            // took only one kind would come away with one of the two tables empty, and an empty
-            // table here is a parse failure wearing the costume of a rate of 1.
-            var value = token.Kind switch
-            {
-                PvfTokenKind.Int32 => token.Value,
-                PvfTokenKind.Single => (double)BitConverter.Int32BitsToSingle(token.Value),
-                _ => (double?)null,
-            };
-            if (value is not { } rate)
-                continue;
-
-            if (Is(section, DifficultySection))
-                difficulty.Add(rate);
-            else if (Is(section, PartySection))
-                party.Add(rate);
-            else if (Is(section, MonsterSection))
-                monster.Add(rate);
-            else if (Is(section, ClearSection))
-                clear.Add(rate);
-            else if (Is(section, ClearRankSection))
-                clearRank.Add(rate);
+            if (Is(section.Name, DifficultySection))
+                difficulty.AddRange(DifficultySection.Decode(archive, section.Values, ArchivePath));
+            else if (Is(section.Name, PartySection))
+                party.AddRange(PartySection.Decode(archive, section.Values, ArchivePath));
+            else if (Is(section.Name, MonsterSection))
+                monster.Add(MonsterSection.Decode(archive, section.Values, ArchivePath));
+            else if (Is(section.Name, ClearSection))
+                clear.Add(ClearSection.Decode(archive, section.Values, ArchivePath));
+            else if (Is(section.Name, ClearRankSection))
+                clearRank.AddRange(ClearRankSection.Decode(archive, section.Values, ArchivePath));
         }
 
         // A missing table is a broken archive, not a world where every kill is worth nothing.
@@ -98,6 +77,6 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
             clearRank);
     }
 
-    private static bool Is(string? section, string name) =>
-        section is not null && section.Equals(name, StringComparison.OrdinalIgnoreCase);
+    private static bool Is(string? section, PvfField name) =>
+        section is not null && section.Equals(name.Name, StringComparison.OrdinalIgnoreCase);
 }

@@ -1,0 +1,105 @@
+
+### VA 0111B420..0111B530
+0111B420 push     ebp
+0111B421 mov      ebp, esp
+0111B423 push     7
+0111B425 call     0x1648ac0
+0111B42A add      esp, 4
+0111B42D mov      ecx, eax
+0111B42F call     0x16f3360
+0111B434 cmp      byte ptr [ebp + 0xc], 0
+0111B438 push     1
+0111B43A push     1
+0111B43C je       0x111b45f
+0111B43E mov      ecx, dword ptr [0x3a5c9ec]
+0111B444 push     0
+0111B446 push     0
+0111B448 push     0
+0111B44A call     0xe75b80
+0111B44F push     4
+0111B451 call     0x11f3ff0
+0111B456 mov      ecx, eax
+0111B458 call     0x11f27d0
+0111B45D pop      ebp
+0111B45E ret
+0111B45F movzx    eax, byte ptr [ebp + 0x10]
+0111B463 push     1
+0111B465 push     1
+0111B467 push     0
+0111B469 push     eax
+0111B46A call     0x26181c0
+0111B46F add      esp, 0x18
+0111B472 pop      ebp
+0111B473 ret
+0111B474 int3
+0111B475 int3
+0111B476 int3
+0111B477 int3
+0111B478 int3
+0111B479 int3
+0111B47A int3
+0111B47B int3
+0111B47C int3
+0111B47D int3
+0111B47E int3
+0111B47F int3
+0111B480 push     ebp
+0111B481 mov      ebp, esp
+0111B483 cmp      byte ptr [ebp + 0xc], 0
+0111B487 jne      0x111b4cd
+0111B489 push     ebx
+0111B48A mov      bl, byte ptr [ebp + 0x10]
+0111B48D push     1
+0111B48F push     1
+0111B491 push     1
+0111B493 push     1
+0111B495 movzx    eax, bl
+0111B498 push     0
+0111B49A push     eax
+0111B49B call     0x26181c0
+0111B4A0 add      esp, 0x18
+0111B4A3 test     al, al
+0111B4A5 jne      0x111b4cc
+0111B4A7 cmp      bl, 0xe4
+0111B4AA jne      0x111b4cc
+0111B4AC push     0
+0111B4AE push     0x111f9
+0111B4B3 call     0x28c14c0
+0111B4B8 mov      ecx, dword ptr [0x3a5c9b8]
+0111B4BE add      esp, 4
+0111B4C1 push     eax
+0111B4C2 push     0x209
+0111B4C7 call     0x2304c70
+0111B4CC pop      ebx
+0111B4CD pop      ebp
+0111B4CE ret
+0111B4CF int3
+0111B4D0 push     ebp
+0111B4D1 mov      ebp, esp
+0111B4D3 cmp      byte ptr [ebp + 0xc], 0
+0111B4D7 je       0x111b4e9
+0111B4D9 push     -1
+0111B4DB call     0x1102c30
+0111B4E0 mov      ecx, eax
+0111B4E2 call     0x1102940
+0111B4E7 pop      ebp
+0111B4E8 ret
+0111B4E9 movzx    eax, byte ptr [ebp + 0x10]
+0111B4ED dec      eax
+0111B4EE cmp      eax, 0x18
+0111B4F1 ja       0x111b553
+0111B4F3 movzx    eax, byte ptr [eax + 0x111b56c]
+0111B4FA jmp      dword ptr [eax*4 + 0x111b558]
+0111B501 push     0
+0111B503 push     0x8993
+0111B508 jmp      0x111b53a
+0111B50A push     0
+0111B50C push     0x898d
+0111B511 jmp      0x111b53a
+0111B513 push     0
+0111B515 push     0x898e
+0111B51A call     0x28c14c0
+0111B51F mov      ecx, dword ptr [0x3a5c9b8]
+0111B525 add      esp, 4
+0111B528 push     eax
+0111B529 push     0x209

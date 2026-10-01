@@ -62,7 +62,7 @@ public interface ICharacterContainerDomainService
     void Clear(CharacterId characterId);
 }
 
-public sealed record ContainerItemAddition(ContainerId Container, InventoryContainerType Type, int SlotIndex, int Count);
+public sealed record ContainerItemAddition(BusinessContainerId Container, BusinessSlot Slot, int Count);
 public sealed record ContainerAddition(IReadOnlyList<ContainerItemAddition> Items, AccountMaterialChange? AccountMaterial = null);
 public enum ContainerAdditionFailure { UnknownItem, NoRoom, CharacterNotFound }
 public sealed class ContainerAdditionException(ContainerAdditionFailure reason)

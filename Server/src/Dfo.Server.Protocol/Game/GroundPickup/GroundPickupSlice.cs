@@ -369,20 +369,20 @@ public sealed class PickUpGroundDropCommandHandler(
         try
         {
             var granted = await itemGrants.GrantAsync(
-                    command.AccountId, container, piece.ItemId, piece.Count,
+                    command.AccountId, command.CharacterId, containers, piece.ItemId, piece.Count,
                     cancellationToken)
                 .ConfigureAwait(false);
             int slotIndex;
             AccountMaterialChange? accountMaterial = null;
             switch (granted)
             {
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
-                    slotIndex = topped.SlotIndex;
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
+                    slotIndex = ItemGrantWireProjection.Index(character, topped.SlotIndex);
                     break;
 
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
-                    slotIndex = opened.SlotIndex;
-                    await CarryOverAsync(container, piece, opened.SlotIndex, cancellationToken)
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
+                    slotIndex = ItemGrantWireProjection.Index(character, opened.SlotIndex);
+                    await CarryOverAsync(character.Container, piece, opened.SlotIndex, cancellationToken)
                         .ConfigureAwait(false);
                     break;
 
@@ -498,7 +498,7 @@ public sealed class PickUpGroundDropCommandHandler(
     /// </para>
     /// </remarks>
     private async ValueTask CarryOverAsync(
-        IItemContainer container,
+        IBusinessItemContainer container,
         FloorPickup found,
         int slotIndex,
         CancellationToken cancellationToken)

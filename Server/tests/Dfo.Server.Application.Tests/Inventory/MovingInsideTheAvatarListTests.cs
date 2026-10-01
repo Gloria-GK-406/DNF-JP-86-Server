@@ -50,7 +50,7 @@ public sealed class MovingInsideTheAvatarListTests
             var avatars = List(side);
             await side.InUseCaseAsync(token => avatars.PutAsync(0, Core(CostumeItemId), token));
 
-            var moved = await side.InUseCaseAsync(token => avatars.MoveToAsync(0, 7, 1, token));
+            var moved = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Avatar, 0), new(BusinessInventorySpace.Avatar, 7), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(1, CostumeItemId), moved);
             var (source, destination) = await side.InUseCaseAsync(async token => (
@@ -76,7 +76,7 @@ public sealed class MovingInsideTheAvatarListTests
                 await avatars.PutAsync(3, Core(OtherCostumeItemId), token).ConfigureAwait(false);
             });
 
-            var moved = await side.InUseCaseAsync(token => avatars.MoveToAsync(0, 3, 1, token));
+            var moved = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Avatar, 0), new(BusinessInventorySpace.Avatar, 3), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Moved(1, CostumeItemId), moved);
             var (first, second) = await side.InUseCaseAsync(async token => (
@@ -97,7 +97,7 @@ public sealed class MovingInsideTheAvatarListTests
         {
             var avatars = List(side);
 
-            var moved = await side.InUseCaseAsync(token => avatars.MoveToAsync(0, 7, 1, token));
+            var moved = await side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Avatar, 0), new(BusinessInventorySpace.Avatar, 7), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty), moved);
         });
@@ -127,7 +127,7 @@ public sealed class MovingInsideTheAvatarListTests
             await side.InUseCaseAsync(token => avatars.PutAsync(0, Core(PotionItemId), token));
 
             var moved = await side.InUseCaseAsync(
-                token => avatars.MoveToAsync(0, targetSlot, 1, token));
+                token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Avatar, 0), new(BusinessInventorySpace.Avatar, targetSlot), 1, token));
 
             Assert.Equal(new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot), moved);
             var stayed = await side.InUseCaseAsync(token => avatars.ReadSlotAsync(0, token));
@@ -148,7 +148,7 @@ public sealed class MovingInsideTheAvatarListTests
             await side.InUseCaseAsync(token => avatars.PutAsync(0, Core(CostumeItemId), token));
 
             await Assert.ThrowsAsync<InventorySlotMappingException>(() =>
-                side.InUseCaseAsync(token => avatars.MoveToAsync(0, 210, 1, token)));
+                side.InUseCaseAsync(token => side.MoveAsync(new CharacterId(Character), new(BusinessInventorySpace.Avatar, 0), new(BusinessInventorySpace.Avatar, 210), 1, token)));
 
             var stayed = await side.InUseCaseAsync(token => avatars.ReadSlotAsync(0, token));
             Assert.Equal(CostumeItemId, stayed!.ItemId);

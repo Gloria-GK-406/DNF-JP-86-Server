@@ -102,7 +102,7 @@ internal sealed class SqliteEquipmentTransferDomainStoreSession(SqliteDatabasePa
     }
 
     public async ValueTask<bool> GrantAsync(
-        CharacterId characterId, ItemIdentity identity, GameSlot slot, CancellationToken cancellationToken)
+        CharacterId characterId, ItemIdentity identity, LegacyInventoryStorageCoordinate slot, CancellationToken cancellationToken)
     {
         await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
@@ -117,7 +117,7 @@ internal sealed class SqliteEquipmentTransferDomainStoreSession(SqliteDatabasePa
                     AND owner_id = @owner AND list_type = @list AND slot_index = @slot);
             """;
         command.Parameters.AddWithValue("@owner", characterId.Value);
-        command.Parameters.AddWithValue("@list", (int)slot.Space);
+        command.Parameters.AddWithValue("@list", (int)slot.List);
         command.Parameters.AddWithValue("@slot", slot.Index);
         command.Parameters.AddWithValue("@uid", identity.Value);
         return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1;

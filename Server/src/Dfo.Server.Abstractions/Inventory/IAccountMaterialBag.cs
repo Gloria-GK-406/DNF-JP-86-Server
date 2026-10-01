@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
@@ -48,7 +49,8 @@ public abstract record ItemGrantOutcome
     {
     }
 
-    public sealed record CharacterItem(ItemPlacementOutcome Placement) : ItemGrantOutcome;
+    public sealed record CharacterItem(IBusinessItemContainer Container, ItemPlacementOutcome Placement)
+        : ItemGrantOutcome;
 
     public sealed record AccountMaterial(AccountMaterialChange Change) : ItemGrantOutcome;
 }
@@ -57,7 +59,8 @@ public interface IItemGrantDomainService
 {
     ValueTask<ItemGrantOutcome> GrantAsync(
         AccountId accountId,
-        IItemContainer characterContainer,
+        CharacterId characterId,
+        ICharacterContainerDomainService containers,
         int itemId,
         int count,
         CancellationToken cancellationToken);

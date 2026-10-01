@@ -1,0 +1,7 @@
+085aa4a2: mov eax, dword ptr [eax + 0x8e08c] ; _ZN6CParty21prepare_dungeon_clearEv
+085aa4fd: mov ebx, dword ptr [eax + 0x8e08c] ; _ZN6CParty21prepare_dungeon_clearEv
+085aa54d: mov dword ptr [eax + 0x8e08c], 0 ; _ZN6CParty21prepare_dungeon_clearEv
+08655d94: mov dword ptr [eax + 0x8e08c], edx ; _ZN5CUser9FatigueUpEi
+086be755: mov eax, dword ptr [eax + 0x8e08c] ; _ZN7WarRoom17HandleMonsterKillEP5CUseriS1_
+086be798: mov ebx, dword ptr [eax + 0x8e08c] ; _ZN7WarRoom17HandleMonsterKillEP5CUseriS1_
+086be7d4: mov dword ptr [eax + 0x8e08c], 0 ; _ZN7WarRoom17HandleMonsterKillEP5CUseriS1_

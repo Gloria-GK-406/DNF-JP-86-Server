@@ -77,8 +77,8 @@ internal sealed class CharacterSide
     /// <summary>Nothing here resolves a worn slot; no test through this side puts a piece on.</summary>
     private sealed class NoWornSlots : IEquipmentSlotDefinitionSource
     {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>

@@ -301,6 +301,7 @@ public sealed class MonsterDeathHandlerTests
 
         Assert.Equal([leader.CharacterId, member.CharacterId],
             bus.Commands.Select(command => command.CharacterId));
+        Assert.Equal(new[] { leader, member }, bus.Commands.Select(command => command.Session));
         Assert.All(bus.Commands, command => Assert.Equal(2, command.PartyMemberCount));
         Assert.All(bus.Commands, command => Assert.True(command.IsFinalBossDeath));
 
@@ -782,6 +783,66 @@ public sealed class MonsterDeathHandlerTests
         Assert.Null(runs.TryOpenClear(session.CharacterId, run.RunId, run.RoomVersion));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Solo_payment_lost_participant_or_actor_publication_never_becomes_payable_again(int mode)
+    {
+        var run = new PartyRun([new(new(1),new(60),0,true)]) { RejectParticipantPublication = mode == 0, RejectActorPublication = mode == 1, ThrowActorPublication = mode == 2 };
+        var bus = new FixedKillAward(false);
+        var failures = new List<Exception>();
+        await Kill(run: run, bus: bus, reports: 2, failures: failures);
+        Assert.Equal(1, bus.TimesAsked);
+        Assert.Equal(0, run.ReleaseCount);
+        Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(Assert.Single(failures));
+    }
+
+    [Fact]
+    public async Task Party_publication_failure_fences_paid_recipient_context_and_preserves_previous_member()
+    {
+        var leader = SelectedSessionIdentity.Create(new(1),new(60),new("leader"),1,10010);
+        var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
+        var run = new PartyRun([new(leader.AccountId,leader.CharacterId,0,true),new(member.AccountId,member.CharacterId,1,false)])
+            { RejectParticipantCharacter = member.CharacterId };
+        var registry = new DungeonRunDeliveryRegistry(); registry.Register(run.RunId,[leader,member]);
+        var sessions = new PartySessions([leader,member]); var sender = new PartyRecordingSender();
+        var bus = new PartyKillBus(); var killRules = new OneClearedBossMonster();
+        var users = new RecipientConnections([leader,member]);
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        Microsoft.Extensions.DependencyInjection.LoggingServiceCollectionExtensions.AddLogging(services);
+        services.AddCommandDispatching();
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services,sessions);
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services,users);
+        using var provider = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services);
+        var safety = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<SelectedSessionSafety>(provider);
+        var handler = new MonsterDeathHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
+            run,killRules,new DungeonClearDomainService(run,killRules),new DungeonClearProjectionDelivery(sessions,run,registry,sender),bus,
+            new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
+            registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
+        await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
+            await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
+        Assert.True(safety.IsBlocked(users.Connections[member.ConnectionId]));
+        Assert.False(safety.IsBlocked(users.Connections[leader.ConnectionId]));
+        Assert.True(safety.IsBlocked(member)); Assert.False(safety.IsBlocked(leader));
+        Assert.Equal(0,run.ReleaseCount);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
+        Assert.Equal(2,bus.Commands.Count);
+    }
+    private sealed class RecipientConnections : Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService
+    {
+        private readonly Dictionary<NetworkConnectionId,OnlineUserSnapshot> users;
+        public Dictionary<NetworkConnectionId,NetworkConnectionContext> Connections { get; }
+        public RecipientConnections(IReadOnlyList<SelectedSessionIdentity> sessions)
+        {
+            Connections = sessions.ToDictionary(x => x.ConnectionId,x => new NetworkConnectionContext(x.ConnectionId,NetworkEndpointKind.Game,x.ListenerPort));
+            users = sessions.ToDictionary(x => x.ConnectionId,x => new OnlineUserSnapshot(OnlineUserId.New(),Connections[x.ConnectionId],x.AccountId,x.CharacterId,OnlineUserState.CharacterActive,99));
+        }
+        public OnlineUserSnapshot GetRequired(OnlineUserId id) => users.Values.Single(x => x.OnlineUserId == id);
+        public bool TryGetByConnection(NetworkConnectionId id,out OnlineUserSnapshot? user) => users.TryGetValue(id,out user);
+    }
+
     private static DungeonLayout BossLayout() => new(
         144,
         0,
@@ -805,7 +866,7 @@ public sealed class MonsterDeathHandlerTests
         StubWorldContentEntryRuleService? content = null,
         IDungeonRunDomainService? run = null,
         IMonsterKillDomainService? killRules = null,
-        IDungeonSettlementRuleService? settlementRules = null)
+        IDungeonSettlementRuleService? settlementRules = null, int reports = 1, List<Exception>? failures = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -838,12 +899,14 @@ public sealed class MonsterDeathHandlerTests
             ExperienceDiagnostics.None,
             NullLogger<MonsterDeathHandler>.Instance);
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(
-                new NetworkConnectionContext(
+        for (var report = 0; report < reports; report++)
+            try
+            {
+                await handler.HandleAsync(new NetworkDispatchContext(new NetworkConnectionContext(
                     new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, WireUserId: 1),
-            CancellationToken.None);
+                    new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, WireUserId: 1), CancellationToken.None);
+            }
+            catch (Exception failure) when (failures is not null && report + 1 < reports) { failures.Add(failure); }
 
         return sender.Sent;
     }
@@ -875,6 +938,7 @@ public sealed class MonsterDeathHandlerTests
             where TResult : notnull
         {
             var kill = Assert.IsType<ApplyMonsterKillCommand>(command);
+            Assert.Equal(SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010), kill.Session);
             this.QuestCommands++;
             this.LastKillCommand = kill;
             this.TimesAsked++;
@@ -1088,6 +1152,10 @@ public sealed class MonsterDeathHandlerTests
         CharacterId? dropOwner = null)
         : IDungeonRunDomainService
     {
+        public bool RejectParticipantPublication { get; init; }
+        public CharacterId? RejectParticipantCharacter { get; init; }
+        public bool RejectActorPublication { get; init; }
+        public bool ThrowActorPublication { get; init; }
         private bool claimActive;
         private bool committed;
         private CharacterId? pendingEffect;
@@ -1171,6 +1239,8 @@ public sealed class MonsterDeathHandlerTests
 
         public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
         {
+            if (ThrowActorPublication) throw new OperationCanceledException("actor publication");
+            if (RejectActorPublication) return null;
             this.claimActive = false;
             this.committed = true;
             this.CommitCount++;
@@ -1204,6 +1274,7 @@ public sealed class MonsterDeathHandlerTests
             if (this.pendingEffect != claim.CharacterId)
                 return false;
             this.pendingEffect = null;
+            if (RejectParticipantPublication || RejectParticipantCharacter == claim.CharacterId) return false; // Production may remove the claim before refusing publication.
             return this.completedEffects.Add(claim.CharacterId);
         }
 

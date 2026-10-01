@@ -9,6 +9,8 @@ public sealed record EquipmentTransferItem(
     InventoryContainerType ContainerType,
     int SlotIndex,
     InventoryItemCoreState Core);
+public sealed record EquipmentTransferOwnedItem(ItemIdentity Identity, BusinessSlot Slot,
+    InventoryItemCoreState Core);
 
 public enum EquipmentTransferFailure
 {
@@ -28,16 +30,16 @@ public sealed class EquipmentTransferException(EquipmentTransferFailure reason)
 /// <summary>Moves an existing ordinary equipment instance between a character slot and detached custody.</summary>
 public interface IEquipmentTransferDomainService
 {
-    ValueTask<EquipmentTransferItem?> ReadOwnedAsync(
+    ValueTask<EquipmentTransferOwnedItem?> ReadOwnedAsync(
         CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken);
 
-    ValueTask<EquipmentTransferItem> TakeAsync(
+    ValueTask<EquipmentTransferOwnedItem> TakeAsync(
         CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken);
 
     ValueTask<InventoryItemCoreState?> ReadDetachedAsync(
         ItemIdentity identity, CancellationToken cancellationToken);
 
-    ValueTask<GameSlot> GrantAsync(
+    ValueTask<BusinessSlot> GrantAsync(
         CharacterId characterId, ItemIdentity identity, CancellationToken cancellationToken);
 }
 
@@ -56,5 +58,5 @@ public interface IEquipmentTransferDomainStoreSession
         CharacterId characterId, EquipmentTransferItem item, CancellationToken cancellationToken);
 
     ValueTask<bool> GrantAsync(
-        CharacterId characterId, ItemIdentity identity, GameSlot slot, CancellationToken cancellationToken);
+        CharacterId characterId, ItemIdentity identity, LegacyInventoryStorageCoordinate slot, CancellationToken cancellationToken);
 }

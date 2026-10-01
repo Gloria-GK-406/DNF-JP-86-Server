@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Protocol.Game.QuestCompletion;
 using Dfo.Server.Infrastructure.Content;
@@ -5,6 +6,12 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Tests.Quests;
+using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Tests.Characters;
 
 public sealed class CareerReconciliationTests
@@ -17,8 +24,7 @@ public sealed class CareerReconciliationTests
         f.Sql("UPDATE characters SET level=20 WHERE character_id=71; INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level) VALUES(71,'pve',0,8,8,1),(71,'pve',1,8,8,1),(71,'pve',0,9,5,1)");
         await using (var tx = f.Scope.Begin())
         {
-            await f.Services.GetRequiredService<ICharacterCareerDomainService>().AdvanceAsync(new(1), new(71), 1, default);
-            await f.State.ReconcileAsync(new(71), default);
+            Assert.True((await Complete(f)).Finished);
             await tx.CommitAsync(default);
         }
         Assert.Equal(1, f.Scalar("SELECT grow_type FROM characters WHERE character_id=71"));
@@ -47,8 +53,7 @@ public sealed class CareerReconciliationTests
         f.Sql("INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(71,'pve',0,0,999,3,X'0102')");
         await using (var tx = f.Scope.Begin())
         {
-            await f.Services.GetRequiredService<ICharacterCareerDomainService>().AdvanceAsync(new(1), new(71), 1, default);
-            await f.State.ReconcileAsync(new(71), default);
+            Assert.True((await Complete(f)).Finished);
             await tx.CommitAsync(default);
         }
         var facts = (await f.State.ReadAsync(new(71), default))!;
@@ -64,7 +69,7 @@ public sealed class CareerReconciliationTests
         await Assert.ThrowsAnyAsync<Exception>(async () =>
         {
             await using var tx = f.Scope.Begin();
-            await f.Services.GetRequiredService<ICharacterCareerDomainService>().AdvanceAsync(new(1), new(71), 1, default);
+            await Complete(f);
             await tx.CommitAsync(default);
         });
         Assert.Equal(0, f.Scalar("SELECT grow_type FROM characters WHERE character_id=71"));
@@ -78,10 +83,16 @@ public sealed class CareerReconciliationTests
     public async Task Invalid_owner_or_career_leaves_character_unchanged(int account, byte grow)
     {
         await using var f = Fixture(); await f.SeedAsync();
-        await Assert.ThrowsAnyAsync<Exception>(async () =>
+        if (account == 2 || grow == 0)
         {
             await using var tx = f.Scope.Begin();
-            await f.Services.GetRequiredService<ICharacterCareerDomainService>().AdvanceAsync(new(account), new(71), grow, default);
+            Assert.False((await Complete(f, account, grow)).Finished);
+            await tx.CommitAsync(default);
+        }
+        else await Assert.ThrowsAnyAsync<Exception>(async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            await Complete(f, account, grow);
             await tx.CommitAsync(default);
         });
         Assert.Equal(0, f.Scalar("SELECT grow_type FROM characters WHERE character_id=71"));
@@ -96,6 +107,7 @@ public sealed class CareerReconciliationTests
         await using var f = new LearningFixture(useArchive: true, configure: services =>
             services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(CommandExecutionKind.Transactional));
         await f.SeedAsync();
+        Prepare(f);
         f.Sql("UPDATE characters SET job=2,level=20 WHERE character_id=71; DELETE FROM character_skills WHERE character_id=71; INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(71,0,7840,0)");
         if (failGrant)
             f.Sql("CREATE TRIGGER fail_grant BEFORE INSERT ON character_skills WHEN NEW.character_id=71 BEGIN SELECT RAISE(ABORT,'injected grant failure'); END;");
@@ -129,7 +141,33 @@ public sealed class CareerReconciliationTests
         content.Definitions.Add(LearningContent.Definition(8) with { MaximumLevels = [10, 0] });
         content.Definitions[4] = content.Definitions[4] with { RequiredLevel = 25 };
         content.Grants.Add(new(7, 3, 1, 0));
-        return new(content: content, configure: services => services.AddSingleton<ICharacterStatDefinitionSource>(new Stats()));
+        var rules = new OrdinaryQuestEffectTests.Rules();
+        rules.Quest = rules.Quest with { ItemRewards = QuestItemRewardDefinition.Empty,
+            Rewards = [new(QuestRewardKind.GrowType,[1])] };
+        return new(content: content, configure: services =>
+        {
+            services.AddSingleton<Dfo.Server.Abstractions.World.IExperienceRuleService>(new OrdinaryQuestEffectTests.FixedProgression());
+            services.AddSingleton<ICharacterStatDefinitionSource>(new Stats());
+            services.AddSingleton<IQuestContentRuleService>(rules);
+        });
+    }
+    internal static void Prepare(LearningFixture f)
+    {
+        f.Sql("INSERT OR IGNORE INTO character_stats(character_id,carried_gold) VALUES(71,0)");
+        var bag = new PersistentItemContainer(ContainerId.ForCharacter(new(71),InventoryContainerType.Main),
+            new(71),new(InventoryContainerType.Main,0),f.Services.GetRequiredService<IItemDomainStore>(),
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(),null!,f.Services.GetRequiredService<IItemPlacementRuleService>(),
+            f.Services.GetRequiredService<IItemArrivalRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>());
+        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),bag);
+    }
+    private static async ValueTask<Dfo.Server.Abstractions.Effects.QuestCompletionReceipt> Complete(LearningFixture f,int account=1,byte grow=1)
+    {
+        Prepare(f);
+        var rules=(OrdinaryQuestEffectTests.Rules)f.Services.GetRequiredService<IQuestContentRuleService>();
+        rules.Quest=rules.Quest with {Rewards=[new(QuestRewardKind.GrowType,[grow])]};
+        f.Sql("INSERT OR IGNORE INTO character_active_quests VALUES(71,0,2001,0)");
+        return await f.Services.GetRequiredService<Dfo.Server.Abstractions.Effects.IQuestCompletionDomainService>()
+            .FinishAsync(new(account),new(71),2001,ushort.MaxValue,1,DateTimeOffset.UnixEpoch,default);
     }
     private sealed class Stats : ICharacterStatDefinitionSource
     {

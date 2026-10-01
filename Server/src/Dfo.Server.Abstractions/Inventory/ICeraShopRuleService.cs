@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Content;
 using Dfo.Server.Data.Inventory;
@@ -15,10 +16,12 @@ public sealed record CeraShopQuote(ImmutableArray<int> ProductIds, ImmutableArra
     ImmutableArray<CeraShopGrant> Grants)
 {
     public ImmutableArray<CeraShopSubscriptionGrant> Subscriptions { get; init; } = [];
+    public ImmutableArray<CeraShopPurchaseRestrictionDeclaration> Restrictions { get; init; } = [];
 }
+public sealed record CeraShopRestrictionPlanningResult(CeraShopRejection Rejection, IReadOnlyList<DomainEffect>? Effects, string? Detail);
 public sealed record CeraShopSubscriptionGrant(PremiumServiceType Service, TimeSpan Duration);
 public sealed record CeraShopQuoteResult(CeraShopRejection Rejection, CeraShopQuote? Quote, string? Detail);
-public sealed record CeraShopSlotWrite(InventoryContainerType Container, int SlotIndex,
+public sealed record CeraShopSlotWrite(BusinessSlot Slot,
     InventoryItemCoreState Core, InventoryItemCreationFacts? CreationFacts);
 public sealed record CeraShopPurchasePlan(AccountCeraBalances Balances, int GoldCost,
     ImmutableArray<CeraShopSlotWrite> Writes);
@@ -26,9 +29,10 @@ public sealed record CeraShopPlanningResult(CeraShopRejection Rejection, CeraSho
 
 public interface ICeraShopRuleService
 {
+    CeraShopRestrictionPlanningResult PlanRestrictions(CeraShopQuote quote, CeraShopRestrictionSnapshot state, DateTimeOffset now);
     ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken);
     CeraShopPlanningResult Plan(CeraShopQuote quote,
-        IReadOnlyDictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>> held,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
         int gold, AccountCeraBalances balances, int identitySeed);
 }

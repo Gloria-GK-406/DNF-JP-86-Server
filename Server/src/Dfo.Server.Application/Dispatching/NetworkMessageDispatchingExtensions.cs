@@ -11,6 +11,8 @@ public static class NetworkMessageDispatchingExtensions
     public static IServiceCollection AddNetworkMessageDispatching(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.AddLogging();
+        Commands.CommandDispatchingExtensions.AddCommandDispatching(services);
         services.TryAddSingleton<MessageHandlerRegistry>();
         services.TryAddSingleton<INetworkMessageDispatcher, NetworkMessageDispatcher>();
         services.TryAddEnumerable(

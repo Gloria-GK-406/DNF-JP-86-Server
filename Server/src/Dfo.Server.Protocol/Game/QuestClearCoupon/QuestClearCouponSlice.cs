@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
@@ -20,8 +21,9 @@ namespace Dfo.Server.Protocol.Game.QuestClearCoupon;
 
 /// <summary>The observed 19-byte quest-clear coupon variant of CMD 0x0204.</summary>
 public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short SourceSlot, byte Container,
-    uint Reserved1, uint Action, uint Reserved2, uint Reserved3, bool Complete) : IClientNetworkMessage
+    uint Reserved1, uint Action, uint Reserved2, uint Reserved3, bool Complete) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | (Action == 58 ? ReplayProjectionNeeds.Fatigue | ReplayProjectionNeeds.ItemUsage : ReplayProjectionNeeds.Quests);
     public ClientMessageType MessageType => ClientMessageType.GameQuestClearCoupon;
     public bool IsSupported => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
         && Action == 77 && Reserved2 == 0 && Reserved3 == 0;
@@ -90,7 +92,7 @@ internal sealed class QuestClearCouponEncoder : GameCmdMessageEncoder<QuestClear
 }
 
 public sealed record QuestClearCouponCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int SourceSlot)
-    : ICommand<QuestClearCouponResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<QuestClearCouponResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -100,7 +102,7 @@ public sealed class QuestClearCouponCommandHandler(IQuestClearCouponDomainServic
 {
     public ValueTask<QuestClearCouponResult> HandleAsync(CommandExecutionContext context,
         QuestClearCouponCommand command, CancellationToken ct) =>
-        coupons.UseAsync(command.Session, command.SourceSlot, clock.GetUtcNow(), ct);
+        coupons.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), ct);
 }
 
 internal static class QuestClearCouponProjection
@@ -161,14 +163,14 @@ public sealed class QuestClearCouponHandler(
             result = await commands.SendAsync(new QuestClearCouponCommand(
                 online.OnlineUserId, session, message.SourceSlot), ct).ConfigureAwait(false);
         }
-        catch (OpeningRejectedException failure)
+        catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
             logger.LogInformation("Quest clear coupon rejected character={CharacterId} slot={Slot}: {Reason}",
                 session.CharacterId, message.SourceSlot, failure.Reason);
             await RefuseAsync(context, message, ct).ConfigureAwait(false);
             return;
         }
-        catch (Exception failure) when (failure is not OperationCanceledException)
+        catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
             logger.LogError(failure, "Quest clear coupon failed character={CharacterId} slot={Slot}",
                 session.CharacterId, message.SourceSlot);
@@ -191,7 +193,7 @@ public sealed class QuestClearCouponHandler(
             var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
             following.AddRange(QuestClearCouponProjection.FromLog(cleared, carried));
         }
-        catch (Exception failure) when (failure is not OperationCanceledException)
+        catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
             logger.LogError(failure, "Quest clear coupon committed but quest log refresh failed character={CharacterId}",
                 session.CharacterId);
@@ -209,7 +211,7 @@ public sealed class QuestClearCouponHandler(
             else logger.LogWarning("Quest clear coupon committed but offer projection unavailable character={CharacterId}",
                 session.CharacterId);
         }
-        catch (Exception failure) when (failure is not OperationCanceledException)
+        catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
             logger.LogError(failure, "Quest clear coupon committed but offer refresh failed character={CharacterId}",
                 session.CharacterId);

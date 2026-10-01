@@ -1,0 +1,16 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+  失败 Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Same_ID_new_physical_context_has_an_independent_ledger_and_does_not_clear_the_old_fence [43 ms]
+  错误消息:
+   System.InvalidOperationException : The selected session is stale or has an unknown settlement outcome.
+  堆栈跟踪:
+     at Dfo.Server.Application.Commands.SelectedSessionSafety.DemandCurrent(SelectedSessionIdentity session) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\SelectedSessionSafety.cs:line 47
+   at Dfo.Server.Application.Commands.SelectedSessionSafety.Capture(SelectedSessionIdentity session) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\SelectedSessionSafety.cs:line 32
+   at Dfo.Server.Application.Effects.EffectOperationLedger.DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request, Func`1 handler, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Effects\EffectOperationLedger.cs:line 26
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 42
+   at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+   at Dfo.Server.Application.Tests.Sessions.EffectOperationReplayTests.Same_ID_new_physical_context_has_an_independent_ledger_and_does_not_clear_the_old_fence() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\EffectOperationReplayTests.cs:line 270
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-010-core-final.trx
+
+失败!  - 失败:     1，通过:    20，已跳过:     0，总计:    21，持续时间: 1 s - Dfo.Server.Application.Tests.dll (net10.0)

@@ -20,6 +20,7 @@ internal sealed class CurrentCharacterStub : ICharacter
     public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken token) => throw new NotSupportedException();
     public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken token) => throw new NotSupportedException();
     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(CancellationToken token) => throw new NotSupportedException();
+    public ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey key, CancellationToken token) => throw new NotSupportedException();
     public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken token) => throw new NotSupportedException();
     public ValueTask<int> GoldAsync(CancellationToken token) => ValueTask.FromResult(this.Gold);
     public ValueTask<int> AddGoldAsync(int amount, CancellationToken token)

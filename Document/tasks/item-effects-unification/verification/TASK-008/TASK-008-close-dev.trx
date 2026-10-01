@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="453f9256-08d7-40e5-ad1f-bff3102868b5" name="Gloria@家庭台式机 2026-10-01 14:28:40" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:28:40.6600864+08:00" queuing="2026-10-01T14:28:40.6600867+08:00" start="2026-10-01T14:28:39.9470379+08:00" finish="2026-10-01T14:28:40.6638840+08:00" />
+  <TestSettings name="default" id="ff6f1dc1-e52e-49d2-b910-32aa7a67d454">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_28_40" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="c5fc624d-4923-4a78-a403-9e9b823f207f" testId="8414b66d-c81e-0cd6-2ded-c85069487036" testName="Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests.Same_id_replacement_is_not_closed_by_old_context_but_exact_current_context_is" computerName="家庭台式机" duration="00:00:00.0028214" startTime="2026-10-01T14:28:40.5877172+08:00" endTime="2026-10-01T14:28:40.5877659+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c5fc624d-4923-4a78-a403-9e9b823f207f" />
+    <UnitTestResult executionId="f6dec437-a873-4488-8880-c1f69658c376" testId="46bd2143-baf4-fc72-ea7a-7914c46b4b79" testName="Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests.Scheduled_close_captures_session_once_and_never_relooks_up_its_id" computerName="家庭台式机" duration="00:00:00.0657227" startTime="2026-10-01T14:28:40.5105978+08:00" endTime="2026-10-01T14:28:40.5805866+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6dec437-a873-4488-8880-c1f69658c376" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests.Scheduled_close_captures_session_once_and_never_relooks_up_its_id" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.networking.tests\bin\debug\net10.0\dfo.server.networking.tests.dll" id="46bd2143-baf4-fc72-ea7a-7914c46b4b79">
+      <Execution id="f6dec437-a873-4488-8880-c1f69658c376" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests" name="Scheduled_close_captures_session_once_and_never_relooks_up_its_id" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests.Same_id_replacement_is_not_closed_by_old_context_but_exact_current_context_is" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.networking.tests\bin\debug\net10.0\dfo.server.networking.tests.dll" id="8414b66d-c81e-0cd6-2ded-c85069487036">
+      <Execution id="c5fc624d-4923-4a78-a403-9e9b823f207f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests" name="Same_id_replacement_is_not_closed_by_old_context_but_exact_current_context_is" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="8414b66d-c81e-0cd6-2ded-c85069487036" executionId="c5fc624d-4923-4a78-a403-9e9b823f207f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="46bd2143-baf4-fc72-ea7a-7914c46b4b79" executionId="f6dec437-a873-4488-8880-c1f69658c376" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.17]   Discovering: Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.21]   Discovered:  Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.22]   Starting:    Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.32]   Finished:    Dfo.Server.Networking.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

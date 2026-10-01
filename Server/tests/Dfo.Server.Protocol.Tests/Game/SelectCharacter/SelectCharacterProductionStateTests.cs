@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -7,6 +8,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -54,6 +56,62 @@ public sealed class SelectCharacterProductionStateTests
             container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
         Assert.Equal(0, sources.RecoveryCalls);
         Assert.Equal(0, sources.ReconciliationCalls);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 900)]
+    [InlineData(true, 900)]
+    public async Task Equipped_creature_can_reenter_and_encode_the_complete_login_stream(
+        bool refill, int remainingSeconds)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var pet = new InventoryItemState(new ItemIdentity(948), 25,
+            StackableItemCore.Create(5, 63000, 948) with
+            {
+                ExpireTime = remainingSeconds == 0 ? 0
+                    : checked((int)seed.World.PreparedAt.ToUnixTimeSeconds() + remainingSeconds),
+            });
+        seed = seed with
+        {
+            CharacterInventory = seed.CharacterInventory with
+            {
+                Containers = seed.CharacterInventory.Containers.Select(container =>
+                    container.ContainerType == InventoryContainerType.Equipment
+                        ? container with { Items = [.. container.Items, pet] } : container).ToArray(),
+            },
+            CharacterEntry = seed.CharacterEntry with
+            {
+                Features = seed.CharacterEntry.Features with
+                {
+                    Pets = [new CharacterPetRuntimeState(948, 100, 0, 0, 0, 0, 1, [], 0)],
+                },
+            },
+        };
+        var sources = new Sources(seed, []);
+        var result = await PrepareAsync(sources, seed);
+        var refills = new EntryRefill(sources, refill);
+        var inventoryEntry = new SelectCharacterEntryInventoryDomainService(
+            new InventoryLifecycleRuleService(refills), refills, sources,
+            new CharacterContainerDomainService(), null!,
+            new DomainTransactionScope(), null!, null!, null!,
+            new CharacterEntryPreparationRuleService(sources, sources, sources));
+        var session = SelectedSessionIdentity.Create(
+            seed.Account.AccountId, seed.Character.Identity.CharacterId,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("creature-entry"), 1, 10011);
+        result = await inventoryEntry.PrepareLeaseAsync(session, result, CancellationToken.None);
+        result = (await inventoryEntry.ApplyDailyRefillAsync(
+            session, result, CancellationToken.None)).Result;
+
+        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result);
+
+        Assert.NotEmpty(messages);
+        var worn = result.CharacterInventory.Containers.Single(container =>
+            container.ContainerType == InventoryContainerType.Equipment).Items.Single(item => item.SlotIndex == 25);
+        Assert.Equal((uint)remainingSeconds, worn.Noti2CreatureMarker);
+        Assert.Equal(948, worn.Core.Value);
+        Assert.Equal(100, Assert.Single(result.CharacterEntry.Features.Pets).Field04);
     }
 
     [Fact]
@@ -270,6 +328,8 @@ public sealed class SelectCharacterProductionStateTests
             AccountId id, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
             AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
+            AccountId id, CharacterId cid, CancellationToken ct) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(id, cid, ct);
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(CharacterInventory);
         ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
@@ -349,5 +409,37 @@ public sealed class SelectCharacterProductionStateTests
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class EntryRefill(Sources sources, bool refill)
+        : IEntryLifecycleContentSource, IEntryInventoryMutationRepository
+    {
+        public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
+            DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>([]);
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+            AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
+            DateTimeOffset preparedAt, CancellationToken cancellationToken)
+        {
+            if (!refill) return ValueTask.FromResult(new DailyRefillMutationResult([]));
+            sources.CharacterInventory = sources.CharacterInventory with
+            {
+                Containers = sources.CharacterInventory.Containers.Select(container =>
+                    container.ContainerType == InventoryContainerType.Main
+                        ? container with
+                        {
+                            Items = [.. container.Items.Where(item => item.SlotIndex != 65),
+                                new InventoryItemState(new ItemIdentity(949), 65,
+                                    StackableItemCore.Create(4, 9001, 2))],
+                        } : container).ToArray(),
+            };
+            return ValueTask.FromResult(new DailyRefillMutationResult(
+                [new DailyRefillCommittedGrant(new(BusinessInventorySpace.Consumable, 0), 9001, 2, 2)]));
+        }
     }
 }

@@ -1,0 +1,25 @@
+# 最终整合的只读准备
+
+2026-10-01，effects_dispatcher_fixture_scope只读当前迁移产物；010仍施工中，本文件不是最终审查或通过声明。Root核对Task004的普通no-refund学习豁免、真实60冻结位置及009接受结果。
+
+## 仍需补的同库组合
+
+- Feed：CreatureRuntimeDomainServiceTests的FoodInventory仍FakeMain，pet/character已SQLite。改为同一临时绝对库、同一scope的SqliteItemDomainStore/PersistentItemContainer，源24在CreatureConsumable local0、wire189，实际宠物UID101 stomach50。验证源2→1／stomach80；晚Prepare（实际facet flush之后）失败二者保持2／50、无运行投影，再正常重试1／80。不能把fake food数目当同库证据。
+- Coupon：QuestClearCouponDomainServiceTests的PaymentInventory目前扣bonus_sp且剔除Consume。复用真实LearningFixture/quest+Main consumable local4/wire69 production source，验证实物和quest rows一致提交／latefailure回滚／retry。
+- Water：SkillBuildResetTests目前扣bonus_tp且剔除Consume。实际物品3＋Main wire69／mixed skills，同库lateINSERT触发器失败后水与所有技能保持，retry一致完成。
+- Rename：CreatureNamingDomainServiceTests当前FakeCreatureStore/FakeCreatureDomain。实际SqliteCreatureDomainStore+PetInstance+CreatureConsumable物品25 local0/wire189，同库source/name成功、latefailure/retry及UID/template/growth保留。
+
+已有真实fatigue inventory/fatigue/usage/cooldown联合回滚（SpecialConsumableEffectTests）；普通quest复合奖励（OrdinaryQuestEffectTests）及XP+quest（CommonExperienceEffectTests）不重复造镜像测试。
+
+## 注册与路径
+
+- 当前ApplicationModule注册31类型只是snapshot。最终枚举整个Abstractions assembly非abstract DomainEffect，对真实DI IEffectHandler.EffectType做集合相等、重复/resolve检查；仅扫Effects目录会漏Inventory/IItemUseEffects普通4类型。
+- 18Request、20wire、20main与3XP分别断言精确集合；009新增ReadReplay为只读marker，不能把整个selected assembly硬断言23。
+- 六装备、recipe、package、ordinary/special、quest、XP迁移产物未发现新增范围内directwrite。no-refund普通Learn（CharacterSkillLearningDomainService）明确范围外，mixed refund在早期整批分流至effects。tutorial与recovery的SetProgress、quest accept/drop、shop/move/combat、petclock/hatch/growth等仍按契约豁免，最后实际caller扫描必须具名分类，不能把定义当活跃旁路。
+- CarriedGoldCompositionTests两个provider测试仍空config，会默认AppContext/Data/dfo-server.db；均改唯一临时绝对Database:Path，只清本DB pool/目录，不启动Host。
+
+## 最终执行检查准备
+
+所有dotnet项目串行，不并行build共享DLL。PVF_ARCHIVE_PATH使用既有 E:/Project/DNF/DNFClient-A21-protocol/Script.pvf。App/Protocol有多collection调用ClearAllPools，最终临时runsettings关闭assembly及collection parallel并MaxParallelThreads=1，配diag/TRX时间验证实际生效；这是测试执行隔离，不扩大生产pool修复。此前阶段失败各自保存，不声称已经证明baseline。
+
+最终必须fresh solution build与所有test projects、独立累计漂移／fresh挑战／final review／verification，全部新增未跟踪源码纳入。Source及自动测试仅CurrentImplementation；同物理连接Return→Select的C2S seq-reset仍Unknown，人工清单保留“use→returnselection→reenter→连续两次use”capture核对，不发明reset策略。不部署或改用户服务，实机仍待用户后续集中接受。

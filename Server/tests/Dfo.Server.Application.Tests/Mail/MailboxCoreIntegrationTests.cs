@@ -437,7 +437,9 @@ public sealed partial class MailboxCoreIntegrationTests
         private sealed class MailPlacements : IItemPlacementDefinitionSource
         {
             public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) => itemId == int.MaxValue
-                ? ValueTask.FromResult<ItemPlacement?>(null) : itemId == 3037
+                ? ValueTask.FromResult<ItemPlacement?>(null) : itemId == 1001
+                ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 55)))
+                : itemId == 3037
                 ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 1)))
                 : new NpcShopTestContent().GetAsync(itemId, ct);
         }

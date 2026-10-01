@@ -130,7 +130,7 @@ public sealed class CharacterContainerDomainServiceTests
 
     [Theory]
     [InlineData(BusinessInventorySpace.Consumable, 5, InventoryContainerType.Main, 70)]
-    [InlineData(BusinessInventorySpace.WornEquipment, 2, InventoryContainerType.Equipment, 13)]
+    [InlineData(BusinessInventorySpace.WornEquipment, 2, InventoryContainerType.Equipment, 14)]
     [InlineData(BusinessInventorySpace.PersonalCargo, 7, InventoryContainerType.PersonalCargo, 7)]
     public void Existing_storage_coordinates_round_trip_through_the_business_binding(
         BusinessInventorySpace businessSpace,
@@ -148,11 +148,12 @@ public sealed class CharacterContainerDomainServiceTests
         var bound = binding.Get(Character, business);
         var projected = binding.FromStorage(new InventoryStorageSlot(container, storageIndex));
 
-        Assert.Same(container, bound.Container);
-        Assert.Equal(storageIndex, bound.StorageIndex);
+        Assert.Equal(container.Id, bound.Container.StorageId);
+        Assert.Equal(businessSpace, bound.Container.Space);
+        Assert.Equal(businessIndex, bound.Slot.Index);
         Assert.Equal(business, projected.Slot);
-        Assert.Same(container, projected.Container);
-        Assert.Equal(storageIndex, projected.StorageIndex);
+        Assert.Equal(container.Id, projected.Container.StorageId);
+        Assert.Equal(businessIndex, projected.Slot.Index);
     }
 
     private static IItemContainer Container(string id, bool removable = true) =>

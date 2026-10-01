@@ -44,12 +44,15 @@ internal sealed class CeraShopTestContent : ICeraShopDefinitionSource, IItemPlac
         Placements[item] = kind switch
         {
             CeraShopItemKind.Avatar => new(8, 1,
-                new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+                new(BusinessInventorySpace.Avatar, 0, 209))
                 { WorldClass = ItemWorldClass.Avatar },
             CeraShopItemKind.Creature => new(5, 1,
-                new(BusinessInventorySpace.CarriedEquipment, 0, 47))
+                new(BusinessInventorySpace.CreatureInventory, 0, 139))
                 { WorldClass = ItemWorldClass.Creature },
-            CeraShopItemKind.Equipment or CeraShopItemKind.CreatureEquipment => new(1, 1,
+            CeraShopItemKind.CreatureEquipment => new(6, 1,
+                new(BusinessInventorySpace.CreatureEquipment, 0, 48))
+                { WorldClass = ItemWorldClass.Equipment },
+            CeraShopItemKind.Equipment => new(1, 1,
                 new(BusinessInventorySpace.CarriedEquipment, 0, 47))
                 { WorldClass = ItemWorldClass.Equipment },
             _ => new(2, 10, new(BusinessInventorySpace.Consumable, 0, 1)),
@@ -61,10 +64,13 @@ internal sealed class CeraShopTestContent : ICeraShopDefinitionSource, IItemPlac
     public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Placements.GetValueOrDefault(id));
     public static CeraShopPurchaseEntry Entry(int product = 110000, byte ability = 255) => new(0, ability, 255, product, [], []);
     public static CeraShopPurchaseInput Input(params CeraShopPurchaseEntry[] entries) => new(0, 0, 0, entries.ToImmutableArray());
-    public static Dictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>> EmptyStock() => new()
+    public static Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> EmptyStock() => new()
     {
-        [InventoryContainerType.Main] = [], [InventoryContainerType.Avatar] = [], [InventoryContainerType.Pet] = [],
+        [BusinessInventorySpace.QuickSlot] = [], [BusinessInventorySpace.Consumable] = [],
+        [BusinessInventorySpace.CarriedEquipment] = [], [BusinessInventorySpace.Avatar] = [],
+        [BusinessInventorySpace.CreatureInventory] = [], [BusinessInventorySpace.CreatureEquipment] = [],
+        [BusinessInventorySpace.CreatureConsumable] = [],
     };
     private sealed class NoWearables : IEquipmentSlotDefinitionSource
-    { public ValueTask<byte?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<byte?>(null); }
+    { public ValueTask<BusinessSlot?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<BusinessSlot?>(null); }
 }

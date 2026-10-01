@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Dfo.Pvf.Tokens;
@@ -8,6 +9,16 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfVendingMachineDefinitionSource(PvfArchiveProvider provider) : IVendingMachineDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<bool> ItemGroupField = PvfField.Marker("[item group]", optional: true);
+        internal static readonly PvfField<int> GroupNumField = PvfField.Int32("[group num]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> MaterialField = PvfField.Int32List("[material]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> OutputField = PvfField.Int32List("[output]", optional: true);
+        internal static readonly PvfField<bool> CloseOutputField = PvfField.Marker("[/output]", optional: true);
+        internal static readonly PvfField<bool> CloseItemGroupField = PvfField.Marker("[/item group]", optional: true);
+    }
+
     private FrozenDictionary<(int, int), VendingMachineDefinition>? definitions;
     private readonly Lock gate = new();
     public int Initialize()
@@ -32,15 +43,15 @@ internal sealed class PvfVendingMachineDefinitionSource(PvfArchiveProvider provi
                         : throw new InvalidDataException($"Noninteger vending field {section.Name}.")).ToArray();
                     switch (section.Name)
                     {
-                        case "[item group]": group = material = count = 0; rewards = []; break;
-                        case "[group num]": group = Numbers().Single(); break;
-                        case "[material]":
+                        case var fieldName when (Fields.ItemGroupField.Matches(fieldName)): group = material = count = 0; rewards = []; break;
+                        case var fieldName when (Fields.GroupNumField.Matches(fieldName)): group = Numbers().Single(); break;
+                        case var fieldName when (Fields.MaterialField.Matches(fieldName)):
                             var values = Numbers();
                             if (values.Length != 2) throw new InvalidDataException("Invalid vending material.");
                             material = values[0]; count = values[1]; break;
-                        case "[output]": rewards = ParseRewards(Numbers()); break;
-                        case "[/output]": break;
-                        case "[/item group]":
+                        case var fieldName when (Fields.OutputField.Matches(fieldName)): rewards = ParseRewards(Numbers()); break;
+                        case var fieldName when (Fields.CloseOutputField.Matches(fieldName)): break;
+                        case var fieldName when (Fields.CloseItemGroupField.Matches(fieldName)):
                             if (group <= 0 || material != expectedCoin || count != 1 || rewards.IsEmpty)
                                 throw new InvalidDataException("Unsupported black diamond machine group.");
                             parsed.Add((machineId, group), new(machineId, group, material, count, rewards)); break;

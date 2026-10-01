@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -20,8 +21,9 @@ internal sealed class CharacterSkillLearningDomainService(
     ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
     IDomainTransactionAccessor transactions, IPremiumServiceDomainService premiums,
-    IPremiumServiceRuleService premiumRules, ICharacterContainerDomainService containers,
-    IOpeningInventoryDomainService inventory, ICharacterSkillResetRuleService resetRules, TimeProvider clock) : ICharacterSkillLearningDomainService
+    IPremiumServiceRuleService premiumRules, ICharacterBusinessInventoryDomainService businessInventories,
+    IOpeningInventoryDomainService inventory, ICharacterSkillResetRuleService resetRules, TimeProvider clock,
+    ISpecialConsumableEffectPlanRuleService effectPlans) : ICharacterSkillLearningDomainService
 {
     public async ValueTask<bool> SwapSlotsAsync(SelectedSessionIdentity session, int pageIndex, int first, int second, CancellationToken ct)
     {
@@ -95,6 +97,8 @@ internal sealed class CharacterSkillLearningDomainService(
         var current = facts.Pages.SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills ?? [];
         if (current.Select(skill => skill.SkillId).Distinct().Count() != current.Count)
             return new(CharacterSkillLearningRejection.IncompleteLedger);
+        if (changes.Any(change => change.Refund != 0))
+            return await LearnRefundAsync(session, pageIndex, changes, facts, current, cancellationToken).ConfigureAwait(false);
         var target = current.ToDictionary(skill => checked((int)skill.SkillId));
         var occupied = current.Select(skill => (int)skill.Slot).ToHashSet();
         var changed = new List<CharacterSkillState>(changes.Count);
@@ -127,16 +131,6 @@ internal sealed class CharacterSkillLearningDomainService(
             if (!rules.Get(facts.Career.Job, (int)learned.SkillId)!
                 .CanLearn(facts.Career, learningLevel, learned.Level, finalLevels))
                 return new(CharacterSkillLearningRejection.SkillUnavailable);
-        // Refunding a prerequisite cannot leave a dependent learned skill invalid.
-        if (changes.Any(change => change.Refund != 0))
-            foreach (var learned in target.Values.Where(skill => skill.Level > 0))
-            {
-                var rule = rules.Get(facts.Career.Job, (int)learned.SkillId);
-                if (rule is null) return new(CharacterSkillLearningRejection.IncompleteLedger);
-                if (learned.Level > rule.GetFreeLevel(facts.Career, facts.Level)
-                    && rule.Prerequisites.Any(pre => finalLevels.GetValueOrDefault(pre.SkillId) < pre.Level))
-                    return new(CharacterSkillLearningRejection.SkillUnavailable);
-            }
         var pages = facts.Pages.Where(page => page.PageIndex != pageIndex)
             .Append(new CharacterSkillPageState(pageIndex, target.Values.OrderBy(skill => skill.Slot).ToArray())).ToArray();
         var ledger = rules.GetLedger(facts.Career, facts.Level, pages, facts.PointBasis);
@@ -144,19 +138,6 @@ internal sealed class CharacterSkillLearningDomainService(
         if (ledger.For(new(pageIndex)) is { Sp: < 0 } or { Tp: < 0 })
             return new(CharacterSkillLearningRejection.InsufficientPoints);
 
-        OpeningInventoryReceipt? consumed = null;
-        if (changes.Any(change => change.Refund != 0))
-        {
-            var bag = containers.FindContainer(session.CharacterId, InventoryContainerType.Main);
-            var water = bag is null ? null : (await bag.ReadAllAsync(cancellationToken))
-                .Where(item => item.IsPile && item.ItemId == resetRules.ConsumableItemId && item.Count > 0
-                    && (item.Core.ExpireTime == 0 || item.Core.ExpireTime > clock.GetUtcNow().ToUnixTimeSeconds()))
-                .OrderBy(item => item.SlotIndex).FirstOrDefault();
-            if (water is null) return new(CharacterSkillLearningRejection.ResetItemRequired);
-            _ = await inventory.SourceAsync(session, water.SlotIndex, clock.GetUtcNow(), cancellationToken);
-            consumed = await inventory.SettleAsync(session, [new(water.SlotIndex, water.ItemId, 1)],
-                ImmutableArray<OpeningPreparedGrant>.Empty, clock.GetUtcNow(), cancellationToken);
-        }
         // No rejection returns after the first write: storage failures must roll the whole batch back.
         foreach (var learned in changed)
         {
@@ -175,6 +156,36 @@ internal sealed class CharacterSkillLearningDomainService(
                 await skills.InsertAsync(session.CharacterId, pageIndex, learned.Slot, (int)learned.SkillId,
                     learned.Level, cancellationToken).ConfigureAwait(false);
         }
-        return new(CharacterSkillLearningRejection.None, new(session, pageIndex, changed.AsReadOnly(), ledger, consumed));
+        return new(CharacterSkillLearningRejection.None, new(session, pageIndex, changed.AsReadOnly(), ledger));
+    }
+
+    private async ValueTask<CharacterSkillLearningResult> LearnRefundAsync(SelectedSessionIdentity session, int pageIndex,
+        IReadOnlyList<CharacterSkillLearningChange> changes, CharacterSkillFacts facts,
+        IReadOnlyList<CharacterSkillState> current, CancellationToken cancellationToken)
+    {
+        var learningLevel = (int)facts.Level;
+        if (await premiums.For(session.AccountId).HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, cancellationToken).ConfigureAwait(false))
+            learningLevel = checked(learningLevel + premiumRules.LevelAllowance(PremiumBenefit.LearnSkillsEarly));
+        var decision = effectPlans.RefundSkills(facts, pageIndex, changes, learningLevel);
+        if (decision.Rejection != CharacterSkillLearningRejection.None) return new(decision.Rejection);
+        var at = clock.GetUtcNow();
+        var itemStore = businessInventories.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item);
+        (BusinessSlot Slot, ContainerSlotItem Item)? water = null;
+        foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable })
+        {
+            var bag = itemStore.FindContainer(space);
+            if (bag is null) continue;
+            var found = (await bag.ReadAllAsync(cancellationToken))
+                .Where(item => item.IsPile && item.ItemId == resetRules.ConsumableItemId && item.Count > 0
+                    && (item.Core.ExpireTime is 0 or int.MaxValue || item.Core.ExpireTime > at.ToUnixTimeSeconds()))
+                .OrderBy(item => item.SlotIndex).FirstOrDefault();
+            if (found is not null) { water = (new(space, found.SlotIndex), found); break; }
+        }
+        if (water is null) return new(CharacterSkillLearningRejection.ResetItemRequired);
+        var waterSlot = water.Value.Slot;
+        var source = await inventory.SourceAsync(session, waterSlot, at, cancellationToken);
+        var effects = await effectPlans.RefundAsync(waterSlot, source, pageIndex, current, decision.Changed, cancellationToken).ConfigureAwait(false);
+        var consumed = (await inventory.ApplyAsync(session, effects, at, cancellationToken).ConfigureAwait(false)).Inventory;
+        return new(CharacterSkillLearningRejection.None, new(session, pageIndex, decision.Changed, decision.Ledger!, consumed));
     }
 }

@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -15,6 +16,17 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<bool> CollectBoxInfoField = PvfField.Marker("[Collect Box Info]", optional: true);
+        internal static readonly PvfField<bool> CloseCollectBoxInfoField = PvfField.Marker("[/Collect Box Info]", optional: true);
+        internal static readonly PvfField<int> IndexField = PvfField.Int32("[Index]", optional: true);
+        internal static readonly PvfField<string> BaseExpirationDateField = PvfField.String("[base expiration date]", optional: true);
+        internal static readonly PvfField<string> MaxExpirationDateField = PvfField.String("[max expiration date]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ExtendItemField = PvfField.Int32List("[Extend Item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ItemPositionInfoField = PvfField.Int32List("[Item Position Info]", optional: true);
+    }
+
     private const string TablePath = "localization/collectbox/collectboxinfo.etc";
 
     private readonly PvfArchiveProvider _provider;
@@ -50,59 +62,40 @@ internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitio
         if (fileIndex < 0)
             throw new InvalidOperationException($"The archive does not contain {TablePath}.");
 
-        var open = archive.GetTag("[Collect Box Info]").Offset;
-        var close = archive.GetTag("[/Collect Box Info]").Offset;
-        var indexTag = archive.GetTag("[Index]").Offset;
-        var baseDate = archive.GetTag("[base expiration date]").Offset;
-        var maxDate = archive.GetTag("[max expiration date]").Offset;
-        var extendItem = archive.GetTag("[Extend Item]").Offset;
-        var positions = archive.GetTag("[Item Position Info]").Offset;
-
         var ordered = new List<CollectionBoxDefinition>();
         var byIndex = new Dictionary<int, CollectionBoxDefinition>();
-        var reader = archive.OpenScript(fileIndex);
-
         Draft? draft = null;
-        var section = -1;
-
-        while (reader.Read(out var token))
+        foreach (var section in PvfDocument.Open(archive, TablePath).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
+            if (Fields.CollectBoxInfoField.Matches(section.Name))
             {
-                if (token.Value == open)
-                {
-                    draft = new Draft();
-                    section = -1;
-                }
-                else if (token.Value == close && draft is not null)
-                {
-                    var definition = draft.ToDefinition();
-                    ordered.Add(definition);
-                    byIndex.TryAdd(definition.BoxIndex, definition);
-                    draft = null;
-                }
-                else
-                {
-                    section = token.Value;
-                }
-
-                continue;
+                Fields.CollectBoxInfoField.Decode(archive, section.Values, TablePath);
+                if (draft is not null) throw new InvalidDataException($"{TablePath}: nested or unclosed collection box.");
+                draft = new Draft();
             }
-
-            if (draft is null)
-                continue;
-
-            if (section == indexTag && token.Kind == PvfTokenKind.Int32)
-                draft.BoxIndex = token.Value;
-            else if (section == baseDate && token.IsString)
-                draft.BaseExpiresAt = ParseDate(archive.ResolveString(token.Value));
-            else if (section == maxDate && token.IsString)
-                draft.MaximumExpiresAt = ParseDate(archive.ResolveString(token.Value));
-            else if (section == extendItem && token.Kind == PvfTokenKind.Int32)
-                draft.ExtendOperands.Add(token.Value);
-            else if (section == positions && token.Kind == PvfTokenKind.Int32)
-                draft.PositionOperands.Add(token.Value);
+            else if (Fields.CloseCollectBoxInfoField.Matches(section.Name))
+            {
+                Fields.CloseCollectBoxInfoField.Decode(archive, section.Values, TablePath);
+                if (draft is null) throw new InvalidDataException($"{TablePath}: collection box close without opening.");
+                var definition = draft.ToDefinition();
+                ordered.Add(definition); byIndex.TryAdd(definition.BoxIndex, definition); draft = null;
+            }
+            else if (Fields.IndexField.Matches(section.Name))
+                RequireDraft(draft).BoxIndex = Fields.IndexField.Decode(archive, section.Values, TablePath);
+            else if (Fields.BaseExpirationDateField.Matches(section.Name))
+                RequireDraft(draft).BaseExpiresAt = ParseDate(Fields.BaseExpirationDateField.Decode(archive, section.Values, TablePath), Fields.BaseExpirationDateField);
+            else if (Fields.MaxExpirationDateField.Matches(section.Name))
+                RequireDraft(draft).MaximumExpiresAt = ParseDate(Fields.MaxExpirationDateField.Decode(archive, section.Values, TablePath), Fields.MaxExpirationDateField);
+            else if (Fields.ExtendItemField.Matches(section.Name))
+            {
+                var values = Fields.ExtendItemField.Decode(archive, section.Values, TablePath);
+                if (values.Count % 2 != 0) throw new InvalidDataException($"{TablePath}: {Fields.ExtendItemField.Name} requires item/count pairs.");
+                RequireDraft(draft).ExtendOperands.AddRange(values);
+            }
+            else if (Fields.ItemPositionInfoField.Matches(section.Name))
+                RequireDraft(draft).PositionOperands.AddRange(Fields.ItemPositionInfoField.Decode(archive, section.Values, TablePath));
         }
+        if (draft is not null) throw new InvalidDataException($"{TablePath}: unclosed collection box.");
 
         if (ordered.Count == 0)
             throw new InvalidOperationException($"{TablePath} declared no collection boxes.");
@@ -114,14 +107,15 @@ internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitio
     /// Dates are stored as local wall-clock text with no zone. They are read as unspecified
     /// rather than assumed to be UTC, so no zone is invented here.
     /// </summary>
-    private static DateTimeOffset? ParseDate(string value) =>
-        DateTime.TryParse(
-            value,
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.NoCurrentDateDefault,
-            out var parsed)
-            ? new DateTimeOffset(DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified), TimeSpan.Zero)
-            : null;
+    private static Draft RequireDraft(Draft? draft) => draft
+        ?? throw new InvalidDataException($"{TablePath}: collection field outside a collection box.");
+
+    private static DateTimeOffset ParseDate(string value, PvfField<string> field)
+    {
+        if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault, out var parsed))
+            throw new InvalidDataException($"{TablePath}: {field.Name} contains an invalid date.");
+        return new DateTimeOffset(DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified), TimeSpan.Zero);
+    }
 
     private sealed class Draft
     {
@@ -137,8 +131,11 @@ internal sealed class PvfCollectionBoxDefinitionSource : ICollectionBoxDefinitio
 
         public CollectionBoxDefinition ToDefinition()
         {
-            var columns = PositionOperands.Count >= 2 ? PositionOperands[0] : 0;
-            var rows = PositionOperands.Count >= 2 ? PositionOperands[1] : 0;
+            if (PositionOperands.Count < 2 || PositionOperands[0] <= 0 || PositionOperands[1] <= 0 ||
+                PositionOperands.Count != 2L + 2L * PositionOperands[0] * PositionOperands[1])
+                throw new InvalidDataException($"{TablePath}: {Fields.ItemPositionInfoField.Name} requires width/height and one item/tier pair per position.");
+            var columns = PositionOperands[0];
+            var rows = PositionOperands[1];
 
             var slots = new List<CollectionBoxSlot>();
             for (var i = 2; i + 1 < PositionOperands.Count; i += 2)

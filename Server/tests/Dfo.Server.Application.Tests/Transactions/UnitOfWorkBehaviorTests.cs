@@ -13,6 +13,23 @@ namespace Dfo.Server.Application.Tests.Transactions;
 public sealed class UnitOfWorkBehaviorTests
 {
     [Fact]
+    public async Task HandlerFailureAndRollbackFailureBothSurviveUnitOfWorkDisposal()
+    {
+        var cause = new IOException("handler failed");
+        var rollback = new IOException("rollback failed");
+        var probe = new ParticipantProbe { HandlerFailure = cause, RollbackFailure = rollback };
+        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
+        var failure = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
+            await provider.GetRequiredService<ICommandBus>().SendAsync(new TestCommand(), default));
+        Assert.Equal(TransactionUncertaintyReason.RollbackFailure, failure.Reason);
+        var aggregate = Assert.IsType<AggregateException>(failure.InnerException);
+        Assert.Contains(cause, aggregate.InnerExceptions);
+        Assert.Contains(rollback, aggregate.InnerExceptions);
+        Assert.True(TransactionOutcomeUncertainException.Contains(new IOException("wrapped", new AggregateException(failure))));
+        Assert.Null(provider.GetRequiredService<IDomainTransactionAccessor>().Current);
+    }
+
+    [Fact]
     public async Task TransactionalCommand_MakesEveryChangeVisibleWhenItSucceeds()
     {
         var probe = new ParticipantProbe();
@@ -146,6 +163,7 @@ public sealed class UnitOfWorkBehaviorTests
         public bool EnlistASecondFallibleParticipant { get; init; }
 
         public Exception? HandlerFailure { get; init; }
+        public Exception? RollbackFailure { get; init; }
 
         public bool SawAmbientTransaction { get; set; }
     }
@@ -178,6 +196,8 @@ public sealed class UnitOfWorkBehaviorTests
                     "second-durable",
                     () => new RecordingParticipant("second-durable", probe.Log, commitCanFail: true));
             }
+
+            probe.Participants[0].RollbackFailure = probe.RollbackFailure;
 
             return probe.HandlerFailure is null
                 ? ValueTask.FromResult(new TestResult())

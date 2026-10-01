@@ -73,10 +73,10 @@ public sealed class FinishQuestHandler(
                     message.QuestId,
                     message.RewardSelection,
                     message.CompletionCount,
-                    checked((uint)clock.GetUtcNow().ToUnixTimeSeconds())),
+                    checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()), session),
                 cancellationToken).ConfigureAwait(false);
         }
-        catch (QuestFinishRejectedException exception)
+        catch (QuestFinishRejectedException exception) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {
             logger.LogWarning(
                 exception,

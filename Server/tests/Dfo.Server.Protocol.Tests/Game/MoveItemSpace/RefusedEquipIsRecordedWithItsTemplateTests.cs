@@ -123,7 +123,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         Assert.NotNull(placement);
         Assert.Equal(ItemWorldClass.Avatar, placement.WorldClass);
         Assert.Equal(
-            CoatAvatarSlot,
+            new BusinessSlot(BusinessInventorySpace.WornAvatar, CoatAvatarSlot),
             await archive.EquipmentSlots.GetAsync(CoatAvatarTemplate, CancellationToken.None));
     }
 
@@ -187,6 +187,20 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             Assert.Single(logger.Entries).Message);
     }
 
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Putting_on_a_piece_refuses_a_displaced_item_that_cannot_return_to_the_source_band()
+    {
+        var (handler, sender, _) = this.Build(OrdinaryCoatTemplate, CoatAvatarTemplate,
+            out var bag, out var worn);
+
+        await handler.HandleAsync(Context, Request(OrdinaryCoatTemplate, 14), CancellationToken.None);
+
+        Assert.Equal(MoveItemSpaceResponse.NotMovable,
+            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent)).ErrorCode);
+        Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSlotAsync(BagSlot, default))!.ItemId);
+        Assert.Equal(CoatAvatarTemplate, (await worn.ReadSlotAsync(14, default))!.ItemId);
+    }
+
     /// <summary>The drag: out of the bag, onto the worn list, at the slot the client named.</summary>
     private static MoveItemSpaceRequest Request(int itemId, short wornSlot) =>
         new(GameMessageMetadata.Empty,
@@ -197,14 +211,20 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             DestinationInstanceValue: 0);
 
     private (MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingLogger Logger) Build(
-        int itemIdInTheBag)
+        int itemIdInTheBag) => this.Build(itemIdInTheBag, null, out _, out _);
+
+    private (MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingLogger Logger) Build(
+        int itemIdInTheBag, int? displacedItemId, out SlotDictionaryContainer bag,
+        out SlotDictionaryContainer worn)
     {
         var character = new CharacterId(60);
         var containers = new CharacterContainerDomainService();
-        var bag = new SlotDictionaryContainer(InventoryContainerType.Main);
+        bag = new SlotDictionaryContainer(InventoryContainerType.Main);
         bag.Seed(BagSlot, itemIdInTheBag);
         containers.Register(character, bag);
-        containers.Register(character, new SlotDictionaryContainer(InventoryContainerType.Equipment));
+        worn = new SlotDictionaryContainer(InventoryContainerType.Equipment);
+        if (displacedItemId is { } item) worn.Seed(14, item);
+        containers.Register(character, worn);
 
         var mappings = new InventorySlotMappingRuleService();
         var commandHandler = new MoveItemSpaceCommandHandler(
@@ -405,6 +425,8 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// <summary>An inventory loader nobody reaches, because no session is published.</summary>
     private sealed class UnreachableInventory : ICharacterInventoryEntryDomainService
     {
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
         public ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
             throw new NotSupportedException(

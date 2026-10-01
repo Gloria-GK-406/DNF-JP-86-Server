@@ -5,6 +5,6 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IEquipmentDurabilityDomainService
 {
-    ValueTask<EquipmentDurabilityResult> DecreaseAsync(SelectedSessionIdentity session, byte slotIndex,
+    ValueTask<EquipmentDurabilityResult> DecreaseAsync(SelectedSessionIdentity session, BusinessSlot slot,
         CancellationToken cancellationToken);
 }

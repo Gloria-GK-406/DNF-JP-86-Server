@@ -10,6 +10,13 @@ internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices, INpc
     public async ValueTask<bool> HasShopAsync(int npcId, CancellationToken cancellationToken) =>
         await shops.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false) is not null;
 
+    public async ValueTask<bool> CanAccessShopAsync(int npcId, bool inTown, bool dungeonCleared,
+        CancellationToken cancellationToken)
+    {
+        var shop = await shops.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false);
+        return shop is not null && (shop.VisibleOnDungeonClear ? dungeonCleared : inTown);
+    }
+
     public async ValueTask<ItemSaleQuote> QuoteAsync(ContainerSlotItem item, int count, CancellationToken cancellationToken)
     {
         if (count <= 0 || count > short.MaxValue || count > item.Count)

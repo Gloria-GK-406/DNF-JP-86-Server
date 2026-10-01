@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.QuestClearCoupon;
 
 public sealed record UseFatiguePotionCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int SourceSlot)
-    : ICommand<OpeningInventoryReceipt>, IOnlineUserCommand, IAccountCommand
+    : ICommand<OpeningInventoryReceipt>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -28,7 +28,7 @@ public sealed class UseFatiguePotionCommandHandler(IFatiguePotionDomainService p
 {
     public ValueTask<OpeningInventoryReceipt> HandleAsync(CommandExecutionContext context,
         UseFatiguePotionCommand command, CancellationToken ct) =>
-        potions.UseAsync(command.Session, command.SourceSlot, clock.GetUtcNow(), ct);
+        potions.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), ct);
 }
 
 public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
@@ -54,7 +54,7 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             receipt = await commands.SendAsync(new UseFatiguePotionCommand(online.OnlineUserId,
                 session, request.SourceSlot), ct).ConfigureAwait(false);
         }
-        catch (OpeningRejectedException ex)
+        catch (OpeningRejectedException ex) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex))
         {
             logger.LogInformation("Fatigue potion refused character={CharacterId} slot={Slot}: {Reason}",
                 session.CharacterId, request.SourceSlot, ex.Message);
@@ -62,7 +62,7 @@ public sealed class FatiguePotionHandler(ISelectedSessionDomainService sessions,
             await itemUsageProjection.SendAsync(session, ct).ConfigureAwait(false);
             return;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when ((ex is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex))
         {
             logger.LogError(ex, "Fatigue potion failed character={CharacterId} slot={Slot}", session.CharacterId, request.SourceSlot);
             await RefuseAsync(context, request, ct).ConfigureAwait(false);

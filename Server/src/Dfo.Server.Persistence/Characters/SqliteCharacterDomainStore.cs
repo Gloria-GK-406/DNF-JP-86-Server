@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 
@@ -49,10 +49,6 @@ internal sealed class SqliteCharacterDomainStore : ICharacterDomainStore
 /// <remarks>
 /// Writes are held until the database prepares. Reads consult the held writes first, so the use
 /// case reads back what it has just decided without anyone outside seeing it.
-///
-/// Whether a character belongs to the account it was named under is checked once per character
-/// while flushing, before any of that character's rows are touched. That is the store refusing an
-/// address it cannot place, not a rule about characters: the account is half of the address.
 /// </remarks>
 internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreSession, ISqliteStoreFacet
 {
@@ -70,7 +66,7 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
 
     public IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures => this.creatures;
 
-    public bool HasStagedWork => this.creatures.HasStagedWork || this.positions.Count > 0;
+    public bool HasStagedWork => this.positions.Count > 0;
 
     public async ValueTask<bool> HoldsAsync(
         OwnedCharacterId characterId, CancellationToken cancellationToken)
@@ -117,12 +113,6 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken)
     {
-        foreach (var characterId in this.Touched())
-        {
-            await this.RefuseUnlessOwnedAsync(characterId, cancellationToken).ConfigureAwait(false);
-        }
-
-        await this.creatures.FlushAsync(cancellationToken).ConfigureAwait(false);
         foreach (var (characterId, position) in this.positions)
         {
             await this.FillPositionAsync(characterId, position, cancellationToken).ConfigureAwait(false);
@@ -131,33 +121,7 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
 
     public void Discard()
     {
-        this.creatures.Discard();
         this.positions.Clear();
-    }
-
-    /// <remarks>
-    /// Positions are absent on purpose. Their statement carries the pairing in its own predicate
-    /// and refuses in its own words, exactly as it always has; asking here as well would replace
-    /// that refusal with this one and change what a caller is told.
-    /// </remarks>
-    private IEnumerable<OwnedCharacterId> Touched() => this.creatures.Touched.Distinct();
-
-    /// <remarks>
-    /// The same pairing the section writes are addressed by. A character that is not this
-    /// account's, or has been deleted, is not an address this store can place.
-    /// </remarks>
-    private async ValueTask RefuseUnlessOwnedAsync(
-        OwnedCharacterId characterId, CancellationToken cancellationToken)
-    {
-        await using var command = await this.owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText =
-            "SELECT 1 FROM characters WHERE character_id=@character AND account_id=@account AND delete_flag=0;";
-        command.Parameters.AddWithValue("@character", characterId.Character.Value);
-        command.Parameters.AddWithValue("@account", characterId.Account.Value);
-        if (await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is null)
-        {
-            throw new InvalidDataException("Entry mutation character ownership does not match.");
-        }
     }
 
     private async ValueTask FillPositionAsync(
@@ -185,98 +149,29 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
     }
 }
 
-/// <summary>The condition each of a character's creatures is in.</summary>
-/// <remarks>
-/// This section addresses one column of a creature's world row rather than the whole of it. The
-/// rest of the row -- its core, its text, its mode, where it is standing -- takes part in no use
-/// case that writes here, and carrying it through a read and a write only to put it back unchanged
-/// would widen what can go wrong without widening what can be done.
-///
-/// The rows are the creature rows of <c>items</c>, and the key is the world identity. They used to
-/// be rows of <c>character_creatures</c> under a key of their own; a creature is one row now, so
-/// there is no second row to keep in step and no moment at which the two could disagree.
-///
-/// Whether a row is a creature at all is read off the same column this writes, so a write is held
-/// to rows that already are creatures. Setting it on a row that is not one would not correct
-/// anything -- it would make that row answer as a creature to every read that asks.
-///
-/// Whose creature it is comes from the position holding it. A world row says what a thing is and
-/// nothing about whose it is, so both the read and the write ask <c>item_slots</c> that.
-/// </remarks>
+/// <summary>Compatibility view for the entry revival path; all writes join the creature facet.</summary>
 internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
-    : SqliteOwnedCharacterSection<long, StoredCreature>(owner)
+    : IDomainStoreSession<OwnedCharacterId, long, StoredCreature>
 {
-    protected override long KeyOf(StoredCreature value) => value.CreatureKey;
+    private readonly SqliteCreatureDomainStoreSession creatures = SqliteCreatureDomainStoreSession.In(owner);
 
-    protected override async ValueTask<IReadOnlyList<StoredCreature>> ReadRowsAsync(
-        OwnedCharacterId place, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<StoredCreature>> ReadAllAsync(
+        OwnedCharacterId place, CancellationToken cancellationToken) =>
+        [.. (await this.creatures.ReadAllAsync(place.Character, cancellationToken)
+            .ConfigureAwait(false)).Select(creature => new StoredCreature(creature.ItemUid, creature.Stomach))];
+
+    public async ValueTask<StoredCreature?> ReadAsync(
+        OwnedCharacterId place, long key, CancellationToken cancellationToken)
     {
-        await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        // A row with no condition recorded is one this section does not hold. Reading it as
-        // nothing would say the creature is in a condition it was never put in, and a caller
-        // acting on that would then fail against a guard the row cannot satisfy.
-        command.CommandText = """
-            SELECT held.item_uid, held.creature_field04 FROM items held
-            WHERE held.creature_field04 IS NOT NULL
-              AND EXISTS (
-                  SELECT 1 FROM item_slots place
-                  WHERE place.owner_scope = 'character' AND place.owner_id = @character
-                    AND place.core_uid = held.item_uid);
-            """;
-        command.Parameters.AddWithValue("@character", place.Character.Value);
-        var rows = new List<StoredCreature>();
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-        {
-            rows.Add(new StoredCreature(reader.GetInt64(0), reader.GetInt32(1)));
-        }
-
-        return rows;
+        if (key is <= 0 or > int.MaxValue) return null;
+        var creature = await this.creatures.ReadAsync(place.Character, (int)key, cancellationToken)
+            .ConfigureAwait(false);
+        return creature is null ? null : new StoredCreature(key, creature.Stomach);
     }
 
-    protected override async ValueTask FillAsync(
-        OwnedCharacterId place, StoredCreature value, CancellationToken cancellationToken)
-    {
-        await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText = value.OnlyWhenAtMostZero
-            ? """
-                UPDATE items SET creature_field04=@condition
-                WHERE item_uid=@key AND creature_field04<=0
-                  AND EXISTS (
-                      SELECT 1 FROM item_slots place
-                      WHERE place.owner_scope='character' AND place.owner_id=@character
-                        AND place.core_uid=@key);
-                """
-            : """
-                UPDATE items SET creature_field04=@condition
-                WHERE item_uid=@key AND creature_field04 IS NOT NULL
-                  AND EXISTS (
-                      SELECT 1 FROM item_slots place
-                      WHERE place.owner_scope='character' AND place.owner_id=@character
-                        AND place.core_uid=@key);
-                """;
-        command.Parameters.AddWithValue("@condition", value.Field04);
-        command.Parameters.AddWithValue("@character", place.Character.Value);
-        command.Parameters.AddWithValue("@key", value.CreatureKey);
-        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
-        {
-            throw new InvalidDataException("Equipped creature revival changed concurrently.");
-        }
-    }
+    public void Write(OwnedCharacterId place, StoredCreature value) =>
+        this.creatures.WriteCondition(place, value.CreatureKey, value.Field04, value.OnlyWhenAtMostZero);
 
-    /// <remarks>
-    /// A creature's condition is a column of a world row this store does not otherwise own, so
-    /// there is nothing here to empty. Clearing it would mean deleting the creature itself, which
-    /// is not what this section addresses.
-    ///
-    /// Refused where it is asked for rather than while flushing: by then other kinds of state have
-    /// already written their statements, and a refusal raised then would take them down with it.
-    /// </remarks>
-    public override void Clear(OwnedCharacterId place, long key) =>
-        throw new NotSupportedException(
-            "A creature's condition cannot be cleared; it is a field of a row this section does not own.");
-
-    protected override ValueTask EmptyAsync(
-        OwnedCharacterId place, long key, CancellationToken cancellationToken) =>
-        throw new UnreachableException("A creature's condition is refused before it can be staged.");
+    public void Clear(OwnedCharacterId place, long key) =>
+        throw new NotSupportedException("Clearing condition would delete creature state.");
 }

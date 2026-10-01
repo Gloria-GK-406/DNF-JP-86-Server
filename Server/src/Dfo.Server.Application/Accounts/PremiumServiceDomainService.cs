@@ -33,14 +33,29 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
         IDomainTransactionAccessor transactions, TimeProvider clock, IPremiumServiceRuleService rules,
         bool blackDiamondEnabled, ushort blackDiamondExtraFatigue) : IAccountPremiumServices
     {
-        public async ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken)
+        public async ValueTask SetExpiryAsync(PremiumServiceType type, long expectedExpiry, long nextExpiry,
+            CancellationToken cancellationToken)
+        {
+            if (transactions.Current is null || type == PremiumServiceType.BlackDiamond
+                || ((int)type is <= 0 or > 127) && !Enum.IsDefined(type) || expectedExpiry < 0 || nextExpiry < expectedExpiry)
+                throw new InvalidOperationException("Invalid decided premium change.");
+            var current = (await table.ReadAsync(accountId, cancellationToken).ConfigureAwait(false))
+                .SingleOrDefault(row => row.PremiumType == (int)type)?.ExpiresAtUnixSeconds ?? 0;
+            if (current != expectedExpiry || await table.UpsertExpiryAsync(accountId, (int)type, nextExpiry,
+                    cancellationToken).ConfigureAwait(false) != 1)
+                throw new InvalidOperationException("Premium expiry changed during settlement.");
+        }
+
+        public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken) =>
+            ReadAtAsync(clock.GetUtcNow(), cancellationToken);
+        public async ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAtAsync(DateTimeOffset at, CancellationToken cancellationToken)
         {
             var rows = await table.ReadAsync(accountId, cancellationToken).ConfigureAwait(false);
             var entries = rows.Where(row => row.PremiumType != (int)PremiumServiceType.BlackDiamond)
                 .Select(row => new AccountPremiumEntryState(row.PremiumType, row.ExpiresAtUnixSeconds)).ToList();
             // Rolling display period; eligibility is controlled by configuration, not this expiry.
             if (blackDiamondEnabled)
-                entries.Add(new((int)PremiumServiceType.BlackDiamond, clock.GetUtcNow().AddDays(365).ToUnixTimeSeconds()));
+                entries.Add(new((int)PremiumServiceType.BlackDiamond, at.AddDays(365).ToUnixTimeSeconds()));
             return entries;
         }
 

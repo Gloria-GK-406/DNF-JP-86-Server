@@ -26,21 +26,29 @@ public sealed class EquipmentDisjointCompletedHandler(
             || sessions.Find(receipt.Session.AccountId) != receipt.Session)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
 
-        var messages = new List<IServerNetworkMessage>
+        var messages = new List<IServerNetworkMessage>();
+        // A21 checks the portable tool when processing the success ACK. Clear the exhausted
+        // tool first; target removal and reward balances must still follow the ACK's own changes.
+        var exhaustedTool = receipt.InventoryChanges.SingleOrDefault(change =>
+            receipt.PortableToolSlot is { } toolSlot && change.Slot == toolSlot && change.Core is null);
+        if (exhaustedTool is not null)
         {
-            new DisjointItemResponse(
-                slotProjection.Project(receipt.TargetSlot),
-                [
-                    .. receipt.Materials.Select(material => new DisjointItemMaterial(
-                        slotProjection.Project(material.Slot), material.ItemId, material.Count)),
-                    .. receipt.AccountMaterials.Select(material => new DisjointItemMaterial(
-                        new GameSlot(InventoryContainerType.Main, material.VirtualSlotIndex),
-                        material.ItemId,
-                        material.AddedCount)),
-                ]),
-        };
+            var tool = slotProjection.Project(exhaustedTool.Slot);
+            messages.Add(GameInventoryDelivery.ClearedSlotNotification(tool.Space, tool.Index, receipt.PreparedAt));
+        }
+        messages.Add(new DisjointItemResponse(
+            slotProjection.Project(receipt.TargetSlot),
+            [
+                .. receipt.Materials.Select(material => new DisjointItemMaterial(
+                    slotProjection.Project(material.Slot), material.ItemId, material.Count)),
+                .. receipt.AccountMaterials.Select(material => new DisjointItemMaterial(
+                    new GameSlot(InventoryContainerType.Main, material.VirtualSlotIndex),
+                    material.ItemId,
+                    material.AddedCount)),
+            ]));
 
         var projected = receipt.InventoryChanges
+            .Where(change => change != exhaustedTool)
             .Select(change => (Slot: slotProjection.Project(change.Slot), change.Core))
             .GroupBy(change => change.Slot.Space)
             .OrderBy(group => (byte)group.Key);

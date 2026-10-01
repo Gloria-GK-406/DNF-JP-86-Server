@@ -133,21 +133,21 @@ public sealed class AcceptQuestCommandHandler(
             foreach (var item in declared)
             {
                 var granted = await itemGrants.GrantAsync(
-                        command.AccountId, container, item.ItemId, item.Count,
+                        command.AccountId, command.CharacterId, containers, item.ItemId, item.Count,
                         cancellationToken)
                     .ConfigureAwait(false);
                 switch (granted)
                 {
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                         placed.Add(new AcceptedQuestItem(
-                            checked((ushort)topped.SlotIndex),
+                            checked((ushort)ItemGrantWireProjection.Index(character, topped.SlotIndex)),
                             (uint)item.ItemId,
                             (uint)topped.Added));
                         break;
 
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
+                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                         placed.Add(new AcceptedQuestItem(
-                            checked((ushort)opened.SlotIndex),
+                            checked((ushort)ItemGrantWireProjection.Index(character, opened.SlotIndex)),
                             (uint)item.ItemId,
                             (uint)opened.Count));
                         break;

@@ -60,19 +60,19 @@ public sealed class GrantTutorialRewardCommandHandler(
         foreach (var declared in command.Declared)
         {
             var granted = await itemGrants.GrantAsync(
-                    command.AccountId, container, declared.ItemId, declared.Count,
+                    command.AccountId, command.CharacterId, containers, declared.ItemId, declared.Count,
                     cancellationToken)
                 .ConfigureAwait(false);
             switch (granted)
             {
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped }:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                     placed.Add(new PlacedRewardItem(
-                        topped.SlotIndex, declared.ItemId, topped.Added));
+                        ItemGrantWireProjection.Index(character, topped.SlotIndex), declared.ItemId, topped.Added));
                     break;
 
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened }:
+                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                     placed.Add(new PlacedRewardItem(
-                        opened.SlotIndex, declared.ItemId, opened.Count));
+                        ItemGrantWireProjection.Index(character, opened.SlotIndex), declared.ItemId, opened.Count));
                     break;
 
                 case ItemGrantOutcome.AccountMaterial account:

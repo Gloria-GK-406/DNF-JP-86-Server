@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.World;
@@ -17,6 +18,29 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class FatiguePotionTests
 {
+    [Fact]
+    public async Task Actual_fatigue_handler_outer_exclusive_borrows_effect_lifecycle_and_commits_once()
+    {
+        var content = new Content();
+        using var shop = new ShopFixture(services =>
+        {
+            services.AddSingleton<IStackableActionDefinitionSource>(content);
+            services.AddSingleton<IItemUsageRuleSource>(content);
+            services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2600026,ItemUseRules.Potion(0))));
+        });
+        await shop.Seed(65,2600026,2);
+        await using (var tx = shop.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
+        {
+            await shop.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(shop.Session.CharacterId,50,default);
+            await tx.CommitAsync(default);
+        }
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await shop.Services.GetRequiredService<Dfo.Server.Protocol.Game.QuestClearCoupon.FatiguePotionHandler>().HandleAsync(new(shop.Connection),
+            new(Dfo.Server.Data.Networking.GameMessageMetadata.Empty,65,0,0,58,0,0,true),timeout.Token);
+        Assert.Equal(1,shop.Count(2600026));
+        Assert.Contains(shop.Sender.Messages.OfType<Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponResponse>(),response => response.Succeeded);
+    }
+
     private static readonly DateTimeOffset Morning = new(2026, 9, 29, 9, 0, 0, TimeSpan.FromHours(8));
     private sealed class Clock : TimeProvider
     {
@@ -33,20 +57,21 @@ public sealed class FatiguePotionTests
         public ValueTask<StackableActionDefinition?> GetAsync(int id, CancellationToken token) => ValueTask.FromResult<StackableActionDefinition?>(Rule);
     }
     // Exercise the real shared SQLite transaction: the test bag writes through the same database participant.
-    private sealed class Bag(SqliteDatabase db) : IOpeningInventoryDomainService
+    private sealed class Bag(SqliteDatabase db, IApplyEffectsDomainService executor) : IOpeningInventoryDomainService
     {
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, int slot, DateTimeOffset now, CancellationToken token) =>
-            ValueTask.FromResult(new ContainerSlotItem(slot, StackableItemCore.Create(2, slot, 5), ItemWorldClass.Interchangeable));
-        public async ValueTask<OpeningInventoryReceipt> SettleAsync(SelectedSessionIdentity session,
-            IReadOnlyList<OpeningSlotConsumption> consumed, ImmutableArray<OpeningPreparedGrant> grants,
-            DateTimeOffset now, CancellationToken token)
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, CancellationToken ct)
         {
-            Assert.Equal(1, Assert.Single(consumed).Count);
-            Assert.Empty(grants);
-            await db.ExecuteAsync("UPDATE characters SET bonus_sp=bonus_sp-1 WHERE character_id=@id",
-                p => p.AddWithValue("@id", session.CharacterId.Value), token);
-            return new(session, [], [], [], now);
+            Assert.Equal(1, Assert.Single(plan.OfType<ConsumeFromContainerEffect>()).Count);
+            await db.ExecuteAsync("UPDATE characters SET bonus_sp=bonus_sp-1 WHERE character_id=@id", p => p.AddWithValue("@id", session.CharacterId.Value), ct);
+            var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Where(x => x is not ConsumeFromContainerEffect).ToArray(), ct);
+            return new(new(session, [], [], [], at), applied);
         }
+        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken token) =>
+            ValueTask.FromResult(new ContainerSlotItem(slot.Index,
+                StackableItemCore.Create(2, slot.Index switch { 0 => 2600026, 1 => 10000541, 2 => 7456, 3 => 416, _ => throw new InvalidOperationException() }, 5),
+                ItemWorldClass.Interchangeable));
+
     }
     private static LearningFixture Fixture(Clock clock, Content content, string? existing = null) => new(existing: existing,
         configure: services =>
@@ -55,6 +80,7 @@ public sealed class FatiguePotionTests
             services.AddSingleton<IStackableActionDefinitionSource>(content);
             services.AddSingleton<IItemUsageRuleSource>(content);
             services.AddSingleton<IOpeningInventoryDomainService, Bag>();
+            services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2600026, ItemUseRules.Potion(0)), (10000541, ItemUseRules.Potion(0)), (7456, ItemUseRules.Potion(0)), (416, ItemUseRules.Potion(0))));
         });
     private static async Task Spend(LearningFixture f, ushort amount)
     {
@@ -65,7 +91,9 @@ public sealed class FatiguePotionTests
     private static async Task Use(LearningFixture f, Clock clock, int item = 2600026)
     {
         await using var tx = f.Scope.Begin();
-        await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session, item, clock.Now, default);
+        var slot = item switch { 2600026 => 65, 10000541 => 66, 7456 => 67, 416 => 68, _ => throw new InvalidOperationException() };
+        await f.Services.GetRequiredService<IFatiguePotionDomainService>().UseAsync(f.Session,
+            new BusinessSlot(BusinessInventorySpace.Consumable, slot - 65), clock.Now, default);
         await tx.CommitAsync(default);
     }
 

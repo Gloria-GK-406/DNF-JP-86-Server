@@ -29,7 +29,7 @@ public sealed class LearnSkillHandler(IOnlineUserQueryDomainService onlineUsers,
                 result = await commands.SendAsync(new LearnSkillCommand(online.OnlineUserId, session,
                     message.PageIndex, message.Changes, message.Mode), cancellationToken).ConfigureAwait(false);
             }
-            catch (OpeningRejectedException failure)
+            catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
             {
                 logger.LogInformation("Skill refund consumable rejected: {Reason}", failure.Reason);
                 result = new(CharacterSkillLearningRejection.ResetItemRequired);

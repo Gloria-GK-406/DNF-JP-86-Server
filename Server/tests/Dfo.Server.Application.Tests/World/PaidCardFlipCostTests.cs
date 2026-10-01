@@ -454,6 +454,9 @@ public sealed class PaidCardFlipCostTests
     public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 
 
+            public ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey key, CancellationToken token) => throw new NotSupportedException();
+
+
             public ValueTask<ItemUsability> CanUseAsync(
                 int itemId, CancellationToken cancellationToken) =>
                 throw new NotSupportedException("This subject is about a flip's price.");

@@ -1,0 +1,105 @@
+
+### VA 00EE6E00..00EE6E95
+00EE6E00 push     ebp
+00EE6E01 mov      ebp, esp
+00EE6E03 mov      eax, dword ptr [ebp + 8]
+00EE6E06 mov      ecx, dword ptr [0x3a5c914]
+00EE6E0C push     1
+00EE6E0E push     eax
+00EE6E0F call     0x2752a80
+00EE6E14 test     eax, eax
+00EE6E16 je       0xee6e20
+00EE6E18 mov      eax, dword ptr [eax + 0x390]
+00EE6E1E pop      ebp
+00EE6E1F ret
+00EE6E20 or       eax, 0xffffffff
+00EE6E23 pop      ebp
+00EE6E24 ret
+00EE6E25 int3
+00EE6E26 int3
+00EE6E27 int3
+00EE6E28 int3
+00EE6E29 int3
+00EE6E2A int3
+00EE6E2B int3
+00EE6E2C int3
+00EE6E2D int3
+00EE6E2E int3
+00EE6E2F int3
+00EE6E30 push     ebp
+00EE6E31 mov      ebp, esp
+00EE6E33 mov      al, byte ptr [ebp + 8]
+00EE6E36 mov      byte ptr [ecx + 0x2c2], al
+00EE6E3C pop      ebp
+00EE6E3D ret      4
+00EE6E40 mov      al, byte ptr [ecx + 0x2c2]
+00EE6E46 ret
+00EE6E47 int3
+00EE6E48 int3
+00EE6E49 int3
+00EE6E4A int3
+00EE6E4B int3
+00EE6E4C int3
+00EE6E4D int3
+00EE6E4E int3
+00EE6E4F int3
+00EE6E50 push     ebp
+00EE6E51 mov      ebp, esp
+00EE6E53 mov      eax, dword ptr [ebp + 8]
+00EE6E56 mov      dword ptr [ecx + 0x2c4], eax
+00EE6E5C pop      ebp
+00EE6E5D ret      4
+00EE6E60 mov      eax, dword ptr [ecx + 0x2c4]
+00EE6E66 ret
+00EE6E67 int3
+00EE6E68 int3
+00EE6E69 int3
+00EE6E6A int3
+00EE6E6B int3
+00EE6E6C int3
+00EE6E6D int3
+00EE6E6E int3
+00EE6E6F int3
+00EE6E70 push     ebp
+00EE6E71 mov      ebp, esp
+00EE6E73 mov      al, byte ptr [ebp + 8]
+00EE6E76 mov      byte ptr [ecx + 0x2c8], al
+00EE6E7C pop      ebp
+00EE6E7D ret      4
+00EE6E80 mov      al, byte ptr [ecx + 0x2c9]
+00EE6E86 ret
+00EE6E87 int3
+00EE6E88 int3
+00EE6E89 int3
+00EE6E8A int3
+00EE6E8B int3
+00EE6E8C int3
+00EE6E8D int3
+00EE6E8E int3
+00EE6E8F int3
+00EE6E90 push     ebp
+00EE6E91 mov      ebp, esp
+
+### VA 016F9250..016F929A
+016F9250 add      byte ptr [edx + 0x2c], ch
+016F9253 call     0x274ca50
+016F9258 mov      ecx, eax
+016F925A call     0x274d1e0
+016F925F mov      eax, dword ptr [ebp + 0xc]
+016F9262 push     eax
+016F9263 call     0x274ca50
+016F9268 mov      ecx, eax
+016F926A call     0x274d310
+016F926F mov      esi, dword ptr [ebp + 8]
+016F9272 push     esi
+016F9273 call     0x14386c0
+016F9278 add      esp, 4
+016F927B push     eax
+016F927C call     0x274ca50
+016F9281 mov      ecx, eax
+016F9283 call     0x274d340
+016F9288 push     esi
+016F9289 call     0x274ca50
+016F928E mov      ecx, eax
+016F9290 call     0x274d340
+016F9295 call     0x274e6d0

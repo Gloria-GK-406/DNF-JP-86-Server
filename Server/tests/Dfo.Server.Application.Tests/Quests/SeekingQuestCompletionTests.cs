@@ -53,8 +53,9 @@ public sealed class SeekingQuestCompletionTests
                 ushort.MaxValue, 1, 0));
 
         Assert.False(result.Finished);
-        Assert.Equal(1, shop.Scalar(
+        Assert.Equal(0, shop.Scalar(
             "SELECT trigger_value FROM character_active_quests WHERE character_id=1 AND quest_id=2001"));
+        Assert.Equal(1, Assert.Single(result.QuestProgress!.Quests).TriggerValue);
     }
 
     private sealed class SeekingQuestRules : IQuestContentRuleService

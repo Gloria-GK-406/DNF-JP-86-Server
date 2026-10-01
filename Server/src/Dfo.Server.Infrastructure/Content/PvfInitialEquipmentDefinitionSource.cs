@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -21,6 +22,12 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CreateEquipmentListField = PvfField.Tokens("[create equipment list]", optional: true);
+        internal static readonly PvfField<bool> CloseCreateEquipmentListField = PvfField.Marker("[/create equipment list]", optional: true);
+    }
+
     private const string ListPath = "character/character.lst";
     private const string CharacterDirectory = "character";
     private const string EquipmentListPath = "equipment/equipment.lst";
@@ -82,56 +89,20 @@ internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDef
         if (fileIndex < 0)
             return [];
 
-        var open = archive.GetTag("[create equipment list]").Offset;
-        var close = archive.GetTag("[/create equipment list]").Offset;
         var grants = new List<InitialEquipmentGrant>();
-        var inside = false;
-        byte? pendingSlot = null;
-
-        // The slot names inside the section are quoted strings, not tags. The section's own open
-        // and close are tags, so both kinds have to be read: a reader that matches only tags sees
-        // an empty section and dresses every character in nothing, which is what the printed form
-        // of the file gives no hint of.
-        var reader = archive.OpenScript(fileIndex);
-        while (reader.Read(out var token))
+        var path = $"{CharacterDirectory}/{relativePath}";
+        var document = PvfDocument.Open(archive, path);
+        if (!document.TryRead(Fields.CreateEquipmentListField, out var values)) return grants;
+        if (values.Count % 2 != 0) throw new InvalidDataException($"PVF '{path}', field '{Fields.CreateEquipmentListField.Name}': incomplete slot/item pair.");
+        var usedSlots = new HashSet<byte>();
+        for (var i = 0; i < values.Count; i += 2)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                if (token.Value == open)
-                {
-                    inside = true;
-                    pendingSlot = null;
-                    continue;
-                }
-
-                if (inside && token.Value == close)
-                    break;
-
-                if (inside)
-                    pendingSlot = null;
-                continue;
-            }
-
-            if (!inside)
-                continue;
-
-            if (token.IsString)
-            {
-                // An unrecognised slot name still clears the pending one. Carrying it forward
-                // would attach the next name's integer to the last slot we understood.
-                pendingSlot = PvfEquipmentSlots.ByName.TryGetValue(archive.ResolveString(token.Value), out var slot)
-                    ? slot
-                    : null;
-                continue;
-            }
-
-            if (pendingSlot is null || token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            if (token.Value > 0)
-                grants.Add(new InitialEquipmentGrant(
-                    pendingSlot.Value, token.Value, Durability(archive, token.Value)));
-            pendingSlot = null;
+            if (!values[i].IsString || values[i + 1].Kind != PvfTokenKind.Int32)
+                throw new InvalidDataException($"PVF '{path}', field '{Fields.CreateEquipmentListField.Name}': expected slot string and Int32 item.");
+            if (!PvfEquipmentSlots.ByName.TryGetValue(archive.ResolveString(values[i].Value), out var slot)) continue;
+            if (!usedSlots.Add(slot)) throw new InvalidDataException($"PVF '{path}', field '{Fields.CreateEquipmentListField.Name}': duplicate slot {slot}.");
+            var itemId = values[i + 1].Value;
+            if (itemId > 0) grants.Add(new(slot, itemId, Durability(archive, itemId)));
         }
 
         return grants;

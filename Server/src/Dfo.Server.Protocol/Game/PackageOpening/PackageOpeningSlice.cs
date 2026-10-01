@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Inventory;
@@ -15,8 +16,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.PackageOpening;
 
-public sealed record PackageOpeningRequest(GameMessageMetadata Metadata, PackageOpeningInput? Input, AvatarPackageOpeningInput? AvatarInput = null) : IClientNetworkMessage
+public sealed record PackageOpeningRequest(GameMessageMetadata Metadata, PackageOpeningInput? Input, AvatarPackageOpeningInput? AvatarInput = null) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GamePackageOpening;
 }
 internal sealed class PackageOpeningDecoder : IGameMessageDecoder
@@ -60,7 +62,7 @@ internal sealed class PackageOpeningEncoder : GameCmdMessageEncoder<PackageOpeni
     }
 }
 public sealed record PackageOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, PackageOpeningInput Input, AvatarPackageOpeningInput? AvatarInput = null)
-    : ICommand<PackageOpeningResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -68,8 +70,8 @@ public sealed class PackageOpeningCommandHandler(IPackageOpeningDomainService pa
     : ICommandHandler<PackageOpeningCommand, PackageOpeningResult>
 {
     public ValueTask<PackageOpeningResult> HandleAsync(CommandExecutionContext context, PackageOpeningCommand command, CancellationToken ct) =>
-        command.AvatarInput is { } options ? avatars.OpenAsync(command.Session, options, clock.GetUtcNow(), ct) :
-        packages.OpenAsync(command.Session, command.Input, clock.GetUtcNow(), ct);
+        command.AvatarInput is { } options ? avatars.OpenAsync(command.Session, OpeningWireSlots.Business(options), clock.GetUtcNow(), ct) :
+        packages.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
 }
 public sealed class PackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<PackageOpeningHandler> logger)
@@ -85,8 +87,8 @@ public sealed class PackageOpeningHandler(ISelectedSessionDomainService sessions
         else
         {
             try { result = await commands.SendAsync(new PackageOpeningCommand(online.OnlineUserId, session, message.Input, message.AvatarInput), ct).ConfigureAwait(false); }
-            catch (OpeningRejectedException failure) { result = new(failure.Reason, Detail: failure.Message); }
-            catch (Exception failure) when (failure is not OperationCanceledException)
+            catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) { result = new(failure.Reason, Detail: failure.Message); }
+            catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
             {
                 logger.LogError(failure, "Package opening storage failure for {ConnectionId}", context.Connection.ConnectionId);
                 result = new(OpeningRejection.StorageFailure);

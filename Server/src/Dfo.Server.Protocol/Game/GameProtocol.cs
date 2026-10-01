@@ -13,6 +13,13 @@ internal static class GameProtocol
     /// </remarks>
     public const int SecretShopNpcId = 1000;
 
+    public const ushort SortLockType = 0x02CA;
+    public const ushort SortUnlockType = 0x02CB;
+
+    public const ushort CompoundItemType = 0x0019;
+
+    public const ushort SortItemType = 0x0014;
+
     public const ushort LearnSkillType = 0x001D;
 
     public const ushort LoginType = 0x0001;
@@ -263,6 +270,13 @@ internal static class GameProtocol
     public const ushort RepairItemType = 0x0017;
     // Selector one: the same numeric type is also UDP-host NOTI 0x001A under selector zero.
     public const ushort DisjointItemType = 0x001A;
+    public const ushort ReinforceItemType = 0x0050;
+    public const ushort EnchantByBeadType = 0x0110;
+    public const ushort UnsealRandomOptionType = 0x0191;
+    public const ushort ChangeRandomOptionType = 0x01B6;
+    public const ushort PurifyItemType = 0x00CC;
+    public const ushort InvestAmplifyOptionType = 0x00CD;
+    public const ushort SeparateUpgradeType = 0x01B7;
 
     public const ushort ShopPurchaseCountType = 0x02CC;
 

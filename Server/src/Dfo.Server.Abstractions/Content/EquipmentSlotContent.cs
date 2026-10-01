@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Inventory;
+
 namespace Dfo.Server.Abstractions.Content;
 
 /// <summary>
@@ -15,5 +17,5 @@ public interface IEquipmentSlotDefinitionSource
     /// The slot this item is worn in, or null when the archive declares nothing wearable under
     /// that identifier.
     /// </summary>
-    ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken);
+    ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken);
 }

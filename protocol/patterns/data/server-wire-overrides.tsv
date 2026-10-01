@@ -18,3 +18,5 @@ NOTI	PetRevivalStateMessage	0x006B	Game/StateSynchronization/SupplementalSynchro
 NOTI	PetRevivalStateMessage	0x0067	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	one registered message emits two payloads
 NOTI	ExpertStoreClosedMessage	0x021C	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
 NOTI	TownDepartureMessage	0x0006	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+CMD	SortLockResponse	0x02CA	Game/InventorySort/SortLockMessages.cs	Locked conditional emits SortLockType when true
+CMD	SortLockResponse	0x02CB	Game/InventorySort/SortLockMessages.cs	Locked conditional emits SortUnlockType when false

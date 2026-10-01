@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="51db255b-c5b0-4102-8c85-045f4a4db947" name="Gloria@家庭台式机 2026-10-01 13:32:29" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T13:32:29.3677150+08:00" queuing="2026-10-01T13:32:29.3677151+08:00" start="2026-10-01T13:32:27.5476508+08:00" finish="2026-10-01T13:32:31.9501479+08:00" />
+  <TestSettings name="default" id="708ae6b1-0aeb-493a-b994-9f0054ada5e4">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_13_32_29" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="56116d93-1df1-41b6-b462-2a7d3b0041d2" testId="459caa32-a885-cb3a-e68b-b36f24b34bfb" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Two_experience_effects_validate_first_then_apply_expected_after_and_preserve_cap_earned" computerName="家庭台式机" duration="00:00:00.0392937" startTime="2026-10-01T13:32:31.0083053+08:00" endTime="2026-10-01T13:32:31.0475862+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="56116d93-1df1-41b6-b462-2a7d3b0041d2" />
+    <UnitTestResult executionId="19fddfaa-6e1c-488d-aea9-4d249275b5ff" testId="e6e86e5e-185a-4b91-a085-9ddb0c153c2c" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Unmet_or_unowned_completion_pays_nothing" computerName="家庭台式机" duration="00:00:00.0387118" startTime="2026-10-01T13:32:30.9249434+08:00" endTime="2026-10-01T13:32:30.9636407+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="19fddfaa-6e1c-488d-aea9-4d249275b5ff" />
+    <UnitTestResult executionId="b181c298-532b-4dc2-a6cd-f434fca84538" testId="f0092aad-9fa5-b0c1-636e-463d1e393177" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Empty_bag_receives_the_entire_multi_stack_reward(amount: 12, entries: 2)" computerName="家庭台式机" duration="00:00:00.3655000" startTime="2026-10-01T13:32:28.8497099+08:00" endTime="2026-10-01T13:32:29.2150928+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b181c298-532b-4dc2-a6cd-f434fca84538" />
+    <UnitTestResult executionId="a2fef12b-78e8-42a4-b175-401451a21fc8" testId="43a946d1-e1eb-eea1-01c2-d0182fcf2c2d" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Invalid_selection_or_completion_count_never_pays(selection: 1, count: 0)" computerName="家庭台式机" duration="00:00:00.0478560" startTime="2026-10-01T13:32:30.8769767+08:00" endTime="2026-10-01T13:32:30.9247895+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a2fef12b-78e8-42a4-b175-401451a21fc8" />
+    <UnitTestResult executionId="30c98276-8fd6-48d1-b794-f2788387f9ec" testId="7acc5695-7fce-1bf4-f988-5dc58b8b4e7f" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Invalid_selection_or_completion_count_never_pays(selection: 65535, count: 2)" computerName="家庭台式机" duration="00:00:00.0535066" startTime="2026-10-01T13:32:30.8238728+08:00" endTime="2026-10-01T13:32:30.8768193+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="30c98276-8fd6-48d1-b794-f2788387f9ec" />
+    <UnitTestResult executionId="07106d4c-9963-4e26-a3ad-2bc00a8c672c" testId="d1b066ef-dec8-2e16-4c3d-64749c43f838" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows" computerName="家庭台式机" duration="00:00:00.0395176" startTime="2026-10-01T13:32:30.3918931+08:00" endTime="2026-10-01T13:32:30.4362640+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="07106d4c-9963-4e26-a3ad-2bc00a8c672c">
+      <Output>
+        <ErrorInfo>
+          <Message>Microsoft.Data.Sqlite.SqliteException : SQLite Error 1: 'no such table: character_quest_notify'.</Message>
+          <StackTrace>   at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)&#xD;
+   at Microsoft.Data.Sqlite.SqliteCommand.PrepareAndEnumerateStatements()+MoveNext()&#xD;
+   at Microsoft.Data.Sqlite.SqliteCommand.GetStatements()+MoveNext()&#xD;
+   at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()&#xD;
+   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteNonQuery()&#xD;
+   at Dfo.Server.Application.Tests.Inventory.ShopFixture.Sql(String sql) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs:line 381&#xD;
+   at Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Quests\OrdinaryQuestEffectTests.cs:line 117&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="943b74ec-870a-4604-ac13-3e2b69af8933" testId="546f39f5-f441-330b-66d2-03d84089e0f5" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Reward_fills_every_pile_instead_of_silently_losing_the_remainder" computerName="家庭台式机" duration="00:00:00.3803993" startTime="2026-10-01T13:32:29.2153372+08:00" endTime="2026-10-01T13:32:29.5956255+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="943b74ec-870a-4604-ac13-3e2b69af8933" />
+    <UnitTestResult executionId="132eb5e0-c88e-4d91-a3f6-b6c16e94870d" testId="b684e690-99f5-8584-c994-67321a146881" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Empty_bag_receives_the_entire_multi_stack_reward(amount: 23, entries: 3)" computerName="家庭台式机" duration="00:00:00.6438900" startTime="2026-10-01T13:32:28.2032245+08:00" endTime="2026-10-01T13:32:28.8494463+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="132eb5e0-c88e-4d91-a3f6-b6c16e94870d" />
+    <UnitTestResult executionId="b1d916f5-e901-4446-b48b-3d43e9eb6b99" testId="f5ccfc5c-b833-34af-b856-b5c9185e4101" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Full_bag_refuses_without_touching_any_durable_state" computerName="家庭台式机" duration="00:00:00.0443778" startTime="2026-10-01T13:32:30.9638198+08:00" endTime="2026-10-01T13:32:31.0081548+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b1d916f5-e901-4446-b48b-3d43e9eb6b99" />
+    <UnitTestResult executionId="20476853-dd56-442c-befd-326e40969a56" testId="d9e8db0c-a9f2-1200-a108-5015828eee8c" testName="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests.Giving_up_removes_the_carried_quest_and_prevents_later_completion" computerName="家庭台式机" duration="00:00:00.2302688" startTime="2026-10-01T13:32:28.2021243+08:00" endTime="2026-10-01T13:32:28.4378419+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="20476853-dd56-442c-befd-326e40969a56" />
+    <UnitTestResult executionId="3af7f6f2-0da0-495b-b07b-7009110893c3" testId="55bc0b0f-c117-a5b5-a4d9-76435b4af2d7" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Basic_rewards_preserve_existing_pile_fields_and_create_zero_default_core" computerName="家庭台式机" duration="00:00:00.4194978" startTime="2026-10-01T13:32:29.5959588+08:00" endTime="2026-10-01T13:32:30.0153051+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3af7f6f2-0da0-495b-b07b-7009110893c3" />
+    <UnitTestResult executionId="3b55bb04-871b-4477-8b2a-4f199afae722" testId="b2258f14-447e-6c46-a774-28d0cbec5a59" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Two_legitimate_completions_add_to_current_progress_and_a_duplicate_uncarried_attempt_cannot_pay" computerName="家庭台式机" duration="00:00:00.4169818" startTime="2026-10-01T13:32:31.4660222+08:00" endTime="2026-10-01T13:32:31.8829957+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3b55bb04-871b-4477-8b2a-4f199afae722" />
+    <UnitTestResult executionId="971745cc-a28d-4e70-8ae7-fbe7e04af661" testId="358f48f4-396a-fe37-4da9-3df11c0c7c50" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Equipment_reward_count_two_creates_two_distinct_durable_items" computerName="家庭台式机" duration="00:00:00.4180816" startTime="2026-10-01T13:32:31.0477416+08:00" endTime="2026-10-01T13:32:31.4658371+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="971745cc-a28d-4e70-8ae7-fbe7e04af661" />
+    <UnitTestResult executionId="79a32dc2-3c89-48cd-b105-bab6c4f1e162" testId="59c52086-2fe7-37e9-1ebb-bf8e4a33f04a" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials" computerName="家庭台式机" duration="00:00:00.3863132" startTime="2026-10-01T13:32:30.4414086+08:00" endTime="2026-10-01T13:32:30.8231951+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="79a32dc2-3c89-48cd-b105-bab6c4f1e162">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 1&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Quests\OrdinaryQuestEffectTests.cs:line 109&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="df79a6f6-c23d-409e-b8df-8cf55bdf4be6" testId="69cd46b4-2692-1dc8-47a5-3ed9939df9db" testName="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Stale_missing_trigger_uses_live_holdings_and_never_consumes_requirement_items" computerName="家庭台式机" duration="00:00:00.3762863" startTime="2026-10-01T13:32:30.0154967+08:00" endTime="2026-10-01T13:32:30.3916961+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="df79a6f6-c23d-409e-b8df-8cf55bdf4be6" />
+    <UnitTestResult executionId="b34998a5-51e6-4332-a0c8-f77534e4fd61" testId="c37c622b-baa0-7813-b717-bf935a58f5d3" testName="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests.A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone" computerName="家庭台式机" duration="00:00:00.0459694" startTime="2026-10-01T13:32:28.4452430+08:00" endTime="2026-10-01T13:32:28.4841054+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b34998a5-51e6-4332-a0c8-f77534e4fd61" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests.A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="c37c622b-baa0-7813-b717-bf935a58f5d3">
+      <Execution id="b34998a5-51e6-4332-a0c8-f77534e4fd61" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests" name="A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Two_experience_effects_validate_first_then_apply_expected_after_and_preserve_cap_earned" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="459caa32-a885-cb3a-e68b-b36f24b34bfb">
+      <Execution id="56116d93-1df1-41b6-b462-2a7d3b0041d2" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Two_experience_effects_validate_first_then_apply_expected_after_and_preserve_cap_earned" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="59c52086-2fe7-37e9-1ebb-bf8e4a33f04a">
+      <Execution id="79a32dc2-3c89-48cd-b105-bab6c4f1e162" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Unmet_or_unowned_completion_pays_nothing" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="e6e86e5e-185a-4b91-a085-9ddb0c153c2c">
+      <Execution id="19fddfaa-6e1c-488d-aea9-4d249275b5ff" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Unmet_or_unowned_completion_pays_nothing" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="d1b066ef-dec8-2e16-4c3d-64749c43f838">
+      <Execution id="07106d4c-9963-4e26-a3ad-2bc00a8c672c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Equipment_reward_count_two_creates_two_distinct_durable_items" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="358f48f4-396a-fe37-4da9-3df11c0c7c50">
+      <Execution id="971745cc-a28d-4e70-8ae7-fbe7e04af661" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Equipment_reward_count_two_creates_two_distinct_durable_items" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Empty_bag_receives_the_entire_multi_stack_reward(amount: 12, entries: 2)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="f0092aad-9fa5-b0c1-636e-463d1e393177">
+      <Execution id="b181c298-532b-4dc2-a6cd-f434fca84538" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Empty_bag_receives_the_entire_multi_stack_reward" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Invalid_selection_or_completion_count_never_pays(selection: 65535, count: 2)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="7acc5695-7fce-1bf4-f988-5dc58b8b4e7f">
+      <Execution id="30c98276-8fd6-48d1-b794-f2788387f9ec" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Invalid_selection_or_completion_count_never_pays" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Full_bag_refuses_without_touching_any_durable_state" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="f5ccfc5c-b833-34af-b856-b5c9185e4101">
+      <Execution id="b1d916f5-e901-4446-b48b-3d43e9eb6b99" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Full_bag_refuses_without_touching_any_durable_state" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Empty_bag_receives_the_entire_multi_stack_reward(amount: 23, entries: 3)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="b684e690-99f5-8584-c994-67321a146881">
+      <Execution id="132eb5e0-c88e-4d91-a3f6-b6c16e94870d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Empty_bag_receives_the_entire_multi_stack_reward" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Invalid_selection_or_completion_count_never_pays(selection: 1, count: 0)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="43a946d1-e1eb-eea1-01c2-d0182fcf2c2d">
+      <Execution id="a2fef12b-78e8-42a4-b175-401451a21fc8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Invalid_selection_or_completion_count_never_pays" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Basic_rewards_preserve_existing_pile_fields_and_create_zero_default_core" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="55bc0b0f-c117-a5b5-a4d9-76435b4af2d7">
+      <Execution id="3af7f6f2-0da0-495b-b07b-7009110893c3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Basic_rewards_preserve_existing_pile_fields_and_create_zero_default_core" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Two_legitimate_completions_add_to_current_progress_and_a_duplicate_uncarried_attempt_cannot_pay" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="b2258f14-447e-6c46-a774-28d0cbec5a59">
+      <Execution id="3b55bb04-871b-4477-8b2a-4f199afae722" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Two_legitimate_completions_add_to_current_progress_and_a_duplicate_uncarried_attempt_cannot_pay" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Stale_missing_trigger_uses_live_holdings_and_never_consumes_requirement_items" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="69cd46b4-2692-1dc8-47a5-3ed9939df9db">
+      <Execution id="df79a6f6-c23d-409e-b8df-8cf55bdf4be6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Stale_missing_trigger_uses_live_holdings_and_never_consumes_requirement_items" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests.Giving_up_removes_the_carried_quest_and_prevents_later_completion" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="d9e8db0c-a9f2-1200-a108-5015828eee8c">
+      <Execution id="20476853-dd56-442c-befd-326e40969a56" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.SeekingQuestCompletionTests" name="Giving_up_removes_the_carried_quest_and_prevents_later_completion" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Reward_fills_every_pile_instead_of_silently_losing_the_remainder" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="546f39f5-f441-330b-66d2-03d84089e0f5">
+      <Execution id="943b74ec-870a-4604-ac13-3e2b69af8933" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests" name="Reward_fills_every_pile_instead_of_silently_losing_the_remainder" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="459caa32-a885-cb3a-e68b-b36f24b34bfb" executionId="56116d93-1df1-41b6-b462-2a7d3b0041d2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e6e86e5e-185a-4b91-a085-9ddb0c153c2c" executionId="19fddfaa-6e1c-488d-aea9-4d249275b5ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f0092aad-9fa5-b0c1-636e-463d1e393177" executionId="b181c298-532b-4dc2-a6cd-f434fca84538" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="43a946d1-e1eb-eea1-01c2-d0182fcf2c2d" executionId="a2fef12b-78e8-42a4-b175-401451a21fc8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7acc5695-7fce-1bf4-f988-5dc58b8b4e7f" executionId="30c98276-8fd6-48d1-b794-f2788387f9ec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1b066ef-dec8-2e16-4c3d-64749c43f838" executionId="07106d4c-9963-4e26-a3ad-2bc00a8c672c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="546f39f5-f441-330b-66d2-03d84089e0f5" executionId="943b74ec-870a-4604-ac13-3e2b69af8933" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b684e690-99f5-8584-c994-67321a146881" executionId="132eb5e0-c88e-4d91-a3f6-b6c16e94870d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f5ccfc5c-b833-34af-b856-b5c9185e4101" executionId="b1d916f5-e901-4446-b48b-3d43e9eb6b99" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d9e8db0c-a9f2-1200-a108-5015828eee8c" executionId="20476853-dd56-442c-befd-326e40969a56" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="55bc0b0f-c117-a5b5-a4d9-76435b4af2d7" executionId="3af7f6f2-0da0-495b-b07b-7009110893c3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b2258f14-447e-6c46-a774-28d0cbec5a59" executionId="3b55bb04-871b-4477-8b2a-4f199afae722" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="358f48f4-396a-fe37-4da9-3df11c0c7c50" executionId="971745cc-a28d-4e70-8ae7-fbe7e04af661" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="59c52086-2fe7-37e9-1ebb-bf8e4a33f04a" executionId="79a32dc2-3c89-48cd-b105-bab6c4f1e162" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="69cd46b4-2692-1dc8-47a5-3ed9939df9db" executionId="df79a6f6-c23d-409e-b8df-8cf55bdf4be6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c37c622b-baa0-7813-b717-bf935a58f5d3" executionId="b34998a5-51e6-4332-a0c8-f77534e4fd61" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="16" executed="16" passed="14" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.13]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.30]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.33]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:02.58]       Microsoft.Data.Sqlite.SqliteException : SQLite Error 1: 'no such table: character_quest_notify'.&#xD;
+[xUnit.net 00:00:02.58]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.58]            at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)&#xD;
+[xUnit.net 00:00:02.58]            at Microsoft.Data.Sqlite.SqliteCommand.PrepareAndEnumerateStatements()+MoveNext()&#xD;
+[xUnit.net 00:00:02.58]            at Microsoft.Data.Sqlite.SqliteCommand.GetStatements()+MoveNext()&#xD;
+[xUnit.net 00:00:02.58]            at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()&#xD;
+[xUnit.net 00:00:02.58]            at Microsoft.Data.Sqlite.SqliteCommand.ExecuteNonQuery()&#xD;
+[xUnit.net 00:00:02.58]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\NpcShopPurchaseTests.cs(381,0): at Dfo.Server.Application.Tests.Inventory.ShopFixture.Sql(String sql)&#xD;
+[xUnit.net 00:00:02.58]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Quests\OrdinaryQuestEffectTests.cs(117,0): at Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows()&#xD;
+[xUnit.net 00:00:02.58]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.96]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:02.96]       Expected: 1&#xD;
+[xUnit.net 00:00:02.96]       Actual:   0&#xD;
+[xUnit.net 00:00:02.96]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.96]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Quests\OrdinaryQuestEffectTests.cs(109,0): at Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials()&#xD;
+[xUnit.net 00:00:02.96]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.02]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T13:32:30.4382941+08:00">
+        <Text>[xUnit.net 00:00:02.58]     Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T13:32:30.8239031+08:00">
+        <Text>[xUnit.net 00:00:02.96]     Dfo.Server.Application.Tests.Quests.OrdinaryQuestEffectTests.Holdings_snapshot_contains_untouched_main_and_overlays_quick_rewards_but_not_account_materials [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

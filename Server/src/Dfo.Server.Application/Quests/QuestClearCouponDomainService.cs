@@ -1,5 +1,5 @@
-using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Inventory;
@@ -7,60 +7,29 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Quests;
 
-internal sealed class QuestClearCouponDomainService(
-    IOpeningInventoryDomainService inventory,
-    ICharacterDomainService characters,
-    ICharacterQuestLogDomainService logs,
-    IQuestClearCouponRuleService rules,
-    IQuestProgressDomainService progress) : IQuestClearCouponDomainService
+internal sealed class QuestClearCouponDomainService(IOpeningInventoryDomainService inventory,
+    ICharacterDomainService characters, IConsumableStateDomainService states,
+    IQuestClearCouponRuleService rules, ISpecialConsumableEffectPlanRuleService plans) : IQuestClearCouponDomainService
 {
-    private const int CouponItemId = 10_006_007;
-
-    public async ValueTask<QuestClearCouponResult> UseAsync(
-        SelectedSessionIdentity session,
-        int sourceSlot,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
+    public async ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session,
+        BusinessSlot sourceSlot, DateTimeOffset now, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(session);
-
-        // Source validates the live selected character, ownership, usability and expiry before
-        // any quest is changed. Settle checks the source again before consuming it.
-        var source = await inventory.SourceAsync(session, sourceSlot, now, cancellationToken)
-            .ConfigureAwait(false);
-        if (source.ItemId != CouponItemId)
-            throw new OpeningRejectedException(OpeningRejection.UnsupportedContent,
-                $"Item {source.ItemId} is not a quest-clear coupon.");
-
+        var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
+        if (source.ItemId != 10_006_007)
+            throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Not a quest-clear coupon.");
         var character = characters.Get(session.CharacterId);
-        var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);
-        var characterProgress = await character.ProgressAsync(cancellationToken).ConfigureAwait(false);
-        if (identity is null || characterProgress is null || identity.CharacterId != session.CharacterId)
-            throw new OpeningRejectedException(OpeningRejection.ItemUnusable,
-                "The selected character's current identity or level is unavailable.");
-
-        var log = logs.LogOf(session.AccountId, session.CharacterId);
-        var cleared = await log.ClearedAsync(cancellationToken).ConfigureAwait(false);
-        var selected = await rules.SelectAsync(source.ItemId, characterProgress.Level, identity.Job,
-            identity.GrowType, cleared, now, cancellationToken).ConfigureAwait(false);
+        var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
+        var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
+        if (identity is null || progress is null || identity.CharacterId != session.CharacterId)
+            throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Character identity or progress unavailable.");
+        var state = await states.QuestsAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
+        var cleared = state.Cleared.Where(x => x.Mark != 0).Select(x => new ClearedQuest(x.QuestId, x.Mark)).ToArray();
+        var selected = await rules.SelectAsync(source.ItemId, progress.Level, identity.Job, identity.GrowType, cleared, now, ct).ConfigureAwait(false);
         if (selected is null || selected.Count == 0)
-            throw new OpeningRejectedException(OpeningRejection.InvalidChoice,
-                "No eligible quests remain for this coupon.");
-
-        var completed = await log.CompleteWithoutRewardsAsync(selected, cancellationToken)
-            .ConfigureAwait(false);
-        if (completed.Count == 0)
-            throw new OpeningRejectedException(OpeningRejection.InvalidChoice,
-                "The selected quests were already cleared.");
-
-        await progress.ReportAsync(session.AccountId, session.CharacterId,
-            [.. completed.Select(id => (QuestProgressFact)new QuestCleared(id))],
-            cancellationToken).ConfigureAwait(false);
-
-        var receipt = await inventory.SettleAsync(session,
-            [new OpeningSlotConsumption(sourceSlot, source.ItemId, 1)],
-            ImmutableArray<OpeningPreparedGrant>.Empty, now, cancellationToken)
-            .ConfigureAwait(false);
-        return new QuestClearCouponResult(receipt, completed);
+            throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "No eligible quests remain for this coupon.");
+        var plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
+        var result = await inventory.ApplyAsync(session, plan.Effects, now, ct).ConfigureAwait(false);
+        return new(result.Inventory, plan.Completed);
     }
 }

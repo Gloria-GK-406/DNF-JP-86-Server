@@ -430,8 +430,8 @@ public sealed class PvfClearRewardRateSourceTests
                 tags.Add(archive.ResolveString(token.Value));
         }
 
-        Assert.Contains(PvfClearRewardRateSource.UnreadSections.RarityControl, tags);
-        Assert.Contains(PvfClearRewardRateSource.UnreadSections.ChronicleSetRewardRate, tags);
+        Assert.Contains(PvfClearRewardRateSource.UnreadSections.RarityControl.Name, tags);
+        Assert.Contains(PvfClearRewardRateSource.UnreadSections.ChronicleSetRewardRate.Name, tags);
 
         // And the reading really does leave them out: none of the table's numeric members holds
         // the five numbers of [item drop rarity control] or the three pairs of
@@ -815,47 +815,16 @@ public sealed class PvfClearRewardRateSourceTests
                 file, DropRateTables.ClearReward, StringComparison.Ordinal)));
     }
 
-    /// <summary>
-    /// What the sibling reader really does when this file is handed to it.
-    /// </summary>
-    /// <remarks>
-    /// <c>PvfClearRewardRateSource</c>'s own remarks said for seven rounds that it would hand back
-    /// a full table without complaining once. It does not: it throws. But it throws over a section
-    /// it read correctly, so both halves are pinned here -- that the file is refused, and that the
-    /// refusal is not the shape being noticed. The rate count named in the message is the
-    /// misreading itself: sixteen, from bands of eighteen less their two level bounds.
-    /// </remarks>
+    /// <summary>The integer-band reader rejects clear reward's named profile field at its boundary.</summary>
     [SkippableFact]
-    public void The_sibling_reader_refuses_this_file_over_a_section_it_read_correctly()
+    public void The_sibling_reader_refuses_the_incompatible_named_profile_shape()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-
         var thrown = Assert.Throws<InvalidDataException>(
             () => new PvfDropRateTableSource(provider).Load(DropRateTables.ClearReward));
-
-        Assert.Contains(
-            "[dungeon difficulty drop bonusrate]", thrown.Message, StringComparison.Ordinal);
-        Assert.Contains("16 rates", thrown.Message, StringComparison.Ordinal);
-
-        // The section it actually misread is not what it complains about.
-        Assert.DoesNotContain(DropProbTag, thrown.Message, StringComparison.Ordinal);
-
-        // Because that section gave it no trouble: seventy-two numbers over the four bands this
-        // file declares divide evenly into bands of eighteen, sixteen of them past the bounds.
-        var declared = Numbers(provider, DropRateTables.ClearReward, BandCountTag);
-        var numbers = Numbers(provider, DropRateTables.ClearReward, DropProbTag).Count;
-        Assert.Equal([ClearRewardBandsPerProfile], declared);
-        Assert.Equal(0, numbers % ClearRewardBandsPerProfile);
-        Assert.Equal(18, numbers / ClearRewardBandsPerProfile);
-        Assert.Equal(
-            16, (numbers / ClearRewardBandsPerProfile) - ClearRewardBandLevelBoundCount);
-
-        // And the five it could not divide by that sixteen are the difficulty bonuses.
-        Assert.Equal(
-            5,
-            Numbers(provider, DropRateTables.ClearReward, "[dungeon difficulty drop bonusrate]")
-                .Count);
+        Assert.Contains(DropProbTag, thrown.Message, StringComparison.Ordinal);
+        Assert.Contains("expected Int32 list", thrown.Message, StringComparison.Ordinal);
     }
 
     /// <summary>

@@ -74,16 +74,14 @@ public sealed class GrantKillExperienceCommandTests
     private static async Task<ExperienceAward?> Award(
         int monsterLevel, MonsterRank rank, double channelRate)
     {
-        var handler = new GrantKillExperienceCommandHandler(
-            new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
+        var handler = new GrantKillExperienceCommandHandler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new CapturedParameters(),
                 new UngradedRanks(),
                 new NoProgression(),
                 new NoChannelExperience(),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None)),
-            new FixedChannelBonus(channelRate)),
-            new PricingGrant(characterLevel: 3));
+            new FixedChannelBonus(channelRate)), characterLevel: 3), TimeProvider.System);
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -163,7 +161,7 @@ public sealed class GrantKillExperienceCommandTests
     /// the monster one or two levels above them, which is the band the level-gap rate of 1.12
     /// covers. Where the award lands afterwards belongs to the grant's own tests.
     /// </remarks>
-    private sealed class PricingGrant(byte characterLevel) : ICharacterExperienceDomainService
+    private sealed class PricingGrant(IExperienceCalculationDomainService calculation, byte characterLevel) : ICharacterExperienceDomainService
     {
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
@@ -173,12 +171,9 @@ public sealed class GrantKillExperienceCommandTests
             CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public async ValueTask<ExperienceAward?> AwardAsync(
-            CharacterId characterId,
-            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
-            CancellationToken cancellationToken)
+        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
-            var breakdown = await valuation(characterLevel);
+            var breakdown = await calculation.CalculateAsync(source, characterLevel, cancellationToken);
             return new ExperienceAward(breakdown, characterLevel, breakdown.Total, LeveledUp: false);
         }
     }

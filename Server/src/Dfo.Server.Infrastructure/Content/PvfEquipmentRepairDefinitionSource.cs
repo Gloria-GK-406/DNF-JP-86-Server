@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -6,6 +7,15 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider provider) : IEquipmentRepairDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> RepairPriceField = PvfField.Int32("[repair price]", optional: true);
+        internal static readonly PvfField<int> GradeField = PvfField.Int32("[grade]", optional: true);
+        internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true);
+        internal static readonly PvfField<double> RepairCostField = PvfField.Number("[repair cost]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> RepairCostRateByUpgradeLevelField = PvfField.Numbers("[repair cost rate by upgrade level]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, EquipmentRepairDefinition?> cache = [];
     private Dictionary<int, string>? paths;
@@ -37,13 +47,13 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
         if (!paths.TryGetValue(itemId, out var relative))
             return null;
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative);
-        var price = OneInt(sections, "[repair price]");
-        var grade = OneInt(sections, "[grade]");
-        var durability = OneInt(sections, "[durability]");
+        var price = OneInt(archive, sections, Fields.RepairPriceField);
+        var grade = OneInt(archive, sections, Fields.GradeField);
+        var durability = OneInt(archive, sections, Fields.DurabilityField);
         // Some equipment (such as non-durable bracelets) declares neither repair field. It is
         // still a valid equipment instance: repairing it is a zero-cost, unchanged operation.
         // A single missing or malformed field is not the same thing and must stay unreadable.
-        if (grade is >= 0 && !sections.Any(x => x.Name is "[repair price]" or "[durability]"))
+        if (grade is >= 0 && !sections.Any(x => (x.Name == Fields.RepairPriceField.Name || x.Name == Fields.DurabilityField.Name)))
             return new(0, grade.Value, 0);
         return price is > 0 && grade is >= 0 && durability is > 0 and <= ushort.MaxValue
             ? new(price.Value, grade.Value, (ushort)durability.Value) : null;
@@ -54,8 +64,8 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
         var archive = provider.Archive;
         var price = PvfNpcShopDefinitionSource.Sections(archive, "equipment/pricetable.tbl");
         var upgrade = PvfNpcShopDefinitionSource.Sections(archive, "etc/upgrade.etc");
-        var cost = OneFloat(price, "[repair cost]");
-        var section = upgrade.Where(x => x.Name == "[repair cost rate by upgrade level]").ToArray();
+        var cost = OneFloat(archive, price, Fields.RepairCostField);
+        var section = upgrade.Where(x => x.Name == Fields.RepairCostRateByUpgradeLevelField.Name).ToArray();
         if (cost is not > 0 || section.Length != 1 || section[0].Values.Count == 0)
             return null;
         var upgradeRates = section[0].Values.Select(Number).ToArray();
@@ -64,18 +74,19 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
         return (cost.Value, upgradeRates);
     }
 
-    private static int? OneInt(IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name)
+    private static int? OneInt(PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<int> name)
     {
-        var matches = sections.Where(x => x.Name == name).ToArray();
+        var matches = sections.Where(x => x.Name == name.Name).ToArray();
         return matches.Length == 1 && matches[0].Values.Count == 1
-            && matches[0].Values[0].Kind == PvfTokenKind.Int32 ? matches[0].Values[0].Value : null;
+            && matches[0].Values[0].Kind == PvfTokenKind.Int32 ? name.Decode(archive, matches[0].Values, "equipment") : null;
     }
 
-    private static float? OneFloat(IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name)
+    private static float? OneFloat(PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<double> name)
     {
-        var matches = sections.Where(x => x.Name == name).ToArray();
+        var matches = sections.Where(x => x.Name == name.Name).ToArray();
         return matches.Length == 1 && matches[0].Values.Count == 1
-            ? Number(matches[0].Values[0]) : null;
+            && float.IsFinite(Number(matches[0].Values[0]))
+            ? (float)name.Decode(archive, matches[0].Values, "equipment repair rate") : null;
     }
 
     private static float Number(PvfToken value) => value.Kind switch

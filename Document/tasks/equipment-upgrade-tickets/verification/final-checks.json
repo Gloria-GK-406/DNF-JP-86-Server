@@ -1,0 +1,72 @@
+[
+  {
+    "name": "final-release-build",
+    "command": "dotnet build Server/86JP.Server.slnx -c Release --no-restore",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:04:04.4484423+00:00",
+    "finishedUtc": "2026-10-01T11:04:07.3861996+00:00"
+  },
+  {
+    "name": "final-Dfo.Pvf",
+    "command": "dotnet test Server/tests/Dfo.Pvf.Tests/Dfo.Pvf.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Pvf.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:04:07.4039328+00:00",
+    "finishedUtc": "2026-10-01T11:04:10.2430374+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Infrastructure",
+    "command": "dotnet test Server/tests/Dfo.Server.Infrastructure.Tests/Dfo.Server.Infrastructure.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Infrastructure.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:04:10.2457261+00:00",
+    "finishedUtc": "2026-10-01T11:04:27.9516348+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Application",
+    "command": "dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Application.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:04:27.9540675+00:00",
+    "finishedUtc": "2026-10-01T11:05:28.1493990+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Persistence",
+    "command": "dotnet test Server/tests/Dfo.Server.Persistence.Tests/Dfo.Server.Persistence.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Persistence.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:05:28.1514305+00:00",
+    "finishedUtc": "2026-10-01T11:05:46.8528420+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Protocol",
+    "command": "dotnet test Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Protocol.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:05:46.8547252+00:00",
+    "finishedUtc": "2026-10-01T11:05:51.5774115+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Networking",
+    "command": "dotnet test Server/tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Networking.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:05:51.5791131+00:00",
+    "finishedUtc": "2026-10-01T11:05:58.2317711+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.HttpApi",
+    "command": "dotnet test Server/tests/Dfo.Server.HttpApi.Tests/Dfo.Server.HttpApi.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.HttpApi.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:05:58.2337350+00:00",
+    "finishedUtc": "2026-10-01T11:06:00.6989391+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Host",
+    "command": "dotnet test Server/tests/Dfo.Server.Host.Tests/Dfo.Server.Host.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Host.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\equipment-upgrade-tickets\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:06:00.7006799+00:00",
+    "finishedUtc": "2026-10-01T11:06:43.6824182+00:00"
+  },
+  {
+    "name": "final-probe-build",
+    "command": "dotnet build Tool/PvfProbe/PvfProbe.csproj -c Release --no-restore",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T11:06:43.6838850+00:00",
+    "finishedUtc": "2026-10-01T11:06:44.6330685+00:00"
+  }
+]

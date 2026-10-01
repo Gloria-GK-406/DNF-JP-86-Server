@@ -1,206 +1,120 @@
-using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
-using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.Tests.Support;
-using Dfo.Server.Data.Accounts;
-using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Inventory;
-using Dfo.Server.Data.Game;
-using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Persistence.Database;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
 public sealed class QuestClearCouponDomainServiceTests
 {
-    private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
-        new AccountId(6), new CharacterId(60), new NetworkConnectionId("coupon"), 1, 10011);
-    private static readonly DateTimeOffset Now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+    private static readonly DateTimeOffset At = new(2026, 10, 1, 0, 0, 0, TimeSpan.Zero);
+    private static readonly BusinessSlot Slot = new(BusinessInventorySpace.Consumable, 4);
 
     [Fact]
-    public async Task SelectedQuestsAreClearedBeforeOneCouponIsConsumedWithoutRewards()
+    public async Task Coupon_clears_carried_and_uncarried_removes_tracking_holes_and_updates_packed_dependents_without_rewards()
     {
-        var events = new List<string>();
-        var inventory = new RecordingInventory(events);
-        var log = new RecordingLog(events) { Completed = [101, 102] };
-        var rules = new RecordingRule(events) { Selected = [101, 102] };
-        var progress = new RecordingProgress(events);
-        var service = Service(inventory, log, rules, progress);
-
-        var result = await service.UseAsync(Session, 69, Now, CancellationToken.None);
-
+        await using var f = Fixture(); await f.SeedAsync(); SeedQuests(f);
+        var result = await Use(f);
         Assert.Equal([101, 102], result.CompletedQuestIds);
-        Assert.Same(inventory.Receipt, result.Inventory);
-        Assert.Equal(["source", "cleared", "rule", "complete", "report", "settle"], events);
-        Assert.Equal([101, 102], progress.Facts!.Select(fact => Assert.IsType<QuestCleared>(fact).QuestId));
-        Assert.Equal([new OpeningSlotConsumption(69, 10_006_007, 1)], inventory.Consumed);
-        Assert.True(inventory.Grants.IsEmpty);
-        Assert.Equal((byte)60, rules.Level);
-        Assert.Equal((byte)0, rules.Job);
-        Assert.Equal((byte)0, rules.GrowType);
+        Assert.Equal(4, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        Assert.Equal(2, f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=71 AND slot_index=103"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+        Assert.Equal((0x05040303 & ~0x1FF) | 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
+        Assert.Equal(9, f.Scalar("SELECT slot_index FROM character_quest_notify_selections WHERE character_id=71"));
+        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Coupon_failure_restores_cost_all_quest_sections_and_dependent_progress(bool failCost)
+    {
+        await using var f = Fixture(); await f.SeedAsync(); SeedQuests(f);
+        f.Sql(failCost
+            ? "CREATE TRIGGER fail_cost BEFORE UPDATE OF bonus_sp ON characters BEGIN SELECT RAISE(ABORT,'cost'); END"
+            : "CREATE TRIGGER fail_clear BEFORE INSERT ON character_invisible_flags BEGIN SELECT RAISE(ABORT,'clear'); END");
+        await Assert.ThrowsAsync<SqliteException>(()=>Use(f));
+        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
+        Assert.Equal(0x05040303, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
+        Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task No_eligible_or_already_cleared_selection_cannot_consume(bool already)
+    {
+        await using var f = Fixture(already ? [101] : []); await f.SeedAsync();
+        if (already) f.Sql("INSERT INTO character_invisible_flags VALUES(71,101,2)");
+        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
+        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
     }
 
     [Fact]
-    public async Task NoEligibleQuestDoesNotChangeLogOrConsumeCoupon()
+    public async Task Another_item_does_not_change_quest_state_or_consume()
     {
-        var events = new List<string>();
-        var inventory = new RecordingInventory(events);
-        var log = new RecordingLog(events);
-        var rules = new RecordingRule(events) { Selected = [] };
-
-        var rejection = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await Service(inventory, log, rules).UseAsync(Session, 69, Now, CancellationToken.None));
-
-        Assert.Equal(OpeningRejection.InvalidChoice, rejection.Reason);
-        Assert.Equal(["source", "cleared", "rule"], events);
+        await using var f = Fixture(sourceId: 8474); await f.SeedAsync(); SeedQuests(f);
+        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f));
+        Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
+        Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
     }
 
-    [Fact]
-    public async Task ChangedClearStateDoesNotConsumeCoupon()
+    private static async Task<QuestClearCouponResult> Use(LearningFixture f)
     {
-        var events = new List<string>();
-        var inventory = new RecordingInventory(events);
-        var log = new RecordingLog(events) { Completed = [] };
-        var rules = new RecordingRule(events) { Selected = [101] };
-
-        var rejection = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await Service(inventory, log, rules).UseAsync(Session, 69, Now, CancellationToken.None));
-
-        Assert.Equal(OpeningRejection.InvalidChoice, rejection.Reason);
-        Assert.Equal(["source", "cleared", "rule", "complete"], events);
+        await using var tx = f.Scope.Begin();
+        var result = await f.Services.GetRequiredService<IQuestClearCouponDomainService>().UseAsync(f.Session,Slot,At,default);
+        await tx.CommitAsync(default); return result;
     }
-
-    [Fact]
-    public async Task AnotherItemDoesNotReachQuestRuleOrSettlement()
+    private static LearningFixture Fixture(int[]? selected = null, int sourceId = 10_006_007) => new(configure: s =>
     {
-        var events = new List<string>();
-        var inventory = new RecordingInventory(events) { ItemId = 123 };
-        var log = new RecordingLog(events);
-        var rules = new RecordingRule(events) { Selected = [101] };
-
-        var rejection = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await Service(inventory, log, rules).UseAsync(Session, 69, Now, CancellationToken.None));
-
-        Assert.Equal(OpeningRejection.UnsupportedContent, rejection.Reason);
-        Assert.Equal(["source"], events);
+        s.AddSingleton<IQuestClearCouponRuleService>(new Selection(selected ?? [101,102,101,103]));
+        s.AddSingleton<IQuestContentRuleService>(new Content());
+        s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((10_006_007, ItemUseRules.Potion(0))));
+        s.AddSingleton<IOpeningInventoryDomainService>(p => new PaymentInventory(p.GetRequiredService<SqliteDatabase>(),
+            p.GetRequiredService<IApplyEffectsDomainService>(),sourceId));
+    });
+    private static void SeedQuests(LearningFixture f) => f.Sql("""
+        INSERT INTO character_active_quests VALUES(71,0,101,9),(71,2,2003,0x05040303);
+        INSERT INTO character_quest_notify_selections VALUES(71,2,101),(71,7,101),(71,9,2003);
+        INSERT INTO character_invisible_flags VALUES(71,103,2);
+        """);
+    private sealed class Selection(int[] ids) : IQuestClearCouponRuleService
+    {
+        public ValueTask<IReadOnlyList<int>> SelectAsync(int itemId, byte level, byte job, byte grow,
+            IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<int>>(ids);
     }
-
-    private static QuestClearCouponDomainService Service(
-        RecordingInventory inventory, RecordingLog log, RecordingRule rules,
-        RecordingProgress? progress = null) =>
-        new(inventory, CurrentCharacterStub.Domain(), new OneLog(log), rules,
-            progress ?? new RecordingProgress([]));
-
-    private sealed class RecordingProgress(List<string> events) : IQuestProgressDomainService
+    private sealed class Content : IQuestContentRuleService
     {
-        public IReadOnlyList<QuestProgressFact>? Facts { get; private set; }
-
-        public ValueTask<QuestProgressReport> ReportAsync(AccountId accountId,
-            CharacterId characterId, IReadOnlyList<QuestProgressFact> facts,
-            CancellationToken cancellationToken)
-        {
-            events.Add("report");
-            Assert.Equal(Session.AccountId, accountId);
-            Assert.Equal(Session.CharacterId, characterId);
-            this.Facts = facts;
-            return ValueTask.FromResult(new QuestProgressReport(null, [], null));
-        }
+        public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(
+            id==2003 ? new QuestDefinition(id, "", QuestGrade.Normal, null, null, null, null, null, [], "clear quest", "",
+                null, null, null, null, null, null, null, [], [], [], [], ClearedQuestRequirements:[101,102,999]) : null);
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(CancellationToken ct) => throw new NotSupportedException();
+        public QuestParameters Parameters() => throw new NotSupportedException();
     }
-
-    private sealed class RecordingInventory(List<string> events) : IOpeningInventoryDomainService
+    // Payment is a same-database scalar stand-in; quest state and its effects are production SQLite.
+    private sealed class PaymentInventory(SqliteDatabase db,IApplyEffectsDomainService effects,int itemId) : IOpeningInventoryDomainService
     {
-        public int ItemId { get; init; } = 10_006_007;
-        public IReadOnlyList<OpeningSlotConsumption>? Consumed { get; private set; }
-        public ImmutableArray<OpeningPreparedGrant> Grants { get; private set; }
-        public OpeningInventoryReceipt Receipt { get; } = new(Session,
-            ImmutableArray<CommittedInventoryUpdateState>.Empty,
-            ImmutableArray<int>.Empty,
-            ImmutableArray<OpeningRewardDisplay>.Empty, Now);
-
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,
-            int slot, DateTimeOffset now, CancellationToken cancellationToken)
+        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity s,BusinessSlot slot,DateTimeOffset at,CancellationToken ct) =>
+            ValueTask.FromResult(new ContainerSlotItem(slot.Index,StackableItemCore.Create(2,itemId,2),ItemWorldClass.Interchangeable));
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity s,CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s,IReadOnlyList<DomainEffect> plan,DateTimeOffset at,CancellationToken ct)
         {
-            Assert.Equal(Session, session);
-            Assert.Equal(69, slot);
-            Assert.Equal(Now, now);
-            events.Add("source");
-            return ValueTask.FromResult(new ContainerSlotItem(slot,
-                StackableItemCore.Create(2, ItemId, 2), ItemWorldClass.Interchangeable));
+            Assert.Equal(1,Assert.Single(plan.OfType<ConsumeFromContainerEffect>()).Count);
+            await db.ExecuteAsync("UPDATE characters SET bonus_sp=bonus_sp-1 WHERE character_id=71", _=>{},ct);
+            var applied = await effects.ApplyAsync(new(s.AccountId,s.CharacterId,at,s),plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
+            return new(new(s,[],[],[],at),applied);
         }
-
-        public ValueTask<OpeningInventoryReceipt> SettleAsync(SelectedSessionIdentity session,
-            IReadOnlyList<OpeningSlotConsumption> consumed,
-            ImmutableArray<OpeningPreparedGrant> grants, DateTimeOffset now,
-            CancellationToken cancellationToken)
-        {
-            events.Add("settle");
-            this.Consumed = consumed;
-            this.Grants = grants;
-            return ValueTask.FromResult(this.Receipt);
-        }
-    }
-
-    private sealed class RecordingRule(List<string> events) : IQuestClearCouponRuleService
-    {
-        public IReadOnlyList<int> Selected { get; init; } = [];
-        public byte Level { get; private set; }
-        public byte Job { get; private set; }
-        public byte GrowType { get; private set; }
-
-        public ValueTask<IReadOnlyList<int>> SelectAsync(int itemId, byte level, byte job,
-            byte growType, IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now,
-            CancellationToken cancellationToken)
-        {
-            events.Add("rule");
-            Assert.Equal(10_006_007, itemId);
-            Assert.Empty(cleared);
-            this.Level = level;
-            this.Job = job;
-            this.GrowType = growType;
-            return ValueTask.FromResult(this.Selected);
-        }
-    }
-
-    private sealed class OneLog(RecordingLog log) : ICharacterQuestLogDomainService
-    {
-        public IQuestLog LogOf(AccountId accountId, CharacterId characterId)
-        {
-            Assert.Equal(Session.AccountId, accountId);
-            Assert.Equal(Session.CharacterId, characterId);
-            return log;
-        }
-    }
-
-    private sealed class RecordingLog(List<string> events) : IQuestLog
-    {
-        public IReadOnlyList<int> Completed { get; init; } = [];
-        public CharacterId CharacterId => Session.CharacterId;
-
-        public ValueTask<IReadOnlyList<ClearedQuest>> ClearedAsync(CancellationToken cancellationToken)
-        {
-            events.Add("cleared");
-            return ValueTask.FromResult<IReadOnlyList<ClearedQuest>>([]);
-        }
-
-        public ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
-            IReadOnlyCollection<int> questIds, CancellationToken cancellationToken)
-        {
-            events.Add("complete");
-            return ValueTask.FromResult(this.Completed);
-        }
-
-        public ValueTask<IReadOnlyList<CarriedQuest>> CarriedAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<CarriedQuest?> FindCarriedAsync(int questId, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<IReadOnlyList<int>> TrackedAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<QuestAcceptance> AcceptAsync(QuestDefinition definition, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<bool> RecordProgressAsync(CarriedQuest asLastSeen, int triggerValue, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<QuestAdvance> AdvanceAsync(QuestDefinition definition, byte selector, bool increment, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<bool> CompleteAsync(int questId, byte mark, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask TrackAsync(IReadOnlyList<int> questIds, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -75,6 +75,8 @@ internal sealed class SqliteItemDomainStore : IItemDomainStore
 internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant owner)
     : IItemDomainStoreSession, ISqliteStoreFacet
 {
+    internal static SqliteItemDomainStoreSession? ExistingIn(SqliteDatabaseParticipant owner) =>
+        owner.ExistingFacet<SqliteItemDomainStoreSession>(typeof(SqliteItemDomainStoreSession));
     /// <summary>What each named slot will hold, or null where it will be left empty.</summary>
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem?>> staged = [];
 
@@ -110,6 +112,7 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
 
         if (this.staged.TryGetValue(containerId, out var slots))
         {
+            var identities = await this.StagedIdentitiesAsync(cancellationToken).ConfigureAwait(false);
             foreach (var (slot, item) in slots)
             {
                 if (item is null)
@@ -118,7 +121,7 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                 }
                 else
                 {
-                    items[slot] = item;
+                    items[slot] = item with { Identity = identities.GetValueOrDefault((containerId, slot)) };
                 }
             }
         }
@@ -132,7 +135,9 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         if (this.staged.TryGetValue(containerId, out var slots)
             && slots.TryGetValue(slotIndex, out var held))
         {
-            return held;
+            if (held is null) return null;
+            var identities = await this.StagedIdentitiesAsync(cancellationToken).ConfigureAwait(false);
+            return held with { Identity = identities.GetValueOrDefault((containerId, slotIndex)) };
         }
 
         var place = OwnerOf(containerId);
@@ -180,7 +185,26 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                 nameof(item));
         }
 
-        this.Staged(containerId)[item.SlotIndex] = item;
+        var slots = this.Staged(containerId);
+        if (item.TransferFrom is null
+            && slots.TryGetValue(item.SlotIndex, out var prior)
+            && prior?.TransferFrom is { } origin
+            && item.WorldClass is not ItemWorldClass.Interchangeable
+            && item.Core.ItemKind == prior.Core.ItemKind
+            && item.Core.ItemId == prior.Core.ItemId
+            && item.Core.Value == prior.Core.Value)
+            item = item with { TransferFrom = origin };
+        slots[item.SlotIndex] = item;
+    }
+
+    private async ValueTask<Dictionary<(ContainerId, int), ItemIdentity>> StagedIdentitiesAsync(
+        CancellationToken cancellationToken)
+    {
+        // Resolve exactly the rows settlement will preserve, without flushing or allocating new UIDs.
+        var survivors = Survivors(this.Placings(),
+            await this.DisplacedAsync(cancellationToken, includeTransferSources: true).ConfigureAwait(false));
+        return survivors.ToDictionary(pair => pair.Key,
+            pair => new ItemIdentity(checked((int)pair.Value.ItemUid)));
     }
 
     public void Clear(ContainerId containerId, int slotIndex)
@@ -284,14 +308,22 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     ];
 
     /// <summary>The rows standing in the positions this batch names, before it touches them.</summary>
-    private async ValueTask<List<Displaced>> DisplacedAsync(CancellationToken cancellationToken)
+    private async ValueTask<List<Displaced>> DisplacedAsync(CancellationToken cancellationToken,
+        bool includeTransferSources = false)
     {
         var displaced = new List<Displaced>();
-        foreach (var containerId in this.staged.Keys
-                     .OrderBy(containerId => containerId.Value, StringComparer.Ordinal))
+        var positions = this.staged.SelectMany(entry => entry.Value.Keys
+            .Select(slot => new ItemTransferSource(entry.Key, slot)));
+        if (includeTransferSources)
+            positions = positions.Concat(this.Placings()
+                .Where(placing => placing.Item.TransferFrom is not null)
+                .Select(placing => placing.Item.TransferFrom!.Value));
+        foreach (var group in positions.Distinct().GroupBy(position => position.Container)
+                     .OrderBy(group => group.Key.Value, StringComparer.Ordinal))
         {
+            var containerId = group.Key;
             var place = OwnerOf(containerId);
-            foreach (var slot in this.staged[containerId].Keys.Order())
+            foreach (var slot in group.Select(position => position.SlotIndex).Order())
             {
                 await using var command = await owner.CommandAsync(cancellationToken)
                     .ConfigureAwait(false);
@@ -341,6 +373,19 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
             .Where(placing => placing.Item.WorldClass is not ItemWorldClass.Interchangeable)
             .ToList();
 
+        foreach (var placing in open.Where(placing => placing.Item.TransferFrom is not null).ToArray())
+        {
+            var from = placing.Item.TransferFrom!.Value;
+            var row = displaced.SingleOrDefault(candidate =>
+                candidate.ContainerId == from.Container && candidate.SlotIndex == from.SlotIndex);
+            if (row is null || taken.Contains(row.ItemUid) || !SameThing(placing, row))
+                throw new InvalidOperationException(
+                    $"Transfer source {from.Container.Value}/{from.SlotIndex} does not hold the staged instance.");
+            survivors.Add((placing.ContainerId, placing.SlotIndex), row);
+            _ = taken.Add(row.ItemUid);
+            _ = open.Remove(placing);
+        }
+
         Claim((placing, row) => InPlace(placing, row) && SameContent(placing, row));
         Claim(SameContent);
         Claim((placing, row) => InPlace(placing, row) && SameThing(placing, row));
@@ -372,6 +417,9 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         static bool SameThing(Placing placing, Displaced row)
         {
             var core = InventoryItemCore.Decode(row.Core);
+            if (core.ItemKind == 5 && placing.Item.Core.ItemKind == 5
+                && core.Value == row.ItemUid && placing.Item.Core.Value == row.ItemUid)
+                return true;
             return core.ItemId == placing.Item.Core.ItemId
                 && core.ItemKind == placing.Item.Core.ItemKind
                 && core.Value == placing.Item.Core.Value;
@@ -413,12 +461,8 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// core: a row it lands on is a row already carrying that same UID. Change a pass to match on
     /// anything looser and this method's silence becomes a hole.
     ///
-    /// Third -- and this one is an asymmetry, not a coupling -- what is rescued across a rebuilt
-    /// world row is the six avatar columns. New creature creation supplies its eight columns to
-    /// <see cref="FillAsync"/>, and an unchanged move keeps the original row through Survivors.
-    /// A future operation that both moves a creature and changes its core in the same batch must
-    /// also carry its creature facts: this avatar-only retrieval cannot recover them for a rebuilt
-    /// row. The CERA purchase path creates new creatures and never performs that combined move.
+    /// Creature core changes retain the existing world row when its core UID still names that row;
+    /// a creature without a surviving row must supply creation facts instead.
     /// </remarks>
     private async ValueTask<IReadOnlyDictionary<int, object?[]>> CarriedAvatarsAsync(
         IReadOnlyDictionary<(ContainerId, int), Displaced> survivors,
@@ -597,6 +641,8 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         IReadOnlyDictionary<int, object?[]> carried,
         CancellationToken cancellationToken)
     {
+        if (item.Core.ItemKind == 5 && item.Core.Value > 0 && item.CreatureDetail is null)
+            throw new InvalidOperationException("A creature without its existing identity needs creation facts.");
         var facts = item.AvatarDetail is { } carriedByTheWrite
             ? FactsOf(carriedByTheWrite)
             : item.Core.ItemKind == AvatarKind

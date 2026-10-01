@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Abstractions.Content;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -91,7 +93,7 @@ public sealed class SkillBuildResetTests
     [InlineData(true)]
     public async Task Refund_consumes_one_water_and_updates_only_target_build_atomically(bool failSkillWrite)
     {
-        await using var f = new LearningFixture(configure:s=>s.AddSingleton<IOpeningInventoryDomainService, WaterInventory>());
+        await using var f = new LearningFixture(configure:s=> { s.AddSingleton<IOpeningInventoryDomainService, WaterInventory>(); s.AddSingleton<Dfo.Server.Abstractions.Content.IItemUseRuleDefinitionSource>(new FakeItemUseRules((3, ItemUseRules.Potion(0)))); });
         await f.SeedAsync();
         f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),new WaterBag());
         f.Sql("UPDATE characters SET bonus_tp=3 WHERE character_id=71");
@@ -110,16 +112,47 @@ public sealed class SkillBuildResetTests
         Assert.Equal(1,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=1"));
     }
 
-    // Transactional stand-in payment: a scalar row makes rollback observable without reproducing inventory rules.
-    private sealed class WaterInventory(SqliteDatabase db):IOpeningInventoryDomainService
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Mixed_refund_update_insert_batch_consumes_one_water_and_rolls_back_all_changes_on_late_failure(bool fail)
     {
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,int slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);
-        public async ValueTask<OpeningInventoryReceipt> SettleAsync(SelectedSessionIdentity session,IReadOnlyList<OpeningSlotConsumption> consumed,ImmutableArray<OpeningPreparedGrant> grants,DateTimeOffset now,CancellationToken ct)
+        await using var f = new LearningFixture(configure:s=>
         {
-            Assert.Equal(new OpeningSlotConsumption(69,3,1),Assert.Single(consumed)); Assert.Empty(grants);
-            await db.ExecuteAsync("UPDATE characters SET bonus_tp=bonus_tp-1 WHERE character_id=71",_=>{},ct);
-            return new(session,[],[],[],now);
+            s.AddSingleton<IOpeningInventoryDomainService, WaterInventory>();
+            s.AddSingleton<Dfo.Server.Abstractions.Content.IItemUseRuleDefinitionSource>(new FakeItemUseRules((3,ItemUseRules.Potion(0))));
+        });
+        await f.SeedAsync();
+        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71),new WaterBag());
+        Assert.Equal(CharacterSkillLearningRejection.None,(await f.LearnAsync([new(2,0,1)])).Rejection);
+        if(fail) f.Sql("CREATE TRIGGER fail_mixed BEFORE INSERT ON character_skills WHEN NEW.character_id=71 AND NEW.skill_id=3 BEGIN SELECT RAISE(ABORT,'mixed'); END");
+        if(fail) await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(()=>f.LearnAsync([new(1,1,2),new(2,0,2),new(3,0,2)]));
+        else
+        {
+            var result=await f.LearnAsync([new(1,1,2),new(2,0,2),new(3,0,2)]);
+            Assert.Equal(CharacterSkillLearningRejection.None,result.Rejection);
+            Assert.Equal([0,3,2],result.Receipt!.Skills.Select(x=>(int)x.Level));
         }
+        Assert.Equal(fail?3:2,f.Scalar("SELECT bonus_tp FROM characters WHERE character_id=71"));
+        Assert.Equal(fail?1:0,f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=1"));
+        Assert.Equal(fail?1:3,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=2"));
+        Assert.Equal(fail?0:1,f.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=3"));
+        Assert.Equal(1,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=1"));
+    }
+
+    // Transactional stand-in payment: a scalar row makes rollback observable without reproducing inventory rules.
+    private sealed class WaterInventory(SqliteDatabase db, IApplyEffectsDomainService executor):IOpeningInventoryDomainService
+    {
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, CancellationToken ct)
+        {
+            Assert.Equal(new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable,4),3,1), Assert.Single(plan.OfType<ConsumeFromContainerEffect>()));
+            await db.ExecuteAsync("UPDATE characters SET bonus_tp=bonus_tp-1 WHERE character_id=71", _=>{}, ct);
+            var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId,at,session), plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
+            return new(new(session,[],[],[],at),applied);
+        }
+        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,BusinessSlot slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);
+
     }
     private sealed class WaterBag:IItemContainer
     {
@@ -139,4 +172,3 @@ public sealed class SkillBuildResetTests
         public ValueTask<ItemMoveOutcome> MoveToAsync(int from,int to,int count,CancellationToken ct)=>throw new NotSupportedException();
     }
 }
-

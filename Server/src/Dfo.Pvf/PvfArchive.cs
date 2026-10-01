@@ -7,6 +7,7 @@ using Dfo.Pvf.Diagnostics;
 using Dfo.Pvf.Index;
 using Dfo.Pvf.Strings;
 using Dfo.Pvf.Tokens;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Pvf;
 
@@ -126,7 +127,11 @@ public sealed class PvfArchive : IDisposable
     public PvfTokenReader OpenScript(int fileIndex)
     {
         var entry = GetEntry(fileIndex);
-        return entry.IsScript ? new PvfTokenReader(GetFileBytes(fileIndex)) : new PvfTokenReader(default);
+        if (!entry.IsScript) return new PvfTokenReader(default);
+        var bytes = GetFileBytes(fileIndex);
+        if (bytes.Length % PvfToken.Size != 0)
+            throw new InvalidDataException($"PVF '{ResolveString(entry.PathOffset)}/{ResolveString(entry.NameOffset)}': truncated token record.");
+        return new PvfTokenReader(bytes);
     }
 
     /// <summary>Opens a token reader by path. Returns an empty reader when the path is absent.</summary>
@@ -152,7 +157,7 @@ public sealed class PvfArchive : IDisposable
     /// by integer comparison. Returns <see cref="TagRef.Unresolved"/> when the archive
     /// never uses that tag.
     /// </summary>
-    public TagRef GetTag(string tagText)
+    internal TagRef GetTag(string tagText)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrEmpty(tagText);
@@ -167,6 +172,8 @@ public sealed class PvfArchive : IDisposable
         var written = Encoding.UTF8.GetBytes(tagText, buffer);
         return Names.TryFindUtf8(buffer[..written], out var offset) ? new TagRef(offset) : TagRef.Unresolved;
     }
+
+    public TagRef GetTag(PvfField field) => field.Resolve(this);
 
     /// <summary>Materialises the string behind an encoded name-table offset.</summary>
     public string ResolveString(int encodedOffset) => Names.Resolve(encodedOffset);

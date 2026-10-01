@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Immutable;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -9,12 +10,67 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) : ICeraShopDefinitionSource
 {
+    private static readonly PvfFieldFamily PackageDataFields = new("[package data");
+
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AvatarField = PvfField.Tokens("[avatar]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CoinField = PvfField.Tokens("[coin]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MaterialField = PvfField.Tokens("[material]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RecoveryItemField = PvfField.Tokens("[recovery item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RecoveryitemField = PvfField.Tokens("[recoveryitem]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> PremiumField = PvfField.Tokens("[premium]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CreatureField = PvfField.Tokens("[creature]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CommunityItemField = PvfField.Tokens("[community item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> SelectableCharacterPremiumField = PvfField.Tokens("[selectable character premium]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CharacPremiumPackageField = PvfField.Tokens("[charac premium package]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> PackageField = PvfField.Tokens("[package]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RegularPackageField = PvfField.Tokens("[regular package]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CommunityPackageField = PvfField.Tokens("[community package]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> VisualField = PvfField.Tokens("[visual]", optional: true);
+
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> EtcField = PvfField.Tokens("[etc]", optional: true);
+        internal static readonly PvfField<bool> CloseEtcField = PvfField.Marker("[/etc]", optional: true);
+
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> EquipmentTypeField = PvfField.Tokens("[equipment type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> StackableTypeField = PvfField.Tokens("[stackable type]", optional: true);
+
+        internal static readonly PvfField<int> RestrictBuyLevelCashshopField = PvfField.Int32("[restrict buy level cashshop]", optional: true);
+        internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true);
+        internal static readonly PvfField<int> AbilityCaseIndexField = PvfField.Int32("[ability case index]", optional: true);
+        internal static readonly PvfField<int> CreatureSpeciesField = PvfField.Int32("[creature species]", optional: true);
+        internal static readonly PvfField<string> AttachTypeField = PvfField.String("[attach type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> BuyOnlyCeraField = PvfField.Int32List("[buy only cera]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> BuyOnlyCeraPointField = PvfField.Int32List("[buy only cera point]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> NotStackableBuyField = PvfField.Int32List("[not stackable buy]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> BuyRestrictItemField = PvfField.Int32List("[buy restrict item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> CommonCharacterPremiumDetailField = PvfField.Int32List("[common character premium detail]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> UpgradeInfoField = PvfField.Int32List("[upgrade info]", optional: true);
+        internal static readonly PvfField<bool> BoosterInfoField = PvfField.Marker("[booster info]", optional: true);
+        internal static readonly PvfField<bool> CloseBoosterInfoField = PvfField.Marker("[/booster info]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PackageDataIncludeUsablePeriodField = PvfField.Int32List("[package data include usable period]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PackageDataSelectionField = PvfField.Int32List("[package data selection]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AvatarTypeSelectField = PvfField.Tokens("[avatar type select]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AvatarSelectAbilityField = PvfField.Tokens("[avatar select ability]", optional: true);
+        internal static readonly PvfField<int> StartLevelField = PvfField.Int32("[start level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AbilityCaseField = PvfField.Tokens("[ability case]", optional: true);
+        internal static readonly PvfField<bool> CloseAbilityCaseField = PvfField.Marker("[/ability case]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> TargetItemField = PvfField.Int32List("[target item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CatalogItemField = PvfField.Tokens("[item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ItemField = PvfField.Int32List("[item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PackageDataField = PvfField.Int32List("[package data]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> UsablePeriodField = PvfField.Tokens("[usable period]", optional: true);
+        internal static readonly PvfField<int> TradeLimitField = PvfField.Int32("[trade limit]", optional: true);
+    }
+
     private const string CatalogPath = "etc/cerashop.etc";
     private readonly Lock gate = new();
     private readonly Dictionary<int, CeraShopProductDefinition?> products = [];
     private readonly Dictionary<int, CeraShopItemDefinition?> items = [];
     private readonly Dictionary<int, (string Category, PvfToken[] Values, bool Malformed)> rows = [];
     private readonly HashSet<int> serviceItems = [], serviceProducts = [], restricted = [], onlyCera = [], onlyPoint = [];
+    private readonly Dictionary<int, CeraShopPurchaseRestrictionDeclaration> purchaseRestrictions = [];
     private readonly List<CeraShopDiagnostic> contentDiagnostics = [];
     private Dictionary<int, string>? equipment, stackables, creatures;
     private IReadOnlyList<Section>? avatarAbilityCases;
@@ -64,12 +120,10 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         {
             var stride = section.Name switch
             {
-                "[avatar]" => 6,
-                "[coin]" or "[item]" or "[material]" or "[recovery item]" or "[recoveryitem]"
-                    or "[premium]" or "[creature]" or "[community item]"
-                    or "[selectable character premium]" or "[charac premium package]" => 9,
-                "[package]" or "[regular package]" or "[community package]" => 11,
-                "[visual]" => 8,
+                _ when (Fields.AvatarField.Matches(section.Name)) => 6,
+                _ when (Fields.CoinField.Matches(section.Name) || Fields.CatalogItemField.Matches(section.Name) || Fields.MaterialField.Matches(section.Name) || Fields.RecoveryItemField.Matches(section.Name) || Fields.RecoveryitemField.Matches(section.Name) || Fields.PremiumField.Matches(section.Name) || Fields.CreatureField.Matches(section.Name) || Fields.CommunityItemField.Matches(section.Name) || Fields.SelectableCharacterPremiumField.Matches(section.Name) || Fields.CharacPremiumPackageField.Matches(section.Name)) => 9,
+                _ when (Fields.PackageField.Matches(section.Name) || Fields.RegularPackageField.Matches(section.Name) || Fields.CommunityPackageField.Matches(section.Name)) => 11,
+                _ when (Fields.VisualField.Matches(section.Name)) => 8,
                 _ => 0,
             };
             if (stride > 0)
@@ -83,16 +137,25 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
                     if (ServiceCategory(section.Name) && row[1].Kind == PvfTokenKind.Int32) serviceItems.Add(row[1].Value);
                 }
             }
-            if (section.Name == "[buy only cera]") AddIntegers(onlyCera, section);
-            if (section.Name == "[buy only cera point]") AddIntegers(onlyPoint, section);
-            if (section.Name == "[not stackable buy]") AddIntegers(restricted, section);
-            if (section.Name == "[buy restrict item]") AddColumn(restricted, section, 4, 1);
-            if (section.Name == "[common character premium detail]") AddColumn(serviceItems, section, 8, 2);
+            if (section.Name == Fields.BuyOnlyCeraField.Name) AddIntegers(onlyCera, section, Fields.BuyOnlyCeraField);
+            if (section.Name == Fields.BuyOnlyCeraPointField.Name) AddIntegers(onlyPoint, section, Fields.BuyOnlyCeraPointField);
+            if (section.Name == Fields.NotStackableBuyField.Name) AddIntegers(restricted, section, Fields.NotStackableBuyField);
+            if (section.Name == Fields.BuyRestrictItemField.Name)
+            {
+                _ = Fields.BuyRestrictItemField.Decode(provider.Archive, section.Values, "Cera shop classification");
+                var parsed = ParsePurchaseRestrictions(section.Values);
+                if (!parsed.Diagnostics.IsEmpty)
+                    throw new InvalidDataException($"{CatalogPath}{Fields.BuyRestrictItemField.Name}: {string.Join("; ", parsed.Diagnostics.Select(d => d.Detail))}");
+                foreach (var (product, declaration) in parsed.Restrictions)
+                    if (!purchaseRestrictions.TryAdd(product, declaration))
+                        throw new InvalidDataException($"{CatalogPath}{Fields.BuyRestrictItemField.Name}: Duplicate restriction for product {product}.");
+            }
+            if (section.Name == Fields.CommonCharacterPremiumDetailField.Name) AddColumn(serviceItems, section, Fields.CommonCharacterPremiumDetailField, 8, 2);
         }
         foreach (var section in Sections("etc/premiumlist_new.etc"))
-            if (section.Name is "[target item]" or "[item]") AddIntegers(serviceItems, section);
+            if ((section.Name == Fields.TargetItemField.Name || section.Name == Fields.ItemField.Name)) AddIntegers(serviceItems, section, section.Name == Fields.TargetItemField.Name ? Fields.TargetItemField : Fields.ItemField);
         foreach (var section in Sections("etc/accountcargo.etc"))
-            if (section.Name == "[upgrade info]") AddColumn(serviceProducts, section, 6, 5);
+            if (section.Name == Fields.UpgradeInfoField.Name) AddColumn(serviceProducts, section, Fields.UpgradeInfoField, 6, 5);
         premiumTerms = PvfPackageOpeningDefinitionSource.ParsePremiums(Sections("etc/premiumlist_new.etc"));
         loaded = true;
     }
@@ -107,15 +170,36 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         diagnostics.AddRange(contentDiagnostics);
         if (row.Malformed) diagnostics.Add(new("MalformedCatalog", CatalogPath, "Duplicate product or incomplete category row."));
         if (restricted.Contains(id)) diagnostics.Add(new("PurchaseRestriction", CatalogPath, "Unimplemented catalog purchase restriction."));
+        if (purchaseRestrictions.TryGetValue(id, out var restriction) && restriction.InitialFlag != 1)
+            diagnostics.Add(new("PurchaseRestriction", CatalogPath, $"Unsupported initial purchase restriction flag {restriction.InitialFlag}."));
         if (item is null) diagnostics.Add(new("MissingItem", CatalogPath, $"Item {itemId} is not readable."));
         return result with
         {
-            Premium = row.Category == "[premium]" && premiumTerms.TryGetValue(itemId, out var premium)
+            PurchaseRestriction = restriction,
+            Premium = row.Category == Fields.PremiumField.Name && premiumTerms.TryGetValue(itemId, out var premium)
                 && premium.Type is 22 or 27 or 84 or 97 ? new(premium.Type, premium.Duration) : null,
             IsService = result.IsService || serviceProducts.Contains(id) || item?.Kind == CeraShopItemKind.Service,
             BuyOnlyCera = onlyCera.Contains(itemId), BuyOnlyCeraPoint = onlyPoint.Contains(itemId),
             Diagnostics = diagnostics.ToImmutable(),
         };
+    }
+
+    internal static (IReadOnlyDictionary<int, CeraShopPurchaseRestrictionDeclaration> Restrictions,
+        ImmutableArray<CeraShopDiagnostic> Diagnostics) ParsePurchaseRestrictions(IReadOnlyList<PvfToken> values)
+    {
+        var restrictions = new Dictionary<int, CeraShopPurchaseRestrictionDeclaration>();
+        var errors = ImmutableArray.CreateBuilder<CeraShopDiagnostic>();
+        if (values.Count % 4 != 0 || values.Any(t => t.Kind != PvfTokenKind.Int32))
+            return (restrictions, [new("MalformedPurchaseRestriction", CatalogPath, "Expected complete four-integer restriction rows.")]);
+        for (var i = 0; i < values.Count; i += 4)
+        {
+            var id = values[i].Value; var product = values[i + 1].Value;
+            var days = values[i + 2].Value; var flag = values[i + 3].Value;
+            if (id <= 0 || product <= 0 || days is < 0 or > byte.MaxValue || flag is < 0 or > byte.MaxValue
+                || !restrictions.TryAdd(product, new(id, days, flag)))
+                errors.Add(new("MalformedPurchaseRestriction", CatalogPath, $"Invalid or duplicate restriction row at {i}."));
+        }
+        return (restrictions, errors.ToImmutable());
     }
 
     // Kept typed at the boundary: a string offset must never become a numeric price/count.
@@ -124,11 +208,11 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     {
         var errors = ImmutableArray.CreateBuilder<CeraShopDiagnostic>();
         void Error(string code, string detail) => errors.Add(new(code, CatalogPath + category, detail));
-        var package = category is "[package]" or "[regular package]" or "[community package]";
-        var isAvatar = category == "[avatar]";
+        var package = (category == Fields.PackageField.Name || category == Fields.RegularPackageField.Name || category == Fields.CommunityPackageField.Name);
+        var isAvatar = category == Fields.AvatarField.Name;
         var service = ServiceCategory(category);
-        var expected = package ? 11 : isAvatar ? 6 : category == "[visual]" ? 8 : 9;
-        var nameColumn = package ? 5 : isAvatar ? -1 : category == "[charac premium package]" ? 3 : 6;
+        var expected = package ? 11 : isAvatar ? 6 : category == Fields.VisualField.Name ? 8 : 9;
+        var nameColumn = package ? 5 : isAvatar ? -1 : category == Fields.CharacPremiumPackageField.Name ? 3 : 6;
         if (values.Count != expected || values.Where((t, i) => i != nameColumn).Any(t => t.Kind != PvfTokenKind.Int32)
             || (nameColumn >= 0 && values.Count > nameColumn && values[nameColumn].Kind != PvfTokenKind.QuotedString))
             Error("MalformedCatalog", "Unexpected row width or token kind.");
@@ -142,7 +226,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             if (price is null) Error("UnknownAvatarPrice", "Negative catalog price requires a declared avatar tier.");
         }
         else price = new(service ? 0 : N(3), service || package ? 0 : N(4),
-            category == "[charac premium package]" ? N(2) : package ? N(4) : N(5), 0,
+            category == Fields.CharacPremiumPackageField.Name ? N(2) : package ? N(4) : N(5), 0,
             values.Where(t => t.Kind == PvfTokenKind.Int32).Select(t => t.Value).ToImmutableArray());
         if (N(0) <= 0 || N(1) <= 0 || count <= 0) Error("InvalidIdentityOrCount", "Product, item and delivery count must be positive.");
         if (price is not null && (price.Cera < 0 || price.Gold < 0 || price.OtherPayment != 0))
@@ -159,12 +243,12 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             Error("UnknownPackageConditions", "Nondefault package fields need interpretation.");
         if (!package && !isAvatar && !service && (N(7) != 0 || N(8) != 0))
             Error("UnknownCatalogConditions", "Nonzero catalog tail fields need interpretation.");
-        if (category == "[selectable character premium]" &&
+        if (category == Fields.SelectableCharacterPremiumField.Name &&
             (N(2) is < 0 or > 7 || N(3) is not (7 or 30) || N(4) != 0 || N(7) != 0 || N(8) != -1))
             Error("UnsupportedService", "Unknown service slot, duration or catalog flags.");
         return new(N(0), N(1), count, category, price, service, false, false, errors.ToImmutable(), CatalogPath + category,
-            category == "[selectable character premium]" ? N(2) : null,
-            category == "[selectable character premium]" ? N(3) : 0);
+            category == Fields.SelectableCharacterPremiumField.Name ? N(2) : null,
+            category == Fields.SelectableCharacterPremiumField.Name ? N(3) : 0);
     }
 
     private CeraShopItemDefinition? ReadItem(int id)
@@ -182,23 +266,41 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         var depth = 0;
         foreach (var section in sections)
         {
-            if (section.Name == "[booster info]") { depth++; continue; }
-            if (section.Name == "[/booster info]") { if (--depth < 0) Error("MalformedItem", "Unbalanced booster section."); continue; }
+            if (section.Name == Fields.BoosterInfoField.Name) { depth++; continue; }
+            if (section.Name == Fields.CloseBoosterInfoField.Name) { if (--depth < 0) Error("MalformedItem", "Unbalanced booster section."); continue; }
             if (depth == 0) top.Add(section);
         }
         if (depth != 0) Error("MalformedItem", "Unclosed booster section.");
         errors.AddRange(ParseInstanceDeclarations(top, path));
-        string? Text(string tag) => top.FirstOrDefault(s => s.Name == tag)?.Values.FirstOrDefault() is { IsString: true } t
-            ? provider.Archive.ResolveString(t.Value).ToLowerInvariant() : null;
-        int? Number(string tag)
+        string? Text(PvfField<string> tag)
         {
-            var all = top.Where(s => s.Name == tag).ToArray();
+            var matches = top.Where(section => tag.Matches(section.Name)).ToArray();
+            if (matches.Length == 0) return null;
+            try
+            {
+                if (matches.Length != 1) throw new InvalidDataException($"Duplicate {tag.Name}.");
+                return tag.Decode(provider.Archive, matches[0].Values, path).ToLowerInvariant();
+            }
+            catch (InvalidDataException) { Error("MalformedItem", tag.Name); return null; }
+        }
+        string? FirstTypeText(PvfField<IReadOnlyList<PvfToken>> tag)
+        {
+            var found = top.Where(section => tag.Matches(section.Name)).ToArray();
+            if (found.Length == 0) return null;
+            if (found.Length != 1 || found[0].Values.Count == 0 || !found[0].Values[0].IsString ||
+                found[0].Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))
+            { Error("MalformedItem", tag.Name); return null; }
+            return provider.Archive.ResolveString(tag.Decode(provider.Archive, found[0].Values, path)[0].Value).ToLowerInvariant();
+        }
+        int? Number(PvfField<int> tag)
+        {
+            var all = top.Where(s => s.Name == tag.Name).ToArray();
             if (all.Length == 0) return null;
             if (all.Length != 1 || all[0].Values.Count != 1 || all[0].Values[0].Kind != PvfTokenKind.Int32)
-            { Error("MalformedItem", tag); return null; }
-            return all[0].Values[0].Value;
+            { Error("MalformedItem", tag.Name); return null; }
+            return tag.Decode(provider.Archive, all[0].Values, path);
         }
-        var type = Text(isEquipment ? "[equipment type]" : "[stackable type]");
+        var type = FirstTypeText(isEquipment ? Fields.EquipmentTypeField : Fields.StackableTypeField);
         var kind = type switch
         {
             "[creature]" => CeraShopItemKind.Creature,
@@ -212,12 +314,12 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         };
         if (serviceItems.Contains(id) || ServicePath(path)) kind = CeraShopItemKind.Service;
         if (kind == CeraShopItemKind.Unknown) Error("UnknownItemType", "Missing item type declaration.");
-        var minimum = Number("[restrict buy level cashshop]");
+        var minimum = Number(Fields.RestrictBuyLevelCashshopField);
         if (minimum is < 0) Error("MalformedPurchaseLevel", "Negative purchase level.");
         foreach (var section in top)
             if ((section.Name.Contains("buy", StringComparison.Ordinal) || section.Name.Contains("purchase", StringComparison.Ordinal))
-                && section.Name != "[restrict buy level cashshop]") Error("PurchaseRestriction", section.Name);
-        var durability = Number("[durability]") ?? 0;
+                && section.Name != Fields.RestrictBuyLevelCashshopField.Name) Error("PurchaseRestriction", section.Name);
+        var durability = Number(Fields.DurabilityField) ?? 0;
         if (durability is < 0 or > ushort.MaxValue) Error("MalformedItem", "Invalid durability.");
         var components = ImmutableArray.CreateBuilder<CeraShopComponent>();
         var selections = ImmutableArray.CreateBuilder<CeraShopSelectionGroup>();
@@ -235,14 +337,14 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         {
             foreach (var section in top)
             {
-                if (section.Name is "[package data]" or "[package data include usable period]" or "[package data selection]")
+                if ((section.Name == Fields.PackageDataField.Name || section.Name == Fields.PackageDataIncludeUsablePeriodField.Name || section.Name == Fields.PackageDataSelectionField.Name))
                 {
-                    var parsed = ParseComponents(section.Values, section.Name == "[package data include usable period]" ? 3 : 2, path);
+                    var parsed = ParseComponents(section.Values, section.Name == Fields.PackageDataIncludeUsablePeriodField.Name ? 3 : 2, path);
                     errors.AddRange(parsed.Diagnostics);
-                    if (section.Name == "[package data selection]") selections.Add(new(parsed.Components));
+                    if (section.Name == Fields.PackageDataSelectionField.Name) selections.Add(new(parsed.Components));
                     else components.AddRange(parsed.Components);
                 }
-                else if (section.Name.StartsWith("[package data", StringComparison.Ordinal)) Error("UnknownPackageDeclaration", section.Name);
+                else if (section.Name.StartsWith(PackageDataFields.Prefix, StringComparison.Ordinal)) Error("UnknownPackageDeclaration", section.Name);
             }
             if (components.Count == 0 && selections.Count == 0) Error("EmptyPackage", "No declared delivery components.");
         }
@@ -250,7 +352,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (kind == CeraShopItemKind.Avatar)
         {
             var prices = ImmutableArray.CreateBuilder<CeraShopPrice>();
-            var priceTokens = top.FirstOrDefault(s => s.Name == "[avatar type select]")?.Values ?? [];
+            var priceTokens = top.FirstOrDefault(s => s.Name == Fields.AvatarTypeSelectField.Name)?.Values ?? [];
             for (var i = 0; i < priceTokens.Count;)
             {
                 if (i + 7 > priceTokens.Count || priceTokens.Skip(i).Take(7).Any(t => t.Kind != PvfTokenKind.Int32))
@@ -263,13 +365,13 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
                 i += raw[6];
             }
             var abilities = ImmutableArray.CreateBuilder<int>();
-            foreach (var ability in top.Where(s => s.Name == "[avatar select ability]"))
+            foreach (var ability in top.Where(s => s.Name == Fields.AvatarSelectAbilityField.Name))
             {
                 var parsed = ParseAvatarAbilities(ability.Values, provider.Archive.ResolveString, path);
                 abilities.AddRange(parsed.Abilities);
                 errors.AddRange(parsed.Diagnostics);
             }
-            var caseIndex = Number("[ability case index]");
+            var caseIndex = Number(Fields.AbilityCaseIndexField);
             if (caseIndex is not null)
             {
                 avatarAbilityCases ??= Sections("skill/abilitydatas.dat");
@@ -283,17 +385,17 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         CeraShopCreatureDeclaration? creature = null;
         if (kind == CeraShopItemKind.Creature)
         {
-            var species = Number("[creature species]");
+            var species = Number(Fields.CreatureSpeciesField);
             if (species is null || !creatures!.TryGetValue(species.Value, out var creaturePath)) Error("UnknownCreature", "Missing creature species mapping.");
             else
             {
-                var start = Sections("creature/" + creaturePath).Where(s => s.Name == "[start level]").ToArray();
+                var start = Sections("creature/" + creaturePath).Where(s => s.Name == Fields.StartLevelField.Name).ToArray();
                 if (start.Length != 1 || start[0].Values.Count != 1 || start[0].Values[0].Kind != PvfTokenKind.Int32
                     || start[0].Values[0].Value is < 1 or > byte.MaxValue) Error("UnknownCreature", "Invalid start level.");
                 else creature = new(species.Value, start[0].Values[0].Value);
             }
         }
-        return new(id, path, kind, (ushort)Math.Clamp(durability, 0, ushort.MaxValue), Text("[attach type]") == "[sealing]",
+        return new(id, path, kind, (ushort)Math.Clamp(durability, 0, ushort.MaxValue), Text(Fields.AttachTypeField) == "[sealing]",
             minimum, components.ToImmutable(), selections.ToImmutable(), avatar, creature, errors.ToImmutable());
     }
 
@@ -303,16 +405,16 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         (ImmutableArray<CeraShopComponent>, ImmutableArray<CeraShopDiagnostic>) Invalid() =>
             ([], [new("MalformedHammerBundle", source, "Expected two equal guaranteed hammer/box rewards in one closed booster section.")]);
         var starts = sections.Select((section, index) => (section, index))
-            .Where(x => x.section.Name == "[booster info]").ToArray();
-        if (starts.Length != 1 || sections.Count(s => s.Name == "[/booster info]") != 1) return Invalid();
+            .Where(x => x.section.Name == Fields.BoosterInfoField.Name).ToArray();
+        if (starts.Length != 1 || sections.Count(s => s.Name == Fields.CloseBoosterInfoField.Name) != 1) return Invalid();
         var start = starts[0].index;
-        string[] expected = ["[booster info]", "[etc]", "[/etc]", "[etc]", "[/etc]", "[/booster info]"];
+        PvfField[] expected = [Fields.BoosterInfoField, Fields.EtcField, Fields.CloseEtcField, Fields.EtcField, Fields.CloseEtcField, Fields.CloseBoosterInfoField];
         if (start + expected.Length > sections.Count) return Invalid();
         var rewards = new Dictionary<int, int>();
         for (var offset = 0; offset < expected.Length; offset++)
         {
             var section = sections[start + offset];
-            if (section.Name != expected[offset]) return Invalid();
+            if (section.Name != expected[offset].Name) return Invalid();
             if (offset is not (1 or 3))
             {
                 if (section.Values.Count != 0) return Invalid();
@@ -352,10 +454,10 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     {
         const string source = "skill/abilitydatas.dat";
         var matches = sections.Select((section, index) => (section, index))
-            .Where(x => x.section.Name == "[ability case]" && x.section.Values.Count > 0
+            .Where(x => x.section.Name == Fields.AbilityCaseField.Name && x.section.Values.Count > 0
                 && x.section.Values[0].Kind == PvfTokenKind.Int32 && x.section.Values[0].Value == id).ToArray();
         if (id < 0 || matches.Length != 1 || matches[0].index + 1 >= sections.Count
-            || sections[matches[0].index + 1].Name != "[/ability case]")
+            || sections[matches[0].index + 1].Name != Fields.CloseAbilityCaseField.Name)
             return ([], [new("UnsupportedAvatarAbilities", source, $"Missing, duplicate or unclosed ability case {id}.")]);
         return ParseAvatarAbilities(matches[0].section.Values.Skip(1).ToArray(), text, source + $" case={id}");
     }
@@ -388,17 +490,22 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             : ([], [new("UnsupportedAvatarAbilities", source, "Empty, malformed or duplicate avatar option.")]);
     }
     internal static ImmutableArray<CeraShopDiagnostic> ParseInstanceDeclarations(IEnumerable<Section> sections, string source) =>
-        sections.Where(s => s.Name is "[expiration date]" or "[usable period]" or "[trade limit]")
+        sections.Where(s => (s.Name == Fields.ExpirationDateField.Name || s.Name == Fields.UsablePeriodField.Name || s.Name == Fields.TradeLimitField.Name))
             .Where(s => s.Values.Any(t => t.Kind != PvfTokenKind.Int32 || t.Value != 0))
             .Select(s => new CeraShopDiagnostic("UnsupportedInstanceDeclaration", source, s.Name))
             .ToImmutableArray();
-    private static bool ServiceCategory(string category) => category is "[visual]" or "[selectable character premium]" or "[charac premium package]";
+    private static bool ServiceCategory(string category) => (category == Fields.VisualField.Name || category == Fields.SelectableCharacterPremiumField.Name || category == Fields.CharacPremiumPackageField.Name);
     private static Dictionary<int, string> Paths(PvfArchive archive, string path) => archive.FindFile(path) < 0 ? []
         : PvfListFile.Read(archive, path).GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.First().RelativePath);
-    private static void AddIntegers(HashSet<int> set, Section section)
-    { foreach (var value in section.Values) if (value.Kind == PvfTokenKind.Int32) set.Add(value.Value); }
-    private static void AddColumn(HashSet<int> set, Section section, int stride, int column)
-    { for (var i = column; i < section.Values.Count; i += stride) if (section.Values[i].Kind == PvfTokenKind.Int32) set.Add(section.Values[i].Value); }
+    private void AddIntegers(HashSet<int> set, Section section, PvfField<IReadOnlyList<int>> field)
+    { foreach (var value in field.Decode(provider.Archive, section.Values, "Cera shop classification")) set.Add(value); }
+    private void AddColumn(HashSet<int> set, Section section, PvfField<IReadOnlyList<int>> field, int stride, int column)
+    {
+        var values = field.Decode(provider.Archive, section.Values, "Cera shop classification");
+        if (values.Count % stride != 0)
+            throw new InvalidDataException($"Cera shop classification: {field.Name} requires complete {stride}-integer rows.");
+        for (var index = column; index < values.Count; index += stride) set.Add(values[index]);
+    }
     private static bool ServicePath(string path)
     {
         path = path.ToLowerInvariant();

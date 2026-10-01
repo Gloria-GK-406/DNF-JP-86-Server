@@ -13,6 +13,7 @@ public enum ClientMessageType
     GameMagicBoxSingleOpening = 0x0001_00D0,
     GameVendingMachine = 0x0001_00D7,
     GameLotteryOpening = 0x0001_001B,
+    GameCompoundItem = 0x0001_0019,
     GamePackageOpening = 0x0001_00A0,
     GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,
@@ -22,6 +23,13 @@ public enum ClientMessageType
     GameRepairItem = 0x0001_0017,
     GameRecoverStamina = 0x0001_0009,
     GameDisjointItem = 0x0001_001A,
+    GameReinforceItem = 0x0001_0050,
+    GameEnchantByBead = 0x0001_0110,
+    GameUnsealRandomOption = 0x0001_0191,
+    GameChangeRandomOption = 0x0001_01B6,
+    GamePurifyItem = 0x0001_00CC,
+    GameInvestAmplifyOption = 0x0001_00CD,
+    GameSeparateUpgrade = 0x0001_01B7,
     GameDeleteItem = 0x0001_0012,
     GameCrystalContract = 0x0001_0218,
     GameLearnSkill = 0x0001_001D,
@@ -154,10 +162,18 @@ public enum ClientMessageType
 
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
+    GameRenameCreature = 0x0001_0064,
+    GameHatchCreature = 0x0001_0066,
+    GameCreatureResponseReport = 0x0001_0065,
+    GameCreatureScriptMessage = 0x0001_007A,
+    GameTeleport = 0x0001_00ED,
     GameQuestClearCoupon = 0x0001_0204,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
+    GameSortItem = 0x0001_0014,
+    GameSortLock = 0x0001_02CA,
+    GameSortUnlock = 0x0001_02CB,
 
     // Pausing and resuming a scripted moment inside a dungeon. See Game/StoryPause.
     GameStoryPause = 0x0001_00BF,
@@ -180,6 +196,7 @@ public enum ServerMessageType
     GameMagicBoxSingleOpening = 0x0001_00D0,
     GameVendingMachine = 0x0001_00D7,
     GameLotteryOpening = 0x0001_001B,
+    GameCompoundItem = 0x0001_0019,
     GamePackageOpening = 0x0001_00A0,
     GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,
@@ -190,6 +207,12 @@ public enum ServerMessageType
     GameRepairItem = 0x0001_0017,
     GameRecoverStamina = 0x0001_0009,
     GameDisjointItem = 0x0001_001A,
+    GameReinforceItem = 0x0001_0050,
+    GameEnchantByBead = 0x0001_0110,
+    GameChangeRandomOption = 0x0001_01B6,
+    GamePurifyItem = 0x0001_00CC,
+    GameInvestAmplifyOption = 0x0001_00CD,
+    GameSeparateUpgrade = 0x0001_01B7,
     GameDecreaseDurability = 0x0001_0030,
     GameDeleteItem = 0x0001_0012,
     GameCrystalContract = 0x0001_0218,
@@ -268,10 +291,25 @@ public enum ServerMessageType
 
     // Whether the item was consumed. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
+    GameRenameCreature = 0x0001_0064,
+    GameHatchCreature = 0x0001_0066,
+    GameTeleport = 0x0001_00ED,
+    GameLoadCooltimeItems = 0x0000_00AC,
     GameQuestClearCoupon = 0x0001_0204,
+
+    GameCreatureDeath = 0x0000_0064,
+    GameCreatureRename = 0x0000_0065,
+    GameCreatureExperience = 0x0000_0066,
+    GameCreatureState = 0x0000_0067,
+    GameCreatureResponse = 0x0000_0068,
+    GameCreatureEvolution = 0x0000_006A,
+    GameCreatureRevival = 0x0000_006B,
 
     // Where a moved item ended up, or why it did not move. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
+    GameSortItem = 0x0001_0014,
+    GameSortLock = 0x0001_02CA,
+    GameSortUnlock = 0x0001_02CB,
 
     // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
     // See Game/StoryPause.
@@ -339,5 +377,23 @@ public sealed record GameMessageMetadata(
     uint Checksum,
     ushort Sequence)
 {
+    /// <summary>Server-observed ordinal of every inbound Game frame on this connection.
+    /// Set at the transport boundary, including frames without registered decoders.</summary>
+    public long? InboundOrdinal { get; init; }
+
+    /// <summary>True when this frame advances the connection-wide 16-bit counter by one.
+    /// Repeated or out-of-order frames do not advance the server's expected counter.</summary>
+    public bool SequenceIsFresh { get; init; }
+
+    /// <summary>Immutable identity of the entire raw body, including fields a decoder ignores.</summary>
+    public string? FullBodySha256 { get; init; }
+    public int? FullBodyLength { get; init; }
+
+    public GameMessageMetadata WithRawBody(ReadOnlySpan<byte> body) => this with
+    {
+        FullBodySha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)),
+        FullBodyLength = body.Length,
+    };
+
     public static GameMessageMetadata Empty { get; } = new(0, 0, 0, 0);
 }

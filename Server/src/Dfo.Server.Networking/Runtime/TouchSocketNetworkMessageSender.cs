@@ -1,6 +1,7 @@
 using System.Buffers;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Networking.Framing;
 using Microsoft.Extensions.Logging;
 using TouchSocket.Sockets;
 
@@ -11,6 +12,50 @@ internal sealed class TouchSocketNetworkMessageSender(
     ServerMessageEncoderRegistry encoders,
     ILogger<TouchSocketNetworkMessageSender> logger) : INetworkMessageSender
 {
+    public async ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(expectedConnection);
+        ArgumentNullException.ThrowIfNull(messages);
+        cancellationToken.ThrowIfCancellationRequested();
+        var connection = connections.Get(expectedConnection.ConnectionId);
+        if (!ReferenceEquals(connection.Context, expectedConnection))
+            throw new InvalidOperationException("The batch recipient transport has been replaced.");
+        var selected = messages.ToArray();
+        var entries = selected.Select(message =>
+        {
+            ArgumentNullException.ThrowIfNull(message);
+            var entry = encoders.Find(message.GetType()) ?? throw new InvalidOperationException(
+                $"Server message '{message.GetType().Name}' has no registered encoder.");
+            if (entry.Endpoint != expectedConnection.EndpointKind)
+                throw new InvalidOperationException($"Server message '{message.GetType().Name}' has an incompatible endpoint.");
+            return entry;
+        }).ToArray();
+        var frames = new List<(byte[] Bytes, string Message)>();
+        for (var i = 0; i < selected.Length; i++)
+        {
+            foreach (var frame in entries[i].Encoder.Encode(selected[i]))
+            {
+                if (frame is null || frame.Length > DnfFrameProtocol.MaximumFrameLength)
+                    throw new InvalidDataException("An encoded batch frame exceeds the transport limit or is unavailable.");
+                // Own buffers before encoding the next message, which may reuse an encoder buffer.
+                frames.Add((frame.ToArray(), selected[i].GetType().Name));
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        // Keep the captured session throughout; never route a later frame through the ID again.
+        foreach (var frame in frames)
+        {
+            if (logger.IsEnabled(LogLevel.Debug) && expectedConnection.EndpointKind == NetworkEndpointKind.Game
+                && frame.Bytes.Length >= 3)
+                logger.LogDebug("S->C {ConnectionId} selector=0x{Selector:X2} type=0x{Type:X4} frame={Length} {Message}",
+                    expectedConnection.ConnectionId, frame.Bytes[0], (ushort)(frame.Bytes[1] | (frame.Bytes[2] << 8)),
+                    frame.Bytes.Length, frame.Message);
+            await ((ISender)connection.Session).SendAsync(new ReadOnlySequence<byte>(frame.Bytes), cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
     public async ValueTask SendAsync(
         NetworkConnectionId connectionId,
         IServerNetworkMessage message,

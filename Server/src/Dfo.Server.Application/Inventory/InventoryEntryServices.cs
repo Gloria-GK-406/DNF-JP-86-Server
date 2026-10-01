@@ -5,13 +5,22 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEntryRepository repository)
+internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEntryRepository repository,
+    LegacyWornItemNormalizer? wornNormalizer = null)
     : ICharacterInventoryEntryDomainService
 {
     public async ValueTask<CharacterInventoryEntryState> LoadAsync(
         AccountId accountId,
         CharacterId characterId,
         CancellationToken cancellationToken)
+    {
+        if (wornNormalizer is not null)
+            await wornNormalizer.NormalizeAsync(characterId, cancellationToken).ConfigureAwait(false);
+        return await ReadCurrentAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
     {
         var stored = await repository.LoadCharacterAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
@@ -335,9 +344,6 @@ internal static class InventoryEntryProjection
 
 internal sealed class EquippedCreatureQuery : IEquippedCreatureQuery
 {
-    /// <summary>Where an equipped creature sits in the equipment container.</summary>
-    private const int CreatureEquipSlot = 24;
-
     /// <summary>The item kind the legacy inventory uses for creatures.</summary>
     private const byte CreatureItemKind = 5;
 
@@ -352,7 +358,10 @@ internal sealed class EquippedCreatureQuery : IEquippedCreatureQuery
 
             foreach (var item in container.Items)
             {
-                if (item.SlotIndex == CreatureEquipSlot && item.Core.ItemKind == CreatureItemKind)
+                if (item.Core.ItemKind == CreatureItemKind
+                    && LegacyInventoryStorageCoordinates.ToBusiness(
+                        new(InventoryContainerType.Equipment, item.SlotIndex), item.Core.ItemKind)
+                    == new BusinessSlot(BusinessInventorySpace.WornCreature, 0))
                     return item.Core.ItemId;
             }
         }

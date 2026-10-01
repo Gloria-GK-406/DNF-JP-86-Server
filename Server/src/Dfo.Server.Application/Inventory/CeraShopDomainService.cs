@@ -1,25 +1,30 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Application.Creatures;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
-    ICharacterTable characterRows, IAccountTable accounts, ICharacterContainerDomainService containers,
+    ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
-    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage) : ICeraShopDomainService
+    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
+    ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
+    ICreatureDomainService? creatureDomains = null) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -41,14 +46,28 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         var quoted = await rules.QuoteAsync(input, progress.Level, now, cancellationToken).ConfigureAwait(false);
         if (quoted.Quote is not { } quote)
             return CeraShopPurchaseResult.Refused(quoted.Rejection, quoted.Detail);
-
-        var bags = new Dictionary<InventoryContainerType, IItemContainer>();
-        var held = new Dictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>>();
-        foreach (var type in (InventoryContainerType[])[InventoryContainerType.Main, InventoryContainerType.Avatar, InventoryContainerType.Pet])
+        IReadOnlyList<DomainEffect> restrictionEffects = [];
+        if (!quote.Restrictions.IsEmpty)
         {
-            if (containers.FindContainer(session.CharacterId, type) is not { } bag) continue;
-            bags.Add(type, bag);
-            held.Add(type, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+            var restrictionPlan = rules.PlanRestrictions(quote,
+                await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false), now);
+            if (restrictionPlan.Effects is null)
+                return CeraShopPurchaseResult.Refused(restrictionPlan.Rejection, restrictionPlan.Detail);
+            restrictionEffects = restrictionPlan.Effects;
+        }
+
+        var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        var spaces = quote.Grants.Select(grant => grant.Placement.Destination.Space)
+            .Concat(quote.Grants.Where(grant => ItemSlotRuleService.AllowsQuickSlot(grant.Placement.ItemKind))
+                .Select(_ => BusinessInventorySpace.QuickSlot)).Distinct();
+        foreach (var space in spaces)
+        {
+            var bag = stores.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space))
+                .FindContainer(space);
+            if (bag is null) continue;
+            bags.Add(space, bag);
+            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
         }
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
         var before = new AccountCeraBalances(checked((int)wallet.Cera), checked((int)wallet.TokenCera), checked((int)wallet.HappyTokenCera));
@@ -63,6 +82,9 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (plan.GoldCost > 0)
             gold = await character.TrySpendGoldAsync(plan.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new CeraShopPurchaseRejectedException(CeraShopRejection.InsufficientFunds, "Gold changed before settlement.");
+        if (restrictionEffects.Count > 0)
+            await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, session), restrictionEffects,
+                cancellationToken).ConfigureAwait(false);
         foreach (var subscription in quote.Subscriptions)
             await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
                 cancellationToken).ConfigureAwait(false);
@@ -71,8 +93,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         foreach (var write in plan.Writes)
         {
             if (write.CreationFacts is { } facts)
-                await bags[write.Container].PutNewAsync(write.SlotIndex, write.Core, facts, cancellationToken).ConfigureAwait(false);
-            else await bags[write.Container].PutAsync(write.SlotIndex, write.Core, cancellationToken).ConfigureAwait(false);
+                await bags[write.Slot.Space].PutNewAsync(write.Slot.Index, write.Core, facts, cancellationToken).ConfigureAwait(false);
+            else await bags[write.Slot.Space].PutAsync(write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
         }
         await itemStore.SessionIn(transaction).ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -80,9 +102,11 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         // newly allocated world identities, which a pre-write plan cannot truthfully supply.
         var snapshot = await inventory.LoadAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         var updates = ImmutableArray.CreateBuilder<CommittedInventoryUpdateState>();
-        foreach (var group in plan.Writes.GroupBy(write => write.Container).OrderBy(group => group.Key))
+        foreach (var group in plan.Writes.GroupBy(write =>
+            LegacyInventoryStorageCoordinates.ToStorage(write.Slot).List).OrderBy(group => group.Key))
         {
-            var changedSlots = group.Select(write => write.SlotIndex).ToHashSet();
+            var changedSlots = group.Select(write =>
+                LegacyInventoryStorageCoordinates.ToStorage(write.Slot).Index).ToHashSet();
             var items = snapshot.Containers.Single(container => container.ContainerType == group.Key).Items
                 .Where(item => changedSlots.Contains(item.SlotIndex)).OrderBy(item => item.SlotIndex).ToArray();
             if (items.Length != changedSlots.Count)
@@ -93,12 +117,23 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (hasCreatures)
         {
-            var rows = await creatures.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
-            if (rows.Count > byte.MaxValue)
-                throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
-            pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
-                row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
-                row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
+            if (creatureDomains is not null)
+            {
+                var states = await creatureDomains.GetStore(session.CharacterId)
+                    .ReadAllAsync(cancellationToken).ConfigureAwait(false);
+                if (states.Count > byte.MaxValue)
+                    throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
+                pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
+            }
+            else
+            {
+                var rows = await creatures.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+                if (rows.Count > byte.MaxValue)
+                    throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
+                pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
+                    row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
+                    row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
+            }
         }
         AccountEntitlementEntryState? entitlements = null;
         IReadOnlyList<CharacterPremiumUsageSlotState> usage = [];
@@ -110,6 +145,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         return new(CeraShopRejection.None, new(session, quote.ProductIds, plan.Balances, gold, plan.GoldCost > 0,
             updates.ToImmutable(), pets, hasCreatures, now)
             { PremiumEntitlements = entitlements, PremiumUsageSlots = usage,
+                PurchaseRestrictions = quote.Restrictions.IsEmpty ? null
+                    : (await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false)).Entries,
                 GrantedPremiums = entitlements?.Premiums.Where(p => p.PremiumType is 22 or 27 or 84 or 97
                     && quote.Subscriptions.Any(s => (int)s.Service == p.PremiumType)).ToArray() ?? [] }, null);
     }

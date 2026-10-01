@@ -32,7 +32,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!);
+            null!, null!, null!, null!);
 
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
 
@@ -56,7 +56,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new CharacterContainerDomainService(),
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -77,7 +77,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!);
+            null!, null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -163,7 +163,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         // creature or none.
         items.SessionIn(accessor.Current!).Write(
             ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
-            new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 999))
+            new StoredItem(25, Core(itemKind: 5, itemId: 1, value: 999))
             {
                 Identity = new ItemIdentity(77),
             });
@@ -205,7 +205,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), containers,
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, null!);
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
@@ -294,7 +294,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new DailyRefillMutationResult(
-                [new DailyRefillCommittedGrant(InventoryContainerType.Main, 65, 9001, 2, 2)]));
+                [new DailyRefillCommittedGrant(new(BusinessInventorySpace.Consumable, 0), 9001, 2, 2)]));
     }
 
     private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
@@ -319,6 +319,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         : ICharacterInventoryEntryDomainService
     {
         public int LoadCount { get; private set; }
+
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
 
         public ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)

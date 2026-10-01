@@ -6,14 +6,18 @@ namespace Dfo.Server.Application.Inventory;
 
 /// <summary>Binds a domain slot to the existing persisted container representation.</summary>
 internal sealed class BusinessInventorySlotDomainService(
-    ICharacterContainerDomainService containers,
-    IInventorySlotMappingRuleService mappings) : IBusinessInventorySlotDomainService
+    ICharacterBusinessInventoryDomainService stores) : IBusinessInventorySlotDomainService
 {
+    internal BusinessInventorySlotDomainService(
+        ICharacterContainerDomainService containers, IInventorySlotMappingRuleService _) :
+        this(new CharacterBusinessInventoryDomainService(containers)) { }
+
     public BoundInventorySlot? Find(CharacterId characterId, BusinessSlot slot)
     {
-        var stored = mappings.ToGameSlot(slot);
-        var container = containers.FindContainer(characterId, stored.Space);
-        return container is null ? null : new(slot, container, stored.Index);
+        _ = LegacyInventoryStorageCoordinates.ToStorage(slot);
+        var container = stores.GetStore(characterId, BusinessInventoryOwnership.StoreOf(slot.Space))
+            .FindContainer(slot.Space);
+        return container is null ? null : new(slot, container);
     }
 
     public BoundInventorySlot Get(CharacterId characterId, BusinessSlot slot) =>
@@ -24,7 +28,7 @@ internal sealed class BusinessInventorySlotDomainService(
     public BoundInventorySlot FromStorage(InventoryStorageSlot slot)
     {
         ArgumentNullException.ThrowIfNull(slot.Container);
-        var business = mappings.ToBusinessSlot(slot);
-        return new(business, slot.Container, slot.Index);
+        var business = LegacyInventoryStorageCoordinates.ToBusiness(new(slot.Container.Type, slot.Index));
+        return new(business, new BusinessItemContainer(business.Space, slot.Container));
     }
 }

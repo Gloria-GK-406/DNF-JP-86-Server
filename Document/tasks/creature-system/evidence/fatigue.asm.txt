@@ -1,0 +1,618 @@
+
+### 08655c60 size=2207 _ZN5CUser9FatigueUpEi
+08655c60: push     ebp
+08655c61: mov      ebp, esp
+08655c63: push     ebx
+08655c64: sub      esp, 0x54
+08655c67: cmp      dword ptr [ebp + 0xc], 0
+08655c6b: jne      0x8655c74
+08655c6d: mov      dword ptr [ebp + 0xc], 1
+08655c74: mov      eax, dword ptr [ebp + 8]
+08655c77: mov      dword ptr [esp], eax
+08655c7a: call     0x8120432 ; _ZNK15CUserCharacInfo13getCurCharacREv
+08655c7f: test     eax, eax
+08655c81: setne    al
+08655c84: test     al, al
+08655c86: je       0x8655cd4
+08655c88: mov      eax, dword ptr [ebp + 8]
+08655c8b: mov      dword ptr [esp], eax
+08655c8e: call     0x84ec6ba ; _ZN5CUser31getUserBreakAwayRewardLuckPointEv
+08655c93: mov      dword ptr [ebp - 0xc], eax
+08655c96: cmp      dword ptr [ebp - 0xc], 0
+08655c9a: jle      0x8655cd4
+08655c9c: mov      eax, dword ptr [ebp + 8]
+08655c9f: mov      edx, dword ptr [ebp - 0xc]
+08655ca2: mov      dword ptr [esp + 4], edx
+08655ca6: mov      dword ptr [esp], eax
+08655ca9: call     0x822f84a ; _ZN15CUserCharacInfo21IncCurCharacLuckPointEi
+08655cae: mov      dword ptr [esp + 4], 0
+08655cb6: mov      eax, dword ptr [ebp + 8]
+08655cb9: mov      dword ptr [esp], eax
+08655cbc: call     0x84ec6c8 ; _ZN5CUser31setUserBreakAwayRewardLuckPointEi
+08655cc1: mov      dword ptr [esp + 4], 1
+08655cc9: mov      eax, dword ptr [ebp + 8]
+08655ccc: mov      dword ptr [esp], eax
+08655ccf: call     0x86971ee ; _ZN5CUser25setUsedBreakAwayLuckPointEb
+08655cd4: mov      ebx, dword ptr [ebp + 0xc]
+08655cd7: mov      eax, dword ptr [ebp + 8]
+08655cda: mov      dword ptr [esp], eax
+08655cdd: call     0x8230800 ; _ZN5CUser8getHadesEv
+08655ce2: mov      dword ptr [esp + 4], ebx
+08655ce6: mov      dword ptr [esp], eax
+08655ce9: call     0x84b9552 ; _ZN8XNuclear6CHades10UseFatigueEj
+08655cee: mov      eax, dword ptr [ebp + 8]
+08655cf1: mov      dword ptr [esp], eax
+08655cf4: call     0x84ed008 ; _ZN5CUser14GetGoldControlEv
+08655cf9: mov      edx, dword ptr [ebp + 0xc]
+08655cfc: mov      dword ptr [esp + 4], edx
+08655d00: mov      dword ptr [esp], eax
+08655d03: call     0x8287552 ; _ZN16Secu_GoldControl10UseFatigueEi
+08655d08: mov      eax, dword ptr [ebp + 8]
+08655d0b: mov      dword ptr [esp], eax
+08655d0e: call     0x80da38c ; _ZN5CUser9get_stateEv
+08655d13: cmp      eax, 5
+08655d16: sete     al
+08655d19: test     al, al
+08655d1b: je       0x8655d8e
+08655d1d: mov      eax, dword ptr [ebp + 8]
+08655d20: mov      dword ptr [esp], eax
+08655d23: call     0x8120432 ; _ZNK15CUserCharacInfo13getCurCharacREv
+08655d28: test     eax, eax
+08655d2a: setne    al
+08655d2d: test     al, al
+08655d2f: je       0x8655d8e
+08655d31: mov      eax, dword ptr [ebp + 8]
+08655d34: mov      dword ptr [esp], eax
+08655d37: call     0x86969da ; _ZN15CUserCharacInfo31IncCurCharacAssaultFatigueCountEv
+08655d3c: mov      eax, dword ptr [ebp + 8]
+08655d3f: mov      dword ptr [esp], eax
+08655d42: call     0x86969b8 ; _ZN15CUserCharacInfo31GetCurCharacAssaultFatigueCountEv
+08655d47: cmp      eax, 1
+08655d4a: setg     al
+08655d4d: test     al, al
+08655d4f: je       0x8655d8e
+08655d51: mov      eax, dword ptr [ebp + 8]
+08655d54: mov      dword ptr [esp + 4], 1
+08655d5c: mov      dword ptr [esp], eax
+08655d5f: call     0x8645fb8 ; _ZN15CUserCharacInfo22SubCurCharacChaosPointEi
+08655d64: mov      eax, dword ptr [ebp + 8]
+08655d67: mov      dword ptr [esp + 4], 0
+08655d6f: mov      dword ptr [esp], eax
+08655d72: call     0x869699a ; _ZN15CUserCharacInfo31SetCurCharacAssaultFatigueCountEi
+08655d77: mov      eax, dword ptr [ebp + 8]
+08655d7a: mov      eax, dword ptr [eax + 0x8e064]
+08655d80: mov      edx, eax
+08655d82: add      edx, dword ptr [ebp + 0xc]
+08655d85: mov      eax, dword ptr [ebp + 8]
+08655d88: mov      dword ptr [eax + 0x8e064], edx
+08655d8e: mov      eax, dword ptr [ebp + 8]
+08655d91: mov      edx, dword ptr [ebp + 0xc]
+08655d94: mov      dword ptr [eax + 0x8e08c], edx
+08655d9a: mov      eax, dword ptr [ebp + 8]
+08655d9d: mov      dword ptr [esp], eax
+08655da0: call     0x8110cba ; _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+08655da5: movzx    eax, ax
+08655da8: mov      dword ptr [ebp - 0x2c], eax
+08655dab: mov      eax, dword ptr [ebp + 0xc]
+08655dae: movzx    edx, ax
+08655db1: mov      eax, dword ptr [ebp + 8]
+08655db4: mov      dword ptr [esp + 4], edx
+08655db8: mov      dword ptr [esp], eax
+08655dbb: call     0x8696422 ; _ZN15CUserCharacInfo23incCurCharacUsedFatigueEt
+08655dc0: mov      eax, dword ptr [ebp + 8]
+08655dc3: mov      dword ptr [esp], eax
+08655dc6: call     0x8110cba ; _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+08655dcb: mov      ecx, eax
+08655dcd: mov      eax, ecx
+08655dcf: shr      ax, 1
+08655dd2: movzx    eax, ax
+08655dd5: imul     eax, eax, 0x147b
+08655ddb: shr      eax, 0x10
+08655dde: mov      edx, eax
+08655de0: shr      dx, 1
+08655de3: mov      eax, edx
+08655de5: shl      eax, 2
+08655de8: add      eax, edx
+08655dea: lea      edx, [eax*4]
+08655df1: add      eax, edx
+08655df3: add      eax, eax
+08655df5: mov      edx, ecx
+08655df7: sub      dx, ax
+08655dfa: test     dx, dx
+08655dfd: sete     al
+08655e00: test     al, al
+08655e02: je       0x8655e3e
+08655e04: mov      eax, dword ptr [ebp + 8]
+08655e07: mov      dword ptr [esp], eax
+08655e0a: call     0x80f995a ; _ZN5CUser15getHackAnalyzerEv
+08655e0f: mov      dword ptr [esp + 0x14], 0
+08655e17: mov      dword ptr [esp + 0x10], 0
+08655e1f: mov      dword ptr [esp + 0xc], 1
+08655e27: mov      dword ptr [esp + 8], 0x263
+08655e2f: mov      edx, dword ptr [ebp + 8]
+08655e32: mov      dword ptr [esp + 4], edx
+08655e36: mov      dword ptr [esp], eax
+08655e39: call     0x80f8c7e ; _ZN8WongWork13CHackAnalyzer16addServerHackCntEP5CUserNS_13ENUM_HACKTYPEEjjj
+08655e3e: mov      dword ptr [ebp - 0x28], 0x9c
+08655e45: mov      eax, dword ptr [ebp + 8]
+08655e48: mov      dword ptr [esp], eax
+08655e4b: call     0x8110cba ; _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+08655e50: cmp      ax, 0x9c
+08655e54: sete     al
+08655e57: test     al, al
+08655e59: je       0x8655e7e
+08655e5b: mov      dword ptr [esp + 0xc], 0
+08655e63: mov      dword ptr [esp + 8], 0
+08655e6b: mov      dword ptr [esp + 4], 0x16
+08655e73: mov      eax, dword ptr [ebp + 8]
+08655e76: mov      dword ptr [esp], eax
+08655e79: call     0x8122390 ; _ZN8APSystem9CUserProc24ClearActionAndSendtoUserEP5CUserNS_17_ActionGroupIndexEi16ENUM_PACKETCLASS
+08655e7e: mov      eax, dword ptr [ebp + 8]
+08655e81: mov      dword ptr [esp], eax
+08655e84: call     0x8110cba ; _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+08655e89: cmp      ax, 0x32
+08655e8d: sete     al
+08655e90: test     al, al
+08655e92: je       0x8655eb9
+08655e94: mov      dword ptr [esp + 0xc], 0
+08655e9c: mov      dword ptr [esp + 8], 0
+08655ea4: mov      dword ptr [esp + 4], 0x28
+08655eac: mov      eax, dword ptr [ebp + 8]
+08655eaf: mov      dword ptr [esp], eax
+08655eb2: call     0x8122390 ; _ZN8APSystem9CUserProc24ClearActionAndSendtoUserEP5CUserNS_17_ActionGroupIndexEi16ENUM_PACKETCLASS
+08655eb7: jmp      0x8655ef2
+08655eb9: mov      eax, dword ptr [ebp + 8]
+08655ebc: mov      dword ptr [esp], eax
+08655ebf: call     0x8110cba ; _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+08655ec4: cmp      ax, 0x64
+08655ec8: sete     al
+08655ecb: test     al, al
+08655ecd: je       0x8655ef2
+08655ecf: mov      dword ptr [esp + 0xc], 0
+08655ed7: mov      dword ptr [esp + 8], 0
+08655edf: mov      dword ptr [esp + 4], 0x2a
+08655ee7: mov      eax, dword ptr [ebp + 8]
+08655eea: mov      dword ptr [esp], eax
+08655eed: call     0x8122390 ; _ZN8APSystem9CUserProc24ClearActionAndSendtoUserEP5CUserNS_17_ActionGroupIndexEi16ENUM_PACKETCLASS
+08655ef2: mov      ebx, dword ptr [ebp + 0xc]
+08655ef5: call     0x80cc19b ; _Z14G_CDataManagerv
+08655efa: mov      dword ptr [esp], eax
+08655efd: call     0x8110b62 ; _ZN12CDataManager20get_event_script_mngEv
+08655f02: mov      dword ptr [esp + 8], ebx
+08655f06: mov      edx, dword ptr [ebp + 8]
+08655f09: mov      dword ptr [esp + 4], edx
+08655f0d: mov      dword ptr [esp], eax
+08655f10: call     0x810c152 ; _ZN13EventClassify15CEventScriptMng16inc_user_fatigueEP5CUserj
+08655f15: mov      ebx, dword ptr [ebp + 0xc]
+08655f18: call     0x80cc19b ; _Z14G_CDataManagerv
+08655f1d: mov      dword ptr [esp], eax
+08655f20: call     0x8110b62 ; _ZN12CDataManager20get_event_script_mngEv
+08655f25: mov      dword ptr [esp + 8], ebx
+08655f29: mov      edx, dword ptr [ebp + 8]
+08655f2c: mov      dword ptr [esp + 4], edx
+08655f30: mov      dword ptr [esp], eax
+08655f33: call     0x810c1ea ; _ZN13EventClassify15CEventScriptMng22send_gift_fatigue_itemEP5CUserj
+08655f38: call     0x80cc19b ; _Z14G_CDataManagerv
+08655f3d: mov      dword ptr [esp], eax
+08655f40: call     0x8110b62 ; _ZN12CDataManager20get_event_script_mngEv
+08655f45: mov      dword ptr [esp + 4], 0x19b
+08655f4d: mov      dword ptr [esp], eax
+08655f50: call     0x810ba36 ; _ZN13EventClassify15CEventScriptMng11is_eventingEi
+08655f55: test     al, al
+08655f57: je       0x8655f7c
+08655f59: call     0x80cc19b ; _Z14G_CDataManagerv
+08655f5e: mov      dword ptr [esp], eax
+08655f61: call     0x8110b62 ; _ZN12CDataManager20get_event_script_mngEv
+08655f66: mov      edx, dword ptr [ebp + 0xc]
+08655f69: mov      dword ptr [esp + 8], edx
+08655f6d: mov      edx, dword ptr [ebp + 8]
+08655f70: mov      dword ptr [esp + 4], edx
+08655f74: mov      dword ptr [esp], eax
+08655f77: call     0x810c33a ; _ZN13EventClassify15CEventScriptMng26send_bring_up_item_fatigueEP5CUseri
+08655f7c: mov      eax, dword ptr [ebp + 8]
+08655f7f: mov      dword ptr [esp], eax
+08655f82: call     0x869721a ; _ZN5CUser24isJoinedSchoolPointEventEv
+08655f87: test     al, al
+08655f89: je       0x8655f9d
+08655f8b: mov      eax, dword ptr [ebp + 8]
+08655f8e: mov      edx, dword ptr [ebp - 0x2c]
+08655f91: mov      dword ptr [esp + 4], edx
+08655f95: mov      dword ptr [esp], eax
+08655f98: call     0x8655bce ; _ZN15CUserCharacInfo24calcCurCharacSchoolPointEi
+08655f9d: mov      ebx, dword ptr [ebp + 0xc]
+08655fa0: call     0x811c9ce ; _ZN4ARAD9SingletonI16HeroMissionEventE3GetEv
+08655fa5: mov      dword ptr [esp + 0xc], ebx
+08655fa9: mov      dword ptr [esp + 8], 2
+08655fb1: mov      edx, dword ptr [ebp + 8]
+08655fb4: mov      dword ptr [esp + 4], edx
+08655fb8: mov      dword ptr [esp], eax
+08655fbb: call     0x81672be ; _ZN16HeroMissionEvent14processMissionEP5CUserN20HeroMissionCondition9MissionNo1TEj
+08655fc0: mov      eax, dword ptr [0x941f730]
+08655fc5: mov      dword ptr [esp + 4], 0x29
+08655fcd: mov      dword ptr [esp], eax
+08655fd0: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+08655fd5: mov      dword ptr [ebp - 0x24], eax
+08655fd8: cmp      dword ptr [ebp - 0x24], 0
+08655fdc: je       0x8656037
+08655fde: mov      eax, dword ptr [ebp - 0x24]
+08655fe1: mov      eax, dword ptr [eax]
+08655fe3: add      eax, 0x34
+08655fe6: mov      edx, dword ptr [eax]
+08655fe8: mov      eax, dword ptr [ebp - 0x24]
+08655feb: mov      dword ptr [esp + 4], 0
+08655ff3: mov      dword ptr [esp], eax
+08655ff6: call     edx
+08655ff8: test     al, al
+08655ffa: je       0x8656037
+08655ffc: mov      eax, dword ptr [ebp + 8]
+08655fff: mov      dword ptr [esp], eax
+08656002: call     0x80fdf20 ; _ZNK15CUserCharacInfo14get_charac_jobEv
+08656007: mov      ebx, eax
+08656009: mov      eax, dword ptr [ebp - 0x24]
+0865600c: mov      dword ptr [esp], eax
+0865600f: call     0x8697886 ; _ZN18CCharacterDayEvent11GetEventJobEv
+08656014: cwde
+08656015: cmp      ebx, eax
+08656017: sete     al
+0865601a: test     al, al
+0865601c: je       0x8656037
+0865601e: mov      edx, dword ptr [ebp + 0xc]
+08656021: mov      eax, dword ptr [ebp - 0x2c]
+08656024: mov      dword ptr [esp + 8], edx
+08656028: mov      dword ptr [esp + 4], eax
+0865602c: mov      eax, dword ptr [ebp + 8]
+0865602f: mov      dword ptr [esp], eax
+08656032: call     0x8659490 ; _ZN5CUser25_processCharacterDayEventEjj
+08656037: mov      eax, dword ptr [0x941f730]
+0865603c: mov      dword ptr [esp + 4], 0x2b
+08656044: mov      dword ptr [esp], eax
+08656047: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+0865604c: mov      dword ptr [ebp - 0x20], eax
+0865604f: cmp      dword ptr [ebp - 0x20], 0
+08656053: je       0x865608c
+08656055: mov      eax, dword ptr [ebp - 0x20]
+08656058: mov      eax, dword ptr [eax]
+0865605a: add      eax, 0x34
+0865605d: mov      edx, dword ptr [eax]
+0865605f: mov      eax, dword ptr [ebp - 0x20]
+08656062: mov      dword ptr [esp + 4], 0
+0865606a: mov      dword ptr [esp], eax
+0865606d: call     edx
+0865606f: test     al, al
+08656071: je       0x865608c
+08656073: mov      edx, dword ptr [ebp + 0xc]
+08656076: mov      eax, dword ptr [ebp - 0x2c]
+08656079: mov      dword ptr [esp + 8], edx
+0865607d: mov      dword ptr [esp + 4], eax
+08656081: mov      eax, dword ptr [ebp + 8]
+08656084: mov      dword ptr [esp], eax
+08656087: call     0x86598ba ; _ZN5CUser24_processFatigueBuffEventEjj
+0865608c: call     0x81935a2 ; _ZN4ARAD9SingletonI20AvatarRechargeServerE3GetEv
+08656091: mov      edx, dword ptr [ebp + 0xc]
+08656094: mov      dword ptr [esp + 8], edx
+08656098: mov      edx, dword ptr [ebp + 8]
+0865609b: mov      dword ptr [esp + 4], edx
+0865609f: mov      dword ptr [esp], eax
+086560a2: call     0x819049a ; _ZN20AvatarRechargeServer14CalcDurabilityEP5CUseri
+086560a7: mov      eax, dword ptr [ebp + 8]
+086560aa: movzx    edx, word ptr [eax + 0x79642]
+086560b1: mov      eax, dword ptr [ebp + 0xc]
+086560b4: add      edx, eax
+086560b6: mov      eax, dword ptr [ebp + 8]
+086560b9: mov      word ptr [eax + 0x79642], dx
+086560c0: mov      eax, dword ptr [ebp + 8]
+086560c3: mov      dword ptr [esp], eax
+086560c6: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+086560cb: test     eax, eax
+086560cd: setne    al
+086560d0: test     al, al
+086560d2: je       0x865611f
+086560d4: mov      eax, dword ptr [ebp + 8]
+086560d7: mov      dword ptr [esp], eax
+086560da: call     0x80da2b8 ; _ZNK15CUserCharacInfo16get_charac_levelEv
+086560df: mov      ebx, eax
+086560e1: call     0x80cc19b ; _Z14G_CDataManagerv
+086560e6: add      eax, 0xa50c
+086560eb: mov      dword ptr [esp + 4], ebx
+086560ef: mov      dword ptr [esp], eax
+086560f2: call     0x89795de ; _ZN20GuildParameterScript17getGuildExpWeightEi
+086560f7: mov      ecx, eax
+086560f9: imul     ecx, dword ptr [ebp + 0xc]
+086560fd: mov      edx, 0x51eb851f
+08656102: mov      eax, ecx
+08656104: imul     edx
+08656106: sar      edx, 5
+08656109: mov      eax, ecx
+0865610b: sar      eax, 0x1f
+0865610e: sub      edx, eax
+08656110: mov      eax, dword ptr [ebp + 8]
+08656113: mov      dword ptr [esp + 4], edx
+08656117: mov      dword ptr [esp], eax
+0865611a: call     0x8645c18 ; _ZN15CUserCharacInfo18add_guild_temp_expEi
+0865611f: mov      edx, dword ptr [ebp + 0xc]
+08656122: mov      eax, dword ptr [ebp + 8]
+08656125: mov      dword ptr [esp + 4], edx
+08656129: mov      dword ptr [esp], eax
+0865612c: call     0x8696326 ; _ZN15CUserCharacInfo30decCurCharacFatigueGrownUpBuffEj
+08656131: mov      eax, dword ptr [ebp + 8]
+08656134: movzx    eax, byte ptr [eax + 0x8d03b]
+0865613b: movzx    eax, al
+0865613e: add      eax, 1
+08656141: cmp      eax, 0x10
+08656144: jle      0x8656151
+08656146: mov      eax, dword ptr [ebp + 8]
+08656149: mov      dword ptr [esp], eax
+0865614c: call     0x8645c58 ; _ZN15CUserCharacInfo20reset_guild_temp_expEv
+08656151: mov      eax, dword ptr [ebp + 0xc]
+08656154: mov      dword ptr [esp + 4], eax
+08656158: mov      eax, dword ptr [ebp + 8]
+0865615b: mov      dword ptr [esp], eax
+0865615e: call     0x86925c4 ; _ZN5CUser20processFatigueCharacEi
+08656163: mov      eax, dword ptr [ebp + 8]
+08656166: add      eax, 0x7121c
+0865616b: mov      dword ptr [esp], eax
+0865616e: call     0x8694a54 ; _ZNK8WongWork12CUserPremium24isAffectedUnlimitFatigueEv
+08656173: test     al, al
+08656175: je       0x865618a
+08656177: mov      eax, dword ptr [ebp + 8]
+0865617a: mov      dword ptr [esp], eax
+0865617d: call     0x8657766 ; _ZNK5CUser24getCurCharacTotalFatigueEv
+08656182: movzx    eax, ax
+08656185: jmp      0x86564f9
+0865618a: mov      eax, dword ptr [0x941f730]
+0865618f: mov      dword ptr [esp + 4], 1
+08656197: mov      dword ptr [esp], eax
+0865619a: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+0865619f: mov      edx, dword ptr [eax]
+086561a1: add      edx, 0x34
+086561a4: mov      edx, dword ptr [edx]
+086561a6: mov      dword ptr [esp + 4], 0
+086561ae: mov      dword ptr [esp], eax
+086561b1: call     edx
+086561b3: test     al, al
+086561b5: je       0x86561ea
+086561b7: call     0x80cc19b ; _Z14G_CDataManagerv
+086561bc: mov      eax, dword ptr [eax + 0xe4]
+086561c2: mov      edx, eax
+086561c4: imul     edx, dword ptr [ebp + 0xc]
+086561c8: mov      eax, dword ptr [ebp + 8]
+086561cb: mov      dword ptr [esp + 4], edx
+086561cf: mov      dword ptr [esp], eax
+086561d2: call     0x822f84a ; _ZN15CUserCharacInfo21IncCurCharacLuckPointEi
+086561d7: mov      eax, dword ptr [ebp + 8]
+086561da: mov      dword ptr [esp], eax
+086561dd: call     0x8657766 ; _ZNK5CUser24getCurCharacTotalFatigueEv
+086561e2: movzx    eax, ax
+086561e5: jmp      0x86564f9
+086561ea: mov      eax, dword ptr [0x941f730]
+086561ef: mov      dword ptr [esp + 4], 0xa
+086561f7: mov      dword ptr [esp], eax
+086561fa: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+086561ff: mov      edx, dword ptr [eax]
+08656201: add      edx, 0x34
+08656204: mov      ecx, dword ptr [edx]
+08656206: mov      edx, dword ptr [ebp + 8]
+08656209: mov      dword ptr [esp + 4], edx
+0865620d: mov      dword ptr [esp], eax
+08656210: call     ecx
+08656212: test     al, al
+08656214: je       0x8656229
+08656216: mov      eax, dword ptr [ebp + 8]
+08656219: mov      dword ptr [esp], eax
+0865621c: call     0x8657766 ; _ZNK5CUser24getCurCharacTotalFatigueEv
+08656221: movzx    eax, ax
+08656224: jmp      0x86564f9
+08656229: mov      eax, dword ptr [ebp + 8]
+0865622c: mov      dword ptr [esp], eax
+0865622f: call     0x822f2ae ; _ZNK15CUserCharacInfo19getCurCharacFatigueEv
+08656234: cmp      ax, -1
+08656238: sete     al
+0865623b: test     al, al
+0865623d: je       0x8656252
+0865623f: mov      eax, dword ptr [ebp + 8]
+08656242: mov      dword ptr [esp], eax
+08656245: call     0x822f2ae ; _ZNK15CUserCharacInfo19getCurCharacFatigueEv
+0865624a: movzx    eax, ax
+0865624d: jmp      0x86564f9
+08656252: mov      dword ptr [ebp - 0x1c], 0
+08656259: mov      eax, dword ptr [ebp + 8]
+0865625c: mov      dword ptr [esp], eax
+0865625f: call     0x822f5c4 ; _ZN15CUserCharacInfo20get_charac_memberkeyEv
+08656264: test     eax, eax
+08656266: je       0x865627e
+08656268: mov      eax, dword ptr [ebp + 8]
+0865626b: mov      dword ptr [esp], eax
+0865626e: call     0x822f5e6 ; _ZN15CUserCharacInfo23is_connect_upper_memberEv
+08656273: test     al, al
+08656275: je       0x865627e
+08656277: mov      eax, 1
+0865627c: jmp      0x8656283
+0865627e: mov      eax, 0
+08656283: test     al, al
+08656285: je       0x8656299
+08656287: mov      eax, dword ptr [ebp + 8]
+0865628a: mov      edx, dword ptr [ebp + 0xc]
+0865628d: mov      dword ptr [esp + 4], edx
+08656291: mov      dword ptr [esp], eax
+08656294: call     0x86968f8 ; _ZN15CUserCharacInfo35add_member_pay_tex_fatigue_to_upperEi
+08656299: call     0x80cc19b ; _Z14G_CDataManagerv
+0865629e: mov      dword ptr [esp], eax
+086562a1: call     0x8110b62 ; _ZN12CDataManager20get_event_script_mngEv
+086562a6: mov      edx, dword ptr [ebp + 0xc]
+086562a9: mov      dword ptr [esp + 8], edx
+086562ad: mov      edx, dword ptr [ebp + 8]
+086562b0: mov      dword ptr [esp + 4], edx
+086562b4: mov      dword ptr [esp], eax
+086562b7: call     0x810c110 ; _ZN13EventClassify15CEventScriptMng25process_add_fatigue_countEP5CUseri
+086562bc: mov      word ptr [ebp - 0x16], 0
+086562c2: mov      eax, dword ptr [0x941f730]
+086562c7: mov      dword ptr [esp + 4], 0xf
+086562cf: mov      dword ptr [esp], eax
+086562d2: call     0x8115998 ; _ZN13CEventManager14GetRepeatEventEi
+086562d7: mov      dword ptr [ebp - 0x14], eax
+086562da: mov      eax, dword ptr [ebp - 0x14]
+086562dd: mov      eax, dword ptr [eax]
+086562df: add      eax, 0x34
+086562e2: mov      edx, dword ptr [eax]
+086562e4: mov      eax, dword ptr [ebp - 0x14]
+086562e7: mov      dword ptr [esp + 4], 0
+086562ef: mov      dword ptr [esp], eax
+086562f2: call     edx
+086562f4: test     al, al
+086562f6: je       0x8656323
+086562f8: mov      eax, dword ptr [ebp + 0xc]
+086562fb: movzx    ebx, ax
+086562fe: mov      eax, dword ptr [ebp + 8]
+08656301: mov      dword ptr [esp], eax
+08656304: call     0x8110cba ; _ZN15CUserCharacInfo23getCurCharacUsedFatigueEv
+08656309: movzx    eax, ax
+0865630c: mov      dword ptr [esp + 8], ebx
+08656310: mov      dword ptr [esp + 4], eax
+08656314: mov      eax, dword ptr [ebp - 0x14]
+08656317: mov      dword ptr [esp], eax
+0865631a: call     0x810a166 ; _ZNK20CBurningFatigueEvent16getRefillFatigueEtt
+0865631f: mov      word ptr [ebp - 0x16], ax
+08656323: mov      eax, dword ptr [ebp + 8]
+08656326: mov      dword ptr [esp], eax
+08656329: call     0x812ce36 ; _ZNK5CUser22IsHavePremiumAdvantageEv
+0865632e: test     al, al
+08656330: je       0x865643b
+08656336: mov      eax, dword ptr [ebp + 8]
+08656339: mov      dword ptr [esp], eax
+0865633c: call     0x86963b0 ; _ZNK15CUserCharacInfo26getCurCharacPremiumFatigueEv
+08656341: movzx    eax, ax
+08656344: mov      dword ptr [ebp - 0x1c], eax
+08656347: mov      eax, dword ptr [ebp + 0xc]
+0865634a: mov      edx, dword ptr [ebp - 0x1c]
+0865634d: lea      ebx, [edx + eax]
+08656350: mov      eax, dword ptr [ebp + 8]
+08656353: mov      dword ptr [esp], eax
+08656356: call     0x8696402 ; _ZNK15CUserCharacInfo29getCurCharacMaxPremiumFatigueEv
+0865635b: movzx    eax, ax
+0865635e: cmp      ebx, eax
+08656360: setle    al
+08656363: test     al, al
+08656365: je       0x86563dc
+08656367: mov      eax, dword ptr [ebp - 0x1c]
+0865636a: mov      edx, eax
+0865636c: mov      eax, dword ptr [ebp + 0xc]
+0865636f: lea      eax, [edx + eax]
+08656372: movzx    edx, ax
+08656375: mov      eax, dword ptr [ebp + 8]
+08656378: mov      dword ptr [esp + 4], edx
+0865637c: mov      dword ptr [esp], eax
+0865637f: call     0x86963d0 ; _ZN15CUserCharacInfo26setCurCharacPremiumFatigueEt
+08656384: cmp      word ptr [ebp - 0x16], 0
+08656389: je       0x86563a9
+0865638b: movzx    eax, word ptr [ebp - 0x16]
+0865638f: mov      dword ptr [esp + 4], eax
+08656393: mov      eax, dword ptr [ebp + 8]
+08656396: mov      dword ptr [esp], eax
+08656399: call     0x864f7fe ; _ZN5CUser20gainCurCharacFatigueEi
+0865639e: mov      eax, dword ptr [ebp + 8]
+086563a1: mov      dword ptr [esp], eax
+086563a4: call     0x8656540 ; _ZN5CUser11SendFatigueEv
+086563a9: call     0x80cc19b ; _Z14G_CDataManagerv
+086563ae: mov      eax, dword ptr [eax + 0xe4]
+086563b4: mov      edx, eax
+086563b6: imul     edx, dword ptr [ebp + 0xc]
+086563ba: mov      eax, dword ptr [ebp + 8]
+086563bd: mov      dword ptr [esp + 4], edx
+086563c1: mov      dword ptr [esp], eax
+086563c4: call     0x822f84a ; _ZN15CUserCharacInfo21IncCurCharacLuckPointEi
+086563c9: mov      eax, dword ptr [ebp + 8]
+086563cc: mov      dword ptr [esp], eax
+086563cf: call     0x8657766 ; _ZNK5CUser24getCurCharacTotalFatigueEv
+086563d4: movzx    eax, ax
+086563d7: jmp      0x86564f9
+086563dc: mov      eax, dword ptr [ebp + 8]
+086563df: mov      dword ptr [esp], eax
+086563e2: call     0x86963b0 ; _ZNK15CUserCharacInfo26getCurCharacPremiumFatigueEv
+086563e7: mov      ebx, eax
+086563e9: mov      eax, dword ptr [ebp + 8]
+086563ec: mov      dword ptr [esp], eax
+086563ef: call     0x8696402 ; _ZNK15CUserCharacInfo29getCurCharacMaxPremiumFatigueEv
+086563f4: cmp      bx, ax
+086563f7: setb     al
+086563fa: test     al, al
+086563fc: je       0x865643b
+086563fe: mov      eax, dword ptr [ebp + 8]
+08656401: mov      dword ptr [esp], eax
+08656404: call     0x8696402 ; _ZNK15CUserCharacInfo29getCurCharacMaxPremiumFatigueEv
+08656409: movzx    edx, ax
+0865640c: mov      eax, dword ptr [ebp + 8]
+0865640f: mov      dword ptr [esp + 4], edx
+08656413: mov      dword ptr [esp], eax
+08656416: call     0x86963d0 ; _ZN15CUserCharacInfo26setCurCharacPremiumFatigueEt
+0865641b: mov      eax, dword ptr [ebp + 0xc]
+0865641e: mov      edx, dword ptr [ebp - 0x1c]
+08656421: lea      ebx, [edx + eax]
+08656424: mov      eax, dword ptr [ebp + 8]
+08656427: mov      dword ptr [esp], eax
+0865642a: call     0x8696402 ; _ZNK15CUserCharacInfo29getCurCharacMaxPremiumFatigueEv
+0865642f: movzx    eax, ax
+08656432: mov      edx, ebx
+08656434: sub      edx, eax
+08656436: mov      eax, edx
+08656438: mov      dword ptr [ebp + 0xc], eax
+0865643b: mov      eax, dword ptr [ebp + 8]
+0865643e: mov      dword ptr [esp], eax
+08656441: call     0x822f2ae ; _ZNK15CUserCharacInfo19getCurCharacFatigueEv
+08656446: movzx    eax, ax
+08656449: mov      dword ptr [ebp - 0x1c], eax
+0865644c: mov      eax, dword ptr [ebp - 0x1c]
+0865644f: mov      dword ptr [ebp - 0x10], eax
+08656452: mov      eax, dword ptr [ebp + 0xc]
+08656455: mov      edx, dword ptr [ebp - 0x1c]
+08656458: lea      ebx, [edx + eax]
+0865645b: mov      eax, dword ptr [ebp + 8]
+0865645e: mov      dword ptr [esp], eax
+08656461: call     0x812cdd6 ; _ZNK15CUserCharacInfo22getCurCharacMaxFatigueEv
+08656466: movzx    eax, ax
+08656469: cmp      ebx, eax
+0865646b: setg     al
+0865646e: test     al, al
+08656470: je       0x8656485
+08656472: mov      eax, dword ptr [ebp + 8]
+08656475: mov      dword ptr [esp], eax
+08656478: call     0x812cdd6 ; _ZNK15CUserCharacInfo22getCurCharacMaxFatigueEv
+0865647d: movzx    eax, ax
+08656480: mov      dword ptr [ebp - 0x1c], eax
+08656483: jmp      0x865648b
+08656485: mov      eax, dword ptr [ebp + 0xc]
+08656488: add      dword ptr [ebp - 0x1c], eax
+0865648b: mov      eax, dword ptr [ebp + 8]
+0865648e: mov      edx, dword ptr [ebp - 0x1c]
+08656491: mov      dword ptr [esp + 4], edx
+08656495: mov      dword ptr [esp], eax
+08656498: call     0x822f2ce ; _ZN15CUserCharacInfo19setCurCharacFatigueEi
+0865649d: call     0x80cc19b ; _Z14G_CDataManagerv
+086564a2: mov      eax, dword ptr [eax + 0xe0]
+086564a8: mov      edx, dword ptr [ebp - 0x10]
+086564ab: mov      ecx, dword ptr [ebp - 0x1c]
+086564ae: mov      ebx, ecx
+086564b0: sub      ebx, edx
+086564b2: mov      edx, ebx
+086564b4: imul     edx, eax
+086564b7: mov      eax, dword ptr [ebp + 8]
+086564ba: mov      dword ptr [esp + 4], edx
+086564be: mov      dword ptr [esp], eax
+086564c1: call     0x822f84a ; _ZN15CUserCharacInfo21IncCurCharacLuckPointEi
+086564c6: cmp      word ptr [ebp - 0x16], 0
+086564cb: je       0x86564eb
+086564cd: movzx    eax, word ptr [ebp - 0x16]
+086564d1: mov      dword ptr [esp + 4], eax
+086564d5: mov      eax, dword ptr [ebp + 8]
+086564d8: mov      dword ptr [esp], eax
+086564db: call     0x864f7fe ; _ZN5CUser20gainCurCharacFatigueEi
+086564e0: mov      eax, dword ptr [ebp + 8]
+086564e3: mov      dword ptr [esp], eax
+086564e6: call     0x8656540 ; _ZN5CUser11SendFatigueEv
+086564eb: mov      eax, dword ptr [ebp + 8]
+086564ee: mov      dword ptr [esp], eax
+086564f1: call     0x822f2ae ; _ZNK15CUserCharacInfo19getCurCharacFatigueEv
+086564f6: movzx    eax, ax
+086564f9: add      esp, 0x54
+086564fc: pop      ebx
+086564fd: pop      ebp
+086564fe: ret

@@ -1,0 +1,82 @@
+生成启动时间为 2026/10/1 16:06:21。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-pvf.diag.txt 中记录 Vstest 诊断
+总共 1 个测试文件与指定模式相匹配。
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-pvf.diag.host.26-10-01_16-06-22_12546_5.txt 中记录 TestHost 诊断
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.17]   Discovering: Dfo.Pvf.Tests (app domain = off, method display = ClassAndMethod, method display options = None)
+[xUnit.net 00:00:00.26]   Discovered:  Dfo.Pvf.Tests (60 test cases to be run)
+[xUnit.net 00:00:00.28]   Starting:    Dfo.Pvf.Tests (parallel test collections = off, stop on fail = off, explicit = off)
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: "BodY", length: 1) [86 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: "HeaD", length: 0) [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: "BodY", length: 4099) [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: "BodY", length: 4096) [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: "GRPI", length: 7) [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: "HASH", length: 4) [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Rejects_a_key_shorter_than_the_format_allows [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.String_table_pass_is_self_inverse(key: "sTrW") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.String_table_pass_is_self_inverse(key: "sTrA") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.CipherTests.Section_and_string_table_use_different_streams [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "   ", expected: "") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "equipment/", expected: "equipment") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "./equipment/foo.equ", expected: "equipment/foo.equ") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "//./equipment/foo.equ", expected: "equipment/foo.equ") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "", expected: "") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "  equipment/foo.equ  ", expected: "equipment/foo.equ") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "/equipment/foo.equ", expected: "equipment/foo.equ") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "equipment\\foo.equ", expected: "equipment/foo.equ") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: "equipment/foo.equ", expected: "equipment/foo.equ") [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ZlibCodecTests.Inflates_without_a_declared_length [2 ms]
+  已通过 Dfo.Pvf.Tests.ZlibCodecTests.Inflates_to_the_declared_length [< 1 ms]
+  已通过 Dfo.Pvf.Tests.ZlibCodecTests.A_wrong_declared_length_fails_loudly_instead_of_truncating [< 1 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Truncating_the_archive_is_reported_as_a_format_error [9 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Script_files_return_empty_text_rather_than_mojibake [5 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.The_same_tag_in_two_files_shares_one_offset [3 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Unicode_text_files_decode_as_text_not_records [1 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.A_file_with_no_content_is_readable_and_empty [3 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Round_trips_every_file_it_was_given [1 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Files_in_a_later_chunk_decode_correctly [8 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Corrupting_the_body_is_reported_rather_than_returning_wrong_bytes [2 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.An_empty_archive_opens_without_special_casing [< 1 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Two_files_sharing_a_name_in_different_folders_stay_distinct [1 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Eviction_does_not_change_bytes_a_caller_already_holds [1 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Reads_back_the_exact_records_that_were_written [3 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.A_section_yields_all_of_its_values_and_stops_at_the_next_tag [2 ms]
+  已通过 Dfo.Pvf.Tests.SyntheticArchiveTests.Utf16_names_resolve_through_the_wide_pool [1 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Finds_a_known_list_file_regardless_of_path_spelling [361 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Reports_an_absent_path_rather_than_guessing [338 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Cache_stays_within_its_budget_while_sweeping_the_whole_body [522 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Bytes_stay_readable_after_their_chunk_is_evicted [300 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Script_files_read_back_as_whole_records [321 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.A_list_file_pairs_identifiers_with_integers [296 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Tags_resolve_to_one_interned_offset_and_match_by_value [291 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.An_unused_tag_resolves_to_unresolved_instead_of_throwing [324 ms]
+  已通过 Dfo.Pvf.Tests.ArchiveTests.Opens_and_indexes_the_shipping_archive [307 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.Section_values_stop_at_the_next_identifier [2 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.TryMovePast_positions_after_the_tag [< 1 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.TryMovePast_reports_absence_without_throwing [< 1 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.Unresolved_tag_never_matches [< 1 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.Tag_matching_ignores_non_identifier_records_with_the_same_value [< 1 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.Single_tokens_decode_from_their_value_bits [1 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.Trailing_partial_record_is_ignored_rather_than_misread [< 1 ms]
+  已通过 Dfo.Pvf.Tests.TokenReaderTests.Reads_every_record_in_order [1 ms]
+[xUnit.net 00:00:03.58]   Finished:    Dfo.Pvf.Tests
+  已通过 Dfo.Pvf.Tests.HeaderTests.Reads_declared_sections [< 1 ms]
+  已通过 Dfo.Pvf.Tests.HeaderTests.Rejects_a_negative_section_size [< 1 ms]
+  已通过 Dfo.Pvf.Tests.HeaderTests.Rejects_a_foreign_signature [< 1 ms]
+  已通过 Dfo.Pvf.Tests.HeaderTests.Section_layout_places_body_after_every_table [1 ms]
+  已通过 Dfo.Pvf.Tests.HeaderTests.Rejects_a_truncated_header [< 1 ms]
+  已通过 Dfo.Pvf.Tests.HeaderTests.Rejects_maximal_section_sizes_against_a_real_archive_length [< 1 ms]
+  已通过 Dfo.Pvf.Tests.HeaderTests.Rejects_sections_that_run_past_the_file [< 1 ms]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-pvf.trx
+
+测试运行成功。
+测试总数: 60
+     通过数: 60
+总时间: 4.5329 秒
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:05.04

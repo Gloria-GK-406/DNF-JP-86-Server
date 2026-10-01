@@ -41,7 +41,7 @@ public sealed class CharacterEntryInventoryTests
                 new InventoryContainerState(
                     InventoryContainerType.Equipment,
                     0,
-                    [new InventoryItemState(new ItemIdentity(1), 24, Core(9001, 1, itemKind: 5))]),
+                    [new InventoryItemState(new ItemIdentity(1), 25, Core(9001, 1, itemKind: 5))]),
             ],
             [],
             new CharacterItemValueEntryState([], []),
@@ -778,6 +778,10 @@ public sealed class CharacterEntryInventoryTests
     private sealed class StubInventoryEntryService(TestInventoryEntryState state)
         : ITestInventoryEntryServices
     {
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(accountId, characterId, cancellationToken);
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
@@ -791,6 +795,10 @@ public sealed class CharacterEntryInventoryTests
 
     private sealed class FailingInventoryEntryService : ITestInventoryEntryServices
     {
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(accountId, characterId, cancellationToken);
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
@@ -807,6 +815,10 @@ public sealed class CharacterEntryInventoryTests
 
     private sealed class NotReachedInventoryEntryService : ITestInventoryEntryServices
     {
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(accountId, characterId, cancellationToken);
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,

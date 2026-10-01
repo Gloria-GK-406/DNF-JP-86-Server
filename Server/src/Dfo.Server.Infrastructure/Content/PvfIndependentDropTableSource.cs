@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Immutable;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -9,6 +10,18 @@ internal readonly record struct IndependentDropToken(int? Number, string? Tag);
 
 internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider) : IIndependentDropTableSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> IndependentDropField = PvfField.Tokens("[independent drop]", optional: true);
+        internal static readonly PvfField<bool> CloseIndependentDropField = PvfField.Marker("[/independent drop]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ListField = PvfField.Tokens("[list]", optional: true);
+        internal static readonly PvfField<bool> CloseListField = PvfField.Marker("[/list]", optional: true);
+
+        internal static readonly PvfField<int> AncientDungeonField = PvfField.Int32("[ancient dungeon]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> DungeonTypeField = PvfField.Tokens("[dungeon type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> DimensionDungeonField = PvfField.Tokens("[dimension dungeon]", optional: true);
+    }
+
     internal const string Path = "etc/independent_drop.etc";
 
     public IndependentDropTable Load()
@@ -41,9 +54,14 @@ internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider)
     }
 
     // A21 adaptation, not a claim that these tags map one-to-one to the 70 runtime gates.
-    internal static bool IsGrowthBonusDungeon(IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections) =>
-        !sections.Any(s => s.Name is "[dungeon type]" or "[dimension dungeon]"
-            || (s.Name == "[ancient dungeon]" && s.Values.Any(v => v.Kind == PvfTokenKind.Int32 && v.Value != 0)));
+    internal static bool IsGrowthBonusDungeon(IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+    {
+        var ancient = sections.Where(section => section.Name == Fields.AncientDungeonField.Name).ToArray();
+        if (ancient.Length > 1 || ancient.Length == 1 && (ancient[0].Values.Count != 1 || ancient[0].Values[0].Kind != PvfTokenKind.Int32))
+            throw new InvalidDataException($"PVF dungeon, field '{Fields.AncientDungeonField.Name}': expected one Int32 declaration.");
+        return !sections.Any(section => section.Name == Fields.DungeonTypeField.Name || section.Name == Fields.DimensionDungeonField.Name)
+            && (ancient.Length == 0 || ancient[0].Values[0].Value == 0);
+    }
 
     internal static ImmutableArray<IndependentDropRow> Parse(IReadOnlyList<IndependentDropToken> tokens)
     {
@@ -55,15 +73,15 @@ internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider)
             index++;
             return value;
         }
-        void Tag(string expected)
+        void Tag(PvfField expected)
         {
-            if (index >= tokens.Count || tokens[index].Tag != expected)
+            if (index >= tokens.Count || tokens[index].Tag != expected.Name)
                 throw new InvalidDataException($"{Path}: expected {expected} at token {index}.");
             index++;
         }
-        Tag("[independent drop]");
+        Tag(Fields.IndependentDropField);
         var rows = ImmutableArray.CreateBuilder<IndependentDropRow>();
-        while (index < tokens.Count && tokens[index].Tag != "[/independent drop]")
+        while (index < tokens.Count && tokens[index].Tag != Fields.CloseIndependentDropField.Name)
         {
             var fields = ImmutableArray.CreateBuilder<int>(17);
             for (var column = 0; column < 17; column++) fields.Add(Read());
@@ -74,8 +92,8 @@ internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider)
             var choices = ImmutableArray.CreateBuilder<IndependentDropChoice>();
             if (fields[16] == 1)
             {
-                Tag("[list]");
-                while (index < tokens.Count && tokens[index].Tag != "[/list]")
+                Tag(Fields.ListField);
+                while (index < tokens.Count && tokens[index].Tag != Fields.CloseListField.Name)
                 {
                     var id = Read();
                     var weight = Read();
@@ -83,14 +101,14 @@ internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider)
                         throw new InvalidDataException($"{Path}: invalid pool entry in row {rows.Count}.");
                     choices.Add(new(id, weight));
                 }
-                Tag("[/list]");
+                Tag(Fields.CloseListField);
                 if (choices.Count == 0) throw new InvalidDataException($"{Path}: empty list in row {rows.Count}.");
             }
             else if (fields[16] != 0 || fields[2] <= 0)
                 throw new InvalidDataException($"{Path}: unsupported pool mode or missing direct item in row {rows.Count}.");
             rows.Add(new(rows.Count, fields.MoveToImmutable(), choices.ToImmutable()));
         }
-        Tag("[/independent drop]");
+        Tag(Fields.CloseIndependentDropField);
         if (index != tokens.Count || rows.Count == 0)
             throw new InvalidDataException($"{Path}: trailing tokens or no rows.");
         return rows.ToImmutable();

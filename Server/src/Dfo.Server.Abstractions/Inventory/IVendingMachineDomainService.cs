@@ -12,10 +12,10 @@ public interface IVendingMachineDefinitionSource
     int Initialize();
     VendingMachineDefinition GetRequired(int machineId, int groupId);
 }
-public sealed record VendingMachineResult(OpeningInventoryReceipt Receipt, int SourceSlot, int Remaining,
+public sealed record VendingMachineResult(OpeningInventoryReceipt Receipt, BusinessSlot SourceSlot, int Remaining,
     OpeningReward Reward);
 public interface IVendingMachineDomainService
 {
     ValueTask<VendingMachineResult> UseAsync(SelectedSessionIdentity session, int machineId, int groupId,
-        int slot, ushort sequence, CancellationToken cancellationToken);
+        BusinessSlot slot, CancellationToken cancellationToken);
 }

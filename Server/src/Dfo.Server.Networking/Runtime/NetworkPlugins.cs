@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
@@ -129,14 +130,18 @@ internal sealed class GameNetworkPlugin(
     ILogger<GameNetworkPlugin> logger)
     : NetworkPluginBase(connections, observers, NetworkEndpointKind.Game), ITcpReceivedPlugin
 {
+    private readonly ConditionalWeakTable<NetworkConnectionContext, GameInboundFrameCounter> frameCounters = new();
+
     public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
     {
         if (e.RequestInfo is GameClientFrameRequestInfo frame)
         {
             var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Game);
-            if (Decode(frame, connectionId) is { } message)
+            var connection = Connections.Get(connectionId).Context;
+            var (ordinal, fresh) = frameCounters.GetValue(connection,
+                _ => new GameInboundFrameCounter()).Observe(frame.Sequence);
+            if (Decode(frame, connectionId, ordinal, fresh) is { } message)
             {
-                var connection = Connections.Get(connectionId).Context;
                 try
                 {
                     await dispatcher.DispatchAsync(
@@ -189,7 +194,8 @@ internal sealed class GameNetworkPlugin(
     /// expensive. Rethrown, not swallowed -- a frame this server cannot read is not one it can
     /// continue a session on, so the connection still drops. Only the silence is removed.
     /// </remarks>
-    private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame, NetworkConnectionId connectionId)
+    private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame,
+        NetworkConnectionId connectionId, long ordinal, bool fresh)
     {
         var decoder = decoders.Find(frame.Selector, frame.Type);
         if (decoder is null)
@@ -214,7 +220,7 @@ internal sealed class GameNetworkPlugin(
                     frame.Selector,
                     frame.Type,
                     frame.Checksum,
-                    frame.Sequence),
+                    frame.Sequence) { InboundOrdinal = ordinal, SequenceIsFresh = fresh }.WithRawBody(frame.Body.Span),
                 frame.Body.Span);
         }
         catch (Exception error)

@@ -124,16 +124,19 @@ internal sealed class AccountMaterialBagDomainService(
 
 internal sealed class ItemGrantDomainService(
     IAccountMaterialBagDomainService accountMaterials,
-    IAccountMaterialRuleService accountMaterialRules) : IItemGrantDomainService
+    IAccountMaterialRuleService accountMaterialRules,
+    ICharacterBusinessInventoryDomainService inventories,
+    IItemPlacementRuleService placements) : IItemGrantDomainService
 {
     public async ValueTask<ItemGrantOutcome> GrantAsync(
         AccountId accountId,
-        IItemContainer characterContainer,
+        Dfo.Server.Data.Characters.CharacterId characterId,
+        ICharacterContainerDomainService containers,
         int itemId,
         int count,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(characterContainer);
+        ArgumentNullException.ThrowIfNull(containers);
         if (accountMaterialRules.TryGetByItemId(itemId, out var definition))
         {
             var changes = await accountMaterials.Get(accountId).AddAsync(
@@ -142,8 +145,13 @@ internal sealed class ItemGrantDomainService(
             return new ItemGrantOutcome.AccountMaterial(changes.Single());
         }
 
-        return new ItemGrantOutcome.CharacterItem(
-            await characterContainer.AddAsync(itemId, count, cancellationToken)
-                .ConfigureAwait(false));
+        var placement = await placements.PlacementForAsync(itemId, cancellationToken).ConfigureAwait(false);
+        if (placement is null)
+            throw new InvalidDataException($"Item {itemId} has no placement definition.");
+        var space = placement.Destination.Space;
+        var container = inventories.GetStore(characterId, BusinessInventoryOwnership.StoreOf(space))
+            .GetContainer(space);
+        var addition = await container.AddAsync(itemId, count, cancellationToken).ConfigureAwait(false);
+        return new ItemGrantOutcome.CharacterItem(addition.Container, addition.Placement);
     }
 }

@@ -1,0 +1,42 @@
+---
+kind: rks-verification
+decision: manual_required
+---
+# 当前完成证据：TASK-007期限修正与资金部署已完成，待最后人测
+
+准确声明：**四券历史过期字段已删除，三个客户端PVF已分别更新；额外5000万金币一次到账，新诊断服务PID40060已ready，允许继续验收。** 旧服务已有真实15→10保护失败，排除无条件成功；不宣称已确认或修复此前14次连续成功的根因，不宣称整个契约完成。
+
+TaskContract rev3，HEAD/基线6e60c4c67417ce06b88e9e99277fb1e4c0239726；完整33个Server文件集合指纹93fad50a72ab3fe88cc2ed55b3134f3755d3e0de4915bcd9e4412ed22f1ddd75未变。TASK-001至007交付done，执行cursor为verification/in_progress。[当前完整mixed审查](../reviews/change-review-expiry.md)两轮approved，衔接[诊断完整审查](../reviews/change-review-probability.md)及[TASK-005完整审查](../reviews/change-review.md)未变内容。
+
+| 契约条件 | 决定性证据 | 当前状态 |
+|---|---|---|
+| SC-1 实例/规则/领域责任及调用覆盖 | 全33文件身份核对、独立完整审查；[典型例子](../implementation-examples.md)；本轮仅规则服务诊断日志 | 自动/独立通过 |
+| SC-2 身份/最新状态/事务寿命/越权 | 原实际SQLite实例与副本probe、当前Application全量2356通过 | 自动通过 |
+| SC-3 五项养成及修理/耐久/分解兼容 | 原业务回归/真实PVF、正确强化位段及独立附魔字段；此次零规则/概率/费用/结算变化 | 自动通过，不替代其他GUI |
+| SC-4 wire/提交后通知/登录兼容 | 实际CommandBus/SQLite与NOTI0E/重读0D、两券回滚与重放回归；seq123旧现场提交/当前core和券计数一致 | 自动及现场后端通过；客户端/重登待验 |
+| SC-5 可供验收的部署/备份/顺序 | 已切换新诊断runtime PID40060，七主DLL身份/实际PVF路径/四端口/ready/空stderr核对；原库及三客户端备份、清单保留 | 部署后端通过，可继续人测 |
+| SC-6 用户认可结构/新强化及重登 | 用户实际多次新请求成功并报告+15，仍缺最终结构反馈/指定R-01及正常重登反馈 | 待用户 |
+| SC-7 一次发放/原装备保持 | 原领域发放receipt、副本与全库差分；后续余额变化有用户强化日志，不重复发放 | 后端通过，登录可见反馈待汇总 |
+| SC-8 两种保护资格/优先/回滚/重放及实机效果 | 原专项及完整回归；真实seq123，UID689 15→10、超级券50→49，其他三券各50 | 超级后端已核对；显示/普通失败/重登待用户 |
+| SC-9 四券去过期、三客户端及额外5000万 | 三档案各712010raw只四目标删除日期两token；实际三SHA与各候选一致，protocol2差异保留；真实领域一次追加及47业务表差分仅金币+50000000 | 后端通过；用户登录可用性/余额待验 |
+
+## 当前检查
+
+消费当前approved后，root再次执行主仓库artifacts/equipment-reinforcement-probability-20260930/verify-prepared.py，exit0：33文件hash未变、新runtime七主DLL与当前Host Release输出相同、原始Application串行TRX2356通过/0失败/0skip。结果保存在prepared-verification.json。Release solution build0警告/0错误，publish exit0，git diff --check通过。
+
+本轮两次并行Application检查各2355通过/1失败：宠物fixture清理SQLite文件占用、技能fixtureSQLite句柄已释放。原TRX保留，未改变测试或产品隐藏失败；串行完整2356通过只支持并行清理干扰假设，不确认其根因。其他七个未变测试目标沿用TASK-005完整证据，当前必要合计4557通过/0失败/2条件skip；不声称两次失败命令通过或本轮全solution测试。
+
+TASK-007新增候选检查Infrastructure12+Application强化84通过0失败0skip；完整档案raw差分与实例ExpireTime核对，金币副本试跑及独立mixed复核通过。首次Replace空参数故障未改任何PVF/资产，旧服务1088恢复ready；整改独立复核后deploy exit0，生产追加50000000一次，新equipment-reinforcement-probability-20260930/runtime PID40060运行。部署后postcheck及47业务表差分exit0、三SHA与各候选一致、四端口归新PID、bootstrap ready、stderr空、startup PVF路径正确。未改变概率/装备/券数量，额外金币是明确授权资产操作。[期限部署当前证据](protection-expiry-current.md)及工件原始receipt/log保存失败与通过结果。
+
+## 现场结论与边界
+
+[概率诊断证据](probability-diagnosis.md)保留14次1→15成功的冻结快照，以及之后seq123真实15→10失败。独立只读核对UID689强化10/独立附魔0、金币2992701、无色58236，普通/超级/两增幅券为50/49/50/50。原始现场日志与natural-failure.json一致；这已经排除旧服务无条件成功，超级保护效果的即时显示和重登仍需用户反馈。
+
+旧日志未记draw，不能恢复此前每次抽样；实际部署DLL的纯规则全draw和实际随机抽样均可失败，属于有限排除证据。新增日志已部署，会记录下一次实际draw/阈值和计算结果，仍需配对提交后的UPGRADE_ITEM，不能将未提交的计算当作成功。当前新部署基线金币52992701、无色58236、UID689+10/独立附魔0，四券50/49/50/50，四实例期限0；首次GUI可用性仍由用户核对。
+
+## Unverified Conditions
+
+- 用户重新登录确认四种保护券不再过期、金币52992701及长剑+10/超级券49；新诊断版已就绪，下一次真实请求draw/threshold观察尚待操作。
+- 正常重登应保留最后等级、实际金币/无色及四券数量；普通保护失败、最终结构认可及其他原未验项继续按两份Human清单收集。
+- 连续成功的具体原因没有证据确认，不强制失败、降低成功率或还原+15伪造修复。
+- 最后用户门通过并核对日志/只读资产前保持manual_required，不提交、seal或标ClientVerified；用户操作通过question主动收集，不设置纯等待todo。

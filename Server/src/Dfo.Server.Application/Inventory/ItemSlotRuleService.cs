@@ -47,6 +47,12 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
         {
             BusinessInventorySpace.QuickSlot => AllowsQuickSlot(placement.ItemKind),
             BusinessInventorySpace.Avatar => placement.WorldClass == ItemWorldClass.Avatar,
+            BusinessInventorySpace.CreatureInventory =>
+                placement.WorldClass == ItemWorldClass.Creature && placement.Destination.Contains(slot),
+            BusinessInventorySpace.CreatureEquipment =>
+                placement.ItemKind == KindCreatureEquipment && placement.Destination.Contains(slot),
+            BusinessInventorySpace.CreatureConsumable =>
+                placement.ItemKind == KindCreatureConsumable && placement.Destination.Contains(slot),
             _ when slot.Space.IsCarriedItemSpace() => placement.Destination.Contains(slot),
             _ => false,
         };

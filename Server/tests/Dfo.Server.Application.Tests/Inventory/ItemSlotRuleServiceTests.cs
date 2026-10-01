@@ -88,4 +88,24 @@ public sealed class ItemSlotRuleServiceTests
 
     private static BusinessSlot BusinessMain(int index) =>
         Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, index));
+
+    [Theory]
+    [InlineData(BusinessInventorySpace.CreatureInventory, 5)]
+    [InlineData(BusinessInventorySpace.CreatureEquipment, 6)]
+    [InlineData(BusinessInventorySpace.CreatureConsumable, 7)]
+    public void Pet_items_are_admitted_to_their_own_local_zero_slot(
+        BusinessInventorySpace space, byte kind)
+    {
+        var placement = new ItemPlacement(kind, 1, new(space, 0, 5))
+        {
+            WorldClass = kind switch
+            {
+                5 => ItemWorldClass.Creature,
+                6 => ItemWorldClass.Equipment,
+                _ => ItemWorldClass.Interchangeable,
+            },
+        };
+        Assert.True(Rules.CanOccupySlot(new BusinessSlot(space, 0), placement));
+        Assert.False(Rules.CanOccupySlot(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), placement));
+    }
 }

@@ -25,7 +25,8 @@ public sealed record ApplyMonsterKillCommand(
     int PartyMemberCount = 1,
     IReadOnlyList<RolledDrop>? PendingLoot = null,
     PartyKey PartyKey = default,
-    bool IsFinalBossDeath = false) : ICommand<ApplyMonsterKillResult>;
+    bool IsFinalBossDeath = false,
+    SelectedSessionIdentity? Session = null) : ICommand<ApplyMonsterKillResult>, ISelectedSessionCommand;
 
 public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
@@ -38,13 +39,12 @@ public sealed record ApplyMonsterKillResult(
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
 /// </summary>
 public sealed class ApplyMonsterKillCommandHandler(
-    IExperienceCalculationDomainService calculation,
     ICharacterExperienceDomainService experience,
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
     IItemGrantDomainService itemGrants,
-    IPartyService? parties = null)
+    IPartyService? parties = null, TimeProvider? clock = null)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
     public async ValueTask<ApplyMonsterKillResult> HandleAsync(
@@ -62,8 +62,7 @@ public sealed class ApplyMonsterKillCommandHandler(
         }
 
         var awarded = command.EnemyType == HuntEnemyTargetTypes.Monster
-            ? await GrantKillExperienceCommandHandler.AwardAsync(
-                calculation,
+            ? await GrantKillExperienceCommandHandler.ApplyAwardAsync(
                 experience,
                 new GrantKillExperienceCommand(
                     command.AccountId,
@@ -72,8 +71,8 @@ public sealed class ApplyMonsterKillCommandHandler(
                     command.DungeonId,
                     command.Difficulty,
                     command.DungeonWeight,
-                    command.PartyMemberCount),
-                cancellationToken).ConfigureAwait(false)
+                    command.PartyMemberCount, command.Session),
+                (clock ?? TimeProvider.System).GetUtcNow(), cancellationToken).ConfigureAwait(false)
             : null;
         var granted = await PendingQuestItemGrants.GrantAsync(
             command.AccountId, command.CharacterId, command.PendingLoot, command.PartyKey,

@@ -13,7 +13,7 @@ public interface IQuestClearCouponDomainService
 {
     ValueTask<QuestClearCouponResult> UseAsync(
         SelectedSessionIdentity session,
-        int sourceSlot,
+        BusinessSlot sourceSlot,
         DateTimeOffset now,
         CancellationToken cancellationToken);
 }

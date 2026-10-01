@@ -100,24 +100,29 @@ public sealed class TownAreaProjectionDelivery
         if (change is null)
             return false;
 
-        var keys = new[] { change.PreviousArea?.Key, change.CurrentArea?.Key }
-            .Where(key => key.HasValue)
-            .Select(key => key!.Value);
+        return await ProjectTransferAsync(connectionId, session, result, previousMember, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Projects an already committed town movement without mutating membership.</summary>
+    public async ValueTask<bool> ProjectTransferAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
+        SelectCharacterResult result, TownAreaMember previousMember, CancellationToken cancellationToken)
+    {
+        var member = townAreas.Find(session.CharacterId);
+        if (member is null || !session.Owns(member)) return false;
+        var keys = new[] { previousMember.Area, member.Area };
         await using var projection = await AcquireAreasAsync(keys, cancellationToken)
             .ConfigureAwait(false);
 
-        var changedArea = change.PreviousArea?.Key != change.CurrentArea?.Key;
-        var currentKey = change.CurrentArea?.Key
-            ?? throw new InvalidDataException("An area transfer has no destination snapshot.");
+        var changedArea = previousMember.Area != member.Area;
+        var currentKey = member.Area;
         var current = townAreas.Find(currentKey);
         var own = current?.Members.SingleOrDefault(member => session.Owns(member));
         if (own is null)
         {
             if (changedArea
-                && previousMember.SharesTownPresence
-                && change.PreviousArea is { } abandonedPrevious)
+                && previousMember.SharesTownPresence)
             {
-                await PublishCurrentRosterCoreAsync(abandonedPrevious.Key, cancellationToken)
+                await PublishCurrentRosterCoreAsync(previousMember.Area, cancellationToken)
                     .ConfigureAwait(false);
             }
             return false;
@@ -168,8 +173,8 @@ public sealed class TownAreaProjectionDelivery
             new GameExplicitMessageDelivery(direct, []),
             cancellationToken).ConfigureAwait(false);
 
-        if (changedArea && previousMember.SharesTownPresence && change.PreviousArea is { } previous)
-            await PublishCurrentRosterCoreAsync(previous.Key, cancellationToken).ConfigureAwait(false);
+        if (changedArea && previousMember.SharesTownPresence)
+            await PublishCurrentRosterCoreAsync(previousMember.Area, cancellationToken).ConfigureAwait(false);
         if (changedArea && peerSessions.Length > 0 && state is not null)
             await PublishArrivalCoreAsync(session, state, peerSessions, cancellationToken)
                 .ConfigureAwait(false);

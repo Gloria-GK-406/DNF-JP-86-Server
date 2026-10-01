@@ -45,7 +45,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                                 throw Error(MailFailure.NotSendable);
                             var taken = await equipment.TakeAsync(owner, equip.Identity, cancellationToken);
                             prepared.Add(new(asset, taken.Core));
-                            changes.Add(new(owner, taken.ContainerType, taken.SlotIndex, taken.Core.ItemId, -1, null));
+                            changes.Add(new(owner, taken.Slot, taken.Core.ItemId, -1, null));
                         }
                         else
                         {
@@ -63,7 +63,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                         if (mail.Source.Character is { } goldOwner)
                         {
                             var balance = await characters.Get(goldOwner).TrySpendGoldAsync(gold.Amount, cancellationToken) ?? throw Error(MailFailure.InsufficientAssets);
-                            changes.Add(new(goldOwner, null, null, 0, -gold.Amount, balance));
+                            changes.Add(new(goldOwner, null, 0, -gold.Amount, balance));
                         }
                         prepared.Add(new(asset));
                         break;
@@ -104,7 +104,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                 case MailAsset.Equipment equip:
                     var core = await equipment.ReadDetachedAsync(equip.Identity, cancellationToken) ?? throw Error(MailFailure.NotOwned);
                     var slot = await equipment.GrantAsync(recipient, equip.Identity, cancellationToken);
-                    changes.Add(new(recipient, slot.Space, slot.Index, core.ItemId, 1, null));
+                    changes.Add(new(recipient, slot, core.ItemId, 1, null));
                     break;
                 case MailAsset.Stackable stack:
                     changes.AddRange(await stacks.GrantAsync(recipient, stack.ItemId, stack.Count, cancellationToken));
@@ -114,7 +114,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                     var before = await character.GoldAsync(cancellationToken);
                     var after = await character.AddGoldAsync(gold.Amount, cancellationToken);
                     if ((long)after - before != gold.Amount) throw Error(MailFailure.GoldLimit);
-                    changes.Add(new(recipient, null, null, 0, gold.Amount, after));
+                    changes.Add(new(recipient, null, 0, gold.Amount, after));
                     break;
             }
             return new MailClaimReceipt(mail.Id, attachmentId, changes.ToImmutable());

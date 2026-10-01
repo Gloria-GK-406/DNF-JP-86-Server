@@ -805,6 +805,7 @@ public sealed class SelectDungeonHandlerTests
 
     private sealed class NoopConnectionCloser : INetworkConnectionCloser
     {
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
         public ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;

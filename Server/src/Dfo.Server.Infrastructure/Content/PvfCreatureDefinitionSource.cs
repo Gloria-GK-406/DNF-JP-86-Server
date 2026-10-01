@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -14,6 +15,28 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> NameField = PvfField.String("[name]", optional: true);
+        internal static readonly PvfField<int> StartLevelField = PvfField.Int32("[start level]", optional: true);
+        internal static readonly PvfField<int> PermissionLevelField = PvfField.Int32("[permission level]", optional: true);
+        internal static readonly PvfField<int> MaxLevelField = PvfField.Int32("[max level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> ArtifactSlotField = PvfField.Strings("[artifact slot]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> EvolutionLevelField = PvfField.Int32List("[evolution level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> EvolutionQuestField = PvfField.Int32List("[evolution quest]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> EvolutionCreatureIdField = PvfField.Int32List("[evolution creature id]", optional: true);
+        internal static readonly PvfField<bool> AmbientField = PvfField.Marker("[ambient]", optional: true);
+        internal static readonly PvfField<string> EquipmentTypeField = PvfField.Custom<string>("[equipment type]", (archive, values, path) =>
+        {
+            if (values.Count == 0 || !values[0].IsString || values.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32))
+                throw new InvalidDataException($"PVF '{path}', field '[equipment type]': expected type string and optional Int32 operands.");
+            return archive.ResolveString(values[0].Value);
+        }, optional: true);
+        internal static readonly PvfField<int> OutputIndexField = PvfField.Int32("[output index]", optional: true);
+        internal static readonly PvfField<int> CreatureSpeciesField = PvfField.Int32("[creature species]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> RoomListField = PvfField.Strings("[room list]", optional: true);
+    }
+
     private const string ListPath = "creature/creature.lst";
     private const string CreatureDirectory = "creature";
     private const string ScriptDirectory = "creature/script";
@@ -84,7 +107,6 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
 
     private static Catalog Build(PvfArchive archive)
     {
-        var tags = new CreatureTags(archive);
         var ordered = new List<CreatureDefinition>();
         var byId = new Dictionary<int, CreatureDefinition>();
         var creatureIdByStem = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -95,8 +117,8 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             if (fileIndex < 0)
                 continue;
 
-            var ambient = ReadAmbientLines(archive, tags, relativePath);
-            var definition = Project(archive, tags, creatureId, fileIndex, ambient);
+            var ambient = ReadAmbientLines(archive, relativePath);
+            var definition = Project(archive, creatureId, $"{CreatureDirectory}/{relativePath}", ambient);
             ordered.Add(definition);
             byId.TryAdd(creatureId, definition);
 
@@ -111,7 +133,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         if (ordered.Count == 0)
             throw new InvalidOperationException($"{ListPath} yielded no creature definitions.");
 
-        var equipment = BuildEquipmentIndex(archive, tags, creatureIdByStem);
+        var equipment = BuildEquipmentIndex(archive, creatureIdByStem);
         return new Catalog(
             ordered,
             byId,
@@ -132,7 +154,6 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
     /// </remarks>
     private static EquipmentIndex BuildEquipmentIndex(
         PvfArchive archive,
-        CreatureTags tags,
         Dictionary<string, int> creatureIdByStem)
     {
         var index = new Dictionary<int, int>();
@@ -146,13 +167,14 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             if (!relativePath.StartsWith(CreatureEquipmentPrefix, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var stem = StemOf(relativePath);
-            if (stem.Length == 0 || !creatureIdByStem.TryGetValue(stem, out var creatureId))
-                continue;
-
             var fileIndex = archive.FindFile($"{EquipmentDirectory}/{relativePath}");
             if (fileIndex < 0
-                || !TryReadCreatureEquipment(archive, tags, fileIndex, out var outputItemId))
+                || !TryReadCreatureEquipment(archive, $"{EquipmentDirectory}/{relativePath}", out var outputItemId, out var creatureId))
+                continue;
+
+            // Eggs and alternate equipment names need not share the .cre file stem.
+            // The explicit species is authoritative; filename matching is legacy fallback.
+            if (creatureId <= 0 && !creatureIdByStem.TryGetValue(StemOf(relativePath), out creatureId))
                 continue;
 
             index.TryAdd(itemTemplateId, creatureId);
@@ -165,35 +187,21 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
 
     private static bool TryReadCreatureEquipment(
         PvfArchive archive,
-        CreatureTags tags,
-        int fileIndex,
-        out int outputItemId)
+        string path,
+        out int outputItemId, out int creatureId)
     {
         outputItemId = 0;
-        if (!tags.EquipmentType.IsResolved)
-            return false;
-
-        var reader = archive.OpenScript(fileIndex);
-        var section = -1;
+        creatureId = 0;
         var declaresCreatureType = false;
-
-        while (reader.Read(out var token))
+        foreach (var section in PvfDocument.Open(archive, path).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                section = token.Value;
-                continue;
-            }
-
-            if (section == tags.EquipmentType.Offset
-                && token.IsString
-                && archive.ResolveString(token.Value)
-                    .Contains(CreatureEquipmentType, StringComparison.OrdinalIgnoreCase))
-            {
-                declaresCreatureType = true;
-            }
-            else if (section == tags.OutputIndex && token.Kind == PvfTokenKind.Int32)
-                outputItemId = token.Value;
+            if (Fields.EquipmentTypeField.Matches(section.Name))
+                declaresCreatureType |= Fields.EquipmentTypeField.Decode(archive, section.Values, path)
+                    .Contains(CreatureEquipmentType, StringComparison.OrdinalIgnoreCase);
+            else if (Fields.OutputIndexField.Matches(section.Name))
+                outputItemId = Fields.OutputIndexField.Decode(archive, section.Values, path);
+            else if (Fields.CreatureSpeciesField.Matches(section.Name))
+                creatureId = Fields.CreatureSpeciesField.Decode(archive, section.Values, path);
         }
 
         return declaresCreatureType;
@@ -210,9 +218,8 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
 
     private static CreatureDefinition Project(
         PvfArchive archive,
-        CreatureTags tags,
         int creatureId,
-        int fileIndex,
+        string path,
         IReadOnlyList<string> ambientLines)
     {
         var name = string.Empty;
@@ -224,35 +231,16 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         var evolutionQuests = new List<int>();
         var evolutionTargets = new List<int>();
 
-        var reader = archive.OpenScript(fileIndex);
-        var section = -1;
-
-        while (reader.Read(out var token))
+        foreach (var section in PvfDocument.Open(archive, path).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                section = token.Value;
-                continue;
-            }
-
-            if (section == tags.Name && token.IsString)
-                name = archive.ResolveString(token.Value);
-            else if (section == tags.ArtifactSlot && token.IsString)
-                artifactSlots.Add(archive.ResolveString(token.Value));
-            else if (token.Kind != PvfTokenKind.Int32)
-                continue;
-            else if (section == tags.StartLevel)
-                startLevel = token.Value;
-            else if (section == tags.PermissionLevel)
-                permissionLevel = token.Value;
-            else if (section == tags.MaximumLevel)
-                maximumLevel = token.Value;
-            else if (section == tags.EvolutionLevel)
-                evolutionLevels.Add(token.Value);
-            else if (section == tags.EvolutionQuest)
-                evolutionQuests.Add(token.Value);
-            else if (section == tags.EvolutionCreatureId)
-                evolutionTargets.Add(token.Value);
+            if (Fields.NameField.Matches(section.Name)) name = Fields.NameField.Decode(archive, section.Values, path);
+            else if (Fields.ArtifactSlotField.Matches(section.Name)) artifactSlots.AddRange(Fields.ArtifactSlotField.Decode(archive, section.Values, path));
+            else if (Fields.StartLevelField.Matches(section.Name)) startLevel = Fields.StartLevelField.Decode(archive, section.Values, path);
+            else if (Fields.PermissionLevelField.Matches(section.Name)) permissionLevel = Fields.PermissionLevelField.Decode(archive, section.Values, path);
+            else if (Fields.MaxLevelField.Matches(section.Name)) maximumLevel = Fields.MaxLevelField.Decode(archive, section.Values, path);
+            else if (Fields.EvolutionLevelField.Matches(section.Name)) evolutionLevels.AddRange(Fields.EvolutionLevelField.Decode(archive, section.Values, path));
+            else if (Fields.EvolutionQuestField.Matches(section.Name)) evolutionQuests.AddRange(Fields.EvolutionQuestField.Decode(archive, section.Values, path));
+            else if (Fields.EvolutionCreatureIdField.Matches(section.Name)) evolutionTargets.AddRange(Fields.EvolutionCreatureIdField.Decode(archive, section.Values, path));
         }
 
         // The content declares the evolution tags on creatures that do not evolve, using
@@ -280,69 +268,32 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
     /// </summary>
     private static IReadOnlyList<string> ReadAmbientLines(
         PvfArchive archive,
-        CreatureTags tags,
         string creatureRelativePath)
     {
         var stem = Path.GetFileNameWithoutExtension(creatureRelativePath);
         if (string.IsNullOrEmpty(stem))
             return [];
 
-        var scriptIndex = archive.FindFile($"{ScriptDirectory}/{stem}.wrd");
-        if (scriptIndex < 0 || !tags.HasAmbientTags)
-            return [];
+        var path = $"{ScriptDirectory}/{stem}.wrd";
+        if (archive.FindFile(path) < 0) return [];
 
-        var reader = archive.OpenScript(scriptIndex);
-        if (!reader.TryMovePast(new Dfo.Pvf.Tokens.TagRef(tags.Ambient)))
-            return [];
-        if (!reader.TryMovePast(new Dfo.Pvf.Tokens.TagRef(tags.RoomList)))
-            return [];
-
-        var lines = new List<string>();
-        while (reader.TryReadSectionValue(out var token))
+        var ambientSeen = false;
+        IReadOnlyList<string>? lines = null;
+        foreach (var section in PvfDocument.Open(archive, path).Sections)
         {
-            if (!token.IsString)
-                continue;
-
-            var line = archive.ResolveString(token.Value);
-            if (line.Length > 0)
-                lines.Add(line);
+            if (Fields.AmbientField.Matches(section.Name))
+            {
+                Fields.AmbientField.Decode(archive, section.Values, path);
+                ambientSeen = true;
+            }
+            else if (Fields.RoomListField.Matches(section.Name))
+            {
+                var values = Fields.RoomListField.Decode(archive, section.Values, path);
+                // Preserve the first ambient room list, excluding each nested town heading.
+                if (ambientSeen && lines is null) lines = values.Where(line => line.Length > 0).ToArray();
+            }
         }
-
-        return lines;
-    }
-
-    private sealed class CreatureTags
-    {
-        public CreatureTags(PvfArchive archive)
-        {
-            Name = archive.GetTag("[name]").Offset;
-            StartLevel = archive.GetTag("[start level]").Offset;
-            PermissionLevel = archive.GetTag("[permission level]").Offset;
-            MaximumLevel = archive.GetTag("[max level]").Offset;
-            ArtifactSlot = archive.GetTag("[artifact slot]").Offset;
-            EvolutionLevel = archive.GetTag("[evolution level]").Offset;
-            EvolutionQuest = archive.GetTag("[evolution quest]").Offset;
-            EvolutionCreatureId = archive.GetTag("[evolution creature id]").Offset;
-            Ambient = archive.GetTag("[ambient]").Offset;
-            EquipmentType = archive.GetTag("[equipment type]");
-            OutputIndex = archive.GetTag("[output index]").Offset;
-            RoomList = archive.GetTag("[room list]").Offset;
-        }
-
-        public int Name { get; }
-        public int StartLevel { get; }
-        public int PermissionLevel { get; }
-        public int MaximumLevel { get; }
-        public int ArtifactSlot { get; }
-        public int EvolutionLevel { get; }
-        public int EvolutionQuest { get; }
-        public int EvolutionCreatureId { get; }
-        public int Ambient { get; }
-        public TagRef EquipmentType { get; }
-        public int OutputIndex { get; }
-        public int RoomList { get; }
-
-        public bool HasAmbientTags => Ambient >= 0 && RoomList >= 0;
+        return lines ?? [];
     }
 
     private sealed record Catalog(

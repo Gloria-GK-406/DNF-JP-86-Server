@@ -242,9 +242,9 @@ public sealed class PickedUpAvatarStaysWholeTests
             Assert.Equal(GroundPickupStatus.PickedUp, third.Status);
 
             var (one, other, apart) = await side.InUseCaseAsync(async token => (
-                await Bag(side).ReadSlotAsync(first.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side).ReadSlotAsync(second.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side).ReadSlotAsync(third.SlotIndex, token).ConfigureAwait(false)));
+                await Bag(side, InventoryContainerType.Main).ReadSlotAsync(first.SlotIndex, token).ConfigureAwait(false),
+                await Bag(side, InventoryContainerType.Main).ReadSlotAsync(second.SlotIndex, token).ConfigureAwait(false),
+                await Bag(side, InventoryContainerType.Main).ReadSlotAsync(third.SlotIndex, token).ConfigureAwait(false)));
             Assert.NotNull(one);
             Assert.NotNull(other);
             Assert.NotNull(apart);
@@ -318,8 +318,9 @@ public sealed class PickedUpAvatarStaysWholeTests
             new PickUpGroundDropCommand(new AccountId(Account), Who, number),
             cancellationToken);
 
-    private static IItemContainer Bag(InventorySide side) =>
-        side.Containers.GetContainer(Who, InventoryContainerType.Main);
+    private static IItemContainer Bag(InventorySide side,
+        InventoryContainerType type = InventoryContainerType.Avatar) =>
+        side.Containers.GetContainer(Who, type);
 
     /// <summary>What the entry load serves at that position of the character's main bag.</summary>
     private static async Task<InventoryItemState> OneItemAsync(InventorySide side, int slotIndex)
@@ -328,7 +329,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             new CharacterInventoryEntryDomainService(side.CharacterEntries)
                 .LoadAsync(new AccountId(Account), Who, token));
         var main = loaded.Containers.Single(
-            container => container.ContainerType == InventoryContainerType.Main);
+            container => container.ContainerType == InventoryContainerType.Avatar);
         return Assert.Single(main.Items, item => item.SlotIndex == slotIndex);
     }
 
@@ -363,6 +364,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             }
 
             side.BindMain(Character, placements: placements);
+            side.BindList(InventoryContainerType.Avatar, Character, placements: placements);
 
             var runs = new DungeonRunDomainService();
             var handler = new PickUpGroundDropCommandHandler(
@@ -371,7 +373,9 @@ public sealed class PickedUpAvatarStaysWholeTests
                 side.Containers,
                 null!,
                 new NoQuestProgress(),
-                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
+                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(
+                    new ItemPlacementRuleService(placements,
+                        content.GetRequiredService<IEquipmentSlotDefinitionSource>())));
 
             await body(side, handler, runs);
         }

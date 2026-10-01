@@ -121,15 +121,13 @@ public sealed class GrantClearExperienceCommandTests
             CancellationToken.None);
 
     private static GrantClearExperienceCommandHandler Handler() =>
-        new(
-            new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
+        new(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
                 new NoProgression(),
                 new NoChannelExperience(),
                 ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)), new NoBonuses()),
-            new PricingGrant());
+                ExperienceEntitlementPolicy.None)), new NoBonuses())), TimeProvider.System);
 
     private sealed class NoBonuses : IExperienceBonusDomainService
     {
@@ -209,7 +207,7 @@ public sealed class GrantClearExperienceCommandTests
     /// irrelevant here and is passed as such: unlike a kill, nothing about a clear's worth depends
     /// on who cleared it.
     /// </remarks>
-    private sealed class PricingGrant : ICharacterExperienceDomainService
+    private sealed class PricingGrant(IExperienceCalculationDomainService calculation) : ICharacterExperienceDomainService
     {
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
@@ -219,12 +217,9 @@ public sealed class GrantClearExperienceCommandTests
             CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public async ValueTask<ExperienceAward?> AwardAsync(
-            CharacterId characterId,
-            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
-            CancellationToken cancellationToken)
+        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
-            var breakdown = await valuation(1);
+            var breakdown = await calculation.CalculateAsync(source, 1, cancellationToken);
             return new ExperienceAward(breakdown, 1, breakdown.Total, LeveledUp: false);
         }
     }

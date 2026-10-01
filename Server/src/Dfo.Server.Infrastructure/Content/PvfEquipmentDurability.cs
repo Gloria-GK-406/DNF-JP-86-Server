@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 
@@ -13,6 +14,11 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal static class PvfEquipmentDurability
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true, minimum: 0, maximum: ushort.MaxValue);
+    }
+
     private const string EquipmentDirectory = "equipment";
 
     public static ushort Read(
@@ -25,15 +31,7 @@ internal static class PvfEquipmentDurability
         if (fileIndex < 0)
             return 0;
 
-        var durability = archive.GetTag("[durability]");
-        if (!durability.IsResolved)
-            return 0;
-
-        var reader = archive.OpenScript(fileIndex);
-        return reader.TryMovePast(durability)
-               && reader.TryReadSectionValue(out var value)
-               && value.Kind == PvfTokenKind.Int32
-            ? checked((ushort)Math.Clamp(value.Value, 0, ushort.MaxValue))
-            : (ushort)0;
+        var document = PvfDocument.Open(archive, $"{EquipmentDirectory}/{relativePath}").AtRoot();
+        return document.TryRead(Fields.DurabilityField, out var value) ? checked((ushort)value) : (ushort)0;
     }
 }

@@ -1,0 +1,32 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    51，已跳过:     9，总计:    60，持续时间: 166 ms - Dfo.Pvf.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    50，已跳过:     0，总计:    50，持续时间: 383 ms - Dfo.Server.HttpApi.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:   148，已跳过:   241，总计:   389，持续时间: 1 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:   378，已跳过:     0，总计:   378，持续时间: 46 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:  1076，已跳过:    58，总计:  1134，持续时间: 1 s - Dfo.Server.Protocol.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:    66，已跳过:     0，总计:    66，持续时间: 6 s - Dfo.Server.Networking.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:  1935，已跳过:   167，总计:  2102，持续时间: 6 s - Dfo.Server.Application.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:    24，已跳过:     0，总计:    24，持续时间: 37 s - Dfo.Server.Host.Tests.dll (net10.0)

@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="dee7c243-ae8e-4f3d-b509-41f4be0e8c5c" name="Gloria@家庭台式机 2026-10-01 18:55:16" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T18:55:16.1554817+08:00" queuing="2026-10-01T18:55:16.1554818+08:00" start="2026-10-01T18:55:14.4893426+08:00" finish="2026-10-01T18:55:16.1592341+08:00" />
+  <TestSettings name="default" id="b33b4c0b-1cb2-4491-ab9e-f0ddaebe9aa5">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_18_55_16" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="09598479-937e-4082-9177-080a30eacf64" testId="2e2f589f-cc45-ee01-7f11-a72b670b71d9" testName="Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_level_coupon_sets_twelve_consumes_one_coupon_and_no_npc_cost" computerName="家庭台式机" duration="00:00:00.5891514" startTime="2026-10-01T18:55:15.4744822+08:00" endTime="2026-10-01T18:55:16.0678390+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="09598479-937e-4082-9177-080a30eacf64" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_level_coupon_sets_twelve_consumes_one_coupon_and_no_npc_cost" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="2e2f589f-cc45-ee01-7f11-a72b670b71d9">
+      <Execution id="09598479-937e-4082-9177-080a30eacf64" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests" name="Fixed_level_coupon_sets_twelve_consumes_one_coupon_and_no_npc_cost" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="2e2f589f-cc45-ee01-7f11-a72b670b71d9" executionId="09598479-937e-4082-9177-080a30eacf64" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.40]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.64]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.66]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.27]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

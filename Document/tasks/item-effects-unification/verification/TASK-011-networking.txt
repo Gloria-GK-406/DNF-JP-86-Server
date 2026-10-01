@@ -1,0 +1,720 @@
+生成启动时间为 2026/10/1 16:02:34。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-networking.diag.txt 中记录 Vstest 诊断
+总共 1 个测试文件与指定模式相匹配。
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-networking.diag.host.26-10-01_16-02-34_68033_5.txt 中记录 TestHost 诊断
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.05]   Discovering: Dfo.Server.Networking.Tests (app domain = off, method display = ClassAndMethod, method display options = None)
+[xUnit.net 00:00:00.09]   Discovered:  Dfo.Server.Networking.Tests (86 test cases to be run)
+[xUnit.net 00:00:00.11]   Starting:    Dfo.Server.Networking.Tests (parallel test collections = off, stop on fail = off, explicit = off)
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1) [4 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 0) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 10) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1048577) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 0, high: 0, expected: 0) [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 1, high: 0, expected: 1) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 2, high: 0, expected: 2) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_clients_empty_connection_probe_parses_with_no_body [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 1) [< 1 ms]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningHandler[0]
+      PackageOpening connection=Game:01-00-00-00 slot=66 result=NoSession detail=(null)
+info: Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningHandler[0]
+      PackageOpening connection=Game:01-00-00-00 slot=(null) result=InvalidRequest detail=(null)
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution d87b714e-8f83-45bc-9ef6-498043140342 in 6.5644 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningHandler[0]
+      AvatarPackageOpening connection=Game:01-00-00-00 slot=66 result=NoSession detail=(null)
+info: Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningHandler[0]
+      AvatarPackageOpening connection=Game:01-00-00-00 slot=(null) result=InvalidRequest detail=(null)
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 29269612-90dc-46fc-94a5-518387ba5656 in 0.0623 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningHandler[0]
+      MagicBoxBatchOpening connection=Game:01-00-00-00 slot=66 count=60 result=NoSession detail=(null) luck=(null)->(null)
+info: Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningHandler[0]
+      MagicBoxBatchOpening connection=Game:01-00-00-00 slot=(null) count=(null) result=InvalidRequest detail=(null) luck=(null)->(null)
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 2cac1cd0-70fb-4dc3-9001-e5b79065fc12 in 0.016 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 13) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 0) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 4294967295) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_header_is_parsed_as_little_endian_total_length_frame [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.A_login_frames_header_yields_the_measured_body_length [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_header_is_parsed_as_little_endian_total_length_frame [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 160, captured: "4200", failure: "0000FFFFFFFFFFFFFFFF000000000000000000000000") [394 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 519, captured: "4200010300000000", failure: "0002") [85 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 1104, captured: "00420048B398007A0047B398003C00", failure: "0002") [56 ms]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningHandler[0]
+      MagicBoxSingleOpening connection=Game:01-00-00-00 slot=66 count=1 result=NoSession detail=(null) luck=(null)->(null)
+info: Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningHandler[0]
+      MagicBoxSingleOpening connection=Game:01-00-00-00 slot=(null) count=(null) result=InvalidRequest detail=(null) luck=(null)->(null)
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution d55501b6-83b7-4860-b256-fc2225ca148a in 0.0158 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 0668935a-8817-4d1e-bae1-027b56aa3080 in 81.5968 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 00a89086-73c1-4bc1-be6b-d30a7307a0b6 in 74.5905 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 51db2f71-49e8-4445-8e8c-7530a5e9bd90 in 3.6266 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: delivery_failed
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 9592cee2-b238-465c-a680-516bf2765756 in 0.1133 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: delivery_failed
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution fae5c517-add5-46b6-8c79-a6686d24e097 in 65.895 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 1e7bfc22-032a-4b5d-9fd8-b21c6ef7e713 in 65.8741 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 0220359e-c3c3-45f6-93cc-92b8021453e0 in 0.0767 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 3986e8c9-dce0-4e1f-aac7-c3d51322e83f in 0.0793 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution f026e696-0e1c-47cb-a9a4-dd3693714b5f in 69.3711 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 6fd32a22-4935-44da-8104-6c42467ee3c1 in 0.0859 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 72df7bf7-a5d4-4e27-b104-c7c9cba755af in 0.074 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 5711e504-dd3a-40d0-9dc5-b39d577c1e7c in 65.5114 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution bc229cc9-2c4c-4982-b231-35a28ea48519 in 0.1275 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution a1167b0a-ccde-40b9-bdd8-79d3e30d7cbe in 0.0735 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 96cfe9ca-3ca1-459d-afe7-4ee30723ffdc in 68.3597 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 4e513819-aca2-4f57-9bd3-06b966cb89b8 in 0.0843 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution ea969def-c71f-45bd-8720-3b52b0d73d33 in 0.078 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 57fefb71-1d78-421b-ad5f-006231e32698 in 66.8085 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 59daf6a8-a49b-43e0-a24f-9d904d74a9b6 in 0.1053 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 6dea8176-6e60-4ed8-bd57-8bcc87306ea1 in 0.078 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution c15423eb-f28b-413f-b98a-b4e721811f09 in 65.7314 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 6e9c0a47-3784-4d9f-be89-96fce4e6c780 in 0.0632 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution ed7b4857-c596-47f7-b596-effb1f681ab2 in 0.0758 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution f6c71303-2dd6-47bc-be56-f8e5ad3490ed in 66.4529 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution bd96a0f3-4456-4fe6-8f22-1b4a2df7ac80 in 0.0776 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 6f8a06cf-6a05-4885-9f69-23849c11b181 in 0.0648 ms
+  已通过 Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 208, captured: "0042007A00", failure: "0002") [53 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.LoginDeliveryFailureAfterCommitCleansIdentityAndAllowsReconnect [357 ms]
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 2bb8d7b5-345a-4f50-905c-ab25a1ad8286 in 65.1242 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 4582d755-bfe1-47de-9f6f-ee8c3a0fb0bf in 0.0618 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 62c39395-4c86-46a1-afcb-32ebcfbcd8f2 in 0.0611 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 2518b851-30d6-4d13-8666-8b9a325ac5bf in 65.1162 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 72029a40-c14e-4b14-abac-c3db6cd34693 in 0.0733 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution e4c47267-8255-4aec-b7fd-c1db519c1545 in 0.0632 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 83aa0184-44c6-480f-8593-2f195d8fbc06 in 65.3276 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution eb086867-fbda-407c-8cb4-7a0a2cbe5ec2 in 0.0594 ms
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: ticket_rejected
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 261013d9-b0b1-4006-8c22-89268820ab83 in 0.0857 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 949f5dbf-0434-4e14-b439-2d29550f3307 in 66.1733 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 894ca5b0-649e-4f9e-94f4-95171a599f9d in 65.6384 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 33aff6c2-22c6-4122-9f46-7fe805d6be77 in 0.0752 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command MarkNoticeSeenCommand handled by MarkNoticeSeenCommandHandler as Transactional with execution 4a3145b0-0fd1-4218-b1e1-071c7d18bcb6 in 10.4626 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command MarkNoticeSeenCommand handled by MarkNoticeSeenCommandHandler as Transactional with execution 7c337a9c-0819-4554-9a18-00a251943e4f in 0.2202 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PrepareReturnToSelectionCommand handled by PrepareReturnToSelectionCommandHandler as Transactional with execution a3d29ce1-7dcf-482a-9fe1-87661a546b9d in 6.0969 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command CompleteReturnToSelectionCommand handled by CompleteReturnToSelectionCommandHandler as Workflow with execution da2c89ca-abe4-416d-9431-201357702754 in 0.6138 ms
+info: Dfo.Server.Protocol.Game.BuyItem.BuyItemHandler[0]
+      NPC purchase Game:01-00-00-00 npc=2 shop=15 item=490003532 rawCount=1 refused=NoSession
+info: Dfo.Server.Protocol.Game.SellItem.SellItemHandler[0]
+      NPC sale Game:01-00-00-00 npc=2 container=Main slot=9 count=1 refused=NoSession
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 964e9731-d7f9-4109-9182-306f09a7652a in 64.9554 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 0eb6f934-6296-4ad7-b778-73cb20fddd41 in 0.0833 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 9801b3f8-861e-414b-82b0-09dc7f426b32 in 65.1971 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution d7f3e3e6-cc8f-4a8a-a2fd-abd12c9629d5 in 66.4169 ms
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand failed in handler RedeemGameLoginCommandHandler as Transactional with execution 517ad7a9-5f66-4560-93f1-6c2ce43cefc1 after 2.6026 ms
+      System.OperationCanceledException: test-injected precommit cancellation
+         at Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PrepareFaultParticipant.PrepareAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\Integration\GameLoginIntegrationTests.cs:line 827
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 82
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 42
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: redemption_cancelled
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 797b55d5-26cb-4909-80cc-0ae2ad93a1fe in 0.0943 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 2245f01a-bc3e-4cb5-9984-6567d82f4d22 in 65.65 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution be94bfa9-4120-46bb-ab30-2d01a091d7ac in 66.5971 ms
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand failed in handler RedeemGameLoginCommandHandler as Transactional with execution cda93b64-a357-4b98-bbd1-9eccd7926189 after 0.1917 ms
+      System.InvalidOperationException: test-injected commit-path failure
+         at Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PrepareFaultParticipant.PrepareAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\Integration\GameLoginIntegrationTests.cs:line 832
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 82
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 42
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]
+      Game login rejected: redemption_failed
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 9a3d5324-d818-4808-9897-62d340345fd1 in 0.0597 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+dbug: Microsoft.Extensions.Hosting.Internal.Host[1]
+      Hosting starting
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+dbug: Microsoft.Extensions.Hosting.Internal.Host[2]
+      Hosting started
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x0001 frame=83 GameInitialConnectionNotice
+dbug: Dfo.Server.Protocol.Game.Forging.ForgingHandler[0]
+      FORGING no selected session
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x01B7 frame=17 ForgingResponse
+dbug: Microsoft.Extensions.Hosting.Internal.Host[3]
+      Hosting stopping
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+dbug: Microsoft.Extensions.Hosting.Internal.Host[4]
+      Hosting stopped
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 330506f5-073e-4987-bb55-ea1be3c2d287 in 0.0281 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 25c00494-bec5-4001-9fab-d29a41485aa5 in 0.0057 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce [1 s]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate [421 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry [311 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry [290 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.ChannelConnectIntegrationTests.ChannelConnect_TraversesTouchSocketDispatcherHandlerAndSender [62 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.CompressedEncryption_ProducesLegacyCompatibleZlibAndZeroPadding [4 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.UncompressedEncryption_MatchesTheLegacyAesVector [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.ForgingFrameIntegrationTests.Raw_A21_forging_frame_reaches_handler_and_rejects_without_session [56 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameExitIntegrationTests.Exit_TraversesTypedPipelineAndAcknowledgesWithoutClosingConnection [49 ms]
+dbug: Microsoft.Extensions.Hosting.Internal.Host[1]
+      Hosting starting
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+dbug: Microsoft.Extensions.Hosting.Internal.Host[2]
+      Hosting started
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x0001 frame=83 GameInitialConnectionNotice
+dbug: Dfo.Server.Protocol.Game.Outworld.OutworldHandler[0]
+      OUTWORLD no selected session purify=True
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x00CC frame=19 PurifyItemResponse
+dbug: Dfo.Server.Protocol.Game.Outworld.OutworldHandler[0]
+      OUTWORLD no selected session purify=False
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x00CD frame=17 InvestAmplifyOptionResponse
+dbug: Microsoft.Extensions.Hosting.Internal.Host[3]
+      Hosting stopping
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+dbug: Microsoft.Extensions.Hosting.Internal.Host[4]
+      Hosting stopped
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Protocol.Game.LearnSkill.LearnSkillHandler[0]
+      Skill learning Game:01-00-00-00 page=0 count=1 refused=NoSession
+info: Dfo.Server.Protocol.Game.LearnSkill.LearnSkillHandler[0]
+      Skill learning Game:01-00-00-00 page=0 count=1 refused=NoSession
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 3451f494-396f-4a44-bfe6-f1a7fbfa96ec in 0.0138 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]
+      CERA cart Game:01-00-00-00 payload={"Header0":0,"Header1":0,"CouponIndicator":0,"Entries":[{"Mode":0,"Attribute":255,"Variant":255,"ProductId":110000,"AvatarChoices":[],"Selections":[],"CouponItemId":0,"CouponSlot":0}],"InvalidReason":null}
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]
+      CERA purchase Game:01-00-00-00 refused=NoSession detail=(null)
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]
+      CERA cart Game:01-00-00-00 payload={"Header0":0,"Header1":0,"CouponIndicator":0,"Entries":[],"InvalidReason":"Truncated purchase entry."}
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]
+      CERA purchase Game:01-00-00-00 refused=NoSession detail=(null)
+info: Dfo.Server.Protocol.Game.GenCeraTicket.GenCeraTicketHandler[0]
+      CERA web ticket Game:01-00-00-00: unavailable, request bytes=0
+info: Dfo.Server.Protocol.Game.GenCeraTicket.GenCeraTicketHandler[0]
+      CERA web ticket Game:01-00-00-00: unavailable, request bytes=2
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 30288a74-26d1-44f4-b0f6-13ae14fbc64b in 0.0129 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+dbug: Microsoft.Extensions.Hosting.Internal.Host[1]
+      Hosting starting
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+dbug: Microsoft.Extensions.Hosting.Internal.Host[2]
+      Hosting started
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x00 type=0x0001 frame=83 GameInitialConnectionNotice
+dbug: Dfo.Server.Protocol.Game.MagicSeal.MagicSealHandler[0]
+      MAGIC_SEAL no selected session change=True
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x01B6 frame=17 ChangeRandomOptionResponse
+dbug: Dfo.Server.Protocol.Game.MagicSeal.MagicSealHandler[0]
+      MAGIC_SEAL no selected session change=False
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution a1e289c5-eb83-46d9-8c12-c6d6299c71a5 in 0.0189 ms
+dbug: Dfo.Server.Networking.Runtime.TouchSocketNetworkMessageSender[0]
+      S->C Game:01-00-00-00 selector=0x01 type=0x0003 frame=16 GameExitResponse
+dbug: Microsoft.Extensions.Hosting.Internal.Host[3]
+      Hosting stopping
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+dbug: Microsoft.Extensions.Hosting.Internal.Host[4]
+      Hosting stopped
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 4644e11d-c643-4f8e-8346-57359a34f4ea in 0.0154 ms
+fail: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Game handler failed Game:01-00-00-00: selector=0x01 type=0x0016 message=SellItemRequest
+      Dfo.Server.Data.Inventory.InventorySlotMappingException: Game inventory slot 255/65 has no business mapping.
+         at Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService.ToBusinessSlot(GameSlot source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Abstractions\Inventory\InventorySlotMappingRuleService.cs:line 30
+         at Dfo.Server.Protocol.Game.SellItem.SellItemHandler.HandleMessageAsync(NetworkDispatchContext context, SellItemRequest message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Protocol\Game\SellItem\SellItemHandler.cs:line 21
+         at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+         at Dfo.Server.Application.Dispatching.NetworkMessageDispatcher.DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Dispatching\NetworkMessageDispatcher.cs:line 45
+         at Dfo.Server.Networking.Runtime.GameNetworkPlugin.OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Networking\Runtime\NetworkPlugins.cs:line 147
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Integration.OutworldFrameIntegrationTests.Raw_A21_purify_and_invest_frames_reach_handlers_and_reject_without_session [53 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.SkillLearningIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable [50 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable [82 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.MagicSealFrameIntegrationTests.Raw_A21_frames_reach_both_registered_handlers_and_change_rejection_is_encoded [65 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.RecipeCraftRegistrationTests.Captured_design_drawing_request_is_understood_by_the_game_endpoint [4 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.InventorySlotMappingFailureIntegrationTests.An_unmappable_slot_is_logged_on_its_connection_and_the_host_serves_the_next_connection [86 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.Actual_game_encoder_late_invalid_pet_skill_extra_or_avatar_sends_no_reset(invalid: "extras") [9 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.Actual_game_encoder_late_invalid_pet_skill_extra_or_avatar_sends_no_reset(invalid: "pets") [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.Actual_game_encoder_late_invalid_pet_skill_extra_or_avatar_sends_no_reset(invalid: "avatar") [2 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.Actual_game_encoder_late_invalid_pet_skill_extra_or_avatar_sends_no_reset(invalid: "skills") [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.Buffers_are_owned_and_transport_failure_can_stop_a_partially_sent_batch [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_registration_endpoint_or_actual_frame_limit_failure_sends_nothing(failure: "oversize") [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_registration_endpoint_or_actual_frame_limit_failure_sends_nothing(failure: "missing") [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_registration_endpoint_or_actual_frame_limit_failure_sends_nothing(failure: "endpoint") [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.Equal_id_context_replacement_is_refused_and_encoding_time_replacement_keeps_the_old_transport [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_encoding_failure_sends_no_earlier_reset_frame [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.GameInboundFrameCounterTests.Full_sixteen_bit_wrap_is_fresh [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.GameInboundFrameCounterTests.Unknown_opcode_frames_still_advance_counter_and_stale_sequence_does_not [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests.Scheduled_close_captures_session_once_and_never_relooks_up_its_id [2 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ExactConnectionCloseTests.Same_id_replacement_is_not_closed_by_old_context_but_exact_current_context_is [2 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_RequiredDirectFailurePropagatesAndStopsDelivery [4 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_BestEffortFailureStopsOnlyThatTarget [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ResolvesTheEncoderAndEndpointRegisteredForAMessage [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.RejectsTwoEncodersForTheSameMessage [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.TypedEncoderRejectsAMessageItDoesNotEncode [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ReportsAMissForAnUnregisteredMessage [< 1 ms]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 11) [5 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 1) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 12) [2 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 2) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 31) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 17) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 10) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Game_client_adapter_handles_one_byte_at_a_time [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AChannelMessageIsRejectedOnAGameConnection [52 ms]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AGameMessageIsRejectedOnAChannelConnection [47 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AFailedLoginResponseIsNotEncodable [49 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AMessageWithNoRegisteredEncoderIsRejectedByName [50 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ResolvesTheDecoderRegisteredForAWireKey [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_RejectsADecoderThatDeclaresNoProducedMessageType [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_RejectsTwoDecodersOnTheSameMessageNumber [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_RejectsTwoDecodersOnTheSameWireKey [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_DeclaresEveryProducedMessageType [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ReportsAMissForAnUnregisteredWireKey [< 1 ms]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 604d92d2-321e-4a6e-bd4c-bfea755dfb6d in 0.0166 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x7FFF seq=1 body(0B)=
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution ad3e9d5b-2d23-4404-adea-fcc7aeef9294 in 0.0143 ms
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x02 type=0x0003 seq=1 body(0B)=
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 1ba84855-40ac-4739-8a9b-e0dfadd0a220 in 0.0097 ms
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Game decoder GetUserInfoMessageDecoder declined Game:01-00-00-00: selector=0x01 type=0x0008 body(3B); body withheld
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 91de1ba2-57ad-4da8-a275-fe3c9f251ab2 in 0.0083 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x7FFF seq=1 body(0B)=
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x7FFF seq=3 body(0B)=
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelScriptVersionCommand handled by GetChannelScriptVersionCommandHandler as Direct with execution 47187218-9743-47ed-a1c9-fc4548bcb6ce in 0.3222 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelScriptCommand handled by GetChannelScriptCommandHandler as Direct with execution 94f1e5c7-d52e-484b-928d-6b68a37def39 in 0.484 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelInfoCommand handled by GetChannelInfoCommandHandler as Direct with execution cfcb6de5-e11c-4e64-8a86-1cbd745cfb78 in 0.4782 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_ResolvesAndReportsMissesByMessageNumber [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.CreatureHatchFrameIntegrationTests.Captured_hatch_request_without_selection_receives_a_failure_response [50 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.UnknownInboundFrameIntegrationTests.FramesWithNoDecoder_AreDroppedSilentlyAndLeaveTheConnectionUsable [61 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.UnknownInboundFrameIntegrationTests.Real_TCP_metadata_hashes_complete_raw_body_and_counts_unknown_frames_before_decode [60 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Channel_encoder_matches_the_reverse_engineered_layout [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_writes_opaque_header_values [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_keeps_the_observed_fifteen_byte_header [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.CardRewardReconnectIntegrationTests.A_disconnect_ends_the_run_and_a_replacement_cannot_claim_its_cards [122 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.ChannelControlMessagesIntegrationTests.ControlMessages_TraverseTypedCommandsAndPreserveLegacyPayloads [35 ms]
+[xUnit.net 00:00:04.94]   Finished:    Dfo.Server.Networking.Tests
+  已通过 Dfo.Server.Networking.Tests.Runtime.A21UdpDiscoveryServiceTests.Binding_probe_returns_the_observed_ipv4_and_port_from_the_receiving_port [6 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.A21UdpDiscoveryServiceTests.Keepalive_does_not_produce_a_response [258 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.A21UdpDiscoveryServiceTests.Change_port_probe_is_answered_from_the_other_configured_port [2 ms]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-networking.trx
+
+测试运行成功。
+测试总数: 86
+     通过数: 86
+总时间: 5.3170 秒
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:05.80

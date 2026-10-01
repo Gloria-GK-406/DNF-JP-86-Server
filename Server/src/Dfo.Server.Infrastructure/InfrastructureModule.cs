@@ -1,6 +1,8 @@
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Channel;
@@ -22,6 +24,7 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<ITeleportConsumableDefinitionSource, PvfTeleportConsumableDefinitionSource>();
         services.TryAddSingleton<IServerConfigService>(_ => new ServerConfigService(configuration));
         if (bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
             && launcherEnabled)
@@ -63,6 +66,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
+        services.TryAddSingleton<ICreatureRuleSource, PvfCreatureRuleSource>();
         services.TryAddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();
         services.TryAddSingleton<IEntryLifecycleContentSource, PvfEntryLifecycleContentSource>();
         services.TryAddSingleton<IInitialEquipmentDefinitionSource,
@@ -91,6 +95,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
             PvfDungeonExperienceProgressionPolicySource>();
         services.TryAddSingleton<IEquipmentRequirementDefinitionSource, PvfEquipmentRequirementDefinitionSource>();
+        services.TryAddSingleton<IInventorySortKeySource, PvfInventorySortKeySource>();
         services.TryAddSingleton<IPremiumServiceDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IQuestHelperPuppetDefinitionSource, PvfPremiumServiceDefinitionSource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,
@@ -103,11 +108,19 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<INpcShopDefinitionSource, PvfNpcShopDefinitionSource>();
         services.TryAddSingleton<ICeraShopDefinitionSource, PvfCeraShopDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IVendingMachineDefinitionSource, PvfVendingMachineDefinitionSource>();
+        services.TryAddSingleton<IRecipeContentSource, PvfRecipeContentSource>();
         services.TryAddSingleton<PvfPackageOpeningDefinitionSource>();
         services.TryAddSingleton<IPackageOpeningDefinitionSource>(provider => provider.GetRequiredService<PvfPackageOpeningDefinitionSource>());
         services.TryAddSingleton<ILotteryDefinitionCache>(provider => provider.GetRequiredService<PvfPackageOpeningDefinitionSource>());
         services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
         services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
+        services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
+        services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
+            PvfEquipmentReinforcementDefinitionSource>();
+        services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();
+        services.TryAddSingleton<IEquipmentMagicSealContentSource, PvfEquipmentMagicSealContentSource>();
+        services.TryAddSingleton<IEquipmentOutworldContentSource, PvfEquipmentOutworldContentSource>();
+        services.TryAddSingleton<IEquipmentForgingContentSource, PvfEquipmentForgingContentSource>();
         services.TryAddSingleton<IEquipmentDisjointDefinitionSource,
             PvfEquipmentDisjointDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();

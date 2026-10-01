@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="494e1b87-5117-435a-b096-7fb4f3f32977" name="Gloria@家庭台式机 2026-10-01 14:44:47" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:44:47.8551181+08:00" queuing="2026-10-01T14:44:47.8551183+08:00" start="2026-10-01T14:44:47.0575549+08:00" finish="2026-10-01T14:44:47.8590851+08:00" />
+  <TestSettings name="default" id="c531a6c8-80d0-4296-95d6-2cd8cc588171">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_44_47" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="854bc87d-2fc6-49f1-9e5b-1dad570ac9e0" testId="47014647-fa06-b12c-0314-d9a22d63f060" testName="Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_encoding_failure_sends_no_earlier_reset_frame" computerName="家庭台式机" duration="00:00:00.0815147" startTime="2026-10-01T14:44:47.6803149+08:00" endTime="2026-10-01T14:44:47.7727034+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="854bc87d-2fc6-49f1-9e5b-1dad570ac9e0">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Empty() Failure: Collection was not empty&#xD;
+Collection: [[0, 0, 0, 0]]</Message>
+          <StackTrace>   at Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_encoding_failure_sends_no_earlier_reset_frame() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\Runtime\PreparedBatchTests.cs:line 28&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_encoding_failure_sends_no_earlier_reset_frame" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.networking.tests\bin\debug\net10.0\dfo.server.networking.tests.dll" id="47014647-fa06-b12c-0314-d9a22d63f060">
+      <Execution id="854bc87d-2fc6-49f1-9e5b-1dad570ac9e0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests" name="A_late_encoding_failure_sends_no_earlier_reset_frame" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="47014647-fa06-b12c-0314-d9a22d63f060" executionId="854bc87d-2fc6-49f1-9e5b-1dad570ac9e0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.19]   Discovering: Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.23]   Discovered:  Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.24]   Starting:    Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.35]       Assert.Empty() Failure: Collection was not empty&#xD;
+[xUnit.net 00:00:00.35]       Collection: [[0, 0, 0, 0]]&#xD;
+[xUnit.net 00:00:00.35]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.35]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Networking.Tests\Runtime\PreparedBatchTests.cs(28,0): at Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_encoding_failure_sends_no_earlier_reset_frame()&#xD;
+[xUnit.net 00:00:00.35]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.36]   Finished:    Dfo.Server.Networking.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T14:44:47.7745991+08:00">
+        <Text>[xUnit.net 00:00:00.35]     Dfo.Server.Networking.Tests.Runtime.PreparedBatchTests.A_late_encoding_failure_sends_no_earlier_reset_frame [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

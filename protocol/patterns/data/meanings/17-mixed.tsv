@@ -48,7 +48,7 @@ NOTI	0x00FB	g1:3	锁定状态 State，u8；上锁与取消解锁两条路径都�
 NOTI	0x00FB	g1:4	解锁剩余秒数 RemainingSeconds，i32；上游仅在 State==2 时写出，故单条目实际为 4 字节或 8 字节变长	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:67-68 if (entry.State == 2) WriteInt32(entry.RemainingSeconds)
 NOTI	0x00FC	0	被解锁装备所在背包列表类型 ListType，按 InventoryListType 解释	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:51 BuildUnlockNotice WriteByte((byte)listType)；发出点 Network/Handlers/InventoryHandler.ItemLock.cs:94-95 以 NOTI 0x00FC 送出
 NOTI	0x00FC	1	被解锁的装备槽位 SlotIndex，i16	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:52 BuildUnlockNotice WriteInt16(slotIndex)
-CMD	0x02CA	0	要切换整理锁的背包列表类型，按 InventoryListType 解释	High	上游 Network/Handlers/InventoryHandler.Move.cs:223 (InventoryListType)body[0] 作 listType（Handle_ENUM_CMDPACKET_TOGGLE_SORT_ITEM_LOCK）；注意上游 :220 要求 body 至少 3 字节，与本包提取到的 BodyLength=1 不一致，故按一步推导计
+CMD	0x02CA	0	要切换整理锁的背包列表类型 listType	High	UpstreamReference InventoryHandler.Move.cs ToggleSortItemLock 读 body[0]；2026-09-29 WireCaptured 00 1C 00（3B）确认装备栏请求形状；其他构包分支仍未闭合
 CMD	0x00CC	0	目标物品槽位 TargetSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:16 BitConverter.ToInt16(body, 0) 作 TargetSlotIndex
 CMD	0x00CC	2	目标物品模板 ID TargetItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:17 BitConverter.ToInt32(body, 2) 作 TargetItemTemplateId
 CMD	0x00CC	6	材料所在槽位 MaterialSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:18 BitConverter.ToInt16(body, 6) 作 MaterialSlotIndex
@@ -67,3 +67,4 @@ CMD	0x0015	4	购买数量 buyCount，i32；上游对 <= 0 的值一律改判为 
 CMD	0x0016	0	待出售物品所在背包列表类型，按 InventoryListType 解释；上游要求它是已定义的枚举值，否则退回无类型前缀的旧布局解析	Confirmed	上游 Network/Handlers/InventoryHandler.cs:101 Enum.IsDefined 判 body[0]，:103 (InventoryListType)body[0] 作 listType（TryParseDeleteOrSellRequest，由 InventoryHandler.Trade.cs:234 调用）
 CMD	0x0016	1	待出售物品槽位 slotIndex，i16	Confirmed	上游 Network/Handlers/InventoryHandler.cs:104 BitConverter.ToInt16(body, 1) 作 slotIndex；InventoryHandler.Trade.cs:245-250 传入 TrySellItem
 CMD	0x0016	3	出售数量 itemCount，i16	Confirmed	上游 Network/Handlers/InventoryHandler.cs:105 BitConverter.ToInt16(body, 3) 作 itemCount；InventoryHandler.Trade.cs:245-250 作 sellCount 传入 TrySellItem
+CMD	0x02CA	1	目标协议槽位 slotIndex（上游按 i16 读取）	High	UpstreamReference InventoryHandler.Move.cs BitConverter.ToInt16(body,1)；2026-09-29 WireCaptured 00 1C 00 / 00 3C 00 / 00 35 00

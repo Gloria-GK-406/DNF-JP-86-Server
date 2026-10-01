@@ -112,135 +112,16 @@ internal static class ArrivingAvatar
         DeleteDate: 0);
 }
 
-/// <summary>How a decided move rearranges the two slots.</summary>
-public enum ContainerMoveKind
-{
-    /// <summary>The whole stack goes to an empty slot.</summary>
-    Relocate,
-
-    /// <summary>Part of the stack goes to an empty slot; the rest stays behind.</summary>
-    Split,
-
-    /// <summary>The two slots trade places.</summary>
-    Swap,
-
-    /// <summary>The stack is poured into a pile of the same item.</summary>
-    Merge,
-}
-
-/// <summary>
-/// What the move was decided to be, before it is said as reads and writes.
-/// </summary>
-/// <remarks>
-/// It names no item and no storage row, only where the move is going and how much of the pile goes.
-/// The two items are the ones already read, which is why they do not need naming twice.
-/// </remarks>
-public sealed record DecidedMove(int TargetSlotIndex, int MoveCount, ContainerMoveKind Kind);
-
-/// <summary>
-/// The compound item operations, each said as the reads and writes it is made of.
-/// </summary>
-/// <remarks>
-/// This is where "move" lives now. It used to live in persistent storage, which meant storage had
-/// to know that a swap is not two relocations and that a merge deletes one of its two operands; the
-/// container that could not store had to know the same things a second time, and the two agreed
-/// only as long as somebody kept checking. Written here as clears and writes, there is one
-/// description and both carriers run it.
-///
-/// Nothing here decides whether an operation is allowed, and nothing here ever will. Whether the
-/// item may occupy the slot, and whether a merge would burst the stack, are answered by the
-/// container before any of this is called -- they used to be answered by the protocol handler, and
-/// moving them did not change what this file is for.
-///
-/// That division is what this file demonstrates: a move is composed here out of clears and writes
-/// without the store below ever being told what a move is. Composition never needed the store's
-/// help, which is why bringing the judgement down into the container cost the store nothing.
-/// </remarks>
+/// <summary>Composes consumption from local container reads and writes.</summary>
 public static class ItemContainerOperations
 {
-    /// <summary>The whole pile goes to an empty slot.</summary>
-    public static async ValueTask RelocateAsync(
-        IItemContainer container,
-        ContainerSlotItem moving,
-        int targetSlotIndex,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(container);
-        ArgumentNullException.ThrowIfNull(moving);
-        await container.ClearAsync(moving.SlotIndex, cancellationToken).ConfigureAwait(false);
-        await container.PutAsync(targetSlotIndex, moving.Core, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Part of the pile goes to an empty slot; the rest stays where it was.</summary>
-    public static async ValueTask SplitAsync(
-        IItemContainer container,
-        ContainerSlotItem moving,
-        int targetSlotIndex,
-        int moveCount,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(container);
-        ArgumentNullException.ThrowIfNull(moving);
-        await container.PutAsync(
-            moving.SlotIndex,
-            moving.Core with { Value = moving.Count - moveCount },
-            cancellationToken).ConfigureAwait(false);
-        await container.PutAsync(
-            targetSlotIndex,
-            StackableItemCore.Create(moving.ItemKind, moving.ItemId, moveCount),
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>The two slots trade what they hold.</summary>
-    public static async ValueTask SwapAsync(
-        IItemContainer container,
-        ContainerSlotItem first,
-        ContainerSlotItem second,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(container);
-        ArgumentNullException.ThrowIfNull(first);
-        ArgumentNullException.ThrowIfNull(second);
-        await container.PutAsync(second.SlotIndex, first.Core, cancellationToken).ConfigureAwait(false);
-        await container.PutAsync(first.SlotIndex, second.Core, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>The pile is poured into another of the same item.</summary>
-    public static async ValueTask MergeAsync(
-        IItemContainer container,
-        ContainerSlotItem moving,
-        ContainerSlotItem target,
-        int moveCount,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(container);
-        ArgumentNullException.ThrowIfNull(moving);
-        ArgumentNullException.ThrowIfNull(target);
-        await container.PutAsync(
-            target.SlotIndex,
-            target.Core with { Value = checked(target.Count + moveCount) },
-            cancellationToken).ConfigureAwait(false);
-
-        if (moveCount == moving.Count)
-        {
-            await container.ClearAsync(moving.SlotIndex, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            await container.PutAsync(
-                moving.SlotIndex,
-                moving.Core with { Value = moving.Count - moveCount },
-                cancellationToken).ConfigureAwait(false);
-        }
-    }
-
     /// <summary>Takes some off the pile and answers what is left of it.</summary>
     /// <remarks>
     /// An emptied slot is cleared rather than left holding a pile of nothing, which the client
     /// would draw as occupied and the server would answer as empty.
     /// </remarks>
     public static async ValueTask<int> ConsumeAsync(
-        IItemContainer container,
+        IBusinessItemContainer container,
         ContainerSlotItem item,
         int count,
         CancellationToken cancellationToken)
@@ -289,9 +170,10 @@ internal abstract class StoreBackedItemContainer(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules,
-    IInventorySlotMappingRuleService slotMappings) : IItemContainer
+    IItemSlotRuleService slotRules) : IItemContainer
 {
+    public ValueTask FlushAsync(CancellationToken cancellationToken) =>
+        this.ApplyDecidedWritesAsync(cancellationToken);
     public ContainerId Id => id;
 
     public InventoryContainerType Type => shape.ContainerType;
@@ -359,6 +241,11 @@ internal abstract class StoreBackedItemContainer(
         int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
         this.WriteOneAsync(slotIndex, core, null, cancellationToken);
 
+    public ValueTask PutTransferredAsync(int slotIndex, InventoryItemCoreState core,
+        ContainerId sourceContainer, int sourceSlotIndex, CancellationToken cancellationToken) =>
+        this.WriteOneAsync(slotIndex, core, null, cancellationToken,
+            transferFrom: new ItemTransferSource(sourceContainer, sourceSlotIndex));
+
     public ValueTask PutNewAsync(int slotIndex, InventoryItemCoreState core, InventoryItemCreationFacts facts,
         CancellationToken cancellationToken)
     {
@@ -378,7 +265,8 @@ internal abstract class StoreBackedItemContainer(
         InventoryItemCoreState core,
         InventoryAvatarDetailState? avatarDetail,
         CancellationToken cancellationToken,
-        InventoryCreatureDetailState? creatureDetail = null)
+        InventoryCreatureDetailState? creatureDetail = null,
+        ItemTransferSource? transferFrom = null)
     {
         ArgumentNullException.ThrowIfNull(core);
         if (AccountMaterialCatalog.ContainsItem(core.ItemId))
@@ -399,6 +287,7 @@ internal abstract class StoreBackedItemContainer(
                     WorldClass = worldClass,
                     AvatarDetail = avatarDetail,
                     CreatureDetail = creatureDetail,
+                    TransferFrom = transferFrom,
                 }))
             .ConfigureAwait(false);
     }
@@ -420,6 +309,9 @@ internal abstract class StoreBackedItemContainer(
         var arrival = arrivals.ForGrant(
             this.PilesOf(held, itemId, Candidates(placement)), count, placement,
             this.OccupiedSlots(held, Candidates(placement)));
+        if (arrival is ItemArrival.IntoEmptySlot opening
+            && !slotRules.CanOccupySlot(opening.Slot, placement))
+            throw new InvalidDataException($"Arrival chose a slot {opening.Slot} that rejects item {itemId}.");
         return await this.LandAsync(
             arrival, held, itemId, placement.ItemKind, cancellationToken).ConfigureAwait(false);
     }
@@ -509,139 +401,6 @@ internal abstract class StoreBackedItemContainer(
         }
     }
 
-    public async ValueTask<ItemMoveOutcome> MoveToAsync(
-        int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken)
-    {
-        // Naming one slot twice is not a move. A client settling a drag that ended where it started
-        // sends exactly this and expects to be told it worked.
-        if (fromSlotIndex == toSlotIndex)
-        {
-            return new ItemMoveOutcome.Unchanged();
-        }
-
-        var slots = await this.ReadSlotsAsync(fromSlotIndex, toSlotIndex, cancellationToken)
-            .ConfigureAwait(false);
-        var (moving, displaced, targetSlot) = slots.First is not null
-            ? (slots.First, slots.Second, toSlotIndex)
-            : (slots.Second, null, fromSlotIndex);
-
-        if (moving is null)
-        {
-            return new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty);
-        }
-
-        var decided = await this.DecideMoveAsync(
-            moving, displaced, targetSlot, count, cancellationToken).ConfigureAwait(false);
-        if (decided.Refusal is { } refusal)
-        {
-            return new ItemMoveOutcome.Refused(refusal);
-        }
-
-        var plan = decided.Plan!;
-        switch (plan.Kind)
-        {
-            case ContainerMoveKind.Relocate:
-                await ItemContainerOperations
-                    .RelocateAsync(this, moving, plan.TargetSlotIndex, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            case ContainerMoveKind.Split:
-                await ItemContainerOperations
-                    .SplitAsync(this, moving, plan.TargetSlotIndex, plan.MoveCount, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            case ContainerMoveKind.Swap:
-                await ItemContainerOperations
-                    .SwapAsync(this, moving, displaced!, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            case ContainerMoveKind.Merge:
-                await ItemContainerOperations
-                    .MergeAsync(this, moving, displaced!, plan.MoveCount, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            default:
-                // Listed rather than defaulted: a kind nobody carried out would answer that the
-                // move succeeded while the inventory stayed exactly as it was.
-                throw new ArgumentOutOfRangeException(
-                    nameof(plan), plan.Kind, "No move was carried out for this kind.");
-        }
-
-        await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
-        return new ItemMoveOutcome.Moved(plan.MoveCount, moving.ItemId);
-    }
-
-    /// <summary>
-    /// Decides what the move does, or which refusal applies.
-    /// </summary>
-    /// <remarks>
-    /// The refusals are told apart rather than folded into one, because a caller with sentences to
-    /// show a player has a different one for a full stack than for an item that cannot go where it
-    /// was dropped.
-    ///
-    /// The rule consulted is this container's own, asked of the rule service. It used to be the
-    /// main list's band, written here because the main list was the only one served; the avatar
-    /// list is the second, and the note left at the time said a second served list belongs in the
-    /// rule service rather than as a branch here. It does, and it is there.
-    /// </remarks>
-    private async ValueTask<(DecidedMove? Plan, ItemMoveRefusal? Refusal)> DecideMoveAsync(
-        ContainerSlotItem moving,
-        ContainerSlotItem? displaced,
-        int targetSlot,
-        int requestedCount,
-        CancellationToken cancellationToken)
-    {
-        var placement = await placementRules.PlacementForAsync(moving.ItemId, cancellationToken)
-            .ConfigureAwait(false);
-        var target = slotMappings.ToBusinessSlot(new InventoryStorageSlot(this, targetSlot));
-        if (placement is null || !slotRules.CanOccupySlot(target, placement))
-        {
-            return (null, ItemMoveRefusal.ItemCannotOccupySlot);
-        }
-
-        var moveCount = requestedCount <= 0 || requestedCount > moving.Count
-            ? moving.Count
-            : requestedCount;
-
-        if (displaced is null)
-        {
-            return (new DecidedMove(
-                    targetSlot,
-                    moveCount,
-                    moveCount == moving.Count
-                        ? ContainerMoveKind.Relocate
-                        : ContainerMoveKind.Split),
-                null);
-        }
-
-        // Two piles of the same item merge; anything else trades places. A merge that would burst
-        // the stack limit is refused rather than silently truncated, so the client keeps drawing
-        // the counts this container holds.
-        if (displaced.ItemId == moving.ItemId)
-        {
-            return placement.StackLimit > 1 && displaced.Count + moveCount <= placement.StackLimit
-                ? (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Merge), null)
-                : (null, ItemMoveRefusal.MergeExceedsStackLimit);
-        }
-
-        // A swap has to satisfy both ends: the displaced pile is going to the slot this one is
-        // leaving, and it has a band of its own.
-        if (moveCount != moving.Count)
-        {
-            return (null, ItemMoveRefusal.PartialSwapNotAllowed);
-        }
-
-        var displacedPlacement = await placementRules
-            .PlacementForAsync(displaced.ItemId, cancellationToken)
-            .ConfigureAwait(false);
-        var source = slotMappings.ToBusinessSlot(
-            new InventoryStorageSlot(this, moving.SlotIndex));
-        return displacedPlacement is null
-            || !slotRules.CanOccupySlot(source, displacedPlacement)
-            ? (null, ItemMoveRefusal.DisplacedCannotOccupySlot)
-            : (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Swap), null);
-    }
-
     private IReadOnlyList<ItemPile> PilesOf(
         IReadOnlyList<ContainerSlotItem> held,
         int itemId,
@@ -677,11 +436,11 @@ internal abstract class StoreBackedItemContainer(
 
     private int StorageIndex(BusinessSlot slot)
     {
-        var game = slotMappings.ToGameSlot(slot);
-        if (game.Space != this.Type)
+        var storage = LegacyInventoryStorageCoordinates.ToStorage(slot);
+        if (storage.List != this.Type)
             throw new InvalidDataException(
                 $"Business slot {slot.Space}/{slot.Index} does not belong to container {this.Type}.");
-        return game.Index;
+        return storage.Index;
     }
 
     /// <summary>
@@ -751,19 +510,19 @@ internal abstract class StoreBackedItemContainer(
     /// byte the core carries would be the reading the classification exists to replace, and a
     /// caller would then be told one thing on the way out and another on the way in.
     ///
-    /// Nothing about the row it was read from comes with it: not a key, not a name. The store's
-    /// vocabulary has none to give, which is what makes the round trip this file is watched for
-    /// impossible to write rather than merely absent.
+    /// Identity is a read-only address; writing still lets the store preserve its own row.
     /// </remarks>
     private protected async ValueTask<ContainerSlotItem?> ToSlotItemAsync(
-        StoredItem? stored, CancellationToken cancellationToken) =>
-        stored is null
-            ? null
-            : new ContainerSlotItem(
-                stored.SlotIndex,
-                stored.Core,
-                await placementRules.ClassifyAsync(stored.Core.ItemId, cancellationToken)
-                    .ConfigureAwait(false));
+        StoredItem? stored, CancellationToken cancellationToken)
+    {
+        if (stored is null) return null;
+        var worldClass = await placementRules.ClassifyAsync(stored.Core.ItemId, cancellationToken)
+            .ConfigureAwait(false);
+        return new(stored.SlotIndex, stored.Core, worldClass)
+        {
+            Identity = worldClass == ItemWorldClass.Interchangeable ? null : stored.Identity,
+        };
+    }
 }
 
 /// <summary>
@@ -787,11 +546,9 @@ internal sealed class PersistentItemContainer(
     IEntryInventoryMutationRepository? snapshots,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules,
-    IInventorySlotMappingRuleService? slotMappings = null)
+    IItemSlotRuleService slotRules)
     : StoreBackedItemContainer(
-        id, shape, store, transactions, placementRules, arrivals, slotRules,
-        slotMappings ?? new InventorySlotMappingRuleService())
+        id, shape, store, transactions, placementRules, arrivals, slotRules)
 {
     public override bool IsRemovable => false;
 

@@ -64,7 +64,8 @@ public sealed record EquipmentDisjointReceipt(
     IReadOnlyList<EquipmentDisjointMaterialReceipt> Materials,
     IReadOnlyList<AccountMaterialChange> AccountMaterials,
     IReadOnlyList<EquipmentDisjointSlotChange> InventoryChanges,
-    DateTimeOffset PreparedAt);
+    DateTimeOffset PreparedAt,
+    BusinessSlot? PortableToolSlot = null);
 
 public sealed record EquipmentDisjointResult(
     EquipmentDisjointRejection Rejection,

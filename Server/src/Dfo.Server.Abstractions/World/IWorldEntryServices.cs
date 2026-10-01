@@ -8,6 +8,8 @@ namespace Dfo.Server.Abstractions.World;
 /// </summary>
 public interface IWorldContentEntryRuleService
 {
+    ValueTask<AvailableQuestEntryState> ReadOffersAsync(WorldContentSubject subject, CancellationToken cancellationToken) =>
+        ValueTask.FromException<AvailableQuestEntryState>(new NotSupportedException("Bounded quest offer read is unavailable."));
     ValueTask<WorldContentEntryState> LoadAsync(
         WorldContentSubject subject,
         CancellationToken cancellationToken);
