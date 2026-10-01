@@ -146,6 +146,7 @@ public sealed class CareerReconciliationTests
             Rewards = [new(QuestRewardKind.GrowType,[1])] };
         return new(content: content, configure: services =>
         {
+            services.AddSingleton<Dfo.Server.Abstractions.World.IExperienceRuleService>(new OrdinaryQuestEffectTests.FixedProgression());
             services.AddSingleton<ICharacterStatDefinitionSource>(new Stats());
             services.AddSingleton<IQuestContentRuleService>(rules);
         });

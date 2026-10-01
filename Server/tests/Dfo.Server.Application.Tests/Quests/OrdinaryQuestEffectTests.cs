@@ -25,7 +25,7 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Reward_fills_every_pile_instead_of_silently_losing_the_remainder()
     {
-        using var shop = new ShopFixture(s => s.AddSingleton<IQuestContentRuleService>(new Rules()));
+        using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(new Rules()));
         await shop.Seed(3, 2000, 9);
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,0)");
         var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1), new(1), 2001, ushort.MaxValue, 1, 0));
@@ -48,6 +48,13 @@ public sealed class OrdinaryQuestEffectTests
         public QuestParameters Parameters() => ParametersValue;
     }
 
+    // These settlement cases use synthetic content, including progression, without a client archive.
+    private static ShopFixture Shop(Action<IServiceCollection>? configure = null) => new(services =>
+    {
+        services.AddSingleton<IExperienceRuleService>(new FixedProgression());
+        configure?.Invoke(services);
+    });
+
     private static Task<QuestFinishOutcome> Finish(ShopFixture shop, ushort selection = ushort.MaxValue, ushort count = 1) =>
         shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),2001,selection,count,0)).AsTask();
     private static void Carry(ShopFixture shop, int trigger=0) => shop.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,{trigger})");
@@ -57,7 +64,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         var rules = new Rules();
         rules.Quest = rules.Quest with { SeekingItems = [new(2000,2)] };
-        using var shop = new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(rules));
+        using var shop = Shop(s=>s.AddSingleton<IQuestContentRuleService>(rules));
         await shop.Seed(3,2000,2); Carry(shop,2);
         Assert.True((await Finish(shop)).Finished);
         Assert.Equal(5,shop.Count(2000));
@@ -68,13 +75,13 @@ public sealed class OrdinaryQuestEffectTests
     public async Task Empty_bag_receives_the_entire_multi_stack_reward(int amount,int entries)
     {
         var rules = new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([new(2000,amount)],[],false,0)};
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(amount,shop.Count(2000)); Assert.Equal(entries,result.Items.Count);
     }
     [Fact]
     public async Task Full_bag_refuses_without_touching_any_durable_state()
     {
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
         for(var i=0;i<6;i++) await shop.Seed(3+i,2000,i==0?9:10);
         await shop.Seed(65,2000,10); await shop.Seed(66,2000,10); Carry(shop);
         Assert.False((await Finish(shop)).Finished); Assert.Equal(79,shop.Count(2000));
@@ -85,7 +92,7 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Basic_rewards_preserve_existing_pile_fields_and_create_zero_default_core()
     {
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
         await shop.SeedCore(3,StackableItemCore.Create(2,2000,9) with {Durability=7,Attribute=9,SealFlag=1,ExpireTime=12345}); Carry(shop);
         Assert.True((await Finish(shop)).Finished);
         var main=shop.Services.GetRequiredService<ICharacterContainerDomainService>().FindContainer(new(1),InventoryContainerType.Main)!;
@@ -97,7 +104,7 @@ public sealed class OrdinaryQuestEffectTests
     public async Task Equipment_reward_count_two_creates_two_distinct_durable_items()
     {
         var rules=new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([new(3000,2)],[],false,0)};
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(2,result.Items.Count);
         Assert.Equal(2,shop.Scalar("SELECT COUNT(DISTINCT core_uid) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
     }
@@ -107,7 +114,7 @@ public sealed class OrdinaryQuestEffectTests
         var rules=new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([new(2000,3),new(3033,2)],[],false,0)};
         rules.Others.Add(rules.Quest with {QuestId=2002,SeekingItems=[new(1000,2),new(2000,3)]});
         rules.Others.Add(rules.Quest with {QuestId=2003,SeekingItems=[new(3033,1)]});
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(rules));
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(rules));
         await shop.Seed(121,1000,2,3); Carry(shop);
         shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,5),(1,2,2003,1)");
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(0,result.QuestProgress!.Quests.Single(x=>x.QuestId==2002).TriggerValue);
@@ -118,7 +125,7 @@ public sealed class OrdinaryQuestEffectTests
     public async Task Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows()
     {
         var rules=new Rules(); rules.Others.Add(rules.Quest with {QuestId=2002,ClearedQuestRequirements=[2001,2001]});
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop);
         shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,514); INSERT INTO character_quest_notify_selections VALUES(1,9,2001)");
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(512,Assert.Single(result.QuestProgress!.Quests).TriggerValue);
         Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=1"));
@@ -128,13 +135,13 @@ public sealed class OrdinaryQuestEffectTests
     [InlineData(65535,2)]
     public async Task Invalid_selection_or_completion_count_never_pays(ushort selection,ushort count)
     {
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop);
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop);
         Assert.False((await Finish(shop,selection,count)).Finished); Assert.Equal(0,shop.Count(2000));
     }
     [Fact]
     public async Task Unmet_or_unowned_completion_pays_nothing()
     {
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop,1);
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop,1);
         Assert.False((await Finish(shop)).Finished);
         Assert.False((await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(2),new(1),2001,ushort.MaxValue,1,0))).Finished);
         Assert.Equal(0,shop.Count(2000));
@@ -142,7 +149,7 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Two_legitimate_completions_add_to_current_progress_and_a_duplicate_uncarried_attempt_cannot_pay()
     {
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop);
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop);
         var first=await Finish(shop); var duplicate=await Finish(shop); Assert.False(duplicate.Finished);
         Carry(shop); var second=await Finish(shop); Assert.Equal(first.NewExperience+second.Experience,second.NewExperience);
         Assert.Equal(6,shop.Count(2000));
@@ -150,7 +157,7 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Two_experience_effects_validate_first_then_apply_expected_after_and_preserve_cap_earned()
     {
-        using var shop=new ShopFixture(); shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1");
+        using var shop=Shop(); shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1");
         IExperienceRuleService rules=new FixedProgression();
         var first=rules.DecideAward(new(1,90),new(Base:30));
         var second=rules.DecideAward(new(first.Award.Level,first.Award.Total),new(Base:400,Channel:50));
@@ -163,9 +170,9 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(3,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
         var zero=rules.DecideAward(new(1,300),new()); Assert.Equal(1,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
     }
-    internal sealed class FixedProgression : IExperienceRuleService
+    internal sealed class FixedProgression(IReadOnlyList<uint>? thresholds = null) : IExperienceRuleService
     {
-        public DungeonExperienceProgressionPolicy Progression()=>new([100,300],0,1,100);
+        public DungeonExperienceProgressionPolicy Progression()=>new(thresholds ?? [100,300],0,1,100);
         public uint WorthOfKill(in KillCircumstances kill)=>throw new NotSupportedException();
         public bool IsMonster(byte type)=>throw new NotSupportedException();
         public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear)=>throw new NotSupportedException();
@@ -177,7 +184,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         var rules=new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([],[],false,50)};
         rules.Others.Add(rules.Quest with {QuestId=2002,SeekingItems=[new(0,120)]});
-        using var shop=new ShopFixture(s=> {s.AddSingleton<IQuestContentRuleService>(rules);s.AddSingleton<IExperienceRuleService>(new FixedProgression());s.AddSingleton<ICarriedGoldRuleService>(new GoldLimits());});
+        using var shop=Shop(s=> {s.AddSingleton<IQuestContentRuleService>(rules);s.AddSingleton<IExperienceRuleService>(new FixedProgression());s.AddSingleton<ICarriedGoldRuleService>(new GoldLimits());});
         shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1; UPDATE character_stats SET carried_gold=90 WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,1,2002,30)"); Carry(shop);
         var result=await Finish(shop);
         Assert.True(result.Finished); Assert.Equal(2,result.NewLevel); Assert.Equal(100,shop.Gold);
@@ -189,14 +196,20 @@ public sealed class OrdinaryQuestEffectTests
     private static ShopFixture Composite(Rules rules)
     {
         var content=new LearningContent(); content.Grants.Add(new(7,3,1,0));
-        return new ShopFixture(s=>
+        return Shop(s=>
         {
             s.AddSingleton<IQuestContentRuleService>(rules);
             s.AddSingleton<ISkillRuleDefinitionSource>(content);
             s.AddSingleton<ICharacterStatDefinitionSource>(new CareerStats());
+            s.AddSingleton<ICarriedGoldRuleService>(new CompositeGoldLimits());
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
         });
     }
+    private sealed class CompositeGoldLimits : ICarriedGoldRuleService
+    {
+        public int CarryLimitFor(int level, int stored) => Math.Max(stored, 1_000_000);
+    }
+
     private sealed class CareerStats : ICharacterStatDefinitionSource
     {
         public ValueTask<CharacterBaseStats> GetInitialAsync(byte job,CancellationToken ct)=>ValueTask.FromResult(new CharacterStatValues(HpMax:100).ToFixedPoint());
@@ -263,7 +276,7 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Basic_experience_handler_rejects_missing_target_even_for_zero_award()
     {
-        using var shop=new ShopFixture();
+        using var shop=Shop();
         await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
         var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<ICharacterTable>());
         var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
@@ -274,7 +287,12 @@ public sealed class OrdinaryQuestEffectTests
     {
         var rules=new Rules { ParametersValue=new([..Enumerable.Range(1,100).Select(x=>x*100)],new Dictionary<char,int>{{'M',10}},80,30,120,140) };
         rules.Quest=rules.Quest with {PaysAtCharacterLevel=true,ItemRewards=QuestItemRewardDefinition.Empty};
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(rules));
+        using var shop=Shop(s=>
+        {
+            s.AddSingleton<IQuestContentRuleService>(rules);
+            s.AddSingleton<IExperienceRuleService>(new FixedProgression(
+                Enumerable.Range(1,100).Select(level => checked((uint)level * 1_000_000)).ToArray()));
+        });
         shop.Sql("UPDATE characters SET level=1,exp=1000 WHERE character_id=1"); Carry(shop);
         var first=await Finish(shop); Assert.Equal(101u,first.Experience); Assert.Equal(1101u,first.NewExperience);
         Assert.Equal(1101,shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); Assert.Equal(1,shop.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=2001"));
@@ -322,7 +340,7 @@ public sealed class OrdinaryQuestEffectTests
     [InlineData(1,300,0,1,300)]
     public async Task Decided_experience_separates_multilevel_cap_and_zero_from_earned(byte level,uint held,uint earned,byte afterLevel,uint after)
     {
-        using var shop=new ShopFixture();shop.Sql($"UPDATE characters SET level={level},exp={held} WHERE character_id=1");
+        using var shop=Shop();shop.Sql($"UPDATE characters SET level={level},exp={held} WHERE character_id=1");
         IExperienceRuleService rules=new FixedProgression();var decision=rules.DecideAward(new(level,held),new(Base:earned));
         if(earned==0) shop.Sql("CREATE TRIGGER forbid_xp_write BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'zero XP wrote'); END");
         await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
@@ -341,7 +359,7 @@ public sealed class OrdinaryQuestEffectTests
     [Fact]
     public async Task Missing_character_cannot_report_a_placeholder_completion()
     {
-        using var shop=new ShopFixture(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
+        using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
         var result=await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(999),2001,ushort.MaxValue,1,0));
         Assert.False(result.Finished);Assert.Equal(QuestFinishRefusal.Unusable,result.Refusal);
     }

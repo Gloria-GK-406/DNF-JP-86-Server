@@ -23,7 +23,11 @@ public sealed class CommonExperienceEffectTests
     [InlineData(0u)]
     public async Task A_clear_cannot_award_another_accounts_character(uint earned)
     {
-        using var shop = new ShopFixture(s => s.AddSingleton<IExperienceCalculationDomainService>(new Calculation { Earned = earned }));
+        using var shop = new ShopFixture(s =>
+        {
+            s.AddSingleton<IExperienceRuleService>(new FixedProgression());
+            s.AddSingleton<IExperienceCalculationDomainService>(new Calculation { Earned = earned });
+        });
         var command = new GrantClearExperienceCommand(new(999), new(1), 144, new(3, 0, 1, 80, 10));
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await shop.Services.GetRequiredService<ICommandBus>().SendAsync(command));

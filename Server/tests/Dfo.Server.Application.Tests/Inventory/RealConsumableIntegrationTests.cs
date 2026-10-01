@@ -179,6 +179,7 @@ public sealed class RealConsumableIntegrationTests
     }
 
     private static LearningFixture Fixture() => new(configure: services => {
+        services.AddSingleton<IItemPlacementDefinitionSource>(new ConsumablePlacements());
         services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((24, ItemUseRules.Potion(0)),
             (25, ItemUseRules.Potion(0)), (3, ItemUseRules.Potion(0)), (10_006_007, ItemUseRules.Potion(0))));
         services.AddSingleton<TimeProvider>(new AdvanceableTimeProvider(new(2026, 10, 1, 0, 0, 0, TimeSpan.Zero)));
@@ -186,6 +187,19 @@ public sealed class RealConsumableIntegrationTests
         services.AddSingleton<IQuestClearCouponRuleService>(new CouponSelection());
         services.AddSingleton<IQuestContentRuleService>(new CouponContent());
     });
+    private sealed class ConsumablePlacements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<ItemPlacement?>(itemId switch
+            {
+                24 or 25 => new(7, 1000, new(BusinessInventorySpace.CreatureConsumable, 0, 50)),
+                3 or 10_006_007 => new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55)),
+                63001 => new(5, 1, new(BusinessInventorySpace.CreatureInventory, 0, 139))
+                    { WorldClass = ItemWorldClass.Creature },
+                _ => throw new InvalidOperationException($"Undeclared fixture item {itemId}."),
+            });
+    }
+
     private static PersistentItemContainer Register(LearningFixture f, InventoryContainerType type)
     {
         var container = new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, type), f.Session.CharacterId,
