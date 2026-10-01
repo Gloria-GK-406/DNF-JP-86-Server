@@ -308,6 +308,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ILotteryOpeningDomainService, LotteryOpeningDomainService>();
         services.TryAddSingleton<IPackageOpeningDomainService, PackageOpeningDomainService>();
         services.TryAddSingleton<IAvatarPackageOpeningDomainService, AvatarPackageOpeningDomainService>();
+        services.TryAddSingleton<ITeleportConsumableDomainService, TeleportConsumableDomainService>();
+        services.TryAddSingleton<ITeleportConsumableRuleService, TeleportConsumableRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, TownPositionEffectHandler>());
         services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IEquipmentRepairRuleService, EquipmentRepairRuleService>();

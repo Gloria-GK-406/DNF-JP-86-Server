@@ -1,5 +1,15 @@
 # 协议清单
 
+## 2026-10-01 第三轮验收修复
+
+[01B6词条转换](game/client-to-server/0x01B6.md)修正固定第二字段为0（解封仍-1）；[0016出售](game/client-to-server/0x0016.md)按通关run资格开放德利拉，普通购买拒绝通关专用商店。[00ED瞬移](game/client-to-server/0x00ED.md)城镇选择药剂接入统一effect，消耗／位置同事务，提交后当前场景与[00AC冷却](game/server-to-client/NOTI-0x00AC.md)投影；重复只刷新当前状态。新增范围为CurrentImplementation＋ClientStatic／ContentStatic，真实客户端HumanPending。H16满包错误修正一并部署；H19客户端旧PVF期限同步。见[第三轮验收表](../Document/tasks/item-effects-unification/human-test-list-20261001-round3.md)。下面带日期的旧缺陷状态保留作为历史，不扩大已通过范围。
+
+| Command | Type | 当前入口／输出 | 证据边界 | 文档 |
+|---:|---:|---|---|---|
+| `0x01` | `0x00ED` | TeleportDecoder | 当前城镇选择变体；RuntimeLog／ContentStatic／CurrentImplementation，待实机 | [请求](game/client-to-server/0x00ED.md) |
+| `0x01` CMD | `0x00ED` | TeleportResponse | 当前仅发送拒绝，成功沿NOTI投影；ClientStatic，待实机 | [拒绝响应](game/server-to-client/CMD-0x00ED.md) |
+| `0x00` NOTI | `0x00AC` | TeleportCooldownNotification、ItemCooldownStateMessage | 秒数布局ClientStatic／CurrentImplementation，待实机 | [冷却](game/server-to-client/NOTI-0x00AC.md) |
+
 ## 2026-09-30 宠物常规范围收尾（当前状态）
 
 P01–P10由用户确认通过；实例重构及常规事务回归已交付。当前协议覆盖如下，布局/流程以各页人工区和[生命周期流程](patterns/flow-creature-lifecycle.md)为准；下方按日期保存的取证/部署状态为历史记录。原完整宠物任务的技能、特殊成长及条件验收没有因此完成，见[收尾及剩余范围](../Document/tasks/creature-system/verification/closeout-20260930.md)。

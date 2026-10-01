@@ -2,6 +2,9 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Data.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -14,6 +17,45 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class ItemSaleTests
 {
+    [Theory]
+    [InlineData(true, true, true, 1000, true)]
+    [InlineData(true, false, true, 1000, false)]
+    [InlineData(false, true, true, 1000, false)]
+    [InlineData(true, true, false, 1000, false)]
+    [InlineData(true, true, true, 2, false)]
+    public async Task Dungeon_shop_requires_current_clear_boss_and_matching_participant(
+        bool boss, bool open, bool owner, int npc, bool accepted)
+    {
+        using var shop = Fixture();
+        shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
+        await shop.Seed(65, 5000, 2);
+        var cell = new MazeCell(0, 0); var other = new MazeCell(1, 0);
+        var layout = new DungeonLayout(144, 0, boss ? (byte)1 : (byte)2, 1, cell, boss ? cell : other, 55611, 0,
+            boss ? new Dictionary<MazeCell, int> { [cell] = 55611 }
+                : new Dictionary<MazeCell, int> { [cell] = 55611, [other] = 55611 });
+        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+        var run = runs.PreparePartyEntry([new(owner ? shop.Session.AccountId : new(999),
+            shop.Session.CharacterId, 0, true)], layout, 0).Run;
+        if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        await Sell(shop, 65, 1, npc: npc);
+        Assert.Equal(accepted ? 1 : 2, shop.Count(5000));
+        Assert.Equal(accepted ? 100031 : 100000, shop.Gold);
+        Assert.Equal(accepted, Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages)).Slot is not null);
+        runs.End(shop.Session.CharacterId, run.RunId);
+        await Sell(shop, 65, 1, npc: 1000);
+        Assert.Equal(accepted ? 1 : 2, shop.Count(5000));
+    }
+
+    [Fact]
+    public async Task Dungeon_only_shop_cannot_be_used_from_town()
+    {
+        using var shop = Fixture();
+        shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
+        await shop.Seed(65, 5000, 2);
+        await Sell(shop, 65, 1, npc: 1000);
+        Assert.Equal(2, shop.Count(5000));
+        Assert.Equal(100000, shop.Gold);
+    }
     [Theory]
     [InlineData(1, 9, 100031)]
     [InlineData(10, 0, 100310)]

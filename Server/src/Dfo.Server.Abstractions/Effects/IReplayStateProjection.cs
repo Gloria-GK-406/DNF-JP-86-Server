@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -14,16 +15,21 @@ public enum ReplayProjectionNeeds
 {
     None = 0, Inventory = 1, Pets = 2, Skills = 4, Quests = 8, Experience = 16,
     Fatigue = 32, ItemUsage = 64, Premium = 128, CharacterAppearance = 256,
-    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance,
+    TownLocation = 512,
+    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation,
 }
 
 /// <summary>Only projection categories and physical addresses, never old receipts or reward increments.</summary>
 public sealed record ReplayProjectionRequest(ReplayProjectionNeeds Needs, ImmutableArray<BusinessSlot> TouchedSlots)
 {
+    public ImmutableArray<TownAreaKey> TouchedTownAreas { get; init; } = [];
     public void Validate()
     {
         if ((Needs & ~ReplayProjectionNeeds.All) != 0 || TouchedSlots.IsDefault)
             throw new InvalidDataException("Unknown replay projection flags or unavailable slot collection.");
+        if (TouchedTownAreas.IsDefault || TouchedTownAreas.Any(x => x.ChannelId <= 0)
+            || TouchedTownAreas.Length > 0 && !Needs.HasFlag(ReplayProjectionNeeds.TownLocation))
+            throw new InvalidDataException("Touched town areas require a valid location projection.");
         if (TouchedSlots.Length > 0 && !Needs.HasFlag(ReplayProjectionNeeds.Inventory))
             throw new InvalidDataException("Touched physical slots require an inventory projection.");
         var mapping = new InventorySlotMappingRuleService();

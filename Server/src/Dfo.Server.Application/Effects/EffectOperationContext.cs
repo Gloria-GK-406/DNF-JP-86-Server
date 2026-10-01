@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -87,7 +88,7 @@ internal sealed class EffectOperationContext
     public void Freeze(CommandExecutionContext execution, ICommand command)
     {
         if (For(execution, command) is not { } frame) return;
-        var projection = new ReplayProjectionRequest(frame.Needs, frame.Slots.ToImmutableArray());
+        var projection = new ReplayProjectionRequest(frame.Needs, frame.Slots.ToImmutableArray()) { TouchedTownAreas = frame.Areas.ToImmutableArray() };
         projection.Validate();
         frame.Entry.Projection = projection;
         frame.Frozen = true;
@@ -149,6 +150,11 @@ internal sealed class EffectOperationContext
                 case (SpendGoldEffect, GoldEffectChange):
                 case (SetQuestRewardGoldEffect, QuestRewardGoldChange):
                 case (GrantOpeningVirtualEffect, OpeningVirtualChange): frame.Needs |= ReplayProjectionNeeds.Inventory; break;
+                case (MoveToTownEffect move, TownPositionChange):
+                    frame.Needs |= ReplayProjectionNeeds.TownLocation;
+                    frame.Areas.Add(move.SourceArea);
+                    frame.Areas.Add(new(move.ChannelId, move.Destination.TownId, move.Destination.AreaId));
+                    break;
                 case (SetFatigueStateEffect, FatigueStateChange): frame.Needs |= ReplayProjectionNeeds.Fatigue; break;
                 case (SetItemUsageStateEffect, ItemUsageStateChange): frame.Needs |= ReplayProjectionNeeds.ItemUsage; break;
                 case (SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect, QuestRowChange): frame.Needs |= ReplayProjectionNeeds.Quests; break;
@@ -176,6 +182,7 @@ internal sealed class EffectOperationContext
         public SelectedSessionRecipient Recipient { get; } = recipient;
         public ReplayProjectionNeeds Needs { get; set; } = minimum;
         public HashSet<BusinessSlot> Slots { get; } = [];
+        public HashSet<TownAreaKey> Areas { get; } = [];
         public Guid? MainExecutionId { get; set; }
         public bool TransactionStarted { get; set; }
         public bool Frozen { get; set; }

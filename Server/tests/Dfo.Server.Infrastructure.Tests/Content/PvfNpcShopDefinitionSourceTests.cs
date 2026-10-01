@@ -6,6 +6,19 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfNpcShopDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task Delilah_simple_shop_is_available_only_after_dungeon_clear()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfNpcShopDefinitionSource(provider);
+        var shop = await source.GetShopAsync(1000, default);
+        Assert.NotNull(shop);
+        Assert.True(shop.VisibleOnDungeonClear);
+        Assert.Equal(1000, shop.ShopId);
+        Assert.Contains(shop.Pages, page => page.ItemIds.Contains(2600655));
+        Assert.False((await source.GetShopAsync(2, default))!.VisibleOnDungeonClear);
+    }
     [SkippableTheory]
     [InlineData(false, false, false)]
     [InlineData(true, false, false)]

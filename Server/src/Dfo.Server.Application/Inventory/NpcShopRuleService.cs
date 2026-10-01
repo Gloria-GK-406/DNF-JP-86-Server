@@ -14,7 +14,8 @@ internal sealed class NpcShopRuleService(
         int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken)
     {
         var shop = await content.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false);
-        if (shop is null || shop.ShopId != shopId)
+        // Purchase currently admits town shops only; clear-room shops require a separate run authorization.
+        if (shop is null || shop.ShopId != shopId || shop.VisibleOnDungeonClear)
             return new(NpcShopRejection.ShopUnavailable, null);
         if (!OfferedItems(shop, job).Contains(itemId))
             return new(NpcShopRejection.ItemNotSold, null);

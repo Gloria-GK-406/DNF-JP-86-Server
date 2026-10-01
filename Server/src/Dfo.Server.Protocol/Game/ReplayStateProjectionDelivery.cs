@@ -1,4 +1,9 @@
 using System.Collections.Immutable;
+using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Effects;
@@ -16,7 +21,7 @@ namespace Dfo.Server.Protocol.Game;
 
 /// <summary>Replaces current client state after a committed operation; never repeats the original ACK or reward.</summary>
 internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, SelectedSessionSafety safety,
-    SelectedSessionTransitionGate transitions, IGameMessageSender sender) : IReplayStateProjectionDelivery
+    SelectedSessionTransitionGate transitions, IGameMessageSender sender, IServiceProvider services) : IReplayStateProjectionDelivery
 {
     public async ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
         ReplayProjectionRequest request, CancellationToken ct)
@@ -34,6 +39,23 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         var messages = Create(snapshot);
         safety.DemandCurrent(recipient);
         await sender.SendBatchAsync(originalConnection, messages, ct).ConfigureAwait(false);
+        if (request.Needs.HasFlag(ReplayProjectionNeeds.TownLocation))
+        {
+            // Redraw current location, never the old teleport destination from a receipt.
+            var positions = services.GetRequiredService<ICharacterPositionDomainService>();
+            var areas = services.GetRequiredService<ITownAreaDomainService>();
+            var views = services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>();
+            var member = areas.Find(session.CharacterId);
+            var position = positions.Find(session.CharacterId);
+            var view = await views.TryLoadAsync(session, ct).ConfigureAwait(false);
+            safety.DemandCurrent(recipient);
+            if (member is not null && session.Owns(member) && position is not null && view is not null)
+                await services.GetRequiredService<TownAreaProjectionDelivery>().ProjectTransferAsync(session.ConnectionId,
+                    session, view, member, ct).ConfigureAwait(false);
+            foreach (var area in request.TouchedTownAreas)
+                if (area != member?.Area && areas.Find(area) is { } townSnapshot)
+                    await services.GetRequiredService<TownAreaProjectionDelivery>().PublishRosterAsync(townSnapshot, ct).ConfigureAwait(false);
+        }
     }
 
     internal static ImmutableArray<IGameServerMessage> Create(ReplayStateSnapshot state)

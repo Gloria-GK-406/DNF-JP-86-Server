@@ -22,10 +22,10 @@ public sealed class MagicSealWireTests
     public void Change_reads_exact_A21_five_bytes_and_compatibility_ack()
     {
         var request = Assert.IsType<MagicSealRequest>(new ChangeRandomOptionDecoder().Decode(
-            GameMessageMetadata.Empty, [9, 0, 0xFF, 0xFF, 2]));
+            GameMessageMetadata.Empty, [9, 0, 0, 0, 2]));
         Assert.True(request.Change);
         Assert.Equal((short)9, request.TargetSlot);
-        Assert.Equal((short)-1, request.MaterialSlot);
+        Assert.Equal((short)0, request.MaterialSlot);
         Assert.Equal((byte)2, request.OptionIndex);
         Assert.Equal(ClientMessageType.GameChangeRandomOption, request.MessageType);
         Assert.Throws<InvalidDataException>(() => new ChangeRandomOptionDecoder().Decode(

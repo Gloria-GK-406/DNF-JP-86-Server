@@ -253,12 +253,12 @@ public sealed class CommonExperienceEffectTests
     }
 
     [Fact]
-    public void All_twenty_three_effect_commands_have_session_marker_and_transactional_registration()
+    public void All_twenty_four_effect_commands_have_session_marker_and_transactional_registration()
     {
         string[] expected = ["UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
             "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
-            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand"];
+            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand"];
         var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
         Assert.Equal(expected.Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());

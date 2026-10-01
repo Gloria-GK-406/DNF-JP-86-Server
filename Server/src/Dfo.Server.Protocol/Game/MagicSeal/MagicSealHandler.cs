@@ -30,10 +30,13 @@ public sealed class MagicSealHandler(
             return;
         }
         if (request.TargetSlot < 0
-            || request.MaterialSlot != -1
+            // A21 CMD 0x01B6 writes a reserved zero; unseal uses the -1 NPC sentinel.
+            || request.MaterialSlot != (request.Change ? 0 : -1)
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
         {
+            logger.LogWarning("MAGIC_SEAL invalid request change={Change} target={Target} second={Second}",
+                request.Change, request.TargetSlot, request.MaterialSlot);
             await Reject(context, request, ct).ConfigureAwait(false);
             return;
         }

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Protocol.Game.InventorySort;
@@ -429,6 +430,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<EnchantByBeadCommand, EquipmentEnchantResult,
             EnchantByBeadCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
             MagicSealCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -642,6 +645,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<DisjointItemHandler>(ClientMessageType.GameDisjointItem);
         services.RegisterMessageHandler<ReinforceItemHandler>(ClientMessageType.GameReinforceItem);
         services.RegisterMessageHandler<EnchantByBeadHandler>(ClientMessageType.GameEnchantByBead);
+        services.RegisterMessageHandler<TeleportHandler>(ClientMessageType.GameTeleport);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
         services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
@@ -885,6 +889,7 @@ public sealed class ProtocolModule : IServerModule
             0x0065, ClientMessageType.GameCreatureResponseReport);
         services.AddGameCmdMessageDecoder<CreatureScriptMessageReportDecoder>(
             0x007A, ClientMessageType.GameCreatureScriptMessage);
+        services.AddGameCmdMessageDecoder<TeleportDecoder>(0x00ED, ClientMessageType.GameTeleport);
         services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
             GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
@@ -966,6 +971,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<RenameCreatureResponse, RenameCreatureResponseEncoder>();
         services.AddGameCmdMessageEncoder<HatchCreatureResponse, HatchCreatureResponseEncoder>();
+        services.AddGameCmdMessageEncoder<TeleportResponse, TeleportEncoder>();
+        services.AddGameNotiMessageEncoder<TeleportCooldownNotification, TeleportCooldownEncoder>();
         services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();

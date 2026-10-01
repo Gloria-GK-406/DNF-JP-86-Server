@@ -34,6 +34,20 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class NpcShopPurchaseTests
 {
     [Fact]
+    public async Task Dungeon_clear_shop_cannot_be_purchased_from_town_even_with_enough_payment()
+    {
+        using var shop = new ShopFixture();
+        shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
+        await shop.Seed(121, 1000, 100, 3);
+        await shop.Services.GetRequiredService<BuyItemHandler>().HandleAsync(new(shop.Connection),
+            new BuyItemRequest(GameMessageMetadata.Empty, 5000, 1, 1000, 1000), default);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(100, shop.Count(1000));
+        Assert.Equal(0, shop.Count(5000));
+        Assert.Null(Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt);
+    }
+
+    [Fact]
     public async Task Buying_a_sought_item_completes_the_carried_quest_from_the_committed_bag()
     {
         using var shop = new ShopFixture(services =>

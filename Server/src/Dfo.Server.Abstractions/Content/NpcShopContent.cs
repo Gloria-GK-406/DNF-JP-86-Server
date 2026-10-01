@@ -2,7 +2,10 @@ namespace Dfo.Server.Abstractions.Content;
 
 public sealed record NpcShopPage(int? Job, IReadOnlyList<int> ItemIds);
 
-public sealed record NpcShopDefinition(int NpcId, int ShopId, IReadOnlyList<NpcShopPage> Pages);
+public sealed record NpcShopDefinition(int NpcId, int ShopId, IReadOnlyList<NpcShopPage> Pages)
+{
+    public bool VisibleOnDungeonClear { get; init; }
+}
 
 public sealed record NpcShopMaterialCost(int ItemId, int Count);
 

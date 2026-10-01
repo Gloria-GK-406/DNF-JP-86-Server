@@ -12,7 +12,8 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemSaleDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas, ICharacterDomainService characters,
-    IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules) : IItemSaleDomainService
+    IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules,
+    IDungeonRunDomainService runs) : IItemSaleDomainService
 {
     public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
         int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
@@ -25,9 +26,11 @@ internal sealed class ItemSaleDomainService(
         // Worn pieces, avatars and creatures require their own appearance/lifecycle updates.
         if (!slot.Space.IsCarriedItemSpace() || count <= 0)
             return new(ItemSaleRejection.InvalidRequest);
-        if (townAreas.Find(session.CharacterId) is not { } member
-            || !session.Owns(member)
-            || !await rules.HasShopAsync(npcId, cancellationToken).ConfigureAwait(false))
+        var run = runs.Find(session.CharacterId);
+        var inTown = run is null && townAreas.Find(session.CharacterId) is { } member && session.Owns(member);
+        var dungeonCleared = run is { IsBossRoom: true, IsCleared: true, ClearOpen: true }
+            && run.Participants.Any(p => p.AccountId == session.AccountId && p.CharacterId == session.CharacterId);
+        if (!await rules.CanAccessShopAsync(npcId, inTown, dungeonCleared, cancellationToken).ConfigureAwait(false))
             return new(ItemSaleRejection.ShopUnavailable);
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null

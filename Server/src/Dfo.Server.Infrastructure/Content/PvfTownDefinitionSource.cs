@@ -33,6 +33,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         internal static readonly PvfField<IReadOnlyList<PvfToken>> PermissionField = PvfField.Tokens("[permission]", optional: true);
         internal static readonly PvfField<bool> ClosePermissionField = PvfField.Marker("[/permission]", optional: true);
         internal static readonly PvfField<string> NameField = PvfField.String("[name]", optional: true);
+        internal static readonly PvfField<int> NeedLevelField = PvfField.Int32("[need level]", optional: true);
     }
 
     private const string ListPath = "town/town.lst";
@@ -122,11 +123,14 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         AreaDraft? draft = null;
         var inPermission = false;
         var readingName = false;
+        var readingLevel = false;
+        var levelTag = archive.GetTag(Fields.NeedLevelField);
 
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
+                if (readingLevel) throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.NeedLevelField}': missing Int32 level.");
                 readingName = false;
 
                 if (token.Value == tags.AreaOpen)
@@ -156,6 +160,10 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
                 {
                     readingName = true;
                 }
+                else if (inPermission && levelTag.IsResolved && token.Value == levelTag.Offset)
+                {
+                    readingLevel = true;
+                }
 
                 continue;
             }
@@ -167,6 +175,14 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
                 continue;
             }
 
+            if (readingLevel)
+            {
+                if (draft is null || token.Kind != PvfTokenKind.Int32 || token.Value is < 0 or > byte.MaxValue)
+                    throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.NeedLevelField}': expected valid Int32 level.");
+                draft.MinimumLevel = Math.Max(draft.MinimumLevel, token.Value);
+                readingLevel = false;
+                continue;
+            }
             if (draft is null || inPermission)
                 continue;
 
@@ -302,6 +318,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
 
     private sealed class AreaDraft(string source)
     {
+        public int MinimumLevel { get; set; }
         private static readonly PvfField<IReadOnlyList<PvfToken>> MinimapOpen = PvfField.Tokens("[minimap rect]", optional: true, tokenKind: PvfTokenKind.QuotedString);
         private static readonly PvfField<bool> MinimapClose = PvfField.Marker("[/minimap rect]", optional: true, tokenKind: PvfTokenKind.QuotedString);
 
@@ -388,7 +405,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
             if (!_haveAreaId || _mapPath.Length == 0) throw Invalid(Fields.AreaField, "incomplete area ID/map header");
             return new(_areaId, _mapPath, _kind,
                 _operands.Count > 0 ? _operands[0] : TownAreaDefinition.NoOperand,
-                _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand);
+                _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand) { MinimumLevel = MinimumLevel };
         }
 
         /// <remarks>

@@ -103,6 +103,7 @@ public sealed class NpcShopRuleTests
 
 internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacementDefinitionSource
 {
+    public Dictionary<int, NpcShopDefinition> Shops { get; } = [];
     public Dictionary<int, NpcShopItemDefinition> Items { get; } = new()
     {
         [2000] = new(2000, null, 0, [new(1000, 1)], null, 0, false, true),
@@ -115,7 +116,8 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
         new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new DailyRefillRuleService());
 
     public ValueTask<NpcShopDefinition?> GetShopAsync(int npcId, CancellationToken ct) =>
-        ValueTask.FromResult<NpcShopDefinition?>(npcId == 2 ? new(2, 15, [new(null, Items.Keys.ToArray())]) : null);
+        ValueTask.FromResult<NpcShopDefinition?>(Shops.GetValueOrDefault(npcId)
+            ?? (npcId == 2 ? new(2, 15, [new(null, Items.Keys.ToArray())]) : null));
     public ValueTask<NpcShopItemDefinition?> GetItemAsync(int itemId, CancellationToken ct) =>
         ValueTask.FromResult(Items.GetValueOrDefault(itemId));
     public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>

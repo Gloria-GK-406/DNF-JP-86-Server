@@ -58,3 +58,9 @@ H11当前A21构包点RVA12EF0E3 push0，12EF0EC WriteI16：第二字段固定0�
 21:40:18.737出售现场：NPC1000/Main43/数量1被ShopUnavailable拒绝，回CMD0016。此前Eplp state2 option2未离开地下城。ItemSaleDomainService要求城镇成员；同时PVF德利拉角色[simple shop]1000、[visible on dungeon clear]1，PvfNpcShopDefinitionSource只识别[item shop]，故有两个拒绝原因。后续修复需以当前角色已通关的地下城场景及明确商店资格放行，不能取消全部场景检查。NPC1000的真实商店为EquipmentShop_dungeon1.shp；尚未修改出售实现。
 
 数据回执、备份和诊断摘要：E:/Project/DNF/DNF-JP-86-Server/artifacts/h18-fatigue-one-20261001/（before.db、receipt.json、diagnosis.json）。H16修复558b8d6b仍未部署，服务PID18764保持。
+
+## 第三轮修复交付
+
+用户确认退出游戏并授权完成修改、实现及直接部署。已实现H11固定0字段、H22通关出售资格、H25城镇选择瞬移effect；H16既有满包提示修正随版本上线，三个客户端PVF同步。原疲劳1点和任务券准备保持，没有重复补给。第三轮真实客户端尚未验收，不覆盖此前已通过分项。
+
+实现、自动验证、review和部署身份见[本轮交付记录](../../../Verification/acceptance-fixes-20261001.md)，接手检查使用[第三轮清单](../human-test-list-20261001-round3.md)。原SDD已完成，此次是验收修复的直接执行，不伪造新的阶段通过记录。

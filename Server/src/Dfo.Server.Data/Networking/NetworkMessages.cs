@@ -166,6 +166,7 @@ public enum ClientMessageType
     GameHatchCreature = 0x0001_0066,
     GameCreatureResponseReport = 0x0001_0065,
     GameCreatureScriptMessage = 0x0001_007A,
+    GameTeleport = 0x0001_00ED,
     GameQuestClearCoupon = 0x0001_0204,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
@@ -292,6 +293,8 @@ public enum ServerMessageType
     GameUseStackable = 0x0001_002C,
     GameRenameCreature = 0x0001_0064,
     GameHatchCreature = 0x0001_0066,
+    GameTeleport = 0x0001_00ED,
+    GameLoadCooltimeItems = 0x0000_00AC,
     GameQuestClearCoupon = 0x0001_0204,
 
     GameCreatureDeath = 0x0000_0064,

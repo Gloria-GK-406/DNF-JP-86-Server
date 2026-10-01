@@ -9,6 +9,7 @@ using Dfo.Server.Protocol.Game.EnchantByBead;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.MagicSeal;
+using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Protocol.Game.CompoundItem;
 using Dfo.Server.Protocol.Game.LotteryOpening;
 using Dfo.Server.Protocol.Game.VendingMachine;
@@ -61,6 +62,9 @@ internal static class EffectRequestTransport
                 if (!x.Purify) writer.Write(x.WireAction);
                 writer.Write(x.TargetSlot); writer.Write(x.TargetItemId); writer.Write(x.MaterialSlot); writer.Write(x.MaterialItemId);
                 if (!x.Purify) writer.Write(x.SelectedOption); break;
+            case TeleportRequest x:
+                writer.Write(x.SourceSlot); writer.Write(x.ItemId); writer.Write(x.Reserved); writer.Write(x.TownId);
+                writer.Write(x.AreaId); writer.Write(x.X); writer.Write(x.Y); break;
             case MagicSealRequest x:
                 writer.Write(x.TargetSlot); writer.Write(x.MaterialSlot); if (x.Change) writer.Write(x.OptionIndex); break;
             case CompoundItemRequest x:

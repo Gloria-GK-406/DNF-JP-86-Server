@@ -94,3 +94,11 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
 
 <!-- rks:a12:end -->
+
+## 2026-10-01 A21 冷却静态复核与当前发送
+
+本节独立于上方A12历史区。
+
+`ClientStatic / High`：A21 handler RVA `0x00D81AE0` 在 `0x00D81B16` 读取u8数量，循环在 `0x00D81B3B` 读取物品ID、`0x00D81B47` 读取秒数（各4字节），`0x00D81B95` 将秒数乘1000后调用冷却设置。用于本次静态检查的重建exe SHA256为 `d7618a102251f1db724f2514c74a4cc855df26e6a4bc308f8ee9f2397db0a99a`。原版目标身份沿机器区。
+
+`CurrentImplementation`：TeleportCooldownNotification使用一个条目：`u8 count=1 + i32 itemId + i32 seconds`。2600014按真实PVF10000ms发10秒，编码测试body为 `014EAC27000A000000`。ItemCooldownStateMessage的既有登记仍保留。本次没有新增A21接收trace／raw样本，冷却图标和实机下一次使用仍HumanPending。

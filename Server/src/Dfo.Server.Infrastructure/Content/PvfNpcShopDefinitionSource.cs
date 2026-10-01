@@ -14,6 +14,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         internal static readonly PvfField<int> AddPriceField = PvfField.Int32("[add price]", optional: true);
         internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> RoleField = PvfField.Tokens("[role]", optional: true);
+        internal static readonly PvfField<int> VisibleOnDungeonClearField = PvfField.Int32("[visible on dungeon clear]", optional: true);
         internal static readonly PvfField<bool> BoosterInfoField = PvfField.Marker("[booster info]", optional: true);
         internal static readonly PvfField<bool> CloseBoosterInfoField = PvfField.Marker("[/booster info]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> NeedMaterialField = PvfField.Int32List("[need material]", optional: true);
@@ -75,11 +76,16 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         shopPaths ??= Paths(archive, "itemshop/itemshop.lst");
         if (!npcs.TryGetValue(npcId, out var npcPath))
             return null;
-        var role = Sections(archive, "npc/" + npcPath).FirstOrDefault(section => section.Name == Fields.RoleField.Name);
+        var npcSections = Sections(archive, "npc/" + npcPath);
+        var role = npcSections.FirstOrDefault(section => section.Name == Fields.RoleField.Name);
+        var npcReadable = true;
+        var clearVisibility = Integer(archive, npcSections, Fields.VisibleOnDungeonClearField, ref npcReadable) ?? 0;
+        if (!npcReadable || clearVisibility is not (0 or 1))
+            return null;
         var shopId = 0;
         if (role is not null)
             for (var i = 0; i + 1 < role.Values.Count; i++)
-                if (Text(archive, role.Values[i]) == "[item shop]"
+                if (Text(archive, role.Values[i]) is "[item shop]" or "[simple shop]"
                     && role.Values[i + 1].Kind == PvfTokenKind.Int32)
                     shopId = role.Values[i + 1].Value;
         if (shopId <= 0 || !shopPaths.TryGetValue(shopId, out var relative))
@@ -129,7 +135,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                     break;
             }
         }
-        return pages.Count > 0 ? new(npcId, shopId, pages) : null;
+        return pages.Count > 0 ? new(npcId, shopId, pages)
+            { VisibleOnDungeonClear = clearVisibility == 1 } : null;
     }
 
     private NpcShopItemDefinition? ReadItem(int itemId)

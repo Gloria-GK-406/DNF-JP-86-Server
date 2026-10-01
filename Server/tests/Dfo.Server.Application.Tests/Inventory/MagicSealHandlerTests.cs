@@ -12,6 +12,17 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class MagicSealHandlerTests
 {
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(121)]
+    public async Task Change_requires_the_A21_reserved_zero_without_consuming_assets(short second)
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece() with { RandomOption0 = new(15, 2, 3) });
+        await Send(shop, 7, true, second);
+        Assert.Equal(100000, shop.Gold);
+        Assert.False(Assert.Single(shop.Sender.Messages.OfType<ChangeRandomOptionResponse>()).Success);
+    }
     [Fact]
     public async Task Unseal_sends_committed_equipment_and_gold_without_unhandled_ack()
     {
@@ -119,11 +130,12 @@ public sealed class MagicSealHandlerTests
         StackableItemCore.Create(1, 3000, 1234);
 
     private static ValueTask Send(ShopFixture shop, ushort sequence, bool change,
-        short materialSlot = -1)
+        short? materialSlot = null)
     {
         var metadata = new GameMessageMetadata(1, change ? (ushort)0x01B6 : (ushort)0x0191,
             0, sequence);
-        return EffectRequestTransport.Send(shop, new MagicSealRequest(metadata, change, 9, materialSlot));
+        return EffectRequestTransport.Send(shop, new MagicSealRequest(metadata, change, 9,
+            materialSlot ?? (change ? (short)0 : (short)-1)));
     }
 
     private sealed class Content : IEquipmentMagicSealContentSource
