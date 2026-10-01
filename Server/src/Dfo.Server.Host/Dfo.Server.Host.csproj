@@ -14,9 +14,15 @@
     <ProjectReference Include="..\Dfo.Server.HttpApi\Dfo.Server.HttpApi.csproj" />
     <ProjectReference Include="..\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
     <ProjectReference Include="..\Dfo.Server.GameServer\Dfo.Server.GameServer.csproj" />
+    <ProjectReference Include="..\Dfo.Server.GmWeb\Dfo.Server.GmWeb.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="../../../Web/gm-admin/dist/**/*">
+      <Link>wwwroot/gm/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <None Update="experience.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

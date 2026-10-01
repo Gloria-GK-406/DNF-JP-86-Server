@@ -16,13 +16,8 @@ public sealed class HttpApiModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         var options = HttpApiOptions.FromConfiguration(configuration);
-        if (!options.Enabled)
-        {
-            throw new InvalidOperationException(
-                "The HttpApi module cannot be registered while LauncherAuth:Enabled is false.");
-        }
-
         services.TryAddSingleton(options);
+        if (!options.Enabled) return;
         services.TryAddSingleton<HttpApiReadiness>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, HttpApiStartupService>());

@@ -1,0 +1,8 @@
+body { margin: 0; color: #243247; background: #f4f6fa; }
+.shell { min-height: 100vh; }
+.brand { height: 64px; display: flex; align-items: center; padding: 0 24px; font-size: 22px; font-weight: 700; color: #3157a4; gap: 12px; }
+.brand span { color: #243247; font-size: 15px; }
+.header { background: white; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; border-bottom: 1px solid #e8edf4; }
+.content { padding: 24px 28px; }
+.ant-empty { padding: 96px 0; }
+@media (max-width: 800px) { .content { padding: 16px; } .brand { padding: 0 12px; } }

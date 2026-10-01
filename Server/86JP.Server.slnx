@@ -5,6 +5,7 @@
     <Project Path="src/Dfo.Server.Application/Dfo.Server.Application.csproj" />
     <Project Path="src/Dfo.Server.Data/Dfo.Server.Data.csproj" />
     <Project Path="src/Dfo.Server.GameServer/Dfo.Server.GameServer.csproj" />
+    <Project Path="src/Dfo.Server.GmWeb/Dfo.Server.GmWeb.csproj" />
     <Project Path="src/Dfo.Server.Host/Dfo.Server.Host.csproj" />
     <Project Path="src/Dfo.Server.Infrastructure/Dfo.Server.Infrastructure.csproj" />
     <Project Path="src/Dfo.Server.HttpApi/Dfo.Server.HttpApi.csproj" />

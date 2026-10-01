@@ -8,6 +8,55 @@ namespace Dfo.Server.Host.Tests;
 
 public sealed class LauncherHttpHostStartupTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task GmComponentHasItsOwnListenerAndDoesNotExposeLauncherRoutes(bool launcher, bool game)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-gm-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var httpPort = GetAvailablePort();
+        var gmPort = GetAvailablePortExcept(httpPort);
+        var channelPort = GetAvailablePortExcept(httpPort, gmPort);
+        var gamePort = GetAvailablePortExcept(httpPort, gmPort, channelPort);
+        var output = new StringBuilder();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, launcher,
+            new Dictionary<string, string>
+            {
+                ["GmWeb:Enabled"] = "true",
+                ["GmWeb:ListenUrl"] = $"http://127.0.0.1:{gmPort}",
+                ["Networking:Enabled"] = game.ToString(),
+            });
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            using var gm = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{gmPort}") };
+            HttpResponseMessage? health = null;
+            while (health is null)
+            {
+                if (process.HasExited) throw new Xunit.Sdk.XunitException(Snapshot(output));
+                try { health = await gm.GetAsync("/api/gm/v1/health", timeout.Token); }
+                catch (HttpRequestException) { await Task.Delay(100, timeout.Token); }
+            }
+            using (health) Assert.Equal(HttpStatusCode.OK, health.StatusCode);
+            using var wrong = await gm.GetAsync("/api/launcher/v1/bootstrap", timeout.Token);
+            Assert.Equal(HttpStatusCode.NotFound, wrong.StatusCode);
+            Assert.Equal(game, await CanConnectAsync(channelPort));
+            if (launcher)
+            {
+                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
+                using var bootstrap = await client.GetAsync("/api/launcher/v1/bootstrap", timeout.Token);
+                Assert.Equal(HttpStatusCode.OK, bootstrap.StatusCode);
+                using var gmAtLauncher = await client.GetAsync("/api/gm/v1/health", timeout.Token);
+                Assert.Equal(HttpStatusCode.NotFound, gmAtLauncher.StatusCode);
+            }
+            else Assert.False(await CanConnectAsync(httpPort));
+        }
+        finally { await StopAsync(process); await TestDirectory.DeleteAsync(directory); }
+    }
+
     [Fact]
     public async Task HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets()
     {
