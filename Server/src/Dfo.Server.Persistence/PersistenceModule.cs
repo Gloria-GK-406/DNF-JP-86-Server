@@ -54,6 +54,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<INoticeStateTable, Dfo.Server.Persistence.Notices.NoticeStateTable>();
         services.TryAddSingleton<IAccountTable>(
             provider => new SqliteAccountTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAccountPurchaseRestrictionTable, SqliteAccountPurchaseRestrictionTable>();
         services.TryAddSingleton<IAuthenticationPersistence, SqliteAuthenticationPersistence>();
         services.TryAddSingleton<IAccountSettingsTable>(
             provider => new SqliteAccountSettingsTable(

@@ -17,7 +17,7 @@ public sealed record CeraShopPurchaseInput(byte Header0, byte Header1, byte Coup
 public enum CeraShopRejection
 {
     None, NoSession, InvalidRequest, UnknownProduct, UnsupportedProduct, InvalidChoice,
-    PurchaseLevel, InsufficientFunds, NoRoom, StateChanged, StorageFailure,
+    PurchaseLevel, InsufficientFunds, NoRoom, StateChanged, StorageFailure, PurchaseRestricted,
 }
 
 public sealed record CeraShopPurchaseReceipt(SelectedSessionIdentity Session, ImmutableArray<int> ProductIds,
@@ -27,6 +27,7 @@ public sealed record CeraShopPurchaseReceipt(SelectedSessionIdentity Session, Im
     public IReadOnlyList<AccountPremiumEntryState> GrantedPremiums { get; init; } = [];
     public AccountEntitlementEntryState? PremiumEntitlements { get; init; }
     public IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsageSlots { get; init; } = [];
+    public IReadOnlyList<AccountCompatibilityEntryState>? PurchaseRestrictions { get; init; }
 }
 
 public sealed record CeraShopPurchaseResult(CeraShopRejection Rejection, CeraShopPurchaseReceipt? Receipt, string? Detail)

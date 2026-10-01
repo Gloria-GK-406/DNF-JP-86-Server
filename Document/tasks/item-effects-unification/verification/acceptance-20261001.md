@@ -30,3 +30,11 @@ H13运行日志：19:25:11.204 target Main/33、toolSlot86、providerId0进入Po
 后续客户端静态调查确认：成功ACK末尾检查便携工具耗尽并关窗，旧顺序ACK先于工具清空NOTI导致
 迟一次检查。两项H13修复现已部署PID21384，最后工具的清空NOTI提前到ACK之前，装备/产物刷新
 仍在其后；1123已补发两台优质便携分解机。自动回归通过，立即关窗与完整客户端效果仍HumanPending。
+
+## H13 通过与 H15 限购修复
+
+用户后续反馈：“H13 ok，我测试H15时候，尝试购买光明之心礼包，失败了。”因此 H13 在 749eb658 版本上记为 ClientVerified。
+
+H15 现场日志在 20:39:18 显示商品 101236 因 `PurchaseRestriction: Unimplemented catalog purchase restriction` 拒绝；此时未进入结算。完成支持后的人工效果仍待复验，不能由自动购买测试提升为 ClientVerified。用户随后授权“你部署吧，然后给我一个待验收的新表格”。
+
+新表见 [第二轮待验收表](../human-test-list-20261001-round2.md)，实现、自动证据及历史规则边界见 [H15 记录](../../../Verification/H15-cera-restrictions-20261001.md)。H10、H11、H12 等原有未完成边界保持。

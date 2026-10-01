@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Content;
 using Dfo.Server.Data.Inventory;
@@ -21,6 +22,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         var charges = ImmutableArray.CreateBuilder<CeraShopCharge>();
         var grants = ImmutableArray.CreateBuilder<CeraShopGrant>();
         var subscriptions = ImmutableArray.CreateBuilder<CeraShopSubscriptionGrant>();
+        var restrictions = ImmutableArray.CreateBuilder<CeraShopPurchaseRestrictionDeclaration>();
         try
         {
             foreach (var entry in input.Entries)
@@ -34,6 +36,14 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     throw Refuse(CeraShopRejection.UnsupportedProduct, $"Product {entry.ProductId}: service or {Diagnostics(product.Diagnostics)}.");
                 if (product.ItemId <= 0 || product.Count <= 0 || price.Cera < 0 || price.Gold < 0 || price.OtherPayment != 0)
                     throw Refuse(CeraShopRejection.UnsupportedProduct, $"Product {entry.ProductId}: invalid quantity or price.");
+                if (product.PurchaseRestriction is { } restriction)
+                {
+                    if (restriction.RestrictionId <= 0 || restriction.CooldownDays < 0 || restriction.InitialFlag != 1)
+                        throw Refuse(CeraShopRejection.UnsupportedProduct, "Unsupported purchase restriction declaration.");
+                    if (restrictions.Any(r => r.RestrictionId == restriction.RestrictionId))
+                        throw Refuse(CeraShopRejection.PurchaseRestricted, "A restricted product may occur only once in a cart.");
+                    restrictions.Add(restriction);
+                }
                 if (product.IsService)
                 {
                     if (!entry.AvatarChoices.IsEmpty || !entry.Selections.IsEmpty
@@ -78,10 +88,39 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     product.BuyOnlyCera ? CeraShopPaymentMode.CeraOnly : product.BuyOnlyCeraPoint
                         ? CeraShopPaymentMode.PointsOnly : CeraShopPaymentMode.Ordinary));
             }
-            return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable()) { Subscriptions = subscriptions.ToImmutable() }, null);
+            return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable())
+                { Subscriptions = subscriptions.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
         }
         catch (QuoteRefusal failure) { return new(failure.Reason, null, failure.Message); }
         catch (OverflowException) { return new(CeraShopRejection.UnsupportedProduct, null, "Purchase quantity or expiration cannot be represented."); }
+    }
+
+    public CeraShopRestrictionPlanningResult PlanRestrictions(CeraShopQuote quote, CeraShopRestrictionSnapshot state, DateTimeOffset now)
+    {
+        var effects = new List<DomainEffect>();
+        var seen = new HashSet<int>();
+        try
+        {
+            foreach (var declaration in quote.Restrictions)
+            {
+                if (declaration.RestrictionId <= 0 || declaration.CooldownDays is < 0 or > byte.MaxValue || declaration.InitialFlag != 1)
+                    return new(CeraShopRejection.UnsupportedProduct, null, "Unsupported purchase restriction declaration.");
+                if (!seen.Add(declaration.RestrictionId))
+                    return new(CeraShopRejection.PurchaseRestricted, null, "Duplicate purchase restriction in cart.");
+                var current = state.Entries.SingleOrDefault(r => r.EntryId == declaration.RestrictionId);
+                if (current is { Flag: 0 })
+                    return new(CeraShopRejection.PurchaseRestricted, null, $"Restriction {declaration.RestrictionId} remains active until {current.SentinelOrValue}.");
+                var end = declaration.CooldownDays == 0 ? CeraShopPurchaseRestrictionDomainService.PermanentEnd
+                    : checked((int)now.AddDays(declaration.CooldownDays).ToUnixTimeSeconds());
+                if (end <= now.ToUnixTimeSeconds() || end > CeraShopPurchaseRestrictionDomainService.PermanentEnd)
+                    return new(CeraShopRejection.UnsupportedProduct, null, "Restriction expiration cannot be represented.");
+                effects.Add(new SetPurchaseRestrictionEffect(declaration.RestrictionId,
+                    state.Stored.SingleOrDefault(r => r.RestrictionId == declaration.RestrictionId)?.EndsAtUnixSeconds, end));
+            }
+            return new(CeraShopRejection.None, effects, null);
+        }
+        catch (Exception e) when (e is OverflowException or ArgumentOutOfRangeException)
+        { return new(CeraShopRejection.UnsupportedProduct, null, "Restriction expiration cannot be represented."); }
     }
 
     public CeraShopPlanningResult Plan(CeraShopQuote quote,

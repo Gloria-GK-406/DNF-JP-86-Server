@@ -6,6 +6,33 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfCeraShopDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task Light_heart_package_retains_purchase_restriction_and_selection_declarations()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfCeraShopDefinitionSource(provider);
+        var product = await source.GetProductAsync(101236, default);
+        Assert.NotNull(product);
+        Assert.Empty(product.Diagnostics);
+        Assert.Equal(new CeraShopPurchaseRestrictionDeclaration(32, 30, 1), product.PurchaseRestriction);
+        Assert.Equal(1960, product.Price?.Cera);
+        var item = await source.GetItemAsync(2682780, default);
+        Assert.NotNull(item);
+        Assert.Equal(10, item.Components.Length);
+        Assert.Equal(new[] { 2682774, 2682775 }, Assert.Single(item.SelectionGroups).Choices.Select(c => c.ItemId));
+    }
+
+    [Fact]
+    public void Purchase_restrictions_reject_incomplete_string_negative_and_duplicate_rows()
+    {
+        foreach (var invalid in new[]
+        {
+            Numbers(32,101236,30), Numbers(32,101236,-1,1), Numbers(32,101236,30,1,33,101236,30,1),
+            new PvfToken[] { new(PvfTokenKind.QuotedString,32),new(PvfTokenKind.Int32,101236),new(PvfTokenKind.Int32,30),new(PvfTokenKind.Int32,1) },
+        }) Assert.NotEmpty(PvfCeraShopDefinitionSource.ParsePurchaseRestrictions(invalid).Diagnostics);
+    }
+
     [SkippableTheory]
     [InlineData(292736, 2660409, 3, 790)]
     [InlineData(292738, 2660411, 15, 1290)]

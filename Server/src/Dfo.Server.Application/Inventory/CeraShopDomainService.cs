@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -22,6 +23,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
+    ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
     ICreatureDomainService? creatureDomains = null) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
@@ -44,6 +46,15 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         var quoted = await rules.QuoteAsync(input, progress.Level, now, cancellationToken).ConfigureAwait(false);
         if (quoted.Quote is not { } quote)
             return CeraShopPurchaseResult.Refused(quoted.Rejection, quoted.Detail);
+        IReadOnlyList<DomainEffect> restrictionEffects = [];
+        if (!quote.Restrictions.IsEmpty)
+        {
+            var restrictionPlan = rules.PlanRestrictions(quote,
+                await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false), now);
+            if (restrictionPlan.Effects is null)
+                return CeraShopPurchaseResult.Refused(restrictionPlan.Rejection, restrictionPlan.Detail);
+            restrictionEffects = restrictionPlan.Effects;
+        }
 
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
         var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
@@ -71,6 +82,9 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (plan.GoldCost > 0)
             gold = await character.TrySpendGoldAsync(plan.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new CeraShopPurchaseRejectedException(CeraShopRejection.InsufficientFunds, "Gold changed before settlement.");
+        if (restrictionEffects.Count > 0)
+            await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, session), restrictionEffects,
+                cancellationToken).ConfigureAwait(false);
         foreach (var subscription in quote.Subscriptions)
             await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
                 cancellationToken).ConfigureAwait(false);
@@ -131,6 +145,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         return new(CeraShopRejection.None, new(session, quote.ProductIds, plan.Balances, gold, plan.GoldCost > 0,
             updates.ToImmutable(), pets, hasCreatures, now)
             { PremiumEntitlements = entitlements, PremiumUsageSlots = usage,
+                PurchaseRestrictions = quote.Restrictions.IsEmpty ? null
+                    : (await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false)).Entries,
                 GrantedPremiums = entitlements?.Premiums.Where(p => p.PremiumType is 22 or 27 or 84 or 97
                     && quote.Subscriptions.Any(s => (int)s.Service == p.PremiumType)).ToArray() ?? [] }, null);
     }

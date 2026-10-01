@@ -49,3 +49,7 @@ HTTP bootstrap status=ready，7001/10010/10011/18080全部属于新进程。启�
 主背包槽85、core_uid1111。发放前再次确认游戏未运行，另备份before-grant.db；仅对应items/item_slots
 行新增，其余记录逐行保持，核心与槽数量一致且无到期时间，quick_check及foreign_key_check通过。
 这两项修复已上线，H13立即关窗和客户端完整效果仍为HumanPending。
+
+## 最终用户反馈
+
+用户后续明确反馈“H13 ok”。本项在 749eb658／PID21384 的验收版本上记为 ClientVerified。该通过不替代其他编号的人工验收。

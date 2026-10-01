@@ -70,6 +70,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     private readonly Dictionary<int, CeraShopItemDefinition?> items = [];
     private readonly Dictionary<int, (string Category, PvfToken[] Values, bool Malformed)> rows = [];
     private readonly HashSet<int> serviceItems = [], serviceProducts = [], restricted = [], onlyCera = [], onlyPoint = [];
+    private readonly Dictionary<int, CeraShopPurchaseRestrictionDeclaration> purchaseRestrictions = [];
     private readonly List<CeraShopDiagnostic> contentDiagnostics = [];
     private Dictionary<int, string>? equipment, stackables, creatures;
     private IReadOnlyList<Section>? avatarAbilityCases;
@@ -139,7 +140,16 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             if (section.Name == Fields.BuyOnlyCeraField.Name) AddIntegers(onlyCera, section, Fields.BuyOnlyCeraField);
             if (section.Name == Fields.BuyOnlyCeraPointField.Name) AddIntegers(onlyPoint, section, Fields.BuyOnlyCeraPointField);
             if (section.Name == Fields.NotStackableBuyField.Name) AddIntegers(restricted, section, Fields.NotStackableBuyField);
-            if (section.Name == Fields.BuyRestrictItemField.Name) AddColumn(restricted, section, Fields.BuyRestrictItemField, 4, 1);
+            if (section.Name == Fields.BuyRestrictItemField.Name)
+            {
+                _ = Fields.BuyRestrictItemField.Decode(provider.Archive, section.Values, "Cera shop classification");
+                var parsed = ParsePurchaseRestrictions(section.Values);
+                if (!parsed.Diagnostics.IsEmpty)
+                    throw new InvalidDataException($"{CatalogPath}{Fields.BuyRestrictItemField.Name}: {string.Join("; ", parsed.Diagnostics.Select(d => d.Detail))}");
+                foreach (var (product, declaration) in parsed.Restrictions)
+                    if (!purchaseRestrictions.TryAdd(product, declaration))
+                        throw new InvalidDataException($"{CatalogPath}{Fields.BuyRestrictItemField.Name}: Duplicate restriction for product {product}.");
+            }
             if (section.Name == Fields.CommonCharacterPremiumDetailField.Name) AddColumn(serviceItems, section, Fields.CommonCharacterPremiumDetailField, 8, 2);
         }
         foreach (var section in Sections("etc/premiumlist_new.etc"))
@@ -160,15 +170,36 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         diagnostics.AddRange(contentDiagnostics);
         if (row.Malformed) diagnostics.Add(new("MalformedCatalog", CatalogPath, "Duplicate product or incomplete category row."));
         if (restricted.Contains(id)) diagnostics.Add(new("PurchaseRestriction", CatalogPath, "Unimplemented catalog purchase restriction."));
+        if (purchaseRestrictions.TryGetValue(id, out var restriction) && restriction.InitialFlag != 1)
+            diagnostics.Add(new("PurchaseRestriction", CatalogPath, $"Unsupported initial purchase restriction flag {restriction.InitialFlag}."));
         if (item is null) diagnostics.Add(new("MissingItem", CatalogPath, $"Item {itemId} is not readable."));
         return result with
         {
+            PurchaseRestriction = restriction,
             Premium = row.Category == Fields.PremiumField.Name && premiumTerms.TryGetValue(itemId, out var premium)
                 && premium.Type is 22 or 27 or 84 or 97 ? new(premium.Type, premium.Duration) : null,
             IsService = result.IsService || serviceProducts.Contains(id) || item?.Kind == CeraShopItemKind.Service,
             BuyOnlyCera = onlyCera.Contains(itemId), BuyOnlyCeraPoint = onlyPoint.Contains(itemId),
             Diagnostics = diagnostics.ToImmutable(),
         };
+    }
+
+    internal static (IReadOnlyDictionary<int, CeraShopPurchaseRestrictionDeclaration> Restrictions,
+        ImmutableArray<CeraShopDiagnostic> Diagnostics) ParsePurchaseRestrictions(IReadOnlyList<PvfToken> values)
+    {
+        var restrictions = new Dictionary<int, CeraShopPurchaseRestrictionDeclaration>();
+        var errors = ImmutableArray.CreateBuilder<CeraShopDiagnostic>();
+        if (values.Count % 4 != 0 || values.Any(t => t.Kind != PvfTokenKind.Int32))
+            return (restrictions, [new("MalformedPurchaseRestriction", CatalogPath, "Expected complete four-integer restriction rows.")]);
+        for (var i = 0; i < values.Count; i += 4)
+        {
+            var id = values[i].Value; var product = values[i + 1].Value;
+            var days = values[i + 2].Value; var flag = values[i + 3].Value;
+            if (id <= 0 || product <= 0 || days is < 0 or > byte.MaxValue || flag is < 0 or > byte.MaxValue
+                || !restrictions.TryAdd(product, new(id, days, flag)))
+                errors.Add(new("MalformedPurchaseRestriction", CatalogPath, $"Invalid or duplicate restriction row at {i}."));
+        }
+        return (restrictions, errors.ToImmutable());
     }
 
     // Kept typed at the boundary: a string offset must never become a numeric price/count.

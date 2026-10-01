@@ -55,11 +55,12 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(47, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(48, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
         Assert.Contains("items(", shape, StringComparison.Ordinal);
         Assert.Contains("item_slots(", shape, StringComparison.Ordinal);
         Assert.Contains("accounts(", shape, StringComparison.Ordinal);
+        Assert.Contains("account_purchase_restrictions(account_id:INTEGER,end_time:INTEGER,restriction_id:INTEGER)", shape, StringComparison.Ordinal);
         Assert.DoesNotContain("login_tickets(", shape, StringComparison.Ordinal);
         Assert.Contains("character_active_quests(", shape, StringComparison.Ordinal);
         Assert.Contains("npc_shop_purchase_counts(count:INTEGER,item_id:INTEGER,npc_id:INTEGER,owner_id:INTEGER,owner_scope:TEXT,period:TEXT)",

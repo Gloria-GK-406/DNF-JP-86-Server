@@ -24,6 +24,8 @@ public sealed class CeraShopPurchaseCompletedHandler(ISelectedSessionDomainServi
         if (receipt.GoldSpent) messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));
         messages.AddRange(GameInventoryDelivery.Notifications(receipt.Updates));
         if (receipt.CreaturesChanged) messages.Add(GameInstanceDelivery.Creatures(receipt.Pets));
+        if (receipt.PurchaseRestrictions is { } restrictions)
+            messages.Add(new PurchaseRestrictionCompatibilityMessage(restrictions));
         foreach (var premium in receipt.GrantedPremiums)
             messages.Add(GameInstanceDelivery.Premium(premium, receipt.PreparedAt));
         if (receipt.PremiumEntitlements is { } entitlements)

@@ -292,6 +292,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
         services.TryAddSingleton<ICeraShopRuleService, CeraShopRuleService>();
+        services.TryAddSingleton<ICeraShopPurchaseRestrictionDomainService, CeraShopPurchaseRestrictionDomainService>();
         services.TryAddSingleton<ICeraShopDomainService, CeraShopDomainService>();
         services.TryAddSingleton<IRecipeCraftRuleService, RecipeCraftRuleService>();
         services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
@@ -455,6 +456,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, StartSpiritPotionEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, AddPetStomachEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetFatigueStateEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetPurchaseRestrictionEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetItemUsageStateEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCarriedQuestEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, RemoveTrackedQuestEffectHandler>());
