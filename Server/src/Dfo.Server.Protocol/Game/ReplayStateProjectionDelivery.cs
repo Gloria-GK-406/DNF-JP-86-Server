@@ -64,7 +64,10 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         var needs = state.Request.Needs;
         var messages = ImmutableArray.CreateBuilder<IGameServerMessage>();
         if (needs.HasFlag(ReplayProjectionNeeds.ItemUsage))
+        {
             messages.AddRange(ItemUsageCountMessage.FullSnapshot(state.ItemUsage));
+            messages.AddRange(ItemUsageCooldownProjection.Snapshot(state.ItemUsage, state.At));
+        }
         var inventory = state.Inventory?.Character();
         var account = state.Inventory?.Account();
         if (needs.HasFlag(ReplayProjectionNeeds.Inventory))

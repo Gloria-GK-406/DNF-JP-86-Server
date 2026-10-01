@@ -228,6 +228,8 @@ public sealed class PvfTypedDungeonAndMagicSealTests
     [InlineData("change", "[option modification]")]
     [InlineData("duplicatecost", "[break seal cost]")]
     [InlineData("duplicaterange", "[physical attack]")]
+    [InlineData("valuerange", "[different weight]")]
+    [InlineData("valueweights", "[modified option type]")]
     public async Task Magic_seal_usable_prefix_does_not_hide_damage_later_in_the_field(string defect, string field)
     {
         using var file = new BuiltArchive(MagicSealBuilder(defect));
@@ -245,16 +247,16 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         Assert.Equal(1720, definition.UnsealGoldCost);
         Assert.Equal(3800, definition.ChangeGoldCost);
         Assert.Single(definition.Quantities);
-        Assert.All(definition.InitialGroups, group => Assert.Equal(new RandomOptionState(15, 13, 98), Assert.Single(group).Option));
+        Assert.All(definition.InitialGroups, group => Assert.Equal(new Dfo.Server.Abstractions.Content.MagicSealCandidate(15, 13, 98, 10), Assert.Single(group)));
     }
 
     [Fact]
-    public async Task Magic_seal_valid_single_ranges_keep_the_existing_integer_projection_boundary()
+    public async Task Magic_seal_preserves_single_stat_ranges_separately_from_integer_quality()
     {
         using var file = new BuiltArchive(MagicSealBuilder("single"));
         var definition = await new PvfEquipmentMagicSealContentSource(file.Provider).GetEquipmentAsync(7, default);
         Assert.NotNull(definition);
-        Assert.Equal(new RandomOptionState(15, 8, 45), Assert.Single(definition.InitialGroups[0]).Option);
+        Assert.Equal(new Dfo.Server.Abstractions.Content.MagicSealCandidate(15, 13.5, 98.5, 10), Assert.Single(definition.InitialGroups[0]));
     }
 
     [Theory]
@@ -307,14 +309,14 @@ public sealed class PvfTypedDungeonAndMagicSealTests
     }
 
     [Theory]
-    [InlineData("clamp", 255, 255)]
-    [InlineData("scopes", 14, 99)]
-    public async Task Magic_seal_finite_values_keep_byte_projection_and_separate_option_scopes(string content, int first, int second)
+    [InlineData("clamp", 300, 500)]
+    [InlineData("scopes", 13, 98)]
+    public async Task Magic_seal_keeps_stat_magnitudes_and_does_not_overwrite_dungeon_with_pvp(string content, int first, int second)
     {
         using var file = new BuiltArchive(MagicSealBuilder(content));
         var definition = await new PvfEquipmentMagicSealContentSource(file.Provider).GetEquipmentAsync(7, default);
         Assert.NotNull(definition);
-        Assert.Equal(new RandomOptionState(15, (byte)first, (byte)second), Assert.Single(definition.InitialGroups[0]).Option);
+        Assert.Equal(new Dfo.Server.Abstractions.Content.MagicSealCandidate(15, first, second, 10), Assert.Single(definition.InitialGroups[0]));
     }
 
     private static PvfArchiveBuilder DungeonBuilder()
@@ -384,7 +386,14 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         if (defect == "duplicatecost") costs.Int(2).Int(75).Int(1).Int(1720);
         costs.Tag("[option modification]").Int(75).Int(3800).Int(38000);
         if (defect == "change") costs.Quoted("bad");
-        costs.End();
+        costs.Tag("[different weight]").Int(2).Int(1).Int(0).Int(25)
+            .Int(2).Int(2).Int(10).Int(30).Int(2).Int(3).Int(30).Int(defect == "valuerange" ? 256 : 55).Tag("[/different weight]").End();
+        var quality = builder.AddScript("etc/randomoption", "randomizedoptionoverall1.etc")
+            .Tag("[option type]").Int(2).Int(-1).Int(75).Int(7000).Int(7000).Int(2500).Tag("[/option type]")
+            .Tag("[modified option type]").Int(2).Int(-1).Int(75).Int(1500).Int(7000).Int(1500)
+            .Tag("[/modified option type]");
+        if (defect == "valueweights") quality.Tag("[modified option type]").Int(2);
+        quality.End();
         return builder;
     }
 

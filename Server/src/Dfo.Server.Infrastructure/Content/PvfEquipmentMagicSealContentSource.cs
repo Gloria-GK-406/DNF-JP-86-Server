@@ -24,6 +24,9 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         internal static readonly PvfField<IReadOnlyList<int>> BreakSealCostField = PvfField.Int32List("[break seal cost]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> OptionModificationField = PvfField.Int32List("[option modification]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> OptionGroupField = PvfField.Int32List("[option group]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> OptionTypeWeights = PvfField.Int32List("[option type]");
+        internal static readonly PvfField<IReadOnlyList<int>> ModifiedTypeWeights = PvfField.Int32List("[modified option type]");
+        internal static readonly PvfField<IReadOnlyList<int>> DifferentWeight = PvfField.Int32List("[different weight]");
         internal static readonly PvfField<int> LevelField = PvfField.Int32("[level]", optional: true);
         internal static readonly PvfField<bool> DungeonScopeField = PvfField.Marker("[dungeon]", optional: true);
         internal static readonly PvfField<bool> PvpScopeField = PvfField.Marker("[pvp]", optional: true);
@@ -111,7 +114,9 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
             || quantities.Count == 0 || unsealCost is null || changeCost is null)
             return null;
         return new(itemId, rarity.Value, level.Value, unsealCost.Value, changeCost.Value,
-            quantities, initial, changes);
+            quantities, initial, changes,
+            ReadValueBands(archive, rarity.Value, level.Value, Fields.OptionTypeWeights),
+            ReadValueBands(archive, rarity.Value, level.Value, Fields.ModifiedTypeWeights));
     }
 
     private MagicSealScrollDefinition? ReadScroll(int itemId)
@@ -153,7 +158,7 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
                 var weight = values[i + 1];
                 if (optionId > byte.MaxValue || weight == 0 || !optionPaths.TryGetValue(optionId, out var path)) continue;
                 var value = ReadOption(archive, path, itemLevel);
-                if (value is { } option) candidates.Add(new(new((byte)optionId, option.Item1, option.Item2), weight));
+                if (value is { } option) candidates.Add(new((byte)optionId, option.Item1, option.Item2, weight));
             }
             if (candidates.Count == 0) return [];
             result.Add(candidates);
@@ -161,12 +166,13 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         return result;
     }
 
-    private static (byte, byte)? ReadOption(PvfArchive archive, string path, int itemLevel)
+    private static (double, double)? ReadOption(PvfArchive archive, string path, int itemLevel)
     {
         var source = "etc/randomoption/" + path;
         var sections = PvfDocument.Open(archive, source).Sections;
         var bestLevel = -1;
-        (byte, byte)? best = null;
+        (double, double)? best = null;
+        var dungeonScope = false;
         var level = -1;
         var awaitingRange = false;
         var seenLevels = new HashSet<int>();
@@ -179,6 +185,7 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
                 scopeField.Decode(archive, section.Values, source);
                 if (awaitingRange) throw Invalid(source, Fields.LevelField, "level has no option declaration");
                 seenLevels.Clear();
+                dungeonScope = Fields.DungeonScopeField.Matches(section.Name);
                 level = -1;
                 continue;
             }
@@ -212,24 +219,67 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
                 if (level >= 0 && !seenRanges.Add(field)) throw Invalid(source, field, "duplicate range in the same level scope");
                 var values = field.Decode(archive, section.Values, source);
                 if (values.Count != 2) throw Invalid(source, field, "expected exactly two finite range values");
-                // Finite values outside byte range remain valid PVF numbers. The existing
-                // byte-state projection clamps them; parsing must never turn a bad token into
-                // a plausible number. Stuck also legitimately declares negative rates.
+                // These are stat magnitudes, not stored quality bytes. Keep their full range.
+                // Stuck also legitimately declares negative rates.
                 if (field != Fields.StuckField && values.Any(value => value < 0))
                     throw Invalid(source, field, "negative range for an unsigned stat");
-                if (awaitingRange && level <= itemLevel && level >= bestLevel
-                    && section.Values.All(token => token.Kind == PvfTokenKind.Int32))
+                if (dungeonScope && awaitingRange && level <= itemLevel && level >= bestLevel)
                 {
                     bestLevel = level;
-                    best = ((byte)Math.Clamp(values[0], 0, byte.MaxValue), (byte)Math.Clamp(values[1], 0, byte.MaxValue));
+                    if (field != Fields.StuckField && values[0] > values[1]) throw Invalid(source, field, "reversed stat range");
+                    best = (values[0], values[1]);
                 }
             }
-            // Complex effect blocks and valid Single ranges are outside the old byte-state
-            // projection, but recognised numeric fields above are validated in full.
+            // Complex effect blocks remain outside this stat metadata reader.
+            // Finite Single ranges are valid: their magnitudes never become quality bytes.
             awaitingRange = false;
         }
         if (awaitingRange) throw Invalid(source, Fields.LevelField, "level has no option declaration");
         return best;
+    }
+
+    private static IReadOnlyList<MagicSealValueBand> ReadValueBands(PvfArchive archive,
+        int rarity, int level, PvfField<IReadOnlyList<int>> weightsField)
+    {
+        const string weightsPath = "etc/randomoption/randomizedoptionoverall1.etc";
+        const string rangesPath = "etc/randomoption/randomizedoptionoverall2.etc";
+        var weights = PvfDocument.Open(archive, weightsPath).Read(weightsField);
+        var ranges = PvfDocument.Open(archive, rangesPath).Read(Fields.DifferentWeight);
+        if (weights.Count == 0 || weights.Count % 6 != 0)
+            throw Invalid(weightsPath, weightsField, "expected six-integer quality-weight rows");
+        if (ranges.Count == 0 || ranges.Count % 4 != 0)
+            throw Invalid(rangesPath, Fields.DifferentWeight, "expected four-integer quality ranges");
+        var byKey = new Dictionary<(int, int), (int, int)>();
+        for (var i = 0; i < ranges.Count; i += 4)
+        {
+            if (ranges[i] < 0 || ranges[i + 1] is < 1 or > 3 || ranges[i + 2] < 0
+                || ranges[i + 3] > byte.MaxValue || ranges[i + 2] > ranges[i + 3]
+                || !byKey.TryAdd((ranges[i], ranges[i + 1]), (ranges[i + 2], ranges[i + 3])))
+                throw Invalid(rangesPath, Fields.DifferentWeight, "invalid or duplicate quality range");
+        }
+        var seen = new HashSet<(int, int, int)>();
+        var best = -1;
+        var selected = -1;
+        for (var i = 0; i < weights.Count; i += 6)
+        {
+            if (weights[i] < 0 || weights[i + 1] < -1 || weights[i + 2] < 1
+                || weights.Skip(i + 3).Take(3).Any(x => x < 0)
+                || !seen.Add((weights[i], weights[i + 1], weights[i + 2])))
+                throw Invalid(weightsPath, weightsField, "invalid or duplicate quality-weight row");
+            if (weights[i] == rarity && weights[i + 1] == -1 && weights[i + 2] <= level && weights[i + 2] > best)
+            { best = weights[i + 2]; selected = i; }
+        }
+        if (selected < 0) return [];
+        var result = new List<MagicSealValueBand>();
+        for (var quality = 1; quality <= 3; quality++)
+        {
+            var weight = weights[selected + 2 + quality];
+            if (weight == 0) continue;
+            if (!byKey.TryGetValue((rarity, quality), out var range))
+                throw Invalid(rangesPath, Fields.DifferentWeight, "missing selected quality range");
+            result.Add(new(range.Item1, range.Item2, weight));
+        }
+        return result;
     }
 
     private static List<int> ResolveGroupIds(PvfArchive archive, PvfField<IReadOnlyList<PvfToken>> sectionName,

@@ -38,7 +38,8 @@ internal sealed class ItemUsageDomainService(IConsumableUsageTable table, IItemU
         foreach (var pair in rows.OrderBy(x => x.Key))
         {
             var rule = await RuleAsync(pair.Key, token).ConfigureAwait(false);
-            if (rule.DailyLimit >= 0) result.Add(State(pair.Key, pair.Value, rule, now));
+            var state = State(pair.Key, pair.Value, rule, now);
+            if (rule.DailyLimit >= 0 || state.CooldownUntil is not null) result.Add(state);
         }
         return result;
     }

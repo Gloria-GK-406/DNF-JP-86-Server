@@ -39,7 +39,7 @@ internal sealed class EquipmentMagicSealRuleService(IEquipmentMagicSealContentSo
         var used = next.Where((_, index) => index != changedIndex.Value)
             .Select(option => option.Type).ToHashSet();
         var replacement = RollCandidate(definition.ChangeGroups,
-            changedIndex.Value, used, random);
+            changedIndex.Value, used, definition.ChangeValues, random);
         if (replacement is null)
             return new(EquipmentMagicSealRejection.UnsupportedContent);
         next[changedIndex.Value] = replacement;
@@ -57,7 +57,7 @@ internal sealed class EquipmentMagicSealRuleService(IEquipmentMagicSealContentSo
         var used = new HashSet<byte>();
         for (var index = 0; index < quantity; index++)
         {
-            var option = RollCandidate(definition.InitialGroups, index, used, random);
+            var option = RollCandidate(definition.InitialGroups, index, used, definition.InitialValues, random);
             if (option is null) return [];
             selected.Add(option);
             used.Add(option.Type);
@@ -67,13 +67,21 @@ internal sealed class EquipmentMagicSealRuleService(IEquipmentMagicSealContentSo
 
     private static RandomOptionState? RollCandidate(
         IReadOnlyList<IReadOnlyList<MagicSealCandidate>> groups, int index,
-        HashSet<byte> used, Random random)
+        HashSet<byte> used, IReadOnlyList<MagicSealValueBand> values, Random random)
     {
         if (groups.Count == 0) return null;
         var candidates = groups[Math.Min(index, groups.Count - 1)]
-            .Where(candidate => candidate.Option.Type != 0
-                && !used.Contains(candidate.Option.Type)).ToArray();
-        return SelectWeighted(candidates, candidate => candidate.Weight, random)?.Option;
+            .Where(candidate => candidate.Type != 0
+                && !used.Contains(candidate.Type)).ToArray();
+        var candidate = SelectWeighted(candidates, candidate => candidate.Weight, random);
+        var band = SelectWeighted(values, value => value.Weight, random);
+        if (candidate is null || band is null) return null;
+        if (band.Minimum < 0 || band.Maximum > byte.MaxValue || band.Minimum > band.Maximum)
+            throw new InvalidDataException("Invalid magic-seal quality range.");
+        // Both quality bytes are independently sampled. Stat magnitude is decoded by the client
+        // from the option template; sending its endpoints here turns nearly every item into S.
+        return new(candidate.Type, checked((byte)random.Next(band.Minimum, band.Maximum + 1)),
+            checked((byte)random.Next(band.Minimum, band.Maximum + 1)));
     }
 
     private static T? SelectWeighted<T>(IReadOnlyList<T> values, Func<T, int> weight,

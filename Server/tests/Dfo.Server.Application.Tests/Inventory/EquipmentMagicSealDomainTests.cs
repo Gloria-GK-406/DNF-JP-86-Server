@@ -32,13 +32,13 @@ public sealed class EquipmentMagicSealDomainTests
         var result = await Unseal(shop);
 
         Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
-        Assert.Equal(original with { RandomOption0 = new(15, 2, 3) }, await Read(shop));
+        Assert.Equal(original with { RandomOption0 = new(15, 2, 2) }, await Read(shop));
         Assert.Equal(99500, shop.Gold);
         Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
             + "AND owner_id=1 AND list_type=0 AND slot_index=9"));
         shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
         shop.Select(1);
-        Assert.Equal(original with { RandomOption0 = new(15, 2, 3) }, await Read(shop));
+        Assert.Equal(original with { RandomOption0 = new(15, 2, 2) }, await Read(shop));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class EquipmentMagicSealDomainTests
         using var shop = Fixture();
         var original = StackableItemCore.Create(1, 3000, 1234) with
         {
-            RandomOption0 = new(15, 2, 3),
+            RandomOption0 = new(15, 2, 2),
             EnchantCardId = 3600,
             SealFlag = 1,
         };
@@ -58,7 +58,7 @@ public sealed class EquipmentMagicSealDomainTests
         var result = await Apply(shop, true, null, 0);
 
         Assert.Equal(EquipmentMagicSealRejection.None, result.Rejection);
-        Assert.Equal(original with { RandomOption0 = new(16, 4, 5),
+        Assert.Equal(original with { RandomOption0 = new(16, 4, 4),
             RandomOptionChangedIndex = byte.MaxValue }, await Read(shop));
         Assert.Equal(99800, shop.Gold);
         Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' "
@@ -99,7 +99,7 @@ public sealed class EquipmentMagicSealDomainTests
         await shop.SeedCore(9, original);
         Assert.Equal(EquipmentMagicSealRejection.NotUnsealed,
             (await Apply(shop, true, null, 0)).Rejection);
-        await shop.SeedCore(9, original with { RandomOption0 = new(15, 2, 3) });
+        await shop.SeedCore(9, original with { RandomOption0 = new(15, 2, 2) });
         Assert.Equal(EquipmentMagicSealRejection.AlreadyUnsealed,
             (await Unseal(shop)).Rejection);
         Assert.Equal(EquipmentMagicSealRejection.InvalidOption,
@@ -224,8 +224,8 @@ public sealed class EquipmentMagicSealDomainTests
             ValueTask.FromResult<EquipmentMagicSealDefinition?>(itemId == 3000
                 ? new(3000, 2, 75, 500, 200,
                     [new(1, 1)],
-                    [[new(new(15, 2, 3), 1)]],
-                    [[new(new(16, 4, 5), 1)]]) : null);
+                    [[new(15, 2, 3, 1)]],
+                    [[new(16, 4, 5, 1)]], [new(2, 2, 1)], [new(4, 4, 1)]) : null);
 
         public ValueTask<MagicSealScrollDefinition?> GetScrollAsync(int itemId, CancellationToken ct) =>
             ValueTask.FromResult<MagicSealScrollDefinition?>(itemId switch

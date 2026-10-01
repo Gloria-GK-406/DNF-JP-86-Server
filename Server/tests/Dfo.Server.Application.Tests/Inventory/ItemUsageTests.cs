@@ -45,10 +45,10 @@ public sealed class ItemUsageTests
         await Use(f, id, 1); await Use(f, id, 2); await Use(f, new(72), 1); await Use(f, id, 3);
         Assert.Equal(ItemUsageRejection.DailyLimitReached,
             (await Assert.ThrowsAsync<ItemUsageRejectedException>(() => Use(f, id, 1))).Reason);
-        Assert.Equal(2, (await usage.GetSnapshotAsync(id, default)).Count); // unlimited item is not a quota projection
+        Assert.Equal(3, (await usage.GetSnapshotAsync(id, default)).Count); // unlimited cooldown belongs to elapsed state, not quota
         clock.Now = clock.Now.AddMinutes(2);
         var snapshot = await usage.GetSnapshotAsync(id, default);
-        Assert.All(snapshot, s => { Assert.Equal(0, s.UsedCount); Assert.Equal(1, s.Remaining); });
+        Assert.All(snapshot.Where(s => s.DailyLimit is not null), s => { Assert.Equal(0, s.UsedCount); Assert.Equal(1, s.Remaining); });
         var cooldown = await usage.GetAsync(id, 3, default);
         Assert.Null(cooldown.DailyLimit); Assert.NotNull(cooldown.CooldownUntil);
         Assert.Equal(ItemUsageRejection.CoolingDown,
@@ -60,6 +60,30 @@ public sealed class ItemUsageTests
         Assert.Equal(new DateTimeOffset(2026, 9, 29, 5, 59, 0, TimeSpan.FromHours(8)),
             (await f.Services.GetRequiredService<IConsumableUsageTable>().ReadAsync(id, 3, default))!.LastUsedAt);
     }
+    [Fact]
+    public async Task Unlimited_day_cooldown_survives_process_reload_daily_reset_and_expires_at_original_deadline()
+    {
+        var clock = new Clock();
+        await using var f = Fixture(clock); await f.SeedAsync();
+        var id = f.Session.CharacterId;
+        var until = clock.Now.AddDays(1);
+        await Use(f, id, 3);
+        f.Services.GetRequiredService<ICharacterItemCooldownDomainService>().Clear(id);
+        clock.Now = clock.Now.AddMinutes(2); // crosses the 06:00 quota boundary.
+        await using var restart = Fixture(clock, f.Path);
+        var service = restart.Services.GetRequiredService<IItemUsageDomainService>();
+        var state = Assert.Single(await service.GetSnapshotAtAsync(id, clock.Now, default));
+        Assert.Null(state.DailyLimit); Assert.Equal(until, state.CooldownUntil);
+        Assert.Equal(0, state.UsedCount); // daily reset did not shorten the elapsed timer.
+        Assert.Equal(86280, (until - clock.Now).TotalSeconds);
+        Assert.Equal(ItemUsageRejection.CoolingDown,
+            (await Assert.ThrowsAsync<ItemUsageRejectedException>(() => Use(restart, id, 3))).Reason);
+        clock.Now = until;
+        Assert.Empty(await service.GetSnapshotAtAsync(id, clock.Now, default));
+        await Use(restart, id, 3);
+        Assert.Equal(until.AddDays(1), Assert.Single(await service.GetSnapshotAsync(id, default)).CooldownUntil);
+    }
+
     [Fact]
     public async Task Rollback_leaves_no_usage_and_domain_count_is_not_limited_to_wire_byte()
     {

@@ -18,7 +18,7 @@ public sealed class MagicSealHandlerTests
     public async Task Change_requires_the_A21_reserved_zero_without_consuming_assets(short second)
     {
         using var shop = Fixture();
-        await shop.SeedCore(9, Piece() with { RandomOption0 = new(15, 2, 3) });
+        await shop.SeedCore(9, Piece() with { RandomOption0 = new(15, 2, 2) });
         await Send(shop, 7, true, second);
         Assert.Equal(100000, shop.Gold);
         Assert.False(Assert.Single(shop.Sender.Messages.OfType<ChangeRandomOptionResponse>()).Success);
@@ -42,7 +42,7 @@ public sealed class MagicSealHandlerTests
     public async Task Change_sends_ack_and_authoritative_equipment_and_gold()
     {
         using var shop = Fixture();
-        await shop.SeedCore(9, Piece() with { RandomOption0 = new(15, 2, 3) });
+        await shop.SeedCore(9, Piece() with { RandomOption0 = new(15, 2, 2) });
 
         await Send(shop, 7, true);
 
@@ -143,7 +143,7 @@ public sealed class MagicSealHandlerTests
         public ValueTask<EquipmentMagicSealDefinition?> GetEquipmentAsync(int itemId,
             CancellationToken ct) => ValueTask.FromResult<EquipmentMagicSealDefinition?>(
             itemId == 3000 ? new(3000, 2, 75, 500, 200, [new(1, 1)],
-                [[new(new(15, 2, 3), 1)]], [[new(new(16, 4, 5), 1)]]) : null);
+                [[new(15, 2, 3, 1)]], [[new(16, 4, 5, 1)]], [new(2, 2, 1)], [new(4, 4, 1)]) : null);
 
         public ValueTask<MagicSealScrollDefinition?> GetScrollAsync(int itemId,
             CancellationToken ct) => ValueTask.FromResult<MagicSealScrollDefinition?>(null);

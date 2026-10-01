@@ -102,3 +102,10 @@ BodyLength = 未知（字段集合已知不完整）
 `ClientStatic / High`：A21 handler RVA `0x00D81AE0` 在 `0x00D81B16` 读取u8数量，循环在 `0x00D81B3B` 读取物品ID、`0x00D81B47` 读取秒数（各4字节），`0x00D81B95` 将秒数乘1000后调用冷却设置。用于本次静态检查的重建exe SHA256为 `d7618a102251f1db724f2514c74a4cc855df26e6a4bc308f8ee9f2397db0a99a`。原版目标身份沿机器区。
 
 `CurrentImplementation`：TeleportCooldownNotification使用一个条目：`u8 count=1 + i32 itemId + i32 seconds`。2600014按真实PVF10000ms发10秒，编码测试body为 `014EAC27000A000000`。ItemCooldownStateMessage的既有登记仍保留。本次没有新增A21接收trace／raw样本，冷却图标和实机下一次使用仍HumanPending。
+
+
+## 2026-10-01 疲劳药登录冷却恢复
+
+`CurrentImplementation`：ItemUsageDomainService现将仍有效的无日次数上限冷却纳入快照；ItemUsageProjectionDelivery在登录既有次数同步后，另发本消息。每条秒数为`ceil((CooldownUntil - snapshot.At).TotalSeconds)`，超过255条分包；过期不发，不发明清零消息。021E只同步有DailyLimit的条目，不能用次数消息替代7518的24小时冷却。effect重放复用当前时间快照，不能重启冷却。已有LastUsedAt只读恢复，7518没有新的到期日写入。
+
+`AutomatedVerified`：秒数编码、无每日限额、分包、重新构建服务后仍守原deadline、跨每日06:00仍保持elapsed时间、deadline到期放行。客户端倒计时仍待[第四轮人工验收](../../../Document/tasks/item-effects-unification/human-test-list-20261001-round4.md)，未新增WireCaptured证据。
