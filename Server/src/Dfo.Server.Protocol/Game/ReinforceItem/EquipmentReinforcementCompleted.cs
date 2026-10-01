@@ -48,7 +48,7 @@ public sealed class EquipmentReinforcementCompletedHandler(
                         receipt.PreparedAt)));
         }
         if (receipt.AccountMaterials.Count > 0)
-            messages.Add(GameInventoryDelivery.VirtualResourceNotification(
+            messages.AddRange(AccountMaterialNotifications.Compose(
                 [.. receipt.AccountMaterials.GroupBy(material => material.VirtualSlotIndex)
                     .Select(group => group.Last()).Select(material => new InventoryRuntimeValueState(
                     material.VirtualSlotIndex, material.ItemId, material.FinalCount))],

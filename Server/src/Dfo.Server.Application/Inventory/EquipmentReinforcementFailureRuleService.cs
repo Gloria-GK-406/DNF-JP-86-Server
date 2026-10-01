@@ -19,14 +19,24 @@ internal sealed class EquipmentReinforcementFailureRuleService(
         ValidateDraw(context.AdditionalItemDraw);
         ValidateDraw(context.GreatDraw);
         var definition = await equipmentDefinitions.GetEquipmentAsync(equipment.Core.ItemId, ct).ConfigureAwait(false);
-        var table = await reinforcement.GetNormalTableAsync(ct).ConfigureAwait(false);
+        var table = context.Kind switch
+        {
+            EquipmentUpgradeKind.Reinforcement => await reinforcement.GetNormalTableAsync(ct).ConfigureAwait(false),
+            EquipmentUpgradeKind.Amplification => await reinforcement.GetAmplificationTableAsync(ct).ConfigureAwait(false),
+            _ => throw new ArgumentOutOfRangeException(nameof(context)),
+        };
         var oldLevel = equipment.Core.ReinforcementLevel;
         var row = table?.Rows.FirstOrDefault(candidate => candidate.TargetLevel == oldLevel + 1);
         if (definition is null || table is null || row is null
             || row.PenaltyType is < 1 or > 3 || row.PenaltyValue < 0)
             return Unsupported();
         var penalty = PenaltyType(oldLevel, definition.Rarity, table, row);
-        var result = ResolvePenalty(oldLevel, penalty, row.PenaltyValue, context.Protection);
+        var result = context.Kind == EquipmentUpgradeKind.Amplification && penalty == 2
+            && context.Protection is { Kind: EquipmentReinforcementProtectionKind.RetainLevel, RetainedLevel: >= 0 and <= 31 } ticket
+            && oldLevel > ticket.RetainedLevel
+            ? new EquipmentReinforcementFailureResult(EquipmentReinforcementRejection.None,
+                EquipmentReinforcementOutcome.Downgraded, (byte)ticket.RetainedLevel, true, [])
+            : ResolvePenalty(oldLevel, penalty, row.PenaltyValue, context.Protection);
         if (result.Outcome == EquipmentReinforcementOutcome.Destroyed)
         {
             var source = await disjoint.GetDestructionEquipmentAsync(equipment.Core.ItemId, ct).ConfigureAwait(false);
@@ -40,8 +50,8 @@ internal sealed class EquipmentReinforcementFailureRuleService(
             result = result with { Rewards = Array.AsReadOnly(rewards.ToArray()) };
         }
         logger.LogInformation(
-            "REINFORCEMENT_FAILURE item={ItemId} old={OldLevel} penalty={PenaltyType} calculatedOutcome={Outcome} calculatedLevel={NewLevel} consumeProtection={ConsumeProtection} rewardKinds={RewardKinds}",
-            equipment.Core.ItemId, oldLevel, penalty, result.Outcome, result.NewLevel,
+            "REINFORCEMENT_FAILURE kind={Kind} item={ItemId} old={OldLevel} penalty={PenaltyType} calculatedOutcome={Outcome} calculatedLevel={NewLevel} consumeProtection={ConsumeProtection} rewardKinds={RewardKinds}",
+            context.Kind, equipment.Core.ItemId, oldLevel, penalty, result.Outcome, result.NewLevel,
             result.ConsumeProtection, result.Rewards.Count);
         return result;
     }

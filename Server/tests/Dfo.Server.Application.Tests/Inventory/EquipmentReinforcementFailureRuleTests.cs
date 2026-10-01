@@ -113,6 +113,9 @@ public sealed class EquipmentReinforcementFailureRuleTests
 
     private sealed class Content(byte oldLevel) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
+        public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentReinforcementTable?>(null);
+
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new([new(oldLevel + 1, [], 100_000, 3, 0, 3037, 10)],
                 [], [], [], new Dictionary<int, double>(), new Dictionary<int, int>(), new Dictionary<int, int>(),
@@ -121,7 +124,7 @@ public sealed class EquipmentReinforcementFailureRuleTests
 
         public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
             ValueTask.FromResult<EquipmentDefinition?>(new(1, 50, 2, "weapon", 45));
-        public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int itemId, CancellationToken ct) =>
+        public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int itemId, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
             throw new NotSupportedException("Protection is an explicit fact, not queried by failure planning.");
     }
 

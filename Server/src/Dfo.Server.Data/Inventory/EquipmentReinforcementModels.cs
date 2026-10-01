@@ -2,7 +2,13 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Data.Inventory;
 
-/// <summary>Ordinary equipment reinforcement only; amplification and forging have separate rules.</summary>
+public enum EquipmentUpgradeKind : byte
+{
+    Reinforcement = 0,
+    Amplification = 1,
+}
+
+/// <summary>Reinforcement and amplification share settlement, with separate archive rules.</summary>
 public enum EquipmentReinforcementRejection
 {
     None,

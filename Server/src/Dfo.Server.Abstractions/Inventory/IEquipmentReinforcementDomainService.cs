@@ -12,7 +12,8 @@ public interface IEquipmentReinforcementDomainService
         BusinessSlot? materialSlot,
         int? accountMaterialItemId,
         BusinessSlot? protectionSlot,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
 }
 
 /// <summary>Provides a bounded draw so every outcome can be verified deterministically.</summary>

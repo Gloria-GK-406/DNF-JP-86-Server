@@ -1,10 +1,11 @@
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-/// <summary>Reads ordinary reinforcement declarations from the A21 archive, without applying a roll.</summary>
+/// <summary>Reads separate reinforcement and amplification declarations, without applying a roll.</summary>
 internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvider provider)
     : IEquipmentReinforcementDefinitionSource
 {
@@ -23,8 +24,9 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
     private readonly Lock gate = new();
     private EquipmentReinforcementTable? table;
     private bool tableRead;
+    private EquipmentReinforcementTable? amplificationTable;
     private Dictionary<int, string>? stackablePaths;
-    private readonly Dictionary<int, EquipmentReinforcementProtectionDefinition?> protectionCache = [];
+    private readonly Dictionary<(int ItemId, EquipmentUpgradeKind Kind), EquipmentReinforcementProtectionDefinition?> protectionCache = [];
 
     public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken)
     {
@@ -33,26 +35,38 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         {
             if (!tableRead)
             {
-                table = ReadNormalTable(provider.Archive);
+                table = ReadTable(provider.Archive, "etc/upgrade.etc", "normal");
                 tableRead = true;
             }
             return ValueTask.FromResult(table);
         }
     }
 
-    public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
-        int itemId, CancellationToken cancellationToken)
+    public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (gate)
         {
-            if (!protectionCache.TryGetValue(itemId, out var definition))
-                protectionCache[itemId] = definition = ReadProtection(itemId);
+            amplificationTable ??= ReadTable(provider.Archive, "etc/amplifyupgrade.etc", "amplify")
+                ?? throw new InvalidDataException("PVF etc/amplifyupgrade.etc: invalid amplification table or cost/failure declarations.");
+            return ValueTask.FromResult<EquipmentReinforcementTable?>(amplificationTable);
+        }
+    }
+
+    public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
+        int itemId, CancellationToken cancellationToken,
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!protectionCache.TryGetValue((itemId, kind), out var definition))
+                protectionCache[(itemId, kind)] = definition = ReadProtection(itemId, kind);
             return ValueTask.FromResult(definition);
         }
     }
 
-    private EquipmentReinforcementProtectionDefinition? ReadProtection(int itemId)
+    private EquipmentReinforcementProtectionDefinition? ReadProtection(int itemId, EquipmentUpgradeKind kind)
     {
         var archive = provider.Archive;
         stackablePaths ??= ReadPaths(archive, "stackable/stackable.lst");
@@ -68,19 +82,24 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
             return null;
         return actionName switch
         {
-            "protect equipment" when action.Values.Count == 1 =>
+            "protect equipment" when kind == EquipmentUpgradeKind.Reinforcement && action.Values.Count == 1 =>
                 new(EquipmentReinforcementProtectionKind.ResetToZero, 0),
-            "new protect equipment" when action.Values.Count == 2
+            "new protect equipment" when kind == EquipmentUpgradeKind.Reinforcement && action.Values.Count == 2
                 && action.Values[1].Kind == PvfTokenKind.Int32
                 && action.Values[1].Value > 0 =>
+                new(EquipmentReinforcementProtectionKind.RetainLevel, action.Values[1].Value),
+            "amplify protect equipment" when kind == EquipmentUpgradeKind.Amplification && action.Values.Count == 1 =>
+                new(EquipmentReinforcementProtectionKind.ResetToZero, 0),
+            "new amplify protect equipment" when kind == EquipmentUpgradeKind.Amplification && action.Values.Count == 2
+                && action.Values[1].Kind == PvfTokenKind.Int32 && action.Values[1].Value > 0 =>
                 new(EquipmentReinforcementProtectionKind.RetainLevel, action.Values[1].Value),
             _ => null,
         };
     }
 
-    private static EquipmentReinforcementTable? ReadNormalTable(PvfArchive archive)
+    private static EquipmentReinforcementTable? ReadTable(PvfArchive archive, string path, string tableName)
     {
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "etc/upgrade.etc");
+        var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
         PvfNpcShopDefinitionSource.Section? normal = null;
         for (var index = 0; index < sections.Count; index++)
         {
@@ -91,7 +110,7 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
             var tableType = sections[index + 1];
             if (tableType.Values.Count == 0 || !TryName(archive, tableType.Values[0], out var name))
                 return null;
-            if (name == "normal")
+            if (name == tableName)
             {
                 if (normal is not null) return null;
                 normal = tableType;
@@ -123,7 +142,10 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         var baseGold = IntList(One(sections, "[cost]"), minimumCount: 2, allowZero: true);
         var rarityWeights = NumberList(One(sections, "[cost weights by rarity]"), 7, allowZero: false);
         var typeWeights = NumberList(One(sections, "[type]"), 12, allowZero: true);
-        var costByLevel = IntDoubleMap(One(sections, "[cost weight by upgrade level]"));
+        // A21 amplification omits this optional factor entirely; each level has neutral weight.
+        var costSection = One(sections, "[cost weight by upgrade level]");
+        var costByLevel = tableName == "amplify" && !sections.Any(section => section.Name == "[cost weight by upgrade level]")
+            ? new Dictionary<int, double>() : IntDoubleMap(costSection);
         var destroyLevels = RarityIntMap(archive, One(sections, "[destroy level by rarity]"));
         var maxLevels = RarityIntMap(archive, One(sections, "[max upgrade level by rarity]"));
         var bonus = ReadDestroyBonus(archive, sections);

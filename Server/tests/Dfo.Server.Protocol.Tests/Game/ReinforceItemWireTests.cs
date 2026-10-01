@@ -7,6 +7,15 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class ReinforceItemWireTests
 {
     [Fact]
+    public void Amplification_ack_preserves_method_one_and_the_shared_body_layout()
+    {
+        var body = ReinforceItemResponseEncoder.EncodeBody(new(true, Method: 1,
+            MaterialSlot: 121, MaterialRemaining: 9, OldLevel: 0,
+            Outcome: EquipmentReinforcementOutcome.Succeeded, NewLevel: 1, TargetSlot: 9));
+        Assert.Equal(Convert.FromHexString("0101790009000000FFFF00000001000900FFFF"), body);
+    }
+
+    [Fact]
     public void Decoder_reads_method_slots_template_and_length_prefixed_name()
     {
         byte[] body =

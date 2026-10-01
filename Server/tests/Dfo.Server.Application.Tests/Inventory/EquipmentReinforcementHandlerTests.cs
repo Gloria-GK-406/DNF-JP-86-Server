@@ -339,7 +339,7 @@ public sealed class EquipmentReinforcementHandlerTests
 
         var ack = Assert.IsType<ReinforceItemResponse>(Assert.Single(shop.Sender.Messages));
         Assert.False(ack.Success);
-        Assert.Equal((byte)0x17, ack.ErrorCode);
+        Assert.Equal((byte)0x0D, ack.ErrorCode);
         Assert.Equal(20, shop.Count(1000));
         Assert.Equal(100_000, shop.Gold);
     }
@@ -470,6 +470,9 @@ public sealed class EquipmentReinforcementHandlerTests
 
     private sealed class Content(bool protectedFailure, int materialId) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
+        public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentReinforcementTable?>(null);
+
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new(
                 [new(1, new double[19], 0, 1, 0, materialId, 10),
@@ -488,7 +491,7 @@ public sealed class EquipmentReinforcementHandlerTests
                 itemId == 3000 ? new(1, 10, 0, "weapon", 45) : null);
 
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
-            int itemId, CancellationToken ct) =>
+            int itemId, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(itemId switch
             {
                 7804 => new(EquipmentReinforcementProtectionKind.ResetToZero, 0),

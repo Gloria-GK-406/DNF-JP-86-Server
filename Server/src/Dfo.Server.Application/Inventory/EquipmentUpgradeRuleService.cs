@@ -16,14 +16,16 @@ internal sealed partial class EquipmentUpgradeRuleService(
         InventoryItemCoreState core, CancellationToken ct)
     {
         var equipment = await equipmentDefinitions.GetEquipmentAsync(core.ItemId, ct).ConfigureAwait(false);
-        var content = await outworldContent.GetAsync(ct).ConfigureAwait(false);
-        if (equipment is null || content is null || WeightIndex(equipment.EquipmentType) is null or 1
-            || equipment.Rarity < 2 || equipment.MinimumLevel < content.MinimumEquipmentLevel)
+        if (equipment is null || WeightIndex(equipment.EquipmentType) is null or 1 || equipment.Rarity < 2)
             return new(EquipmentAmplificationRejection.UnsupportedContent);
-        if (equipment.ImpossibleContents.Contains("upgrade"))
+        var content = await outworldContent.GetAsync(ct).ConfigureAwait(false);
+        if (content is null || equipment.MinimumLevel < content.MinimumEquipmentLevel)
+            return new(EquipmentAmplificationRejection.UnsupportedContent);
+        if (equipment.ImpossibleContents.Contains("upgrade") || equipment.ImpossibleContents.Contains("amplify upgrade"))
             return new(EquipmentAmplificationRejection.Forbidden);
         if (core.SealFlag != 0) return new(EquipmentAmplificationRejection.Sealed);
-        if (core.AmplifyType == 0x80) return new(EquipmentAmplificationRejection.UnidentifiedOption);
+        if (core.AmplifyType == 0x80 || core.AmplifyType is >= 1 and <= 4 && core.AmplifyValue == 0)
+            return new(EquipmentAmplificationRejection.UnidentifiedOption);
         if (core.AmplifyType is not (>= 1 and <= 4)) return new(EquipmentAmplificationRejection.NoOption);
         if (equipment.MaxDurability is { } maximum && core.Durability != maximum)
             return new(EquipmentAmplificationRejection.Durability);

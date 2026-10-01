@@ -9,8 +9,8 @@ internal sealed class ReinforceItemResponseEncoder : GameCmdMessageEncoder<Reinf
     {
         if (!message.Success)
             return [0, message.ErrorCode];
-        if (message.Method != 0)
-            throw new InvalidDataException("Ordinary reinforcement ACK must use method zero.");
+        if (message.Method is not (0 or 1))
+            throw new InvalidDataException("UPGRADE_ITEM ACK supports reinforcement or amplification only.");
         var rewards = message.DestroyRewards ?? [];
         if (message.Outcome != Dfo.Server.Data.Inventory.EquipmentReinforcementOutcome.Destroyed
             && rewards.Count != 0 || rewards.Count > byte.MaxValue)

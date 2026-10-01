@@ -1,11 +1,46 @@
 using Dfo.Pvf.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfEquipmentReinforcementDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task A21_amplification_has_independent_costs_material_penalties_and_protection_actions()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfEquipmentReinforcementDefinitionSource(provider);
+        var table = Assert.IsType<EquipmentReinforcementTable>(await source.GetAmplificationTableAsync(default));
+        Assert.Equal(255, table.Rows.Count);
+        Assert.Equal((1, 0, 1, 0, 3242, 1), Row(table, 1));
+        Assert.Equal((5, 20000, 2, 1, 3242, 5), Row(table, 5));
+        Assert.Equal((8, 30000, 2, 7, 3242, 8), Row(table, 8));
+        Assert.Equal((11, 60000, 3, 0, 3242, 11), Row(table, 11));
+        Assert.Empty(table.CostWeightByCurrentLevel);
+        Assert.Equal(1.5, table.CostWeightsByRarity[2]);
+        Assert.Equal(2, table.CostWeightsByEquipmentType[0]);
+        Assert.Equal(3244, table.DestroyBonus.ItemId);
+        Assert.Equal(new EquipmentReinforcementProtectionDefinition(EquipmentReinforcementProtectionKind.ResetToZero, 0),
+            await source.GetProtectionAsync(10004511, default, EquipmentUpgradeKind.Amplification));
+        Assert.Equal(new EquipmentReinforcementProtectionDefinition(EquipmentReinforcementProtectionKind.RetainLevel, 7),
+            await source.GetProtectionAsync(10007841, default, EquipmentUpgradeKind.Amplification));
+        Assert.Null(await source.GetProtectionAsync(7804, default, EquipmentUpgradeKind.Amplification));
+        Assert.Null(await source.GetProtectionAsync(10007840, default, EquipmentUpgradeKind.Amplification));
+        Assert.Null(await source.GetProtectionAsync(10007841, default)); // Mode is part of the cache key.
+    }
+
+    [Fact]
+    public async Task Missing_amplification_table_throws_with_archive_path_instead_of_using_normal_rules()
+    {
+        using var archive = new BuiltArchive(BuildArchive());
+        var source = new PvfEquipmentReinforcementDefinitionSource(archive.Provider);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => source.GetAmplificationTableAsync(default).AsTask());
+        Assert.Contains("etc/amplifyupgrade.etc", error.Message);
+    }
+
     [SkippableFact]
     public async Task A21_normal_table_equipment_and_protection_actions_are_read_from_the_archive()
     {

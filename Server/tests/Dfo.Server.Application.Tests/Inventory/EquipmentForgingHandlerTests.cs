@@ -152,10 +152,13 @@ public sealed class EquipmentForgingHandlerTests
             int itemId, CancellationToken ct) =>
             ValueTask.FromResult<EquipmentDefinition?>(
                 itemId == 3000 ? new(75, 77, 2, "weapon", 45) : null);
+        public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentReinforcementTable?>(null);
+
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(null);
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
-            int itemId, CancellationToken ct) =>
+            int itemId, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null);
     }
 

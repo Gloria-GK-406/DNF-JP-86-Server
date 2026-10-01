@@ -1,6 +1,8 @@
+using Dfo.Server.Data.Inventory;
+
 namespace Dfo.Server.Abstractions.Content;
 
-/// <summary>One 19-column row from the A21 <c>normal</c> upgrade table.</summary>
+/// <summary>One 19-column row from an A21 reinforcement or amplification upgrade table.</summary>
 public sealed record EquipmentReinforcementRow(
     int TargetLevel,
     IReadOnlyList<double> Columns,
@@ -10,7 +12,7 @@ public sealed record EquipmentReinforcementRow(
     int MaterialItemId,
     int MaterialCount);
 
-/// <summary>Archive declarations used to plan, but not commit, an ordinary reinforcement.</summary>
+/// <summary>Archive declarations used to plan, but not commit, an equipment upgrade.</summary>
 public sealed record EquipmentReinforcementTable(
     IReadOnlyList<EquipmentReinforcementRow> Rows,
     IReadOnlyList<int> BaseGoldByEquipmentLevel,
@@ -45,6 +47,9 @@ public interface IEquipmentReinforcementDefinitionSource
 {
     ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken);
 
+    ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken cancellationToken);
+
     ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
-        int itemId, CancellationToken cancellationToken);
+        int itemId, CancellationToken cancellationToken,
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
 }

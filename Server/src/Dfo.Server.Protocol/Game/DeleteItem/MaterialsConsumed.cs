@@ -26,12 +26,10 @@ public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessi
         if (debit.AccountChange is { } change)
         {
             slot = new(InventoryContainerType.Main, change.VirtualSlotIndex);
-            // The consumption ACK removes the final cube; projecting itemId/count=0 creates acquisition UI.
-            if (change.FinalCount == 0)
-                return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
-                    new DeleteItemResponse(slot, debit.Cost.Count, Success: true)]);
-            update = GameInventoryDelivery.VirtualResourceNotification(
-                [new(change.VirtualSlotIndex, change.ItemId, change.FinalCount)], notification.PreparedAt);
+            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
+                new DeleteItemResponse(slot, debit.Cost.Count, Success: true),
+                .. AccountMaterialNotifications.Compose(
+                    [new(change.VirtualSlotIndex, change.ItemId, change.FinalCount)], notification.PreparedAt)]);
         }
         else
         {

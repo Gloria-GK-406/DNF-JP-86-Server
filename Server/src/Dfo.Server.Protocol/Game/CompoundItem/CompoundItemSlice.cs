@@ -114,11 +114,9 @@ public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, 
         async ValueTask Publish(RecipeCraftReceipt result, bool acknowledge)
         {
             var resources = result.AccountMaterials.Select(x => new InventoryRuntimeValueState(x.VirtualSlotIndex, x.ItemId, x.FinalCount)).ToArray();
-            IReadOnlyList<IServerNetworkMessage> following = resources.Length == 0 ? []
-                : [GameInventoryDelivery.VirtualResourceNotification(resources, result.Inventory.PreparedAt)];
             // CMD carries local deltas; on a replay send only authoritative absolute state.
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-                new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : [], FollowingMessages: following), ct).ConfigureAwait(false);
+                new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : [], AccountMaterials: resources), ct).ConfigureAwait(false);
         }
     }
 }

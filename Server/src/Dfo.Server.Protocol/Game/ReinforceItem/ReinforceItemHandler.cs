@@ -49,7 +49,7 @@ public sealed class ReinforceItemHandler(
 
         ReinforceItemResponse response;
         EquipmentReinforcementReceipt? receipt = null;
-        if (message.Method != 0)
+        if (message.Method is not (0 or 1))
             response = new(false, 0x17);
         else if (!TrySlots(message, out var target, out var material,
                      out var accountMaterialItemId, out var ticket))
@@ -63,7 +63,7 @@ public sealed class ReinforceItemHandler(
             {
                 var result = await commands.SendAsync(new ReinforceItemCommand(
                     online.OnlineUserId, session, target, message.ExpectedItemId,
-                    material, accountMaterialItemId, ticket), ct).ConfigureAwait(false);
+                    material, accountMaterialItemId, ticket, (EquipmentUpgradeKind)message.Method), ct).ConfigureAwait(false);
                 if (result.Receipt is { } committed)
                 {
                     receipt = committed;
@@ -79,8 +79,8 @@ public sealed class ReinforceItemHandler(
         {
             replay.Remember(message, response);
             logger.LogInformation(
-                "UPGRADE_ITEM character={Character} seq={Sequence} slot={Slot} old={Old} new={New} outcome={Outcome}",
-                receipt.Session.CharacterId.Value, message.Metadata.Sequence,
+                "UPGRADE_ITEM method={Method} character={Character} seq={Sequence} slot={Slot} old={Old} new={New} outcome={Outcome}",
+                message.Method, receipt.Session.CharacterId.Value, message.Metadata.Sequence,
                 message.TargetSlot, receipt.OldLevel, receipt.NewLevel, receipt.Outcome);
             await notifications.PublishAsync(
                 new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
@@ -121,7 +121,7 @@ public sealed class ReinforceItemHandler(
 
     private ReinforceItemResponse ResponseFor(
         EquipmentReinforcementReceipt receipt, ReinforceItemRequest request) =>
-        new(true, Method: 0,
+        new(true, Method: checked((byte)request.Method),
             MaterialSlot: request.MaterialSlot,
             MaterialRemaining: receipt.MaterialRemaining,
             OptionalTicketSlot: request.OptionalTicketSlot,

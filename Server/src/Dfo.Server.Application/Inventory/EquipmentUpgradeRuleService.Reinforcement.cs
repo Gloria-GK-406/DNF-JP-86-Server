@@ -7,12 +7,28 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed partial class EquipmentUpgradeRuleService
 {
-    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct)
+    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct,
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
-        if (core.SealFlag != 0 || core.AmplifyType != 0)
+        if (kind is not (EquipmentUpgradeKind.Reinforcement or EquipmentUpgradeKind.Amplification))
+            return new(EquipmentReinforcementRejection.InvalidRequest);
+        if (kind == EquipmentUpgradeKind.Amplification)
+        {
+            var eligibility = await CheckAmplificationAsync(core, ct).ConfigureAwait(false);
+            if (eligibility.Rejection != EquipmentAmplificationRejection.None)
+                return new(eligibility.Rejection switch
+                {
+                    EquipmentAmplificationRejection.Durability => EquipmentReinforcementRejection.Durability,
+                    EquipmentAmplificationRejection.UnsupportedContent => EquipmentReinforcementRejection.UnsupportedContent,
+                    _ => EquipmentReinforcementRejection.CannotReinforce,
+                });
+        }
+        else if (core.SealFlag != 0 || core.AmplifyType != 0)
             return new(EquipmentReinforcementRejection.CannotReinforce);
         var equipment = await equipmentDefinitions.GetEquipmentAsync(core.ItemId, ct).ConfigureAwait(false);
-        var table = await definitions.GetNormalTableAsync(ct).ConfigureAwait(false);
+        var table = kind == EquipmentUpgradeKind.Amplification
+            ? await definitions.GetAmplificationTableAsync(ct).ConfigureAwait(false)
+            : await definitions.GetNormalTableAsync(ct).ConfigureAwait(false);
         if (equipment is null || table is null || WeightIndex(equipment.EquipmentType) is null or 1
             || equipment.ImpossibleContents.Contains("upgrade"))
             return new(EquipmentReinforcementRejection.UnsupportedContent);
@@ -32,19 +48,22 @@ internal sealed partial class EquipmentUpgradeRuleService
         var canDestroy = EquipmentReinforcementFailureRuleService.PenaltyType(
             oldLevel, equipment.Rarity, table, row) == 3;
         return new(EquipmentReinforcementRejection.None,
-            new Rule(definitions, logger, core.ItemId, row, oldLevel, canDestroy, goldCost));
+            new Rule(definitions, logger, core.ItemId, row, oldLevel, canDestroy, goldCost, kind));
     }
 
     private sealed class Rule(IEquipmentReinforcementDefinitionSource definitions,
         ILogger<EquipmentUpgradeRuleService> logger, int itemId,
-        EquipmentReinforcementRow row, byte oldLevel, bool canDestroy, int goldCost) : IEquipmentReinforcementRule
+        EquipmentReinforcementRow row, byte oldLevel, bool canDestroy, int goldCost,
+        EquipmentUpgradeKind kind) : IEquipmentReinforcementRule
     {
         public int GoldCost => goldCost;
         public int MaterialItemId => row.MaterialItemId;
         public int MaterialCount => row.MaterialCount;
         public bool CanDestroy => canDestroy;
+        public bool CanUseAutomaticProtection => canDestroy
+            || kind == EquipmentUpgradeKind.Amplification && row.PenaltyType == 2;
         public ValueTask<EquipmentReinforcementProtectionDefinition?> ProtectionAsync(int itemId, CancellationToken ct) =>
-            definitions.GetProtectionAsync(itemId, ct);
+            definitions.GetProtectionAsync(itemId, ct, kind);
 
         public async ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
             IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct)
@@ -53,7 +72,8 @@ internal sealed partial class EquipmentUpgradeRuleService
             foreach (var candidate in candidates)
             {
                 var definition = await ProtectionAsync(candidate.ItemId, ct).ConfigureAwait(false);
-                if (definition is null || definition.Kind == EquipmentReinforcementProtectionKind.RetainLevel
+                if (definition is null || !canDestroy && definition.Kind == EquipmentReinforcementProtectionKind.ResetToZero
+                    || definition.Kind == EquipmentReinforcementProtectionKind.RetainLevel
                     && oldLevel <= definition.RetainedLevel) continue;
                 choices.Add(new(candidate.Slot, definition));
             }
@@ -67,8 +87,8 @@ internal sealed partial class EquipmentUpgradeRuleService
         {
             var succeeded = EquipmentReinforcementRules.Succeeds(row.FailureThreshold, draw);
             logger.LogInformation(
-                "REINFORCEMENT_ROLL item={ItemId} old={OldLevel} target={TargetLevel} draw={Draw} failureThreshold={FailureThreshold} scale=100000 succeeded={Succeeded}",
-                itemId, oldLevel, row.TargetLevel, draw, row.FailureThreshold, succeeded);
+                "REINFORCEMENT_ROLL kind={Kind} item={ItemId} old={OldLevel} target={TargetLevel} draw={Draw} failureThreshold={FailureThreshold} scale=100000 succeeded={Succeeded}",
+                kind, itemId, oldLevel, row.TargetLevel, draw, row.FailureThreshold, succeeded);
             return succeeded;
         }
     }

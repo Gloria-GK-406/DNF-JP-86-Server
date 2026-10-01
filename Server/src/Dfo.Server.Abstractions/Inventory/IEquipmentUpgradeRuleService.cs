@@ -4,13 +4,14 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IEquipmentUpgradeRuleService
 {
-    ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct);
+    ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct,
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
     ValueTask<EquipmentOutworldDecision> DecideOutworldAsync(EquipmentOutworldAction action,
         int equipmentItemId, byte amplifyType, byte upgradeLevel, int materialItemId,
         byte selectedOption, int seed, CancellationToken ct);
     ValueTask<EquipmentForgingDecision> DecideForgingAsync(int equipmentItemId,
         ushort durability, byte oldLevel, int materialItemId, int roll, CancellationToken ct);
-    /// <summary>Basic equipment eligibility only; amplification costs and the upgrade transaction are not implemented.</summary>
+    /// <summary>Queries amplification admission without consuming assets.</summary>
     ValueTask<EquipmentAmplificationEligibility> CheckAmplificationAsync(InventoryItemCoreState core, CancellationToken ct);
 }
 

@@ -12,6 +12,54 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class RecipeCraftTests
 {
+    [Fact]
+    public async Task Event_projection_filters_only_exhausted_crystals_and_keeps_positive_balances()
+    {
+        using var f = Fixture(new Recipes { Plan = new([new(3262, 100), new(3037, 10)], [new(1286, 1)]) });
+        await Seed(f); f.Sql("UPDATE accounts SET cube_clear=20 WHERE account_id=1");
+        await f.Services.GetRequiredService<CompoundItemHandler>().HandleAsync(new(f.Connection),
+            new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+                { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1), default);
+        var receipt = Assert.Single(f.Sender.Messages.OfType<CompoundItemResponse>()).Receipt!;
+        Assert.Equal(2, receipt.AccountMaterials.Length); // Publishers keep complete event facts, including zero.
+        var entries = f.Sender.Messages.SelectMany(message => ResourceEntries(f, message)).ToArray();
+        Assert.DoesNotContain(entries, entry => BitConverter.ToInt32(entry, 2) == 3262);
+        var clear = Assert.Single(entries, entry => BitConverter.ToInt32(entry, 2) == 3037);
+        Assert.Equal(10, BitConverter.ToInt32(clear, 6));
+    }
+
+    [Fact]
+    public async Task Last_crystal_is_consumed_by_ack_without_a_zero_quantity_notification_and_next_craft_fails()
+    {
+        using var f = Fixture(); await Seed(f, 2);
+        f.Sql("UPDATE accounts SET cube_gold=100 WHERE account_id=1");
+        var handler = f.Services.GetRequiredService<CompoundItemHandler>();
+        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1), default);
+        var receipt = Assert.Single(f.Sender.Messages.OfType<CompoundItemResponse>()).Receipt!;
+        Assert.Equal(0, Assert.Single(receipt.AccountMaterials).FinalCount);
+        Assert.DoesNotContain(f.Sender.Messages, message => ResourceEntries(f, message)
+            .Any(entry => BitConverter.ToInt32(entry, 2) == 3262 && BitConverter.ToInt32(entry, 6) == 0));
+        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 8)
+            { InboundOrdinal = 2, SequenceIsFresh = true }, 101, 0, 1), default);
+        Assert.Null(f.Sender.Messages.OfType<CompoundItemResponse>().Last().Receipt);
+        Assert.Equal(1, f.Count(1286)); Assert.Equal(1, f.Count(1287)); Assert.Equal(25, f.Count(3244));
+        Assert.Equal(0, f.Scalar("SELECT cube_gold FROM accounts WHERE account_id=1"));
+    }
+
+    private static IEnumerable<byte[]> ResourceEntries(ShopFixture f, IServerNetworkMessage message)
+    {
+        var registration = f.Services.GetServices<Dfo.Server.Abstractions.Networking.ServerMessageEncoderRegistration>()
+            .Single(x => x.MessageType == message.GetType());
+        var encoder = (Dfo.Server.Abstractions.Networking.IServerMessageEncoder)f.Services.GetRequiredService(registration.EncoderType);
+        foreach (var frame in encoder.Encode(message))
+        {
+            if (frame[0] != 0 || BitConverter.ToUInt16(frame, 1) != 0x0E) continue;
+            for (var index = 0; index < BitConverter.ToUInt16(frame, 16); index++)
+                yield return frame.AsSpan(18 + index * 101, 101).ToArray();
+        }
+    }
+
     private sealed class Recipes : IRecipeContentSource
     {
         public RecipePlan? Plan { get; set; } = new([new(3244, 25), new(3262, 100)], [new(1286, 1)]);

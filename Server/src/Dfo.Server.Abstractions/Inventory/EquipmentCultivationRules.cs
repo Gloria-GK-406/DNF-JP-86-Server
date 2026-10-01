@@ -12,7 +12,8 @@ public sealed record EquipmentProtectionChoice(BusinessSlot Slot,
     EquipmentReinforcementProtectionDefinition Definition);
 
 public sealed record EquipmentReinforcementFailureContext(
-    EquipmentReinforcementProtectionDefinition? Protection, int AdditionalItemDraw, int GreatDraw);
+    EquipmentReinforcementProtectionDefinition? Protection, int AdditionalItemDraw, int GreatDraw,
+    EquipmentUpgradeKind Kind = EquipmentUpgradeKind.Reinforcement);
 
 public sealed record EquipmentReinforcementFailureReward(int ItemId, int Count);
 
@@ -42,6 +43,7 @@ public interface IEquipmentReinforcementRule
     int MaterialItemId { get; }
     int MaterialCount { get; }
     bool CanDestroy { get; }
+    bool CanUseAutomaticProtection { get; }
     ValueTask<EquipmentReinforcementProtectionDefinition?> ProtectionAsync(int itemId, CancellationToken ct);
     ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
         IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct);

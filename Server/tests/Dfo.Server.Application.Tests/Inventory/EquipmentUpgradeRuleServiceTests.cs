@@ -82,7 +82,7 @@ public sealed class EquipmentUpgradeRuleServiceTests
     }
 
     private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1000)
-        with { Durability = 45 };
+        with { Durability = 45, AmplifyValue = 5 };
 
     private static EquipmentUpgradeRuleService Rules(EquipmentDefinition definition)
     {
@@ -96,8 +96,11 @@ public sealed class EquipmentUpgradeRuleServiceTests
         public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(1);
         public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int id, CancellationToken ct) =>
             ValueTask.FromResult<EquipmentDefinition?>(id == 3000 ? definition : null);
-        public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int id, CancellationToken ct) =>
+        public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int id, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null);
+        public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentReinforcementTable?>(null);
+
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new([new(1, new double[19], 0, 1, 0, 3037, 10)],
                 Enumerable.Repeat(100, 100).ToArray(), [1, 1, 1], Enumerable.Range(0, 12).Select(x => (double)x).ToArray(),

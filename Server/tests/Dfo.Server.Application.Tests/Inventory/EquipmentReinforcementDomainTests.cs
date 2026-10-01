@@ -773,6 +773,9 @@ public sealed class EquipmentReinforcementDomainTests
     private sealed class Content(int failureWeight, int penaltyType, int penaltyValue,
         int targetLevel, int materialId, bool omitCostWeight, bool white) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
+        public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentReinforcementTable?>(null);
+
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new(
                 [new(targetLevel, new double[19], failureWeight, penaltyType,
@@ -792,7 +795,7 @@ public sealed class EquipmentReinforcementDomainTests
                 itemId == 3000 ? new(1, white ? 57 : 50, white ? 0 : 2, "weapon", 45) : null);
 
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
-            int itemId, CancellationToken ct) =>
+            int itemId, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(
                 itemId switch
                 {

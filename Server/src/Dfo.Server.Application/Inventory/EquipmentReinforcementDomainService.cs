@@ -30,7 +30,7 @@ internal sealed class EquipmentReinforcementDomainService(
         SelectedSessionIdentity session, BusinessSlot targetSlot, int expectedItemId,
         BusinessSlot? materialSlot, int? accountMaterialItemId,
         BusinessSlot? protectionSlot,
-        CancellationToken ct)
+        CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
         if (sessions.Find(session.AccountId) != session
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
@@ -52,7 +52,7 @@ internal sealed class EquipmentReinforcementDomainService(
         if (target.Core.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
         if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
             return new(EquipmentReinforcementRejection.Locked);
-        var quote = await rules.QuoteReinforcementAsync(target.Core, ct).ConfigureAwait(false);
+        var quote = await rules.QuoteReinforcementAsync(target.Core, ct, kind).ConfigureAwait(false);
         if (quote.Rejection != EquipmentReinforcementRejection.None) return new(quote.Rejection);
         var rule = quote.Rule ?? throw new InvalidOperationException("Reinforcement quote lacks its rule.");
         var oldLevel = target.Core.ReinforcementLevel;
@@ -63,13 +63,13 @@ internal sealed class EquipmentReinforcementDomainService(
         MaterialLocation materialLocation;
         if (accountMaterialItemId is { } requestedAccountMaterial)
         {
-            if (requestedAccountMaterial != rule.MaterialItemId || accountKind is not { } kind)
+            if (requestedAccountMaterial != rule.MaterialItemId || accountKind is not { } resourceKind)
                 return new(EquipmentReinforcementRejection.InsufficientMaterial);
             var accountCount = (await accountMaterials.Get(session.AccountId)
-                .SnapshotAsync(ct).ConfigureAwait(false)).Count(kind);
+                .SnapshotAsync(ct).ConfigureAwait(false)).Count(resourceKind);
             if (accountCount < rule.MaterialCount)
                 return new(EquipmentReinforcementRejection.InsufficientMaterial);
-            materialLocation = new MaterialLocation.Account(kind);
+            materialLocation = new MaterialLocation.Account(resourceKind);
         }
         else if (materialSlot is { } sourceSlot)
         {
@@ -106,7 +106,7 @@ internal sealed class EquipmentReinforcementDomainService(
         if (await character.GoldAsync(ct).ConfigureAwait(false) < goldCost)
             return new(EquipmentReinforcementRejection.InsufficientGold);
 
-        if (rule.CanDestroy && protectionSlot is null)
+        if (rule.CanUseAutomaticProtection && protectionSlot is null)
         {
             var automatic = await FindAutomaticProtectionAsync(session, rule, ct).ConfigureAwait(false);
             if (automatic is { } selected)
@@ -121,7 +121,7 @@ internal sealed class EquipmentReinforcementDomainService(
             ? new EquipmentReinforcementFailureResult(EquipmentReinforcementRejection.None,
                 EquipmentReinforcementOutcome.Succeeded, checked((byte)(oldLevel + 1)), false, [])
             : await failures.GetResultAsync(instance!,
-                new(protectionDefinition, rolls.Next(10_000), rolls.Next(10_000)), ct).ConfigureAwait(false);
+                new(protectionDefinition, rolls.Next(10_000), rolls.Next(10_000), kind), ct).ConfigureAwait(false);
         if (decision.Rejection != EquipmentReinforcementRejection.None) return new(decision.Rejection);
         var rewardRejection = await ValidateRewardsAsync(session, targetSlot, decision.Rewards,
             materialLocation, rule.MaterialCount, protectionSlot, decision.ConsumeProtection, ct).ConfigureAwait(false);
