@@ -14,7 +14,7 @@ internal sealed class EquipmentReinforcementDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
-    IEquipmentReinforcementRuleService rules,
+    IEquipmentUpgradeRuleService rules,
     IEquipmentReinforcementFailureRuleService failures,
     ICharacterDomainService characters,
     IAccountMaterialBagDomainService accountMaterials,
@@ -52,7 +52,7 @@ internal sealed class EquipmentReinforcementDomainService(
         if (target.Core.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
         if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
             return new(EquipmentReinforcementRejection.Locked);
-        var quote = await rules.QuoteAsync(target.Core, ct).ConfigureAwait(false);
+        var quote = await rules.QuoteReinforcementAsync(target.Core, ct).ConfigureAwait(false);
         if (quote.Rejection != EquipmentReinforcementRejection.None) return new(quote.Rejection);
         var rule = quote.Rule ?? throw new InvalidOperationException("Reinforcement quote lacks its rule.");
         var oldLevel = target.Core.ReinforcementLevel;

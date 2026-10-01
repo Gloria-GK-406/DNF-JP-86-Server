@@ -10,13 +10,6 @@ public interface IEquipmentForgingDomainService
         CancellationToken ct);
 }
 
-public interface IEquipmentForgingRuleService
-{
-    ValueTask<EquipmentForgingDecision> DecideAsync(int equipmentItemId,
-        ushort durability, byte oldLevel, int materialItemId, int roll,
-        CancellationToken ct);
-}
-
 /// <summary>Draws a value in 0..9999 for one admitted forging attempt.</summary>
 public interface IEquipmentForgingRollSource
 {

@@ -722,6 +722,9 @@ public sealed class EquipmentReinforcementDomainTests
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(
             new Content(failureWeight, penaltyType, penaltyValue, targetLevel,
                 materialId, omitCostWeight, white));
+        services.AddSingleton<IEquipmentDefinitionSource>(
+            new Content(failureWeight, penaltyType, penaltyValue, targetLevel,
+                materialId, omitCostWeight, white));
         services.AddSingleton<IEquipmentDisjointDefinitionSource>(new ReinforcementDestructionTestContent(white ? 0 : 2, white ? 57 : 50, white ? 20520 : 1000));
         services.AddSingleton<IEquipmentReinforcementRollSource>(new FixedRoll(0));
         services.AddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();
@@ -768,7 +771,7 @@ public sealed class EquipmentReinforcementDomainTests
     }
 
     private sealed class Content(int failureWeight, int penaltyType, int penaltyValue,
-        int targetLevel, int materialId, bool omitCostWeight, bool white) : IEquipmentReinforcementDefinitionSource
+        int targetLevel, int materialId, bool omitCostWeight, bool white) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new(
@@ -781,10 +784,12 @@ public sealed class EquipmentReinforcementDomainTests
                 new(3243, 40, 10, new Dictionary<int, double> { [2] = 1 },
                     new Dictionary<int, int>()), 12));
 
-        public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(
             int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentReinforcementEquipmentDefinition?>(
-                itemId == 3000 ? new(1, white ? 57 : 50, white ? 0 : 2, 0, 45, true) : null);
+            ValueTask.FromResult<EquipmentDefinition?>(
+                itemId == 3000 ? new(1, white ? 57 : 50, white ? 0 : 2, "weapon", 45) : null);
 
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
             int itemId, CancellationToken ct) =>

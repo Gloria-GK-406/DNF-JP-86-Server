@@ -1,0 +1,36 @@
+{
+  "baseline": "38f71bd2",
+  "tests": {
+    "application-equipment-final.trx": {
+      "total": 326,
+      "passed": 326,
+      "failed": 0
+    },
+    "infrastructure-equipment-final.trx": {
+      "total": 84,
+      "passed": 84,
+      "failed": 0
+    },
+    "protocol-equipment-real-pvf.trx": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0
+    },
+    "host-full-final.trx": {
+      "total": 26,
+      "passed": 26,
+      "failed": 0
+    }
+  },
+  "deployed_matches_current_build": {
+    "Dfo.Server.Abstractions.dll": "9656e4e13179024199ba64c2bd15b7ee33f40ad0d85460a88e2182451f1d92c8",
+    "Dfo.Server.Application.dll": "232c54c6536dd3a98b43688ed96c6874d0d23544c39b42c7b24a778f43438b1c",
+    "Dfo.Server.Infrastructure.dll": "e2d243c016735088bec3be66a2304e28c77472fdeddb4f1b6a4785bd6f674261",
+    "Dfo.Server.GameServer.dll": "65fbb11468cdd4921be63c5ef9a97227c780b973147a10f86459edf2f04cb338"
+  },
+  "human_acceptance": "E01-E08 passed via user feedback",
+  "out_of_scope": [
+    "amplification level-up transaction",
+    "crafting zero crystal x0 projection"
+  ]
+}

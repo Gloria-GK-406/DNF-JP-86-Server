@@ -53,6 +53,9 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
         // When present, prepare all shared stats before any network hosted service accepts a client.
         if (archive is not null)
         {
+            var equipmentCount = await services.GetRequiredService<IEquipmentDefinitionSource>()
+                .InitializeAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Equipment content index initialized: {Count} templates", equipmentCount);
             var independentCount = services.GetRequiredService<Dfo.Server.Abstractions.Content.IIndependentDropRuleService>().Initialize();
             services.GetRequiredService<ILoggerFactory>().CreateLogger("IndependentDrops").LogInformation("Cached {Count} independent drop rows", independentCount);
             var extraCount = services.GetRequiredService<Dfo.Server.Abstractions.Content.IExtraDropRuleService>().Initialize();

@@ -5,19 +5,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class EquipmentReinforcementRuleService(IEquipmentReinforcementDefinitionSource definitions,
-    ILogger<EquipmentReinforcementRuleService> logger)
-    : IEquipmentReinforcementRuleService
+internal sealed partial class EquipmentUpgradeRuleService
 {
-    public async ValueTask<EquipmentReinforcementQuote> QuoteAsync(InventoryItemCoreState core, CancellationToken ct)
+    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct)
     {
         if (core.SealFlag != 0 || core.AmplifyType != 0)
             return new(EquipmentReinforcementRejection.CannotReinforce);
-        var equipment = await definitions.GetEquipmentAsync(core.ItemId, ct).ConfigureAwait(false);
+        var equipment = await equipmentDefinitions.GetEquipmentAsync(core.ItemId, ct).ConfigureAwait(false);
         var table = await definitions.GetNormalTableAsync(ct).ConfigureAwait(false);
-        if (equipment is not { CanReinforce: true } || table is null)
+        if (equipment is null || table is null || WeightIndex(equipment.EquipmentType) is null or 1
+            || equipment.ImpossibleContents.Contains("upgrade"))
             return new(EquipmentReinforcementRejection.UnsupportedContent);
-        if (core.Durability != equipment.MaxDurability)
+        if (equipment.MaxDurability is { } maximumDurability && core.Durability != maximumDurability)
             return new(EquipmentReinforcementRejection.Durability);
         var oldLevel = core.ReinforcementLevel;
         // A21 admission remains capped at current level 30, regardless of additional archive rows.
@@ -37,7 +36,7 @@ internal sealed class EquipmentReinforcementRuleService(IEquipmentReinforcementD
     }
 
     private sealed class Rule(IEquipmentReinforcementDefinitionSource definitions,
-        ILogger<EquipmentReinforcementRuleService> logger, int itemId,
+        ILogger<EquipmentUpgradeRuleService> logger, int itemId,
         EquipmentReinforcementRow row, byte oldLevel, bool canDestroy, int goldCost) : IEquipmentReinforcementRule
     {
         public int GoldCost => goldCost;
@@ -75,14 +74,15 @@ internal sealed class EquipmentReinforcementRuleService(IEquipmentReinforcementD
     }
 
     private static bool TryGoldCost(EquipmentReinforcementTable table,
-        EquipmentReinforcementEquipmentDefinition equipment, byte oldLevel, out int cost)
+        EquipmentDefinition equipment, byte oldLevel, out int cost)
     {
         cost = 0;
+        var typeIndex = WeightIndex(equipment.EquipmentType);
         var levelIndex = equipment.MinimumLevel + Math.Max(0, equipment.Rarity - 1) * 2;
         if (levelIndex < 0 || levelIndex >= table.BaseGoldByEquipmentLevel.Count
             || equipment.Rarity < 0 || equipment.Rarity >= table.CostWeightsByRarity.Count
-            || equipment.EquipmentTypeWeightIndex < 0
-            || equipment.EquipmentTypeWeightIndex >= table.CostWeightsByEquipmentType.Count)
+            || typeIndex is null
+            || typeIndex.Value >= table.CostWeightsByEquipmentType.Count)
             return false;
         // A21's normal table continues beyond the last explicit cost-weight entry.
         // The upstream provider treats a missing level weight as the neutral factor.
@@ -91,7 +91,7 @@ internal sealed class EquipmentReinforcementRuleService(IEquipmentReinforcementD
             return false;
         var raw = (double)table.BaseGoldByEquipmentLevel[levelIndex]
             * table.CostWeightsByRarity[equipment.Rarity]
-            * table.CostWeightsByEquipmentType[equipment.EquipmentTypeWeightIndex]
+            * table.CostWeightsByEquipmentType[typeIndex.Value]
             * levelWeight;
         if (!double.IsFinite(raw) || raw < 0 || raw > int.MaxValue)
             return false;

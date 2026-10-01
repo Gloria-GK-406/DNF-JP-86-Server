@@ -1,3 +1,4 @@
+using Dfo.Pvf.Tests.Support;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -149,6 +150,50 @@ public sealed class ChannelHostStartupTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Invalid_required_equipment_index_fails_before_listeners_start(bool duplicate)
+    {
+        var workingDirectory = Path.Combine(Path.GetTempPath(), $"dfo-host-equipment-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(workingDirectory);
+        var pvfPath = Path.Combine(workingDirectory, "broken.pvf");
+        var builder = new PvfArchiveBuilder();
+        if (duplicate)
+            builder.AddScript("equipment", "equipment.lst")
+                .Int(9001).Quoted("one.equ").Int(9001).Quoted("two.equ").End();
+        else
+            builder.AddScript("equipment", "equipment.lst").End();
+        await File.WriteAllBytesAsync(pvfPath, builder.Build());
+        var channelPort = GetAvailablePort();
+        var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
+        var output = new StringBuilder();
+        using var process = StartHost(workingDirectory, channelPort, gamePorts, output, archivePath: pvfPath);
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await process.WaitForExitAsync(timeout.Token);
+            Assert.NotEqual(0, process.ExitCode);
+            Assert.Contains("equipment/equipment.lst", Snapshot(output));
+            Assert.Contains("InvalidDataException", Snapshot(output));
+            foreach (var port in gamePorts.Prepend(channelPort))
+            {
+                using var probe = new TcpClient();
+                await Assert.ThrowsAnyAsync<SocketException>(async () =>
+                    await probe.ConnectAsync(IPAddress.Loopback, port));
+            }
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
+            await TestDirectory.DeleteAsync(workingDirectory);
+        }
+    }
+
     /// <summary>
     /// The packaged host, on ports this test owns.
     /// </summary>
@@ -163,7 +208,8 @@ public sealed class ChannelHostStartupTests
         int channelPort,
         IReadOnlyList<int> gamePorts,
         StringBuilder output,
-        string? scriptPath = null)
+        string? scriptPath = null,
+        string? archivePath = null)
     {
         var assembly = typeof(Program).Assembly.Location;
         var startInfo = new ProcessStartInfo("dotnet", $"\"{assembly}\"")
@@ -191,6 +237,9 @@ public sealed class ChannelHostStartupTests
         {
             startInfo.Environment["Channel__ScriptPath"] = scriptPath;
         }
+
+        if (archivePath is not null)
+            startInfo.Environment["PVF_ARCHIVE_PATH"] = archivePath;
 
         var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("The Host process could not be started.");

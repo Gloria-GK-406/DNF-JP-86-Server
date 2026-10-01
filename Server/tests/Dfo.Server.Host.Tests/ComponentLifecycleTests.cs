@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Hosting;
-using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application;
 using Dfo.Server.GameServer;
 using Dfo.Server.Host.Modules;
@@ -76,7 +75,7 @@ public sealed class ComponentLifecycleTests
         using var host = Builder(config).ConfigureServices(services =>
         {
             services.AddSingleton(new PvfContentOptions { ArchivePath = archive });
-            services.AddSingleton<IIndependentDropRuleService>(preparation);
+            services.AddSingleton<IEquipmentDefinitionSource>(preparation);
         }).Build();
         var start = Task.Run(() => host.StartAsync());
         try
@@ -174,17 +173,17 @@ public sealed class ComponentLifecycleTests
         catch (Exception error) when (error is SocketException or OperationCanceledException) { return false; }
     }
 
-    private sealed class FailingPreparation : IIndependentDropRuleService, IDisposable
+    private sealed class FailingPreparation : IEquipmentDefinitionSource, IDisposable
     {
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public ManualResetEventSlim Release { get; } = new();
-        public int Initialize()
+        public ValueTask<int> InitializeAsync(CancellationToken cancellationToken)
         {
             Entered.TrySetResult();
             if (!Release.Wait(TimeSpan.FromSeconds(20))) throw new TimeoutException("Test did not release preparation");
             throw new InvalidDataException("content unavailable");
         }
-        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken cancellationToken, int growthBonusPercent = 0) =>
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
         public void Dispose() => Release.Dispose();
     }

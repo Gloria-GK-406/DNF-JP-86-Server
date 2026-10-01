@@ -30,8 +30,8 @@ public sealed class EquipmentForgingRulesTests
             EquipmentForgingRules.Decide(Table(), Weapon(), 8, 3326, 0).Rejection);
     }
 
-    private static EquipmentReinforcementEquipmentDefinition Weapon() =>
-        new(75, 77, 2, 0, 45, true);
+    private static EquipmentDefinition Weapon() =>
+        new(75, 77, 2, "weapon", 45);
 
     private static EquipmentForgingTable Table() => new(8,
         [new(1, 10000, 1), new(2, 5000, 1.11),

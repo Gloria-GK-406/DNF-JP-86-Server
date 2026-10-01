@@ -30,15 +30,6 @@ public sealed record EquipmentReinforcementDestroyBonusDefinition(
     IReadOnlyDictionary<int, double> WeightByRarity,
     IReadOnlyDictionary<int, int> GradeCorrectionByRarity);
 
-/// <summary>Template facts; instance durability and locks must still be checked by Application.</summary>
-public sealed record EquipmentReinforcementEquipmentDefinition(
-    int MinimumLevel,
-    int Grade,
-    int Rarity,
-    int EquipmentTypeWeightIndex,
-    ushort MaxDurability,
-    bool CanReinforce);
-
 public enum EquipmentReinforcementProtectionKind
 {
     ResetToZero,
@@ -53,9 +44,6 @@ public sealed record EquipmentReinforcementProtectionDefinition(
 public interface IEquipmentReinforcementDefinitionSource
 {
     ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken);
-
-    ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
-        int itemId, CancellationToken cancellationToken);
 
     ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
         int itemId, CancellationToken cancellationToken);

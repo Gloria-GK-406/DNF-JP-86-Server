@@ -3,11 +3,6 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public interface IEquipmentReinforcementRuleService
-{
-    ValueTask<EquipmentReinforcementQuote> QuoteAsync(InventoryItemCoreState core, CancellationToken ct);
-}
-
 public sealed record EquipmentReinforcementQuote(EquipmentReinforcementRejection Rejection,
     IEquipmentReinforcementRule? Rule = null);
 

@@ -34,12 +34,13 @@ public sealed class PvfEquipmentReinforcementDefinitionSourceTests
         Assert.Equal(1.2, table.DestroyBonus.WeightByRarity[3], 5);
         Assert.Equal(4, table.DestroyBonus.GradeCorrectionByRarity[3]);
 
-        var sword = await source.GetEquipmentAsync(101010437, default);
+        var equipment = new PvfEquipmentDefinitionSource(provider);
+        var sword = await equipment.GetEquipmentAsync(101010437, default);
         Assert.NotNull(sword);
-        Assert.Equal((3, 3, 0, 0, (ushort)45, true),
+        Assert.Equal((3, 3, 0, "weapon", (ushort?)45),
             (sword.MinimumLevel, sword.Grade, sword.Rarity,
-                sword.EquipmentTypeWeightIndex, sword.MaxDurability, sword.CanReinforce));
-        Assert.Null(await source.GetEquipmentAsync(int.MaxValue, default));
+                sword.EquipmentType, sword.MaxDurability));
+        Assert.Null(await equipment.GetEquipmentAsync(int.MaxValue, default));
 
         Assert.Equal(new EquipmentReinforcementProtectionDefinition(
                 EquipmentReinforcementProtectionKind.ResetToZero, 0),
@@ -84,14 +85,16 @@ public sealed class PvfEquipmentReinforcementDefinitionSourceTests
     }
 
     [Fact]
-    public async Task Malformed_equipment_and_protection_action_are_not_usable_definitions()
+    public async Task Malformed_equipment_throws_and_protection_actions_remain_unusable()
     {
         using var archive = new BuiltArchive(BuildArchive());
         var source = new PvfEquipmentReinforcementDefinitionSource(archive.Provider);
-        Assert.Null(await source.GetEquipmentAsync(9001, default));
+        var equipment = new PvfEquipmentDefinitionSource(archive.Provider);
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await equipment.GetEquipmentAsync(9001, default));
         Assert.Null(await source.GetProtectionAsync(9002, default));
         Assert.Null(await source.GetProtectionAsync(9003, default));
-        Assert.False((await source.GetEquipmentAsync(9004, default))!.CanReinforce);
+        Assert.Contains("upgrade", (await equipment.GetEquipmentAsync(9004, default))!.ImpossibleContents);
     }
 
     [Fact]
@@ -104,7 +107,6 @@ public sealed class PvfEquipmentReinforcementDefinitionSourceTests
         using var archive = new BuiltArchive(builder);
         var source = new PvfEquipmentReinforcementDefinitionSource(archive.Provider);
         Assert.Null(await source.GetNormalTableAsync(default));
-        Assert.Null(await source.GetEquipmentAsync(9001, default));
         Assert.Null(await source.GetProtectionAsync(9002, default));
     }
 

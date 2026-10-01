@@ -13,7 +13,7 @@ internal sealed class EquipmentOutworldDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
-    IEquipmentOutworldRuleService rules,
+    IEquipmentUpgradeRuleService rules,
     IEquipmentOutworldSeedSource seeds,
     IMaterialConsumptionDomainService materials,
     TimeProvider clock) : IEquipmentOutworldDomainService
@@ -68,7 +68,7 @@ internal sealed class EquipmentOutworldDomainService(
                 && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentOutworldRejection.MaterialUnavailable);
 
-        var decision = await rules.DecideAsync(action, target.Core.ItemId, target.Core.AmplifyType,
+        var decision = await rules.DecideOutworldAsync(action, target.Core.ItemId, target.Core.AmplifyType,
             target.Core.ReinforcementLevel, material.ItemId, selectedOption, seeds.NextSeed(), ct)
             .ConfigureAwait(false);
         if (decision.Rejection != EquipmentOutworldRejection.None)

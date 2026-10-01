@@ -19,12 +19,12 @@ public sealed class PvfEquipmentForgingContentSourceTests
         Assert.Equal(3326, table.MaterialsByGrade[77].ItemId);
         Assert.Equal(39, table.MaterialsByGrade[77].BaseCount);
         Assert.Equal(1, table.ItemWeightsByRarity[2]);
-        var weapon = await new PvfEquipmentReinforcementDefinitionSource(provider)
+        var weapon = await new PvfEquipmentDefinitionSource(provider)
             .GetEquipmentAsync(101010339, default);
         Assert.NotNull(weapon);
-        Assert.Equal(0, weapon.EquipmentTypeWeightIndex);
+        Assert.Equal("weapon", weapon.EquipmentType);
         Assert.Equal(77, weapon.Grade);
         Assert.Equal(2, weapon.Rarity);
-        Assert.Equal(45, weapon.MaxDurability);
+        Assert.Equal((ushort?)45, weapon.MaxDurability);
     }
 }

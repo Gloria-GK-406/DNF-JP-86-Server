@@ -6,10 +6,10 @@ namespace Dfo.Server.Application.Inventory;
 internal static class EquipmentForgingRules
 {
     public static EquipmentForgingDecision Decide(EquipmentForgingTable table,
-        EquipmentReinforcementEquipmentDefinition equipment, byte oldLevel,
+        EquipmentDefinition equipment, byte oldLevel,
         int materialItemId, int roll)
     {
-        if (equipment.EquipmentTypeWeightIndex != 0)
+        if (equipment.EquipmentType != "weapon")
             return new(EquipmentForgingRejection.NotWeapon);
         if (table.MaxLevel is <= 0 or > byte.MaxValue || table.Levels.Count < table.MaxLevel
             || equipment.Rarity < 0 || equipment.Rarity >= table.ItemWeightsByRarity.Count

@@ -2,11 +2,13 @@ using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Outworld;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -175,10 +177,94 @@ public sealed class EquipmentOutworldHandlerTests
         Assert.Equal(Piece(3), (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
     }
 
-    private static ShopFixture Fixture() => new(services =>
+    [Theory]
+    [InlineData("amulet")]
+    [InlineData("wrist")]
+    [InlineData("ring")]
+    public async Task Jewelry_without_durability_assigns_option_commits_and_refreshes(string type)
+    {
+        using var shop = Fixture(services => services.AddSingleton<IEquipmentDefinitionSource>(
+            new FixedEquipment(new(80, 82, 2, type, null))));
+        var original = Piece(0) with { Durability = 0 };
+        await shop.SeedCore(9, original);
+        await shop.Seed(121, 1286, 1);
+        var bytes = shop.StoredCore(9);
+        await Send(shop, 7, false, 0, 1286, 3);
+        var response = Assert.IsType<InvestAmplifyOptionResponse>(shop.Sender.Messages[0]);
+        Assert.True(response.Success);
+        Assert.Equal((byte)3, response.AmplifyType);
+        Assert.Equal((ushort)5, response.AmplifyValue);
+        Assert.Equal(0, shop.Count(1286));
+        Assert.Equal(3, shop.Sender.Messages.Count);
+        Assert.False(bytes.SequenceEqual(shop.StoredCore(9)));
+        var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
+            .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
+        Assert.Equal(original with { AmplifyType = 3, AmplifyValue = 5 },
+            (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+    }
+
+    private sealed class FixedEquipment(EquipmentDefinition definition) : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(1);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentDefinition?>(definition);
+    }
+
+    [Fact]
+    public async Task Invalid_equipment_content_logs_error_preserves_assets_and_emits_no_ack()
+    {
+        var logger = new CaptureLogger<CommandLoggingBehavior<EquipmentOutworldResult>>();
+        using var shop = Fixture(services =>
+        {
+            services.AddSingleton<IEquipmentDefinitionSource>(new BrokenEquipment());
+            services.AddSingleton<ILogger<CommandLoggingBehavior<EquipmentOutworldResult>>>(logger);
+        });
+        var original = Piece(0);
+        await shop.SeedCore(9, original);
+        await shop.Seed(121, 1286, 2);
+        var bytes = shop.StoredCore(9);
+        var failure = await Assert.ThrowsAsync<InvalidDataException>(
+            () => Send(shop, 7, false, 0, 1286, 3).AsTask());
+        Assert.Contains("[durability]", failure.Message);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Error
+            && ReferenceEquals(entry.Exception, failure));
+        Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(2, shop.Count(1286));
+        Assert.Equal(bytes, shop.StoredCore(9));
+        var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
+            .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
+        Assert.Equal(original, (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+        // Internal content failures are not memoized as a normal business rejection.
+        await Assert.ThrowsAsync<InvalidDataException>(
+            () => Send(shop, 7, false, 0, 1286, 3).AsTask());
+        Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(2, shop.Count(1286));
+    }
+
+    private sealed class BrokenEquipment : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(1);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            throw new InvalidDataException(
+                $"Equipment {itemId}, PVF 'equipment/broken.equ', field '[durability]': not an integer.");
+    }
+
+    private sealed class CaptureLogger<T> : ILogger<T>
+    {
+        internal List<(LogLevel Level, Exception? Exception)> Entries { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel level) => true;
+        public void Log<TState>(LogLevel level, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Entries.Add((level, exception));
+    }
+
+    private static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(services =>
     {
         services.AddSingleton<IEquipmentOutworldContentSource>(new Content());
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Equipment());
+        services.AddSingleton<IEquipmentDefinitionSource>(new Equipment());
+        configure?.Invoke(services);
     });
 
     private static InventoryItemCoreState Piece(byte amplifyType) =>
@@ -215,11 +301,13 @@ public sealed class EquipmentOutworldHandlerTests
                 [new(1, 1_000_000), new(2, 1), new(3, 1), new(4, 1)]));
     }
 
-    private sealed class Equipment : IEquipmentReinforcementDefinitionSource
+    private sealed class Equipment : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
-        public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
-            int itemId, CancellationToken ct) => ValueTask.FromResult<EquipmentReinforcementEquipmentDefinition?>(
-                itemId == 3000 ? new(75, 1, 2, 0, 45, true) : null);
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(
+            int itemId, CancellationToken ct) => ValueTask.FromResult<EquipmentDefinition?>(
+                itemId == 3000 ? new(75, 1, 2, "weapon", 45) : null);
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(null);
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(

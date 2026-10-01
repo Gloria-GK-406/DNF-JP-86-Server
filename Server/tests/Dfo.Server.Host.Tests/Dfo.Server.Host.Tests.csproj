@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../Dfo.Pvf.Tests/Support/PvfArchiveBuilder.cs" Link="Support/PvfArchiveBuilder.cs" />
     <ProjectReference Include="..\..\src\Dfo.Server.Host\Dfo.Server.Host.csproj" />
   </ItemGroup>
 </Project>

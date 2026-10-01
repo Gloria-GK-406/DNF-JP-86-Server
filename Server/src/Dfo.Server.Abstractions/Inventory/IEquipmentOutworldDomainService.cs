@@ -12,14 +12,6 @@ public interface IEquipmentOutworldDomainService
         byte selectedOption, CancellationToken cancellationToken);
 }
 
-public interface IEquipmentOutworldRuleService
-{
-    ValueTask<EquipmentOutworldDecision> DecideAsync(
-        EquipmentOutworldAction action, int equipmentItemId, byte amplifyType,
-        byte upgradeLevel, int materialItemId, byte selectedOption, int seed,
-        CancellationToken cancellationToken);
-}
-
 public interface IEquipmentOutworldSeedSource
 {
     int NextSeed();

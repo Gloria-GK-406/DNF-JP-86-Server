@@ -304,7 +304,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IEquipmentRepairRuleService, EquipmentRepairRuleService>();
         services.TryAddSingleton<IEquipmentEnchantRuleService, EquipmentEnchantRuleService>();
-        services.TryAddSingleton<IEquipmentReinforcementRuleService, EquipmentReinforcementRuleService>();
+        services.TryAddSingleton<IEquipmentUpgradeRuleService, EquipmentUpgradeRuleService>();
         services.TryAddSingleton<IEquipmentReinforcementFailureRuleService, EquipmentReinforcementFailureRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
         services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
@@ -314,10 +314,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentMagicSealRuleService, EquipmentMagicSealRuleService>();
         services.TryAddSingleton<IEquipmentMagicSealDomainService, EquipmentMagicSealDomainService>();
         services.TryAddSingleton<IEquipmentOutworldSeedSource, EquipmentOutworldSeedSource>();
-        services.TryAddSingleton<IEquipmentOutworldRuleService, EquipmentOutworldRuleService>();
         services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
         services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
-        services.TryAddSingleton<IEquipmentForgingRuleService, EquipmentForgingRuleService>();
         services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
         services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
         services.TryAddSingleton<MailStackTransfers>();

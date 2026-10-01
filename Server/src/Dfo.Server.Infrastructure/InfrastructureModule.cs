@@ -113,6 +113,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ILotteryDefinitionCache>(provider => provider.GetRequiredService<PvfPackageOpeningDefinitionSource>());
         services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
         services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
+        services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
         services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();

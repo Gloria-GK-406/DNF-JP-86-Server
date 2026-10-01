@@ -22,7 +22,7 @@ public sealed class PvfEquipmentOutworldContentSourceTests
         Assert.Equal(5, table.InitialValues[2][1]);
         Assert.Equal(5, table.InitialValues[2][4]);
         Assert.Equal(4, table.RollWeights.Count);
-        var equipment = await new PvfEquipmentReinforcementDefinitionSource(provider)
+        var equipment = await new PvfEquipmentDefinitionSource(provider)
             .GetEquipmentAsync(101010339, default);
         Assert.NotNull(equipment);
         Assert.True(equipment.MinimumLevel >= table.MinimumEquipmentLevel);

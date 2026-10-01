@@ -70,7 +70,7 @@ public sealed class EquipmentReinforcementFailureRuleTests
     [InlineData(12, 4)]
     public async Task Reinforcement_bonus_uses_original_level(byte oldLevel, int count)
     {
-        var service = new EquipmentReinforcementFailureRuleService(new Content(oldLevel),
+        var service = new EquipmentReinforcementFailureRuleService(new Content(oldLevel), new Content(oldLevel),
             new ReinforcementDestructionTestContent(2), NullLogger<EquipmentReinforcementFailureRuleService>.Instance);
         var result = await service.GetResultAsync(Facts(oldLevel), new(null, 0, 0), default);
         Assert.Equal(EquipmentReinforcementOutcome.Destroyed, result.Outcome);
@@ -83,7 +83,7 @@ public sealed class EquipmentReinforcementFailureRuleTests
     public async Task Protected_failure_plans_no_rewards_and_does_not_read_disjoint_content(
         EquipmentReinforcementProtectionKind kind, byte level)
     {
-        var service = new EquipmentReinforcementFailureRuleService(new Content(11),
+        var service = new EquipmentReinforcementFailureRuleService(new Content(11), new Content(11),
             new NoDisjointReads(), NullLogger<EquipmentReinforcementFailureRuleService>.Instance);
         var result = await service.GetResultAsync(Facts(11), new(new(kind, level), 0, 0), default);
         Assert.Equal(level, result.NewLevel);
@@ -111,14 +111,16 @@ public sealed class EquipmentReinforcementFailureRuleTests
         [[], [3033, 3034, 3035, 3036]], [new(2, 4, 50, 50), new(2, 4, 50, 50)],
         [new(true, 10100115, 1, 100, 0)]);
 
-    private sealed class Content(byte oldLevel) : IEquipmentReinforcementDefinitionSource
+    private sealed class Content(byte oldLevel) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new([new(oldLevel + 1, [], 100_000, 3, 0, 3037, 10)],
                 [], [], [], new Dictionary<int, double>(), new Dictionary<int, int>(), new Dictionary<int, int>(),
                 new(3243, 40, 10, new Dictionary<int, double> { [2] = 1 }, new Dictionary<int, int> { [2] = 2 }), 12));
-        public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentReinforcementEquipmentDefinition?>(new(1, 50, 2, 0, 45, true));
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentDefinition?>(new(1, 50, 2, "weapon", 45));
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int itemId, CancellationToken ct) =>
             throw new NotSupportedException("Protection is an explicit fact, not queried by failure planning.");
     }

@@ -216,6 +216,7 @@ public sealed class EquipmentOutworldDomainTests
     {
         services.AddSingleton<IEquipmentOutworldContentSource>(new Content());
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Equipment());
+        services.AddSingleton<IEquipmentDefinitionSource>(new Equipment());
         services.AddSingleton<IEquipmentOutworldSeedSource>(new Seed());
         services.AddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
     });
@@ -255,11 +256,13 @@ public sealed class EquipmentOutworldDomainTests
                 [new(1, 1_000_000), new(2, 1), new(3, 1), new(4, 1)]));
     }
 
-    private sealed class Equipment : IEquipmentReinforcementDefinitionSource
+    private sealed class Equipment : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
-        public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
-            int itemId, CancellationToken ct) => ValueTask.FromResult<EquipmentReinforcementEquipmentDefinition?>(
-                itemId == 3000 ? new(75, 1, 2, 0, 45, true) : null);
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(
+            int itemId, CancellationToken ct) => ValueTask.FromResult<EquipmentDefinition?>(
+                itemId == 3000 ? new(75, 1, 2, "weapon", 45) : null);
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(null);
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(

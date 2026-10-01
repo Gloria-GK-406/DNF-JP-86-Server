@@ -180,8 +180,9 @@ public sealed class EquipmentForgingDomainTests
     {
         services.AddSingleton<IEquipmentForgingContentSource>(new Content());
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Equipment(equipmentType));
+        services.AddSingleton<IEquipmentDefinitionSource>(new Equipment(equipmentType));
         services.AddSingleton<IEquipmentForgingRollSource>(new Roll(roll));
-        services.AddSingleton<IEquipmentForgingRuleService, EquipmentForgingRuleService>();
+        services.AddSingleton<IEquipmentUpgradeRuleService, EquipmentUpgradeRuleService>();
         services.AddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
     });
 
@@ -220,12 +221,14 @@ public sealed class EquipmentForgingDomainTests
                 [0.4, 0.7, 1, 1.25, 1.4, 1.1, 1.3]));
     }
 
-    private sealed class Equipment(int type) : IEquipmentReinforcementDefinitionSource
+    private sealed class Equipment(int type) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
-        public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(
             int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentReinforcementEquipmentDefinition?>(
-                itemId == 3000 ? new(75, 77, 2, type, 45, true) : null);
+            ValueTask.FromResult<EquipmentDefinition?>(
+                itemId == 3000 ? new(75, 77, 2, type == 0 ? "weapon" : "coat", 45) : null);
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(null);
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(

@@ -7,6 +7,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentReinforcementFailureRuleService(
     IEquipmentReinforcementDefinitionSource reinforcement,
+    IEquipmentDefinitionSource equipmentDefinitions,
     IEquipmentDisjointDefinitionSource disjoint,
     ILogger<EquipmentReinforcementFailureRuleService> logger) : IEquipmentReinforcementFailureRuleService
 {
@@ -17,7 +18,7 @@ internal sealed class EquipmentReinforcementFailureRuleService(
         ArgumentNullException.ThrowIfNull(context);
         ValidateDraw(context.AdditionalItemDraw);
         ValidateDraw(context.GreatDraw);
-        var definition = await reinforcement.GetEquipmentAsync(equipment.Core.ItemId, ct).ConfigureAwait(false);
+        var definition = await equipmentDefinitions.GetEquipmentAsync(equipment.Core.ItemId, ct).ConfigureAwait(false);
         var table = await reinforcement.GetNormalTableAsync(ct).ConfigureAwait(false);
         var oldLevel = equipment.Core.ReinforcementLevel;
         var row = table?.Rows.FirstOrDefault(candidate => candidate.TargetLevel == oldLevel + 1);
@@ -116,7 +117,7 @@ internal sealed class EquipmentReinforcementFailureRuleService(
     }
 
     private static bool TryAdditionalBonus(EquipmentReinforcementDestroyBonusDefinition bonus,
-        EquipmentReinforcementEquipmentDefinition equipment, byte oldLevel,
+        EquipmentDefinition equipment, byte oldLevel,
         List<EquipmentReinforcementFailureReward> rewards)
     {
         if (bonus.ItemId <= 0 || bonus.MinimumCorrectedGrade < 0 || bonus.UpgradeLevelBase < 0)

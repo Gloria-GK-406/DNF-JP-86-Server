@@ -4,12 +4,9 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class EquipmentOutworldRuleService(
-    IEquipmentOutworldContentSource content,
-    IEquipmentReinforcementDefinitionSource equipment)
-    : IEquipmentOutworldRuleService
+internal sealed partial class EquipmentUpgradeRuleService
 {
-    public async ValueTask<EquipmentOutworldDecision> DecideAsync(
+    public async ValueTask<EquipmentOutworldDecision> DecideOutworldAsync(
         EquipmentOutworldAction action, int equipmentItemId, byte amplifyType,
         byte upgradeLevel, int materialItemId, byte selectedOption, int seed,
         CancellationToken ct)
@@ -18,10 +15,10 @@ internal sealed class EquipmentOutworldRuleService(
             (EquipmentOutworldAction.Purify or EquipmentOutworldAction.Invest
                 or EquipmentOutworldAction.Twist))
             return new(EquipmentOutworldRejection.InvalidRequest);
-        var definition = await equipment.GetEquipmentAsync(equipmentItemId, ct).ConfigureAwait(false);
-        var table = await content.GetAsync(ct).ConfigureAwait(false);
+        var definition = await equipmentDefinitions.GetEquipmentAsync(equipmentItemId, ct).ConfigureAwait(false);
+        var table = await outworldContent.GetAsync(ct).ConfigureAwait(false);
         if (definition is null || table is null || definition.MinimumLevel < table.MinimumEquipmentLevel
-            || definition.Rarity < 2 || definition.EquipmentTypeWeightIndex == 1
+            || definition.Rarity < 2 || WeightIndex(definition.EquipmentType) is null or 1
             || !table.InitialValues.TryGetValue(definition.Rarity, out var values))
             return new(EquipmentOutworldRejection.UnsupportedContent);
         if (upgradeLevel != 0)

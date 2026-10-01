@@ -448,6 +448,7 @@ public sealed class EquipmentReinforcementHandlerTests
     private static ShopFixture Fixture(bool protectedFailure = false, int materialId = 1000) => new(services =>
     {
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Content(protectedFailure, materialId));
+        services.AddSingleton<IEquipmentDefinitionSource>(new Content(protectedFailure, materialId));
         services.AddSingleton<IEquipmentDisjointDefinitionSource>(new ReinforcementDestructionTestContent(0, 10, 20520));
         services.AddSingleton<IEquipmentReinforcementRollSource>(new FixedRoll());
     });
@@ -467,7 +468,7 @@ public sealed class EquipmentReinforcementHandlerTests
         public int Next(int exclusiveUpperBound) => 0;
     }
 
-    private sealed class Content(bool protectedFailure, int materialId) : IEquipmentReinforcementDefinitionSource
+    private sealed class Content(bool protectedFailure, int materialId) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new(
@@ -479,10 +480,12 @@ public sealed class EquipmentReinforcementHandlerTests
                 new(3243, 40, 10, new Dictionary<int, double>(),
                     new Dictionary<int, int>()), 12));
 
-        public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(
             int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentReinforcementEquipmentDefinition?>(
-                itemId == 3000 ? new(1, 10, 0, 0, 45, true) : null);
+            ValueTask.FromResult<EquipmentDefinition?>(
+                itemId == 3000 ? new(1, 10, 0, "weapon", 45) : null);
 
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
             int itemId, CancellationToken ct) =>

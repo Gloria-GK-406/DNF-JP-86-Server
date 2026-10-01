@@ -20,30 +20,10 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         ["legendary"] = 6,
     };
 
-    // A21 [type] starts with weapon (upstream EquipmentType 12) and ends with magic stone.
-    private static readonly IReadOnlyDictionary<string, int> EquipmentTypes = new Dictionary<string, int>(
-        StringComparer.OrdinalIgnoreCase)
-    {
-        ["weapon"] = 0,
-        ["title name"] = 1,
-        ["coat"] = 2,
-        ["shoulder"] = 3,
-        ["pants"] = 4,
-        ["shoes"] = 5,
-        ["waist"] = 6,
-        ["amulet"] = 7,
-        ["wrist"] = 8,
-        ["ring"] = 9,
-        ["support"] = 10,
-        ["magic stone"] = 11,
-    };
-
     private readonly Lock gate = new();
     private EquipmentReinforcementTable? table;
     private bool tableRead;
-    private Dictionary<int, string>? equipmentPaths;
     private Dictionary<int, string>? stackablePaths;
-    private readonly Dictionary<int, EquipmentReinforcementEquipmentDefinition?> equipmentCache = [];
     private readonly Dictionary<int, EquipmentReinforcementProtectionDefinition?> protectionCache = [];
 
     public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken)
@@ -60,18 +40,6 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         }
     }
 
-    public ValueTask<EquipmentReinforcementEquipmentDefinition?> GetEquipmentAsync(
-        int itemId, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        lock (gate)
-        {
-            if (!equipmentCache.TryGetValue(itemId, out var definition))
-                equipmentCache[itemId] = definition = ReadEquipment(itemId);
-            return ValueTask.FromResult(definition);
-        }
-    }
-
     public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
         int itemId, CancellationToken cancellationToken)
     {
@@ -82,38 +50,6 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
                 protectionCache[itemId] = definition = ReadProtection(itemId);
             return ValueTask.FromResult(definition);
         }
-    }
-
-    private EquipmentReinforcementEquipmentDefinition? ReadEquipment(int itemId)
-    {
-        var archive = provider.Archive;
-        equipmentPaths ??= ReadPaths(archive, "equipment/equipment.lst");
-        if (!equipmentPaths.TryGetValue(itemId, out var path))
-            return null;
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + path);
-        var minimumLevel = OneInt(sections, "[minimum level]");
-        var grade = OneInt(sections, "[grade]");
-        var rarity = OneInt(sections, "[rarity]");
-        var durability = OneInt(sections, "[durability]");
-        var type = One(sections, "[equipment type]");
-        if (minimumLevel is not int equipmentLevel || equipmentLevel < 0
-            || grade is not int equipmentGrade || equipmentGrade < 0
-            || rarity is not int equipmentRarity || equipmentRarity is < 0 or > 6
-            || durability is not int maxDurability || maxDurability is < 0 or > ushort.MaxValue
-            || type is null || type.Values.Count is < 1 or > 2
-            || !TryName(archive, type.Values[0], out var typeName)
-            || !EquipmentTypes.TryGetValue(typeName, out var typeIndex)
-            || type.Values.Count == 2
-                && (type.Values[1].Kind != PvfTokenKind.Int32 || type.Values[1].Value < 0))
-            return null;
-
-        var impossible = sections.Where(section => section.Name == "[impossible contents]").ToArray();
-        if (impossible.Any(section => section.Values.Any(value => !value.IsString)))
-            return null;
-        var blocked = impossible.SelectMany(section => section.Values)
-            .Any(value => TryName(archive, value, out var name) && name == "upgrade");
-        return new(equipmentLevel, equipmentGrade, equipmentRarity, typeIndex,
-            (ushort)maxDurability, typeIndex != 1 && !blocked);
     }
 
     private EquipmentReinforcementProtectionDefinition? ReadProtection(int itemId)

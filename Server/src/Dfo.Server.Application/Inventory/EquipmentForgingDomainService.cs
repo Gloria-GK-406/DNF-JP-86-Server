@@ -13,7 +13,7 @@ internal sealed class EquipmentForgingDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
-    IEquipmentForgingRuleService rules,
+    IEquipmentUpgradeRuleService rules,
     IEquipmentForgingRollSource rolls,
     IMaterialConsumptionDomainService materials,
     TimeProvider clock) : IEquipmentForgingDomainService
@@ -67,7 +67,7 @@ internal sealed class EquipmentForgingDomainService(
             || material.Core.ExpireTime > 0
                 && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentForgingRejection.MaterialUnavailable);
-        var decision = await rules.DecideAsync(target.Core.ItemId, target.Core.Durability,
+        var decision = await rules.DecideForgingAsync(target.Core.ItemId, target.Core.Durability,
             target.Core.GenuineUpgrade, material.ItemId, rolls.Next(), ct)
             .ConfigureAwait(false);
         if (decision.Rejection != EquipmentForgingRejection.None)
