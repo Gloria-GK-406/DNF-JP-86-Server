@@ -1,0 +1,2 @@
+PASS: checked 1021 source files for fixed string tag lookup/comparison/helper access.
+Dynamic Probe values/where queries and field-value enums are excluded by syntax, not file exemptions.

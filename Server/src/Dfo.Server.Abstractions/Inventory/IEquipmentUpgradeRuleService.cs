@@ -4,6 +4,9 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IEquipmentUpgradeRuleService
 {
+    ValueTask<EquipmentReinforcementQuote> QuoteTicketAsync(InventoryItemCoreState core, int materialItemId,
+        CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
+        ValueTask.FromResult(new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None));
     ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct,
         EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
     ValueTask<EquipmentOutworldDecision> DecideOutworldAsync(EquipmentOutworldAction action,

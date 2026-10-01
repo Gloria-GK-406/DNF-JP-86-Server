@@ -14,16 +14,22 @@ internal sealed class EquipmentEffectPlanRuleService(IEquipmentReinforcementFail
         IEquipmentReinforcementRule rule, MaterialCost material, MaterialCost? protection,
         EquipmentReinforcementFailureContext failure, bool succeeded, CancellationToken ct)
     {
-        var decision = succeeded
+        var decision = rule.FixedTargetLevel is { } fixedLevel
+            ? new EquipmentReinforcementFailureResult(EquipmentReinforcementRejection.None,
+                succeeded ? EquipmentReinforcementOutcome.Succeeded : EquipmentReinforcementOutcome.Retained,
+                succeeded ? fixedLevel : target.Core.ReinforcementLevel, false, [])
+            : succeeded
             ? new EquipmentReinforcementFailureResult(EquipmentReinforcementRejection.None, EquipmentReinforcementOutcome.Succeeded,
                 checked((byte)(target.Core.ReinforcementLevel + 1)), false, [])
             : await failures.GetResultAsync(target, failure, ct).ConfigureAwait(false);
         if (decision.Rejection != EquipmentReinforcementRejection.None) return new(decision, []);
-        var effects = new List<DomainEffect> { Consume(material), new SpendGoldEffect(rule.GoldCost) };
+        var effects = new List<DomainEffect> { Consume(material) };
+        if (rule.FixedTargetLevel is null) effects.Add(new SpendGoldEffect(rule.GoldCost));
         if (decision.ConsumeProtection) effects.Add(Consume(protection
             ?? throw new InvalidOperationException("Protected failure lacks its protection target.")));
-        effects.Add(decision.Outcome == EquipmentReinforcementOutcome.Destroyed
-            ? new DestroyEquipmentEffect(Target(target)) : new SetEquipmentUpgradeEffect(Target(target), decision.NewLevel));
+        if (rule.FixedTargetLevel is null || succeeded)
+            effects.Add(decision.Outcome == EquipmentReinforcementOutcome.Destroyed
+                ? new DestroyEquipmentEffect(Target(target)) : new SetEquipmentUpgradeEffect(Target(target), decision.NewLevel));
         foreach (var reward in decision.Rewards) effects.Add(Grant(reward.ItemId, reward.Count));
         return new(decision, effects.AsReadOnly());
     }

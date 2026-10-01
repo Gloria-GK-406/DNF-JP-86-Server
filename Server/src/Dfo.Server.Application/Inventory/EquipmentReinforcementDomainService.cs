@@ -51,11 +51,22 @@ internal sealed class EquipmentReinforcementDomainService(
         if (target.Core.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
         if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
             return new(EquipmentReinforcementRejection.Locked);
-        var quote = await rules.QuoteReinforcementAsync(target.Core, ct, kind).ConfigureAwait(false);
+        var sourceBound = materialSlot is { } requestedSource ? slots.Find(session.CharacterId, requestedSource) : null;
+        var source = sourceBound is null ? null : await sourceBound.Container.ReadSlotAsync(sourceBound.Slot.Index, ct).ConfigureAwait(false);
+        var ticketQuote = source is { IsPile: true }
+            ? await rules.QuoteTicketAsync(target.Core, source.ItemId, ct, kind).ConfigureAwait(false)
+            : new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None);
+        var quote = ticketQuote.IsTicket ? ticketQuote
+            : await rules.QuoteReinforcementAsync(target.Core, ct, kind).ConfigureAwait(false);
         if (quote.Rejection != EquipmentReinforcementRejection.None) return new(quote.Rejection);
         var rule = quote.Rule ?? throw new InvalidOperationException("Reinforcement quote lacks its rule.");
         var oldLevel = target.Core.ReinforcementLevel;
         var goldCost = rule.GoldCost;
+        if (quote.IsTicket && (source is null || source.Count < 1 || source.Core.SortLockFlag != 0
+            || source.Core.EquipmentLockId != 0 || protectionSlot is not null
+            || source.Core.ExpireTime > 0 && source.Core.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()
+            || await characters.Get(session.CharacterId).CanUseAsync(source.ItemId, ct).ConfigureAwait(false) != ItemUsability.Allowed))
+            return new(EquipmentReinforcementRejection.InvalidRequest);
 
         var accountKind = accountMaterialRules.TryGetByItemId(rule.MaterialItemId, out var accountDefinition)
             ? accountDefinition.Kind : (AccountMaterialKind?)null;
@@ -119,7 +130,7 @@ internal sealed class EquipmentReinforcementDomainService(
         var plan = await plans.ReinforcementAsync(target, rule,
             new(materialLocation, rule.MaterialItemId, rule.MaterialCount),
             protectionSlot is { } ticket ? new(new MaterialLocation.Carried(ticket), protectionItem!.ItemId, 1) : null,
-            new(protectionDefinition, succeeded ? 0 : rolls.Next(10_000), succeeded ? 0 : rolls.Next(10_000), kind), succeeded, ct).ConfigureAwait(false);
+            new(protectionDefinition, succeeded || quote.IsTicket ? 0 : rolls.Next(10_000), succeeded || quote.IsTicket ? 0 : rolls.Next(10_000), kind), succeeded, ct).ConfigureAwait(false);
         var decision = plan.Decision;
         if (decision.Rejection != EquipmentReinforcementRejection.None) return new(decision.Rejection);
         var context = new EffectExecutionContext(session.AccountId, session.CharacterId, timeProvider.GetUtcNow(), session);
@@ -154,7 +165,8 @@ internal sealed class EquipmentReinforcementDomainService(
         };
         var receipt = new EquipmentReinforcementReceipt(session, targetSlot, materialSlot,
             decision.ConsumeProtection ? protectionSlot : null, oldLevel, decision.NewLevel,
-            decision.Outcome, materialRemaining, applied.Changes<GoldEffectChange>().Single().Remaining,
+            decision.Outcome, materialRemaining, applied.Changes<GoldEffectChange>().LastOrDefault()?.Remaining
+                ?? await character.GoldAsync(ct).ConfigureAwait(false),
             changes, Array.AsReadOnly(rewards), accountChanges, context.At);
         return new(EquipmentReinforcementRejection.None, receipt);
     }

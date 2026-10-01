@@ -7,6 +7,57 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfEquipmentReinforcementDefinitionSourceTests
 {
+    [SkippableTheory]
+    [InlineData(7275, EquipmentUpgradeKind.Reinforcement, 12, 100)]
+    [InlineData(7814, EquipmentUpgradeKind.Reinforcement, 13, 100)]
+    [InlineData(10008100, EquipmentUpgradeKind.Amplification, 11, 90)]
+    [InlineData(10008107, EquipmentUpgradeKind.Amplification, 12, 90)]
+    public async Task Real_fixed_tickets_have_explicit_target_probability_and_mode(int id, EquipmentUpgradeKind kind, byte level, int percent)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfEquipmentReinforcementDefinitionSource(provider);
+        Assert.Equal(new EquipmentUpgradeTicketDefinition(kind, level, percent, "fixed", -1), await source.GetTicketAsync(id, default));
+        Assert.Null(await source.GetTicketAsync(3037, default));
+    }
+
+    [Theory]
+    [InlineData("type")]
+    [InlineData("tail")]
+    [InlineData("level")]
+    [InlineData("percent")]
+    [InlineData("duplicate")]
+    [InlineData("both")]
+    public async Task Malformed_tickets_throw_with_source_path(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("stackable", "stackable.lst").Int(9000).Quoted("ticket.stk").End();
+        var script = builder.AddScript("stackable", "ticket.stk").Tag("[equipment reinforcement ticket]");
+        if (defect == "type") script.Quoted("12"); else script.Int(defect == "level" ? 32 : 12);
+        script.Int(defect == "percent" ? 101 : 100).Quoted("fixed").Int(-1);
+        if (defect == "tail") script.Int(7);
+        if (defect is "duplicate" or "both")
+            script.Tag(defect == "both" ? "[equipment amplify reinforcement ticket]" : "[equipment reinforcement ticket]")
+                .Int(12).Int(100).Quoted("fixed").Int(-1);
+        script.End();
+        using var archive = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            new PvfEquipmentReinforcementDefinitionSource(archive.Provider).GetTicketAsync(9000, default).AsTask());
+        Assert.Contains("ticket.stk", error.Message);
+    }
+
+    [Fact]
+    public async Task Unknown_well_formed_ticket_mode_is_preserved_for_explicit_rule_rejection()
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("stackable", "stackable.lst").Int(9000).Quoted("ticket.stk").End();
+        builder.AddScript("stackable", "ticket.stk").Tag("[equipment reinforcement ticket]")
+            .Int(12).Int(0).Quoted("random").Int(5).End();
+        using var archive = new BuiltArchive(builder);
+        Assert.Equal(new EquipmentUpgradeTicketDefinition(EquipmentUpgradeKind.Reinforcement, 12, 0, "random", 5),
+            await new PvfEquipmentReinforcementDefinitionSource(archive.Provider).GetTicketAsync(9000, default));
+    }
+
     [SkippableFact]
     public async Task A21_amplification_has_independent_costs_material_penalties_and_protection_actions()
     {

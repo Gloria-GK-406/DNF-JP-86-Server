@@ -1,0 +1,58 @@
+{
+  "final-Dfo.Pvf": {
+    "total": 80,
+    "executed": 80,
+    "passed": 80,
+    "failed": 0,
+    "skipped": 0
+  },
+  "final-Dfo.Server.Application": {
+    "total": 2626,
+    "executed": 2626,
+    "passed": 2626,
+    "failed": 0,
+    "skipped": 0
+  },
+  "final-Dfo.Server.Host": {
+    "total": 26,
+    "executed": 26,
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0
+  },
+  "final-Dfo.Server.HttpApi": {
+    "total": 50,
+    "executed": 50,
+    "passed": 50,
+    "failed": 0,
+    "skipped": 0
+  },
+  "final-Dfo.Server.Infrastructure": {
+    "total": 752,
+    "executed": 750,
+    "passed": 750,
+    "failed": 0,
+    "skipped": 2
+  },
+  "final-Dfo.Server.Networking": {
+    "total": 86,
+    "executed": 86,
+    "passed": 86,
+    "failed": 0,
+    "skipped": 0
+  },
+  "final-Dfo.Server.Persistence": {
+    "total": 392,
+    "executed": 392,
+    "passed": 392,
+    "failed": 0,
+    "skipped": 0
+  },
+  "final-Dfo.Server.Protocol": {
+    "total": 1226,
+    "executed": 1226,
+    "passed": 1226,
+    "failed": 0,
+    "skipped": 0
+  }
+}

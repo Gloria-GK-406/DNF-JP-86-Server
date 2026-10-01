@@ -43,8 +43,14 @@ public sealed record EquipmentReinforcementProtectionDefinition(
     EquipmentReinforcementProtectionKind Kind,
     int RetainedLevel);
 
+public sealed record EquipmentUpgradeTicketDefinition(EquipmentUpgradeKind Kind, byte TargetLevel,
+    int SuccessRatePercent, string ApplyMode, int ApplyValue);
+
 public interface IEquipmentReinforcementDefinitionSource
 {
+    ValueTask<EquipmentUpgradeTicketDefinition?> GetTicketAsync(int itemId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult<EquipmentUpgradeTicketDefinition?>(null);
+
     ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken);
 
     ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken cancellationToken);

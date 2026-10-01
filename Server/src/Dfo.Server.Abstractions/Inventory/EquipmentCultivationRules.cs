@@ -4,7 +4,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Abstractions.Inventory;
 
 public sealed record EquipmentReinforcementQuote(EquipmentReinforcementRejection Rejection,
-    IEquipmentReinforcementRule? Rule = null);
+    IEquipmentReinforcementRule? Rule = null, bool IsTicket = false);
 
 public sealed record EquipmentProtectionCandidate(BusinessSlot Slot, int ItemId);
 
@@ -39,6 +39,8 @@ public static class EquipmentReinforcementFailureRuleExtensions
 
 public interface IEquipmentReinforcementRule
 {
+    /// <summary>Null for NPC +1; a declared level for a fixed-level ticket.</summary>
+    byte? FixedTargetLevel => null;
     int GoldCost { get; }
     int MaterialItemId { get; }
     int MaterialCount { get; }

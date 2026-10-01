@@ -12,6 +12,185 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentReinforcementDomainTests
 {
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Fixed_level_coupon_sets_twelve_consumes_one_coupon_and_no_npc_cost()
+    {
+        using var provider = new Dfo.Server.Infrastructure.Content.PvfArchiveProvider(new());
+        using var shop = Fixture(0, targetLevel: 12, configure: services =>
+            services.AddSingleton<IEquipmentReinforcementDefinitionSource>(
+                new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider)));
+        var original = Piece(3) with { EnchantCardId = 42, RandomOptionState = 7 };
+        await shop.SeedCore(9, original);
+        await shop.Seed(101, 7275, 2, 2);
+
+        var result = await Reinforce(shop, material: new(BusinessInventorySpace.Consumable, 36));
+
+        Assert.Equal(EquipmentReinforcementRejection.None, result.Rejection);
+        Assert.Equal((byte)12, result.Receipt!.NewLevel);
+        Assert.Equal(original with { Attribute = 0xCC }, await Target(shop));
+        Assert.Equal(1, shop.Count(7275));
+        Assert.Equal(100_000, shop.Gold);
+    }
+
+    [Dfo.Server.Testing.PvfTheory]
+    [InlineData(7275, 12, 99999, true, false)]
+    [InlineData(7814, 13, 0, true, false)]
+    [InlineData(10008100, 11, 89999, true, true)]
+    [InlineData(10008100, 11, 90000, false, true)]
+    [InlineData(10008107, 12, 99999, false, true)]
+    [InlineData(10008107, 12, 0, true, true)]
+    public async Task Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(
+        int itemId, byte targetLevel, int draw, bool succeeded, bool amplification)
+    {
+        using var provider = new Dfo.Server.Infrastructure.Content.PvfArchiveProvider(new());
+        var rolls = new CountingRoll(draw);
+        using var shop = Fixture(0, configure: services =>
+        {
+            services.AddSingleton<IEquipmentReinforcementDefinitionSource>(
+                new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider));
+            services.AddSingleton<IEquipmentDefinitionSource>(new TicketEquipment());
+            services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
+        });
+        var original = Piece(15) with { Durability = 0, AmplifyType = amplification ? (byte)2 : (byte)0,
+            AmplifyValue = amplification ? (ushort)5 : (ushort)0, EnchantCardId = 42, RandomOptionState = 7 };
+        await shop.SeedCore(9, original);
+        await shop.Seed(101, itemId, 1, 2);
+        await shop.Seed(3, 7804, 2, 3);
+        await shop.Seed(121, 10007840, 2, 3);
+        var uid = EquipmentUid(shop);
+        var result = await Reinforce(shop, material: new(BusinessInventorySpace.Consumable, 36),
+            kind: amplification ? EquipmentUpgradeKind.Amplification : EquipmentUpgradeKind.Reinforcement);
+        Assert.Equal(EquipmentReinforcementRejection.None, result.Rejection);
+        Assert.Equal(succeeded ? EquipmentReinforcementOutcome.Succeeded : EquipmentReinforcementOutcome.Retained, result.Receipt!.Outcome);
+        Assert.Equal(succeeded ? targetLevel : (byte)15, result.Receipt.NewLevel);
+        Assert.Equal(1, rolls.Calls);
+        Assert.Equal(0, shop.Count(itemId));
+        Assert.Equal(2, shop.Count(7804));
+        Assert.Equal(2, shop.Count(10007840));
+        Assert.Empty(result.Receipt.DestroyRewards);
+        Assert.Equal(100_000, shop.Gold);
+        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        shop.Select(1);
+        Assert.Equal(uid, EquipmentUid(shop));
+        Assert.Equal(original with { Attribute = (byte)(0xC0 | (succeeded ? targetLevel : 15)) }, await Target(shop));
+    }
+
+    [Dfo.Server.Testing.PvfTheory]
+    [InlineData("wrong-kind")]
+    [InlineData("no-aura")]
+    [InlineData("sealed")]
+    [InlineData("target-lock")]
+    [InlineData("source-lock")]
+    [InlineData("expired")]
+    [InlineData("protection")]
+    [InlineData("reinforce-aura")]
+    [InlineData("no-source")]
+    [InlineData("unidentified")]
+    [InlineData("zero-aura")]
+    [InlineData("durability")]
+    [InlineData("forbidden")]
+    public async Task Invalid_ticket_attempts_preserve_all_assets_without_drawing(string defect)
+    {
+        using var provider = new Dfo.Server.Infrastructure.Content.PvfArchiveProvider(new());
+        var rolls = new CountingRoll(0);
+        using var shop = Fixture(0, configure: services =>
+        {
+            services.AddSingleton<IEquipmentReinforcementDefinitionSource>(
+                new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider));
+            services.AddSingleton<IEquipmentDefinitionSource>(new TicketEquipment(defect == "durability", defect == "forbidden"));
+            services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
+        });
+        var original = Piece(7) with { Durability = 0, AmplifyType = 2, AmplifyValue = 5 };
+        if (defect == "no-aura") original = original with { AmplifyType = 0, AmplifyValue = 0 };
+        if (defect == "sealed") original = original with { SealFlag = 1 };
+        if (defect == "target-lock") original = original with { EquipmentLockId = 1 };
+        if (defect == "unidentified") original = original with { AmplifyType = 0x80 };
+        if (defect == "zero-aura") original = original with { AmplifyValue = 0 };
+        await shop.SeedCore(9, original);
+        var itemId = defect is "wrong-kind" or "reinforce-aura" ? 7275 : 10008100;
+        var ticket = StackableItemCore.Create(2, itemId, 2);
+        if (defect == "source-lock") ticket = ticket with { SortLockFlag = 1 };
+        if (defect == "expired") ticket = ticket with { ExpireTime = 1 };
+        if (defect != "no-source") await shop.SeedCore(101, ticket);
+        await shop.Seed(3, 7804, 2, 3);
+        var result = await Reinforce(shop, material: new(BusinessInventorySpace.Consumable, 36),
+            protection: defect == "protection" ? new(BusinessInventorySpace.QuickSlot, 0) : null,
+            kind: defect == "reinforce-aura" ? EquipmentUpgradeKind.Reinforcement : EquipmentUpgradeKind.Amplification);
+        Assert.NotEqual(EquipmentReinforcementRejection.None, result.Rejection);
+        Assert.Equal(0, rolls.Calls);
+        Assert.Equal(original, await Target(shop));
+        Assert.Equal(defect == "no-source" ? 0 : 2, shop.Count(itemId));
+        Assert.Equal(2, shop.Count(7804));
+        Assert.Equal(100_000, shop.Gold);
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Ticket_equipment_commit_failure_rolls_back_coupon_and_cache()
+    {
+        using var provider = new Dfo.Server.Infrastructure.Content.PvfArchiveProvider(new());
+        using var shop = Fixture(0, configure: services => services.AddSingleton<IEquipmentReinforcementDefinitionSource>(
+            new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider)));
+        var original = Piece(3);
+        await shop.SeedCore(9, original);
+        await shop.Seed(101, 7275, 2, 2);
+        shop.Sql("CREATE TRIGGER fail_ticket BEFORE UPDATE ON items BEGIN SELECT RAISE(ABORT,'ticket commit failure'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => Reinforce(shop, material: new(BusinessInventorySpace.Consumable, 36)).AsTask());
+        Assert.Equal(original, await Target(shop));
+        Assert.Equal(2, shop.Count(7275));
+        Assert.Equal(100_000, shop.Gold);
+        shop.Sql("DROP TRIGGER fail_ticket;");
+        Assert.Equal(EquipmentReinforcementRejection.None,
+            (await Reinforce(shop, material: new(BusinessInventorySpace.Consumable, 36))).Rejection);
+    }
+
+    [Dfo.Server.Testing.PvfTheory]
+    [InlineData("fixed", -1, 0, false)]
+    [InlineData("random", -1, 100, true)]
+    [InlineData("fixed", 0, 100, true)]
+    public async Task Zero_probability_and_unsupported_modes_cannot_fall_back_to_npc_rules(string mode, int applyValue, int percent, bool rejected)
+    {
+        var rolls = new CountingRoll(0);
+        using var shop = Fixture(0, configure: services =>
+        {
+            services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new TicketOnly(new(
+                EquipmentUpgradeKind.Reinforcement, 12, percent, mode, applyValue)));
+            services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
+        });
+        var original = Piece(3);
+        await shop.SeedCore(9, original);
+        await shop.Seed(101, 7275, 2, 2);
+        var result = await Reinforce(shop, material: new(BusinessInventorySpace.Consumable, 36));
+        Assert.Equal(rejected ? EquipmentReinforcementRejection.UnsupportedContent : EquipmentReinforcementRejection.None, result.Rejection);
+        Assert.Equal(rejected ? 2 : 1, shop.Count(7275));
+        Assert.Equal(rejected ? 0 : 1, rolls.Calls);
+        Assert.Equal(original, await Target(shop));
+        Assert.Equal(100000, shop.Gold);
+    }
+
+    private sealed class TicketOnly(EquipmentUpgradeTicketDefinition ticket) : IEquipmentReinforcementDefinitionSource
+    {
+        public ValueTask<EquipmentUpgradeTicketDefinition?> GetTicketAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentUpgradeTicketDefinition?>(itemId == 7275 ? ticket : null);
+        public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) => throw new InvalidOperationException("NPC fallback is forbidden for recognized tickets.");
+        public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) => throw new InvalidOperationException("NPC fallback is forbidden for recognized tickets.");
+        public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int itemId, CancellationToken ct,
+            EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) => throw new InvalidOperationException("Tickets do not use protection.");
+    }
+
+    private sealed class TicketEquipment(bool durable = false, bool forbidden = false) : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentDefinition?>(itemId == 3000 ? new EquipmentDefinition(70, 1, 2, "amulet", durable ? (ushort)45 : null)
+            { ImpossibleContents = forbidden ? new HashSet<string> { "amplify upgrade" } : new HashSet<string>() } : null);
+    }
+
+    private sealed class CountingRoll(int draw) : IEquipmentReinforcementRollSource
+    {
+        public int Calls { get; private set; }
+        public int Next(int exclusiveUpperBound) { Calls++; return draw; }
+    }
+
     [Fact]
     public async Task Success_commits_one_level_materials_gold_and_preserves_other_instance_fields()
     {
@@ -785,7 +964,7 @@ public sealed class EquipmentReinforcementDomainTests
 
     private static async ValueTask<EquipmentReinforcementResult> Reinforce(
         ShopFixture shop, BusinessSlot? protection = null, int? accountMaterialItemId = null,
-        BusinessSlot? material = null)
+        BusinessSlot? material = null, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<
             Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
@@ -793,7 +972,7 @@ public sealed class EquipmentReinforcementDomainTests
         var result = await shop.Services.GetRequiredService<IEquipmentReinforcementDomainService>()
             .ReinforceAsync(shop.Session, new(BusinessInventorySpace.CarriedEquipment, 0), 3000,
                 accountMaterialItemId is null ? material ?? new(BusinessInventorySpace.Material, 0) : null,
-                accountMaterialItemId, protection, default);
+                accountMaterialItemId, protection, default, kind);
         if (result.Rejection == EquipmentReinforcementRejection.None)
             await transaction.CommitAsync(default);
         return result;

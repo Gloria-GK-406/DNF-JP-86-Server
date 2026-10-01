@@ -14,6 +14,64 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentReinforcementHandlerTests
 {
+    [Dfo.Server.Testing.PvfTheory]
+    [InlineData(false, 0)]
+    [InlineData(true, 89999)]
+    [InlineData(true, 90000)]
+    public async Task Ticket_handler_projects_committed_slots_and_replay_never_spends_or_draws_twice(bool amplification, int draw)
+    {
+        using var provider = new Dfo.Server.Infrastructure.Content.PvfArchiveProvider(new());
+        var rolls = new TicketRoll(draw);
+        using var shop = new ShopFixture(services =>
+        {
+            services.AddSingleton<IEquipmentReinforcementDefinitionSource>(
+                new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider));
+            services.AddSingleton<IEquipmentDefinitionSource>(new TicketEquipment());
+            services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
+        });
+        var original = Piece() with { Attribute = 0xA3, Durability = 0,
+            AmplifyType = amplification ? (byte)4 : (byte)0, AmplifyValue = amplification ? (ushort)5 : (ushort)0 };
+        await shop.SeedCore(9, original);
+        var itemId = amplification ? 10008107 : 7275;
+        await shop.Seed(101, itemId, 2, 2);
+        shop.Sender.BeforeSend = () =>
+        {
+            Assert.Equal(1, shop.Count(itemId));
+            Assert.Equal(100000, shop.Gold);
+            Assert.Equal(draw < 90000 ? (byte)0xAC : (byte)0xA3, shop.StoredCore(9)[9]);
+        };
+        await Send(shop, 70, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        var response = Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
+        Assert.True(response.Success); // Request accepted; outcome independently conveys the probability result.
+        Assert.Equal(draw < 90000 ? EquipmentReinforcementOutcome.Succeeded : EquipmentReinforcementOutcome.Retained, response.Outcome);
+        Assert.Equal(draw < 90000 ? (byte)12 : (byte)3, response.NewLevel);
+        var coupon = Assert.Single(DeltaEntries(shop), entry => BitConverter.ToInt16(entry, 0) == 101);
+        Assert.Equal(1, BitConverter.ToInt32(coupon, 6));
+        if (draw < 90000)
+            Assert.Equal((byte)0xAC, Assert.Single(DeltaEntries(shop), entry => BitConverter.ToInt16(entry, 0) == 9)[0x0A]);
+        await Send(shop, 70, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
+        Assert.Equal(1, rolls.Calls);
+        Assert.Equal(1, shop.Count(itemId));
+        shop.Sender.BeforeSend = null;
+        await Send(shop, 71, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        Assert.Equal(2, rolls.Calls);
+        Assert.Equal(0, shop.Count(itemId));
+        Assert.Equal(100000, shop.Gold);
+    }
+
+    private sealed class TicketEquipment : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentDefinition?>(new(70, 1, 2, "amulet", null));
+    }
+    private sealed class TicketRoll(int draw) : IEquipmentReinforcementRollSource
+    {
+        public int Calls { get; private set; }
+        public int Next(int exclusiveUpperBound) { Calls++; return draw; }
+    }
+
     [Fact]
     public async Task Reinforcement_is_committed_and_projected_in_attribute_bits_without_changing_enchant_upgrade()
     {

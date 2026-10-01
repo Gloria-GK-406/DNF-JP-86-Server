@@ -1,0 +1,52 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\bin\Release\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Data\bin\Release\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Abstractions\bin\Release\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Networking\bin\Release\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Persistence\bin\Release\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\bin\Release\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\bin\Release\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Protocol\bin\Release\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:01.48]     Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008100, targetLevel: 11, draw: 90000, succeeded: False, amplification: True) [FAIL]
+[xUnit.net 00:00:01.83]     Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008107, targetLevel: 12, draw: 0, succeeded: True, amplification: True) [FAIL]
+[xUnit.net 00:00:02.18]     Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008100, targetLevel: 11, draw: 89999, succeeded: True, amplification: True) [FAIL]
+[xUnit.net 00:00:02.85]     Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008107, targetLevel: 12, draw: 99999, succeeded: False, amplification: True) [FAIL]
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008100, targetLevel: 11, draw: 90000, succeeded: False, amplification: True) [329 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: None
+Actual:   CannotReinforce
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(Int32 itemId, Byte targetLevel, Int32 draw, Boolean succeeded, Boolean amplification) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementDomainTests.cs:line 63
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008107, targetLevel: 12, draw: 0, succeeded: True, amplification: True) [351 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: None
+Actual:   CannotReinforce
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(Int32 itemId, Byte targetLevel, Int32 draw, Boolean succeeded, Boolean amplification) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementDomainTests.cs:line 63
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008100, targetLevel: 11, draw: 89999, succeeded: True, amplification: True) [347 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: None
+Actual:   CannotReinforce
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(Int32 itemId, Byte targetLevel, Int32 draw, Boolean succeeded, Boolean amplification) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementDomainTests.cs:line 63
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(itemId: 10008107, targetLevel: 12, draw: 99999, succeeded: False, amplification: True) [318 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: None
+Actual:   CannotReinforce
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.EquipmentReinforcementDomainTests.Fixed_tickets_overwrite_level_or_retain_on_failure_and_persist_only_one_debit(Int32 itemId, Byte targetLevel, Int32 draw, Boolean succeeded, Boolean amplification) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\EquipmentReinforcementDomainTests.cs:line 63
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\equipment-upgrade-tickets\verification\tickets-domain.trx
+
+失败!  - 失败:     4，通过:    75，已跳过:     0，总计:    79，持续时间: 7 s - Dfo.Server.Application.Tests.dll (net10.0)

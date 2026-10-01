@@ -12,6 +12,12 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
 {
     private static class Fields
     {
+        internal static readonly PvfField<EquipmentUpgradeTicketDefinition> ReinforcementTicket =
+            PvfField.Custom("[equipment reinforcement ticket]", (archive, values, path) =>
+                DecodeTicket(archive, values, path, "[equipment reinforcement ticket]", EquipmentUpgradeKind.Reinforcement), optional: true);
+        internal static readonly PvfField<EquipmentUpgradeTicketDefinition> AmplificationTicket =
+            PvfField.Custom("[equipment amplify reinforcement ticket]", (archive, values, path) =>
+                DecodeTicket(archive, values, path, "[equipment amplify reinforcement ticket]", EquipmentUpgradeKind.Amplification), optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField = PvfField.Tokens("[action type]", optional: true);
         internal static readonly PvfField<int> NoticeField = PvfField.Int32("[notice]", optional: true);
         internal static readonly PvfField<IReadOnlyList<double>> CostField = PvfField.Numbers("[cost]", optional: true);
@@ -51,6 +57,36 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
     private EquipmentReinforcementTable? amplificationTable;
     private Dictionary<int, string>? stackablePaths;
     private readonly Dictionary<(int ItemId, EquipmentUpgradeKind Kind), EquipmentReinforcementProtectionDefinition?> protectionCache = [];
+    private readonly Dictionary<int, EquipmentUpgradeTicketDefinition?> ticketCache = [];
+
+    public ValueTask<EquipmentUpgradeTicketDefinition?> GetTicketAsync(int itemId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (ticketCache.TryGetValue(itemId, out var cached)) return ValueTask.FromResult(cached);
+            var archive = provider.Archive;
+            stackablePaths ??= ReadPaths(archive, "stackable/stackable.lst");
+            if (!stackablePaths.TryGetValue(itemId, out var path))
+                return ValueTask.FromResult(ticketCache[itemId] = null);
+            var document = PvfDocument.Open(archive, "stackable/" + path).AtRoot();
+            var normal = document.TryRead(Fields.ReinforcementTicket, out var reinforcement);
+            var amplify = document.TryRead(Fields.AmplificationTicket, out var amplification);
+            if (normal && amplify)
+                throw new InvalidDataException($"PVF 'stackable/{path}': both upgrade ticket kinds are declared.");
+            return ValueTask.FromResult(ticketCache[itemId] = normal ? reinforcement : amplify ? amplification : null);
+        }
+    }
+
+    private static EquipmentUpgradeTicketDefinition DecodeTicket(PvfArchive archive, IReadOnlyList<PvfToken> values,
+        string path, string field, EquipmentUpgradeKind kind)
+    {
+        if (values.Count != 4 || values[0].Kind != PvfTokenKind.Int32 || values[1].Kind != PvfTokenKind.Int32
+            || !values[2].IsString || values[3].Kind != PvfTokenKind.Int32
+            || values[0].Value is < 0 or > 31 || values[1].Value is < 0 or > 100)
+            throw new InvalidDataException($"PVF '{path}', field '{field}': expected level 0..31, percent 0..100, mode string, Int32 apply value.");
+        return new(kind, (byte)values[0].Value, values[1].Value, archive.ResolveString(values[2].Value), values[3].Value);
+    }
 
     public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken)
     {
