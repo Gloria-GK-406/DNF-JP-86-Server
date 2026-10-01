@@ -10,6 +10,8 @@ public sealed record ItemUsageState(int ItemId, int UsedCount, int? DailyLimit,
 
 public interface IItemUsageDomainService
 {
+    ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAtAsync(CharacterId characterId, DateTimeOffset at, CancellationToken token) =>
+        ValueTask.FromException<IReadOnlyList<ItemUsageState>>(new NotSupportedException("Explicit-time item usage read is unavailable."));
     ValueTask<ItemUsageState> GetAsync(CharacterId characterId, int itemId, CancellationToken token);
     /// <summary>Requires the caller's transaction; records only a successful use, never consumes inventory.</summary>
     ValueTask<ItemUsageState> RecordUseAsync(CharacterId characterId, int itemId, CancellationToken token);

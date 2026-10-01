@@ -21,6 +21,32 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class PackageOpeningTests
 {
     [Fact]
+    public async Task Permanent_source_remains_usable_after_2038()
+    {
+        using var opening = new OpeningFixture();
+        await opening.Host.SeedCore(80, StackableItemCore.Create(2, 1001, 1) with { ExpireTime = int.MaxValue });
+        opening.Host.Clock.Advance(new DateTimeOffset(2040, 1, 1, 0, 0, 0, TimeSpan.Zero) - opening.Host.Clock.GetUtcNow());
+        await opening.Package();
+        Assert.Equal(0, opening.Host.Count(1001));
+        Assert.Equal(2, opening.Host.Count(3));
+    }
+
+    [Fact]
+    public async Task Reusable_package_grants_and_starts_cooldown_without_consuming_itself()
+    {
+        using var opening = new OpeningFixture();
+        opening.Content.UseRule = opening.Content.UseRule with { IsConsumedOnUse = false, CooldownMilliseconds = 5000 };
+        await opening.Host.Seed(80, 1001, 1);
+        await opening.Package();
+        Assert.Equal(1, opening.Host.Count(1001));
+        Assert.Equal(2, opening.Host.Count(3));
+        var refusal = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Package());
+        Assert.Equal(OpeningRejection.ItemUnusable, refusal.Reason);
+        Assert.Equal(1, opening.Host.Count(1001));
+        Assert.Equal(2, opening.Host.Count(3));
+    }
+
+    [Fact]
     public async Task Emblem_band_cannot_be_used_as_a_package_source_and_writes_nothing()
     {
         using var opening = new OpeningFixture();

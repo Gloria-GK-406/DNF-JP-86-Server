@@ -978,6 +978,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// <summary>An inventory loader nobody reaches, because no session is published.</summary>
     private sealed class UnreachableInventory : ICharacterInventoryEntryDomainService
     {
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
         public ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
             throw new NotSupportedException(

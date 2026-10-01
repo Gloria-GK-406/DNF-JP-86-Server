@@ -113,6 +113,10 @@ public sealed class PartyMemberStatusDomainServiceTests
     private sealed class FixedInventory(CharacterInventoryEntryState state)
         : ICharacterInventoryEntryDomainService
     {
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
         public ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId,
             CharacterId characterId,

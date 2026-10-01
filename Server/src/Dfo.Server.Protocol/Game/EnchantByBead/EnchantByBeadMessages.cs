@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
@@ -8,8 +10,9 @@ public sealed record EnchantByBeadRequest(
     InventoryContainerType BeadList,
     short BeadSlot,
     InventoryContainerType TargetList,
-    short TargetSlot) : IClientNetworkMessage
+    short TargetSlot) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameEnchantByBead;
 }
 

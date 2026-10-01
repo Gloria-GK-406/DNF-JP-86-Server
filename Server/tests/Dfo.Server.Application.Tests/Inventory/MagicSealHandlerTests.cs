@@ -12,21 +12,6 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class MagicSealHandlerTests
 {
-    private static readonly ConditionalWeakTable<ShopFixture, FrameClock> Clocks = new();
-
-    private sealed class FrameClock
-    {
-        internal long Ordinal;
-        internal ushort? LastFresh;
-        internal (long Ordinal, bool Fresh) Observe(ushort sequence)
-        {
-            var fresh = LastFresh is null
-                || sequence == unchecked((ushort)(LastFresh.Value + 1));
-            if (fresh) LastFresh = sequence;
-            return (++Ordinal, fresh);
-        }
-    }
-
     [Fact]
     public async Task Unseal_sends_committed_equipment_and_gold_without_unhandled_ack()
     {
@@ -77,7 +62,8 @@ public sealed class MagicSealHandlerTests
         await Send(shop, 7, false);
 
         Assert.Equal(99500, shop.Gold);
-        Assert.Equal(4, shop.Sender.Messages.Count);
+        Assert.Equal(8, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Batches);
     }
 
     [Fact]
@@ -90,10 +76,7 @@ public sealed class MagicSealHandlerTests
 
         await Send(shop, 7, false);
 
-        var goldMessage = shop.Sender.Messages[^1];
-        var items = Assert.IsAssignableFrom<IReadOnlyList<InventoryItemState>>(
-            goldMessage.GetType().GetProperty("Items")!.GetValue(goldMessage));
-        Assert.Equal(99400, Assert.Single(items).Core.Value);
+        Assert.Equal(99400, EffectRequestTransport.MainValue(shop, 0));
         Assert.Equal(99400, shop.Gold);
     }
 
@@ -138,15 +121,9 @@ public sealed class MagicSealHandlerTests
     private static ValueTask Send(ShopFixture shop, ushort sequence, bool change,
         short materialSlot = -1)
     {
-        var (ordinal, fresh) = Clocks.GetOrCreateValue(shop).Observe(sequence);
         var metadata = new GameMessageMetadata(1, change ? (ushort)0x01B6 : (ushort)0x0191,
-            0, sequence)
-        {
-            InboundOrdinal = ordinal,
-            SequenceIsFresh = fresh,
-        };
-        return shop.Services.GetRequiredService<MagicSealHandler>().HandleAsync(
-            new(shop.Connection), new MagicSealRequest(metadata, change, 9, materialSlot), default);
+            0, sequence);
+        return EffectRequestTransport.Send(shop, new MagicSealRequest(metadata, change, 9, materialSlot));
     }
 
     private sealed class Content : IEquipmentMagicSealContentSource

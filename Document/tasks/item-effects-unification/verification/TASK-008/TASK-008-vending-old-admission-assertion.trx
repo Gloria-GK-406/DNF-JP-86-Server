@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="b2378e26-c349-4743-a661-795c0b23b627" name="Gloria@家庭台式机 2026-10-01 14:34:09" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:34:09.5093579+08:00" queuing="2026-10-01T14:34:09.5093580+08:00" start="2026-10-01T14:34:07.6992954+08:00" finish="2026-10-01T14:34:14.5991790+08:00" />
+  <TestSettings name="default" id="eab66051-b977-4b52-b0cc-0333b821729f">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_34_09" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="32bd6020-ae03-40e2-b63a-0831bbcb974b" testId="0d54befd-2cd2-73b9-a74b-4f888a0a7838" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Invalid_machine_wrong_slot_and_stale_session_do_not_consume" computerName="家庭台式机" duration="00:00:00.4160869" startTime="2026-10-01T14:34:13.5790943+08:00" endTime="2026-10-01T14:34:14.0063252+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32bd6020-ae03-40e2-b63a-0831bbcb974b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: Exception type was not an exact match&#xD;
+Expected: typeof(Dfo.Server.Data.Inventory.OpeningRejectedException)&#xD;
+Actual:   typeof(System.InvalidOperationException)&#xD;
+---- System.InvalidOperationException : The selected session is stale or has an unknown settlement outcome.</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Invalid_machine_wrong_slot_and_stale_session_do_not_consume() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\VendingMachineTests.cs:line 94&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at Dfo.Server.Application.Commands.SelectedSessionSafety.DemandCurrent(SelectedSessionIdentity session) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\SelectedSessionSafety.cs:line 47&#xD;
+   at Dfo.Server.Application.Commands.SelectedSessionSafety.Capture(SelectedSessionIdentity session) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\SelectedSessionSafety.cs:line 32&#xD;
+   at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 13&#xD;
+   at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21&#xD;
+   at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs:line 60&#xD;
+   at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs:line 60</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="22606b52-8dac-4212-96f7-dee266feb1b6" testId="bb48f9b7-6aef-d103-e950-f2da966ee7fe" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.No_entitlement_or_not_in_town_refuses_without_consumption(leaveTown: True)" computerName="家庭台式机" duration="00:00:00.4473046" startTime="2026-10-01T14:34:10.9601535+08:00" endTime="2026-10-01T14:34:11.4073976+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22606b52-8dac-4212-96f7-dee266feb1b6" />
+    <UnitTestResult executionId="c34e81c6-923e-4592-a7f6-cfceb98bbf6d" testId="b8bd284d-8cf0-fc71-e624-6ff453698d4e" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Concurrent_duplicate_requests_have_one_commit" computerName="家庭台式机" duration="00:00:00.4928155" startTime="2026-10-01T14:34:13.0861393+08:00" endTime="2026-10-01T14:34:13.5789226+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c34e81c6-923e-4592-a7f6-cfceb98bbf6d" />
+    <UnitTestResult executionId="13168ccd-d3c9-4b7d-acab-16493b1da5f5" testId="30969fcc-3609-f545-4cc7-b6b1c9e9a96b" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Full_bag_leaves_coin_intact" computerName="家庭台式机" duration="00:00:00.5017854" startTime="2026-10-01T14:34:12.5841987+08:00" endTime="2026-10-01T14:34:13.0859750+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="13168ccd-d3c9-4b7d-acab-16493b1da5f5" />
+    <UnitTestResult executionId="d06fdf6b-de39-4acb-9fdd-78bf3cb9a17e" testId="4bd884e0-c468-68e1-8918-b4f39e0bf425" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Every_positive_weight_reward_has_supported_current_delivery_content(machine: 3)" computerName="家庭台式机" duration="00:00:00.5396805" startTime="2026-10-01T14:34:09.3004506+08:00" endTime="2026-10-01T14:34:09.8396045+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d06fdf6b-de39-4acb-9fdd-78bf3cb9a17e" />
+    <UnitTestResult executionId="f3b00134-7638-4524-a9d1-ffab58d0367b" testId="e0e9f235-1842-6699-d83b-445de35b6b08" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Every_positive_weight_reward_has_supported_current_delivery_content(machine: 1)" computerName="家庭台式机" duration="00:00:00.6849150" startTime="2026-10-01T14:34:08.6208176+08:00" endTime="2026-10-01T14:34:09.2997698+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f3b00134-7638-4524-a9d1-ffab58d0367b" />
+    <UnitTestResult executionId="eb05ac86-51bc-4dbc-9fac-b7ac41877720" testId="53989831-669f-8e28-7e31-45beebbb310a" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Advanced_machine_requires_its_coin_and_grants_its_own_reward_quantity" computerName="家庭台式机" duration="00:00:00.5055052" startTime="2026-10-01T14:34:14.0126493+08:00" endTime="2026-10-01T14:34:14.5114188+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="eb05ac86-51bc-4dbc-9fac-b7ac41877720" />
+    <UnitTestResult executionId="52dd899a-e904-45a1-95aa-0885c101c899" testId="94ded8f7-b767-6b5c-c93d-cc28b44aff43" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Weighted_intervals_skip_zero_weights_and_respect_boundaries" computerName="家庭台式机" duration="00:00:00.0051623" startTime="2026-10-01T14:34:08.6053046+08:00" endTime="2026-10-01T14:34:08.6145395+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="52dd899a-e904-45a1-95aa-0885c101c899" />
+    <UnitTestResult executionId="3a5c8b22-e685-4c8d-930d-2a5584389686" testId="1e7ea578-bdde-caae-a49b-64901b5c323c" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Coin_and_reward_commit_once_and_native_ack_precedes_inventory" computerName="家庭台式机" duration="00:00:00.6274175" startTime="2026-10-01T14:34:11.9567254+08:00" endTime="2026-10-01T14:34:12.5840626+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3a5c8b22-e685-4c8d-930d-2a5584389686" />
+    <UnitTestResult executionId="222357f8-2faa-4905-8779-0e11ae82f767" testId="87f14153-2600-143c-292f-4e91af0c81c9" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Last_coin_is_removed_and_missing_coin_cannot_grant" computerName="家庭台式机" duration="00:00:00.5490255" startTime="2026-10-01T14:34:11.4075943+08:00" endTime="2026-10-01T14:34:11.9565532+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="222357f8-2faa-4905-8779-0e11ae82f767" />
+    <UnitTestResult executionId="fb9ab05c-b1a9-469a-924c-3e5f3720333e" testId="3230db16-ec75-6130-ff9a-094e922217bd" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Storage_failure_rolls_back_and_same_sequence_retries" computerName="家庭台式机" duration="00:00:00.6935971" startTime="2026-10-01T14:34:09.8399935+08:00" endTime="2026-10-01T14:34:10.5333586+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fb9ab05c-b1a9-469a-924c-3e5f3720333e" />
+    <UnitTestResult executionId="32313276-e57c-4590-aca5-0a5a68414f63" testId="0e841cb6-0827-22f3-9a99-1b4f34180013" testName="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.No_entitlement_or_not_in_town_refuses_without_consumption(leaveTown: False)" computerName="家庭台式机" duration="00:00:00.4264858" startTime="2026-10-01T14:34:10.5341773+08:00" endTime="2026-10-01T14:34:10.9599661+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32313276-e57c-4590-aca5-0a5a68414f63" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Every_positive_weight_reward_has_supported_current_delivery_content(machine: 3)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="4bd884e0-c468-68e1-8918-b4f39e0bf425">
+      <Execution id="d06fdf6b-de39-4acb-9fdd-78bf3cb9a17e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Every_positive_weight_reward_has_supported_current_delivery_content" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.No_entitlement_or_not_in_town_refuses_without_consumption(leaveTown: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="0e841cb6-0827-22f3-9a99-1b4f34180013">
+      <Execution id="32313276-e57c-4590-aca5-0a5a68414f63" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="No_entitlement_or_not_in_town_refuses_without_consumption" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Concurrent_duplicate_requests_have_one_commit" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="b8bd284d-8cf0-fc71-e624-6ff453698d4e">
+      <Execution id="c34e81c6-923e-4592-a7f6-cfceb98bbf6d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Concurrent_duplicate_requests_have_one_commit" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Coin_and_reward_commit_once_and_native_ack_precedes_inventory" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="1e7ea578-bdde-caae-a49b-64901b5c323c">
+      <Execution id="3a5c8b22-e685-4c8d-930d-2a5584389686" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Coin_and_reward_commit_once_and_native_ack_precedes_inventory" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.No_entitlement_or_not_in_town_refuses_without_consumption(leaveTown: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="bb48f9b7-6aef-d103-e950-f2da966ee7fe">
+      <Execution id="22606b52-8dac-4212-96f7-dee266feb1b6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="No_entitlement_or_not_in_town_refuses_without_consumption" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Every_positive_weight_reward_has_supported_current_delivery_content(machine: 1)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="e0e9f235-1842-6699-d83b-445de35b6b08">
+      <Execution id="f3b00134-7638-4524-a9d1-ffab58d0367b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Every_positive_weight_reward_has_supported_current_delivery_content" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Storage_failure_rolls_back_and_same_sequence_retries" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="3230db16-ec75-6130-ff9a-094e922217bd">
+      <Execution id="fb9ab05c-b1a9-469a-924c-3e5f3720333e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Storage_failure_rolls_back_and_same_sequence_retries" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Advanced_machine_requires_its_coin_and_grants_its_own_reward_quantity" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="53989831-669f-8e28-7e31-45beebbb310a">
+      <Execution id="eb05ac86-51bc-4dbc-9fac-b7ac41877720" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Advanced_machine_requires_its_coin_and_grants_its_own_reward_quantity" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Invalid_machine_wrong_slot_and_stale_session_do_not_consume" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="0d54befd-2cd2-73b9-a74b-4f888a0a7838">
+      <Execution id="32bd6020-ae03-40e2-b63a-0831bbcb974b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Invalid_machine_wrong_slot_and_stale_session_do_not_consume" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Full_bag_leaves_coin_intact" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="30969fcc-3609-f545-4cc7-b6b1c9e9a96b">
+      <Execution id="13168ccd-d3c9-4b7d-acab-16493b1da5f5" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Full_bag_leaves_coin_intact" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Last_coin_is_removed_and_missing_coin_cannot_grant" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="87f14153-2600-143c-292f-4e91af0c81c9">
+      <Execution id="222357f8-2faa-4905-8779-0e11ae82f767" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Last_coin_is_removed_and_missing_coin_cannot_grant" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Weighted_intervals_skip_zero_weights_and_respect_boundaries" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="94ded8f7-b767-6b5c-c93d-cc28b44aff43">
+      <Execution id="52dd899a-e904-45a1-95aa-0885c101c899" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.VendingMachineTests" name="Weighted_intervals_skip_zero_weights_and_respect_boundaries" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="0d54befd-2cd2-73b9-a74b-4f888a0a7838" executionId="32bd6020-ae03-40e2-b63a-0831bbcb974b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bb48f9b7-6aef-d103-e950-f2da966ee7fe" executionId="22606b52-8dac-4212-96f7-dee266feb1b6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b8bd284d-8cf0-fc71-e624-6ff453698d4e" executionId="c34e81c6-923e-4592-a7f6-cfceb98bbf6d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="30969fcc-3609-f545-4cc7-b6b1c9e9a96b" executionId="13168ccd-d3c9-4b7d-acab-16493b1da5f5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4bd884e0-c468-68e1-8918-b4f39e0bf425" executionId="d06fdf6b-de39-4acb-9fdd-78bf3cb9a17e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e0e9f235-1842-6699-d83b-445de35b6b08" executionId="f3b00134-7638-4524-a9d1-ffab58d0367b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="53989831-669f-8e28-7e31-45beebbb310a" executionId="eb05ac86-51bc-4dbc-9fac-b7ac41877720" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="94ded8f7-b767-6b5c-c93d-cc28b44aff43" executionId="52dd899a-e904-45a1-95aa-0885c101c899" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1e7ea578-bdde-caae-a49b-64901b5c323c" executionId="3a5c8b22-e685-4c8d-930d-2a5584389686" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="87f14153-2600-143c-292f-4e91af0c81c9" executionId="222357f8-2faa-4905-8779-0e11ae82f767" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3230db16-ec75-6130-ff9a-094e922217bd" executionId="fb9ab05c-b1a9-469a-924c-3e5f3720333e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e841cb6-0827-22f3-9a99-1b4f34180013" executionId="32313276-e57c-4590-aca5-0a5a68414f63" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="12" executed="12" passed="11" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.34]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.55]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.58]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:06.00]       Assert.Throws() Failure: Exception type was not an exact match&#xD;
+[xUnit.net 00:00:06.00]       Expected: typeof(Dfo.Server.Data.Inventory.OpeningRejectedException)&#xD;
+[xUnit.net 00:00:06.00]       Actual:   typeof(System.InvalidOperationException)&#xD;
+[xUnit.net 00:00:06.00]       ---- System.InvalidOperationException : The selected session is stale or has an unknown settlement outcome.&#xD;
+[xUnit.net 00:00:06.00]       Stack Trace:&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\VendingMachineTests.cs(94,0): at Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Invalid_machine_wrong_slot_and_stale_session_do_not_consume()&#xD;
+[xUnit.net 00:00:06.00]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:06.00]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\SelectedSessionSafety.cs(47,0): at Dfo.Server.Application.Commands.SelectedSessionSafety.DemandCurrent(SelectedSessionIdentity session)&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\SelectedSessionSafety.cs(32,0): at Dfo.Server.Application.Commands.SelectedSessionSafety.Capture(SelectedSessionIdentity session)&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs(13,0): at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct)&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs(21,0): at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs(60,0): at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:06.00]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs(60,0): at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:06.50]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T14:34:14.0083627+08:00">
+        <Text>[xUnit.net 00:00:06.00]     Dfo.Server.Application.Tests.Inventory.VendingMachineTests.Invalid_machine_wrong_slot_and_stale_session_do_not_consume [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

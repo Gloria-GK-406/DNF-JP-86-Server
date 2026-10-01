@@ -1,6 +1,7 @@
 using System.Reflection;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Inventory;
@@ -101,7 +102,8 @@ public sealed class ItemIdentityArchitectureTests
             // Equipment-only custody references cannot describe a pile; their identity is required.
             .Where(member => member.Owner != typeof(Dfo.Server.Data.Mail.MailAsset.Equipment)
                 && member.Owner != typeof(Dfo.Server.Abstractions.Inventory.EquipmentTransferItem)
-                && member.Owner != typeof(Dfo.Server.Abstractions.Inventory.EquipmentTransferOwnedItem))
+                && member.Owner != typeof(Dfo.Server.Abstractions.Inventory.EquipmentTransferOwnedItem)
+                && member.Owner != typeof(Dfo.Server.Abstractions.Effects.EquipmentEffectTarget))
             .Select(member => $"{member.Owner.FullName}.{member.Name}")
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
@@ -136,6 +138,8 @@ public sealed class ItemIdentityArchitectureTests
     // These shapes describe singular world instances and cannot represent an interchangeable pile.
     private static bool IsWorldInstanceIdentity(Type type) =>
         type == typeof(CreatureState)
+        || type == typeof(AddPetStomachEffect)
+        || type == typeof(RenamePetEffect)
         || type == typeof(EquipmentInstanceFacts)
         || type == typeof(IEggInstance) || type == typeof(IPetInstance) || type == typeof(IEquipmentInstance)
         || typeof(IEggInstance).IsAssignableFrom(type)
@@ -145,6 +149,7 @@ public sealed class ItemIdentityArchitectureTests
     [Fact]
     public void WorldInstanceIdentityPermissionDoesNotAdmitGenericInventoryOrPiles()
     {
+        Assert.True(IsWorldInstanceIdentity(typeof(RenamePetEffect)));
         Assert.False(IsWorldInstanceIdentity(typeof(ContainerSlotItem)));
         Assert.False(IsWorldInstanceIdentity(typeof(InventoryItemState)));
         Assert.False(IsWorldInstanceIdentity(typeof(ItemPile)));

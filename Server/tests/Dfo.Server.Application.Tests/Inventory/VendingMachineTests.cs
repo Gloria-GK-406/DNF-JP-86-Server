@@ -21,15 +21,17 @@ public sealed class VendingMachineTests
         f.Host.Services.GetRequiredService<IVendingMachineDefinitionSource>().Initialize();
         return f;
     }
-    private static Task<VendingMachineResult> Use(CeraShopFixture f, ushort seq=1, int slot=121, int machine=1) =>
-        f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new VendingMachineCommand(f.Host.OnlineUser, f.Host.Session, machine, 1, slot, seq)).AsTask();
+    private static Task<VendingMachineResult> Use(CeraShopFixture f, int slot=121, int machine=1) =>
+        f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new VendingMachineCommand(f.Host.OnlineUser, f.Host.Session, machine, 1, slot)).AsTask();
+
+    private static ValueTask Network(CeraShopFixture f, ushort sequence) =>
+        EffectRequestTransport.Send(f.Host, new VendingMachineRequest(new(1, 0x00D7, 0, sequence), 1, 1, 121));
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Coin_and_reward_commit_once_and_native_ack_precedes_inventory()
     {
         using var f = Fixture(); await f.Host.Seed(121,7454,3);
-        var handler=f.Host.Services.GetRequiredService<VendingMachineHandler>();
-        await handler.HandleAsync(new(f.Host.Connection),new VendingMachineRequest(GameMessageMetadata.Empty,1,1,121),default);
+        await Network(f, 0);
         var response=Assert.IsType<VendingMachineResponse>(f.Host.Sender.Messages[0]);
         var result=Assert.IsType<VendingMachineResult>(response.Result);
         Assert.Equal(2,f.Host.Count(7454)); Assert.Equal(4,f.Host.Count(7463));
@@ -41,10 +43,12 @@ public sealed class VendingMachineTests
         Assert.Equal(-1,BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(15)));
         Assert.Equal(1,BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(23)));
         Assert.Equal(127,bytes.Length); // 25 header + selector byte + 101B item.
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,0));
+        await Network(f, 0);
         Assert.Equal(4,f.Host.Count(7463));
-        await Use(f); Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(8,f.Host.Count(7463));
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,0));
+        await Network(f, 1); Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(8,f.Host.Count(7463));
+        await Network(f, 0);
+        Assert.Equal(2, f.Host.Sender.Batches.Count);
+        Assert.Equal(2, f.Host.Sender.Messages.OfType<VendingMachineResponse>().Count());
         Assert.Equal(1,f.Host.Count(7454));
     }
     [Dfo.Server.Testing.PvfFact]
@@ -65,7 +69,7 @@ public sealed class VendingMachineTests
         using var f=Fixture(); await f.Host.Seed(121,7454,1);
         var result=await Use(f); Assert.Equal(0,result.Remaining); Assert.Contains(new BusinessSlot(BusinessInventorySpace.Material,0),result.Receipt.Cleared);
         Assert.Equal(0,f.Host.Count(7454));
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,2)); Assert.Equal(4,f.Host.Count(7463));
+        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f)); Assert.Equal(4,f.Host.Count(7463));
     }
     [Dfo.Server.Testing.PvfFact]
     public async Task Full_bag_leaves_coin_intact()
@@ -91,7 +95,8 @@ public sealed class VendingMachineTests
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,machine:999));
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,slot:122));
         f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Host.Session);
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));
+        // Stale admission stops before the domain handler opens its UoW.
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));
     }
     [Dfo.Server.Testing.PvfTheory]
     [InlineData(1)] [InlineData(3)]
@@ -131,8 +136,9 @@ public sealed class VendingMachineTests
     public async Task Concurrent_duplicate_requests_have_one_commit()
     {
         using var f=Fixture(); await f.Host.Seed(121,7454,2);
-        async Task<bool> Try(){try{await Use(f);return true;}catch(OpeningRejectedException){return false;}}
-        Assert.Single(await Task.WhenAll(Try(),Try()),x=>x); Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(4,f.Host.Count(7463));
+        await Task.WhenAll(Network(f, 1).AsTask(), Network(f, 1).AsTask());
+        Assert.Equal(1,f.Host.Count(7454)); Assert.Equal(4,f.Host.Count(7463));
+        Assert.Single(f.Host.Sender.Messages.OfType<VendingMachineResponse>()); Assert.Single(f.Host.Sender.Batches);
     }
     [Fact]
     public void Weighted_intervals_skip_zero_weights_and_respect_boundaries()

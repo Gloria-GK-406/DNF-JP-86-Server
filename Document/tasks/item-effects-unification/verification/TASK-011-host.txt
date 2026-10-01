@@ -1,0 +1,214 @@
+生成启动时间为 2026/10/1 16:04:36。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-host.diag.txt 中记录 Vstest 诊断
+总共 1 个测试文件与指定模式相匹配。
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-host.diag.host.26-10-01_16-04-37_04465_5.txt 中记录 TestHost 诊断
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.10]   Discovering: Dfo.Server.Host.Tests (app domain = off, method display = ClassAndMethod, method display options = None)
+[xUnit.net 00:00:00.13]   Discovered:  Dfo.Server.Host.Tests (26 test cases to be run)
+[xUnit.net 00:00:00.15]   Starting:    Dfo.Server.Host.Tests (parallel test collections = off, stop on fail = off, explicit = off)
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "LauncherAuth:PublicChannel:Port", value: "0", expectedOutput: "LauncherAuth:PublicChannel:Port") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "GameLogin:EndpointPortA", value: "65536", expectedOutput: "GameLogin:EndpointPortA") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "LauncherAuth:PublicChannel:Host", value: "", expectedOutput: "LauncherAuth:PublicChannel:Host") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "Game:EndpointHost", value: "", expectedOutput: "Game:EndpointHost") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "Channel:Channels:0:Port", value: "invalid", expectedOutput: "Channel:Channels:0:Port") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "LauncherAuth:LegacyMd5Migration:AllowedAccountIds:"···, value: "*", expectedOutput: "Legacy MD5 migration") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "Channel:Channels:0:Host", value: "", expectedOutput: "Channel:Channels:0:Host") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.DisabledHttpApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener [2 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.RealHttpRegistrationRaceAndCredentialFailuresKeepTheStableContract [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.EnabledHttpApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap [2 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets [3 s]
+  已通过 Dfo.Server.Host.Tests.HostCompositionArchitectureTests.HostDependsOnEntryComponentsRatherThanConcreteGameTransportAndProtocol [4 ms]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.Invalid_required_equipment_index_fails_before_listeners_start(duplicate: False) [9 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.Invalid_required_equipment_index_fails_before_listeners_start(duplicate: True) [9 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: "unreadable") [7 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: "empty") [7 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: "missing") [7 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap [2 s]
+  已通过 Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules [101 ms]
+  已通过 Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve [1 ms]
+  已通过 Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests.HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity [3 s]
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=3979; GamePorts=3980
+info: Dfo.Server.GameServer[0]
+      Static content archive: C:\Users\Gloria\AppData\Local\Temp\dfo-components-047ec9fdafee492899a7dea56c3b9b47\invalid.pvf (9 bytes, 2026-10-01 08:06:01Z)
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]
+      Hosting failed to start
+      System.IO.InvalidDataException: content unavailable
+         at Dfo.Server.Host.Tests.ComponentLifecycleTests.FailingPreparation.InitializeAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\ComponentLifecycleTests.cs:line 184
+         at Dfo.Server.GameServer.GameServerStartupService.StartingAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.GameServer\GameServerStartupService.cs:line 56
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Host.Tests.ComponentLifecycleTests.ContentPreparationBlocksBothListenersAndFailureDoesNotExposeEitherEndpoint [6 s]
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=2229; GamePorts=2230
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 48 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 160 ms
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: True) [3 s]
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=2243; GamePorts=2244
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 46 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 138 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: False, game: False) [4 s]
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=2251; GamePorts=2252
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 53 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 143 ms
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:2250
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:2250/api/launcher/v1/bootstrap - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/launcher/v1/bootstrap'
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'BootstrapResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/launcher/v1/bootstrap'
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:2250/api/launcher/v1/bootstrap - 200 - application/json;+charset=utf-8 28.7052ms
+  已通过 Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: False) [4 s]
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=2281; GamePorts=2282
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 49 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 165 ms
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:2280
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:2280/api/launcher/v1/bootstrap - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/launcher/v1/bootstrap'
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type 'BootstrapResponse' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/launcher/v1/bootstrap'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:2280/api/launcher/v1/bootstrap - 200 - application/json;+charset=utf-8 8.0182ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:01:43.94]   Finished:    Dfo.Server.Host.Tests
+  已通过 Dfo.Server.Host.Tests.ComponentLifecycleTests.ComponentsOpenOnlyTheirConfiguredPortsAndReleaseThemOnStop(http: True, game: True) [1 s]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-host.trx
+
+测试运行成功。
+测试总数: 26
+     通过数: 26
+总时间: 1.7390 分钟
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:01:44.86

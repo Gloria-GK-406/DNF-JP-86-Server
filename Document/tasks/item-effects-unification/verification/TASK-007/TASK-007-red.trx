@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="ee158c11-0776-47e7-8cfa-99040eea805b" name="Gloria@家庭台式机 2026-10-01 14:04:18" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:04:18.5554185+08:00" queuing="2026-10-01T14:04:18.5554188+08:00" start="2026-10-01T14:04:17.3576748+08:00" finish="2026-10-01T14:04:18.5594715+08:00" />
+  <TestSettings name="default" id="81516418-e77a-4101-96eb-27347c43953f">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_04_18" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fb67984c-5a16-4a96-a8a9-b6b2589dd4ae" testId="906c62e8-4382-6103-d585-472a235af3da" testName="Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.NonFallibleViolation_IsTypedAndPreservesTheOriginalCause" computerName="家庭台式机" duration="00:00:00.0061659" startTime="2026-10-01T14:04:18.4391406+08:00" endTime="2026-10-01T14:04:18.4611412+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fb67984c-5a16-4a96-a8a9-b6b2589dd4ae">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: Exception type was not an exact match&#xD;
+Expected: typeof(Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException)&#xD;
+Actual:   typeof(System.InvalidOperationException)&#xD;
+---- System.InvalidOperationException : 'RecordingParticipant' declared that its commit cannot fail, and it failed. The transaction is now partly applied and cannot be taken back.&#xD;
+-------- System.IO.IOException : publication violated its contract</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.NonFallibleViolation_IsTypedAndPreservesTheOriginalCause() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Transactions\DomainTransactionTests.cs:line 19&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 111&#xD;
+   at Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.&lt;&gt;c__DisplayClass0_0.&lt;&lt;NonFallibleViolation_IsTypedAndPreservesTheOriginalCause&gt;b__0&gt;d.MoveNext() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Transactions\DomainTransactionTests.cs:line 20&#xD;
+--- End of stack trace from previous location ---&#xD;
+----- Inner Stack Trace -----&#xD;
+   at Dfo.Server.Application.Tests.Transactions.RecordingParticipant.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Transactions\RecordingParticipant.cs:line 37&#xD;
+   at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 107</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.NonFallibleViolation_IsTypedAndPreservesTheOriginalCause" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="906c62e8-4382-6103-d585-472a235af3da">
+      <Execution id="fb67984c-5a16-4a96-a8a9-b6b2589dd4ae" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Transactions.DomainTransactionTests" name="NonFallibleViolation_IsTypedAndPreservesTheOriginalCause" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="906c62e8-4382-6103-d585-472a235af3da" executionId="fb67984c-5a16-4a96-a8a9-b6b2589dd4ae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.43]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.68]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.70]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.74]       Assert.Throws() Failure: Exception type was not an exact match&#xD;
+[xUnit.net 00:00:00.74]       Expected: typeof(Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException)&#xD;
+[xUnit.net 00:00:00.74]       Actual:   typeof(System.InvalidOperationException)&#xD;
+[xUnit.net 00:00:00.74]       ---- System.InvalidOperationException : 'RecordingParticipant' declared that its commit cannot fail, and it failed. The transaction is now partly applied and cannot be taken back.&#xD;
+[xUnit.net 00:00:00.74]       -------- System.IO.IOException : publication violated its contract&#xD;
+[xUnit.net 00:00:00.74]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.74]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Transactions\DomainTransactionTests.cs(19,0): at Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.NonFallibleViolation_IsTypedAndPreservesTheOriginalCause()&#xD;
+[xUnit.net 00:00:00.74]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.74]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:00.74]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs(111,0): at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:00.74]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Transactions\DomainTransactionTests.cs(20,0): at Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.&lt;&gt;c__DisplayClass0_0.&lt;&lt;NonFallibleViolation_IsTypedAndPreservesTheOriginalCause&gt;b__0&gt;d.MoveNext()&#xD;
+[xUnit.net 00:00:00.74]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.74]         ----- Inner Stack Trace -----&#xD;
+[xUnit.net 00:00:00.74]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Transactions\RecordingParticipant.cs(37,0): at Dfo.Server.Application.Tests.Transactions.RecordingParticipant.CommitAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:00.74]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs(107,0): at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:00.75]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T14:04:18.4632804+08:00">
+        <Text>[xUnit.net 00:00:00.74]     Dfo.Server.Application.Tests.Transactions.DomainTransactionTests.NonFallibleViolation_IsTypedAndPreservesTheOriginalCause [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

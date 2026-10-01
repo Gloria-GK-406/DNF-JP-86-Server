@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -13,9 +14,10 @@ internal sealed class EquipmentOutworldDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
-    IEquipmentUpgradeRuleService rules,
+    IEquipmentEffectPlanRuleService rules,
     IEquipmentOutworldSeedSource seeds,
-    IMaterialConsumptionDomainService materials,
+    IApplyEffectsDomainService effects,
+    IInventoryEffectPreflightDomainService preflight,
     TimeProvider clock) : IEquipmentOutworldDomainService
 {
     public async ValueTask<EquipmentOutworldResult> ApplyAsync(
@@ -68,23 +70,22 @@ internal sealed class EquipmentOutworldDomainService(
                 && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentOutworldRejection.MaterialUnavailable);
 
-        var decision = await rules.DecideOutworldAsync(action, target.Core.ItemId, target.Core.AmplifyType,
-            target.Core.ReinforcementLevel, material.ItemId, selectedOption, seeds.NextSeed(), ct)
+        var plan = await rules.OutworldAsync(target, action, materialSlot, material.ItemId, selectedOption, seeds.NextSeed(), ct)
             .ConfigureAwait(false);
+        var decision = plan.Decision;
         if (decision.Rejection != EquipmentOutworldRejection.None)
             return new(decision.Rejection);
         if (decision.MaterialCount <= 0 || material.Count < decision.MaterialCount)
             return new(EquipmentOutworldRejection.MaterialUnavailable);
-        var consumed = await materials.ConsumeAsync(session,
-            [new(new MaterialLocation.Carried(materialSlot), material.ItemId, decision.MaterialCount)], ct)
-            .ConfigureAwait(false);
-        if (!consumed.Success)
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentOutworldRejection.MaterialUnavailable);
-        var changed = (await instance!.SetDimensionalAttributeAsync(decision.AmplifyType,
-            decision.AmplifyValue, ct).ConfigureAwait(false)).Core;
+        var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        var changed = applied.Changes<EquipmentEffectChange>().Single().After!.Core;
+        var remaining = await materialBound.Container.ReadSlotAsync(materialSlot.Index, ct).ConfigureAwait(false);
         return new(EquipmentOutworldRejection.None,
             new(session, action, targetSlot, target.Core.ItemId, materialSlot, material.ItemId,
-                consumed.Debits[0].Remaining?.Value ?? 0, changed,
-                decision.Cleared, decision.Seed, clock.GetUtcNow()));
+                remaining?.Count ?? 0, changed,
+                decision.Cleared, decision.Seed, context.At));
     }
 }

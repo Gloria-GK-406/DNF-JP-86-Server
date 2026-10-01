@@ -8,9 +8,9 @@ namespace Dfo.Server.Application.Tests.Creatures;
 internal static class TestCreatureCollection
 {
     public static ICreatureCollection Create(CharacterId owner, IDomainTransaction tx, ICreatureStore store,
-        Action<CreatureState> write, ICreatureRuleService rules) =>
+        Action<CreatureState> write, ICreatureRuleService rules, TimeProvider? clock = null) =>
         new CreatureCollection(() => new CreatureInstanceContext(owner, tx,
-            new Session(store, write), store, rules, TimeProvider.System));
+            new Session(store, write), store, rules, clock ?? TimeProvider.System));
 
     private sealed class Session(ICreatureStore store, Action<CreatureState> write) : ICreatureDomainStoreSession
     {

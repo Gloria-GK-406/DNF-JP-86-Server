@@ -19,10 +19,12 @@ internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
     }
     private CharacterFatigueRow Current(CharacterFatigueRow? row, DateTimeOffset now) =>
         row is not null && days.IsCurrentPeriod(row.UpdatedAt, now) ? row : new(0, 0, now);
-    public async ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId id, CancellationToken token)
+    public ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId id, CancellationToken token) =>
+        BalanceAtAsync(id, clock.GetUtcNow(), token);
+    public async ValueTask<CharacterFatigueBalance> BalanceAtAsync(CharacterId id, DateTimeOffset at, CancellationToken token)
     {
         var total = await TotalAsync(id, token).ConfigureAwait(false);
-        var row = Current(await table.ReadAsync(id, token).ConfigureAwait(false), clock.GetUtcNow());
+        var row = Current(await table.ReadAsync(id, token).ConfigureAwait(false), at);
         return new(total, checked((ushort)Math.Min(total, row.Used))) { ConsumedToday = row.ConsumedToday };
     }
     public ValueTask SpendAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, false, token);

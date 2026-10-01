@@ -29,10 +29,11 @@ internal sealed class ItemUsageDomainService(IConsumableUsageTable table, IItemU
             throw new InvalidOperationException("Item usage changed during settlement.");
         return State(itemId, new(used, now), rule, now);
     }
-    public async ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAsync(CharacterId characterId, CancellationToken token)
+    public ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAsync(CharacterId characterId, CancellationToken token) =>
+        GetSnapshotAtAsync(characterId, clock.GetUtcNow(), token);
+    public async ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAtAsync(CharacterId characterId, DateTimeOffset now, CancellationToken token)
     {
         var rows = await table.ReadAllAsync(characterId, token).ConfigureAwait(false);
-        var now = clock.GetUtcNow();
         var result = new List<ItemUsageState>();
         foreach (var pair in rows.OrderBy(x => x.Key))
         {

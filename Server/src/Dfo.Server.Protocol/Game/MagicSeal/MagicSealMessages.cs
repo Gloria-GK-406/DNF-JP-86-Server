@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
@@ -5,8 +6,9 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.MagicSeal;
 
 public sealed record MagicSealRequest(GameMessageMetadata Metadata, bool Change,
-    short TargetSlot, short MaterialSlot, byte OptionIndex = 0) : IClientNetworkMessage
+    short TargetSlot, short MaterialSlot, byte OptionIndex = 0) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => Change
         ? ClientMessageType.GameChangeRandomOption
         : ClientMessageType.GameUnsealRandomOption;

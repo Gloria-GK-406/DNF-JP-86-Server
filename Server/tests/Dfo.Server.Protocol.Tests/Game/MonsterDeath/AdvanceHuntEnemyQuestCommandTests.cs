@@ -46,9 +46,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     public async Task TheAtomicKillUsesMonsterFamilyRatherThanMonsterRankForQuestMatching()
     {
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(
-            new Dfo.Server.Application.World.ExperienceCalculationDomainService(new UnusedValuation(), new UnusedBonuses()),
-            new NoExperienceAward(),
+        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log),
@@ -85,9 +83,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             "condition under clear", "", null, null, null, null, null, null,
             null, [], [], [], [],
             DungeonClearRequirement: new DungeonClearRequirement(146, -1));
-        var handler = new ApplyMonsterKillCommandHandler(
-            new Dfo.Server.Application.World.ExperienceCalculationDomainService(new UnusedValuation(), new UnusedBonuses()), new NoExperienceAward(),
-            new OneCharacterLog(log), new CharacterContainerDomainService(),
+        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
+            new OneCharacterLog(log),
+            new CharacterContainerDomainService(),
             Progress(log, definition),
             new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
 
@@ -107,9 +105,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     public async Task AnAiCharacterDeathAdvancesItsTargetWithoutAwardingExperience()
     {
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(
-            new Dfo.Server.Application.World.ExperienceCalculationDomainService(new UnusedValuation(), new UnusedBonuses()),
-            new ExperienceMustNotBeAwarded(),
+        var handler = new ApplyMonsterKillCommandHandler(new ExperienceMustNotBeAwarded(),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
@@ -140,9 +136,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         var valuation = new RecordingValuation();
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(
-            new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses()),
-            new PricingOnlyExperience(),
+        var handler = new ApplyMonsterKillCommandHandler(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses())),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
             Progress(log),
@@ -175,9 +169,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         containers.Register(Character, bag);
         var seeking = new RecordingSeekingProgress();
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(
-            new Dfo.Server.Application.World.ExperienceCalculationDomainService(new UnusedValuation(), new UnusedBonuses()),
-            new NoExperienceAward(),
+        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
             new OneCharacterLog(log),
             containers,
             Progress(log, seeking: seeking),
@@ -404,9 +396,10 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         var containers = new CharacterContainerDomainService();
         containers.Register(Character, bag);
         var log = new OneLog(new CarriedQuest(0, 1776, 1));
-        var handler = new ApplyMonsterKillCommandHandler(
-            new Dfo.Server.Application.World.ExperienceCalculationDomainService(new UnusedValuation(), new UnusedBonuses()), new NoExperienceAward(),
-            new OneCharacterLog(log), containers, Progress(log),
+        var handler = new ApplyMonsterKillCommandHandler(new NoExperienceAward(),
+            new OneCharacterLog(log),
+            containers,
+            Progress(log),
             new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(),
             new VirtualOnlyPartyService());
 
@@ -554,13 +547,10 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             uint experience,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask<ExperienceAward?> AwardAsync(
-            CharacterId characterId,
-            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
-            CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
+        public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
     }
 
-    private sealed class PricingOnlyExperience : ICharacterExperienceDomainService
+    private sealed class PricingOnlyExperience(IExperienceCalculationDomainService calculation) : ICharacterExperienceDomainService
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
@@ -570,12 +560,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             uint experience,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public async ValueTask<ExperienceAward?> AwardAsync(
-            CharacterId characterId,
-            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
-            CancellationToken cancellationToken)
+        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
-            _ = await valuation(3);
+            _ = await calculation.CalculateAsync(source, 3, cancellationToken);
             return null;
         }
     }
@@ -590,10 +577,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             uint experience,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask<ExperienceAward?> AwardAsync(
-            CharacterId characterId,
-            Func<byte, ValueTask<ExperienceBreakdown>> valuation,
-            CancellationToken cancellationToken) =>
+        public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("AI character deaths must not award experience.");
     }
 

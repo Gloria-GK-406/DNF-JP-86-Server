@@ -1,0 +1,201 @@
+kind: rks-sdd-execution
+controller: sdd-governed
+contract:
+  path: ./TaskContract.md
+  revision: 1
+current_stage: verification
+state: completed
+artifacts:
+  spec: ./spec.md
+  result: ./spec-result.md
+  plan: ./plan.md
+  change_review: ./reviews/change-review.md
+  completion_evidence: ./verification/completion-evidence.md
+  spec_challenges: ./reviews/spec-challenges.md
+  spec_review: ./reviews/spec-review.md
+  plan_challenges: ./reviews/plan-challenges.md
+  plan_review: ./reviews/plan-review.md
+  drift_review: ./reviews/drift-review.md
+  change_challenges: ./reviews/change-challenges.md
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: the Spec defines the requested result, scope, and evidence-based acceptance
+  writes:
+  - spec
+- id: spec-adversarial
+  reads:
+  - contract
+  - spec
+  skills:
+  - generating-adversarial-challenges
+  gate: none
+  writes:
+  - spec_challenges
+  done_when: credible challenges against the current spec are recorded
+- id: spec-review
+  reads:
+  - contract
+  - spec
+  - spec_challenges
+  skills:
+  - reviewing-work
+  gate: auto
+  writes:
+  - spec_review
+  done_when: the current spec is independently approved at its declared resolution and all configured challenges
+    are adjudicated
+- id: plan
+  reads:
+  - contract
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: the ready high-level Plan uses task-units, covers the whole Spec, and defines progressive decomposition
+    and the next planning boundary; task-boundary attention control requires mode task-units and progressive detail
+  writes:
+  - plan
+- id: plan-adversarial
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - generating-adversarial-challenges
+  gate: none
+  writes:
+  - plan_challenges
+  done_when: credible challenges against the current plan are recorded
+- id: plan-review
+  reads:
+  - contract
+  - spec
+  - plan
+  - plan_challenges
+  skills:
+  - reviewing-work
+  gate: auto
+  writes:
+  - plan_review
+  done_when: the current plan is independently approved at its declared resolution and all configured challenges
+    are adjudicated
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  - reviewing-work
+  - test-driven-development
+  gate: auto
+  done_when: the chosen planning mode is delivered with usable Task plans and passing required self-checks when
+    using units, and no remaining required high-level work; brief main-agent goal checks keep work directed; any
+    detected drift has a retrospective diagnosis, evidenced onset, and verified bounded correction without routine
+    Task approvals
+- id: drift-check
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-work
+  gate: auto
+  writes:
+  - drift_review
+  done_when: independent accumulated-work drift review is approved with disposition aligned
+- id: change-adversarial
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - generating-adversarial-challenges
+  gate: none
+  writes:
+  - change_challenges
+  done_when: credible challenges against the complete delivery are recorded
+- id: final-review
+  reads:
+  - contract
+  - spec
+  - plan
+  - drift_review
+  - change_challenges
+  skills:
+  - reviewing-work
+  gate: auto
+  done_when: the complete code, non-code, or mixed result is independently approved against the governing artifacts
+    and actual output criteria; all configured change challenges are adjudicated
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves every TaskContract success condition
+  writes:
+  - completion_evidence
+attention_review: on-drift
+tasks:
+  items:
+  - id: TASK-001
+    file: ./tasks/TASK-001.md
+    depends_on: []
+    state: done
+  - id: TASK-002
+    file: ./tasks/TASK-002.md
+    depends_on:
+    - TASK-001
+    state: done
+  - id: TASK-003
+    file: ./tasks/TASK-003.md
+    depends_on:
+    - TASK-002
+    state: done
+  - id: TASK-004
+    file: ./tasks/TASK-004.md
+    depends_on:
+    - TASK-003
+    state: done
+  - id: TASK-005
+    file: ./tasks/TASK-005.md
+    depends_on:
+    - TASK-004
+    state: done
+  - id: TASK-006
+    file: ./tasks/TASK-006.md
+    depends_on:
+    - TASK-005
+    state: done
+  - id: TASK-007
+    file: ./tasks/TASK-007.md
+    depends_on:
+    - TASK-006
+    state: done
+  - id: TASK-008
+    file: ./tasks/TASK-008.md
+    depends_on:
+    - TASK-007
+    state: done
+  - id: TASK-009
+    file: ./tasks/TASK-009.md
+    depends_on:
+    - TASK-008
+    state: done
+  - id: TASK-010
+    file: ./tasks/TASK-010.md
+    depends_on:
+    - TASK-009
+    state: done
+  - id: TASK-011
+    file: ./tasks/TASK-011.md
+    depends_on:
+    - TASK-010
+    state: done

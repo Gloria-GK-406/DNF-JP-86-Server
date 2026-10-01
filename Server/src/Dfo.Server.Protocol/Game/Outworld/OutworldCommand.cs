@@ -11,7 +11,7 @@ public sealed record OutworldCommand(OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session, EquipmentOutworldAction Action,
     BusinessSlot Target, int ExpectedTargetItemId,
     BusinessSlot Material, int ExpectedMaterialItemId,
-    byte SelectedOption) : ICommand<EquipmentOutworldResult>, IOnlineUserCommand, IAccountCommand
+    byte SelectedOption) : ICommand<EquipmentOutworldResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

@@ -328,6 +328,8 @@ public sealed class SelectCharacterProductionStateTests
             AccountId id, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
             AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
+            AccountId id, CharacterId cid, CancellationToken ct) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(id, cid, ct);
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(CharacterInventory);
         ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(

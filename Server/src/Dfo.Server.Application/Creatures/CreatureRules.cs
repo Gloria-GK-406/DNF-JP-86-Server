@@ -25,7 +25,7 @@ public static class CreatureRules
         return next > 100 - 1e-9 ? 100 : next;
     }
 
-    public static double Feed(double current, int amount = 30)
+    public static double AddStomach(double current, int amount)
     {
         if (!double.IsFinite(current))
             throw new ArgumentOutOfRangeException(nameof(current));

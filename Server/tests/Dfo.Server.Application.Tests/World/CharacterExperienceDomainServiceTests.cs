@@ -3,6 +3,10 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Application.Transactions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Data.Sqlite;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
@@ -26,10 +30,10 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task AnAwardRaisesTheStoredTotal()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 10);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 10);
+        var grant = characters;
 
-        var award = await grant.AwardAsync(Character, _ => Worth(30), CancellationToken.None);
+        var award = await grant.AwardAsync( _ => Worth(30), CancellationToken.None);
 
         Assert.NotNull(award);
         Assert.Equal(30u, award!.Gained);
@@ -43,10 +47,10 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task AnAwardPastAThresholdLevelsTheCharacter()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 90);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 90);
+        var grant = characters;
 
-        var award = await grant.AwardAsync(Character, _ => Worth(30), CancellationToken.None);
+        var award = await grant.AwardAsync( _ => Worth(30), CancellationToken.None);
 
         Assert.NotNull(award);
         Assert.True(award!.LeveledUp);
@@ -63,10 +67,10 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task AnAwardPastSeveralThresholdsCrossesThemAll()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 0);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 0);
+        var grant = characters;
 
-        var award = await grant.AwardAsync(Character, _ => Worth(460), CancellationToken.None);
+        var award = await grant.AwardAsync( _ => Worth(460), CancellationToken.None);
 
         Assert.NotNull(award);
         Assert.Equal(4, award!.Level);
@@ -81,12 +85,11 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task TheValuationIsAskedWithTheStoredLevel()
     {
-        var characters = new RecordingCharacterTable(level: 12, experience: 0);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 12, experience: 0);
+        var grant = characters;
         byte asked = 0;
 
         await grant.AwardAsync(
-            Character,
             level => { asked = level; return Worth(1); },
             CancellationToken.None);
 
@@ -101,11 +104,11 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task ASecondAwardAddsToWhatTheFirstLeftBehind()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 0);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 0);
+        var grant = characters;
 
-        var first = await grant.AwardAsync(Character, _ => Worth(25), CancellationToken.None);
-        var second = await grant.AwardAsync(Character, _ => Worth(25), CancellationToken.None);
+        var first = await grant.AwardAsync( _ => Worth(25), CancellationToken.None);
+        var second = await grant.AwardAsync( _ => Worth(25), CancellationToken.None);
 
         Assert.Equal(25u, first!.Total);
         Assert.Equal(50u, second!.Total);
@@ -115,11 +118,10 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task ContributionsAreAddedAndCarriedBackNamed()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 0);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 0);
+        var grant = characters;
 
         var award = await grant.AwardAsync(
-            Character,
             _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 20, Other: 10)),
             CancellationToken.None);
 
@@ -134,11 +136,11 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task AnAwardOfNothingLeavesTheStoreAlone()
     {
-        var characters = new RecordingCharacterTable(level: 3, experience: 300);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 3, experience: 300);
+        var grant = characters;
 
         var award = await grant.AwardAsync(
-            Character, _ => ValueTask.FromResult(new ExperienceBreakdown()), CancellationToken.None);
+            _ => ValueTask.FromResult(new ExperienceBreakdown()), CancellationToken.None);
 
         Assert.Equal(0u, award!.Gained);
         Assert.Equal(300u, award!.Total);
@@ -146,21 +148,14 @@ public sealed class CharacterExperienceDomainServiceTests
         Assert.Null(characters.LastWrite);
     }
 
-    /// <remarks>
-    /// A refused write is no award at all, not an award of nothing, and the difference is what a
-    /// caller acts on: reporting the higher total would have the client draw a figure the store
-    /// disagrees with until the next entry, and reporting a zero award would have a quest report
-    /// itself completed for nothing.
-    /// </remarks>
+    /// <summary>A refused basic write aborts the complete award transaction.</summary>
     [Fact]
-    public async Task AWriteTheStoreRefusesIsNoAwardAtAll()
+    public async Task AWriteTheStoreRefusesAbortsTheAward()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 10) { AcceptWrites = false };
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 10) { AcceptWrites = false };
+        var grant = characters;
 
-        var award = await grant.AwardAsync(Character, _ => Worth(30), CancellationToken.None);
-
-        Assert.Null(award);
+        await Assert.ThrowsAsync<SqliteException>(async () => await grant.AwardAsync(_ => Worth(30), CancellationToken.None));
     }
 
     /// <summary>A character the store does not hold has no standing to report.</summary>
@@ -172,11 +167,8 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task ACharacterTheStoreDoesNotHoldHasNoStanding()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 0) { Exists = false };
-        var grant = Grant(characters);
-
-        var award = await grant.AwardAsync(Character, _ => Worth(30), CancellationToken.None);
-
+        using var characters = new AwardFixture(level: 1, experience: 0) { Exists = false };
+        var award = await characters.AwardAsync(_ => Worth(30), CancellationToken.None);
         Assert.Null(award);
         Assert.Null(characters.LastWrite);
     }
@@ -185,10 +177,10 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task ATotalCannotRunPastTheLastThreshold()
     {
-        var characters = new RecordingCharacterTable(level: 4, experience: 690);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 4, experience: 690);
+        var grant = characters;
 
-        var award = await grant.AwardAsync(Character, _ => Worth(1_000_000), CancellationToken.None);
+        var award = await grant.AwardAsync( _ => Worth(1_000_000), CancellationToken.None);
 
         Assert.Equal(Thresholds[^1], award!.Total);
     }
@@ -196,9 +188,9 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task CrossingTheCeilingKeepsTheRewardAndCapsOnlyProgression()
     {
-        var characters = new RecordingCharacterTable(level: 4, experience: 690);
-        var grant = Grant(characters);
-        var award = await grant.AwardAsync(Character,
+        using var characters = new AwardFixture(level: 4, experience: 690);
+        var grant = characters;
+        var award = await grant.AwardAsync(
             _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 1_000_000, Channel: 50_000)),
             CancellationToken.None);
         Assert.NotNull(award);
@@ -212,9 +204,9 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task ACharacterAtTheCeilingKeepsTheFullRewardBreakdown()
     {
-        var characters = new RecordingCharacterTable(level: 5, experience: Thresholds[^1]);
-        var grant = Grant(characters);
-        var award = await grant.AwardAsync(Character,
+        using var characters = new AwardFixture(level: 5, experience: Thresholds[^1]);
+        var grant = characters;
+        var award = await grant.AwardAsync(
             _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Channel: 3)),
             CancellationToken.None);
         Assert.NotNull(award);
@@ -231,11 +223,10 @@ public sealed class CharacterExperienceDomainServiceTests
     [Fact]
     public async Task AnAwardCanSayWhereItCameFrom()
     {
-        var characters = new RecordingCharacterTable(level: 1, experience: 0);
-        var grant = Grant(characters);
+        using var characters = new AwardFixture(level: 1, experience: 0);
+        var grant = characters;
 
         var award = await grant.AwardAsync(
-            Character,
             _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Other: 3)),
             CancellationToken.None);
 
@@ -263,7 +254,38 @@ public sealed class CharacterExperienceDomainServiceTests
     private static ValueTask<ExperienceBreakdown> Worth(uint amount) => ValueTask.FromResult(new ExperienceBreakdown(Base: amount));
 
     private static CharacterExperienceDomainService Grant(ICharacterTable characters) =>
-        new(characters, new FixedProgression(Thresholds));
+        new(characters, new FixedProgression(Thresholds), null!, null!);
+
+    private sealed class AwardFixture : IDisposable, IExperienceCalculationDomainService
+    {
+        private readonly ShopFixture shop;
+        private Func<byte, ValueTask<ExperienceBreakdown>> price = null!;
+        public AwardFixture(int level, uint experience)
+        {
+            shop = new ShopFixture(s =>
+            {
+                s.AddSingleton<IExperienceCalculationDomainService>(this);
+                s.AddSingleton<IExperienceRuleService>(new FixedProgression(Thresholds));
+            });
+            shop.Sql($"UPDATE characters SET level={level},exp={experience} WHERE character_id=1; CREATE TABLE xp_writes(level INTEGER,exp INTEGER); CREATE TRIGGER xp_audit AFTER UPDATE OF exp ON characters BEGIN INSERT INTO xp_writes VALUES(NEW.level,NEW.exp); END");
+        }
+        public bool AcceptWrites { init { if (!value) shop.Sql("CREATE TRIGGER refuse_xp BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'XP refused'); END"); } }
+        public bool Exists { init { if (!value) shop.Sql("DELETE FROM characters WHERE character_id=1"); } }
+        public (int, uint)? LastWrite => shop.Scalar("SELECT COUNT(*) FROM xp_writes") == 0 ? null :
+            (shop.Scalar("SELECT level FROM characters WHERE character_id=1"), checked((uint)shop.Scalar("SELECT exp FROM characters WHERE character_id=1")));
+        public async ValueTask<ExperienceAward?> AwardAsync(Func<byte, ValueTask<ExperienceBreakdown>> valuation, CancellationToken ct)
+        {
+            price = valuation;
+            await using var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var award = await shop.Services.GetRequiredService<ICharacterExperienceDomainService>().ApplyAwardAsync(
+                new QuestExperienceContext(new(ExperienceEvent.QuestCompletion, new(1), new(1), 0), 0),
+                shop.Clock.GetUtcNow(), null, ct);
+            await tx.CommitAsync(ct);
+            return award;
+        }
+        public ValueTask<ExperienceBreakdown> CalculateAsync(ExperienceCalculationContext source, byte level, CancellationToken ct) => price(level);
+        public void Dispose() => shop.Dispose();
+    }
 
     /// <summary>Only the level thresholds; these tests are about the grant's arithmetic.</summary>
     private sealed class FixedProgression(IReadOnlyList<uint> thresholds) : IExperienceRuleService

@@ -134,7 +134,7 @@ internal abstract class FakeMainInventory(int characterId = 60)
 
     private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
 
-    public DomainTransactionScope Scope { get; } = new();
+    public DomainTransactionScope Scope { get; init; } = new();
 
     /// <remarks>
     /// The archive is a parameter because the bag now reads it: what an item's band is, and how

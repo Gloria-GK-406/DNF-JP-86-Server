@@ -23,15 +23,17 @@ public sealed class ReturnToSelectionHandler(
         if (!onlineUsers.TryGetByConnection(connectionId, out var online) || online?.AccountId is not { } accountId)
             throw new InvalidOperationException("Return-to-selection requires an authenticated connection.");
         ExceptionDispatchInfo? failure = null;
-        // Same gate order as disconnect. Commands take only the account gate, never this user gate.
-        await using (await userGate.AcquireAsync(online.OnlineUserId, UserAccessMode.Exclusive, cancellationToken)
-                         .ConfigureAwait(false))
+        // Lifecycle precedes online ownership, matching disconnect and scoped effect commands.
         await using (await transitionGate.AcquireAsync(accountId, UserAccessMode.Exclusive, cancellationToken)
+                         .ConfigureAwait(false))
+        await using (await userGate.AcquireAsync(online.OnlineUserId, UserAccessMode.Exclusive, cancellationToken)
                          .ConfigureAwait(false))
         {
             try
             {
                 var current = onlineUsers.GetRequired(online.OnlineUserId);
+                if (current.AccountId != accountId || current.Connection.ConnectionId != connectionId)
+                    throw new InvalidOperationException("The authenticated connection changed while waiting for teardown.");
                 var prepared = await commands.SendAsync(new PrepareReturnToSelectionCommand(
                     accountId, connectionId, current.Generation), cancellationToken).ConfigureAwait(false);
                 var completed = await commands.SendAsync(new CompleteReturnToSelectionCommand(prepared), cancellationToken)
@@ -59,7 +61,7 @@ public sealed class ReturnToSelectionHandler(
         {
             // Closing invokes cleanup and must happen after releasing lifecycle ownership.
             // Never claim success after a save, teardown or partial-delivery failure.
-            try { await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false); }
+            try { await closer.RequestCloseExactAsync(context.Connection, CancellationToken.None).ConfigureAwait(false); }
             catch { /* Preserve the original failure. */ }
             failure.Throw();
         }

@@ -16,7 +16,7 @@ public sealed record ReinforceItemCommand(
     int? AccountMaterialItemId,
     BusinessSlot? ProtectionSlot,
     EquipmentUpgradeKind Kind = EquipmentUpgradeKind.Reinforcement)
-    : ICommand<EquipmentReinforcementResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentReinforcementResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

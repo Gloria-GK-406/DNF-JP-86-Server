@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -16,8 +17,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.VendingMachine;
 
-public sealed record VendingMachineRequest(GameMessageMetadata Metadata, uint MachineId, uint GroupId, short Slot) : IClientNetworkMessage
+public sealed record VendingMachineRequest(GameMessageMetadata Metadata, uint MachineId, uint GroupId, short Slot) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameVendingMachine;
 }
 internal sealed class VendingMachineDecoder : IGameMessageDecoder
@@ -63,7 +65,7 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
     }
 }
 public sealed record VendingMachineCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    int MachineId, int GroupId, int Slot, ushort Sequence) : ICommand<VendingMachineResult>, IOnlineUserCommand, IAccountCommand
+    int MachineId, int GroupId, int Slot) : ICommand<VendingMachineResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -71,7 +73,7 @@ public sealed class VendingMachineCommandHandler(IVendingMachineDomainService ve
 {
     public ValueTask<VendingMachineResult> HandleAsync(CommandExecutionContext context, VendingMachineCommand command, CancellationToken token) =>
         vending.UseAsync(command.Session, command.MachineId, command.GroupId,
-            OpeningWireSlots.FromMain(command.Slot), command.Sequence, token);
+            OpeningWireSlots.FromMain(command.Slot), token);
 }
 public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
@@ -91,14 +93,14 @@ public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions
             if (message.MachineId > int.MaxValue || message.GroupId > int.MaxValue || message.Slot < 3)
                 throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Invalid vending input.");
             result = await commands.SendAsync(new VendingMachineCommand(user.OnlineUserId, session,
-                (int)message.MachineId, (int)message.GroupId, message.Slot, message.Metadata.Sequence), token).ConfigureAwait(false);
+                (int)message.MachineId, (int)message.GroupId, message.Slot), token).ConfigureAwait(false);
         }
-        catch (OpeningRejectedException ex)
+        catch (OpeningRejectedException ex) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex))
         {
             error = ex.Reason switch { OpeningRejection.NoRoom => 1, OpeningRejection.MissingMaterial => 22, _ => (byte)0 };
             logger.LogInformation("Vending rejected character={Character}: {Reason} {Detail}", session.CharacterId, ex.Reason, ex.Message);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError(ex, "Vending transaction failed character={Character}", session.CharacterId); }
+        catch (Exception ex) when (ex is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex)) { logger.LogError(ex, "Vending transaction failed character={Character}", session.CharacterId); }
         logger.LogInformation("Vending character={Character} machine={Machine} group={Group} slot={Slot} seq={Sequence} committed={Committed} reward={Reward} count={Count} remaining={Remaining}",
             session.CharacterId, message.MachineId, message.GroupId, message.Slot, message.Metadata.Sequence, result is not null,
             result?.Reward.ItemId, result?.Reward.Count, result?.Remaining);

@@ -220,7 +220,7 @@ internal sealed class GameNetworkPlugin(
                     frame.Selector,
                     frame.Type,
                     frame.Checksum,
-                    frame.Sequence) { InboundOrdinal = ordinal, SequenceIsFresh = fresh },
+                    frame.Sequence) { InboundOrdinal = ordinal, SequenceIsFresh = fresh }.WithRawBody(frame.Body.Span),
                 frame.Body.Span);
         }
         catch (Exception error)

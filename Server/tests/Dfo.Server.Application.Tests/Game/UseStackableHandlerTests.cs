@@ -35,6 +35,45 @@ public sealed class UseStackableHandlerTests
     private const byte RowLevel = 50;
 
     [Fact]
+    public async Task Expired_stackable_is_refused_without_consumption()
+    {
+        var inventory = new FakeInventory(3, 8474, 2, 2);
+        var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
+        await using (var tx = inventory.Scope.Begin())
+        {
+            var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 0));
+            var item = (await bound.Container.ReadSlotAsync(0, default))!;
+            await bound.Container.PutAsync(0, item.Core with { ExpireTime = 1 }, default);
+            await tx.CommitAsync(default);
+        }
+        var (handler, sender) = Build(inventory);
+        await handler.HandleAsync(Context, Request(3, 8474), default);
+        Assert.Equal(2, inventory.Count);
+        Assert.Equal(UseStackableResponse.NotConsumable, ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    [Fact]
+    public async Task Rolled_back_use_leaves_the_item_immediately_usable()
+    {
+        var inventory = new FakeInventory(3, 8474, 2, 2);
+        var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion()));
+        var command = new UseStackableCommand(OneSession.Session,
+            new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), 8474);
+        await using (inventory.Scope.Begin())
+            Assert.Equal(ItemUseStatus.Used,
+                (await setup.Command.HandleAsync(UseContext, command, default)).Status);
+
+        Assert.Equal(2, inventory.Count);
+        await using (var tx = inventory.Scope.Begin())
+        {
+            Assert.Equal(ItemUseStatus.Used,
+                (await setup.Command.HandleAsync(UseContext, command, default)).Status);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(1, inventory.Count);
+    }
+
+    [Fact]
     public async Task Spirit_potion_starts_only_after_consumption_commits()
     {
         var inventory = new FakeInventory(3, 7377, 2, 2);
@@ -431,21 +470,19 @@ public sealed class UseStackableHandlerTests
         var judgement = new ItemUseJudgementService(content);
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers();
-        var commandHandler = new UseStackableCommandHandler(
-            sessions,
-            new BusinessInventorySlotDomainService(containers, mappings),
-            new OneCharacter(new PlayingCharacter(
-                new CharacterId(60),
-                judgement,
-                cooldowns,
-                PresentCharacters.StandingInTown(new CharacterId(60)),
-                new NoCarriedGold(),
-                new StoredCarryLimitOnly(),
-                CharacterRow.At(RowLevel),
-                new NoSkillPointLedger(), null!, null!)),
-            new ItemUseEffectDomainService(judgement, cooldowns,
-                potion, sessions, inventory.Scope));
-
+        var slots = new BusinessInventorySlotDomainService(containers, mappings);
+        var characters = new OneCharacter(new PlayingCharacter(
+            new CharacterId(60), judgement, cooldowns,
+            PresentCharacters.StandingInTown(new CharacterId(60)), new NoCarriedGold(),
+            new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
+            new NoSkillPointLedger(), null!, null!));
+        var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
+            new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots),
+            new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, sessions, inventory.Scope),
+            new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, sessions, inventory.Scope)], inventory.Scope,
+                new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
+        var commandHandler = new UseStackableCommandHandler(sessions, slots,
+            new ItemUseEffectDomainService(characters, new ItemUseEffectRuleService(judgement), apply, null!, clock));
         return (
             new UseStackableHandler(
                 sessions,

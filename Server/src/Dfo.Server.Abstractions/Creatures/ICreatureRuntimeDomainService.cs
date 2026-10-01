@@ -19,6 +19,7 @@ public interface ICreatureRuntimeDomainService
     ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
         BusinessSlot eggSlot, CancellationToken cancellationToken);
     void Enter(SelectedSessionIdentity session);
+    void DiscardExact(SelectedSessionIdentity session);
     void QueueRoomExperience(SelectedSessionIdentity session, DungeonRunId runId, MazeCell cell, int amount);
     IReadOnlyList<CreaturePendingProjection> DrainProjections();
     bool IsEquipped(SelectedSessionIdentity session, int itemUid);
@@ -26,7 +27,6 @@ public interface ICreatureRuntimeDomainService
     IReadOnlyList<SelectedSessionIdentity> DueSessions();
     ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceAsync(SelectedSessionIdentity session,
         CancellationToken cancellationToken, bool? combat = null);
-    ValueTask<CreatureRuntimeChange?> FeedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
     ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity session, int amount,
         CancellationToken cancellationToken);
     ValueTask<CreatureRuntimeChange?> GainRoomExperienceAsync(SelectedSessionIdentity session,

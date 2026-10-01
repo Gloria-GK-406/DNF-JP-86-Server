@@ -86,19 +86,31 @@ public sealed class OnlineUserConnectionObserver(
             return;
         }
 
-        await using var lease = await executionGate.AcquireAsync(
-            observed.OnlineUserId,
-            UserAccessMode.Exclusive,
-            cancellationToken).ConfigureAwait(false);
-        var selected = selectedSessions.FindByConnection(connection.ConnectionId);
-        var cleanedSelected = selected is not null
-            && await CleanupSelectedAsync(
-                connection.ConnectionId, selected, cancellationToken).ConfigureAwait(false);
-        if (onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
-            && current is not null && current.OnlineUserId == observed.OnlineUserId
-            && (cleanedSelected || current.Generation == observed.Generation))
+        while (true)
         {
-            onlineUsers.TryDisconnectConnection(connection.ConnectionId);
+            if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var before)
+                || before is null || before.OnlineUserId != observed.OnlineUserId) return;
+            var selectedBefore = selectedSessions.FindByConnection(connection.ConnectionId);
+            var accountId = selectedBefore?.AccountId;
+            // Transition first, then online. Scope commands will hold the same order. If binding
+            // changed while waiting, release both and retry rather than acquire in reverse.
+            await using var lifecycleLease = accountId is { } account
+                ? await lifecycleGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken)
+                    .ConfigureAwait(false)
+                : null;
+            await using var lease = await executionGate.AcquireAsync(
+                observed.OnlineUserId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
+            if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
+                || current is null || current.OnlineUserId != observed.OnlineUserId) return;
+            var selected = selectedSessions.FindByConnection(connection.ConnectionId);
+            if (selectedBefore is null && selected is not null) continue;
+            var cleanedSelected = selectedBefore is not null
+                && await CleanupSelectedHeldAsync(connection.ConnectionId, selectedBefore).ConfigureAwait(false);
+            if (onlineUsers.TryGetByConnection(connection.ConnectionId, out current)
+                && current is not null && current.OnlineUserId == observed.OnlineUserId
+                && (cleanedSelected || current.Generation == observed.Generation))
+                onlineUsers.TryDisconnectConnection(connection.ConnectionId);
+            return;
         }
     }
 
@@ -109,6 +121,12 @@ public sealed class OnlineUserConnectionObserver(
     {
         await using var lifecycleLease = await lifecycleGate.AcquireAsync(
             selected.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
+        return await CleanupSelectedHeldAsync(connectionId, selected).ConfigureAwait(false);
+    }
+
+    private async ValueTask<bool> CleanupSelectedHeldAsync(
+        NetworkConnectionId connectionId, SelectedSessionIdentity selected)
+    {
         // A command may have completed exact cleanup while this observer waited. Never clean a
         // replacement selected by the same account or a reused connection identifier.
         if (selectedSessions.FindByConnection(connectionId) != selected)

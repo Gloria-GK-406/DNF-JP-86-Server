@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -13,9 +14,10 @@ internal sealed class EquipmentForgingDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
-    IEquipmentUpgradeRuleService rules,
+    IEquipmentEffectPlanRuleService rules,
     IEquipmentForgingRollSource rolls,
-    IMaterialConsumptionDomainService materials,
+    IApplyEffectsDomainService effects,
+    IInventoryEffectPreflightDomainService preflight,
     TimeProvider clock) : IEquipmentForgingDomainService
 {
     public async ValueTask<EquipmentForgingResult> ForgeAsync(SelectedSessionIdentity session,
@@ -67,23 +69,23 @@ internal sealed class EquipmentForgingDomainService(
             || material.Core.ExpireTime > 0
                 && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentForgingRejection.MaterialUnavailable);
-        var decision = await rules.DecideForgingAsync(target.Core.ItemId, target.Core.Durability,
-            target.Core.GenuineUpgrade, material.ItemId, rolls.Next(), ct)
-            .ConfigureAwait(false);
+        var plan = await rules.ForgingAsync(target, materialSlot, material.ItemId, rolls.Next(), ct).ConfigureAwait(false);
+        var decision = plan.Decision;
         if (decision.Rejection != EquipmentForgingRejection.None)
             return new(decision.Rejection);
         if (decision.MaterialCount <= 0 || material.Count < decision.MaterialCount)
             return new(EquipmentForgingRejection.MaterialUnavailable);
-        var consumed = await materials.ConsumeAsync(session,
-            [new(new MaterialLocation.Carried(materialSlot), material.ItemId,
-                decision.MaterialCount)], ct).ConfigureAwait(false);
-        if (!consumed.Success) return new(EquipmentForgingRejection.MaterialUnavailable);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
+            return new(EquipmentForgingRejection.MaterialUnavailable);
+        var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         var changed = decision.Succeeded
-            ? (await instance!.SetForgingLevelAsync(decision.NewLevel, ct).ConfigureAwait(false)).Core
+            ? applied.Changes<EquipmentEffectChange>().Single().After!.Core
             : target.Core;
+        var remaining = await materialBound.Container.ReadSlotAsync(materialSlot.Index, ct).ConfigureAwait(false);
         return new(EquipmentForgingRejection.None, new(session, targetSlot, target.Core.ItemId,
-            materialSlot, material.ItemId, consumed.Debits[0].Remaining?.Value ?? 0,
+            materialSlot, material.ItemId, remaining?.Count ?? 0,
             changed, target.Core.GenuineUpgrade, decision.NewLevel, decision.Succeeded,
-            decision.SuccessWeight, decision.Roll, clock.GetUtcNow()));
+            decision.SuccessWeight, decision.Roll, context.At));
     }
 }

@@ -19,6 +19,14 @@ internal sealed class TouchSocketNetworkConnectionCloser(
         return ValueTask.CompletedTask;
     }
 
+    public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (connections.TryGet(expected.ConnectionId, out var entry) && entry is not null && ReferenceEquals(entry.Context, expected))
+            _ = CloseDetachedAsync(entry.Session);
+        return ValueTask.CompletedTask;
+    }
+
     private async Task CloseDetachedAsync(IClosableClient session)
     {
         // TouchSocket waits for the active receive callback to finish while closing. Protocol

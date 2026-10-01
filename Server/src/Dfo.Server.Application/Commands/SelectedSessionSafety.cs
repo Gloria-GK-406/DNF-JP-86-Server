@@ -1,0 +1,85 @@
+using System.Runtime.CompilerServices;
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Application.Commands;
+
+public sealed record SelectedSessionRecipient(SelectedSessionIdentity Session, NetworkConnectionContext? Connection, GameMessageMetadata? Metadata = null);
+
+/// <summary>Unknown settlement outcomes survive retries and session/cache rebinding.</summary>
+public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSessionTransitionGate lifecycle,
+    ILogger<SelectedSessionSafety> logger)
+{
+    private readonly object gate = new();
+    private readonly HashSet<SelectedSessionIdentity> blocked = [];
+    private readonly ConditionalWeakTable<NetworkConnectionContext, Fence> connections = new();
+    private sealed class Fence;
+    public bool IsBlocked(NetworkConnectionContext connection)
+    { lock (gate) return connections.TryGetValue(connection, out _); }
+    public bool IsBlocked(SelectedSessionIdentity session)
+    { lock (gate) return blocked.Contains(session); }
+
+    public SelectedSessionRecipient Capture(SelectedSessionIdentity session)
+    {
+        DemandCurrent(session);
+        var users = services.GetService<IOnlineUserQueryDomainService>();
+        NetworkConnectionContext? connection = null;
+        if (users?.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null)
+        {
+            if (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId)
+                throw new InvalidOperationException("The recipient connection no longer owns the selected character.");
+            connection = user.Connection;
+            if (IsBlocked(connection)) throw new InvalidOperationException("The recipient connection has an unknown settlement outcome.");
+        }
+        return new(session, connection, services.GetService<NetworkCommandAuthorization>()?.Metadata);
+    }
+    public void DemandCurrent(SelectedSessionIdentity session)
+    {
+        if (IsBlocked(session) || services.GetService<ISelectedSessionDomainService>()?.FindByCharacter(session.CharacterId) != session)
+            throw new InvalidOperationException("The selected session is stale or has an unknown settlement outcome.");
+    }
+    public void DemandCurrent(SelectedSessionRecipient recipient)
+    {
+        DemandCurrent(recipient.Session);
+        if (recipient.Connection is not { } connection) return;
+        var users = services.GetService<IOnlineUserQueryDomainService>();
+        if (IsBlocked(connection) || users?.TryGetByConnection(recipient.Session.ConnectionId, out var user) != true
+            || user is null || !ReferenceEquals(user.Connection, connection)
+            || user.AccountId != recipient.Session.AccountId || user.CurrentCharacterId != recipient.Session.CharacterId)
+            throw new InvalidOperationException("The captured recipient connection was replaced or blocked.");
+    }
+    public async ValueTask BlockAsync(SelectedSessionRecipient recipient, Exception error, string operation)
+    {
+        lock (gate)
+        {
+            blocked.Add(recipient.Session);
+            if (recipient.Connection is { } connection) connections.GetValue(connection, _ => new());
+        }
+        await using var lease = await lifecycle.BorrowOrAcquireSharedAsync(recipient.Session.AccountId, CancellationToken.None).ConfigureAwait(false);
+        try { services.GetService<ICreatureRuntimeDomainService>()?.DiscardExact(recipient.Session); }
+        catch (Exception cleanup) { TryLog(() => logger.LogError(cleanup, "Discard of uncertain creature runtime failed")); }
+        TryLog(() => logger.LogError(error, "Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",
+            operation, TransactionOutcomeUncertainException.Find(error)?.Reason, recipient.Session.AccountId,
+            recipient.Session.CharacterId, recipient.Session.ConnectionId, recipient.Session.ConnectionGeneration, recipient.Metadata?.Sequence, recipient.Metadata?.InboundOrdinal));
+        if (recipient.Connection is { } original && services.GetService<INetworkConnectionCloser>() is { } closer)
+            try { await closer.RequestCloseExactAsync(original, CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception close) { TryLog(() => logger.LogError(close, "Scheduling exact uncertain connection close failed")); }
+    }
+    private static void TryLog(Action log) { try { log(); } catch { /* Preserve settlement cause and continue exact close. */ } }
+    public async ValueTask<TransactionOutcomeUncertainException> PublicationFailedAsync(
+        SelectedSessionRecipient recipient, Exception cause, string operation)
+    {
+        var error = new TransactionOutcomeUncertainException(TransactionUncertaintyReason.PostCommitPublicationFailure,
+            "Durable effects committed, but their runtime claim could not be published.", cause);
+        await BlockAsync(recipient, error, operation).ConfigureAwait(false);
+        return error;
+    }
+}

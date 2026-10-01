@@ -12,30 +12,6 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentEnchantHandlerTests
 {
-    private static readonly ConditionalWeakTable<ShopFixture, FrameClock> Clocks = new();
-
-    private sealed class FrameClock
-    {
-        internal long Ordinal;
-        internal ushort? LastFresh;
-
-        internal (long Ordinal, bool Fresh) Observe(ushort sequence)
-        {
-            var fresh = LastFresh is null || sequence == unchecked((ushort)(LastFresh.Value + 1));
-            if (fresh) LastFresh = sequence;
-            return (++Ordinal, fresh);
-        }
-
-        internal void ObserveOtherFrames(int count)
-        {
-            for (var index = 0; index < count; index++)
-            {
-                LastFresh = unchecked((ushort)((LastFresh ?? 0) + 1));
-                Ordinal++;
-            }
-        }
-    }
-
     [Fact]
     public async Task Success_sends_committed_inventory_changes_and_ack()
     {
@@ -55,7 +31,7 @@ public sealed class EquipmentEnchantHandlerTests
     }
 
     [Fact]
-    public async Task Same_sequence_replays_current_inventory_and_ack_while_changed_request_is_rejected()
+    public async Task Same_sequence_replays_current_inventory_without_ack_while_changed_request_is_rejected()
     {
         using var shop = Fixture();
         await shop.SeedCore(12, Piece(), InventoryContainerType.Equipment);
@@ -63,12 +39,10 @@ public sealed class EquipmentEnchantHandlerTests
         await Send(shop, 7);
         var sent = shop.Sender.Messages.Count;
         await Send(shop, 7);
-        Assert.Equal(sent + 3, shop.Sender.Messages.Count);
-        await Send(shop, 7, targetSlot: 13);
-        var replies = shop.Sender.Messages.OfType<EnchantByBeadResponse>().ToArray();
-        Assert.True(replies[0].Success);
-        Assert.True(replies[1].Success);
-        Assert.False(replies[2].Success);
+        Assert.Equal(sent + 6, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Batches);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, targetSlot: 13).AsTask());
+        Assert.True(Assert.Single(shop.Sender.Messages.OfType<EnchantByBeadResponse>()).Success);
         Assert.Equal(1, shop.Count(1000));
     }
 
@@ -120,8 +94,9 @@ public sealed class EquipmentEnchantHandlerTests
 
         await Send(shop, 7);
 
-        Assert.Equal(4, shop.Sender.Messages.Count);
-        Assert.True(Assert.IsType<EnchantByBeadResponse>(shop.Sender.Messages[^1]).Success);
+        Assert.Equal(7, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Batches);
+        Assert.Empty(shop.Sender.Messages.OfType<EnchantByBeadResponse>());
         Assert.Equal(1, shop.Count(1000));
     }
 
@@ -145,16 +120,9 @@ public sealed class EquipmentEnchantHandlerTests
         };
         var replay = Task.Run(async () => await Send(shop, 7));
         Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
-        var laterStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var later = Task.Run(async () =>
-        {
-            laterStarted.SetResult();
-            await Send(shop, 8);
-        });
+        var later = Send(shop, 8).AsTask();
         try
         {
-            await laterStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            await Task.Delay(50);
             Assert.False(later.IsCompleted);
             Assert.Equal(1, shop.Count(1000));
         }
@@ -176,9 +144,8 @@ public sealed class EquipmentEnchantHandlerTests
             await Send(shop, sequence);
         Assert.Equal(1, shop.Count(1000));
 
-        await Send(shop, 1);
-
-        Assert.False(Assert.IsType<EnchantByBeadResponse>(shop.Sender.Messages[^1]).Success);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 1).AsTask());
+        Assert.Empty(shop.Sender.Batches);
         Assert.Equal(1, shop.Count(1000));
     }
 
@@ -189,7 +156,7 @@ public sealed class EquipmentEnchantHandlerTests
         await shop.SeedCore(12, Piece(), InventoryContainerType.Equipment);
         await shop.Seed(121, 1000, 2, 3);
         await Send(shop, 7);
-        Clocks.GetOrCreateValue(shop).ObserveOtherFrames(32768);
+        EffectRequestTransport.ObserveOtherFrames(shop, 32768);
 
         await Send(shop, 32776);
 
@@ -205,7 +172,7 @@ public sealed class EquipmentEnchantHandlerTests
         await shop.SeedCore(12, Piece(), InventoryContainerType.Equipment);
         await shop.Seed(121, 1000, 2, 3);
         await Send(shop, 7);
-        Clocks.GetOrCreateValue(shop).ObserveOtherFrames(65535);
+        EffectRequestTransport.ObserveOtherFrames(shop, 65535);
 
         await Send(shop, 7);
 
@@ -224,10 +191,8 @@ public sealed class EquipmentEnchantHandlerTests
         await Send(shop, 8);
         await Send(shop, 7);
 
-        var refreshedBead = shop.Sender.Messages[^3];
-        var items = Assert.IsAssignableFrom<IReadOnlyList<InventoryItemState>>(
-            refreshedBead.GetType().GetProperty("Items")!.GetValue(refreshedBead));
-        Assert.Equal(1, Assert.Single(items).Core.Value);
+        Assert.Equal(1, EffectRequestTransport.MainValue(shop, 121));
+        Assert.Single(shop.Sender.Batches);
         Assert.Equal(1, shop.Count(1000));
     }
 
@@ -240,9 +205,9 @@ public sealed class EquipmentEnchantHandlerTests
         await Send(shop, 65534);
         await Send(shop, 65535);
         await Send(shop, 0);
-        await Send(shop, 65533);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 65533).AsTask());
         Assert.Equal(0, shop.Count(1000));
-        Assert.False(Assert.IsType<EnchantByBeadResponse>(shop.Sender.Messages[^1]).Success);
+        Assert.Equal(3, shop.Sender.Messages.OfType<EnchantByBeadResponse>().Count(x => x.Success));
     }
 
     [Fact]
@@ -271,15 +236,9 @@ public sealed class EquipmentEnchantHandlerTests
     private static ValueTask Send(ShopFixture shop, ushort sequence, short targetSlot = 12,
         InventoryContainerType targetList = InventoryContainerType.Equipment)
     {
-        var (ordinal, fresh) = Clocks.GetOrCreateValue(shop).Observe(sequence);
-        var metadata = new Dfo.Server.Data.Networking.GameMessageMetadata(1, 0x0110, 0, sequence)
-        {
-            InboundOrdinal = ordinal,
-            SequenceIsFresh = fresh,
-        };
-        return shop.Services.GetRequiredService<EnchantByBeadHandler>().HandleAsync(
-            new(shop.Connection), new EnchantByBeadRequest(metadata,
-                InventoryContainerType.Main, 121, targetList, targetSlot), default);
+        var metadata = new Dfo.Server.Data.Networking.GameMessageMetadata(1, 0x0110, 0, sequence);
+        return EffectRequestTransport.Send(shop, new EnchantByBeadRequest(metadata,
+                InventoryContainerType.Main, 121, targetList, targetSlot));
     }
 
     private sealed class Content : IEquipmentEnchantContentSource

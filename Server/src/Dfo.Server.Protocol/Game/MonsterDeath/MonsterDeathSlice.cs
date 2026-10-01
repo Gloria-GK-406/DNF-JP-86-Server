@@ -386,8 +386,32 @@ public sealed class MonsterDeathHandler(
     ExperienceDiagnostics diagnostics,
     ILogger<MonsterDeathHandler> logger,
     DungeonPartyRecipients? partyRecipients = null,
-    ICreatureRuntimeDomainService? creatures = null) : ClientMessageHandler<MonsterDeathRequest>
+    ICreatureRuntimeDomainService? creatures = null, SelectedSessionSafety? safety = null) : ClientMessageHandler<MonsterDeathRequest>
 {
+    private ValueTask<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException> PublicationFailureAsync(
+        SelectedSessionRecipient recipient, Exception failure) => safety is not null
+        ? safety.PublicationFailedAsync(recipient, failure, nameof(MonsterDeathHandler))
+        : ValueTask.FromResult(new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
+            Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
+            "Durable kill effects could not be published.", failure));
+
+    private async ValueTask<DungeonActorDeathChange> PublishActorDeathAsync(DungeonActorDeathClaim claim,
+        IReadOnlyList<SelectedSessionRecipient> paid)
+    {
+        try
+        {
+            return runs.CommitActorDeathChange(claim)
+                ?? throw new InvalidOperationException("The actor-death claim was no longer current after its durable effects.");
+        }
+        catch (Exception cause) when (paid.Count > 0)
+        {
+            Exception failure = cause;
+            foreach (var recipient in paid)
+                failure = await PublicationFailureAsync(recipient, failure).ConfigureAwait(false);
+            throw failure;
+        }
+    }
+
     private void QueueCreatureClear(SelectedSessionIdentity session, DungeonRunState run)
     {
         if (creatures is null || !run.Layout.ConsumesFatigue || !run.CurrentCellState.IsCleared) return;
@@ -400,6 +424,7 @@ public sealed class MonsterDeathHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        var capturedRecipient = session is null ? null : safety?.Capture(session) ?? new SelectedSessionRecipient(session, context.Connection);
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null)
@@ -503,6 +528,7 @@ public sealed class MonsterDeathHandler(
                 runs.ReleaseActorDeath(deathClaim);
             throw;
         }
+        var durableCommitted = false;
         if (run is not null && killed is { } verifiedKill)
         {
             var effectClaim = runs.TryClaimParticipantKillEffect(
@@ -529,16 +555,20 @@ public sealed class MonsterDeathHandler(
                             deathClaim!.ActorState?.PendingLoot,
                             run.PartyKey,
                             run.IsBossRoom && verifiedKill.IsMonster
-                                && verifiedKill.Rank == MonsterRank.Boss),
+                                && verifiedKill.Rank == MonsterRank.Boss, Session: session),
                         cancellationToken).ConfigureAwait(false);
+                    durableCommitted = true;
                     if (!runs.CommitParticipantKillEffect(effectClaim, appliedKill?.Award))
                     {
                         throw new InvalidOperationException(
                             "The participant kill effect claim was no longer current.");
                     }
                 }
-                catch
+                catch (Exception failure)
                 {
+                    if (durableCommitted)
+                        throw await PublicationFailureAsync(capturedRecipient!, failure).ConfigureAwait(false);
+                    if (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) throw;
                     runs.ReleaseParticipantKillEffect(effectClaim);
                     var restored = runs.ReleaseActorDeath(deathClaim!);
                     logger.LogWarning(
@@ -577,9 +607,8 @@ public sealed class MonsterDeathHandler(
                         : HuntEnemyTargetTypes.AiCharacter);
             }
 
-            var deathChange = runs.CommitActorDeathChange(deathClaim!)
-                ?? throw new InvalidOperationException(
-                    "The actor-death claim was no longer current after its durable effects.");
+            var deathChange = await PublishActorDeathAsync(deathClaim!,
+                durableCommitted ? [capturedRecipient!] : []).ConfigureAwait(false);
             run = deathChange.Run;
             autoKilled = deathChange.AutoKilledActorSequences;
             if (verifiedKill.IsMonster || deathChange.AddedGroundItems.Count > 0)
@@ -720,10 +749,15 @@ public sealed class MonsterDeathHandler(
         CancellationToken cancellationToken)
     {
         var recipients = new List<PartyDeathRecipient>();
+        var capturedRecipients = new Dictionary<SelectedSessionIdentity, SelectedSessionRecipient>();
         foreach (var frozen in partyRecipients?.Find(reporter, initialRun.RunId)
                      ?? runDeliveries.Find(initialRun.RunId))
         {
+            if (selectedSessions.FindByCharacter(frozen.CharacterId) != frozen) continue;
+            var captured = safety?.Capture(frozen) ?? new SelectedSessionRecipient(frozen, null);
+            capturedRecipients[frozen] = captured;
             var result = await currentViews.TryLoadAsync(frozen, cancellationToken).ConfigureAwait(false);
+            safety?.DemandCurrent(captured);
             if (selectedSessions.FindByCharacter(frozen.CharacterId) != frozen
                 || result is null)
             {
@@ -732,6 +766,7 @@ public sealed class MonsterDeathHandler(
 
             var mirror = await characters.Get(frozen.CharacterId)
                 .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
+            safety?.DemandCurrent(captured);
             recipients.Add(new PartyDeathRecipient(frozen, result, mirror));
         }
 
@@ -776,6 +811,7 @@ public sealed class MonsterDeathHandler(
             throw;
         }
 
+        var paidRecipients = new HashSet<SelectedSessionIdentity>();
         var results = recipients
             .Select(recipient => new
             {
@@ -800,6 +836,7 @@ public sealed class MonsterDeathHandler(
                 if (effectClaim is null)
                     continue;
 
+                var participantCommitted = false;
                 try
                 {
                     var applied = await commandBus.SendAsync(
@@ -820,8 +857,10 @@ public sealed class MonsterDeathHandler(
                             deathClaim.ActorState?.PendingLoot,
                             deathClaim.Run.PartyKey,
                             deathClaim.Run.IsBossRoom && verifiedKill.IsMonster
-                                && verifiedKill.Rank == MonsterRank.Boss),
+                                && verifiedKill.Rank == MonsterRank.Boss, Session: recipient.Session),
                         cancellationToken).ConfigureAwait(false);
+                    participantCommitted = true;
+                    paidRecipients.Add(recipient.Session);
                     if (!runs.CommitParticipantKillEffect(effectClaim, applied.Award))
                     {
                         throw new InvalidOperationException(
@@ -835,8 +874,11 @@ public sealed class MonsterDeathHandler(
                         applied);
                     this.LogAppliedKill(context, recipient.Session, deathClaim.Run, verifiedKill, applied);
                 }
-                catch
+                catch (Exception failure)
                 {
+                    if (participantCommitted)
+                        throw await PublicationFailureAsync(capturedRecipients[recipient.Session], failure).ConfigureAwait(false);
+                    if (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) throw;
                     runs.ReleaseParticipantKillEffect(effectClaim);
                     var restored = runs.ReleaseActorDeath(deathClaim);
                     logger.LogWarning(
@@ -852,9 +894,8 @@ public sealed class MonsterDeathHandler(
             }
         }
 
-        var deathChange = runs.CommitActorDeathChange(deathClaim)
-            ?? throw new InvalidOperationException(
-                "The actor-death claim was no longer current after its durable effects.");
+        var deathChange = await PublishActorDeathAsync(deathClaim,
+            [.. paidRecipients.Select(paid => capturedRecipients[paid])]).ConfigureAwait(false);
         var run = deathChange.Run;
         var dropped = killed is { IsMonster: true } || deathChange.AddedGroundItems.Count > 0
             ? deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop()).ToArray()

@@ -11,6 +11,8 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -134,6 +136,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestMaterialRequirementDomainService, QuestMaterialRequirementDomainService>();
         services.TryAddSingleton<IQuestHelperGroundBonusDomainService, QuestHelperGroundBonusDomainService>();
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
+        services.TryAddSingleton<IQuestCompletionEffectRuleService, QuestCompletionEffectRuleService>();
+        services.TryAddSingleton<IQuestCompletionDomainService, QuestCompletionDomainService>();
         services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
@@ -293,6 +297,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
         services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
         services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();
+        services.TryAddSingleton<IOpeningEffectPlanRuleService, OpeningEffectPlanRuleService>();
+        services.TryAddSingleton<ISpecialConsumableEffectPlanRuleService, SpecialConsumableEffectPlanRuleService>();
+        services.TryAddSingleton<IConsumableStateDomainService, ConsumableStateDomainService>();
         services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
         services.TryAddSingleton<ILotteryRandomSource, LotteryRandomSource>();
         services.TryAddSingleton<ILotteryResultSelector, WeightedLotteryResultSelector>();
@@ -352,7 +359,6 @@ public sealed class ApplicationModule : IServerModule
         // arithmetic belongs to the shared skill rules; the state service supplies current facts.
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
         services.TryAddSingleton<ICharacterSkillResetRuleService, CharacterSkillResetRuleService>();
-        services.TryAddSingleton<ICharacterCareerDomainService, CharacterCareerDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();
         services.TryAddSingleton<ICharacterOptionsDomainService, CharacterOptionsDomainService>();
         services.TryAddSingleton<ICharacterSkillLearningDomainService, CharacterSkillLearningDomainService>();
@@ -415,6 +421,46 @@ public sealed class ApplicationModule : IServerModule
         // refill declarations.
         services.TryAddSingleton<IInventoryLifecycleRuleService, InventoryLifecycleRuleService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
+        services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
+        services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
+        services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
+        services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantPreparedItemEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantPreparedItemEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantOpeningVirtualEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, GrantOpeningVirtualEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetOpeningPremiumEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, SetOpeningPremiumEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetSeriaLuckEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, SetSeriaLuckEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetDoublePotUsageEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, SetDoublePotUsageEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SpendGoldEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, ConsumeAccountMaterialEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantAccountMaterialEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantStackableEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantBasicCharacterItemEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetQuestRewardGoldEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, CharacterExperienceEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterGrowTypeEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, MaterializeSkillBuildsEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentUpgradeEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentEnchantmentEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentDimensionalEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentMagicSealEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentForgingEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, DestroyEquipmentEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, ConsumeFromContainerEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, StartItemCooldownEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, StartSpiritPotionEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, AddPetStomachEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetFatigueStateEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetItemUsageStateEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCarriedQuestEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, RemoveTrackedQuestEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetClearedQuestEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetLearnedSkillEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, RenamePetEffectHandler>());
         services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
         services.TryAddSingleton<IExpiredCharacterItemCleanupDomainService, ExpiredCharacterItemCleanupDomainService>();
         services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();
@@ -448,6 +494,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
         services.TryAddSingleton<ICharacterVitalRuntimeDomainService, CharacterVitalRuntimeDomainService>();
         services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateDomainService, Dfo.Server.Application.Effects.ReplayStateDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Effects.ReadReplayStateCommand,
+            Dfo.Server.Abstractions.Effects.ReplayStateSnapshot, Dfo.Server.Application.Effects.ReadReplayStateCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<
             IOtherCharacterDetailQueryDomainService,
             OtherCharacterDetailQueryDomainService>();

@@ -1,0 +1,16 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+  失败 Dfo.Server.Application.Tests.Commands.CommandBusTests.EveryProductionBehaviourResolvesForACommandResultType [6 ms]
+  错误消息:
+   Assert.Equal() Failure: Collections differ
+                                                                                                ↓ (pos 1)
+Expected: [typeof(Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior<TestResult>), ···]
+Actual:   [typeof(Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior<TestResult>), typeof(Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior<TestResult>), ···]
+                                                                                                ↑ (pos 1)
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Commands.CommandBusTests.EveryProductionBehaviourResolvesForACommandResultType() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Commands\CommandBusTests.cs:line 167
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-008\TASK-008-application.trx
+
+失败!  - 失败:     1，通过:   700，已跳过:     0，总计:   701，持续时间: 23 s - Dfo.Server.Application.Tests.dll (net10.0)

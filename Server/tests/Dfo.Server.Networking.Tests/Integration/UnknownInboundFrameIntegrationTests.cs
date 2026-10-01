@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.Exit;
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
@@ -105,14 +108,70 @@ public sealed class UnknownInboundFrameIntegrationTests
         await host.StopAsync(timeout.Token);
     }
 
-    private static byte[] EncodeClientFrame(byte command, ushort type, ReadOnlySpan<byte> body)
+
+    [Fact]
+    public async Task Real_TCP_metadata_hashes_complete_raw_body_and_counts_unknown_frames_before_decode()
+    {
+        var channelPort = GetAvailablePort(); var gamePort = GetAvailablePort();
+        while (gamePort == channelPort) gamePort = GetAvailablePort();
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> {
+            ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),
+            ["Networking:GamePorts:0"] = gamePort.ToString(), ["Game:EndpointHost"] = "127.0.0.1",
+        });
+        builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+        builder.Services.AddSingleton<IServerConfigService>(new ServerConfigService(builder.Configuration));
+        builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(gamePort));
+        builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
+        builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
+        new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<RawMetadataDispatcher>();
+        builder.Services.AddSingleton<INetworkMessageDispatcher>(p => p.GetRequiredService<RawMetadataDispatcher>());
+        using var host = TestInfrastructure.Build(builder); using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await host.StartAsync(timeout.Token);
+        try
+        {
+            using var client = new TcpClient(); await client.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+            var stream = client.GetStream(); _ = await ReadResponseAsync(stream, timeout.Token);
+            // Exit decoder ignores its body. Every ignored tail byte must nevertheless remain in the identity.
+            await stream.WriteAsync(EncodeClientFrame(1, 0x7FFF, [], 1), timeout.Token);
+            byte[] body = [1, 2, 3, 0xA5];
+            await stream.WriteAsync(EncodeClientFrame(1, 3, body, 2), timeout.Token); _ = await ReadResponseAsync(stream, timeout.Token);
+            await stream.WriteAsync(EncodeClientFrame(1, 3, [], 2), timeout.Token); _ = await ReadResponseAsync(stream, timeout.Token);
+            await stream.WriteAsync(EncodeClientFrame(1, 0x7FFF, [], 3), timeout.Token);
+            await stream.WriteAsync(EncodeClientFrame(1, 3, body, 4), timeout.Token); _ = await ReadResponseAsync(stream, timeout.Token);
+            var records = host.Services.GetRequiredService<RawMetadataDispatcher>().Records;
+            Assert.Equal(new long?[] { 2, 3, 5 }, records.Select(x => x.InboundOrdinal));
+            Assert.Equal(new ushort[] { 2, 2, 4 }, records.Select(x => x.Sequence));
+            Assert.Equal(new[] { true, false, true }, records.Select(x => x.SequenceIsFresh));
+            Assert.Equal(new int?[] { 4, 0, 4 }, records.Select(x => x.FullBodyLength));
+            Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)), records[0].FullBodySha256);
+            Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Array.Empty<byte>())), records[1].FullBodySha256);
+            Assert.Equal(records[0].FullBodySha256, records[2].FullBodySha256);
+        }
+        finally { await host.StopAsync(timeout.Token); }
+    }
+    private sealed class RawMetadataDispatcher(INetworkMessageSender sender) : INetworkMessageDispatcher
+    {
+        public List<GameMessageMetadata> Records { get; } = [];
+        public async ValueTask DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken ct)
+        {
+            Records.Add(Assert.IsType<GameExitRequest>(message).Metadata);
+            await sender.SendAsync(context.Connection.ConnectionId, new GameExitResponse(true), ct);
+        }
+    }
+
+    private static byte[] EncodeClientFrame(byte command, ushort type, ReadOnlySpan<byte> body, ushort sequence = 1)
     {
         var frame = new byte[GameClientFrameRequestInfo.HeaderLength + body.Length];
         frame[0] = command;
         BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(1), type);
         BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(3), (uint)frame.Length);
         BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(7), 0);
-        BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(11), 1);
+        frame[11] = 0x5A; // reserved A21 byte is distinct from the sequence.
+        BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(12), sequence);
         body.CopyTo(frame.AsSpan(GameClientFrameRequestInfo.HeaderLength));
         return frame;
     }

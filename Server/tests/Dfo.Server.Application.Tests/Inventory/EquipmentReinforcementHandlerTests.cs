@@ -80,7 +80,7 @@ public sealed class EquipmentReinforcementHandlerTests
     }
 
     [Fact]
-    public async Task Same_connection_sequence_replay_returns_ack_without_spending_again()
+    public async Task Same_connection_sequence_replay_refreshes_current_state_without_spending_again()
     {
         using var shop = Fixture();
         await shop.SeedCore(9, Piece());
@@ -90,8 +90,9 @@ public sealed class EquipmentReinforcementHandlerTests
         var countAfterFirst = shop.Sender.Messages.Count;
         await Send(shop, 7);
 
-        Assert.Equal(countAfterFirst + 1, shop.Sender.Messages.Count);
-        Assert.Equal(2, shop.Sender.Messages.OfType<ReinforceItemResponse>().Count());
+        Assert.Equal(countAfterFirst + 6, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -104,13 +105,10 @@ public sealed class EquipmentReinforcementHandlerTests
         await shop.Seed(121, 1000, 20, 3);
 
         await Send(shop, 7);
-        await Send(shop, 7, expectedItemId: 3001);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, expectedItemId: 3001).AsTask());
 
-        var replies = shop.Sender.Messages.OfType<ReinforceItemResponse>().ToArray();
-        Assert.Equal(2, replies.Length);
-        Assert.True(replies[0].Success);
-        Assert.False(replies[1].Success);
-        Assert.Equal((byte)0x04, replies[1].ErrorCode);
+        Assert.True(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
+        Assert.Empty(shop.Sender.Batches);
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -124,13 +122,9 @@ public sealed class EquipmentReinforcementHandlerTests
 
         await Send(shop, 7);
         shop.Select(2);
-        await Send(shop, 7);
-
-        var replies = shop.Sender.Messages.OfType<ReinforceItemResponse>().ToArray();
-        Assert.Equal(2, replies.Length);
-        Assert.True(replies[0].Success);
-        Assert.False(replies[1].Success);
-        Assert.Equal((byte)0x04, replies[1].ErrorCode);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7).AsTask());
+        Assert.True(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
+        Assert.Empty(shop.Sender.Batches);
         Assert.Equal(100_000, shop.Gold);
     }
 
@@ -255,11 +249,9 @@ public sealed class EquipmentReinforcementHandlerTests
         var countAfterFirst = shop.Sender.Messages.Count;
         await Send(shop, 7);
 
-        Assert.Equal(countAfterFirst + 1, shop.Sender.Messages.Count);
-        var replies = shop.Sender.Messages.OfType<ReinforceItemResponse>().ToArray();
-        Assert.Equal(2, replies.Length);
-        Assert.Equal(replies[0], replies[1]);
-        Assert.Equal(newLevel, replies[1].NewLevel);
+        Assert.Equal(countAfterFirst + 6, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Batches);
+        Assert.Equal(newLevel, Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).NewLevel);
         Assert.Equal(1, shop.Count(ticketId));
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
@@ -377,8 +369,9 @@ public sealed class EquipmentReinforcementHandlerTests
         Assert.Equal(43, BitConverter.ToInt32(cube, 6));
         var afterFirst = shop.Sender.Messages.Count;
         await Send(shop, 7, materialSlot: 358);
-        Assert.Equal(afterFirst + 1, shop.Sender.Messages.Count);
-        Assert.Equal(ack, shop.Sender.Messages.Last());
+        Assert.Equal(afterFirst + 7, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
+        Assert.Equal(43, EffectRequestTransport.MainValue(shop, 358));
         Assert.Equal(43, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
         Assert.Equal(99_900, shop.Gold);
         var snapshot = await ReloadSnapshot(shop);
@@ -458,10 +451,9 @@ public sealed class EquipmentReinforcementHandlerTests
 
     private static ValueTask Send(ShopFixture shop, ushort sequence, ushort method = 0,
         int expectedItemId = 3000, short materialSlot = 121) =>
-        shop.Services.GetRequiredService<ReinforceItemHandler>().HandleAsync(
-            new(shop.Connection),
+        EffectRequestTransport.Send(shop,
             new ReinforceItemRequest(new(1, 0x0050, 0, sequence), method,
-                9, expectedItemId, materialSlot, -1, [0x41]), default);
+                9, expectedItemId, materialSlot, -1, [0x41]));
 
     private sealed class FixedRoll : IEquipmentReinforcementRollSource
     {

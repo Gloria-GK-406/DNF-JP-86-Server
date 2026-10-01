@@ -17,14 +17,11 @@ public sealed class MagicSealHandler(
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
-    MagicSealReplayGuard replays,
     ILogger<MagicSealHandler> logger) : ClientMessageHandler<MagicSealRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         MagicSealRequest request, CancellationToken ct)
     {
-        using var replay = await replays.EnterAsync(context.Connection,
-            request.Metadata.Sequence, ct).ConfigureAwait(false);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
@@ -32,16 +29,7 @@ public sealed class MagicSealHandler(
             await Reject(context, request, ct).ConfigureAwait(false);
             return;
         }
-        replay.BindSession(session);
-        if (replay.CachedFor(request, out var conflict) is { } cached)
-        {
-            await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters([cached.Receipt.Session.CharacterId]),
-                new MagicSealCompleted(cached.Receipt, request.Change), ct)
-                .ConfigureAwait(false);
-            return;
-        }
-        if (conflict || !replay.Admit(request) || request.TargetSlot < 0
+        if (request.TargetSlot < 0
             || request.MaterialSlot != -1
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
@@ -60,18 +48,9 @@ public sealed class MagicSealHandler(
             await Reject(context, request, ct).ConfigureAwait(false);
             return;
         }
-        EquipmentMagicSealResult result;
-        try
-        {
-            result = await commands.SendAsync(new MagicSealCommand(online.OnlineUserId,
-                session, request.Change, target, null, request.OptionIndex), ct)
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            replay.MarkCommitFailed(request);
-            throw;
-        }
+        var result = await commands.SendAsync(new MagicSealCommand(online.OnlineUserId,
+            session, request.Change, target, null, request.OptionIndex), ct)
+            .ConfigureAwait(false);
         if (result.Receipt is not { } receipt)
         {
             logger.LogDebug("MAGIC_SEAL rejected: {Reason}", result.Rejection);
@@ -79,7 +58,6 @@ public sealed class MagicSealHandler(
                 .ConfigureAwait(false);
             return;
         }
-        replay.Remember(request, receipt);
         logger.LogInformation("MAGIC_SEAL character={Character} change={Change} slot={Slot} seed={Seed}",
             receipt.Session.CharacterId.Value, request.Change, request.TargetSlot, receipt.Seed);
         await notifications.PublishAsync(

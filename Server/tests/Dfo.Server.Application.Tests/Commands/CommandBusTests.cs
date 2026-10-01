@@ -168,9 +168,11 @@ public sealed class CommandBusTests
             new[]
             {
                 typeof(CommandLoggingBehavior<TestResult>),
+                typeof(SelectedSessionExecutionBehavior<TestResult>),
                 typeof(OnlineUserExecutionBehavior<TestResult>),
                 typeof(AccountExecutionBehavior<TestResult>),
                 typeof(TransactionalExecutionBehavior<TestResult>),
+                typeof(SelectedSessionSettlementBehavior<TestResult>),
                 typeof(UnitOfWorkBehavior<TestResult>),
                 typeof(CommandExecutionPolicyBehavior<TestResult>),
             },

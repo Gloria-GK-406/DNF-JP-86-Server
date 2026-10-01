@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Inventory;
@@ -15,8 +16,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.AvatarPackageOpening;
 
-public sealed record AvatarPackageOpeningRequest(GameMessageMetadata Metadata, AvatarPackageOpeningInput? Input) : IClientNetworkMessage
+public sealed record AvatarPackageOpeningRequest(GameMessageMetadata Metadata, AvatarPackageOpeningInput? Input) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameAvatarPackageOpening;
 }
 internal sealed class AvatarPackageOpeningDecoder : IGameMessageDecoder
@@ -45,7 +47,7 @@ internal sealed class AvatarPackageOpeningEncoder : GameCmdMessageEncoder<Avatar
     }
 }
 public sealed record AvatarPackageOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, AvatarPackageOpeningInput Input)
-    : ICommand<PackageOpeningResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
@@ -71,8 +73,8 @@ public sealed class AvatarPackageOpeningHandler(ISelectedSessionDomainService se
         else
         {
             try { result = await commands.SendAsync(new AvatarPackageOpeningCommand(online.OnlineUserId, session, message.Input), ct).ConfigureAwait(false); }
-            catch (OpeningRejectedException failure) { result = new(failure.Reason, Detail: failure.Message); }
-            catch (Exception failure) when (failure is not OperationCanceledException)
+            catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) { result = new(failure.Reason, Detail: failure.Message); }
+            catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
             {
                 logger.LogError(failure, "Package opening storage failure for {ConnectionId}", context.Connection.ConnectionId);
                 result = new(OpeningRejection.StorageFailure);

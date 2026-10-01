@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -13,7 +14,9 @@ internal sealed class EquipmentMagicSealDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IEquipmentDomainService equipments,
-    IEquipmentMagicSealRuleService rules,
+    IEquipmentEffectPlanRuleService rules,
+    IApplyEffectsDomainService effects,
+    IInventoryEffectPreflightDomainService preflight,
     IEquipmentMagicSealSeedSource seeds,
     ICharacterDomainService characters,
     TimeProvider clock) : IEquipmentMagicSealDomainService
@@ -52,10 +55,8 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.ItemUnavailable);
         if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
             return new(EquipmentMagicSealRejection.Locked);
-        var oldOptions = new[] { target.Core.RandomOption0, target.Core.RandomOption1,
-            target.Core.RandomOption2 };
-        var decision = await rules.DecideAsync(target.Core.ItemId, oldOptions,
-            changeIndex, seeds.NextSeed(), ct).ConfigureAwait(false);
+        var plan = await rules.MagicSealAsync(target, changeIndex, seeds.NextSeed(), ct).ConfigureAwait(false);
+        var decision = plan.Decision;
         if (decision.Rejection != EquipmentMagicSealRejection.None)
             return new(decision.Rejection);
         var nextOptions = decision.Options
@@ -67,10 +68,13 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.NoSession);
         if (await character.GoldAsync(ct).ConfigureAwait(false) < decision.GoldCost)
             return new(EquipmentMagicSealRejection.InsufficientGold);
-        var gold = await character.TrySpendGoldAsync(decision.GoldCost, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("Validated magic-seal gold changed during settlement.");
-        var changed = (await instance!.SetMagicSealOptionsAsync(nextOptions, ct).ConfigureAwait(false)).Core;
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
+            return new(EquipmentMagicSealRejection.InsufficientGold);
+        var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        var gold = applied.Changes<GoldEffectChange>().Single().Remaining;
+        var changed = applied.Changes<EquipmentEffectChange>().Single().After!.Core;
         return new(EquipmentMagicSealRejection.None,
-            new(session, targetSlot, changed, gold, decision.Seed, clock.GetUtcNow()));
+            new(session, targetSlot, changed, gold, decision.Seed, context.At));
     }
 }

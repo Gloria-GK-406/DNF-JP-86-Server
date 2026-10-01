@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.QuestCompletion;
@@ -19,8 +21,9 @@ public sealed record FinishQuestRequest(
     GameMessageMetadata Metadata,
     ushort QuestId,
     ushort RewardSelection,
-    ushort CompletionCount) : IClientNetworkMessage
+    ushort CompletionCount) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.Quests;
     /// <summary>The value the selection carries when the quest offered no choice.</summary>
     public const ushort NoRewardSelection = 0xFFFF;
 

@@ -11,7 +11,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.Creatures;
 
 internal sealed record RenameCreatureCommand(SelectedSessionIdentity Session,
-    BusinessSlot SourceSlot, byte[] NameBytes) : ICommand<RenameCreatureResult>;
+    BusinessSlot SourceSlot, byte[] NameBytes) : ICommand<RenameCreatureResult>, IRequestSettlementCommand;
 
 internal sealed record RenameCreatureResult(CreatureRenameReceipt? Receipt);
 

@@ -360,6 +360,21 @@ public sealed class FinishQuestHandlerTests
         }
     }
 
+    [Fact]
+    public async Task Wrapped_unknown_completion_never_sends_rollback_failure_ack()
+    {
+        var sender = new RecordingSender();
+        await Assert.ThrowsAsync<QuestFinishRejectedException>(async () => await Finish(new SkillPointLedger(),new UnknownCompletion(),recording: sender));
+        Assert.Empty(sender.Sent);
+    }
+    private sealed class UnknownCompletion : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken=default) where TResult:notnull =>
+            throw new QuestFinishRejectedException(QuestId,"wrapper",new AggregateException(new IOException("other"),
+                new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
+                    Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.RollbackFailure,"unknown",new IOException("rollback"))));
+    }
+
     private sealed class RejectedCompletion : ICommandBus
     {
         public ValueTask<TResult> SendAsync<TResult>(

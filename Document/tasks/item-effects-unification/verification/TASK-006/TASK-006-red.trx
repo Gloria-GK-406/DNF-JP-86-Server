@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="3d1c9cd9-9885-471a-a07c-0b2c0c62db4b" name="Gloria@家庭台式机 2026-10-01 13:46:34" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T13:46:34.3094462+08:00" queuing="2026-10-01T13:46:34.3094470+08:00" start="2026-10-01T13:46:32.9997420+08:00" finish="2026-10-01T13:46:34.3134573+08:00" />
+  <TestSettings name="default" id="7dc237c8-2211-43c4-b42b-a70a4a25adca">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_13_46_34" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="db5450be-37cf-452b-a018-8f9fd1952a6b" testId="898b9d5e-17d6-0123-0933-d50bae647298" testName="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character" computerName="家庭台式机" duration="00:00:00.5197706" startTime="2026-10-01T13:46:33.6881699+08:00" endTime="2026-10-01T13:46:34.2172312+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db5450be-37cf-452b-a018-8f9fd1952a6b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: No exception was thrown&#xD;
+Expected: typeof(System.InvalidOperationException)</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\World\CommonExperienceEffectTests.cs:line 16&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="898b9d5e-17d6-0123-0933-d50bae647298">
+      <Execution id="db5450be-37cf-452b-a018-8f9fd1952a6b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.World.CommonExperienceEffectTests" name="A_clear_cannot_award_another_accounts_character" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="898b9d5e-17d6-0123-0933-d50bae647298" executionId="db5450be-37cf-452b-a018-8f9fd1952a6b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.13]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.32]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.33]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.88]       Assert.Throws() Failure: No exception was thrown&#xD;
+[xUnit.net 00:00:00.88]       Expected: typeof(System.InvalidOperationException)&#xD;
+[xUnit.net 00:00:00.88]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.88]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\World\CommonExperienceEffectTests.cs(16,0): at Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character()&#xD;
+[xUnit.net 00:00:00.88]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.89]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T13:46:34.2195312+08:00">
+        <Text>[xUnit.net 00:00:00.88]     Dfo.Server.Application.Tests.World.CommonExperienceEffectTests.A_clear_cannot_award_another_accounts_character [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

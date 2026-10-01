@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="a196e99c-49fb-46d2-a339-9b04cd704112" name="Gloria@家庭台式机 2026-10-01 14:08:15" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T14:08:15.6042697+08:00" queuing="2026-10-01T14:08:15.6042698+08:00" start="2026-10-01T14:08:13.7453451+08:00" finish="2026-10-01T14:08:15.6081394+08:00" />
+  <TestSettings name="default" id="6a7cf065-e682-46d6-8f81-7cd7a24645d3">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_14_08_15" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="6baf5a85-6606-4d39-8fd4-eb501ed00a2b" testId="55e2fc6b-667a-b3b2-b4be-93c8fad8c502" testName="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealFacetCleanupFailureAfterDurableCommitIsTyped" computerName="家庭台式机" duration="00:00:00.0062005" startTime="2026-10-01T14:08:15.4980546+08:00" endTime="2026-10-01T14:08:15.5038209+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6baf5a85-6606-4d39-8fd4-eb501ed00a2b" />
+    <UnitTestResult executionId="6674f45d-6e61-411c-bca3-f7e12c4f7338" testId="cd4a4cf5-8ab7-7c21-c660-55502cefe456" testName="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.ConfirmedPrepareRollbackPreservesOriginalIOException" computerName="家庭台式机" duration="00:00:00.0060627" startTime="2026-10-01T14:08:15.5039148+08:00" endTime="2026-10-01T14:08:15.5099403+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6674f45d-6e61-411c-bca3-f7e12c4f7338" />
+    <UnitTestResult executionId="e9712c10-5736-4393-abdb-6c1ba549feb1" testId="821c822b-40bb-b6d0-da85-81bb321a1abd" testName="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealDurableCommitThenNonFallibleViolationIsUncertainAndRemainsCommitted" computerName="家庭台式机" duration="00:00:00.1662922" startTime="2026-10-01T14:08:15.3167186+08:00" endTime="2026-10-01T14:08:15.4870028+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e9712c10-5736-4393-abdb-6c1ba549feb1" />
+    <UnitTestResult executionId="ffc49d56-11d7-4180-a4d2-825774bd5553" testId="0a35af12-5a29-926f-8c2e-99b4cabebd01" testName="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealDeferredConstraintCommitFailurePreservesItsCauseAndCleanupCause(failCleanup: False)" computerName="家庭台式机" duration="00:00:00.0095802" startTime="2026-10-01T14:08:15.5100412+08:00" endTime="2026-10-01T14:08:15.5196052+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ffc49d56-11d7-4180-a4d2-825774bd5553" />
+    <UnitTestResult executionId="b9d6e31f-5094-4aa5-b621-e92f30c75daf" testId="b8883df4-b957-e5da-d015-a308ce81f6fb" testName="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealInvalidatedRollbackAndCleanupFailureAreBothPreserved" computerName="家庭台式机" duration="00:00:00.0104346" startTime="2026-10-01T14:08:15.4935617+08:00" endTime="2026-10-01T14:08:15.4975678+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b9d6e31f-5094-4aa5-b621-e92f30c75daf" />
+    <UnitTestResult executionId="0ad67f6c-1207-4593-b7ab-2c4509101aaf" testId="8662cd5e-8dc4-22ef-e96b-bd873a06e0d9" testName="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealDeferredConstraintCommitFailurePreservesItsCauseAndCleanupCause(failCleanup: True)" computerName="家庭台式机" duration="00:00:00.0068300" startTime="2026-10-01T14:08:15.5197044+08:00" endTime="2026-10-01T14:08:15.5264816+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0ad67f6c-1207-4593-b7ab-2c4509101aaf" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealDeferredConstraintCommitFailurePreservesItsCauseAndCleanupCause(failCleanup: False)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.persistence.tests\bin\debug\net10.0\dfo.server.persistence.tests.dll" id="0a35af12-5a29-926f-8c2e-99b4cabebd01">
+      <Execution id="ffc49d56-11d7-4180-a4d2-825774bd5553" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests" name="RealDeferredConstraintCommitFailurePreservesItsCauseAndCleanupCause" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.ConfirmedPrepareRollbackPreservesOriginalIOException" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.persistence.tests\bin\debug\net10.0\dfo.server.persistence.tests.dll" id="cd4a4cf5-8ab7-7c21-c660-55502cefe456">
+      <Execution id="6674f45d-6e61-411c-bca3-f7e12c4f7338" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests" name="ConfirmedPrepareRollbackPreservesOriginalIOException" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealDurableCommitThenNonFallibleViolationIsUncertainAndRemainsCommitted" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.persistence.tests\bin\debug\net10.0\dfo.server.persistence.tests.dll" id="821c822b-40bb-b6d0-da85-81bb321a1abd">
+      <Execution id="e9712c10-5736-4393-abdb-6c1ba549feb1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests" name="RealDurableCommitThenNonFallibleViolationIsUncertainAndRemainsCommitted" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealDeferredConstraintCommitFailurePreservesItsCauseAndCleanupCause(failCleanup: True)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.persistence.tests\bin\debug\net10.0\dfo.server.persistence.tests.dll" id="8662cd5e-8dc4-22ef-e96b-bd873a06e0d9">
+      <Execution id="0ad67f6c-1207-4593-b7ab-2c4509101aaf" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests" name="RealDeferredConstraintCommitFailurePreservesItsCauseAndCleanupCause" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealFacetCleanupFailureAfterDurableCommitIsTyped" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.persistence.tests\bin\debug\net10.0\dfo.server.persistence.tests.dll" id="55e2fc6b-667a-b3b2-b4be-93c8fad8c502">
+      <Execution id="6baf5a85-6606-4d39-8fd4-eb501ed00a2b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests" name="RealFacetCleanupFailureAfterDurableCommitIsTyped" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests.RealInvalidatedRollbackAndCleanupFailureAreBothPreserved" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.persistence.tests\bin\debug\net10.0\dfo.server.persistence.tests.dll" id="b8883df4-b957-e5da-d015-a308ce81f6fb">
+      <Execution id="b9d6e31f-5094-4aa5-b621-e92f30c75daf" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Database.TransactionUncertaintyTests" name="RealInvalidatedRollbackAndCleanupFailureAreBothPreserved" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="55e2fc6b-667a-b3b2-b4be-93c8fad8c502" executionId="6baf5a85-6606-4d39-8fd4-eb501ed00a2b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cd4a4cf5-8ab7-7c21-c660-55502cefe456" executionId="6674f45d-6e61-411c-bca3-f7e12c4f7338" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="821c822b-40bb-b6d0-da85-81bb321a1abd" executionId="e9712c10-5736-4393-abdb-6c1ba549feb1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0a35af12-5a29-926f-8c2e-99b4cabebd01" executionId="ffc49d56-11d7-4180-a4d2-825774bd5553" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b8883df4-b957-e5da-d015-a308ce81f6fb" executionId="b9d6e31f-5094-4aa5-b621-e92f30c75daf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8662cd5e-8dc4-22ef-e96b-bd873a06e0d9" executionId="0ad67f6c-1207-4593-b7ab-2c4509101aaf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="6" executed="6" passed="6" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.50]   Discovering: Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.56]   Discovered:  Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.58]   Starting:    Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.81]   Finished:    Dfo.Server.Persistence.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

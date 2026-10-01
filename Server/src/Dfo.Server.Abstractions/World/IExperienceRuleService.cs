@@ -55,4 +55,7 @@ public interface IExperienceRuleService
 
     /// <summary>How much a level costs, and the caps a run's experience is held to.</summary>
     DungeonExperienceProgressionPolicy Progression();
+
+    Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(
+        Dfo.Server.Data.Characters.CharacterProgressionState before, ExperienceBreakdown breakdown) => ExperienceProgressionRules.Decide(before, breakdown, Progression().LevelThresholds);
 }

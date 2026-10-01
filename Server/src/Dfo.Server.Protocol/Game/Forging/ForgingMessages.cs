@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
@@ -6,8 +7,9 @@ namespace Dfo.Server.Protocol.Game.Forging;
 
 public sealed record ForgingRequest(GameMessageMetadata Metadata,
     byte TargetListType, short TargetSlot, int TargetItemId,
-    short MaterialSlot, byte[] ReportedNameBytes, byte Variant) : IClientNetworkMessage
+    short MaterialSlot, byte[] ReportedNameBytes, byte Variant) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameSeparateUpgrade;
 }
 

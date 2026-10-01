@@ -77,7 +77,7 @@ internal sealed class CreatureInstanceContext(CharacterId owner, IDomainTransact
 
     public bool IsLive(CreatureLocation location, CreatureState state) =>
         location.Core.ItemId == state.ItemTemplateId
-        && (location.Core.ExpireTime <= 0 || location.Core.ExpireTime > Now.ToUnixTimeSeconds());
+        && (location.Core.ExpireTime is <= 0 or int.MaxValue || location.Core.ExpireTime > Now.ToUnixTimeSeconds());
 
     private sealed class Lifetime : ITransactionParticipant
     {

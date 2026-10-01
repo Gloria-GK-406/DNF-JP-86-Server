@@ -11,7 +11,7 @@ public class UserExecutionGate<TKey> where TKey : notnull
 
     internal int TrackedEntryCount => entries.Count;
 
-    public ValueTask<IAsyncDisposable> AcquireAsync(
+    public virtual ValueTask<IAsyncDisposable> AcquireAsync(
         TKey userId,
         UserAccessMode accessMode,
         CancellationToken cancellationToken)
@@ -263,6 +263,3 @@ public class UserExecutionGate<TKey> where TKey : notnull
 public sealed class OnlineUserExecutionGate : UserExecutionGate<OnlineUserId>;
 
 public sealed class AccountExecutionGate : UserExecutionGate<AccountId>;
-
-/// <summary>Serializes selected-session transition/teardown independently of command execution.</summary>
-public sealed class SelectedSessionTransitionGate : UserExecutionGate<AccountId>;

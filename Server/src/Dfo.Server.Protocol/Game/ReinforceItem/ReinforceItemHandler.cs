@@ -17,15 +17,12 @@ public sealed class ReinforceItemHandler(
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
-    ReinforceItemReplayGuard replays,
     ILogger<ReinforceItemHandler> logger) : ClientMessageHandler<ReinforceItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context, ReinforceItemRequest message,
         CancellationToken ct)
     {
-        using var replay = await replays.EnterAsync(
-            context.Connection, message.Metadata.Sequence, ct).ConfigureAwait(false);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
@@ -33,20 +30,6 @@ public sealed class ReinforceItemHandler(
                 new ReinforceItemResponse(false, 0x04), ct).ConfigureAwait(false);
             return;
         }
-        replay.BindSession(session);
-        if (replay.CachedFor(message, out var conflict) is { } previous)
-        {
-            await sender.SendCmdAsync(context.Connection.ConnectionId, previous, ct)
-                .ConfigureAwait(false);
-            return;
-        }
-        if (conflict)
-        {
-            await sender.SendCmdAsync(context.Connection.ConnectionId,
-                new ReinforceItemResponse(false, 0x04), ct).ConfigureAwait(false);
-            return;
-        }
-
         ReinforceItemResponse response;
         EquipmentReinforcementReceipt? receipt = null;
         if (message.Method is not (0 or 1))
@@ -73,11 +56,9 @@ public sealed class ReinforceItemHandler(
             }
         }
 
-        // The command bus has returned only after its unit of work committed. A commit failure
-        // throws before this point, so a successful replay entry can never be a rolled-back one.
+        // The pipeline records the primary settlement before these notifications.
         if (receipt is not null)
         {
-            replay.Remember(message, response);
             logger.LogInformation(
                 "UPGRADE_ITEM method={Method} character={Character} seq={Sequence} slot={Slot} old={Old} new={New} outcome={Outcome}",
                 message.Method, receipt.Session.CharacterId.Value, message.Metadata.Sequence,

@@ -1,6 +1,8 @@
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
@@ -24,7 +26,8 @@ public interface IAvatarPackageOpeningDomainService
 public interface IOpeningInventoryDomainService
 {
     ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken cancellationToken);
-    ValueTask<OpeningInventoryReceipt> SettleAsync(SelectedSessionIdentity session,
-        IReadOnlyList<OpeningSlotConsumption> consumed, ImmutableArray<OpeningPreparedGrant> grants,
+    ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+    ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> effects,
         DateTimeOffset now, CancellationToken cancellationToken);
 }
+public sealed record OpeningEffectsApplication(OpeningInventoryReceipt Inventory, ApplyEffectsResult Applied);

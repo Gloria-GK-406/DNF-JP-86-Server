@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="97304b86-af1a-4f48-b51a-1295ad7dedec" name="Gloria@家庭台式机 2026-10-01 15:05:32" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T15:05:32.3396218+08:00" queuing="2026-10-01T15:05:32.3396220+08:00" start="2026-10-01T15:05:31.3344157+08:00" finish="2026-10-01T15:05:32.3431679+08:00" />
+  <TestSettings name="default" id="d28a5d40-d159-43a3-8c65-e51dc299573a">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_15_05_32" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="8341fe26-3c3a-4275-af88-b804a001f7ba" testId="969b52a4-d14a-f783-eb58-bc5852b900af" testName="Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery" computerName="家庭台式机" duration="00:00:00.2324711" startTime="2026-10-01T15:05:32.0084593+08:00" endTime="2026-10-01T15:05:32.2520307+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8341fe26-3c3a-4275-af88-b804a001f7ba">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.False() Failure&#xD;
+Expected: False&#xD;
+Actual:   True</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\ReplayStateSnapshotTests.cs:line 50&#xD;
+   at Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\ReplayStateSnapshotTests.cs:line 53&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="969b52a4-d14a-f783-eb58-bc5852b900af">
+      <Execution id="8341fe26-3c3a-4275-af88-b804a001f7ba" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests" name="Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="969b52a4-d14a-f783-eb58-bc5852b900af" executionId="8341fe26-3c3a-4275-af88-b804a001f7ba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.13]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.32]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.34]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.60]       Assert.False() Failure&#xD;
+[xUnit.net 00:00:00.60]       Expected: False&#xD;
+[xUnit.net 00:00:00.60]       Actual:   True&#xD;
+[xUnit.net 00:00:00.60]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.60]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\ReplayStateSnapshotTests.cs(50,0): at Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery()&#xD;
+[xUnit.net 00:00:00.60]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Sessions\ReplayStateSnapshotTests.cs(53,0): at Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery()&#xD;
+[xUnit.net 00:00:00.60]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.61]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T15:05:32.2542146+08:00">
+        <Text>[xUnit.net 00:00:00.60]     Dfo.Server.Application.Tests.Sessions.ReplayStateSnapshotTests.Another_selected_settlement_cannot_commit_between_the_replay_read_and_its_batch_delivery [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

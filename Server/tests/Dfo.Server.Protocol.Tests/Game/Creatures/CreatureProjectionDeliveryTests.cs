@@ -173,6 +173,7 @@ public sealed class CreatureProjectionDeliveryTests
     private sealed class Closer : INetworkConnectionCloser
     {
         public List<NetworkConnectionId> Closed { get; } = [];
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
         public ValueTask RequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken)
         {
             Closed.Add(connectionId);

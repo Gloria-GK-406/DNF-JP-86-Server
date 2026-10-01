@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
@@ -41,8 +42,9 @@ internal sealed record CreatureEvolutionNotification(ushort EvolutionValue, usho
     public ServerMessageType MessageType => ServerMessageType.GameCreatureEvolution;
 }
 
-internal sealed record RenameCreatureRequest(short Slot, byte List, byte[] NameBytes) : IClientNetworkMessage
+internal sealed record RenameCreatureRequest(short Slot, byte List, byte[] NameBytes) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.Pets;
     public ClientMessageType MessageType => ClientMessageType.GameRenameCreature;
 
     public GameMessageMetadata Metadata { get; init; } = GameMessageMetadata.Empty;

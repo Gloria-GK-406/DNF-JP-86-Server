@@ -13,20 +13,6 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentForgingHandlerTests
 {
-    private static readonly ConditionalWeakTable<ShopFixture, FrameClock> Clocks = new();
-
-    private sealed class FrameClock
-    {
-        internal long Ordinal;
-        internal ushort? LastFresh;
-        internal (long Ordinal, bool Fresh) Observe(ushort sequence)
-        {
-            var fresh = LastFresh is null || sequence == unchecked((ushort)(LastFresh.Value + 1));
-            if (fresh) LastFresh = sequence;
-            return (++Ordinal, fresh);
-        }
-    }
-
     [Fact]
     public async Task Success_commits_before_ack_and_replay_does_not_consume_twice()
     {
@@ -39,13 +25,14 @@ public sealed class EquipmentForgingHandlerTests
         await Send(shop, 7);
 
         Assert.Equal(11, shop.Count(3326));
-        Assert.Equal(6, shop.Sender.Messages.Count);
+        Assert.Equal(9, shop.Sender.Messages.Count);
         var first = Assert.IsType<ForgingResponse>(shop.Sender.Messages[0]);
         Assert.True(first.Success);
         Assert.True(first.ForgeSucceeded);
         Assert.Equal((byte)1, first.NewLevel);
         Assert.Equal(11, first.MaterialRemaining);
-        Assert.True(Assert.IsType<ForgingResponse>(shop.Sender.Messages[3]).Success);
+        Assert.Single(shop.Sender.Messages.OfType<ForgingResponse>());
+        Assert.Single(shop.Sender.Batches);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[2].GetType().Name);
     }
@@ -78,10 +65,10 @@ public sealed class EquipmentForgingHandlerTests
         await shop.Seed(121, 3326, 50);
 
         await Send(shop, 7, variant);
-        await Send(shop, 7, variant);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, variant).AsTask());
 
         Assert.Equal(50, shop.Count(3326));
-        Assert.Equal(2, shop.Sender.Messages.Count);
+        Assert.Single(shop.Sender.Messages);
         Assert.All(shop.Sender.Messages, message =>
         {
             var response = Assert.IsType<ForgingResponse>(message);
@@ -121,15 +108,9 @@ public sealed class EquipmentForgingHandlerTests
 
     private static ValueTask Send(ShopFixture shop, ushort sequence, byte variant = 0)
     {
-        var (ordinal, fresh) = Clocks.GetOrCreateValue(shop).Observe(sequence);
-        var metadata = new GameMessageMetadata(1, 0x01B7, 0, sequence)
-        {
-            InboundOrdinal = ordinal,
-            SequenceIsFresh = fresh,
-        };
-        return shop.Services.GetRequiredService<ForgingHandler>().HandleAsync(
-            new(shop.Connection), new ForgingRequest(metadata, 0, 9, 3000, 121,
-                [0x41, 0x42, 0x43, 0x44], variant), default);
+        var metadata = new GameMessageMetadata(1, 0x01B7, 0, sequence);
+        return EffectRequestTransport.Send(shop, new ForgingRequest(metadata, 0, 9, 3000, 121,
+                [0x41, 0x42, 0x43, 0x44], variant));
     }
 
     private sealed class Content : IEquipmentForgingContentSource

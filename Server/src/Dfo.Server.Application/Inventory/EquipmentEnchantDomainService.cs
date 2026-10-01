@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -13,8 +14,9 @@ internal sealed class EquipmentEnchantDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
-    IEquipmentEnchantRuleService rules,
-    IMaterialConsumptionDomainService materials,
+    IEquipmentEffectPlanRuleService rules,
+    IApplyEffectsDomainService effects,
+    IInventoryEffectPreflightDomainService preflight,
     TimeProvider clock) : IEquipmentEnchantDomainService
 {
     public async ValueTask<EquipmentEnchantResult> EnchantAsync(
@@ -64,17 +66,18 @@ internal sealed class EquipmentEnchantDomainService(
             || bead.Core.ExpireTime > 0
                 && bead.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentEnchantRejection.MaterialUnavailable);
-        var cardId = await rules.CardAsync(bead.Core, target.Core.ItemId, ct).ConfigureAwait(false);
+        var plan = await rules.EnchantAsync(target, beadSlot, bead.Core, ct).ConfigureAwait(false);
+        var cardId = plan.Decision;
         if (cardId is null) return new(EquipmentEnchantRejection.UnsupportedContent);
 
-        var consumed = await materials.ConsumeAsync(session,
-            [new(new MaterialLocation.Carried(beadSlot), bead.ItemId, 1)], ct)
-            .ConfigureAwait(false);
-        if (!consumed.Success)
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentEnchantRejection.MaterialUnavailable);
-        var changed = (await instance!.SetEnchantmentAsync(cardId.Value, ct).ConfigureAwait(false)).Core;
+        var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        var changed = applied.Changes<EquipmentEffectChange>().Single().After!.Core;
+        var remaining = (await beadBound.Container.ReadSlotAsync(beadSlot.Index, ct).ConfigureAwait(false))?.Core;
         return new(EquipmentEnchantRejection.None,
             new(session, beadSlot, targetSlot, cardId.Value, changed,
-                consumed.Debits[0].Remaining, clock.GetUtcNow()));
+                remaining, context.At));
     }
 }

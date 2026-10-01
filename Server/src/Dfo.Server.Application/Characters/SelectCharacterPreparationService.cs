@@ -151,10 +151,10 @@ public sealed class SelectCharacterPreparationService(
             throw new InvalidDataException("Selected character is absent from the account roster.");
         }
 
-        var characterInventory = await characterInventoryEntries.LoadAsync(
-            accountId,
-            character.Identity.CharacterId,
-            cancellationToken).ConfigureAwait(false);
+        var characterInventory = await (selectionEntry
+            ? characterInventoryEntries.LoadAsync(accountId, character.Identity.CharacterId, cancellationToken)
+            : characterInventoryEntries.ReadCurrentAsync(accountId, character.Identity.CharacterId, cancellationToken))
+            .ConfigureAwait(false);
         var accountInventory = await accountInventoryEntries.LoadAsync(
             accountId,
             character.Identity.CharacterId,
@@ -185,7 +185,7 @@ public sealed class SelectCharacterPreparationService(
         accountEntry = await CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
             characters, characterInventoryEntries, characterEntries,
-            preparationRules, preparedAt,
+            preparationRules, preparedAt, selectionEntry,
             cancellationToken).ConfigureAwait(false);
 
         var contentSubject = BuildContentSubject(character, characterEntry, characterInventory);
@@ -468,6 +468,7 @@ public sealed class SelectCharacterPreparationService(
         ICharacterEntryStateDomainService entries,
         ICharacterEntryPreparationRuleService preparationRules,
         DateTimeOffset preparedAt,
+        bool selectionEntry,
         CancellationToken cancellationToken)
     {
         var ownerRelations = account.Relations.CharacterRelations
@@ -484,8 +485,10 @@ public sealed class SelectCharacterPreparationService(
             accountId, summary.SlotIndex, cancellationToken).ConfigureAwait(false);
         var supportEntry = await entries.LoadAsync(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
-        var supportInventory = await inventories.LoadAsync(
-            accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
+        var supportInventory = await (selectionEntry
+            ? inventories.LoadAsync(accountId, relation.SupportCharacterId, cancellationToken)
+            : inventories.ReadCurrentAsync(accountId, relation.SupportCharacterId, cancellationToken))
+            .ConfigureAwait(false);
         supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);

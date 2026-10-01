@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
@@ -7,8 +9,9 @@ public sealed record DisjointItemRequest(
     GameMessageMetadata Metadata,
     GameSlot TargetSlot,
     short DisjointToolSlotIndex,
-    int DisjointProviderId) : IClientNetworkMessage
+    int DisjointProviderId) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameDisjointItem;
 }
 

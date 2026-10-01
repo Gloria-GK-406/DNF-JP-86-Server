@@ -44,6 +44,8 @@ public interface ICharacter
     /// </remarks>
     ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken);
 
+    ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken);
+
     /// <summary>
     /// Which slot this character sits in, what it is called, what it took up and how it grew.
     /// </summary>

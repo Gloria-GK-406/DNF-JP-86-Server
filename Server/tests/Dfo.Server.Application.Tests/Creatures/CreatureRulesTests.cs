@@ -28,10 +28,10 @@ public sealed class CreatureRulesTests
     }
 
     [Fact]
-    public void Feed_adds_thirty_and_caps_at_one_hundred()
+    public void Stomach_addition_caps_at_one_hundred()
     {
-        Assert.Equal(50, CreatureRules.Feed(20));
-        Assert.Equal(100, CreatureRules.Feed(90));
+        Assert.Equal(50, CreatureRules.AddStomach(20, 30));
+        Assert.Equal(100, CreatureRules.AddStomach(90, 30));
     }
 
     [Fact]

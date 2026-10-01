@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -294,6 +295,7 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<TimeProvider>(Clock);
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
+        Sender.Services = provider;
         _ = provider.GetRequiredService<SqliteDatabase>();
         Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,2,0),(2,1,'shop2',12,2,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
@@ -398,7 +400,12 @@ internal sealed class ShopFixture : IDisposable
 
 internal sealed class ShopSender : INetworkMessageSender
 {
+    public IServiceProvider Services { get; set; } = null!;
     public List<IServerNetworkMessage> Messages { get; } = [];
+    public List<(NetworkConnectionContext Connection, IServerNetworkMessage[] Messages, byte[][] Frames)> Batches { get; } = [];
+    public Action? BeforeExplicit { get; set; }
+    public bool FailExplicit { get; set; }
+    public bool FailBatch { get; set; }
     public Action? BeforeSend { get; set; }
     public int Attempts { get; private set; }
     public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct)
@@ -408,6 +415,29 @@ internal sealed class ShopSender : INetworkMessageSender
         Messages.Add(message);
         return ValueTask.CompletedTask;
     }
-    public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct) =>
-        throw new NotSupportedException("Purchases use the registered event bus.");
+    public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct)
+    {
+        BeforeExplicit?.Invoke();
+        if (FailExplicit) throw new IOException("Fixture Explicit publication failed after settlement.");
+        foreach (var message in delivery.RequiredDirectMessages) Messages.Add(message);
+        foreach (var target in delivery.BestEffortTargets) Messages.AddRange(target.OrderedMessages);
+        return ValueTask.CompletedTask;
+    }
+    public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
+    {
+        var registrations = Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
+        var ownedMessages = messages.ToArray();
+        var frames = ownedMessages.SelectMany(message =>
+        {
+            var registration = registrations[message.GetType()];
+            Assert.Equal(connection.EndpointKind, registration.Endpoint);
+            return ((IServerMessageEncoder)Services.GetRequiredService(registration.EncoderType)).Encode(message);
+        }).Select(frame => frame.ToArray()).ToArray();
+        Assert.All(frames, frame => Assert.InRange(frame.Length, 15, 1_048_576));
+        BeforeSend?.Invoke();
+        Batches.Add((connection, ownedMessages, frames));
+        if (FailBatch) throw new IOException("Fixture batch transport failed after preencoding.");
+        Messages.AddRange(ownedMessages);
+        return ValueTask.CompletedTask;
+    }
 }

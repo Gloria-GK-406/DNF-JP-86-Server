@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Inventory;
@@ -16,8 +17,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.LotteryOpening;
 
-public sealed record LotteryOpeningRequest(GameMessageMetadata Metadata, ushort Mode, short Slot) : IClientNetworkMessage
+public sealed record LotteryOpeningRequest(GameMessageMetadata Metadata, ushort Mode, short Slot) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | (Mode == 1 ? ReplayProjectionNeeds.Premium : ReplayProjectionNeeds.None);
     public ClientMessageType MessageType => ClientMessageType.GameLotteryOpening;
 }
 internal sealed class LotteryOpeningDecoder : IGameMessageDecoder
@@ -62,15 +64,15 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         return stream.ToArray();
     }
 }
-public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int Slot, ushort Mode, ushort Sequence)
-    : ICommand<LotteryOpeningResult>, IOnlineUserCommand, IAccountCommand
+public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int Slot, ushort Mode)
+    : ICommand<LotteryOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
 public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService opening) : ICommandHandler<LotteryOpeningCommand, LotteryOpeningResult>
 {
     public ValueTask<LotteryOpeningResult> HandleAsync(CommandExecutionContext context, LotteryOpeningCommand command, CancellationToken token) =>
-        opening.ExecuteAsync(command.Session, OpeningWireSlots.FromMain(command.Slot), command.Mode, command.Sequence, token);
+        opening.ExecuteAsync(command.Session, OpeningWireSlots.FromMain(command.Slot), command.Mode, token);
 }
 
 public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
@@ -88,10 +90,10 @@ public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService session
         byte error = 0;
         try
         {
-            result = await commands.SendAsync(new LotteryOpeningCommand(user.OnlineUserId, session, slot, mode, sequence), token).ConfigureAwait(false);
+            result = await commands.SendAsync(new LotteryOpeningCommand(user.OnlineUserId, session, slot, mode), token).ConfigureAwait(false);
         }
-        catch (OpeningRejectedException ex) { error = ex.Reason switch { OpeningRejection.PremiumUnavailable => 0x73, OpeningRejection.NoRoom => 0x7E, _ => (byte)0 }; logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
-        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError(ex, "Lottery transaction failed character={Character}", session.CharacterId); }
+        catch (OpeningRejectedException ex) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex)) { error = ex.Reason switch { OpeningRejection.PremiumUnavailable => 0x73, OpeningRejection.NoRoom => 0x7E, _ => (byte)0 }; logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
+        catch (Exception ex) when (ex is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex)) { logger.LogError(ex, "Lottery transaction failed character={Character}", session.CharacterId); }
         var response = new LotteryOpeningResponse(result, error);
         logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed} reward={Reward} quantity={Quantity} error={Error}",
             session.CharacterId, mode, sequence, slot, result is not null, result?.Receipt.Rewards[0].ItemId, result?.Receipt.Rewards.Sum(x => x.Count), error);

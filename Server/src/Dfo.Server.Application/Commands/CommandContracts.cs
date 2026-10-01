@@ -1,6 +1,7 @@
 namespace Dfo.Server.Application.Commands;
 
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.World;
 using Dfo.Server.Data.OnlineUsers;
 
 public enum CommandExecutionKind
@@ -28,6 +29,15 @@ public interface ICommand;
 /// </remarks>
 public interface ICommand<TResult> : ICommand
     where TResult : notnull;
+
+/// <summary>Effects owned by one exact selected generation; null is trusted offline work.</summary>
+public interface ISelectedSessionCommand : ICommand
+{
+    SelectedSessionIdentity? Session { get; }
+}
+
+/// <summary>The single primary settlement belonging to an effect network request. XP and reads are separate.</summary>
+public interface IRequestSettlementCommand : ISelectedSessionCommand;
 
 public interface IOnlineUserCommand : ICommand
 {

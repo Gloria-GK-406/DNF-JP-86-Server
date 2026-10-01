@@ -12,7 +12,7 @@ public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, Busin
 public interface ILotteryOpeningDomainService
 {
     ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, BusinessSlot slot,
-        ushort mode, ushort sequence, CancellationToken token);
+        ushort mode, CancellationToken token);
 }
 
 public interface ILotteryRandomSource

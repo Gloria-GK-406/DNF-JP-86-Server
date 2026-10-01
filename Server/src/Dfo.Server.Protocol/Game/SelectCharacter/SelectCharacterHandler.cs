@@ -246,7 +246,10 @@ public sealed class SelectCharacterHandler(
         {
             try
             {
-                await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
+                if (connectionId == context.Connection.ConnectionId)
+                    await closer.RequestCloseExactAsync(context.Connection, CancellationToken.None).ConfigureAwait(false);
+                else
+                    await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
             }
             catch
             {

@@ -14,8 +14,9 @@ public sealed class LotteryOpeningTests
     private sealed class Fixed : ILotteryResultSelector
     {
         public int Calls;
+        public Action? BeforeRoll;
         public OpeningReward Roll(int id)
-        { Calls++; return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
+        { Calls++; BeforeRoll?.Invoke(); return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
     }
     private static CeraShopFixture Fixture(Fixed? selector = null)
     {
@@ -24,8 +25,11 @@ public sealed class LotteryOpeningTests
         shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync().GetAwaiter().GetResult();
         return shop;
     }
-    private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort sequence = 10, ushort mode = 0, int slot = 65) =>
-        shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new LotteryOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, slot, mode, sequence)).AsTask();
+    private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort mode = 0, int slot = 65) =>
+        shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new LotteryOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, slot, mode)).AsTask();
+
+    private static ValueTask Network(CeraShopFixture shop, ushort sequence, ushort mode = 0) =>
+        EffectRequestTransport.Send(shop.Host, new LotteryOpeningRequest(new(1, 0x001B, 0, sequence), mode, 65));
 
     [Dfo.Server.Testing.PvfTheory]
     [InlineData(7110, 20002)]
@@ -34,12 +38,13 @@ public sealed class LotteryOpeningTests
     public async Task Ordinary_request_commits_one_reward_and_fresh_request_opens_next_pot(int pot, int reward)
     {
         var selector = new Fixed(); using var shop = Fixture(selector); await shop.Host.Seed(65, pot, 3);
-        var result = await Command(shop);
+        await Network(shop, 10);
+        var result = Assert.Single(shop.Host.Sender.Messages.OfType<LotteryOpeningResponse>()).Result!;
         Assert.Equal(reward, Assert.Single(result.Receipt.Rewards).ItemId);
         Assert.Equal(2, shop.Host.Count(pot)); Assert.Equal(1, shop.Host.Count(reward));
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop));
-        Assert.Equal(1, selector.Calls);
-        await Command(shop, 11);
+        await Network(shop, 10); Assert.Equal(1, selector.Calls);
+        Assert.Single(shop.Host.Sender.Batches);
+        await Network(shop, 11); Assert.Equal(2, selector.Calls);
         Assert.Equal(1, shop.Host.Count(pot)); Assert.Equal(2, shop.Host.Count(reward));
         Assert.Equal(100000, shop.Host.Gold);
     }
@@ -77,8 +82,7 @@ public sealed class LotteryOpeningTests
     public async Task Handler_sends_full_native_result_before_absolute_inventory()
     {
         using var shop = Fixture(); await shop.Host.Seed(65, 7110, 1);
-        var handler = shop.Host.Services.GetRequiredService<LotteryOpeningHandler>();
-        await handler.HandleAsync(new(shop.Host.Connection), new LotteryOpeningRequest(GameMessageMetadata.Empty, 0, 65), default);
+        await Network(shop, 10);
         var result = Assert.IsType<LotteryOpeningResponse>(shop.Host.Sender.Messages[0]);
         Assert.NotNull(result.Result); Assert.Equal(0, shop.Host.Count(7110));
         var frame = shop.Encode(result);
@@ -86,19 +90,25 @@ public sealed class LotteryOpeningTests
         Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 37)));
         Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 45)));
         Assert.All(frame.Skip(15 + 57), value => Assert.Equal((byte)0, value));
-        await handler.HandleAsync(new(shop.Host.Connection), new LotteryOpeningRequest(GameMessageMetadata.Empty, 0, 65), default);
-        Assert.Null(Assert.IsType<LotteryOpeningResponse>(shop.Host.Sender.Messages.Last()).Result);
+        await Network(shop, 10);
+        Assert.Single(shop.Host.Sender.Messages.OfType<LotteryOpeningResponse>());
+        Assert.Single(shop.Host.Sender.Batches);
         Assert.Equal(1, shop.Host.Count(20002));
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Concurrent_same_sequence_grants_only_once()
     {
-        using var shop = Fixture(); await shop.Host.Seed(65, 7110, 3);
-        async Task<bool> Open()
-        { try { await Command(shop); return true; } catch (OpeningRejectedException) { return false; } }
-        Assert.Single(await Task.WhenAll(Open(), Open()), x => x);
+        using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
+        var selector = new Fixed { BeforeRoll = () => { entered.Set(); if (!release.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException(); } };
+        using var shop = Fixture(selector); await shop.Host.Seed(65, 7110, 3);
+        var first = Task.Run(async () => await Network(shop, 10)); Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        var duplicate = Network(shop, 10).AsTask();
+        try { Assert.False(duplicate.IsCompleted); Assert.Equal(1, selector.Calls); Assert.Equal(3, shop.Host.Count(7110)); }
+        finally { release.Set(); }
+        await Task.WhenAll(first, duplicate);
         Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(1, shop.Host.Count(20002));
+        Assert.Equal(1, selector.Calls); Assert.Single(shop.Host.Sender.Batches);
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -120,7 +130,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(100000, shop.Host.Gold); Assert.Equal(3, shop.Host.Count(7110));
         shop.Host.Sql("DROP TRIGGER reject_reward"); await Command(shop);
         Assert.Equal(40000, shop.Host.Gold); Assert.Equal(2, shop.Host.Count(7110));
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, 11));
+        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop));
         Assert.Equal(40000, shop.Host.Gold);
     }
 
@@ -158,8 +168,7 @@ public sealed class LotteryOpeningTests
         var selector = new Fixed(); using var shop = Fixture(selector); Subscribe(shop);
         await shop.Host.Seed(65, 7110, 3);
         shop.Host.Sender.BeforeSend = () => { Assert.Equal(1, Used(shop)); Assert.Equal(2, shop.Host.Count(20002)); };
-        await shop.Host.Services.GetRequiredService<LotteryOpeningHandler>().HandleAsync(new(shop.Host.Connection),
-            new LotteryOpeningRequest(GameMessageMetadata.Empty, 1, 65), default);
+        await Network(shop, 0, 1);
         var response = Assert.IsType<LotteryOpeningResponse>(shop.Host.Sender.Messages[0]);
         var receipt = response.Result!.Receipt;
         Assert.Equal(2, receipt.Rewards.Length);
@@ -173,7 +182,9 @@ public sealed class LotteryOpeningTests
         var snapshot = shop.Encode(shop.Host.Sender.Messages.Last());
         Assert.Equal(92, snapshot.Length);
         Assert.Equal(1, snapshot[15 + 3 + 10 + 9]);
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, sequence: 0, mode: 1));
+        await Network(shop, 0, 1);
+        Assert.Single(shop.Host.Sender.Messages.OfType<LotteryOpeningResponse>());
+        Assert.Single(shop.Host.Sender.Batches);
         Assert.Equal(1, Used(shop));
     }
 
@@ -181,14 +192,13 @@ public sealed class LotteryOpeningTests
     public async Task Eighth_double_succeeds_ninth_stops_with_73_then_next_business_day_resets()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 10);
-        for (ushort seq = 1; seq <= 8; seq++) await Command(shop, seq, 1);
-        await shop.Host.Services.GetRequiredService<LotteryOpeningHandler>().HandleAsync(new(shop.Host.Connection),
-            new LotteryOpeningRequest(GameMessageMetadata.Empty, 1, 65), default);
+        for (ushort seq = 1; seq <= 8; seq++) await Command(shop, mode: 1);
+        await Network(shop, 0, 1);
         var response = Assert.IsType<LotteryOpeningResponse>(shop.Host.Sender.Messages.Last());
         Assert.Equal(new byte[] { 0, 0x73 }, shop.Encode(response).Skip(15));
         Assert.Equal(8, Used(shop)); Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(16, shop.Host.Count(20002));
         shop.Host.Clock.Advance(TimeSpan.FromDays(1));
-        await Command(shop, 20, 1); Assert.Equal(1, Used(shop));
+        await Command(shop, mode: 1); Assert.Equal(1, Used(shop));
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -265,17 +275,17 @@ public sealed class LotteryOpeningTests
         using var shop = Fixture(); Subscribe(shop); SeedUsage(shop, 24);
         await shop.Host.Seed(65, 7110, 10);
         await shop.Buy(CeraShopTestContent.Entry(100539));
-        for (ushort seq = 1; seq <= 6; seq++) await Command(shop, seq, 1);
+        for (ushort seq = 1; seq <= 6; seq++) await Command(shop, mode: 1);
         Assert.Equal(8, Used(shop)); Assert.Equal(30, TotalUsed(shop));
         await shop.Buy(CeraShopTestContent.Entry(100539));
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, 7, 1));
+        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, mode: 1));
         // Even a stale or corrupted round projection cannot bypass the cumulative guard.
         shop.Host.Sql("UPDATE character_daily_counters SET value=0 WHERE counter_key='lottery_double_reward_used'");
-        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, 8, 1));
-        await Command(shop, 9, 0);
+        await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, mode: 1));
+        await Command(shop, mode: 0);
         Assert.Equal(30, TotalUsed(shop));
         shop.Host.Clock.Advance(TimeSpan.FromDays(1));
-        await Command(shop, 10, 1);
+        await Command(shop, mode: 1);
         Assert.Equal(1, Used(shop)); Assert.Equal(1, TotalUsed(shop));
     }
 
@@ -299,11 +309,11 @@ public sealed class LotteryOpeningTests
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 2);
         shop.Host.Sql("CREATE TRIGGER reject_total BEFORE INSERT ON character_daily_counters WHEN NEW.counter_key='lottery_double_reward_total_used' BEGIN SELECT RAISE(ABORT,'blocked'); END");
-        await Assert.ThrowsAnyAsync<Exception>(() => Command(shop, 1, 1));
+        await Assert.ThrowsAnyAsync<Exception>(() => Command(shop, mode: 1));
         Assert.Equal(0, Used(shop)); Assert.Equal(0, TotalUsed(shop));
         Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(0, shop.Host.Count(20002));
         shop.Host.Sql("DROP TRIGGER reject_total");
-        await Command(shop, 1, 1);
+        await Command(shop, mode: 1);
         Assert.Equal(1, Used(shop)); Assert.Equal(1, TotalUsed(shop));
     }
 

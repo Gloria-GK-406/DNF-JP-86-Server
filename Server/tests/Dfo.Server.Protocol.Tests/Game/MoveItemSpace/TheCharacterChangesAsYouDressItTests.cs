@@ -492,6 +492,9 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     {
         public int Loads { get; private set; }
 
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
+
         public async ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
         {
@@ -518,6 +521,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     /// <summary>A store that will not answer, which is what a read after the transaction can do.</summary>
     private sealed class InventoryThatRaises : ICharacterInventoryEntryDomainService
     {
+        public ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) => LoadAsync(accountId, characterId, cancellationToken);
         public ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
             throw new InvalidDataException("The stored inventory could not be projected.");

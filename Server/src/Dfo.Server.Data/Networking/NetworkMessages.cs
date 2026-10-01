@@ -382,5 +382,15 @@ public sealed record GameMessageMetadata(
     /// Repeated or out-of-order frames do not advance the server's expected counter.</summary>
     public bool SequenceIsFresh { get; init; }
 
+    /// <summary>Immutable identity of the entire raw body, including fields a decoder ignores.</summary>
+    public string? FullBodySha256 { get; init; }
+    public int? FullBodyLength { get; init; }
+
+    public GameMessageMetadata WithRawBody(ReadOnlySpan<byte> body) => this with
+    {
+        FullBodySha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)),
+        FullBodyLength = body.Length,
+    };
+
     public static GameMessageMetadata Empty { get; } = new(0, 0, 0, 0);
 }

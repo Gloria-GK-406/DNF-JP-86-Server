@@ -18,6 +18,7 @@ internal sealed class RecordingParticipant(string name, List<string> log, bool c
     public Exception? PrepareFailure { get; set; }
 
     public Exception? CommitFailure { get; set; }
+    public Exception? RollbackFailure { get; set; }
 
     public ValueTask PrepareAsync(CancellationToken cancellationToken)
     {
@@ -44,6 +45,7 @@ internal sealed class RecordingParticipant(string name, List<string> log, bool c
 
     public ValueTask RollbackAsync(CancellationToken cancellationToken)
     {
+        if (this.RollbackFailure is not null) throw this.RollbackFailure;
         log.Add($"rollback:{name}");
         this.Applied = false;
         this.RolledBack = true;

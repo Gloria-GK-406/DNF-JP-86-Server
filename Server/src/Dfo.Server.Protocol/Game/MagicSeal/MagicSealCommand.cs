@@ -10,7 +10,7 @@ namespace Dfo.Server.Protocol.Game.MagicSeal;
 public sealed record MagicSealCommand(OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session, bool Change, BusinessSlot Target,
     BusinessSlot? Material, byte OptionIndex)
-    : ICommand<EquipmentMagicSealResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentMagicSealResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

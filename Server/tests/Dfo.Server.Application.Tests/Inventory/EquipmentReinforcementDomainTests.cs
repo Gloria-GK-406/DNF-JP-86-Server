@@ -1,5 +1,7 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Inventory;
@@ -656,7 +658,8 @@ public sealed class EquipmentReinforcementDomainTests
     public async Task Later_reward_staging_failure_rolls_back_prior_rewards_destruction_and_all_debits()
     {
         using var shop = Fixture(100_000, penaltyType: 3, targetLevel: 12,
-            configure: services => services.AddSingleton<IItemPlacementDefinitionSource>(new FailLaterReward()));
+            configure: services => services.AddSingleton<IItemPlacementDefinitionSource>(provider => new FailLaterReward(
+                provider.GetRequiredService<IItemDomainStore>(), provider.GetRequiredService<IDomainTransactionAccessor>())));
         await shop.SeedCore(9, Piece(11));
         await shop.Seed(121, 1000, 20, 3);
         var uid = EquipmentUid(shop);
@@ -690,6 +693,37 @@ public sealed class EquipmentReinforcementDomainTests
         Assert.Equal(100_000, shop.Gold);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Protected_attempt_plan_explicitly_lists_costs_and_only_failure_consumes_protection(bool succeeded)
+    {
+        using var shop = Fixture(100000, penaltyType: 3, targetLevel: 12);
+        await shop.SeedCore(9, Piece(11));
+        await shop.Seed(121, 1000, 20, 3);
+        var original = shop.StoredCore(9);
+        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+        await using var tx = scope.Begin();
+        var instance = (await shop.Services.GetRequiredService<IEquipmentDomainService>().Of(shop.Session.CharacterId)
+            .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default))!;
+        var target = await instance.ReadAsync(default);
+        var rule = (await shop.Services.GetRequiredService<IEquipmentUpgradeRuleService>().QuoteReinforcementAsync(target.Core, default)).Rule!;
+        var protection = await rule.ProtectionAsync(10007840, default);
+        var plan = await shop.Services.GetRequiredService<IEquipmentEffectPlanRuleService>().ReinforcementAsync(target, rule,
+            new(new MaterialLocation.Carried(new(BusinessInventorySpace.Material, 0)), 1000, 10),
+            new(new MaterialLocation.Carried(new(BusinessInventorySpace.QuickSlot, 0)), 10007840, 1),
+            new(protection, 0, 0), succeeded, default);
+        Assert.Equal(succeeded ? 1 : 2, plan.Effects.OfType<ConsumeFromContainerEffect>().Count());
+        Assert.Equal(100, Assert.Single(plan.Effects.OfType<SpendGoldEffect>()).Amount);
+        Assert.Equal(succeeded ? (byte)12 : (byte)10, Assert.Single(plan.Effects.OfType<SetEquipmentUpgradeEffect>()).Level);
+        Assert.Empty(plan.Effects.OfType<DestroyEquipmentEffect>());
+        Assert.Empty(plan.Effects.OfType<GrantStackableEffect>());
+        Assert.Empty(plan.Effects.OfType<GrantAccountMaterialEffect>());
+        Assert.Equal(original, shop.StoredCore(9));
+        Assert.Equal(20, shop.Count(1000));
+        Assert.Equal(100000, shop.Gold);
+    }
+
     private static async Task SeedClearCubes(ShopFixture shop, int count)
     {
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
@@ -706,13 +740,16 @@ public sealed class EquipmentReinforcementDomainTests
         public ValueTask<EquipmentDisjointTable?> GetSystemTableAsync(CancellationToken ct) => ValueTask.FromResult<EquipmentDisjointTable?>(null);
     }
 
-    private sealed class FailLaterReward : IItemPlacementDefinitionSource
+    private sealed class FailLaterReward(IItemDomainStore store, IDomainTransactionAccessor transactions) : IItemPlacementDefinitionSource
     {
         private readonly NpcShopTestContent inner = new();
-        private int bonusReads;
-        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>
-            itemId == 3243 && ++bonusReads > 1
-                ? ValueTask.FromResult<ItemPlacement?>(null) : inner.GetAsync(itemId, ct);
+        public async ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct)
+        {
+            if (itemId == 3243 && transactions.Current is { } transaction
+                && (await store.SessionIn(transaction).ReadAllAsync(ContainerId.ForCharacter(new(1), InventoryContainerType.Main), ct))
+                    .Any(item => item.Core.ItemId == 3166)) return null;
+            return await inner.GetAsync(itemId, ct);
+        }
     }
 
     private static ShopFixture Fixture(int failureWeight, int penaltyType = 1,

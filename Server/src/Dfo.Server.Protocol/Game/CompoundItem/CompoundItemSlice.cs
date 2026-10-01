@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -15,8 +16,9 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CompoundItem;
 
 public sealed record CompoundItemRequest(GameMessageMetadata Metadata, int Source, byte SourceMode, ushort Count,
-    bool Valid = true) : IClientNetworkMessage
+    bool Valid = true) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameCompoundItem;
 }
 internal sealed class CompoundItemDecoder : IGameMessageDecoder
@@ -63,7 +65,7 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
     }
 }
 public sealed record CompoundItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Drawing, int Count) : ICommand<RecipeCraftReceipt>, IOnlineUserCommand, IAccountCommand
+    BusinessSlot Drawing, int Count) : ICommand<RecipeCraftReceipt>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
 public sealed class CompoundItemCommandHandler(IRecipeCraftDomainService recipes, TimeProvider clock)
     : ICommandHandler<CompoundItemCommand, RecipeCraftReceipt>
@@ -73,21 +75,13 @@ public sealed class CompoundItemCommandHandler(IRecipeCraftDomainService recipes
 }
 public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
-    CompoundItemReplayGuard replays, IRecipeCraftDomainService recipes, ILogger<CompoundItemHandler> logger) : ClientMessageHandler<CompoundItemRequest>
+    ILogger<CompoundItemHandler> logger) : ClientMessageHandler<CompoundItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CompoundItemRequest request, CancellationToken ct)
     {
-        using var replay = await replays.EnterAsync(context.Connection, request.Metadata.Sequence, ct).ConfigureAwait(false);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null) { await Reject(0x11); return; }
-        replay.BindSession(session);
-        if (replay.CachedFor(request, out var conflict) is { } cached)
-        {
-            if (cached.Receipt is { } saved) await Publish(await recipes.RefreshAsync(saved, ct).ConfigureAwait(false), false);
-            else await Reject(cached.ErrorCode);
-            return;
-        }
-        if (conflict || !replay.Admit(request) || !request.Valid || request.SourceMode != 0
+        if (!request.Valid || request.SourceMode != 0
             || request.Count is < 1 or > 1000 || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null) { await Reject(0x11); return; }
         RecipeCraftReceipt receipt;
@@ -96,25 +90,24 @@ public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, 
             receipt = await commands.SendAsync(new CompoundItemCommand(online.OnlineUserId, session,
                 OpeningWireSlots.FromMain(request.Source), request.Count), ct).ConfigureAwait(false);
         }
-        catch (OpeningRejectedException failure)
+        catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
             var error = OpeningPayloads.Error(failure.Reason);
-            replay.RememberFailure(request, error); logger.LogInformation("Compound rejected: {Reason} {Detail}", failure.Reason, failure.Message);
+            logger.LogInformation("Compound rejected: {Reason} {Detail}", failure.Reason, failure.Message);
             await Reject(error); return;
         }
-        catch (Exception failure) when (failure is not OperationCanceledException)
+        catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
         {
-            replay.MarkCommitFailed(request); logger.LogError(failure, "Compound transaction failed for {Character}", session.CharacterId);
+            logger.LogError(failure, "Compound transaction failed for {Character}", session.CharacterId);
             await Reject(0x11); return;
         }
-        replay.Remember(request, receipt);
         logger.LogInformation("Compound committed character={Character} drawingSlot={Slot} count={Count}", session.CharacterId, request.Source, request.Count);
         await Publish(receipt, true);
         ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new CompoundItemResponse(null, error), ct);
         async ValueTask Publish(RecipeCraftReceipt result, bool acknowledge)
         {
             var resources = result.AccountMaterials.Select(x => new InventoryRuntimeValueState(x.VirtualSlotIndex, x.ItemId, x.FinalCount)).ToArray();
-            // CMD carries local deltas; on a replay send only authoritative absolute state.
+            // First delivery preserves the existing acknowledgement and committed inventory notifications.
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : [], AccountMaterials: resources), ct).ConfigureAwait(false);
         }

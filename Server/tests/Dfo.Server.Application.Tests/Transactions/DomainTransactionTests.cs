@@ -11,6 +11,49 @@ namespace Dfo.Server.Application.Tests.Transactions;
 public sealed class DomainTransactionTests
 {
     [Fact]
+    public async Task PrepareFailureWithRollbackFailureIsUncertainAndKeepsBothCauses()
+    {
+        var transaction = new DomainTransaction();
+        var original = new IOException("prepare failed");
+        var rollback = new IOException("rollback failed");
+        var participant = Enlist(transaction, [], "durable", true);
+        participant.PrepareFailure = original;
+        participant.RollbackFailure = rollback;
+        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
+            await transaction.CommitAsync(default));
+        Assert.Equal(TransactionUncertaintyReason.RollbackFailure, error.Reason);
+        var aggregate = Assert.IsType<AggregateException>(error.InnerException);
+        Assert.Contains(original, aggregate.InnerExceptions);
+        Assert.Contains(rollback, aggregate.InnerExceptions);
+        // Disposal/Abort cannot replace the already reported uncertainty or throw it again.
+        await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public void ClassifierWalksAllAggregateBranchesAndWrappersWithoutGuessingOrdinaryIoFailures()
+    {
+        var ordinary = new IOException("same words: uncertain commit");
+        var typed = new TransactionOutcomeUncertainException(TransactionUncertaintyReason.RollbackFailure,
+            "known uncertainty", ordinary);
+        var wrapped = new AggregateException(new InvalidOperationException("unrelated"),
+            new IOException("quest wrapper", new AggregateException(ordinary, typed)));
+        Assert.Same(typed, TransactionOutcomeUncertainException.Find(wrapped));
+        Assert.False(TransactionOutcomeUncertainException.Contains(ordinary));
+    }
+
+    [Fact]
+    public async Task NonFallibleViolation_IsTypedAndPreservesTheOriginalCause()
+    {
+        var transaction = new DomainTransaction();
+        var cause = new IOException("publication violated its contract");
+        Enlist(transaction, [], "memory", false).CommitFailure = cause;
+        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
+            await transaction.CommitAsync(CancellationToken.None));
+        Assert.Equal(TransactionUncertaintyReason.NonFallibleCommitContractViolation, error.Reason);
+        Assert.Same(cause, error.InnerException);
+    }
+
+    [Fact]
     public async Task Commit_MakesEveryParticipantsChangeVisible()
     {
         var log = new List<string>();

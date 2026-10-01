@@ -68,6 +68,10 @@ public sealed record GameExplicitMessageDelivery(
 
 public interface IGameMessageSender
 {
+    ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IGameServerMessage> messages, CancellationToken cancellationToken) =>
+        ValueTask.FromException(new NotSupportedException("This Game sender does not support prepared typed batches."));
+
     ValueTask SendCmdAsync(
         NetworkConnectionId connectionId,
         IGameCmdMessage message,
@@ -86,6 +90,10 @@ public interface IGameMessageSender
 
 internal sealed class GameMessageSender(INetworkMessageSender sender) : IGameMessageSender
 {
+    public ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IGameServerMessage> messages, CancellationToken cancellationToken) =>
+        sender.SendBatchAsync(expectedConnection, [.. messages.Cast<IServerNetworkMessage>()], cancellationToken);
+
     public ValueTask SendCmdAsync(
         NetworkConnectionId connectionId,
         IGameCmdMessage message,

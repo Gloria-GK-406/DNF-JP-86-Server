@@ -117,9 +117,9 @@ public sealed class EquipmentAmplificationTests
     [Fact]
     public async Task Amplification_replay_spends_once_and_changed_mode_is_a_conflict()
     {
-        using var f = Fixture(); await Seed(f, Piece()); await Send(f, 7); await Send(f, 7); await Send(f, 7, method: 0);
+        using var f = Fixture(); await Seed(f, Piece()); await Send(f, 7); await Send(f, 7); await Assert.ThrowsAsync<InvalidDataException>(() => Send(f, 7, method: 0).AsTask());
         var replies = f.Sender.Messages.OfType<ReinforceItemResponse>().ToArray();
-        Assert.Equal(replies[0], replies[1]); Assert.False(replies[2].Success);
+        Assert.Single(replies); Assert.Single(f.Sender.Batches);
         Assert.Equal(19, f.Count(3242)); Assert.Equal(99700, f.Gold); Assert.Equal((byte)1, f.StoredCore(9)[9]);
     }
 
@@ -150,8 +150,8 @@ public sealed class EquipmentAmplificationTests
     private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1234)
         with { Durability = 45, AmplifyType = 4, AmplifyValue = 5 };
     private static ValueTask Send(ShopFixture f, ushort sequence, ushort method = 1) =>
-        f.Services.GetRequiredService<ReinforceItemHandler>().HandleAsync(new(f.Connection),
-            new ReinforceItemRequest(new(1, 0x50, 0, sequence), method, 9, 3000, 121, -1, []), default);
+        EffectRequestTransport.Send(f,
+            new ReinforceItemRequest(new(1, 0x50, 0, sequence), method, 9, 3000, 121, -1, []));
     private static IEnumerable<byte[]> DeltaEntries(ShopFixture f)
     {
         foreach (var message in f.Sender.Messages)

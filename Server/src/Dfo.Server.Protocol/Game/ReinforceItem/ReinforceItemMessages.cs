@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
@@ -10,8 +12,9 @@ public sealed record ReinforceItemRequest(
     int ExpectedItemId,
     short MaterialSlot,
     short OptionalTicketSlot,
-    byte[] ReportedItemNameBytes) : IClientNetworkMessage
+    byte[] ReportedItemNameBytes) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameReinforceItem;
 }
 

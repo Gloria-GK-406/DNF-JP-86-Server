@@ -16,6 +16,12 @@ internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEn
     {
         if (wornNormalizer is not null)
             await wornNormalizer.NormalizeAsync(characterId, cancellationToken).ConfigureAwait(false);
+        return await ReadCurrentAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<CharacterInventoryEntryState> ReadCurrentAsync(
+        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+    {
         var stored = await repository.LoadCharacterAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
         return InventoryEntryProjection.ProjectCharacter(stored, accountId, characterId);

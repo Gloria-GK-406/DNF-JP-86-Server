@@ -17,14 +17,11 @@ public sealed class OutworldHandler(
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
-    OutworldReplayGuard replays,
     ILogger<OutworldHandler> logger) : ClientMessageHandler<OutworldRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         OutworldRequest request, CancellationToken ct)
     {
-        using var replay = await replays.EnterAsync(context.Connection,
-            request.Metadata.Sequence, ct).ConfigureAwait(false);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
@@ -32,19 +29,7 @@ public sealed class OutworldHandler(
             await Reject(context, request, ct).ConfigureAwait(false);
             return;
         }
-        replay.BindSession(session);
-        if (replay.CachedFor(request, out var conflict) is { } cached)
-        {
-            if (cached.Receipt is { } committed)
-                await notifications.PublishAsync(
-                    new NotificationAudience.TheseCharacters([committed.Session.CharacterId]),
-                    new OutworldCompleted(committed, request.Purify, request.WireAction), ct)
-                    .ConfigureAwait(false);
-            else
-                await Reject(context, request, ct, cached.ErrorCode).ConfigureAwait(false);
-            return;
-        }
-        if (conflict || !replay.Admit(request) || request.TargetSlot < 0
+        if (request.TargetSlot < 0
             || request.MaterialSlot < 0 || request.TargetSlot == request.MaterialSlot
             || request.TargetItemId <= 0 || request.MaterialItemId <= 0
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
@@ -57,7 +42,6 @@ public sealed class OutworldHandler(
         // are not closed, so never route it to a transaction.
         if (!request.Purify && request.WireAction is not (0 or 1))
         {
-            replay.RememberFailure(request, 0x08);
             await Reject(context, request, ct, 0x08).ConfigureAwait(false);
             return;
         }
@@ -76,30 +60,19 @@ public sealed class OutworldHandler(
         var action = request.Purify ? EquipmentOutworldAction.Purify
             : request.WireAction == 0 ? EquipmentOutworldAction.Invest
             : EquipmentOutworldAction.Twist;
-        EquipmentOutworldResult result;
-        try
-        {
-            result = await commands.SendAsync(new OutworldCommand(online.OnlineUserId,
-                session, action, target, request.TargetItemId,
-                material, request.MaterialItemId, request.SelectedOption), ct)
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            replay.MarkCommitFailed(request);
-            throw;
-        }
+        var result = await commands.SendAsync(new OutworldCommand(online.OnlineUserId,
+            session, action, target, request.TargetItemId,
+            material, request.MaterialItemId, request.SelectedOption), ct)
+            .ConfigureAwait(false);
         if (result.Receipt is not { } receipt)
         {
             var errorCode = ErrorCode(result.Rejection);
             logger.LogInformation("OUTWORLD rejected character={Character} action={Action} targetSlot={TargetSlot} targetItem={TargetItem} material={Material} selectedOption={SelectedOption} reason={Reason} errorCode={ErrorCode}",
                 session.CharacterId.Value, action, request.TargetSlot, request.TargetItemId,
                 request.MaterialItemId, request.SelectedOption, result.Rejection, errorCode);
-            replay.RememberFailure(request, errorCode);
             await Reject(context, request, ct, errorCode).ConfigureAwait(false);
             return;
         }
-        replay.Remember(request, receipt);
         logger.LogInformation("OUTWORLD character={Character} action={Action} target={Target} material={Material} seed={Seed}",
             receipt.Session.CharacterId.Value, action, request.TargetSlot, request.MaterialSlot, receipt.Seed);
         await notifications.PublishAsync(

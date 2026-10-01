@@ -1,0 +1,11 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\RealConsumableIntegrationTests.cs(137,22): error CS0103: 当前上下文中不存在名称“CharacterSkillLearningRejection” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\RealConsumableIntegrationTests.cs(141,26): error CS0103: 当前上下文中不存在名称“CharacterSkillLearningRejection” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+
+生成失败。
+
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\RealConsumableIntegrationTests.cs(137,22): error CS0103: 当前上下文中不存在名称“CharacterSkillLearningRejection” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\RealConsumableIntegrationTests.cs(141,26): error CS0103: 当前上下文中不存在名称“CharacterSkillLearningRejection” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+    0 个警告
+    2 个错误
+
+已用时间 00:00:04.33

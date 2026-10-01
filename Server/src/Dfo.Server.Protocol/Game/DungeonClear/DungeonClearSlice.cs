@@ -700,7 +700,7 @@ public sealed class SetPlayResultHandler(
     IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger,
-    DungeonCardPresentationCoordinator? cardPresentation = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null)
     : ClientMessageHandler<SetPlayResultRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -709,6 +709,7 @@ public sealed class SetPlayResultHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        var capturedRecipient = session is null ? null : safety?.Capture(session) ?? new SelectedSessionRecipient(session, context.Connection);
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null)
@@ -766,6 +767,7 @@ public sealed class SetPlayResultHandler(
         }
         var run = settlementClaim.Run;
         var settlementCommitted = false;
+        var durableCommitted = false;
         try
         {
             // The cards are fixed here, and here is the only place they can be fixed. Above is the
@@ -879,8 +881,10 @@ public sealed class SetPlayResultHandler(
                         run.Layout.BasisLevel,
                         run.Difficulty,
                         run.Layout.ExperienceWeight,
-                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount)),
+                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount), Session: session),
                 cancellationToken).ConfigureAwait(false));
+
+            durableCommitted = true;
 
             // The whole award, in its parts. Experience is a number nobody can check by looking, so
             // this line is what makes a live session usable as evidence for what a clear paid -- and
@@ -905,10 +909,7 @@ public sealed class SetPlayResultHandler(
                 ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
                 : new CharacterProgressionState(award.Level, award.Total);
             if (currentProgress is null)
-            {
-                runs.ReleaseSettlement(settlementClaim);
-                return;
-            }
+                throw new InvalidOperationException("The current progress disappeared after its durable award.");
 
             if (runs.CommitSettlement(settlementClaim) is null)
             {
@@ -990,9 +991,15 @@ public sealed class SetPlayResultHandler(
                 cancellationToken).ConfigureAwait(false);
             cardPresentation?.ScheduleAfterSettlement(session, currentRun.RunId);
         }
-        catch
+        catch (Exception failure)
         {
-            if (!settlementCommitted)
+            if (durableCommitted && !settlementCommitted)
+                throw safety is not null
+                    ? await safety.PublicationFailedAsync(capturedRecipient!, failure, nameof(SetPlayResultHandler)).ConfigureAwait(false)
+                    : new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
+                        Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
+                        "Durable clear effects could not be published.", failure);
+            if (!settlementCommitted && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
                 runs.ReleaseSettlement(settlementClaim);
             throw;
         }

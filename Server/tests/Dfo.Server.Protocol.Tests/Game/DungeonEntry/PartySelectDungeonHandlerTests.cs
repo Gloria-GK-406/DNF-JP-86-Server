@@ -998,6 +998,7 @@ public sealed class PartySelectDungeonHandlerTests
     {
         public List<NetworkConnectionId> Closed { get; } = [];
 
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
         public ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId,
             CancellationToken cancellationToken)

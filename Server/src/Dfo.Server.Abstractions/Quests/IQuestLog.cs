@@ -240,39 +240,6 @@ public interface IQuestLog
     ValueTask<bool> CompleteAsync(int questId, byte mark, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Marks the supplied quests cleared without granting rewards or requiring them to be carried.
-    /// Removes every matching carried and tracked row. Existing non-zero clear marks are preserved.
-    /// </summary>
-    /// <returns>The quest IDs that gained a clear mark in this call, once each.</returns>
-    /// <remarks>
-    /// This is only a state mutation. The caller selects eligible IDs, runs the call within a
-    /// transaction, consumes any cost in that same transaction, and sends notifications afterward.
-    /// </remarks>
-    ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
-        IReadOnlyCollection<int> questIds, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Hands a carried quest in, if what it asked for has been done.
-    /// </summary>
-    /// <remarks>
-    /// The gate is the progress word reaching zero, which is what "the objective is met" means on
-    /// this wire -- see <see cref="QuestTrigger.IsComplete"/>. It is asked here rather than by the
-    /// caller because it is the one rule that decides whether a quest may be handed in at all, and
-    /// a caller that could skip it could finish any carried quest by asking.
-    ///
-    /// What it leaves behind is <see cref="ClearedMark"/>, not a number the caller chooses. The
-    /// reference server writes one value for every ordinary completion, so a parameter here would
-    /// be a choice nobody makes. A caller that needs a different mark has
-    /// <see cref="CompleteAsync"/>.
-    ///
-    /// A "question" quest answers with a chosen flag value instead of an ordinary progress word;
-    /// that special completion gate is not modeled here. A "quest clear" objective now derives
-    /// the number of missing dependencies on acceptance and after a relevant completion, so its
-    /// ordinary zero-progress gate remains sufficient.
-    /// </remarks>
-    ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Gives a carried quest up: it stops being carried and is not recorded as finished.
     /// </summary>
     /// <returns>False when the character is not carrying that quest.</returns>

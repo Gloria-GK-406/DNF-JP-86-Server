@@ -17,5 +17,5 @@ public sealed record VendingMachineResult(OpeningInventoryReceipt Receipt, Busin
 public interface IVendingMachineDomainService
 {
     ValueTask<VendingMachineResult> UseAsync(SelectedSessionIdentity session, int machineId, int groupId,
-        BusinessSlot slot, ushort sequence, CancellationToken cancellationToken);
+        BusinessSlot slot, CancellationToken cancellationToken);
 }

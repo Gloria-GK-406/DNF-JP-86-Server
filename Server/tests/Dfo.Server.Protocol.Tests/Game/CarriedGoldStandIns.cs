@@ -30,6 +30,8 @@ internal sealed class CarriedGold(int total) : ICharacter
     /// <summary>How many charges were attempted, met or not.</summary>
     public int Charges { get; private set; }
 
+    public ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey key, CancellationToken token) => throw new NotSupportedException();
+
     public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken) =>
         throw new NotSupportedException("These cases are about gold, not about using an item.");
 

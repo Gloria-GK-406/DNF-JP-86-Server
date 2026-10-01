@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
@@ -7,8 +8,9 @@ namespace Dfo.Server.Protocol.Game.Outworld;
 public sealed record OutworldRequest(GameMessageMetadata Metadata, bool Purify,
     byte WireAction, short TargetSlot, int TargetItemId,
     short MaterialSlot, int MaterialItemId, byte SelectedOption)
-    : IClientNetworkMessage
+    : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => Purify
         ? ClientMessageType.GamePurifyItem : ClientMessageType.GameInvestAmplifyOption;
 }

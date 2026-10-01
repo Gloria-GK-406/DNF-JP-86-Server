@@ -14,20 +14,6 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentOutworldHandlerTests
 {
-    private static readonly ConditionalWeakTable<ShopFixture, FrameClock> Clocks = new();
-
-    private sealed class FrameClock
-    {
-        internal long Ordinal;
-        internal ushort? LastFresh;
-        internal (long Ordinal, bool Fresh) Observe(ushort sequence)
-        {
-            var fresh = LastFresh is null || sequence == unchecked((ushort)(LastFresh.Value + 1));
-            if (fresh) LastFresh = sequence;
-            return (++Ordinal, fresh);
-        }
-    }
-
     [Fact]
     public async Task Purify_commits_before_ack_and_replay_does_not_consume_again()
     {
@@ -40,12 +26,13 @@ public sealed class EquipmentOutworldHandlerTests
         await Send(shop, 7, true, 0, 1183);
 
         Assert.Equal(1, shop.Count(1183));
-        Assert.Equal(6, shop.Sender.Messages.Count);
+        Assert.Equal(9, shop.Sender.Messages.Count);
         var first = Assert.IsType<PurifyItemResponse>(shop.Sender.Messages[0]);
         Assert.True(first.Success);
         Assert.Equal(1, first.MaterialRemaining);
         Assert.Equal((byte)1, first.AmplifyType);
-        Assert.True(Assert.IsType<PurifyItemResponse>(shop.Sender.Messages[3]).Success);
+        Assert.Single(shop.Sender.Messages.OfType<PurifyItemResponse>());
+        Assert.Single(shop.Sender.Batches);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[2].GetType().Name);
     }
@@ -79,9 +66,9 @@ public sealed class EquipmentOutworldHandlerTests
         await shop.SeedCore(9, Piece(3));
         await shop.Seed(121, 8238, 1);
         await Send(shop, 7, false, 2, 8238, 0);
-        await Send(shop, 7, false, 2, 8238, 0);
+        await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, false, 2, 8238, 0).AsTask());
         var responses = shop.Sender.Messages.OfType<InvestAmplifyOptionResponse>().ToArray();
-        Assert.Equal(2, responses.Length);
+        Assert.Single(responses);
         Assert.All(responses, response =>
         {
             Assert.False(response.Success);
@@ -100,8 +87,9 @@ public sealed class EquipmentOutworldHandlerTests
         await Send(shop, 7, false, 1, 1188, 3);
         await Send(shop, 7, false, 1, 1188, 3);
 
-        Assert.Equal(2, shop.Sender.Messages.Count);
-        Assert.All(shop.Sender.Messages, message =>
+        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Messages.OfType<InvestAmplifyOptionResponse>());
+        Assert.All(shop.Sender.Messages.OfType<InvestAmplifyOptionResponse>(), message =>
         {
             var response = Assert.IsType<InvestAmplifyOptionResponse>(message);
             Assert.False(response.Success);
@@ -146,8 +134,9 @@ public sealed class EquipmentOutworldHandlerTests
         await Send(shop, 7, false, action, materialId, 3);
         await Send(shop, 7, false, action, materialId, 3);
 
-        Assert.Equal(2, shop.Sender.Messages.Count);
-        Assert.All(shop.Sender.Messages, message =>
+        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Messages.OfType<InvestAmplifyOptionResponse>());
+        Assert.All(shop.Sender.Messages.OfType<InvestAmplifyOptionResponse>(), message =>
         {
             var response = Assert.IsType<InvestAmplifyOptionResponse>(message);
             Assert.False(response.Success);
@@ -274,16 +263,10 @@ public sealed class EquipmentOutworldHandlerTests
     private static ValueTask Send(ShopFixture shop, ushort sequence,
         bool purify, byte wireAction, int materialId, byte selected = 0)
     {
-        var (ordinal, fresh) = Clocks.GetOrCreateValue(shop).Observe(sequence);
         var metadata = new GameMessageMetadata(1,
-            purify ? (ushort)0x00CC : (ushort)0x00CD, 0, sequence)
-        {
-            InboundOrdinal = ordinal,
-            SequenceIsFresh = fresh,
-        };
-        return shop.Services.GetRequiredService<OutworldHandler>().HandleAsync(
-            new(shop.Connection), new OutworldRequest(metadata, purify, wireAction,
-                9, 3000, 121, materialId, selected), default);
+            purify ? (ushort)0x00CC : (ushort)0x00CD, 0, sequence);
+        return EffectRequestTransport.Send(shop, new OutworldRequest(metadata, purify, wireAction,
+                9, 3000, 121, materialId, selected));
     }
 
     private sealed class Content : IEquipmentOutworldContentSource

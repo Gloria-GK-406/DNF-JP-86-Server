@@ -77,6 +77,18 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         }
     }
 
+    public void DiscardExact(SelectedSessionIdentity session)
+    {
+        lock (gate)
+        {
+            if (entries.TryGetValue(session.CharacterId, out var entry) && entry.Session == session) entries.Remove(session.CharacterId);
+            roomRewards.Remove(session);
+            var retained = projections.Where(x => x.Session != session).ToArray();
+            projections.Clear();
+            foreach (var projection in retained) projections.Enqueue(projection);
+        }
+    }
+
     public void ChangeCombat(CharacterId characterId, bool combat)
     {
         lock (gate)
@@ -181,17 +193,6 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         return changed;
     }
 
-    public async ValueTask<CreatureRuntimeChange?> FeedAsync(SelectedSessionIdentity session, CancellationToken ct)
-    {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return null;
-        var tx = transactions.Current ?? throw new InvalidOperationException("Feeding requires a use case.");
-        var context = CreateContext(tx, session.CharacterId);
-        var uid = await context.CurrentUidAsync(ct).ConfigureAwait(false);
-        if (uid is null) return null;
-        var pet = await Of(session.CharacterId).FindPetAsync(uid.Value, ct).ConfigureAwait(false);
-        return pet is null ? null : await pet.AddStomachAsync(30, ct).ConfigureAwait(false);
-    }
-
     public async ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
         BusinessSlot eggSlot, CancellationToken ct)
     {
@@ -242,6 +243,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public async ValueTask LeaveAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
+        lock (gate) if (!entries.TryGetValue(session.CharacterId, out var entry) || entry.Session != session) return;
         await WithinAsync(async tx =>
         {
             await AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);

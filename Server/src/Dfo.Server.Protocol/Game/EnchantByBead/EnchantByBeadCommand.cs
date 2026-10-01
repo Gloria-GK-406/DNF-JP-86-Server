@@ -10,7 +10,7 @@ namespace Dfo.Server.Protocol.Game.EnchantByBead;
 public sealed record EnchantByBeadCommand(
     OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
     BusinessSlot BeadSlot, BusinessSlot TargetSlot)
-    : ICommand<EquipmentEnchantResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<EquipmentEnchantResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }

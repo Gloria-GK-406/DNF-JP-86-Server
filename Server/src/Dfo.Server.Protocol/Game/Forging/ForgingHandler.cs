@@ -17,14 +17,11 @@ public sealed class ForgingHandler(
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
-    ForgingReplayGuard replays,
     ILogger<ForgingHandler> logger) : ClientMessageHandler<ForgingRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
         ForgingRequest request, CancellationToken ct)
     {
-        using var replay = await replays.EnterAsync(context.Connection,
-            request.Metadata.Sequence, ct).ConfigureAwait(false);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {
@@ -32,25 +29,9 @@ public sealed class ForgingHandler(
             await Reject(context, ct, 0x04).ConfigureAwait(false);
             return;
         }
-        replay.BindSession(session);
-        if (replay.CachedFor(request, out var conflict) is { } cached)
-        {
-            if (cached.Receipt is { } prior)
-                await notifications.PublishAsync(
-                    new NotificationAudience.TheseCharacters([prior.Session.CharacterId]),
-                    new ForgingCompleted(prior), ct).ConfigureAwait(false);
-            else await Reject(context, ct, cached.ErrorCode).ConfigureAwait(false);
-            return;
-        }
-        if (conflict || !replay.Admit(request))
-        {
-            await Reject(context, ct, 0x04).ConfigureAwait(false);
-            return;
-        }
         // Variant 1/2 requires a separate ticket rule; never assume the ordinary PVF material path.
         if (request.Variant != 0)
         {
-            replay.RememberFailure(request, 0x0D);
             await Reject(context, ct, 0x0D).ConfigureAwait(false);
             return;
         }
@@ -61,7 +42,6 @@ public sealed class ForgingHandler(
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
         {
-            replay.RememberFailure(request, 0x04);
             await Reject(context, ct, 0x04).ConfigureAwait(false);
             return;
         }
@@ -76,29 +56,17 @@ public sealed class ForgingHandler(
         }
         catch (InventorySlotMappingException)
         {
-            replay.RememberFailure(request, 0x04);
             await Reject(context, ct, 0x04).ConfigureAwait(false);
             return;
         }
-        EquipmentForgingResult result;
-        try
-        {
-            result = await commands.SendAsync(new ForgingCommand(online.OnlineUserId,
-                session, target, request.TargetItemId, material), ct).ConfigureAwait(false);
-        }
-        catch
-        {
-            replay.MarkCommitFailed(request);
-            throw;
-        }
+        var result = await commands.SendAsync(new ForgingCommand(online.OnlineUserId,
+            session, target, request.TargetItemId, material), ct).ConfigureAwait(false);
         if (result.Receipt is not { } receipt)
         {
             var errorCode = ErrorCode(result.Rejection);
-            replay.RememberFailure(request, errorCode);
             await Reject(context, ct, errorCode).ConfigureAwait(false);
             return;
         }
-        replay.Remember(request, receipt);
         logger.LogInformation("FORGING character={Character} target={Target} old={Old} new={New} roll={Roll}",
             receipt.Session.CharacterId.Value, request.TargetSlot, receipt.OldLevel,
             receipt.NewLevel, receipt.Roll);

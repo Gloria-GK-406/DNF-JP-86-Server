@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -15,14 +16,12 @@ internal sealed class EquipmentReinforcementDomainService(
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentUpgradeRuleService rules,
-    IEquipmentReinforcementFailureRuleService failures,
+    IEquipmentEffectPlanRuleService plans,
+    IApplyEffectsDomainService effects,
+    IInventoryEffectPreflightDomainService preflight,
     ICharacterDomainService characters,
     IAccountMaterialBagDomainService accountMaterials,
     IAccountMaterialRuleService accountMaterialRules,
-    IMaterialConsumptionDomainService materials,
-    ICharacterContainerDomainService containers,
-    IItemPlacementRuleService placements,
-    IItemArrivalRuleService arrivals,
     IEquipmentReinforcementRollSource rolls,
     TimeProvider timeProvider) : IEquipmentReinforcementDomainService
 {
@@ -117,72 +116,46 @@ internal sealed class EquipmentReinforcementDomainService(
             }
         }
         var succeeded = rule.TryReinforce(rolls.Next(100_000));
-        var decision = succeeded
-            ? new EquipmentReinforcementFailureResult(EquipmentReinforcementRejection.None,
-                EquipmentReinforcementOutcome.Succeeded, checked((byte)(oldLevel + 1)), false, [])
-            : await failures.GetResultAsync(instance!,
-                new(protectionDefinition, rolls.Next(10_000), rolls.Next(10_000), kind), ct).ConfigureAwait(false);
-        if (decision.Rejection != EquipmentReinforcementRejection.None) return new(decision.Rejection);
-        var rewardRejection = await ValidateRewardsAsync(session, targetSlot, decision.Rewards,
-            materialLocation, rule.MaterialCount, protectionSlot, decision.ConsumeProtection, ct).ConfigureAwait(false);
-        if (rewardRejection != EquipmentReinforcementRejection.None) return new(rewardRejection);
-
-        var costs = new List<MaterialCost>
-        {
+        var plan = await plans.ReinforcementAsync(target, rule,
             new(materialLocation, rule.MaterialItemId, rule.MaterialCount),
+            protectionSlot is { } ticket ? new(new MaterialLocation.Carried(ticket), protectionItem!.ItemId, 1) : null,
+            new(protectionDefinition, succeeded ? 0 : rolls.Next(10_000), succeeded ? 0 : rolls.Next(10_000), kind), succeeded, ct).ConfigureAwait(false);
+        var decision = plan.Decision;
+        if (decision.Rejection != EquipmentReinforcementRejection.None) return new(decision.Rejection);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, timeProvider.GetUtcNow(), session);
+        var preview = await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        if (preview.Rejection != InventoryEffectRejection.None)
+            return new(preview.Rejection switch
+            {
+                InventoryEffectRejection.NoRoom => EquipmentReinforcementRejection.NoRoom,
+                InventoryEffectRejection.UnsupportedItem => EquipmentReinforcementRejection.UnsupportedOutcome,
+                _ => EquipmentReinforcementRejection.InsufficientMaterial,
+            });
+        if (preview.PhysicalRewardEntries + plan.Effects.Count(effect => effect is GrantAccountMaterialEffect) > byte.MaxValue)
+            return new(EquipmentReinforcementRejection.NoRoom);
+        var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        var final = await EquipmentEffectReceiptProjection.FinalSlotsAsync(session.CharacterId, applied, slots, ct).ConfigureAwait(false);
+        var changes = final.Select(change => new EquipmentReinforcementSlotChange(change.Slot, change.Core)).ToArray();
+        var accountChanges = EquipmentEffectReceiptProjection.AccountChanges(applied);
+        var rewards = applied.Applied.SelectMany(value => value switch
+        {
+            { Effect: GrantAccountMaterialEffect, Change: AccountMaterialEffectChange account } =>
+                [new EquipmentReinforcementReward(null, account.Change.ItemId, account.Change.AddedCount, account.Change.VirtualSlotIndex)],
+            { Change: StackableGrantEffectChange physical } => physical.Additions.Select(reward =>
+                new EquipmentReinforcementReward(reward.Slot, reward.ItemId, reward.Count)),
+            _ => Enumerable.Empty<EquipmentReinforcementReward>(),
+        }).ToArray();
+        var materialRemaining = materialLocation switch
+        {
+            MaterialLocation.Account account => (await accountMaterials.Get(session.AccountId).SnapshotAsync(ct).ConfigureAwait(false)).Count(account.Kind),
+            MaterialLocation.Carried carried => final.First(change => change.Slot == carried.Slot).Core is { } remaining
+                && remaining.ItemId == rule.MaterialItemId ? remaining.Value : 0,
+            _ => throw new ArgumentOutOfRangeException(nameof(materialLocation)),
         };
-        if (decision.ConsumeProtection && protectionSlot is { } usedTicket)
-            costs.Add(new(new MaterialLocation.Carried(usedTicket), protectionItem!.ItemId, 1));
-        var debited = await materials.ConsumeAsync(session, costs, ct).ConfigureAwait(false);
-        if (!debited.Success)
-            return new(EquipmentReinforcementRejection.InsufficientMaterial);
-        var gold = await character.TrySpendGoldAsync(goldCost, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("Validated reinforcement gold changed during settlement.");
-        InventoryItemCoreState? updated = null;
-        if (decision.Outcome == EquipmentReinforcementOutcome.Destroyed)
-            await instance!.DestroyAsync(ct).ConfigureAwait(false);
-        else
-        {
-            updated = (await instance!.SetReinforcementLevelAsync(decision.NewLevel, ct).ConfigureAwait(false)).Core;
-        }
-        var changes = new List<EquipmentReinforcementSlotChange> { new(targetSlot, updated) };
-        foreach (var debit in debited.Debits)
-            if (debit.Cost.Location is MaterialLocation.Carried carried)
-                changes.Add(new(carried.Slot, debit.Remaining));
-        var accountChanges = debited.Debits
-            .Select(debit => debit.AccountChange).OfType<AccountMaterialChange>().ToArray();
-        var rewards = new List<EquipmentReinforcementReward>();
-        foreach (var reward in decision.Rewards)
-        {
-            // All quantities are preplanned; staging and publication remain under the command transaction.
-            var addition = await containers.AddAsync(session.CharacterId, reward.ItemId, reward.Count, ct)
-                .ConfigureAwait(false);
-            foreach (var item in addition.Items)
-            {
-                rewards.Add(new(item.Slot, reward.ItemId, item.Count));
-                var bound = slots.Get(session.CharacterId, item.Slot);
-                var final = await bound.Container.ReadSlotAsync(bound.Slot.Index, ct).ConfigureAwait(false);
-                changes.Add(new(item.Slot, final?.Core));
-            }
-            if (addition.AccountMaterial is { } addedAccount)
-            {
-                accountChanges = [.. accountChanges, addedAccount];
-                rewards.Add(new(null, reward.ItemId, reward.Count, addedAccount.VirtualSlotIndex));
-            }
-        }
-        var materialRemaining = debited.Debits[0] is { AccountChange: { } accountChange }
-            ? accountChanges.Last(change => change.Kind == accountChange.Kind).FinalCount
-            : debited.Debits[0].Remaining?.Value ?? 0;
-        if (materialLocation is MaterialLocation.Carried materialSource)
-        {
-            var bound = slots.Get(session.CharacterId, materialSource.Slot);
-            var final = await bound.Container.ReadSlotAsync(bound.Slot.Index, ct).ConfigureAwait(false);
-            materialRemaining = final is { IsPile: true } && final.ItemId == rule.MaterialItemId ? final.Count : 0;
-        }
         var receipt = new EquipmentReinforcementReceipt(session, targetSlot, materialSlot,
             decision.ConsumeProtection ? protectionSlot : null, oldLevel, decision.NewLevel,
-            decision.Outcome, materialRemaining, gold, changes, rewards, accountChanges,
-            timeProvider.GetUtcNow());
+            decision.Outcome, materialRemaining, applied.Changes<GoldEffectChange>().Single().Remaining,
+            changes, Array.AsReadOnly(rewards), accountChanges, context.At);
         return new(EquipmentReinforcementRejection.None, receipt);
     }
 
@@ -208,94 +181,4 @@ internal sealed class EquipmentReinforcementDomainService(
         return choice is null ? null : (choice.Slot, available[choice.Slot], choice.Definition);
     }
 
-    private async ValueTask<EquipmentReinforcementRejection> ValidateRewardsAsync(SelectedSessionIdentity session,
-        BusinessSlot targetSlot, IReadOnlyList<EquipmentReinforcementFailureReward> rewards,
-        MaterialLocation materialLocation, int materialCount, BusinessSlot? protectionSlot,
-        bool consumeProtection, CancellationToken ct)
-    {
-        if (rewards.Count == 0) return EquipmentReinforcementRejection.None;
-        var standing = new Dictionary<BusinessSlot, ContainerSlotItem>();
-        var loaded = new HashSet<BusinessInventorySpace>();
-        async ValueTask<bool> LoadAsync(BusinessInventorySpace space)
-        {
-            if (!loaded.Add(space)) return true;
-            var bound = slots.Find(session.CharacterId, new(space, 0));
-            if (bound is null) return false;
-            foreach (var item in await bound.Container.ReadAllAsync(ct).ConfigureAwait(false))
-            {
-                var slot = new BusinessSlot(space, item.SlotIndex);
-                if (slot == targetSlot) continue;
-                var remaining = item.Count;
-                if (materialLocation is MaterialLocation.Carried carried && slot == carried.Slot)
-                    remaining -= materialCount;
-                if (consumeProtection && protectionSlot == slot) remaining--;
-                if (remaining > 0) standing[slot] = remaining == item.Count
-                    ? item : item with { Core = item.Core with { Value = remaining } };
-            }
-            return true;
-        }
-        var balances = new Dictionary<AccountMaterialKind, long>();
-        var account = await accountMaterials.Get(session.AccountId).SnapshotAsync(ct).ConfigureAwait(false);
-        var plannedSlots = 0;
-        foreach (var reward in rewards)
-        {
-            if (reward.ItemId <= 0 || reward.Count <= 0) return EquipmentReinforcementRejection.UnsupportedOutcome;
-            if (accountMaterialRules.TryGetByItemId(reward.ItemId, out var accountDefinition))
-            {
-                var count = balances.TryGetValue(accountDefinition.Kind, out var current) ? current
-                    : (long)account.Count(accountDefinition.Kind)
-                        - (materialLocation is MaterialLocation.Account consumed && consumed.Kind == accountDefinition.Kind
-                            ? materialCount : 0);
-                count += reward.Count;
-                if (count is < 0 or > int.MaxValue || ++plannedSlots > byte.MaxValue)
-                    return EquipmentReinforcementRejection.NoRoom;
-                balances[accountDefinition.Kind] = count;
-                continue;
-            }
-            var placement = await placements.PlacementForAsync(reward.ItemId, ct).ConfigureAwait(false);
-            if (placement is not { WorldClass: ItemWorldClass.Interchangeable, ItemKind: > 0 })
-                return EquipmentReinforcementRejection.UnsupportedOutcome;
-            var candidates = Enumerable.Range(placement.Destination.FirstIndex,
-                    placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
-                .Select(index => new BusinessSlot(placement.Destination.Space, index));
-            if (ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
-                candidates = candidates.Concat(Enumerable.Range(0, 6)
-                    .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)));
-            var available = candidates.ToArray();
-            foreach (var space in available.Select(slot => slot.Space).Distinct())
-                if (!await LoadAsync(space).ConfigureAwait(false)) return EquipmentReinforcementRejection.NoRoom;
-            var remaining = reward.Count;
-            while (remaining > 0)
-            {
-                var arrival = arrivals.ForGrant(
-                    available.Select(slot => (Slot: slot, Item: standing.GetValueOrDefault(slot)))
-                        .Where(candidate => candidate.Item is { IsPile: true } && candidate.Item.ItemId == reward.ItemId)
-                        .Select(candidate => new ItemPile(candidate.Slot, candidate.Item!.Count)).ToArray(),
-                    remaining, placement, standing.Keys.ToHashSet());
-                BusinessSlot slot;
-                int added;
-                InventoryItemCoreState core;
-                switch (arrival)
-                {
-                    case ItemArrival.OntoExistingPile pile:
-                        slot = pile.Slot;
-                        added = pile.Added;
-                        core = standing[slot].Core with { Value = pile.Total };
-                        break;
-                    case ItemArrival.IntoEmptySlot empty:
-                        slot = empty.Slot;
-                        added = empty.Count;
-                        core = StackableItemCore.Create(placement.ItemKind, reward.ItemId, added);
-                        break;
-                    default:
-                        return EquipmentReinforcementRejection.NoRoom;
-                }
-                if (added <= 0 || added > remaining || ++plannedSlots > byte.MaxValue)
-                    return EquipmentReinforcementRejection.NoRoom;
-                standing[slot] = new(slot.Index, core, ItemWorldClass.Interchangeable);
-                remaining -= added;
-            }
-        }
-        return EquipmentReinforcementRejection.None;
-    }
 }

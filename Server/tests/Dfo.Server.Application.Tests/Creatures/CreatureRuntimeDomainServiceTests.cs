@@ -12,12 +12,89 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Schema;
+using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Effects;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Data.Inventory;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Creatures;
 
 public sealed class CreatureRuntimeDomainServiceTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Food_consumption_and_pet_stomach_settle_together(bool failCommit)
+    {
+        await using var f = new Fixture();
+        await f.SeedAsync();
+        f.Enter();
+        var food = new FoodInventory { Scope = f.Scope };
+        food.Seed(3, 24, 2);
+        var slots = new BusinessInventorySlotDomainService(food.Containers(), new InventorySlotMappingRuleService());
+        var source = new BusinessSlot(BusinessInventorySpace.QuickSlot, 0);
+        var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots),
+            new AddPetStomachEffectHandler(f.Runtime)], f.Scope, new SqliteCharacterDomainStore(f.Path), f.Sessions, ConsumptionEffectPreflight.For(slots));
+        await using (var tx = f.Scope.Begin())
+        {
+            var item = (await slots.Get(f.Session.CharacterId, source).Container.ReadSlotAsync(0, default))!;
+            var pet = (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!;
+            var rules = new ItemUseEffectRuleService(new ItemUseJudgementService(new FakeItemUseRules()));
+            var plan = rules.Build(ItemUseRules.Potion(0), source, item,
+                new ItemUseCandidate(60, QuestJobRequirement.Priest, ItemUsePlace.Village, false), pet.ItemUid, f.Clock.GetUtcNow());
+            Assert.Equal(ItemUsability.Allowed, plan.Status);
+            var applied = await executor.ApplyAsync(new(f.Session.AccountId, f.Session.CharacterId, f.Clock.GetUtcNow(), f.Session),
+                plan.Effects, default);
+            Assert.Equal(80, Assert.Single(applied.Changes<PetStomachChange>()).Change.After.Stomach);
+            Assert.Empty(f.Runtime.DrainProjections());
+            if (failCommit)
+            {
+                f.Scope.Current!.Enlist(new object(), () => new PrepareCallback(() => throw new IOException("prepare failed")));
+                await Assert.ThrowsAsync<IOException>(async () => await tx.CommitAsync(default));
+            }
+            else await tx.CommitAsync(default);
+        }
+        Assert.Equal(failCommit ? 2 : 1, food.CountIn(3));
+        Assert.Equal(failCommit ? 50L : 80L, await f.StomachAsync());
+        if (failCommit) Assert.Empty(f.Runtime.DrainProjections());
+        else Assert.NotEmpty(f.Runtime.DrainProjections());
+    }
+
+    [Fact]
+    public async Task Discard_drops_cached_stomach_and_pending_projection_without_Leave_writing_durable_balance()
+    {
+        await using var f = new Fixture();
+        await f.SeedAsync(); f.Enter();
+        await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+        f.Clock.Advance(TimeSpan.FromSeconds(60));
+        await using (var connection = new SqliteConnection($"Data Source={f.Path}"))
+        {
+            await connection.OpenAsync(); await using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE items SET creature_field04=80 WHERE item_uid=101";
+            await command.ExecuteNonQueryAsync();
+        }
+        f.Runtime.QueueRoomExperience(f.Session, DungeonRunId.New(), new(0,0), 10);
+        f.Runtime.DiscardExact(f.Session);
+        await f.Runtime.LeaveAsync(f.Session, default);
+        Assert.Equal(80, await f.StomachAsync());
+        Assert.Empty(f.Runtime.DrainProjections()); Assert.Empty(f.Runtime.DueSessions());
+        var replacement = f.Session with { ConnectionGeneration = 2 };
+        f.Enter(replacement);
+        f.Runtime.QueueRoomExperience(replacement, DungeonRunId.New(), new(0,0), 10);
+        f.Runtime.DiscardExact(f.Session);
+        await f.Runtime.LeaveAsync(f.Session, default);
+        Assert.Contains(replacement, f.Runtime.DueSessions());
+        Assert.Equal(80, await f.StomachAsync());
+    }
+
+    private sealed class FoodInventory() : FakeMainInventory(7);
+
     [Fact]
     public async Task Instance_read_projects_the_current_combat_balance_without_writing_storage()
     {
@@ -228,7 +305,7 @@ public sealed class CreatureRuntimeDomainServiceTests
         f.Enter();
         await using (f.Scope.Begin())
         {
-            Assert.Equal(80, (await f.Runtime.FeedAsync(f.Session, default))!.After.Stomach);
+            Assert.Equal(80, (await (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!.AddStomachAsync(30, default))!.After.Stomach);
             Assert.Equal(110, (await f.Runtime.GainExperienceAsync(f.Session, 20, default))!.After.Experience);
         }
         Assert.Equal(50L, await f.StomachAsync());
@@ -236,7 +313,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         await using (var tx = f.Scope.Begin())
         {
-            Assert.Equal(80, (await f.Runtime.FeedAsync(f.Session, default))!.After.Stomach);
+            Assert.Equal(80, (await (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!.AddStomachAsync(30, default))!.After.Stomach);
             var growth = await f.Runtime.GainExperienceAsync(f.Session, 20, default);
             Assert.Equal(2, growth!.After.Level);
             await tx.CommitAsync(default);
@@ -373,7 +450,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         await using (var tx = f.Scope.Begin())
         {
-            await f.Runtime.FeedAsync(f.Session, default);
+            await (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!.AddStomachAsync(30, default);
             await f.Runtime.GainExperienceAsync(f.Session, 20, default);
             Assert.Empty(f.Runtime.DrainProjections());
             f.Scope.Current!.Enlist(new object(), () =>
@@ -389,7 +466,7 @@ public sealed class CreatureRuntimeDomainServiceTests
 
         await using (f.Scope.Begin())
         {
-            await f.Runtime.FeedAsync(f.Session, default);
+            await (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!.AddStomachAsync(30, default);
             await f.Runtime.GainExperienceAsync(f.Session, 10, default);
         }
         Assert.Empty(f.Runtime.DrainProjections());

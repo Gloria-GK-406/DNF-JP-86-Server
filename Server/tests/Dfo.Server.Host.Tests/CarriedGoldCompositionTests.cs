@@ -1,8 +1,11 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Persistence;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Host.Tests;
@@ -27,7 +30,9 @@ public sealed class CarriedGoldCompositionTests
     public void The_character_business_acts_through_resolves_from_the_assembled_modules()
     {
         var services = new ServiceCollection().AddLogging();
-        var configuration = new ConfigurationBuilder().Build();
+        using var database = new TemporaryDatabase();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            { ["Database:Path"] = database.Path }).Build();
         new PersistenceModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
@@ -38,6 +43,8 @@ public sealed class CarriedGoldCompositionTests
         var characters = provider.GetRequiredService<ICharacterDomainService>();
 
         Assert.NotNull(characters.Get(new Dfo.Server.Data.Characters.CharacterId(1)));
+        Assert.NotNull(provider.GetRequiredService<IItemUseEffectDomainService>());
+        Assert.NotNull(provider.GetRequiredService<IApplyEffectsDomainService>());
     }
 
     /// <summary>The two seams that move gold are both registered and are not the same one.</summary>
@@ -50,7 +57,9 @@ public sealed class CarriedGoldCompositionTests
     public void The_carry_cap_rule_and_the_account_cargo_seam_both_resolve()
     {
         var services = new ServiceCollection().AddLogging();
-        var configuration = new ConfigurationBuilder().Build();
+        using var database = new TemporaryDatabase();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            { ["Database:Path"] = database.Path }).Build();
         new PersistenceModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
@@ -59,5 +68,15 @@ public sealed class CarriedGoldCompositionTests
             new ServiceProviderOptions { ValidateOnBuild = false, ValidateScopes = false });
 
         Assert.NotNull(provider.GetRequiredService<ICarriedGoldRuleService>());
+    }
+    private sealed class TemporaryDatabase : IDisposable
+    {
+        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"dfo-carried-gold-composition-{Guid.NewGuid():N}.db");
+        public void Dispose()
+        {
+            using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path }.ToString());
+            SqliteConnection.ClearPool(connection);
+            File.Delete(Path);
+        }
     }
 }

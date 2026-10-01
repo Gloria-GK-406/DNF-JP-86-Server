@@ -17,32 +17,13 @@ public sealed class EnchantByBeadHandler(
     ICommandBus commands,
     INotificationBus notifications,
     IGameMessageSender sender,
-    EnchantByBeadReplayGuard replays,
     ILogger<EnchantByBeadHandler> logger) : ClientMessageHandler<EnchantByBeadRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context, EnchantByBeadRequest request, CancellationToken ct)
     {
-        using var replay = await replays.EnterAsync(
-            context.Connection, request.Metadata.Sequence, ct).ConfigureAwait(false);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
-        {
-            await Reject(context, ct).ConfigureAwait(false);
-            return;
-        }
-        replay.BindSession(session);
-        if (replay.CachedFor(request, out var conflict) is { } cached)
-        {
-            // Refresh from current committed slots, not the old receipt: an intervening inventory
-            // command may already have moved or consumed either item.
-            await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters([cached.Receipt.Session.CharacterId]),
-                new EquipmentEnchantCompleted(cached.Receipt, cached.Response), ct)
-                .ConfigureAwait(false);
-            return;
-        }
-        if (conflict || !replay.Admit(request))
         {
             await Reject(context, ct).ConfigureAwait(false);
             return;
@@ -73,17 +54,8 @@ public sealed class EnchantByBeadHandler(
             await Reject(context, ct, 0x13).ConfigureAwait(false);
             return;
         }
-        EquipmentEnchantResult result;
-        try
-        {
-            result = await commands.SendAsync(new EnchantByBeadCommand(
-                online.OnlineUserId, session, bead, target), ct).ConfigureAwait(false);
-        }
-        catch
-        {
-            replay.MarkCommitFailed(request);
-            throw;
-        }
+        var result = await commands.SendAsync(new EnchantByBeadCommand(
+            online.OnlineUserId, session, bead, target), ct).ConfigureAwait(false);
         if (result.Receipt is not { } receipt)
         {
             logger.LogDebug("ENCHANT_BY_BEAD rejected: {Reason}", result.Rejection);
@@ -94,7 +66,6 @@ public sealed class EnchantByBeadHandler(
         // SendAsync returns after the account/online-user transaction commits.
         var response = new EnchantByBeadResponse(true, TargetList: request.TargetList,
             TargetSlot: request.TargetSlot);
-        replay.Remember(request, response, receipt);
         logger.LogInformation("ENCHANT_BY_BEAD character={Character} bead={Bead} target={Target} card={Card}",
             receipt.Session.CharacterId.Value, receipt.BeadSlot, receipt.TargetSlot,
             receipt.CardItemId);

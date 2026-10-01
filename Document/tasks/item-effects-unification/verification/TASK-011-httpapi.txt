@@ -1,0 +1,72 @@
+生成启动时间为 2026/10/1 16:04:33。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-httpapi.diag.txt 中记录 Vstest 诊断
+总共 1 个测试文件与指定模式相匹配。
+在文件 E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-httpapi.diag.host.26-10-01_16-04-34_41294_5.txt 中记录 TestHost 诊断
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.39]   Discovering: Dfo.Server.HttpApi.Tests (app domain = off, method display = ClassAndMethod, method display options = None)
+[xUnit.net 00:00:00.43]   Discovered:  Dfo.Server.HttpApi.Tests (50 test cases to be run)
+[xUnit.net 00:00:00.45]   Starting:    Dfo.Server.HttpApi.Tests (parallel test collections = off, stop on fail = off, explicit = off)
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiArchitectureTests.HttpApiDoesNotReferencePersistenceInfrastructureNetworkingOrProtocol [53 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.MissingOrUnsupportedCredentialContentTypeUsesStableInvalidRequest(path: "/api/launcher/v1/register", contentType: null) [129 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.MissingOrUnsupportedCredentialContentTypeUsesStableInvalidRequest(path: "/api/launcher/v1/login", contentType: null) [10 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.MissingOrUnsupportedCredentialContentTypeUsesStableInvalidRequest(path: "/api/launcher/v1/login", contentType: "text/plain") [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.MissingOrUnsupportedCredentialContentTypeUsesStableInvalidRequest(path: "/api/launcher/v1/register", contentType: "text/plain") [7 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/register", body: "{\"loginId\":\"player\",\"password\":\"password-1\"···) [4 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/login/", body: "{") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/login/", body: "{\"loginId\":\"player\",\"password\":\"password-1\"···) [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/login", body: "{") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/login", body: "{\"loginId\":\"player\",\"password\":\"password-1\"···) [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/register/", body: "{\"loginId\":\"player\",\"password\":\"password-1\"···) [4 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/register", body: "{") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(path: "/api/launcher/v1/register/", body: "{") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.BootstrapUsesStableV1ReadinessJson(ready: False, status: 503, marker: "service_unavailable") [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.BootstrapUsesStableV1ReadinessJson(ready: True, status: 200, marker: "ready") [5 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.NullMissingAndMalformedCredentialJsonUsesTheSameStableError(path: "/api/launcher/v1/register", body: "{") [8 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.NullMissingAndMalformedCredentialJsonUsesTheSameStableError(path: "/api/launcher/v1/register", body: "null") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.NullMissingAndMalformedCredentialJsonUsesTheSameStableError(path: "/api/launcher/v1/login", body: "{") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.NullMissingAndMalformedCredentialJsonUsesTheSameStableError(path: "/api/launcher/v1/login", body: "{}") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.NullMissingAndMalformedCredentialJsonUsesTheSameStableError(path: "/api/launcher/v1/register", body: "{}") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.NullMissingAndMalformedCredentialJsonUsesTheSameStableError(path: "/api/launcher/v1/login", body: "null") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RoutedCredentialEndpointsRemainAvailableOverAllowedTransports(path: "/api/launcher/v1/login/", scheme: "https", remoteAddress: "198.51.100.20", expectedStatus: 200) [9 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RoutedCredentialEndpointsRemainAvailableOverAllowedTransports(path: "/api/launcher/v1/login/", scheme: "http", remoteAddress: "127.0.0.1", expectedStatus: 200) [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RoutedCredentialEndpointsRemainAvailableOverAllowedTransports(path: "/api/launcher/v1/register/", scheme: "https", remoteAddress: "198.51.100.20", expectedStatus: 201) [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RoutedCredentialEndpointsRemainAvailableOverAllowedTransports(path: "/api/launcher/v1/register/", scheme: "http", remoteAddress: "127.0.0.1", expectedStatus: 201) [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.SupportedJsonContentTypesStillMapMalformedBodyToInvalidRequest(path: "/api/launcher/v1/register", contentType: "application/json") [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.SupportedJsonContentTypesStillMapMalformedBodyToInvalidRequest(path: "/api/launcher/v1/login", contentType: "application/problem+json") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.SupportedJsonContentTypesStillMapMalformedBodyToInvalidRequest(path: "/api/launcher/v1/login", contentType: "application/json") [6 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.SupportedJsonContentTypesStillMapMalformedBodyToInvalidRequest(path: "/api/launcher/v1/register", contentType: "application/problem+json") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RegisterMapsApplicationResultsToStableHttpContract(commandStatus: InvalidRequest, expectedStatus: 400, expectedCode: "invalid_request") [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RegisterMapsApplicationResultsToStableHttpContract(commandStatus: AccountExists, expectedStatus: 409, expectedCode: "account_exists") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.RegisterMapsApplicationResultsToStableHttpContract(commandStatus: Success, expectedStatus: 201, expectedCode: null) [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.CredentialEndpointsDoNotReadOrDispatchWhileServiceIsUnavailable(path: "/api/launcher/v1/login") [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.CredentialEndpointsDoNotReadOrDispatchWhileServiceIsUnavailable(path: "/api/launcher/v1/register") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.MissingAccountAndWrongPasswordHaveByteIdenticalExternalSemantics [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.LoginMapsRefusalsWithoutExposingCredentialDetails(commandStatus: InvalidCredentials, expectedStatus: 401, expectedCode: "invalid_credentials") [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.LoginMapsRefusalsWithoutExposingCredentialDetails(commandStatus: InvalidRequest, expectedStatus: 400, expectedCode: "invalid_request") [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.UnexpectedCommandFailureReturnsSafeInternalError [6 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.LoginSuccessProjectsTicketExpiryAndTheConfiguredChannelBootstrap [3 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiPipelineTests.LoopbackPlaintextReachesBindingAndMalformedJsonGetsStableError [2 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "ftp://127.0.0.1:8080") [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: null) [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "relative") [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "http://127.0.0.1:8080/#fragment") [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "http://user@127.0.0.1:8080") [< 1 ms]
+[xUnit.net 00:00:00.85]   Finished:    Dfo.Server.HttpApi.Tests
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "http://127.0.0.1:8080/api") [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "http://127.0.0.1:8080/?query=1") [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.EnabledApiRejectsInvalidListenerUrls(value: "") [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.DisabledApiDoesNotRequireOrInventAListener [< 1 ms]
+  已通过 Dfo.Server.HttpApi.Tests.HttpApiOptionsTests.MalformedEnabledSwitchFailsInsteadOfSilentlyDisablingHttp [< 1 ms]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\item-effects-unification\verification\TASK-011-httpapi.trx
+
+测试运行成功。
+测试总数: 50
+     通过数: 50
+总时间: 1.8749 秒
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:02.44

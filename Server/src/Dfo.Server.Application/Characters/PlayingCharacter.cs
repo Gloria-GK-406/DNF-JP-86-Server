@@ -156,59 +156,20 @@ internal sealed class PlayingCharacter(
             return ItemUsability.NotAUsableItem;
         }
 
-        // Nobody is playing this character, so there is nothing to compare against. Answering with
-        // the archive's own refusal would tell the player their item is not a consumable.
-        //
-        // Asked of the presence record, where this used to ask whether a session had published its
-        // runtime state. The two say the same thing: entry publishes that state and admits the
-        // character to this record in one method with nothing awaited between the two statements,
-        // and cleanup withdraws the record and removes that state in one synchronous run. Neither
-        // is written anywhere else. What is refused here is the gap entry leaves before both
-        // happen -- the session is registered and its lease is being prepared, which is a database
-        // round trip a request can arrive during.
-        if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null)
-        {
-            return ItemUsability.CharacterStateUnavailable;
-        }
-
-        // What the character is, asked of the character. It used to be taken off the session's copy
-        // of it, which every path that moves the character has to remember to correct -- and a
-        // judgement made against a copy is a judgement made against whatever was last written into
-        // it. There is no such thing to be behind now: both facts below are read from the row a
-        // change writes to.
-        //
-        // A character this server does not have is reported as nothing to judge against rather than
-        // as the archive refusing the item, because those are different things to tell a player:
-        // the archive's own refusal says their potion is not a consumable.
-        if (await this.IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity)
-        {
-            return ItemUsability.CharacterStateUnavailable;
-        }
-
-        // Read rather than folded into the question above, because they are two questions: what the
-        // character is does not say how far along it is, and a level-up moves one without touching
-        // the other. A missing row answers the same way here, and for the same reason.
-        if (await this.ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
-        {
-            return ItemUsability.CharacterStateUnavailable;
-        }
-
-        // The lookup is here because finding a cooldown needs a character and the judgement is not
-        // allowed to know how to find one. What is reported is only what the register says: whether
-        // a declaration with no cooldown at all can be waiting is a question about the declaration,
-        // and it is answered where the declaration's other questions are.
-        var coolingDown = cooldowns.IsCoolingDown(
-            characterId, judgement.CooldownKeyFor(itemId, rule));
-
-        return judgement.Judge(
-            rule,
-            new ItemUseCandidate(
-                progress.Level,
-                CharacterJobFamilies.Resolve(identity.Job),
-                this.Place(),
-                coolingDown));
+        var facts = await ItemUseFactsAsync(judgement.CooldownKeyFor(itemId, rule), cancellationToken)
+            .ConfigureAwait(false);
+        return facts is null ? ItemUsability.CharacterStateUnavailable : judgement.Judge(rule, facts);
     }
 
+    public async ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken)
+    {
+        if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null
+            || await IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity
+            || await ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
+            return null;
+        return new(progress.Level, CharacterJobFamilies.Resolve(identity.Job), Place(),
+            cooldowns.IsCoolingDown(characterId, cooldown));
+    }
     /// <summary>
     /// Where the character is, as far as the archive's vocabulary goes.
     /// </summary>

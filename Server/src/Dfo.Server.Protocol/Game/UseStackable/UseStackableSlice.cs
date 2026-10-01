@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Characters;
@@ -31,8 +32,9 @@ public sealed record UseStackableRequest(
     GameMessageMetadata Metadata,
     GameSlot Slot,
     int InstanceValue,
-    int ItemCode) : IClientNetworkMessage
+    int ItemCode) : IEffectSettlementRequest
 {
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameUseStackable;
 }
 
@@ -214,7 +216,7 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
 public sealed record UseStackableCommand(
     SelectedSessionIdentity Session,
     BusinessSlot Slot,
-    int ItemCode) : ICommand<ItemUseResult>
+    int ItemCode) : ICommand<ItemUseResult>, IRequestSettlementCommand
 {
     public CharacterId CharacterId => Session.CharacterId;
 }
@@ -238,9 +240,7 @@ public sealed record UseStackableCommand(
 public sealed class UseStackableCommandHandler(
     ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService inventory,
-    ICharacterDomainService characters,
-    IItemUseEffectDomainService effects,
-    ICreatureRuntimeDomainService? creatures = null) : ICommandHandler<UseStackableCommand, ItemUseResult>
+    IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
 {
     public async ValueTask<ItemUseResult> HandleAsync(
         CommandExecutionContext context,
@@ -269,30 +269,12 @@ public sealed class UseStackableCommandHandler(
         if (item is null || command.ItemCode > 0 && item.ItemId != command.ItemCode)
             return ItemUseResult.Refused(ItemUseStatus.SlotDisagrees);
 
-        var verdict = await characters.Get(command.CharacterId)
-            .CanUseAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-        if (verdict is not ItemUsability.Allowed)
-            return ItemUseResult.Refused(StatusFor(verdict), item.ItemId);
-
-        CreatureRuntimeChange? creatureChange = null;
-        if (command.Slot.Space == BusinessInventorySpace.CreatureConsumable && item.ItemId != 24)
-            return ItemUseResult.Refused(ItemUseStatus.NotAUsableItem, item.ItemId);
-        if (item.ItemId == 24)
-        {
-            creatureChange = creatures is null ? null
-                : await creatures.FeedAsync(command.Session, cancellationToken).ConfigureAwait(false);
-            if (creatureChange is null)
-                return ItemUseResult.Refused(ItemUseStatus.PlaceNotAllowed, item.ItemId);
-        }
-        var planned = await effects.PlanAsync(item.ItemId, item.SlotIndex, cancellationToken)
-            .ConfigureAwait(false);
-        var applied = await effects
-            .ApplyAsync(command.Session, slot.Container, item, planned, cancellationToken)
-            .ConfigureAwait(false);
-
+        var applied = await effects.UseAsync(command.Session, command.Slot, item, cancellationToken).ConfigureAwait(false);
+        if (applied.Status != ItemUsability.Allowed)
+            return ItemUseResult.Refused(StatusFor(applied.Status), item.ItemId);
+        var creatureChange = applied.Applied?.Changes<PetStomachChange>().LastOrDefault()?.Change;
         return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount, creatureChange);
     }
-
     /// <summary>
     /// The refusal the judgement gave, in this protocol's own terms.
     /// </summary>

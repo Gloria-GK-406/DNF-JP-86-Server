@@ -25,7 +25,7 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
         await context.SynchronizeAsync(ct).ConfigureAwait(false);
         var before = await ReadAsync(ct).ConfigureAwait(false);
-        var value = CreatureRules.Feed(before.ExactStomach, amount);
+        var value = CreatureRules.AddStomach(before.ExactStomach, amount);
         var after = before with { Stomach = (int)value, ExactStomach = value };
         context.Stage(after);
         var change = new CreatureRuntimeChange(before, after,

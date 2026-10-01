@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Transactions;
 using Microsoft.Data.Sqlite;
 
@@ -151,86 +152,83 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
     /// is what the one-fallible-participant rule exists to prevent, and dropping them silently
     /// would surface as lost state rather than as an exception.
     /// </remarks>
-    public async ValueTask CommitAsync(CancellationToken cancellationToken)
+    public ValueTask CommitAsync(CancellationToken cancellationToken) =>
+        this.CompleteAsync(commit: true, cancellationToken);
+
+    public ValueTask RollbackAsync(CancellationToken cancellationToken) =>
+        this.CompleteAsync(commit: false, cancellationToken);
+
+    private async ValueTask CompleteAsync(bool commit, CancellationToken cancellationToken)
     {
-        if (!this.prepared && this.order.Any(facet => facet.HasStagedWork))
+        Exception? operationFailure = null;
+        var durableCommitted = false;
+        try
         {
-            await this.SettleAsync().ConfigureAwait(false);
-            throw new InvalidOperationException(
-                "The database was committed before it was prepared, so it wrote nothing.");
+            if (commit && !this.prepared && this.order.Any(facet => facet.HasStagedWork))
+                throw new InvalidOperationException(
+                    "The database was committed before it was prepared, so it wrote nothing.");
+            if (this.pending is not null)
+            {
+                if (commit)
+                {
+                    await this.pending.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    durableCommitted = true;
+                }
+                else
+                    await this.pending.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception failure)
+        {
+            operationFailure = failure;
         }
 
         try
         {
-            if (this.pending is not null)
-            {
-                await this.pending.CommitAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
             await this.SettleAsync().ConfigureAwait(false);
         }
+        catch (Exception cleanupFailure)
+        {
+            throw new TransactionOutcomeUncertainException(
+                durableCommitted
+                    ? TransactionUncertaintyReason.PostDurableCleanupFailure
+                    : TransactionUncertaintyReason.SettlementCleanupFailure,
+                "The database settlement could not release all of its resources reliably.",
+                operationFailure is null ? cleanupFailure : new AggregateException(operationFailure, cleanupFailure));
+        }
+        if (operationFailure is not null)
+            ExceptionDispatchInfo.Capture(operationFailure).Throw();
     }
 
-    public async ValueTask RollbackAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (this.pending is not null)
-            {
-                await this.pending.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            await this.SettleAsync().ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>Lets go of everything this use case held, however it ended.</summary>
-    /// <remarks>
-    /// Disposing an uncompleted transaction rolls it back, which can itself fail on a connection
-    /// that has already broken. The connection is closed regardless, because a use case that
-    /// cannot tidy up is exactly the one whose handle must not be left held.
-    /// </remarks>
+    // Try every cleanup even if one fails, and preserve every cause. In particular, a facet's
+    // Discard must never hide the earlier commit/rollback or transaction disposal failure.
     private async ValueTask SettleAsync()
     {
-        try
+        List<Exception> failures = [];
+        var transaction = this.pending;
+        this.pending = null;
+        this.prepared = false;
+        if (transaction is not null)
         {
-            if (this.pending is not null)
-            {
-                await this.pending.DisposeAsync().ConfigureAwait(false);
-            }
+            try { await transaction.DisposeAsync().ConfigureAwait(false); }
+            catch (Exception failure) { failures.Add(failure); }
         }
-        finally
+        foreach (var facet in this.order)
         {
-            this.pending = null;
-            this.prepared = false;
-            try
-            {
-                foreach (var facet in this.order)
-                {
-                    facet.Discard();
-                }
-            }
-            finally
-            {
-                await this.CloseAsync().ConfigureAwait(false);
-            }
+            try { facet.Discard(); }
+            catch (Exception failure) { failures.Add(failure); }
         }
-    }
-
-    private async ValueTask CloseAsync()
-    {
-        if (this.connection is null)
-        {
-            return;
-        }
-
-        await this.connection.DisposeAsync().ConfigureAwait(false);
+        var link = this.connection;
         this.connection = null;
+        if (link is not null)
+        {
+            try { await link.DisposeAsync().ConfigureAwait(false); }
+            catch (Exception failure) { failures.Add(failure); }
+        }
+        if (failures.Count != 0)
+            throw new AggregateException("Database settlement cleanup failed.", failures);
     }
+
 }
 
 /// <summary>One kind of state's contribution to what a database writes in one use case.</summary>

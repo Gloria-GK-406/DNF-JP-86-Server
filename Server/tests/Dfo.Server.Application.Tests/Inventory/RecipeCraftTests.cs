@@ -17,9 +17,9 @@ public sealed class RecipeCraftTests
     {
         using var f = Fixture(new Recipes { Plan = new([new(3262, 100), new(3037, 10)], [new(1286, 1)]) });
         await Seed(f); f.Sql("UPDATE accounts SET cube_clear=20 WHERE account_id=1");
-        await f.Services.GetRequiredService<CompoundItemHandler>().HandleAsync(new(f.Connection),
+        await EffectRequestTransport.Send(f,
             new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
-                { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1), default);
+                { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1));
         var receipt = Assert.Single(f.Sender.Messages.OfType<CompoundItemResponse>()).Receipt!;
         Assert.Equal(2, receipt.AccountMaterials.Length); // Publishers keep complete event facts, including zero.
         var entries = f.Sender.Messages.SelectMany(message => ResourceEntries(f, message)).ToArray();
@@ -33,15 +33,14 @@ public sealed class RecipeCraftTests
     {
         using var f = Fixture(); await Seed(f, 2);
         f.Sql("UPDATE accounts SET cube_gold=100 WHERE account_id=1");
-        var handler = f.Services.GetRequiredService<CompoundItemHandler>();
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
-            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1), default);
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1));
         var receipt = Assert.Single(f.Sender.Messages.OfType<CompoundItemResponse>()).Receipt!;
         Assert.Equal(0, Assert.Single(receipt.AccountMaterials).FinalCount);
         Assert.DoesNotContain(f.Sender.Messages, message => ResourceEntries(f, message)
             .Any(entry => BitConverter.ToInt32(entry, 2) == 3262 && BitConverter.ToInt32(entry, 6) == 0));
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 8)
-            { InboundOrdinal = 2, SequenceIsFresh = true }, 101, 0, 1), default);
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 8)
+            { InboundOrdinal = 2, SequenceIsFresh = true }, 101, 0, 1));
         Assert.Null(f.Sender.Messages.OfType<CompoundItemResponse>().Last().Receipt);
         Assert.Equal(1, f.Count(1286)); Assert.Equal(1, f.Count(1287)); Assert.Equal(25, f.Count(3244));
         Assert.Equal(0, f.Scalar("SELECT cube_gold FROM accounts WHERE account_id=1"));
@@ -174,36 +173,34 @@ public sealed class RecipeCraftTests
     {
         using var f = Fixture(); await Seed(f, 2);
         f.Sender.BeforeSend = () => { Assert.Equal(1, f.Count(1286)); Assert.Equal(100, f.Scalar("SELECT cube_gold FROM accounts WHERE account_id=1")); };
-        var handler = f.Services.GetRequiredService<CompoundItemHandler>();
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
-            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1), default);
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
-            { InboundOrdinal = 2, SequenceIsFresh = false }, 101, 0, 1), default);
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1));
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+            { InboundOrdinal = 2, SequenceIsFresh = false }, 101, 0, 1));
         Assert.Single(f.Sender.Messages.OfType<CompoundItemResponse>()); Assert.Equal(1, f.Count(1286)); Assert.Equal(1, f.Count(1287));
     }
     [Fact]
     public async Task A_late_replay_refreshes_current_balances_instead_of_the_original_receipt()
     {
         using var f = Fixture(); await Seed(f, 2);
-        var handler = f.Services.GetRequiredService<CompoundItemHandler>();
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
-            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1), default);
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 8)
-            { InboundOrdinal = 2, SequenceIsFresh = true }, 101, 0, 1), default);
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+            { InboundOrdinal = 1, SequenceIsFresh = true }, 101, 0, 1));
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 8)
+            { InboundOrdinal = 2, SequenceIsFresh = true }, 101, 0, 1));
         var prior = Assert.IsType<CompoundItemResponse>(f.Sender.Messages[0]).Receipt!;
         var refreshed = await f.Services.GetRequiredService<IRecipeCraftDomainService>().RefreshAsync(prior, default);
         Assert.Equal(0, Assert.Single(refreshed.AccountMaterials).FinalCount);
         Assert.Equal(2, Assert.Single(refreshed.Inventory.Updates.Where(x => x.Core.ItemId == 1286)).Core.Value);
-        await handler.HandleAsync(new(f.Connection), new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
-            { InboundOrdinal = 3, SequenceIsFresh = false }, 101, 0, 1), default);
+        await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
+            { InboundOrdinal = 3, SequenceIsFresh = false }, 101, 0, 1));
         Assert.Equal(2, f.Sender.Messages.OfType<CompoundItemResponse>().Count()); Assert.Equal(2, f.Count(1286));
     }
     [Fact]
     public async Task Item_id_mode_and_invalid_tail_cannot_bypass_inventory_drawing()
     {
         using var f = Fixture(); await Seed(f);
-        await f.Services.GetRequiredService<CompoundItemHandler>().HandleAsync(new(f.Connection),
-            new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7) { InboundOrdinal = 1, SequenceIsFresh = true }, 1287, 1, 1), default);
+        await EffectRequestTransport.Send(f,
+            new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7) { InboundOrdinal = 1, SequenceIsFresh = true }, 1287, 1, 1));
         Assert.Null(Assert.Single(f.Sender.Messages.OfType<CompoundItemResponse>()).Receipt);
         Assert.Equal(1, f.Count(1287)); Assert.Equal(0, f.Count(1286));
     }

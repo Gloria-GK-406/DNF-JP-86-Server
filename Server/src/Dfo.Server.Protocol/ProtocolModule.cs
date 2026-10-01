@@ -146,6 +146,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<PartyClientIdRegistry>();
         services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionDelivery, ReplayStateProjectionDelivery>();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
@@ -639,19 +640,13 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
         services.RegisterMessageHandler<DisjointItemHandler>(ClientMessageType.GameDisjointItem);
-        services.TryAddSingleton<ReinforceItemReplayGuard>();
         services.RegisterMessageHandler<ReinforceItemHandler>(ClientMessageType.GameReinforceItem);
-        services.TryAddSingleton<EnchantByBeadReplayGuard>();
         services.RegisterMessageHandler<EnchantByBeadHandler>(ClientMessageType.GameEnchantByBead);
-        services.TryAddSingleton<MagicSealReplayGuard>();
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
-        services.TryAddSingleton<CompoundItemReplayGuard>();
         services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
-        services.TryAddSingleton<OutworldReplayGuard>();
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GamePurifyItem);
         services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GameInvestAmplifyOption);
-        services.TryAddSingleton<ForgingReplayGuard>();
         services.RegisterMessageHandler<ForgingHandler>(ClientMessageType.GameSeparateUpgrade);
         services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);

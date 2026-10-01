@@ -449,6 +449,7 @@ public sealed class QuestEnemyDropDomainServiceTests
         public ValueTask<bool> HasBenefitAsync(PremiumBenefit benefit, CancellationToken cancellationToken) => ValueTask.FromResult(false);
         public ValueTask<bool> IsActiveAsync(PremiumServiceType type, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask SetExpiryAsync(PremiumServiceType type, long expected, long next, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<AccountPremiumEntryState> ExtendAsync(PremiumServiceType type, TimeSpan duration, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 

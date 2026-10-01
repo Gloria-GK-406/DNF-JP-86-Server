@@ -351,6 +351,57 @@ public sealed class EquipmentDisjointTests
         Assert.Empty(shop.Sender.Messages);
     }
 
+    [Fact]
+    public async Task Last_portable_machine_frees_its_quick_slot_for_the_reward()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(121, 1000, 1000, 3);
+        await shop.Seed(122, 1000, 1000, 3);
+        await shop.Seed(3, 2600469, 1);
+        for (var slot = 4; slot <= 8; slot++) await shop.Seed(slot, 2000, 10);
+
+        await Disjoint(shop, 9, disjointToolSlot: 3);
+
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(2012, shop.Count(1000));
+        var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
+        Assert.Equal(new DisjointItemMaterial(new(InventoryContainerType.Main, 3), 1000, 12),
+            Assert.Single(response.Materials!));
+    }
+
+    [Fact]
+    public async Task Unsupported_reward_refuses_disjoint_without_reporting_inventory_full()
+    {
+        using var shop = Fixture(rewards: [new(3000, 1)]);
+        await shop.SeedCore(9, Piece());
+
+        await Disjoint(shop, 9);
+
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Expired_portable_machine_refuses_without_consuming_tool_or_piece()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.SeedCore(65, StackableItemCore.Create(2, 2600469, 1) with { ExpireTime = 1 });
+
+        await Disjoint(shop, 9, disjointToolSlot: 65);
+
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(1, shop.Count(2600469));
+        Assert.Equal(0, shop.Count(1000));
+        var response = Assert.IsType<DisjointItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Null(response.TargetSlot);
+        Assert.Equal(0x13, response.ErrorCode);
+    }
+
     private static ShopFixture Fixture(
         int equipmentLevel = 10,
         IReadOnlyList<EquipmentDisjointReward>? rewards = null) => new(services =>
