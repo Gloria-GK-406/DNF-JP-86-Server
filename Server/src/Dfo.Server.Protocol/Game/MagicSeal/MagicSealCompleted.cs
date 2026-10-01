@@ -29,14 +29,16 @@ public sealed class MagicSealCompletedHandler(
             return [];
 
         var messages = new List<IServerNetworkMessage>();
-        if (notification.Change)
-            messages.Add(new ChangeRandomOptionResponse(true));
         await AddSlot(messages, receipt.Session.CharacterId, receipt.TargetSlot,
             receipt.CommittedAt, ct).ConfigureAwait(false);
         var gold = await characters.Get(receipt.Session.CharacterId).GoldAsync(ct)
             .ConfigureAwait(false);
         messages.Add(GameInventoryDelivery.CarriedGoldNotification(
             gold, receipt.CommittedAt));
+        // A21 CMD 0x01B6 refreshes the conversion panel from the current equipment.
+        // Publish the committed item and gold first so its callback sees the new roll.
+        if (notification.Change)
+            messages.Add(new ChangeRandomOptionResponse(true));
         return messages;
     }
 

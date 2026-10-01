@@ -7,3 +7,12 @@
 - 因此本服最小结果体：成功 `01`；失败 `00 reason`。这是客户端静态可读的下界，不证明原服从不附加其他字段。具体 reason 值到 UI 文案的映射以及通知顺序无 A21 实帧，待 [Human Test List](../../../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md) 验收。
 
 当前仅 `ClientStatic + CurrentImplementation`，不标 `ClientVerified`。不能用上游或 70 的回包替代 A21 实帧。
+
+
+## 2026-10-01 S02 转换窗口与背包结果不一致
+
+`ClientStatic / Confirmed`：上述同SHA客户端在成功分支VA `0x010450B1–0x010450C1` 取得窗口对象，读取全局所选装备指针`0x03A2B21C`，调用`0x01044EB0`。该函数VA `0x01044FF0`调用`0x010448B0`重建选项；后者VA `0x01044917–0x0104492E`从此全局装备取得数据，再读取词条集合。ACK本身不携带新词条，窗口刷新依赖当时已更新的装备。
+
+`CurrentImplementation`：成功顺序改为装备NOTI `0x000E` → 金币NOTI `0x000E` → CMD `0x01B6 01`。原先ACK在最前，窗口先读旧结果，背包随后更新，符合用户当场窗口“武力B”而tooltip“活力C”的反馈。请求格式、成功／失败body及品质抽取不变。
+
+`AutomatedVerified`：经注册encoder核对通知序列与实际装备词条字节；丢弃角色容器、从SQLite重建后，生产快照中的101字节装备记录与刚发送的delta一致。该检查不代替客户端显示验收；S02a／S02b仍待[用户复验](../../../Document/tasks/item-effects-unification/human-test-list-20261001-round4.md)。

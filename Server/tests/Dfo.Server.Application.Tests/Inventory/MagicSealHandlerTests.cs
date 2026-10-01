@@ -1,4 +1,8 @@
 using System.Runtime.CompilerServices;
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -39,7 +43,7 @@ public sealed class MagicSealHandlerTests
     }
 
     [Fact]
-    public async Task Change_sends_ack_and_authoritative_equipment_and_gold()
+    public async Task Change_updates_equipment_and_gold_before_success_refresh_and_survives_reload()
     {
         using var shop = Fixture();
         await shop.SeedCore(9, Piece() with { RandomOption0 = new(15, 2, 2) });
@@ -47,9 +51,41 @@ public sealed class MagicSealHandlerTests
         await Send(shop, 7, true);
 
         Assert.Equal(99800, shop.Gold);
-        Assert.True(Assert.IsType<ChangeRandomOptionResponse>(shop.Sender.Messages[0]).Success);
-        Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
         Assert.Equal(3, shop.Sender.Messages.Count);
+        Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[0].GetType().Name);
+        Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
+        Assert.True(Assert.IsType<ChangeRandomOptionResponse>(shop.Sender.Messages[2]).Success);
+        var registrations = shop.Services.GetServices<ServerMessageEncoderRegistration>()
+            .ToDictionary(value => value.MessageType);
+        var encoded = shop.Sender.Messages.Select(message =>
+            ((IServerMessageEncoder)shop.Services.GetRequiredService(registrations[message.GetType()].EncoderType))
+                .Encode(message).Single().ToArray()).ToArray();
+        // The A21 success callback rebuilds the conversion panel from its current item.
+        // Its inventory must already contain the new option when it processes the ACK.
+        Assert.Equal((ushort)0x000E, BinaryPrimitives.ReadUInt16LittleEndian(encoded[0].AsSpan(1)));
+        var entry = encoded[0].AsSpan(18, 101).ToArray();
+        Assert.Equal((short)9, BinaryPrimitives.ReadInt16LittleEndian(entry));
+        Assert.Equal((byte)16, entry[59]);
+        Assert.Equal((byte)4, entry[62]);
+        Assert.Equal((byte)4, entry[65]);
+        Assert.Equal(99800, BinaryPrimitives.ReadInt32LittleEndian(encoded[1].AsSpan(24)));
+        var stored = shop.StoredCore(9);
+        Assert.Equal(new byte[] { 16, 4, 4 }, stored.AsSpan(56, 3).ToArray());
+
+        // Drop session containers and rebuild from SQLite, then use the production snapshot
+        // projection. The reloaded representation must match the delta.
+        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        shop.Select(1);
+        await shop.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(
+            shop.Connection, shop.Session, new(ReplayProjectionNeeds.Inventory, []), default);
+        var snapshot = EffectRequestTransport.MainSnapshot(shop);
+        var count = BinaryPrimitives.ReadUInt16LittleEndian(snapshot.AsSpan(18));
+        var reloaded = Enumerable.Range(0, count)
+            .Select(index => snapshot.AsSpan(20 + index * 101, 101).ToArray())
+            .Single(value => BinaryPrimitives.ReadInt16LittleEndian(value) == 9);
+        Assert.Equal(entry, reloaded);
+        Assert.Equal(stored, shop.StoredCore(9));
+        Assert.Equal(99800, shop.Gold);
     }
 
     [Fact]
