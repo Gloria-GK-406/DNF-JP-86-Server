@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Frozen;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -8,6 +9,16 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <summary>Strictly reads equipment facts; operation rules interpret types and restrictions.</summary>
 internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) : IEquipmentDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", minimum: 0);
+        internal static readonly PvfField<int> GradeField = PvfField.Int32("[grade]", minimum: 0);
+        internal static readonly PvfField<int> RarityField = PvfField.Int32("[rarity]", minimum: 0, maximum: 6);
+        internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true, minimum: 0, maximum: ushort.MaxValue);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> EquipmentTypeField = PvfField.Tokens("[equipment type]");
+        internal static readonly PvfField<IReadOnlyList<string>> ImpossibleContentsField = PvfField.Strings("[impossible contents]", optional: true);
+    }
+
     private const string IndexPath = "equipment/equipment.lst";
     private readonly Lock gate = new();
     private Dictionary<int, string>? equipmentPaths;
@@ -68,30 +79,30 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
     {
         var file = RequireScript(archive, itemId, path, "template");
         var sections = ReadSections(archive, itemId, path, file);
-        var minimumLevel = RequiredInt(sections, itemId, path, "[minimum level]", 0, int.MaxValue);
-        var grade = RequiredInt(sections, itemId, path, "[grade]", 0, int.MaxValue);
-        var rarity = RequiredInt(sections, itemId, path, "[rarity]", 0, 6);
-        var durability = OneSection(sections, itemId, path, "[durability]", required: false);
+        var minimumLevel = RequiredInt(archive, sections, itemId, path, Fields.MinimumLevelField, 0, int.MaxValue);
+        var grade = RequiredInt(archive, sections, itemId, path, Fields.GradeField, 0, int.MaxValue);
+        var rarity = RequiredInt(archive, sections, itemId, path, Fields.RarityField, 0, 6);
+        var durability = OneSection(sections, itemId, path, Fields.DurabilityField, required: false);
         ushort? maximum = durability is null ? null
-            : (ushort)ReadInt(durability, itemId, path, "[durability]", 0, ushort.MaxValue);
-        var type = OneSection(sections, itemId, path, "[equipment type]", required: true)!;
+            : (ushort)ReadInt(archive, durability, itemId, path, Fields.DurabilityField, 0, ushort.MaxValue);
+        var type = OneSection(sections, itemId, path, Fields.EquipmentTypeField, required: true)!;
         if (type.Count is < 1 or > 2 || !type[0].IsString
             || type.Count == 2 && (type[1].Kind != PvfTokenKind.Int32 || type[1].Value < 0))
-            throw Invalid(itemId, path, "[equipment type]", "expected a type name and optional nonnegative integer");
+            throw Invalid(itemId, path, Fields.EquipmentTypeField.Name, "expected a type name and optional nonnegative integer");
         var typeName = Normalize(archive.ResolveString(type[0].Value));
         if (typeName.Length == 0)
-            throw Invalid(itemId, path, "[equipment type]", "type name is empty");
+            throw Invalid(itemId, path, Fields.EquipmentTypeField.Name, "type name is empty");
 
-        var impossible = OneSection(sections, itemId, path, "[impossible contents]", required: false);
+        var impossible = OneSection(sections, itemId, path, Fields.ImpossibleContentsField, required: false);
         var declarations = new HashSet<string>(StringComparer.Ordinal);
         if (impossible is not null)
             foreach (var token in impossible)
             {
                 if (!token.IsString)
-                    throw Invalid(itemId, path, "[impossible contents]", "expected string declarations");
+                    throw Invalid(itemId, path, Fields.ImpossibleContentsField.Name, "expected string declarations");
                 var name = Normalize(archive.ResolveString(token.Value));
                 if (name.Length == 0 || !declarations.Add(name))
-                    throw Invalid(itemId, path, "[impossible contents]", "empty or duplicate declaration");
+                    throw Invalid(itemId, path, Fields.ImpossibleContentsField.Name, "empty or duplicate declaration");
             }
         return new(minimumLevel, grade, rarity, typeName, maximum)
         {
@@ -136,33 +147,33 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
     }
 
     private static List<PvfToken>? OneSection(Dictionary<string, List<List<PvfToken>>> sections,
-        int itemId, string path, string field, bool required)
+        int itemId, string path, PvfField field, bool required)
     {
-        if (!sections.TryGetValue(field, out var matches))
+        if (!sections.TryGetValue(field.Name, out var matches))
         {
             if (required)
-                throw Invalid(itemId, path, field, "required field is missing");
+                throw Invalid(itemId, path, field.Name, "required field is missing");
             return null;
         }
         if (matches.Count != 1)
-            throw Invalid(itemId, path, field, "duplicate field");
+            throw Invalid(itemId, path, field.Name, "duplicate field");
         return matches[0];
     }
 
-    private static int RequiredInt(Dictionary<string, List<List<PvfToken>>> sections,
-        int itemId, string path, string field, int minimum, int maximum) =>
-        ReadInt(OneSection(sections, itemId, path, field, required: true)!, itemId, path,
+    private static int RequiredInt(PvfArchive archive, Dictionary<string, List<List<PvfToken>>> sections,
+        int itemId, string path, PvfField<int> field, int minimum, int maximum) =>
+        ReadInt(archive, OneSection(sections, itemId, path, field, required: true)!, itemId, path,
             field, minimum, maximum);
 
-    private static int ReadInt(List<PvfToken> values, int itemId, string path, string field,
+    private static int ReadInt(PvfArchive archive, List<PvfToken> values, int itemId, string path, PvfField<int> field,
         int minimum, int maximum)
     {
         if (values.Count != 1 || values[0].Kind != PvfTokenKind.Int32)
-            throw Invalid(itemId, path, field, "expected exactly one integer");
+            throw Invalid(itemId, path, field.Name, "expected exactly one integer");
         var value = values[0].Value;
         if (value < minimum || value > maximum)
-            throw Invalid(itemId, path, field, $"value {value} is outside [{minimum}, {maximum}]");
-        return value;
+            throw Invalid(itemId, path, field.Name, $"value {value} is outside [{minimum}, {maximum}]");
+        return field.Decode(archive, values, path);
     }
 
     private static string Normalize(string value) =>

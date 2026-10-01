@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Immutable;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -8,6 +9,16 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <summary>Caches declarations, never a random result shared by different dungeon runs.</summary>
 internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : IDungeonRoomDropSource, IDungeonRoomObjectSource
 {
+    private static class Fields
+    {
+        // These delimiters occur inside the quoted mixed object payload, not as Identifier sections.
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> HellpartyBlock = PvfField.Tokens("[hellparty]", optional: true, tokenKind: PvfTokenKind.QuotedString);
+        internal static readonly PvfField<bool> HellpartyClose = PvfField.Marker("[/hellparty]", optional: true, tokenKind: PvfTokenKind.QuotedString);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> SpecialPassiveObjectField = PvfField.Tokens("[special passive object]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> SpecialPassiveObjectItemField = PvfField.Tokens("[special passive object item]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> PassiveObjectField = PvfField.Tokens("[passive object]", optional: true);
+    }
+
     private readonly Dictionary<int, IReadOnlyList<DungeonRoomObject>> objects = [];
     private readonly Lock gate = new();
     private readonly Dictionary<(int Dungeon, int Map), IReadOnlyList<ObjectDropDefinition>> cache = [];
@@ -27,10 +38,10 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
         {
             if (cache.TryGetValue((dungeonId, mapId), out var existing)) return ValueTask.FromResult(existing);
             if (!maps.TryGetValue(mapId, out var actions))
-                maps[mapId] = actions = ParseActions(ReadSection("map", mapId, "[special passive object]"), mapId);
+                maps[mapId] = actions = ParseActions(ReadSection("map", mapId, Fields.SpecialPassiveObjectField), mapId);
             if (!groups.TryGetValue(dungeonId, out var table))
                 groups[dungeonId] = table = ParseGroups(ReadSection("dungeon", dungeonId,
-                    "[special passive object item]").Select(t => int.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray(), dungeonId,
+                    Fields.SpecialPassiveObjectItemField).Select(t => int.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray(), dungeonId,
                     item => PvfEquipmentDurability.Read(provider.Archive, Paths("equipment"), item));
             var result = ImmutableArray.CreateBuilder<ObjectDropDefinition>();
             foreach (var action in actions)
@@ -53,8 +64,8 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
         {
             if (!objects.TryGetValue(mapId, out var result))
             {
-                var declared = ParseOrdinaryObjects(ReadSection("map", mapId, "[passive object]"), mapId).ToList();
-                ParseActions(ReadSection("map", mapId, "[special passive object]"), mapId, declared);
+                var declared = ParseOrdinaryObjects(ReadSection("map", mapId, Fields.PassiveObjectField), mapId).ToList();
+                ParseActions(ReadSection("map", mapId, Fields.SpecialPassiveObjectField), mapId, declared);
                 objects[mapId] = result = declared.ToImmutableArray();
             }
             return ValueTask.FromResult(result);
@@ -84,7 +95,7 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
         return paths[folder] = result;
     }
 
-    private IReadOnlyList<string> ReadSection(string folder, int id, string tag)
+    private IReadOnlyList<string> ReadSection(string folder, int id, PvfField<IReadOnlyList<PvfToken>> tag)
     {
         if (!Paths(folder).TryGetValue(id, out var path)) return [];
         var archive = provider.Archive;
@@ -97,7 +108,7 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
-                if (archive.ResolveString(token.Value) == tag) { inside = true; continue; }
+                if (archive.ResolveString(token.Value) == tag.Name) { inside = true; continue; }
                 if (inside) break;
             }
             else if (inside)
@@ -126,10 +137,10 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
         for (var objectIndex = 0; at < values.Count; objectIndex++)
         {
             // Two old Amon maps append a standalone abyss block after all object records.
-            if (values[at] == "[hellparty]")
+            if (values[at] == Fields.HellpartyBlock.Name)
             {
                 at++;
-                while (at < values.Count && values[at] != "[/hellparty]") ReadInt();
+                while (at < values.Count && values[at] != Fields.HellpartyClose.Name) ReadInt();
                 if (at != values.Count - 1)
                     throw new InvalidDataException($"Map {mapId}: malformed trailing hellparty block.");
                 break;
@@ -144,10 +155,10 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             {
                 if (at >= values.Count) throw new InvalidDataException($"Map {mapId}: missing action.");
                 var kind = values[at++];
-                if (kind == "[hellparty]")
+                if (kind == Fields.HellpartyBlock.Name)
                 {
                     // Variable-length enemy groups belong to the abyss system, not object loot.
-                    while (at < values.Count && values[at] != "[/hellparty]") ReadInt();
+                    while (at < values.Count && values[at] != Fields.HellpartyClose.Name) ReadInt();
                     if (at == values.Count) throw new InvalidDataException($"Map {mapId}: unclosed hellparty action.");
                     at++;
                     continue;

@@ -1,0 +1,696 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="0886cf88-c2cf-4196-80f4-3872c0f578ce" name="Gloria@家庭台式机 2026-10-01 16:54:32" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-01T16:54:32.1352513+08:00" queuing="2026-10-01T16:54:32.1352518+08:00" start="2026-10-01T16:54:31.5981280+08:00" finish="2026-10-01T16:54:32.1757002+08:00" />
+  <TestSettings name="default" id="9f8be52f-61a9-4656-9293-d3bb4e954bc7">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-01_16_54_32" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="0e8991a3-6c10-4e91-aeac-61c001c799c8" testId="40d48111-dfae-3d11-7a36-4d3b2531b914" testName="Dfo.Pvf.Tests.ArchiveTests.A_list_file_pairs_identifiers_with_integers" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1227196+08:00" endTime="2026-10-01T16:54:32.1227383+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0e8991a3-6c10-4e91-aeac-61c001c799c8">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8191c871-faf6-4749-b103-fadae3a84f21" testId="83d06b38-2960-c758-f467-e98298cca208" testName="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;BodY&quot;, length: 4096)" computerName="家庭台式机" duration="00:00:00.0000487" startTime="2026-10-01T16:54:32.1170564+08:00" endTime="2026-10-01T16:54:32.1171306+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8191c871-faf6-4749-b103-fadae3a84f21" />
+    <UnitTestResult executionId="26471dd0-34f9-4e83-bf1b-6df2f20bfe65" testId="556b956a-5185-3724-6021-f9d4837f9410" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;&quot;, expected: &quot;&quot;)" computerName="家庭台式机" duration="00:00:00.0000006" startTime="2026-10-01T16:54:32.1154537+08:00" endTime="2026-10-01T16:54:32.1154910+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26471dd0-34f9-4e83-bf1b-6df2f20bfe65" />
+    <UnitTestResult executionId="c6dd7a12-e177-4060-a038-c87870039858" testId="d919a3a5-3068-d7d7-9faf-27efbdbc2179" testName="Dfo.Pvf.Tests.HeaderTests.Rejects_maximal_section_sizes_against_a_real_archive_length" computerName="家庭台式机" duration="00:00:00.0001997" startTime="2026-10-01T16:54:32.1197815+08:00" endTime="2026-10-01T16:54:32.1198066+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c6dd7a12-e177-4060-a038-c87870039858" />
+    <UnitTestResult executionId="d6c695ab-88ba-4c40-b134-6c29c54aef04" testId="fa0ac1bc-86b7-85d9-6670-6a1db88e1318" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;./equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" computerName="家庭台式机" duration="00:00:00.0000052" startTime="2026-10-01T16:54:32.1151422+08:00" endTime="2026-10-01T16:54:32.1152449+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d6c695ab-88ba-4c40-b134-6c29c54aef04" />
+    <UnitTestResult executionId="60827898-1b72-46ef-95f0-fde84c113038" testId="0e1d0e02-b017-38cf-fb3f-c55ccff81fe3" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;equipment\\foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" computerName="家庭台式机" duration="00:00:00.0000104" startTime="2026-10-01T16:54:32.1169598+08:00" endTime="2026-10-01T16:54:32.1170106+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="60827898-1b72-46ef-95f0-fde84c113038" />
+    <UnitTestResult executionId="da46bca7-18cb-4fa7-af7b-d1fd5e9ff5ec" testId="69890294-7fed-1dfe-cf83-eb30b6d50c5e" testName="Dfo.Pvf.Tests.ArchiveTests.Tags_resolve_to_one_interned_offset_and_match_by_value" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1228403+08:00" endTime="2026-10-01T16:54:32.1228589+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="da46bca7-18cb-4fa7-af7b-d1fd5e9ff5ec">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e1acd400-9a40-4475-b3bf-b24c170b6730" testId="8c249bea-3aa2-124c-8ed3-cfba67d4d0ce" testName="Dfo.Pvf.Tests.FieldReadingTests.Numbered_field_family_parses_only_well_formed_names" computerName="家庭台式机" duration="00:00:00.0003217" startTime="2026-10-01T16:54:32.1339235+08:00" endTime="2026-10-01T16:54:32.1339409+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e1acd400-9a40-4475-b3bf-b24c170b6730" />
+    <UnitTestResult executionId="e1523a06-03a5-46aa-9bfe-c028aab1a270" testId="b91e5b79-1eda-c73a-1c05-68536ac5046d" testName="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;BodY&quot;, length: 1)" computerName="家庭台式机" duration="00:00:00.0451521" startTime="2026-10-01T16:54:32.0340273+08:00" endTime="2026-10-01T16:54:32.0898768+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e1523a06-03a5-46aa-9bfe-c028aab1a270" />
+    <UnitTestResult executionId="73ba6ef0-bab2-4c36-89c8-950970d1e40c" testId="874d3377-e3c2-b557-e405-ab62f5b30562" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.A_file_with_no_content_is_readable_and_empty" computerName="家庭台式机" duration="00:00:00.0012177" startTime="2026-10-01T16:54:32.1240190+08:00" endTime="2026-10-01T16:54:32.1274015+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="73ba6ef0-bab2-4c36-89c8-950970d1e40c" />
+    <UnitTestResult executionId="3d5afac7-dde5-4f54-8452-0cb8c6da0b2b" testId="923b85a6-71b2-1820-d75a-e689ad1d9d10" testName="Dfo.Pvf.Tests.CipherTests.String_table_pass_is_self_inverse(key: &quot;sTrA&quot;)" computerName="家庭台式机" duration="00:00:00.0001040" startTime="2026-10-01T16:54:32.1180469+08:00" endTime="2026-10-01T16:54:32.1180665+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3d5afac7-dde5-4f54-8452-0cb8c6da0b2b" />
+    <UnitTestResult executionId="4ead6d2e-0d1b-4c08-a772-74305d2cba47" testId="e00b48bc-9d7f-bc3b-997a-2cb0b86571ad" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.An_empty_archive_opens_without_special_casing" computerName="家庭台式机" duration="00:00:00.0010862" startTime="2026-10-01T16:54:32.1336105+08:00" endTime="2026-10-01T16:54:32.1336269+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4ead6d2e-0d1b-4c08-a772-74305d2cba47" />
+    <UnitTestResult executionId="42c585c1-5a27-4b93-bdd7-5c90c7c37dd8" testId="9c970b89-8d7f-9a82-62a3-0c751d60915e" testName="Dfo.Pvf.Tests.TokenReaderTests.TryMovePast_positions_after_the_tag" computerName="家庭台式机" duration="00:00:00.0002224" startTime="2026-10-01T16:54:32.1199884+08:00" endTime="2026-10-01T16:54:32.1215665+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="42c585c1-5a27-4b93-bdd7-5c90c7c37dd8" />
+    <UnitTestResult executionId="fcb9163b-8614-40a1-a048-0f567195da58" testId="043cdc71-52c2-197f-dc39-31e0a1ebc831" testName="Dfo.Pvf.Tests.TokenReaderTests.Unresolved_tag_never_matches" computerName="家庭台式机" duration="00:00:00.0000841" startTime="2026-10-01T16:54:32.1217215+08:00" endTime="2026-10-01T16:54:32.1219386+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fcb9163b-8614-40a1-a048-0f567195da58" />
+    <UnitTestResult executionId="2eec4568-10b3-4099-bae7-4a415fbbad21" testId="64f86666-514e-2743-9327-554a608a269e" testName="Dfo.Pvf.Tests.FieldReadingTests.Repeated_rows_and_nested_markers_remain_ordered" computerName="家庭台式机" duration="00:00:00.0012104" startTime="2026-10-01T16:54:32.1340631+08:00" endTime="2026-10-01T16:54:32.1340915+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2eec4568-10b3-4099-bae7-4a415fbbad21">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'test.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Repeated_rows_and_nested_markers_remain_ordered() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 83&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d7f987b5-d578-45d8-800f-5e33e65e1daf" testId="a88e4273-90c3-334a-ad1b-3599b30d7455" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Unicode_text_files_decode_as_text_not_records" computerName="家庭台式机" duration="00:00:00.0010771" startTime="2026-10-01T16:54:32.1239545+08:00" endTime="2026-10-01T16:54:32.1239754+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d7f987b5-d578-45d8-800f-5e33e65e1daf" />
+    <UnitTestResult executionId="fce8d5bf-f0a6-4be7-a4fa-3b2a58018d68" testId="0ccce085-c556-e8cd-887a-47ac581f58f6" testName="Dfo.Pvf.Tests.TokenReaderTests.Single_tokens_decode_from_their_value_bits" computerName="家庭台式机" duration="00:00:00.0014790" startTime="2026-10-01T16:54:32.1223529+08:00" endTime="2026-10-01T16:54:32.1233006+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fce8d5bf-f0a6-4be7-a4fa-3b2a58018d68" />
+    <UnitTestResult executionId="e69723cc-abee-404e-898d-aee88b34ed8c" testId="09d253f2-627f-6065-325e-4802d3aa0fa5" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Truncating_the_archive_is_reported_as_a_format_error" computerName="家庭台式机" duration="00:00:00.0570096" startTime="2026-10-01T16:54:32.0339320+08:00" endTime="2026-10-01T16:54:32.1237341+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e69723cc-abee-404e-898d-aee88b34ed8c" />
+    <UnitTestResult executionId="61746369-59be-4bda-a047-b7e6e83009f8" testId="158d37c7-ead3-5aa9-89ab-e346bfccb693" testName="Dfo.Pvf.Tests.FieldReadingTests.Truncated_record_is_rejected_before_any_field_read" computerName="家庭台式机" duration="00:00:00.0012737" startTime="2026-10-01T16:54:32.1273765+08:00" endTime="2026-10-01T16:54:32.1277852+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="61746369-59be-4bda-a047-b7e6e83009f8" />
+    <UnitTestResult executionId="488636dc-fe4a-455d-8569-674ddaa4f0e3" testId="0223dc17-43cd-668f-8fd3-3b52a545e3bd" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.The_same_tag_in_two_files_shares_one_offset" computerName="家庭台式机" duration="00:00:00.0030109" startTime="2026-10-01T16:54:32.1238930+08:00" endTime="2026-10-01T16:54:32.1239103+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="488636dc-fe4a-455d-8569-674ddaa4f0e3" />
+    <UnitTestResult executionId="ce176fdd-a345-4f5f-926d-7059cfcc8983" testId="03e20cbf-86e3-54e8-b513-14418217b467" testName="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;BodY&quot;, length: 4099)" computerName="家庭台式机" duration="00:00:00.0000410" startTime="2026-10-01T16:54:32.1154795+08:00" endTime="2026-10-01T16:54:32.1169843+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ce176fdd-a345-4f5f-926d-7059cfcc8983" />
+    <UnitTestResult executionId="623692b3-891e-4143-a52e-4c8a2d5cdbf6" testId="ca674e9c-44d2-df4e-dca8-e4a73731dfec" testName="Dfo.Pvf.Tests.FieldReadingTests.Malformed_optional_value_is_not_absence" computerName="家庭台式机" duration="00:00:00.0012920" startTime="2026-10-01T16:54:32.1339745+08:00" endTime="2026-10-01T16:54:32.1340334+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="623692b3-891e-4143-a52e-4c8a2d5cdbf6" />
+    <UnitTestResult executionId="db38c44b-7941-4131-b904-4193775e5950" testId="da347ee7-6101-44bc-9e45-b7be3f12cc3a" testName="Dfo.Pvf.Tests.ArchiveTests.Script_files_read_back_as_whole_records" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1226015+08:00" endTime="2026-10-01T16:54:32.1226216+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db38c44b-7941-4131-b904-4193775e5950">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="f003e0c5-48e0-4cf3-b99a-9f219d842f2e" testId="ae555278-1581-2a98-60f6-fc00f625d9cb" testName="Dfo.Pvf.Tests.HeaderTests.Section_layout_places_body_after_every_table" computerName="家庭台式机" duration="00:00:00.0021542" startTime="2026-10-01T16:54:32.1187370+08:00" endTime="2026-10-01T16:54:32.1192781+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f003e0c5-48e0-4cf3-b99a-9f219d842f2e" />
+    <UnitTestResult executionId="85b0b776-9c92-45fe-8fed-3cff35522a50" testId="c697c532-4389-6e68-04cb-6a877d791e27" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Reads_back_the_exact_records_that_were_written" computerName="家庭台式机" duration="00:00:00.0023769" startTime="2026-10-01T16:54:32.1343273+08:00" endTime="2026-10-01T16:54:32.1343480+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="85b0b776-9c92-45fe-8fed-3cff35522a50" />
+    <UnitTestResult executionId="494ff9c8-751c-46a3-ad01-a4db7d351877" testId="8267ddc2-4bea-1956-e9c9-a78bde43f6ac" testName="Dfo.Pvf.Tests.ArchiveTests.Finds_a_known_list_file_regardless_of_path_spelling" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.0339804+08:00" endTime="2026-10-01T16:54:32.1202377+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="494ff9c8-751c-46a3-ad01-a4db7d351877">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6a9dc487-b646-4317-8e39-58f2a1d6fc85" testId="8196679d-86fd-458e-fc94-a3027e9176f9" testName="Dfo.Pvf.Tests.ArchiveTests.Reports_an_absent_path_rather_than_guessing" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1215973+08:00" endTime="2026-10-01T16:54:32.1217530+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6a9dc487-b646-4317-8e39-58f2a1d6fc85">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="88115423-a01e-40db-95d1-31ad7b4f8fd3" testId="49198f10-efc2-e476-6abf-f4dfdb5fc04c" testName="Dfo.Pvf.Tests.HeaderTests.Reads_declared_sections" computerName="家庭台式机" duration="00:00:00.0470055" startTime="2026-10-01T16:54:32.0327158+08:00" endTime="2026-10-01T16:54:32.0856893+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="88115423-a01e-40db-95d1-31ad7b4f8fd3" />
+    <UnitTestResult executionId="4792f9ca-78b0-41dd-aab0-bf69df73b5f9" testId="81982379-d1b1-cf2b-3d4c-456e4eb75478" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;//./equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" computerName="家庭台式机" duration="00:00:00.0000013" startTime="2026-10-01T16:54:32.1153740+08:00" endTime="2026-10-01T16:54:32.1154117+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4792f9ca-78b0-41dd-aab0-bf69df73b5f9" />
+    <UnitTestResult executionId="c0f428d6-dff1-4ce4-abb7-4b0ddd7b5c6f" testId="8773064f-9c82-196b-4d97-86aeff461b56" testName="Dfo.Pvf.Tests.TokenReaderTests.Section_values_stop_at_the_next_identifier" computerName="家庭台式机" duration="00:00:00.0527791" startTime="2026-10-01T16:54:32.0339903+08:00" endTime="2026-10-01T16:54:32.1199392+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c0f428d6-dff1-4ce4-abb7-4b0ddd7b5c6f" />
+    <UnitTestResult executionId="20caeec9-da41-4a90-9206-d1ad5a6efb87" testId="b612fe49-cf9e-811e-f173-0b0975d8102d" testName="Dfo.Pvf.Tests.ZlibCodecTests.A_wrong_declared_length_fails_loudly_instead_of_truncating" computerName="家庭台式机" duration="00:00:00.0003466" startTime="2026-10-01T16:54:32.1177283+08:00" endTime="2026-10-01T16:54:32.1179593+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="20caeec9-da41-4a90-9206-d1ad5a6efb87" />
+    <UnitTestResult executionId="5ec8e4e8-566d-4917-b743-ba762283c03d" testId="04e60c93-1403-c86f-ec35-f2d02f768bfe" testName="Dfo.Pvf.Tests.TokenReaderTests.Reads_every_record_in_order" computerName="家庭台式机" duration="00:00:00.0018224" startTime="2026-10-01T16:54:32.1237086+08:00" endTime="2026-10-01T16:54:32.1238022+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5ec8e4e8-566d-4917-b743-ba762283c03d" />
+    <UnitTestResult executionId="4f5c8702-e909-4d14-b18c-a0300917bf9d" testId="decc2632-12e9-97b9-1f49-3eb5488bda2d" testName="Dfo.Pvf.Tests.ZlibCodecTests.Inflates_without_a_declared_length" computerName="家庭台式机" duration="00:00:00.0457015" startTime="2026-10-01T16:54:32.0339662+08:00" endTime="2026-10-01T16:54:32.0898935+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4f5c8702-e909-4d14-b18c-a0300917bf9d" />
+    <UnitTestResult executionId="aa1e1d09-e5ed-4e1c-9127-f99268c3e5a6" testId="c659c61b-bdb2-7d6c-e8bd-6a6df554b11e" testName="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;HeaD&quot;, length: 0)" computerName="家庭台式机" duration="00:00:00.0001952" startTime="2026-10-01T16:54:32.1140271+08:00" endTime="2026-10-01T16:54:32.1153129+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa1e1d09-e5ed-4e1c-9127-f99268c3e5a6" />
+    <UnitTestResult executionId="d0b1256a-d40f-4b2f-bea0-4f024e02aa72" testId="a791272e-2798-0e31-964f-469ebb0d51ac" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;   &quot;, expected: &quot;&quot;)" computerName="家庭台式机" duration="00:00:00.0450929" startTime="2026-10-01T16:54:32.0340070+08:00" endTime="2026-10-01T16:54:32.0898218+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d0b1256a-d40f-4b2f-bea0-4f024e02aa72" />
+    <UnitTestResult executionId="f75a8ab9-92b1-45dc-9c0d-34e9af7a4b62" testId="231ed7e2-5c39-3410-14f9-4a444ac5d63f" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;/equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" computerName="家庭台式机" duration="00:00:00.0000008" startTime="2026-10-01T16:54:32.1168630+08:00" endTime="2026-10-01T16:54:32.1169004+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f75a8ab9-92b1-45dc-9c0d-34e9af7a4b62" />
+    <UnitTestResult executionId="517caa94-397c-42a8-af82-89d102f1bf4e" testId="dcd564d3-2118-f432-eb16-7abd701a1258" testName="Dfo.Pvf.Tests.TokenReaderTests.TryMovePast_reports_absence_without_throwing" computerName="家庭台式机" duration="00:00:00.0001366" startTime="2026-10-01T16:54:32.1216522+08:00" endTime="2026-10-01T16:54:32.1216746+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="517caa94-397c-42a8-af82-89d102f1bf4e" />
+    <UnitTestResult executionId="d22347e6-bf7e-41e7-aea5-ab3776568e69" testId="dfff0e28-09aa-b6ef-57d3-b03f7fa0b8a1" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Utf16_names_resolve_through_the_wide_pool" computerName="家庭台式机" duration="00:00:00.0015598" startTime="2026-10-01T16:54:32.1346468+08:00" endTime="2026-10-01T16:54:32.1346605+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d22347e6-bf7e-41e7-aea5-ab3776568e69" />
+    <UnitTestResult executionId="8710a80f-3836-4d6a-8a54-7217a9d3b36b" testId="d80bfcd4-f9fd-84aa-6db8-fe23cb6715ef" testName="Dfo.Pvf.Tests.ArchiveTests.Bytes_stay_readable_after_their_chunk_is_evicted" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1224830+08:00" endTime="2026-10-01T16:54:32.1225062+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8710a80f-3836-4d6a-8a54-7217a9d3b36b">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8208903e-4071-403a-ada9-ed7d7974b733" testId="68f96d73-75d4-af37-c0ea-6bbc4e6a6f1d" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Script_files_return_empty_text_rather_than_mojibake" computerName="家庭台式机" duration="00:00:00.0040473" startTime="2026-10-01T16:54:32.1237825+08:00" endTime="2026-10-01T16:54:32.1238406+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8208903e-4071-403a-ada9-ed7d7974b733" />
+    <UnitTestResult executionId="b154cd6e-b299-47c8-96aa-597be54108a2" testId="6518a575-5dcc-14ac-4505-62c74cf5c706" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Eviction_does_not_change_bytes_a_caller_already_holds" computerName="家庭台式机" duration="00:00:00.0017421" startTime="2026-10-01T16:54:32.1340193+08:00" endTime="2026-10-01T16:54:32.1340768+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b154cd6e-b299-47c8-96aa-597be54108a2" />
+    <UnitTestResult executionId="9dc6c563-533a-4e15-a09f-f97cb3dd2e93" testId="9e258625-564e-c8dc-d941-12c15ff7ddad" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Corrupting_the_body_is_reported_rather_than_returning_wrong_bytes" computerName="家庭台式机" duration="00:00:00.0019378" startTime="2026-10-01T16:54:32.1332526+08:00" endTime="2026-10-01T16:54:32.1332675+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9dc6c563-533a-4e15-a09f-f97cb3dd2e93" />
+    <UnitTestResult executionId="accad300-48d3-4950-bcfb-0f0cba78e537" testId="39803047-6bd7-93ae-195c-645684be7615" testName="Dfo.Pvf.Tests.TokenReaderTests.Tag_matching_ignores_non_identifier_records_with_the_same_value" computerName="家庭台式机" duration="00:00:00.0000798" startTime="2026-10-01T16:54:32.1222784+08:00" endTime="2026-10-01T16:54:32.1222991+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="accad300-48d3-4950-bcfb-0f0cba78e537" />
+    <UnitTestResult executionId="5c577018-8e4c-4c89-a1aa-1d7726f0f2a3" testId="a42c21b2-b4a1-653e-119b-b6b9aef9b071" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;  equipment/foo.equ  &quot;, expected: &quot;equipment/foo.equ&quot;)" computerName="家庭台式机" duration="00:00:00.0000051" startTime="2026-10-01T16:54:32.1155539+08:00" endTime="2026-10-01T16:54:32.1155810+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5c577018-8e4c-4c89-a1aa-1d7726f0f2a3" />
+    <UnitTestResult executionId="6081b571-1eb4-4f8f-9363-49adaf6cf435" testId="ad8ac1c4-09ae-443b-b0be-414f4937fba3" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Two_files_sharing_a_name_in_different_folders_stay_distinct" computerName="家庭台式机" duration="00:00:00.0012578" startTime="2026-10-01T16:54:32.1336655+08:00" endTime="2026-10-01T16:54:32.1339888+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6081b571-1eb4-4f8f-9363-49adaf6cf435" />
+    <UnitTestResult executionId="d5665749-a2cc-4294-9b8d-40669acec297" testId="d47b3385-44d9-9127-9782-561970be6641" testName="Dfo.Pvf.Tests.CipherTests.String_table_pass_is_self_inverse(key: &quot;sTrW&quot;)" computerName="家庭台式机" duration="00:00:00.0002040" startTime="2026-10-01T16:54:32.1179266+08:00" endTime="2026-10-01T16:54:32.1180045+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d5665749-a2cc-4294-9b8d-40669acec297" />
+    <UnitTestResult executionId="8391ee14-a626-40c4-874c-b18df9486c74" testId="50900969-3ed7-0934-2c58-e0c395293ac6" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Round_trips_every_file_it_was_given" computerName="家庭台式机" duration="00:00:00.0013370" startTime="2026-10-01T16:54:32.1277600+08:00" endTime="2026-10-01T16:54:32.1278588+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8391ee14-a626-40c4-874c-b18df9486c74" />
+    <UnitTestResult executionId="387cabfc-2126-4428-b36e-7bc18dfb4c8d" testId="27cb3578-9edd-cfda-b05f-57fcc17576bd" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;equipment/&quot;, expected: &quot;equipment&quot;)" computerName="家庭台式机" duration="00:00:00.0001459" startTime="2026-10-01T16:54:32.1140708+08:00" endTime="2026-10-01T16:54:32.1141349+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="387cabfc-2126-4428-b36e-7bc18dfb4c8d" />
+    <UnitTestResult executionId="18e74a55-04d4-41fb-9a72-a299cc3686e0" testId="2bd46971-5948-afa7-5c7d-ede99e2ca285" testName="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;duplicate&quot;)" computerName="家庭台式机" duration="00:00:00.0012586" startTime="2026-10-01T16:54:32.1278383+08:00" endTime="2026-10-01T16:54:32.1279377+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="18e74a55-04d4-41fb-9a72-a299cc3686e0">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 46&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="cec0dc13-b76b-4044-b294-b40f5b5cb9d7" testId="fdaae78f-063d-56dc-8cd7-b353ca95c3ba" testName="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;type&quot;)" computerName="家庭台式机" duration="00:00:00.0011928" startTime="2026-10-01T16:54:32.1282550+08:00" endTime="2026-10-01T16:54:32.1282750+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cec0dc13-b76b-4044-b294-b40f5b5cb9d7">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 46&#xD;
+   at InvokeStub_FieldReadingTests.Malformed_required_values_report_source_and_field(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="fac46ac3-9b7e-44c4-8c44-d1d13309bd54" testId="0dd19c8b-7312-8a2f-846f-a69c8d81f58b" testName="Dfo.Pvf.Tests.TokenReaderTests.Trailing_partial_record_is_ignored_rather_than_misread" computerName="家庭台式机" duration="00:00:00.0007437" startTime="2026-10-01T16:54:32.1236349+08:00" endTime="2026-10-01T16:54:32.1236581+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fac46ac3-9b7e-44c4-8c44-d1d13309bd54" />
+    <UnitTestResult executionId="24ba9ede-ef66-4c8e-82b6-5fa0f87df07d" testId="5b43e1d2-9ea1-aec7-a445-dd91e1c9aff1" testName="Dfo.Pvf.Tests.CipherTests.Section_and_string_table_use_different_streams" computerName="家庭台式机" duration="00:00:00.0002895" startTime="2026-10-01T16:54:32.1181113+08:00" endTime="2026-10-01T16:54:32.1187622+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="24ba9ede-ef66-4c8e-82b6-5fa0f87df07d" />
+    <UnitTestResult executionId="bbc7fb69-7ce1-46dd-bf2a-325026f4bf48" testId="a5766a42-2ebf-962a-2bf2-b0d4f503481b" testName="Dfo.Pvf.Tests.CipherTests.Rejects_a_key_shorter_than_the_format_allows" computerName="家庭台式机" duration="00:00:00.0006832" startTime="2026-10-01T16:54:32.1173055+08:00" endTime="2026-10-01T16:54:32.1177941+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bbc7fb69-7ce1-46dd-bf2a-325026f4bf48" />
+    <UnitTestResult executionId="af163bcf-d334-4e55-95a5-884af7f0c03c" testId="d9133a67-4159-33b8-1e68-898b2b0d4216" testName="Dfo.Pvf.Tests.ArchiveTests.An_unused_tag_resolves_to_unresolved_instead_of_throwing" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1229510+08:00" endTime="2026-10-01T16:54:32.1229712+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="af163bcf-d334-4e55-95a5-884af7f0c03c">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c685aa3d-840b-4125-a524-647794047ee0" testId="722bae96-4efb-1914-6444-743fce24364b" testName="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;GRPI&quot;, length: 7)" computerName="家庭台式机" duration="00:00:00.0000048" startTime="2026-10-01T16:54:32.1171659+08:00" endTime="2026-10-01T16:54:32.1171878+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c685aa3d-840b-4125-a524-647794047ee0" />
+    <UnitTestResult executionId="d1237086-1bb0-4ff6-9b6e-35af8e15a78c" testId="e5ad02f0-e182-c17d-309a-e555ea7d7dd8" testName="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" computerName="家庭台式机" duration="00:00:00.0000007" startTime="2026-10-01T16:54:32.1170659+08:00" endTime="2026-10-01T16:54:32.1170982+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d1237086-1bb0-4ff6-9b6e-35af8e15a78c" />
+    <UnitTestResult executionId="e22b62cd-c431-451f-ba17-384617d7bef5" testId="bcb408a5-edbc-541c-b605-c667be25680c" testName="Dfo.Pvf.Tests.HeaderTests.Rejects_a_truncated_header" computerName="家庭台式机" duration="00:00:00.0002484" startTime="2026-10-01T16:54:32.1193488+08:00" endTime="2026-10-01T16:54:32.1193814+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e22b62cd-c431-451f-ba17-384617d7bef5" />
+    <UnitTestResult executionId="70004598-9841-4545-bf3d-3fdad3ba43c1" testId="de439f93-7192-ebc4-a269-afe094dd2c98" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.Files_in_a_later_chunk_decode_correctly" computerName="家庭台式机" duration="00:00:00.0042653" startTime="2026-10-01T16:54:32.1279074+08:00" endTime="2026-10-01T16:54:32.1332120+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="70004598-9841-4545-bf3d-3fdad3ba43c1" />
+    <UnitTestResult executionId="5088c73b-11d9-41fe-9077-15d951e961b9" testId="ce34862f-7d5c-1b89-a5e5-a4e595c5c17e" testName="Dfo.Pvf.Tests.HeaderTests.Rejects_sections_that_run_past_the_file" computerName="家庭台式机" duration="00:00:00.0001608" startTime="2026-10-01T16:54:32.1198763+08:00" endTime="2026-10-01T16:54:32.1198954+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5088c73b-11d9-41fe-9077-15d951e961b9" />
+    <UnitTestResult executionId="7baccd2e-5fad-438d-bc9f-7a5be75c8a22" testId="8bc882ff-046e-5b00-9566-64f4ef54277d" testName="Dfo.Pvf.Tests.ZlibCodecTests.Inflates_to_the_declared_length" computerName="家庭台式机" duration="00:00:00.0006233" startTime="2026-10-01T16:54:32.1152847+08:00" endTime="2026-10-01T16:54:32.1173267+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7baccd2e-5fad-438d-bc9f-7a5be75c8a22" />
+    <UnitTestResult executionId="653d2dd6-53df-4d61-8b3e-1d56f9fc05db" testId="80c093d2-6daa-9e0e-e003-5bac4264bece" testName="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;range&quot;)" computerName="家庭台式机" duration="00:00:00.0008962" startTime="2026-10-01T16:54:32.1285202+08:00" endTime="2026-10-01T16:54:32.1285387+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="653d2dd6-53df-4d61-8b3e-1d56f9fc05db">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 46&#xD;
+   at InvokeStub_FieldReadingTests.Malformed_required_values_report_source_and_field(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="b7ad1f98-c1e6-4c8a-8ae4-59867d72afd4" testId="1af9167a-af05-9a15-7dbe-b1f74e1ca01a" testName="Dfo.Pvf.Tests.ArchiveTests.Opens_and_indexes_the_shipping_archive" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1231763+08:00" endTime="2026-10-01T16:54:32.1232013+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b7ad1f98-c1e6-4c8a-8ae4-59867d72afd4">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="78eea633-af12-4b9b-8046-0ed1518a14f6" testId="d3ae2eec-9bd1-ff6e-a9b5-e5f961a6a7f6" testName="Dfo.Pvf.Tests.FieldReadingTests.Static_field_is_resolved_again_for_each_archive" computerName="家庭台式机" duration="00:00:00.0034118" startTime="2026-10-01T16:54:32.1331910+08:00" endTime="2026-10-01T16:54:32.1336807+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="78eea633-af12-4b9b-8046-0ed1518a14f6">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'test.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Static_field_is_resolved_again_for_each_archive() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 72&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="27c02bc3-2a6a-4795-9d8f-92038f095c26" testId="420c79ac-9dac-f2c6-ee06-b75f0a0152c5" testName="Dfo.Pvf.Tests.FieldReadingTests.Static_fields_read_typed_values_and_optional_absence" computerName="家庭台式机" duration="00:00:00.0610831" startTime="2026-10-01T16:54:32.0340166+08:00" endTime="2026-10-01T16:54:32.1243760+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="27c02bc3-2a6a-4795-9d8f-92038f095c26">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'test.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Static_fields_read_typed_values_and_optional_absence() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 22&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ed5527de-6123-4a15-a6a3-0ef4fffe245d" testId="c4532b5f-3185-663e-83e0-a480e8055701" testName="Dfo.Pvf.Tests.ArchiveTests.Cache_stays_within_its_budget_while_sweeping_the_whole_body" computerName="家庭台式机" duration="00:00:00.0010000" startTime="2026-10-01T16:54:32.1219168+08:00" endTime="2026-10-01T16:54:32.1223756+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ed5527de-6123-4a15-a6a3-0ef4fffe245d">
+      <Output>
+        <ErrorInfo>
+          <Message>Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="95c27c13-f1ee-42af-b99a-504222f62697" testId="b5af49c7-80c8-f2d8-7048-fed48784f120" testName="Dfo.Pvf.Tests.HeaderTests.Rejects_a_foreign_signature" computerName="家庭台式机" duration="00:00:00.0005626" startTime="2026-10-01T16:54:32.1179095+08:00" endTime="2026-10-01T16:54:32.1186632+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="95c27c13-f1ee-42af-b99a-504222f62697" />
+    <UnitTestResult executionId="ab431055-6b7f-45bf-9e25-02a69cf521b6" testId="33ed4f8c-d97b-e827-37df-d4ae7cf01462" testName="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;HASH&quot;, length: 4)" computerName="家庭台式机" duration="00:00:00.0000012" startTime="2026-10-01T16:54:32.1172284+08:00" endTime="2026-10-01T16:54:32.1172508+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ab431055-6b7f-45bf-9e25-02a69cf521b6" />
+    <UnitTestResult executionId="aa6a48e2-da81-48c4-ad25-b64289346b37" testId="2c1a72f9-e2e2-0b03-0d60-b0b1cfbe4733" testName="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;missing&quot;)" computerName="家庭台式机" duration="00:00:00.0009549" startTime="2026-10-01T16:54:32.1287799+08:00" endTime="2026-10-01T16:54:32.1328495+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa6a48e2-da81-48c4-ad25-b64289346b37">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.</Message>
+          <StackTrace>   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 86&#xD;
+   at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs:line 23&#xD;
+   at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs:line 46&#xD;
+   at InvokeStub_FieldReadingTests.Malformed_required_values_report_source_and_field(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="96916c1a-d28d-48d7-b7dd-a68c2bbf1a87" testId="c522e7e5-25f2-ff10-4b5b-9a0e02279f60" testName="Dfo.Pvf.Tests.SyntheticArchiveTests.A_section_yields_all_of_its_values_and_stops_at_the_next_tag" computerName="家庭台式机" duration="00:00:00.0022904" startTime="2026-10-01T16:54:32.1343783+08:00" endTime="2026-10-01T16:54:32.1343911+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="96916c1a-d28d-48d7-b7dd-a68c2bbf1a87" />
+    <UnitTestResult executionId="27c663d5-7da5-4e7f-b0c0-f054e4876be1" testId="2ca494b6-c770-72e0-e682-a83f7fd9c973" testName="Dfo.Pvf.Tests.HeaderTests.Rejects_a_negative_section_size" computerName="家庭台式机" duration="00:00:00.0008747" startTime="2026-10-01T16:54:32.1153456+08:00" endTime="2026-10-01T16:54:32.1177550+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="27c663d5-7da5-4e7f-b0c0-f054e4876be1" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Eviction_does_not_change_bytes_a_caller_already_holds" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="6518a575-5dcc-14ac-4505-62c74cf5c706">
+      <Execution id="b154cd6e-b299-47c8-96aa-597be54108a2" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Eviction_does_not_change_bytes_a_caller_already_holds" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Finds_a_known_list_file_regardless_of_path_spelling" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="8267ddc2-4bea-1956-e9c9-a78bde43f6ac">
+      <Execution id="494ff9c8-751c-46a3-ad01-a4db7d351877" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Finds_a_known_list_file_regardless_of_path_spelling" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Rejects_a_key_shorter_than_the_format_allows" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="a5766a42-2ebf-962a-2bf2-b0d4f503481b">
+      <Execution id="bbc7fb69-7ce1-46dd-bf2a-325026f4bf48" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Rejects_a_key_shorter_than_the_format_allows" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.A_list_file_pairs_identifiers_with_integers" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="40d48111-dfae-3d11-7a36-4d3b2531b914">
+      <Execution id="0e8991a3-6c10-4e91-aeac-61c001c799c8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="A_list_file_pairs_identifiers_with_integers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Round_trips_every_file_it_was_given" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="50900969-3ed7-0934-2c58-e0c395293ac6">
+      <Execution id="8391ee14-a626-40c4-874c-b18df9486c74" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Round_trips_every_file_it_was_given" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Script_files_read_back_as_whole_records" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="da347ee7-6101-44bc-9e45-b7be3f12cc3a">
+      <Execution id="db38c44b-7941-4131-b904-4193775e5950" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Script_files_read_back_as_whole_records" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Reads_back_the_exact_records_that_were_written" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="c697c532-4389-6e68-04cb-6a877d791e27">
+      <Execution id="85b0b776-9c92-45fe-8fed-3cff35522a50" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Reads_back_the_exact_records_that_were_written" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Opens_and_indexes_the_shipping_archive" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="1af9167a-af05-9a15-7dbe-b1f74e1ca01a">
+      <Execution id="b7ad1f98-c1e6-4c8a-8ae4-59867d72afd4" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Opens_and_indexes_the_shipping_archive" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Reads_declared_sections" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="49198f10-efc2-e476-6abf-f4dfdb5fc04c">
+      <Execution id="88115423-a01e-40db-95d1-31ad7b4f8fd3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Reads_declared_sections" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Truncated_record_is_rejected_before_any_field_read" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="158d37c7-ead3-5aa9-89ab-e346bfccb693">
+      <Execution id="61746369-59be-4bda-a047-b7e6e83009f8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Truncated_record_is_rejected_before_any_field_read" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.An_empty_archive_opens_without_special_casing" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="e00b48bc-9d7f-bc3b-997a-2cb0b86571ad">
+      <Execution id="4ead6d2e-0d1b-4c08-a772-74305d2cba47" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="An_empty_archive_opens_without_special_casing" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Rejects_sections_that_run_past_the_file" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="ce34862f-7d5c-1b89-a5e5-a4e595c5c17e">
+      <Execution id="5088c73b-11d9-41fe-9077-15d951e961b9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Rejects_sections_that_run_past_the_file" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.Single_tokens_decode_from_their_value_bits" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="0ccce085-c556-e8cd-887a-47ac581f58f6">
+      <Execution id="fce8d5bf-f0a6-4be7-a4fa-3b2a58018d68" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="Single_tokens_decode_from_their_value_bits" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_and_string_table_use_different_streams" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="5b43e1d2-9ea1-aec7-a445-dd91e1c9aff1">
+      <Execution id="24ba9ede-ef66-4c8e-82b6-5fa0f87df07d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_and_string_table_use_different_streams" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Tags_resolve_to_one_interned_offset_and_match_by_value" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="69890294-7fed-1dfe-cf83-eb30b6d50c5e">
+      <Execution id="da46bca7-18cb-4fa7-af7b-d1fd5e9ff5ec" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Tags_resolve_to_one_interned_offset_and_match_by_value" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;missing&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="2c1a72f9-e2e2-0b03-0d60-b0b1cfbe4733">
+      <Execution id="aa6a48e2-da81-48c4-ad25-b64289346b37" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Malformed_required_values_report_source_and_field" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Truncating_the_archive_is_reported_as_a_format_error" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="09d253f2-627f-6065-325e-4802d3aa0fa5">
+      <Execution id="e69723cc-abee-404e-898d-aee88b34ed8c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Truncating_the_archive_is_reported_as_a_format_error" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Section_layout_places_body_after_every_table" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="ae555278-1581-2a98-60f6-fc00f625d9cb">
+      <Execution id="f003e0c5-48e0-4cf3-b99a-9f219d842f2e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Section_layout_places_body_after_every_table" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;//./equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="81982379-d1b1-cf2b-3d4c-456e4eb75478">
+      <Execution id="4792f9ca-78b0-41dd-aab0-bf69df73b5f9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.Section_values_stop_at_the_next_identifier" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="8773064f-9c82-196b-4d97-86aeff461b56">
+      <Execution id="c0f428d6-dff1-4ce4-abb7-4b0ddd7b5c6f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="Section_values_stop_at_the_next_identifier" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.Reads_every_record_in_order" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="04e60c93-1403-c86f-ec35-f2d02f768bfe">
+      <Execution id="5ec8e4e8-566d-4917-b743-ba762283c03d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="Reads_every_record_in_order" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;   &quot;, expected: &quot;&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="a791272e-2798-0e31-964f-469ebb0d51ac">
+      <Execution id="d0b1256a-d40f-4b2f-bea0-4f024e02aa72" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.Trailing_partial_record_is_ignored_rather_than_misread" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="0dd19c8b-7312-8a2f-846f-a69c8d81f58b">
+      <Execution id="fac46ac3-9b7e-44c4-8c44-d1d13309bd54" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="Trailing_partial_record_is_ignored_rather_than_misread" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Numbered_field_family_parses_only_well_formed_names" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="8c249bea-3aa2-124c-8ed3-cfba67d4d0ce">
+      <Execution id="e1acd400-9a40-4475-b3bf-b24c170b6730" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Numbered_field_family_parses_only_well_formed_names" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Static_field_is_resolved_again_for_each_archive" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="d3ae2eec-9bd1-ff6e-a9b5-e5f961a6a7f6">
+      <Execution id="78eea633-af12-4b9b-8046-0ed1518a14f6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Static_field_is_resolved_again_for_each_archive" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;equipment\\foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="0e1d0e02-b017-38cf-fb3f-c55ccff81fe3">
+      <Execution id="60827898-1b72-46ef-95f0-fde84c113038" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.TryMovePast_positions_after_the_tag" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="9c970b89-8d7f-9a82-62a3-0c751d60915e">
+      <Execution id="42c585c1-5a27-4b93-bdd7-5c90c7c37dd8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="TryMovePast_positions_after_the_tag" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;GRPI&quot;, length: 7)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="722bae96-4efb-1914-6444-743fce24364b">
+      <Execution id="c685aa3d-840b-4125-a524-647794047ee0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.String_table_pass_is_self_inverse(key: &quot;sTrW&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="d47b3385-44d9-9127-9782-561970be6641">
+      <Execution id="d5665749-a2cc-4294-9b8d-40669acec297" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="String_table_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;range&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="80c093d2-6daa-9e0e-e003-5bac4264bece">
+      <Execution id="653d2dd6-53df-4d61-8b3e-1d56f9fc05db" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Malformed_required_values_report_source_and_field" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Unicode_text_files_decode_as_text_not_records" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="a88e4273-90c3-334a-ad1b-3599b30d7455">
+      <Execution id="d7f987b5-d578-45d8-800f-5e33e65e1daf" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Unicode_text_files_decode_as_text_not_records" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;HeaD&quot;, length: 0)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="c659c61b-bdb2-7d6c-e8bd-6a6df554b11e">
+      <Execution id="aa1e1d09-e5ed-4e1c-9127-f99268c3e5a6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Reports_an_absent_path_rather_than_guessing" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="8196679d-86fd-458e-fc94-a3027e9176f9">
+      <Execution id="6a9dc487-b646-4317-8e39-58f2a1d6fc85" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Reports_an_absent_path_rather_than_guessing" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Files_in_a_later_chunk_decode_correctly" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="de439f93-7192-ebc4-a269-afe094dd2c98">
+      <Execution id="70004598-9841-4545-bf3d-3fdad3ba43c1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Files_in_a_later_chunk_decode_correctly" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Rejects_maximal_section_sizes_against_a_real_archive_length" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="d919a3a5-3068-d7d7-9faf-27efbdbc2179">
+      <Execution id="c6dd7a12-e177-4060-a038-c87870039858" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Rejects_maximal_section_sizes_against_a_real_archive_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;  equipment/foo.equ  &quot;, expected: &quot;equipment/foo.equ&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="a42c21b2-b4a1-653e-119b-b6b9aef9b071">
+      <Execution id="5c577018-8e4c-4c89-a1aa-1d7726f0f2a3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.Unresolved_tag_never_matches" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="043cdc71-52c2-197f-dc39-31e0a1ebc831">
+      <Execution id="fcb9163b-8614-40a1-a048-0f567195da58" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="Unresolved_tag_never_matches" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;type&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="fdaae78f-063d-56dc-8cd7-b353ca95c3ba">
+      <Execution id="cec0dc13-b76b-4044-b294-b40f5b5cb9d7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Malformed_required_values_report_source_and_field" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.An_unused_tag_resolves_to_unresolved_instead_of_throwing" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="d9133a67-4159-33b8-1e68-898b2b0d4216">
+      <Execution id="af163bcf-d334-4e55-95a5-884af7f0c03c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="An_unused_tag_resolves_to_unresolved_instead_of_throwing" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.A_section_yields_all_of_its_values_and_stops_at_the_next_tag" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="c522e7e5-25f2-ff10-4b5b-9a0e02279f60">
+      <Execution id="96916c1a-d28d-48d7-b7dd-a68c2bbf1a87" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="A_section_yields_all_of_its_values_and_stops_at_the_next_tag" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Cache_stays_within_its_budget_while_sweeping_the_whole_body" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="c4532b5f-3185-663e-83e0-a480e8055701">
+      <Execution id="ed5527de-6123-4a15-a6a3-0ef4fffe245d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Cache_stays_within_its_budget_while_sweeping_the_whole_body" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Rejects_a_negative_section_size" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="2ca494b6-c770-72e0-e682-a83f7fd9c973">
+      <Execution id="27c663d5-7da5-4e7f-b0c0-f054e4876be1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Rejects_a_negative_section_size" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Repeated_rows_and_nested_markers_remain_ordered" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="64f86666-514e-2743-9327-554a608a269e">
+      <Execution id="2eec4568-10b3-4099-bae7-4a415fbbad21" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Repeated_rows_and_nested_markers_remain_ordered" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Script_files_return_empty_text_rather_than_mojibake" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="68f96d73-75d4-af37-c0ea-6bbc4e6a6f1d">
+      <Execution id="8208903e-4071-403a-ada9-ed7d7974b733" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Script_files_return_empty_text_rather_than_mojibake" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Utf16_names_resolve_through_the_wide_pool" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="dfff0e28-09aa-b6ef-57d3-b03f7fa0b8a1">
+      <Execution id="d22347e6-bf7e-41e7-aea5-ab3776568e69" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Utf16_names_resolve_through_the_wide_pool" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Malformed_optional_value_is_not_absence" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="ca674e9c-44d2-df4e-dca8-e4a73731dfec">
+      <Execution id="623692b3-891e-4143-a52e-4c8a2d5cdbf6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Malformed_optional_value_is_not_absence" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchiveTests.Bytes_stay_readable_after_their_chunk_is_evicted" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="d80bfcd4-f9fd-84aa-6db8-fe23cb6715ef">
+      <Execution id="8710a80f-3836-4d6a-8a54-7217a9d3b36b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchiveTests" name="Bytes_stay_readable_after_their_chunk_is_evicted" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Static_fields_read_typed_values_and_optional_absence" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="420c79ac-9dac-f2c6-ee06-b75f0a0152c5">
+      <Execution id="27c02bc3-2a6a-4795-9d8f-92038f095c26" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Static_fields_read_typed_values_and_optional_absence" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;/equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="231ed7e2-5c39-3410-14f9-4a444ac5d63f">
+      <Execution id="f75a8ab9-92b1-45dc-9c0d-34e9af7a4b62" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.Tag_matching_ignores_non_identifier_records_with_the_same_value" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="39803047-6bd7-93ae-195c-645684be7615">
+      <Execution id="accad300-48d3-4950-bcfb-0f0cba78e537" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="Tag_matching_ignores_non_identifier_records_with_the_same_value" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;HASH&quot;, length: 4)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="33ed4f8c-d97b-e827-37df-d4ae7cf01462">
+      <Execution id="ab431055-6b7f-45bf-9e25-02a69cf521b6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: &quot;duplicate&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="2bd46971-5948-afa7-5c7d-ede99e2ca285">
+      <Execution id="18e74a55-04d4-41fb-9a72-a299cc3686e0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.FieldReadingTests" name="Malformed_required_values_report_source_and_field" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.A_file_with_no_content_is_readable_and_empty" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="874d3377-e3c2-b557-e405-ab62f5b30562">
+      <Execution id="73ba6ef0-bab2-4c36-89c8-950970d1e40c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="A_file_with_no_content_is_readable_and_empty" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;&quot;, expected: &quot;&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="556b956a-5185-3724-6021-f9d4837f9410">
+      <Execution id="26471dd0-34f9-4e83-bf1b-6df2f20bfe65" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.String_table_pass_is_self_inverse(key: &quot;sTrA&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="923b85a6-71b2-1820-d75a-e689ad1d9d10">
+      <Execution id="3d5afac7-dde5-4f54-8452-0cb8c6da0b2b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="String_table_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ZlibCodecTests.A_wrong_declared_length_fails_loudly_instead_of_truncating" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="b612fe49-cf9e-811e-f173-0b0975d8102d">
+      <Execution id="20caeec9-da41-4a90-9206-d1ad5a6efb87" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ZlibCodecTests" name="A_wrong_declared_length_fails_loudly_instead_of_truncating" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Rejects_a_truncated_header" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="bcb408a5-edbc-541c-b605-c667be25680c">
+      <Execution id="e22b62cd-c431-451f-ba17-384617d7bef5" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Rejects_a_truncated_header" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.TokenReaderTests.TryMovePast_reports_absence_without_throwing" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="dcd564d3-2118-f432-eb16-7abd701a1258">
+      <Execution id="517caa94-397c-42a8-af82-89d102f1bf4e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.TokenReaderTests" name="TryMovePast_reports_absence_without_throwing" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;BodY&quot;, length: 1)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="b91e5b79-1eda-c73a-1c05-68536ac5046d">
+      <Execution id="e1523a06-03a5-46aa-9bfe-c028aab1a270" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Two_files_sharing_a_name_in_different_folders_stay_distinct" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="ad8ac1c4-09ae-443b-b0be-414f4937fba3">
+      <Execution id="6081b571-1eb4-4f8f-9363-49adaf6cf435" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Two_files_sharing_a_name_in_different_folders_stay_distinct" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.The_same_tag_in_two_files_shares_one_offset" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="0223dc17-43cd-668f-8fd3-3b52a545e3bd">
+      <Execution id="488636dc-fe4a-455d-8569-674ddaa4f0e3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="The_same_tag_in_two_files_shares_one_offset" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ZlibCodecTests.Inflates_without_a_declared_length" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="decc2632-12e9-97b9-1f49-3eb5488bda2d">
+      <Execution id="4f5c8702-e909-4d14-b18c-a0300917bf9d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ZlibCodecTests" name="Inflates_without_a_declared_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;BodY&quot;, length: 4099)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="03e20cbf-86e3-54e8-b513-14418217b467">
+      <Execution id="ce176fdd-a345-4f5f-926d-7059cfcc8983" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="e5ad02f0-e182-c17d-309a-e555ea7d7dd8">
+      <Execution id="d1237086-1bb0-4ff6-9b6e-35af8e15a78c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.HeaderTests.Rejects_a_foreign_signature" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="b5af49c7-80c8-f2d8-7048-fed48784f120">
+      <Execution id="95c27c13-f1ee-42af-b99a-504222f62697" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.HeaderTests" name="Rejects_a_foreign_signature" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ZlibCodecTests.Inflates_to_the_declared_length" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="8bc882ff-046e-5b00-9566-64f4ef54277d">
+      <Execution id="7baccd2e-5fad-438d-bc9f-7a5be75c8a22" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ZlibCodecTests" name="Inflates_to_the_declared_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;equipment/&quot;, expected: &quot;equipment&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="27cb3578-9edd-cfda-b05f-57fcc17576bd">
+      <Execution id="387cabfc-2126-4428-b36e-7bc18dfb4c8d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.SyntheticArchiveTests.Corrupting_the_body_is_reported_rather_than_returning_wrong_bytes" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="9e258625-564e-c8dc-d941-12c15ff7ddad">
+      <Execution id="9dc6c563-533a-4e15-a09f-f97cb3dd2e93" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.SyntheticArchiveTests" name="Corrupting_the_body_is_reported_rather_than_returning_wrong_bytes" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.CipherTests.Section_pass_is_self_inverse(key: &quot;BodY&quot;, length: 4096)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="83d06b38-2960-c758-f467-e98298cca208">
+      <Execution id="8191c871-faf6-4749-b103-fadae3a84f21" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.CipherTests" name="Section_pass_is_self_inverse" />
+    </UnitTest>
+    <UnitTest name="Dfo.Pvf.Tests.ArchivePathTests.Normalizes_the_shapes_callers_actually_pass(input: &quot;./equipment/foo.equ&quot;, expected: &quot;equipment/foo.equ&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\solo-play-roadmap\server\tests\dfo.pvf.tests\bin\debug\net10.0\dfo.pvf.tests.dll" id="fa0ac1bc-86b7-85d9-6670-6a1db88e1318">
+      <Execution id="d6c695ab-88ba-4c40-b134-6c29c54aef04" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Pvf.Tests.ArchivePathTests" name="Normalizes_the_shapes_callers_actually_pass" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="40d48111-dfae-3d11-7a36-4d3b2531b914" executionId="0e8991a3-6c10-4e91-aeac-61c001c799c8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="83d06b38-2960-c758-f467-e98298cca208" executionId="8191c871-faf6-4749-b103-fadae3a84f21" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="556b956a-5185-3724-6021-f9d4837f9410" executionId="26471dd0-34f9-4e83-bf1b-6df2f20bfe65" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d919a3a5-3068-d7d7-9faf-27efbdbc2179" executionId="c6dd7a12-e177-4060-a038-c87870039858" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fa0ac1bc-86b7-85d9-6670-6a1db88e1318" executionId="d6c695ab-88ba-4c40-b134-6c29c54aef04" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e1d0e02-b017-38cf-fb3f-c55ccff81fe3" executionId="60827898-1b72-46ef-95f0-fde84c113038" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="69890294-7fed-1dfe-cf83-eb30b6d50c5e" executionId="da46bca7-18cb-4fa7-af7b-d1fd5e9ff5ec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8c249bea-3aa2-124c-8ed3-cfba67d4d0ce" executionId="e1acd400-9a40-4475-b3bf-b24c170b6730" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b91e5b79-1eda-c73a-1c05-68536ac5046d" executionId="e1523a06-03a5-46aa-9bfe-c028aab1a270" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="874d3377-e3c2-b557-e405-ab62f5b30562" executionId="73ba6ef0-bab2-4c36-89c8-950970d1e40c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="923b85a6-71b2-1820-d75a-e689ad1d9d10" executionId="3d5afac7-dde5-4f54-8452-0cb8c6da0b2b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e00b48bc-9d7f-bc3b-997a-2cb0b86571ad" executionId="4ead6d2e-0d1b-4c08-a772-74305d2cba47" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9c970b89-8d7f-9a82-62a3-0c751d60915e" executionId="42c585c1-5a27-4b93-bdd7-5c90c7c37dd8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="043cdc71-52c2-197f-dc39-31e0a1ebc831" executionId="fcb9163b-8614-40a1-a048-0f567195da58" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="64f86666-514e-2743-9327-554a608a269e" executionId="2eec4568-10b3-4099-bae7-4a415fbbad21" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a88e4273-90c3-334a-ad1b-3599b30d7455" executionId="d7f987b5-d578-45d8-800f-5e33e65e1daf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0ccce085-c556-e8cd-887a-47ac581f58f6" executionId="fce8d5bf-f0a6-4be7-a4fa-3b2a58018d68" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="09d253f2-627f-6065-325e-4802d3aa0fa5" executionId="e69723cc-abee-404e-898d-aee88b34ed8c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="158d37c7-ead3-5aa9-89ab-e346bfccb693" executionId="61746369-59be-4bda-a047-b7e6e83009f8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0223dc17-43cd-668f-8fd3-3b52a545e3bd" executionId="488636dc-fe4a-455d-8569-674ddaa4f0e3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="03e20cbf-86e3-54e8-b513-14418217b467" executionId="ce176fdd-a345-4f5f-926d-7059cfcc8983" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ca674e9c-44d2-df4e-dca8-e4a73731dfec" executionId="623692b3-891e-4143-a52e-4c8a2d5cdbf6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="da347ee7-6101-44bc-9e45-b7be3f12cc3a" executionId="db38c44b-7941-4131-b904-4193775e5950" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ae555278-1581-2a98-60f6-fc00f625d9cb" executionId="f003e0c5-48e0-4cf3-b99a-9f219d842f2e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c697c532-4389-6e68-04cb-6a877d791e27" executionId="85b0b776-9c92-45fe-8fed-3cff35522a50" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8267ddc2-4bea-1956-e9c9-a78bde43f6ac" executionId="494ff9c8-751c-46a3-ad01-a4db7d351877" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8196679d-86fd-458e-fc94-a3027e9176f9" executionId="6a9dc487-b646-4317-8e39-58f2a1d6fc85" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="49198f10-efc2-e476-6abf-f4dfdb5fc04c" executionId="88115423-a01e-40db-95d1-31ad7b4f8fd3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="81982379-d1b1-cf2b-3d4c-456e4eb75478" executionId="4792f9ca-78b0-41dd-aab0-bf69df73b5f9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8773064f-9c82-196b-4d97-86aeff461b56" executionId="c0f428d6-dff1-4ce4-abb7-4b0ddd7b5c6f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b612fe49-cf9e-811e-f173-0b0975d8102d" executionId="20caeec9-da41-4a90-9206-d1ad5a6efb87" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="04e60c93-1403-c86f-ec35-f2d02f768bfe" executionId="5ec8e4e8-566d-4917-b743-ba762283c03d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="decc2632-12e9-97b9-1f49-3eb5488bda2d" executionId="4f5c8702-e909-4d14-b18c-a0300917bf9d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c659c61b-bdb2-7d6c-e8bd-6a6df554b11e" executionId="aa1e1d09-e5ed-4e1c-9127-f99268c3e5a6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a791272e-2798-0e31-964f-469ebb0d51ac" executionId="d0b1256a-d40f-4b2f-bea0-4f024e02aa72" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="231ed7e2-5c39-3410-14f9-4a444ac5d63f" executionId="f75a8ab9-92b1-45dc-9c0d-34e9af7a4b62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dcd564d3-2118-f432-eb16-7abd701a1258" executionId="517caa94-397c-42a8-af82-89d102f1bf4e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dfff0e28-09aa-b6ef-57d3-b03f7fa0b8a1" executionId="d22347e6-bf7e-41e7-aea5-ab3776568e69" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d80bfcd4-f9fd-84aa-6db8-fe23cb6715ef" executionId="8710a80f-3836-4d6a-8a54-7217a9d3b36b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="68f96d73-75d4-af37-c0ea-6bbc4e6a6f1d" executionId="8208903e-4071-403a-ada9-ed7d7974b733" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6518a575-5dcc-14ac-4505-62c74cf5c706" executionId="b154cd6e-b299-47c8-96aa-597be54108a2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9e258625-564e-c8dc-d941-12c15ff7ddad" executionId="9dc6c563-533a-4e15-a09f-f97cb3dd2e93" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="39803047-6bd7-93ae-195c-645684be7615" executionId="accad300-48d3-4950-bcfb-0f0cba78e537" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a42c21b2-b4a1-653e-119b-b6b9aef9b071" executionId="5c577018-8e4c-4c89-a1aa-1d7726f0f2a3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ad8ac1c4-09ae-443b-b0be-414f4937fba3" executionId="6081b571-1eb4-4f8f-9363-49adaf6cf435" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d47b3385-44d9-9127-9782-561970be6641" executionId="d5665749-a2cc-4294-9b8d-40669acec297" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="50900969-3ed7-0934-2c58-e0c395293ac6" executionId="8391ee14-a626-40c4-874c-b18df9486c74" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="27cb3578-9edd-cfda-b05f-57fcc17576bd" executionId="387cabfc-2126-4428-b36e-7bc18dfb4c8d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2bd46971-5948-afa7-5c7d-ede99e2ca285" executionId="18e74a55-04d4-41fb-9a72-a299cc3686e0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fdaae78f-063d-56dc-8cd7-b353ca95c3ba" executionId="cec0dc13-b76b-4044-b294-b40f5b5cb9d7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0dd19c8b-7312-8a2f-846f-a69c8d81f58b" executionId="fac46ac3-9b7e-44c4-8c44-d1d13309bd54" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5b43e1d2-9ea1-aec7-a445-dd91e1c9aff1" executionId="24ba9ede-ef66-4c8e-82b6-5fa0f87df07d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a5766a42-2ebf-962a-2bf2-b0d4f503481b" executionId="bbc7fb69-7ce1-46dd-bf2a-325026f4bf48" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d9133a67-4159-33b8-1e68-898b2b0d4216" executionId="af163bcf-d334-4e55-95a5-884af7f0c03c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="722bae96-4efb-1914-6444-743fce24364b" executionId="c685aa3d-840b-4125-a524-647794047ee0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e5ad02f0-e182-c17d-309a-e555ea7d7dd8" executionId="d1237086-1bb0-4ff6-9b6e-35af8e15a78c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bcb408a5-edbc-541c-b605-c667be25680c" executionId="e22b62cd-c431-451f-ba17-384617d7bef5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="de439f93-7192-ebc4-a269-afe094dd2c98" executionId="70004598-9841-4545-bf3d-3fdad3ba43c1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ce34862f-7d5c-1b89-a5e5-a4e595c5c17e" executionId="5088c73b-11d9-41fe-9077-15d951e961b9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8bc882ff-046e-5b00-9566-64f4ef54277d" executionId="7baccd2e-5fad-438d-bc9f-7a5be75c8a22" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="80c093d2-6daa-9e0e-e003-5bac4264bece" executionId="653d2dd6-53df-4d61-8b3e-1d56f9fc05db" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1af9167a-af05-9a15-7dbe-b1f74e1ca01a" executionId="b7ad1f98-c1e6-4c8a-8ae4-59867d72afd4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d3ae2eec-9bd1-ff6e-a9b5-e5f961a6a7f6" executionId="78eea633-af12-4b9b-8046-0ed1518a14f6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="420c79ac-9dac-f2c6-ee06-b75f0a0152c5" executionId="27c02bc3-2a6a-4795-9d8f-92038f095c26" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c4532b5f-3185-663e-83e0-a480e8055701" executionId="ed5527de-6123-4a15-a6a3-0ef4fffe245d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b5af49c7-80c8-f2d8-7048-fed48784f120" executionId="95c27c13-f1ee-42af-b99a-504222f62697" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="33ed4f8c-d97b-e827-37df-d4ae7cf01462" executionId="ab431055-6b7f-45bf-9e25-02a69cf521b6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2c1a72f9-e2e2-0b03-0d60-b0b1cfbe4733" executionId="aa6a48e2-da81-48c4-ad25-b64289346b37" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c522e7e5-25f2-ff10-4b5b-9a0e02279f60" executionId="96916c1a-d28d-48d7-b7dd-a68c2bbf1a87" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2ca494b6-c770-72e0-e682-a83f7fd9c973" executionId="27c663d5-7da5-4e7f-b0c0-f054e4876be1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="70" executed="61" passed="54" failed="7" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.05]   Discovering: Dfo.Pvf.Tests&#xD;
+[xUnit.net 00:00:00.09]   Discovered:  Dfo.Pvf.Tests&#xD;
+[xUnit.net 00:00:00.11]   Starting:    Dfo.Pvf.Tests&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Finds_a_known_list_file_regardless_of_path_spelling”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Reports_an_absent_path_rather_than_guessing”。&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+[xUnit.net 00:00:00.22]       Script.pvf not found. Set PVF_ARCHIVE_PATH, or place the archive in the repository root or Data/Pvf/.&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Cache_stays_within_its_budget_while_sweeping_the_whole_body”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Bytes_stay_readable_after_their_chunk_is_evicted”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Script_files_read_back_as_whole_records”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.A_list_file_pairs_identifiers_with_integers”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Tags_resolve_to_one_interned_offset_and_match_by_value”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.An_unused_tag_resolves_to_unresolved_instead_of_throwing”。&#xD;
+在测试运行中跳过测试“Dfo.Pvf.Tests.ArchiveTests.Opens_and_indexes_the_shipping_archive”。&#xD;
+[xUnit.net 00:00:00.22]       System.IO.InvalidDataException : PVF 'test.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.22]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(22,0): at Dfo.Pvf.Tests.FieldReadingTests.Static_fields_read_typed_values_and_optional_absence()&#xD;
+[xUnit.net 00:00:00.22]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.22]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.22]       System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.22]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(46,0): at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error)&#xD;
+[xUnit.net 00:00:00.22]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.22]            at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.22]       System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.22]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.22]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(46,0): at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error)&#xD;
+[xUnit.net 00:00:00.22]            at InvokeStub_FieldReadingTests.Malformed_required_values_report_source_and_field(Object, Span`1)&#xD;
+[xUnit.net 00:00:00.22]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.23]       System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.23]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(46,0): at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error)&#xD;
+[xUnit.net 00:00:00.23]            at InvokeStub_FieldReadingTests.Malformed_required_values_report_source_and_field(Object, Span`1)&#xD;
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.23]       System.IO.InvalidDataException : PVF 'bad.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.23]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(46,0): at Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(String error)&#xD;
+[xUnit.net 00:00:00.23]            at InvokeStub_FieldReadingTests.Malformed_required_values_report_source_and_field(Object, Span`1)&#xD;
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.23]       System.IO.InvalidDataException : PVF 'test.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.23]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(72,0): at Dfo.Pvf.Tests.FieldReadingTests.Static_field_is_resolved_again_for_each_archive()&#xD;
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.23]       System.IO.InvalidDataException : PVF 'test.equ', field 'script': script is missing.&#xD;
+[xUnit.net 00:00:00.23]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs(86,0): at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfDocument.cs(23,0): at Dfo.Pvf.Schema.PvfDocument.Open(PvfArchive archive, String path)&#xD;
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Pvf.Tests\FieldReadingTests.cs(83,0): at Dfo.Pvf.Tests.FieldReadingTests.Repeated_rows_and_nested_markers_remain_ordered()&#xD;
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.23]   Finished:    Dfo.Pvf.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1398015+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Finds_a_known_list_file_regardless_of_path_spelling [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1399886+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Reports_an_absent_path_rather_than_guessing [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1403291+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Cache_stays_within_its_budget_while_sweeping_the_whole_body [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1403526+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Bytes_stay_readable_after_their_chunk_is_evicted [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1403779+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Script_files_read_back_as_whole_records [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1404012+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.A_list_file_pairs_identifiers_with_integers [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1404212+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Tags_resolve_to_one_interned_offset_and_match_by_value [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1404432+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.An_unused_tag_resolves_to_unresolved_instead_of_throwing [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Warning" timestamp="2026-10-01T16:54:32.1404652+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.ArchiveTests.Opens_and_indexes_the_shipping_archive [SKIP]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1408174+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.FieldReadingTests.Static_fields_read_typed_values_and_optional_absence [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1413856+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: "duplicate") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1414460+08:00">
+        <Text>[xUnit.net 00:00:00.22]     Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: "type") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1415084+08:00">
+        <Text>[xUnit.net 00:00:00.23]     Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: "range") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1415666+08:00">
+        <Text>[xUnit.net 00:00:00.23]     Dfo.Pvf.Tests.FieldReadingTests.Malformed_required_values_report_source_and_field(error: "missing") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1424870+08:00">
+        <Text>[xUnit.net 00:00:00.23]     Dfo.Pvf.Tests.FieldReadingTests.Static_field_is_resolved_again_for_each_archive [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-01T16:54:32.1425546+08:00">
+        <Text>[xUnit.net 00:00:00.23]     Dfo.Pvf.Tests.FieldReadingTests.Repeated_rows_and_nested_markers_remain_ordered [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Infrastructure.Content;
@@ -98,8 +99,8 @@ public sealed class DungeonResultCardDeclarationTests
     {
         using var provider = ContentArchive.CreateProvider();
         var archive = provider.Archive;
-        var resultCardTag = archive.GetTag("[result card]");
-        var goldCardUseTag = archive.GetTag("[gold card use]");
+        var resultCardTag = archive.GetTag(PvfField.Tokens("[result card]"));
+        var goldCardUseTag = archive.GetTag(PvfField.Tokens("[gold card use]"));
         Assert.True(resultCardTag.IsResolved, "the archive interns no [result card] tag");
         Assert.True(goldCardUseTag.IsResolved, "the archive interns no [gold card use] tag");
 

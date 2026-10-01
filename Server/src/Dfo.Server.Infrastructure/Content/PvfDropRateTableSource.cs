@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Concurrent;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -21,19 +22,19 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
     : IDropRateTableSource, IGoldDropTableSource
 {
-    private const string BandCountSection = "[drop prob count]";
-    private const string BandSection = "[drop prob]";
-    private const string RaritySection = "[basis of rarity dicision]";
-    private const string MonsterRankSection = "[monster type drop bonusrate]";
-    private const string DifficultySection = "[dungeon difficulty drop bonusrate]";
-    private const string PartySection = "[party member drop bonusrate]";
-    private const string GradeBandSection = "[item drop ref table]";
+    private static readonly PvfField<int> BandCountSection = PvfField.Int32("[drop prob count]");
+    private static readonly PvfField<IReadOnlyList<int>> BandSection = PvfField.Int32List("[drop prob]", optional: true);
+    private static readonly PvfField<IReadOnlyList<int>> RaritySection = PvfField.Int32List("[basis of rarity dicision]", optional: true);
+    private static readonly PvfField<IReadOnlyList<double>> MonsterRankSection = PvfField.Numbers("[monster type drop bonusrate]", optional: true);
+    private static readonly PvfField<IReadOnlyList<double>> DifficultySection = PvfField.Numbers("[dungeon difficulty drop bonusrate]", optional: true);
+    private static readonly PvfField<IReadOnlyList<double>> PartySection = PvfField.Numbers("[party member drop bonusrate]", optional: true);
+    private static readonly PvfField<IReadOnlyList<int>> GradeBandSection = PvfField.Int32List("[item drop ref table]", optional: true);
 
     /// <summary>Where the whole world's per-level gold amounts live.</summary>
     private const string CommonPath = "etc/itemdropinfo_common.etc";
-    private const string GoldBaseSection = "[gold drop ref table]";
-    private const string GoldQuantitySection = "[gold quantity]";
-    private const string GoldVolumeSection = "[gold volume]";
+    private static readonly PvfField<IReadOnlyList<int>> GoldBaseSection = PvfField.Int32List("[gold drop ref table]", optional: true);
+    private static readonly PvfField<IReadOnlyList<int>> GoldQuantitySection = PvfField.Int32List("[gold quantity]", optional: true);
+    private static readonly PvfField<IReadOnlyList<int>> GoldVolumeSection = PvfField.Int32List("[gold volume]", optional: true);
 
     /// <summary>
     /// Level, the amount one drop of gold is worth there, and how far either way that amount may
@@ -167,7 +168,7 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
     /// shape and belongs to a different reading.
     /// </para>
     /// </remarks>
-    private static IReadOnlyList<RarityLadder> ReadLadders(
+    private IReadOnlyList<RarityLadder> ReadLadders(
         IReadOnlyDictionary<string, List<PvfToken>> sections, string archivePath)
     {
         var values = Integers(sections, RaritySection);
@@ -197,7 +198,7 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
                 + "groups whose last number closes the one before it.");
     }
 
-    private static IReadOnlyDictionary<int, ItemGradeBand> ReadGradeBands(
+    private IReadOnlyDictionary<int, ItemGradeBand> ReadGradeBands(
         IReadOnlyDictionary<string, List<PvfToken>> sections, string archivePath)
     {
         var values = Integers(sections, GradeBandSection);
@@ -226,9 +227,9 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
     }
 
     /// <summary>One bonus table, split into one group per rate.</summary>
-    private static IReadOnlyList<IReadOnlyList<double>> Groups(
+    private IReadOnlyList<IReadOnlyList<double>> Groups(
         IReadOnlyDictionary<string, List<PvfToken>> sections,
-        string section,
+        PvfField<IReadOnlyList<double>> section,
         int groupCount,
         string archivePath)
     {
@@ -287,12 +288,10 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
         return sections;
     }
 
-    private static List<int> Integers(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section) =>
-        sections.TryGetValue(section, out var tokens)
-            ? [.. tokens.Where(token => token.Kind == PvfTokenKind.Int32)
-                .Select(token => token.Value)]
-            : [];
+    private List<int> Integers(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<IReadOnlyList<int>> section) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? [.. section.Decode(provider.Archive, tokens, section.Name)] : [];
 
     /// <remarks>
     /// Both numeric forms, because the files disagree: the monster table stores its multipliers as
@@ -300,35 +299,14 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
     /// that took only one would come away with an empty table, and an empty multiplier table is a
     /// parse failure wearing the costume of a multiplier of one.
     /// </remarks>
-    private static List<double> Reals(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section)
-    {
-        if (!sections.TryGetValue(section, out var tokens))
-            return [];
+    private List<double> Reals(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<IReadOnlyList<double>> section) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? [.. section.Decode(provider.Archive, tokens, section.Name)] : [];
 
-        var values = new List<double>(tokens.Count);
-        foreach (var token in tokens)
-        {
-            switch (token.Kind)
-            {
-                case PvfTokenKind.Int32:
-                    values.Add(token.Value);
-                    break;
-                case PvfTokenKind.Single:
-                    values.Add(token.AsSingle());
-                    break;
-            }
-        }
-
-        return values;
-    }
-
-    private static int Single(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section, string archivePath)
-    {
-        var values = Integers(sections, section);
-        return values.Count > 0
-            ? values[0]
+    private int Single(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<int> section, string archivePath) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? section.Decode(provider.Archive, tokens, archivePath)
             : throw new InvalidDataException($"'{archivePath}' declares no '{section}'.");
-    }
 }

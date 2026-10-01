@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -19,6 +20,31 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider)
     : IItemUseRuleDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> StackableTypeField = PvfField.Custom<IReadOnlyList<PvfToken>>("[stackable type]",
+            (_, values, source) =>
+            {
+                if (values.Count < 1 || !values[0].IsString ||
+                    values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32 || value.Value < 0))
+                    throw new InvalidDataException($"PVF '{source}', field '[stackable type]': expected type name and complete nonnegative Int32 operands.");
+                return values;
+            }, optional: true);
+        internal static readonly PvfField<int> CoolTimeField = PvfField.Int32("[cool time]", optional: true);
+        internal static readonly PvfField<int> CooltimeGroupField = PvfField.Int32("[cooltime group]", optional: true);
+        internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
+        internal static readonly PvfField<double> ExpBonusRateField = PvfField.Single("[exp bonus rate]", optional: true);
+        internal static readonly PvfField<int> StatChangeDurationField = PvfField.Custom<int>("[stat change duration]", (archive, values, source) =>
+        {
+            if (values.Count is < 1 or > 2 || values[0].Kind != PvfTokenKind.Int32
+                || values.Count == 2 && !values[1].IsString)
+                throw new InvalidDataException($"PVF '{source}', field '[stat change duration]': expected Int32 and optional target string.");
+            return values[0].Value;
+        }, optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> UsableJobField = PvfField.Strings("[usable job]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> ActionUsablePlaceField = PvfField.Strings("[action usable place]", optional: true);
+    }
+
     private const string StackableListPath = "stackable/stackable.lst";
     private const string UnlimitedTypePrefix = "[unlimited";
 
@@ -60,21 +86,21 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
 
         var unreadable = false;
         var stackableType = TryReadFirstString(
-                ref reader, archive.GetTag("[stackable type]"), out var typeToken, ref unreadable)
+                archive, ref reader, Fields.StackableTypeField, out var typeToken, ref unreadable)
             ? archive.ResolveString(typeToken.Value)
             : null;
-        var cooldown = FirstInt32(ref reader, archive.GetTag("[cool time]"), ref unreadable);
-        var cooltimeGroup = FirstInt32(
-            ref reader, archive.GetTag("[cooltime group]"), ref unreadable);
-        var minimumLevel = FirstInt32(
-            ref reader, archive.GetTag("[minimum level]"), ref unreadable);
-        var expBonusRate = FirstSingle(ref reader, archive.GetTag("[exp bonus rate]"), ref unreadable);
-        var effectDuration = FirstInt32(
-            ref reader, archive.GetTag("[stat change duration]"), ref unreadable);
+        var cooldown = FirstInt32(archive, ref reader, Fields.CoolTimeField, ref unreadable);
+        var cooltimeGroup = FirstInt32(archive,
+            ref reader, Fields.CooltimeGroupField, ref unreadable);
+        var minimumLevel = FirstInt32(archive,
+            ref reader, Fields.MinimumLevelField, ref unreadable);
+        var expBonusRate = FirstSingle(archive, ref reader, Fields.ExpBonusRateField, ref unreadable);
+        var effectDuration = FirstInt32(archive,
+            ref reader, Fields.StatChangeDurationField, ref unreadable);
         if (expBonusRate > 0 && effectDuration <= 0)
             unreadable = true;
-        var jobText = AllStrings(archive, ref reader, archive.GetTag("[usable job]"));
-        var placeText = AllStrings(archive, ref reader, archive.GetTag("[action usable place]"));
+        var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
+        var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
 
         return new ItemUseRule(
             IsConsumedOnUse: stackableType is null
@@ -135,35 +161,119 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
     /// Set when the tag is there and no integer follows it. Left alone when the tag is absent,
     /// because an undeclared cooldown is a real answer and an unreadable one is not.
     /// </param>
-    internal static int FirstInt32(ref PvfTokenReader reader, TagRef tag, ref bool unreadable)
+    // Typed callers validate the complete scalar declaration and distinguish absence from corruption.
+    internal static int FirstInt32(PvfArchive archive, ref PvfTokenReader reader,
+        PvfField<int> field, ref bool unreadable)
     {
-        reader.Reset();
-        if (!tag.IsResolved || !reader.TryMovePast(tag))
-            return 0;
+        var values = RootSectionValues(archive, ref reader, field, out var duplicate, out _);
+        if (values is null) return 0;
+        try
+        {
+            if (duplicate) throw new InvalidDataException($"Duplicate {field.Name}.");
+            return field.Decode(archive, values, "item use rule");
+        }
+        catch (InvalidDataException) { unreadable = true; return 0; }
+    }
 
-        if (reader.TryReadInt32(out var value))
-            return value;
-
+    internal static double FirstSingle(PvfArchive archive, ref PvfTokenReader reader,
+        PvfField<double> field, ref bool unreadable)
+    {
+        var values = RootSectionValues(archive, ref reader, field, out var duplicate, out _);
+        if (values is null) return 0;
+        try
+        {
+            if (duplicate) throw new InvalidDataException($"Duplicate {field.Name}.");
+            var value = field.Decode(archive, values, "item use rule");
+            if (value > 0) return value;
+        }
+        catch (InvalidDataException) { }
         unreadable = true;
         return 0;
     }
 
-    internal static double FirstSingle(ref PvfTokenReader reader, TagRef tag, ref bool unreadable)
+    internal static bool TryReadFirstString(PvfArchive archive, ref PvfTokenReader reader,
+        PvfField<IReadOnlyList<PvfToken>> field, out PvfToken value, ref bool unreadable)
+    {
+        value = default;
+        var values = RootSectionValues(archive, ref reader, field, out var duplicate, out var firstRecord);
+        if (values is null) return false;
+        try
+        {
+            if (duplicate) throw new InvalidDataException($"Duplicate {field.Name}.");
+            var decoded = field.Decode(archive, values, "item use rule");
+            if (decoded.Count == 0 || !decoded[0].IsString) throw new InvalidDataException($"Missing name in {field.Name}.");
+            // ActionType has a dedicated operand parser. Restore the cursor after the root name
+            // without imposing the stackable type's integer-tail shape on action operands.
+            reader.Seek(firstRecord);
+            return reader.TryReadSectionValue(out value);
+        }
+        catch (InvalidDataException) { unreadable = true; return false; }
+    }
+
+    private static IReadOnlyList<PvfToken>? RootSectionValues(PvfArchive archive, ref PvfTokenReader reader,
+        PvfField field, out bool duplicate, out int firstRecord)
     {
         reader.Reset();
-        if (!tag.IsResolved || !reader.TryMovePast(tag))
-            return 0;
-
-        while (reader.TryReadSectionValue(out var token))
+        var sections = new List<(string Name, List<PvfToken> Values, int FirstRecord)>();
+        List<PvfToken>? current = null;
+        while (reader.Read(out var token))
         {
-            if (token.Kind != PvfTokenKind.Single)
-                continue;
-            var value = token.AsSingle();
-            if (float.IsFinite(value) && value > 0)
-                return value;
-            break;
+            if (token.Kind == PvfTokenKind.Identifier && archive.ResolveString(token.Value).StartsWith('['))
+            {
+                current = [];
+                sections.Add((archive.ResolveString(token.Value), current, reader.Position / PvfToken.Size));
+            }
+            else current?.Add(token);
         }
+        var closingNames = sections.Where(section => section.Name.StartsWith("[/", StringComparison.Ordinal))
+            .Select(section => section.Name).ToHashSet(StringComparer.Ordinal);
+        var blocks = new Stack<string>();
+        IReadOnlyList<PvfToken>? values = null;
+        duplicate = false; firstRecord = 0;
+        foreach (var section in sections)
+        {
+            if (blocks.TryPeek(out var expected) && section.Name == expected) { blocks.Pop(); continue; }
+            if (blocks.Count == 0 && field.Matches(section.Name))
+            {
+                duplicate |= values is not null;
+                if (values is null) { values = section.Values; firstRecord = section.FirstRecord; }
+            }
+            var closing = "[/" + section.Name[1..];
+            if (closingNames.Contains(closing)) blocks.Push(closing);
+        }
+        return values;
+    }
 
+    private static IReadOnlyList<PvfToken>? SectionValues(ref PvfTokenReader reader,
+        TagRef tag, out bool duplicate)
+    {
+        reader.Reset();
+        duplicate = false;
+        if (!tag.IsResolved) return null;
+        List<PvfToken>? values = null;
+        var accepting = false;
+        while (reader.Read(out var token))
+        {
+            if (token.Kind == PvfTokenKind.Identifier)
+            {
+                accepting = token.Value == tag.Offset;
+                if (accepting)
+                {
+                    duplicate |= values is not null;
+                    values ??= [];
+                }
+            }
+            else if (accepting) values!.Add(token);
+        }
+        return values;
+    }
+
+    internal static int FirstInt32(ref PvfTokenReader reader, TagRef tag, ref bool unreadable)
+    {
+        var values = SectionValues(ref reader, tag, out var duplicate);
+        if (values is null) return 0;
+        if (!duplicate && values.Count == 1 && values[0].Kind == PvfTokenKind.Int32)
+            return values[0].Value;
         unreadable = true;
         return 0;
     }
@@ -207,19 +317,16 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
     /// cannot read.
     /// </remarks>
     private static IReadOnlyList<string>? AllStrings(
-        PvfArchive archive, ref PvfTokenReader reader, TagRef tag)
+        PvfArchive archive, ref PvfTokenReader reader, PvfField<IReadOnlyList<string>> field,
+        ref bool unreadable)
     {
-        reader.Reset();
-        if (!tag.IsResolved || !reader.TryMovePast(tag))
-            return null;
-
-        var values = new List<string>();
-        while (reader.TryReadSectionValue(out var token))
+        var values = RootSectionValues(archive, ref reader, field, out var duplicate, out _);
+        if (values is null) return null;
+        try
         {
-            if (token.IsString)
-                values.Add(archive.ResolveString(token.Value));
+            if (duplicate) throw new InvalidDataException($"Duplicate {field.Name}.");
+            return field.Decode(archive, values, "item use rule");
         }
-
-        return values;
+        catch (InvalidDataException) { unreadable = true; return []; }
     }
 }

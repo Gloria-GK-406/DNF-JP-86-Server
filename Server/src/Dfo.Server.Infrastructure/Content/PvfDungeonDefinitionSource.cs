@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -28,6 +29,22 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MazeInfoField = PvfField.Tokens("[maze info]", optional: true);
+        internal static readonly PvfField<bool> CloseMazeInfoField = PvfField.Marker("[/maze info]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> SizeField = PvfField.Int32List("[size]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MapSpecificationField = PvfField.Tokens("[map specification]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> StartMapField = PvfField.Int32List("[start map]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> BossMapField = PvfField.Int32List("[boss map]", optional: true);
+        internal static readonly PvfField<int> MinimumRequiredLevelField = PvfField.Int32("[minimum required level]", optional: true);
+        internal static readonly PvfField<int> BasisLevelField = PvfField.Int32("[basis level]", optional: true);
+        internal static readonly PvfField<double> ExperienceIncreasingPointField = PvfField.Number("[experience increasing point]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> NoFatigueField = PvfField.Tokens("[no fatigue]", optional: true);
+        internal static readonly PvfField<int> GoldCardUseField = PvfField.Int32("[gold card use]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> QuestConnectionField = PvfField.Int32List("[quest connection]", optional: true);
+    }
+
     private const string ListPath = "dungeon/dungeon.lst";
     private const string DungeonDirectory = "dungeon";
     private const string RoomKeyword = "map";
@@ -80,229 +97,162 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         if (fileIndex < 0)
             return null;
 
-        var tags = new DungeonTags(archive);
+        var document = PvfDocument.Open(archive, archivePath);
         var mazes = new List<MazeDefinition>();
         MazeDraft? draft = null;
-        var section = Section.None;
+        var seen = new HashSet<PvfField>();
         byte minimumLevel = 1;
         byte basisLevel = 1;
         var experienceWeight = 1.0;
         var consumesFatigue = true;
         var offersPaidCard = true;
         DungeonQuestConnection? questConnection = null;
-        var pending = new List<int>();
 
-        var reader = archive.OpenScript(fileIndex);
-        while (reader.Read(out var token))
+        void Unique(PvfField field)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
+            var scope = draft?.Seen ?? seen;
+            Require(scope.Add(field), archivePath, field, "duplicate field in the same scope");
+        }
+        foreach (var section in document.Sections)
+        {
+            if (Fields.MazeInfoField.Matches(section.Name))
             {
-                var name = archive.ResolveString(token.Value);
-                if (name.StartsWith('['))
+                Require(section.Values.Count == 0, archivePath, Fields.MazeInfoField, "expected an empty maze marker");
+                Close(mazes, draft);
+                draft = new MazeDraft(mazes.Count);
+            }
+            else if (Fields.CloseMazeInfoField.Matches(section.Name))
+            {
+                Fields.CloseMazeInfoField.Decode(archive, section.Values, archivePath);
+                Close(mazes, draft);
+                draft = null;
+            }
+            else if (Fields.MinimumRequiredLevelField.Matches(section.Name))
+            {
+                // Real archives can restate this file-level value (Counterattackarea:
+                // 1, then 46). Every occurrence must decode completely; the last valid
+                // declaration retains the existing business precedence.
+                var value = Fields.MinimumRequiredLevelField.Decode(archive, section.Values, archivePath);
+                Require(value is >= 0 and <= byte.MaxValue, archivePath, Fields.MinimumRequiredLevelField, "level is outside byte range");
+                minimumLevel = (byte)value;
+            }
+            else if (Fields.BasisLevelField.Matches(section.Name))
+            {
+                Unique(Fields.BasisLevelField);
+                var value = Fields.BasisLevelField.Decode(archive, section.Values, archivePath);
+                Require(value is >= 0 and <= byte.MaxValue, archivePath, Fields.BasisLevelField, "level is outside byte range");
+                basisLevel = (byte)Math.Max(1, value);
+            }
+            else if (Fields.ExperienceIncreasingPointField.Matches(section.Name))
+            {
+                Unique(Fields.ExperienceIncreasingPointField);
+                var value = Fields.ExperienceIncreasingPointField.Decode(archive, section.Values, archivePath);
+                Require(value is >= 0 and <= 1000, archivePath, Fields.ExperienceIncreasingPointField, "weight is outside [0, 1000]");
+                experienceWeight = value;
+            }
+            else if (Fields.GoldCardUseField.Matches(section.Name))
+            {
+                Unique(Fields.GoldCardUseField);
+                offersPaidCard = Fields.GoldCardUseField.Decode(archive, section.Values, archivePath) != 0;
+            }
+            else if (Fields.NoFatigueField.Matches(section.Name))
+            {
+                Unique(Fields.NoFatigueField);
+                Require(section.Values.Count == 0, archivePath, Fields.NoFatigueField, "expected an empty presence flag");
+                consumesFatigue = false;
+            }
+            else if (Fields.QuestConnectionField.Matches(section.Name))
+            {
+                Unique(Fields.QuestConnectionField);
+                var values = Fields.QuestConnectionField.Decode(archive, section.Values, archivePath);
+                var connection = ProjectQuestConnection(values);
+                Require(connection is not null, archivePath, Fields.QuestConnectionField, "expected state, positive quest id and optional difficulty");
+                if (draft is null) questConnection = connection;
+                else draft.QuestConnection = connection;
+            }
+            else if (Fields.SizeField.Matches(section.Name))
+            {
+                Unique(Fields.SizeField);
+                var values = Fields.SizeField.Decode(archive, section.Values, archivePath);
+                Require(values.Count == 2, archivePath, Fields.SizeField, "expected width and height");
+                var width = CellCoordinate(values[0], archivePath, Fields.SizeField);
+                var height = CellCoordinate(values[1], archivePath, Fields.SizeField);
+                if (draft is not null) { draft.Width = width; draft.Height = height; }
+            }
+            else if (Fields.MapSpecificationField.Matches(section.Name))
+            {
+                Unique(Fields.MapSpecificationField);
+                var values = section.Values;
+                var offset = 0;
+                while (offset < values.Count)
                 {
-                    FlushQuestConnection(draft, section, pending, ref questConnection);
-                    Flush(draft, section, pending);
-                    pending.Clear();
+                    Require(values[offset].IsString, archivePath, Fields.MapSpecificationField, "expected a room kind");
+                    var kind = archive.ResolveString(values[offset++].Value);
+                    var firstOperand = offset;
+                    while (offset < values.Count && !values[offset].IsString)
+                    {
+                        Require(values[offset].Kind == PvfTokenKind.Int32, archivePath,
+                            Fields.MapSpecificationField, "expected Int32 room coordinates and map candidates");
+                        offset++;
+                    }
+                    var operandCount = offset - firstOperand;
+                    Require(operandCount >= 3, archivePath, Fields.MapSpecificationField,
+                        "expected two cell coordinates and at least one map candidate");
+                    CellCoordinate(values[firstOperand].Value, archivePath, Fields.MapSpecificationField);
+                    CellCoordinate(values[firstOperand + 1].Value, archivePath, Fields.MapSpecificationField);
+                    for (var candidate = firstOperand + 2; candidate < offset; candidate++)
+                        Require(values[candidate].Value > 0, archivePath, Fields.MapSpecificationField, "expected a positive map candidate id");
+                    if (draft is null || !(string.Equals(kind, RoomKeyword, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(kind, BossRoomKeyword, StringComparison.OrdinalIgnoreCase))) continue;
 
-                    if (token.Value == tags.MazeInfo)
-                    {
-                        Close(mazes, draft);
-                        draft = new MazeDraft(mazes.Count);
-                        section = Section.None;
-                    }
-                    else if (token.Value == tags.MazeInfoClose)
-                    {
-                        Close(mazes, draft);
-                        draft = null;
-                        section = Section.None;
-                    }
-                    else if (token.Value == tags.Size) section = Section.Size;
-                    else if (token.Value == tags.MapSpecification) section = Section.Rooms;
-                    else if (token.Value == tags.StartMap) section = Section.Start;
-                    else if (token.Value == tags.BossMap) section = Section.Boss;
-                    else if (token.Value == tags.MinimumRequiredLevel) section = Section.MinimumLevel;
-                    else if (token.Value == tags.BasisLevel) section = Section.BasisLevel;
-                    else if (token.Value == tags.ExperienceWeight) section = Section.ExperienceWeight;
-                    else if (token.Value == tags.PaidCardSwitch) section = Section.PaidCardSwitch;
-                    else if (token.Value == tags.QuestConnection) section = Section.QuestConnection;
-                    else if (token.Value == tags.NoFatigue)
-                    {
-                        consumesFatigue = false;
-                        section = Section.None;
-                    }
-                    else
-                    {
-                        section = Section.None;
-                    }
-
-                    continue;
+                    // The archive permits multiple map candidates after a cell, while the
+                    // existing deterministic business projection consumes complete integer
+                    // triples and ignores one or two remaining valid candidates. Retain that
+                    // projection here; validation above covers the entire declared entry.
+                    for (var row = firstOperand; row + 2 < offset; row += 3)
+                        draft.Rooms[new MazeCell(LegacyCoordinate(values[row].Value), LegacyCoordinate(values[row + 1].Value))]
+                            = values[row + 2].Value;
                 }
             }
 
-            if ((section is Section.Rooms or Section.SkippedRoomEntry) && token.IsString)
+            else if (Fields.StartMapField.Matches(section.Name) || Fields.BossMapField.Matches(section.Name))
             {
-                // The kind is quoted and repeats before every room. TWO kinds declare one: `map`
-                // and `boss`, which differ only in that `boss` also marks the cell the run ends
-                // in -- the same cell [boss map] names. Reading `boss` as something to skip left
-                // the boss cell with no room while the layout still pointed at it, and the player
-                // walked up to the last door and could not open it. Dungeon 10004, the swordman
-                // tutorial, is where that surfaced; dungeon 10000 spells every room `map` and so
-                // never showed it.
-                //
-                // An unknown kind is still skipped rather than guessed at, but the skip now lasts
-                // exactly one entry. It used to last the rest of the section, because only
-                // Section.Rooms read a kind at all: once skipped, every later room in the same
-                // [map specification] was dropped with it. Thirty-seven of the archive's dungeons
-                // open that section with `boss`, so for those it dropped the whole maze.
-                Flush(draft, section, pending);
-                pending.Clear();
-                var kind = archive.ResolveString(token.Value);
-                section = string.Equals(kind, RoomKeyword, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(kind, BossRoomKeyword, StringComparison.OrdinalIgnoreCase)
-                        ? Section.Rooms
-                        : Section.SkippedRoomEntry;
-
-                continue;
-            }
-
-            // A decimal weight arrives as a single and must not reach the integer path below:
-            // read there it would be the bit pattern -- 1.45 becomes 1069967704 -- and every kill
-            // in the dungeon would be worth about a billion times what it should be. The
-            // whole-number form is read in the switch instead.
-            if (token.Kind == PvfTokenKind.Single && section == Section.ExperienceWeight)
-            {
-                var weight = BitConverter.Int32BitsToSingle(token.Value);
-                experienceWeight = weight is >= 0 and <= 1000 ? weight : experienceWeight;
-                section = Section.None;
-                continue;
-            }
-
-            if (token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            switch (section)
-            {
-                case Section.MinimumLevel:
-                    minimumLevel = token.Value is >= 0 and <= byte.MaxValue
-                        ? (byte)token.Value
-                        : minimumLevel;
-                    section = Section.None;
-                    break;
-                case Section.ExperienceWeight:
-                    // Written either way, and both are real. Reading only the decimal form left
-                    // every dungeon using this one at the default of 1: port.dgn and
-                    // mainbridge.dgn declare 30, circus_new.dgn 15, circus.dgn 35, and each was
-                    // paying that fraction of what it is worth. Which form a value takes is not
-                    // predictable from the value -- 4 is written both ways in different dungeons.
-                    //
-                    // Zero is accepted rather than rejected: dungeons 6001 and 6005 declare it and
-                    // mean it, and treating it as invalid paid them in full. Only an absent tag
-                    // takes the default.
-                    experienceWeight = token.Value is >= 0 and <= 1000
-                        ? token.Value
-                        : experienceWeight;
-                    section = Section.None;
-                    break;
-                case Section.PaidCardSwitch:
-                    // Zero turns the paid card off; anything else leaves it on. Why that is the
-                    // direction, and why no other value has a reading, is argued on
-                    // DungeonDefinition.OffersPaidCard -- the archive writes this tag five times
-                    // and writes zero every time.
-                    offersPaidCard = token.Value != 0;
-                    section = Section.None;
-                    break;
-                case Section.BasisLevel:
-                    // Clamped to one at the bottom: a dungeon declaring zero would price every
-                    // monster whose map declines to set a level at nothing at all.
-                    basisLevel = token.Value is > 0 and <= byte.MaxValue
-                        ? (byte)token.Value
-                        : basisLevel;
-                    section = Section.None;
-                    break;
-                case Section.QuestConnection:
-                    pending.Add(token.Value);
-                    break;
-                case Section.Size:
-                case Section.Rooms:
-                case Section.Start:
-                case Section.Boss:
-                    pending.Add(token.Value);
-                    Flush(draft, section, pending);
-                    break;
+                var field = Fields.StartMapField.Matches(section.Name) ? Fields.StartMapField : Fields.BossMapField;
+                Unique(field);
+                var values = field.Decode(archive, section.Values, archivePath);
+                Require(values.Count % 2 == 0, archivePath, field, "truncated cell pair");
+                for (var offset = 0; offset < values.Count; offset += 2)
+                {
+                    var cell = new MazeCell(CellCoordinate(values[offset], archivePath, field), CellCoordinate(values[offset + 1], archivePath, field));
+                    if (draft is not null) (field == Fields.StartMapField ? draft.StartCandidates : draft.BossCandidates).Add(cell);
+                }
             }
         }
-
-        FlushQuestConnection(draft, section, pending, ref questConnection);
-        Flush(draft, section, pending);
         Close(mazes, draft);
-
-        // No maze means a different structural family, not an ordinary dungeon with nowhere to go.
-        return mazes.Count == 0
-            ? null
-            : new DungeonDefinition(
-                dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
-                experienceWeight, offersPaidCard, questConnection);
+        return mazes.Count == 0 ? null : new DungeonDefinition(
+            dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
+            experienceWeight, offersPaidCard, questConnection);
     }
 
-    /// <summary>Consumes whole rows once enough operands have arrived, leaving partial ones.</summary>
-    private static void Flush(MazeDraft? draft, Section section, List<int> pending)
-    {
-        if (draft is null)
-        {
-            pending.Clear();
-            return;
-        }
+    private static byte LegacyCoordinate(int value) =>
+        value is >= 0 and <= byte.MaxValue ? (byte)value : (byte)0;
 
-        switch (section)
-        {
-            case Section.Size when pending.Count >= 2:
-                draft.Width = Clamp(pending[0]);
-                draft.Height = Clamp(pending[1]);
-                pending.Clear();
-                break;
-            case Section.Rooms when pending.Count >= 3:
-                draft.Rooms[new MazeCell(Clamp(pending[0]), Clamp(pending[1]))] = pending[2];
-                pending.Clear();
-                break;
-            case Section.Start when pending.Count >= 2:
-                draft.StartCandidates.Add(new MazeCell(Clamp(pending[0]), Clamp(pending[1])));
-                pending.Clear();
-                break;
-            case Section.Boss when pending.Count >= 2:
-                draft.BossCandidates.Add(new MazeCell(Clamp(pending[0]), Clamp(pending[1])));
-                pending.Clear();
-                break;
-        }
+    private static byte CellCoordinate(int value, string path, PvfField field)
+    {
+        Require(value is >= 0 and <= byte.MaxValue, path, field, "coordinate is outside byte range");
+        return (byte)value;
+    }
+
+    private static void Require(bool valid, string path, PvfField field, string reason)
+    {
+        if (!valid) throw new InvalidDataException($"PVF '{path}', field '{field}': {reason}.");
     }
 
     private static void Close(List<MazeDefinition> mazes, MazeDraft? draft)
     {
-        if (draft is null || draft.Rooms.Count == 0)
-            return;
-        mazes.Add(new MazeDefinition(
-            draft.Index,
-            draft.Width,
-            draft.Height,
-            draft.Rooms,
-            draft.StartCandidates,
-            draft.BossCandidates,
-            draft.QuestConnection));
-    }
-
-    private static void FlushQuestConnection(
-        MazeDraft? draft,
-        Section section,
-        IReadOnlyList<int> pending,
-        ref DungeonQuestConnection? dungeonConnection)
-    {
-        if (section != Section.QuestConnection || pending.Count == 0)
-            return;
-
-        var projected = ProjectQuestConnection(pending);
-        if (draft is null)
-            dungeonConnection = projected;
-        else
-            draft.QuestConnection = projected;
+        if (draft is null || draft.Rooms.Count == 0) return;
+        mazes.Add(new MazeDefinition(draft.Index, draft.Width, draft.Height, draft.Rooms,
+            draft.StartCandidates, draft.BossCandidates, draft.QuestConnection));
     }
 
     internal static DungeonQuestConnection? ProjectQuestConnection(IReadOnlyList<int> values)
@@ -316,27 +266,11 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             values.Count == 3 ? values[2] : -1);
     }
 
-    private static byte Clamp(int value) =>
-        value is >= 0 and <= byte.MaxValue ? (byte)value : (byte)0;
-
-    private enum Section
-    {
-        None,
-        Size,
-        Rooms,
-        Start,
-        Boss,
-        MinimumLevel,
-        BasisLevel,
-        ExperienceWeight,
-        PaidCardSwitch,
-        QuestConnection,
-        SkippedRoomEntry,
-    }
-
     private sealed class MazeDraft(int index)
     {
         public int Index { get; } = index;
+
+        public HashSet<PvfField> Seen { get; } = [];
 
         public byte Width { get; set; }
 
@@ -351,46 +285,4 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         public DungeonQuestConnection? QuestConnection { get; set; }
     }
 
-    private readonly struct DungeonTags
-    {
-        public DungeonTags(PvfArchive archive)
-        {
-            MazeInfo = archive.GetTag("[maze info]").Offset;
-            MazeInfoClose = archive.GetTag("[/maze info]").Offset;
-            Size = archive.GetTag("[size]").Offset;
-            MapSpecification = archive.GetTag("[map specification]").Offset;
-            StartMap = archive.GetTag("[start map]").Offset;
-            BossMap = archive.GetTag("[boss map]").Offset;
-            MinimumRequiredLevel = archive.GetTag("[minimum required level]").Offset;
-            BasisLevel = archive.GetTag("[basis level]").Offset;
-            ExperienceWeight = archive.GetTag("[experience increasing point]").Offset;
-            NoFatigue = archive.GetTag("[no fatigue]").Offset;
-            PaidCardSwitch = archive.GetTag("[gold card use]").Offset;
-            QuestConnection = archive.GetTag("[quest connection]").Offset;
-        }
-
-        public int MazeInfo { get; }
-
-        public int MazeInfoClose { get; }
-
-        public int Size { get; }
-
-        public int MapSpecification { get; }
-
-        public int StartMap { get; }
-
-        public int BossMap { get; }
-
-        public int MinimumRequiredLevel { get; }
-
-        public int BasisLevel { get; }
-
-        public int ExperienceWeight { get; }
-
-        public int NoFatigue { get; }
-
-        public int PaidCardSwitch { get; }
-
-        public int QuestConnection { get; }
-    }
 }

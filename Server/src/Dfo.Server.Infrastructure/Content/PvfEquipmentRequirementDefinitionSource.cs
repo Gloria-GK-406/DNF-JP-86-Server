@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -6,6 +7,11 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider provider) : IEquipmentRequirementDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, int?> cache = [];
     private Dictionary<int, string>? paths;
@@ -21,7 +27,7 @@ internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider
             if (paths.TryGetValue(itemId, out var path))
             {
                 var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, path)
-                    .Where(section => section.Name == "[minimum level]").ToArray();
+                    .Where(section => section.Name == Fields.MinimumLevelField.Name).ToArray();
                 if (sections.Length == 0) level = 0;
                 else if (sections.Length == 1 && sections[0].Values.Count == 1
                     && sections[0].Values[0].Kind == PvfTokenKind.Int32 && sections[0].Values[0].Value >= 0)

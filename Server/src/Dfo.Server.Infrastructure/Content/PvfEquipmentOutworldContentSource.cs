@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -8,6 +9,19 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provider)
     : IEquipmentOutworldContentSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<int>> PurifyOnlyCeraMaterialField = PvfField.Int32List("[purify only cera material]", optional: true);
+
+        internal static readonly PvfField<int> EquipLevelConstField = PvfField.Int32("[equip level const]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PurifyMaterialField = PvfField.Int32List("[purify material]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PurifyOnlyMaterialField = PvfField.Int32List("[purify only material]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> InvestOptionField = PvfField.Tokens("[invest option]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ReinvestOptionField = PvfField.Tokens("[reinvest option]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> OptionDataField = PvfField.Tokens("[option data]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RarityWeightField = PvfField.Tokens("[rarity weight]", optional: true);
+    }
+
     private static readonly IReadOnlyDictionary<string, byte> Attributes =
         new Dictionary<string, byte>(StringComparer.Ordinal)
         {
@@ -42,22 +56,22 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     {
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "etc/amplifyitem.etc");
         if (sections.Count == 0) return null;
-        var level = One(sections, "[equip level const]");
+        var level = One(sections, Fields.EquipLevelConstField);
         if (level?.Values is not { Count: 1 } || Int(level.Values[0]) is not int minimum
             || minimum <= 0) return null;
-        var purify = ReadItemCounts(sections, "[purify material]");
-        var clear = ReadItemCounts(sections, "[purify only material]");
+        var purify = ReadItemCounts(sections, Fields.PurifyMaterialField);
+        var clear = ReadItemCounts(sections, Fields.PurifyOnlyMaterialField);
         if (purify is null || clear is null) return null;
-        foreach (var name in new[] { "[purify only cera material]" })
+        foreach (var name in new[] { Fields.PurifyOnlyCeraMaterialField })
         {
             var extra = ReadItemCounts(sections, name);
             if (extra is null || extra.Keys.Any(clear.ContainsKey)) return null;
             foreach (var pair in extra) clear[pair.Key] = pair.Value;
         }
-        var invest = ReadOptions(archive, One(sections, "[invest option]"));
-        var twist = ReadOptions(archive, One(sections, "[reinvest option]"));
-        var weights = ReadRollWeights(archive, One(sections, "[option data]"), out var bases);
-        var rarityWeights = ReadRarityWeights(archive, One(sections, "[rarity weight]"));
+        var invest = ReadOptions(archive, One(sections, Fields.InvestOptionField));
+        var twist = ReadOptions(archive, One(sections, Fields.ReinvestOptionField));
+        var weights = ReadRollWeights(archive, One(sections, Fields.OptionDataField), out var bases);
+        var rarityWeights = ReadRarityWeights(archive, One(sections, Fields.RarityWeightField));
         if (invest is null || twist is null || weights is null || rarityWeights is null
             || purify.Count == 0 || clear.Count == 0) return null;
         var initial = new Dictionary<int, IReadOnlyDictionary<byte, ushort>>();
@@ -78,10 +92,10 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     }
 
     private static Dictionary<int, int>? ReadItemCounts(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name)
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name)
     {
         var result = new Dictionary<int, int>();
-        foreach (var section in sections.Where(section => section.Name == name))
+        foreach (var section in sections.Where(section => section.Name == name.Name))
         {
             if (section.Values.Count == 0 || section.Values.Count % 2 != 0) return null;
             for (var i = 0; i < section.Values.Count; i += 2)
@@ -146,9 +160,9 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     }
 
     private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name) =>
-        sections.Count(section => section.Name == name) == 1
-            ? sections.First(section => section.Name == name) : null;
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name) =>
+        sections.Count(section => section.Name == name.Name) == 1
+            ? sections.First(section => section.Name == name.Name) : null;
 
     private static int? Int(PvfToken token) => token.Kind == PvfTokenKind.Int32
         ? token.Value : null;

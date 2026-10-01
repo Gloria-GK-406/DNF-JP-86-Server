@@ -1,0 +1,402 @@
+using Dfo.Pvf.Tests.Support;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Infrastructure.Content;
+
+namespace Dfo.Server.Infrastructure.Tests.Content;
+
+public sealed class PvfTypedDungeonAndMagicSealTests
+{
+    [Theory]
+    [InlineData("type")]
+    [InlineData("extra")]
+    [InlineData("range")]
+    public async Task Dungeon_bad_scalar_never_uses_an_old_or_default_level(string defect)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn").Tag("[minimum required level]");
+        if (defect == "type") script.Quoted("bad"); else script.Int(defect == "range" ? 256 : 2);
+        if (defect == "extra") script.Int(3);
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default).AsTask());
+        Assert.Contains("dungeon/test.dgn", error.Message);
+        Assert.Contains("[minimum required level]", error.Message);
+    }
+
+    [Fact]
+    public async Task Dungeon_repeated_minimum_levels_validate_each_declaration_and_keep_last_override()
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn").Tag("[minimum required level]").Int(1)
+            .Tag("[basis level]").Int(5).Tag("[recommended level]").Int(46).Int(85)
+            .Tag("[minimum required level]").Int(46);
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+        var dungeon = await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default);
+        Assert.NotNull(dungeon);
+        Assert.Equal((byte)46, dungeon.MinimumRequiredLevel);
+        Assert.Equal((byte)5, dungeon.BasisLevel);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Dungeon_legal_restatement_cannot_mask_an_invalid_minimum_level(bool damageFirst)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn").Tag("[minimum required level]");
+        if (damageFirst) script.Quoted("bad"); else script.Int(1);
+        script.Tag("[recommended level]").Int(46).Int(85).Tag("[minimum required level]");
+        if (damageFirst) script.Int(46); else script.Int(256);
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default).AsTask());
+        Assert.Contains("[minimum required level]", error.Message);
+        Assert.Contains("dungeon/test.dgn", error.Message);
+    }
+
+    [Theory]
+    [InlineData("[size]")]
+    [InlineData("[map specification]")]
+    [InlineData("[start map]")]
+    [InlineData("[boss map]")]
+    [InlineData("[quest connection]")]
+    public async Task Dungeon_incomplete_rows_never_return_a_usable_prefix(string field)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn").Tag("[maze info]").Tag(field);
+        if (field == "[map specification]") script.Quoted("map");
+        script.Int(1).Tag("[unknown]").End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default).AsTask());
+        Assert.Contains(field, error.Message);
+        Assert.Contains("dungeon/test.dgn", error.Message);
+    }
+
+    [Fact]
+    public async Task Dungeon_distinct_maze_scopes_preserve_repeated_fields_and_missing_defaults()
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn");
+        AddMaze(script).Tag("[quest connection]").Int(0).Int(1776);
+        AddMaze(script).Tag("[quest connection]").Int(1).Int(1777).End();
+        using var file = new BuiltArchive(builder);
+        var dungeon = await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default);
+        Assert.NotNull(dungeon);
+        Assert.Equal(2, dungeon.Mazes.Count);
+        Assert.Equal((byte)1, dungeon.MinimumRequiredLevel);
+        Assert.Equal(1d, dungeon.ExperienceWeight);
+        Assert.Equal(1776, dungeon.Mazes[0].QuestConnection!.QuestId);
+        Assert.Equal(1777, dungeon.Mazes[1].QuestConnection!.QuestId);
+    }
+
+    [Fact]
+    public async Task Dungeon_variable_map_candidates_keep_the_existing_complete_triple_projection()
+    {
+        var builder = DungeonBuilder();
+        builder.AddScript("dungeon", "test.dgn").Tag("[maze info]").Tag("[size]").Int(9).Int(1)
+            .Tag("[map specification]").Quoted("map").Int(7).Int(0).Int(27136).Int(27137).Int(27138).Int(27139).Int(27140)
+            .Quoted("boss").Int(8).Int(0).Int(27142).Int(27143).Int(27144).Int(27145)
+            .Tag("[start map]").Int(7).Int(0).Tag("[boss map]").Int(8).Int(0).End();
+        using var file = new BuiltArchive(builder);
+        var dungeon = await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default);
+        Assert.NotNull(dungeon);
+        Assert.Equal(new Dictionary<MazeCell, int>
+        {
+            [new MazeCell(7, 0)] = 27136,
+            [new MazeCell(8, 0)] = 27142,
+            [new MazeCell(0, 0)] = 27145,
+        }, Assert.Single(dungeon.Mazes).Rooms);
+    }
+
+    [Theory]
+    [InlineData("single")]
+    [InlineData("zero")]
+    [InlineData("string")]
+    public async Task Dungeon_variable_candidate_damage_is_not_hidden_after_a_valid_map(string defect)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn").Tag("[maze info]").Tag("[map specification]")
+            .Quoted("map").Int(7).Int(0).Int(27136).Int(27137);
+        if (defect == "single") script.Single(27138);
+        if (defect == "zero") script.Int(0);
+        if (defect == "string") script.Quoted("broken kind");
+        script.End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default).AsTask());
+        Assert.Contains("[map specification]", error.Message);
+        Assert.Contains("dungeon/test.dgn", error.Message);
+    }
+
+    [Theory]
+    [InlineData("tail")]
+    [InlineData("word")]
+    [InlineData("mixed")]
+    public async Task Monster_records_require_every_integer_and_both_rank_words(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("map", "map.lst").Int(7).Quoted("test.map").End();
+        var script = builder.AddScript("map", "test.map").Tag("[monster]");
+        AddMonster(script, defect == "word");
+        if (defect == "tail") script.Int(99);
+        if (defect == "mixed") script.Quoted("bad");
+        script.Tag("[/monster]").End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfDungeonRoomActorSource(file.Provider).GetAsync(7, default).AsTask());
+        Assert.Contains("[monster]", error.Message);
+        Assert.Contains("map/test.map", error.Message);
+    }
+
+    [Fact]
+    public async Task Monster_repeated_blocks_remain_valid()
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("map", "map.lst").Int(7).Quoted("test.map").End();
+        var script = builder.AddScript("map", "test.map").Tag("[monster]");
+        AddMonster(script).Tag("[/monster]").Tag("[monster]");
+        AddMonster(script).Tag("[/monster]").End();
+        using var file = new BuiltArchive(builder);
+        var actors = await new PvfDungeonRoomActorSource(file.Provider).GetAsync(7, default);
+        Assert.Equal(2, actors.Count);
+        Assert.All(actors, actor => Assert.Equal((byte)3, actor.ActorType));
+    }
+
+    [Theory]
+    [InlineData("type")]
+    [InlineData("extra")]
+    [InlineData("duplicate")]
+    public async Task Ai_minimum_info_uses_actual_positions_and_checks_the_complete_payload(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("map", "map.lst").Int(7).Quoted("test.map").End();
+        builder.AddScript("map", "test.map").Tag("[ai character]").Int(461).Int(0).Int(0).Int(0)
+            .Quoted("[character]").Quoted("[normal]").Int(0).Int(0).Tag("[/ai character]").End();
+        builder.AddScript("aicharacter", "aicharacter.lst").Int(461).Quoted("test.aic").End();
+        var script = builder.AddScript("aicharacter", "test.aic");
+        AddMinimumInfo(script, defect == "type");
+        if (defect == "extra") script.Quoted("bad");
+        if (defect == "duplicate") AddMinimumInfo(script, false);
+        script.End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfDungeonRoomActorSource(file.Provider).GetAsync(7, default).AsTask());
+        Assert.Contains("[minimum info]", error.Message);
+        Assert.Contains("aicharacter/test.aic", error.Message);
+    }
+
+    [Theory]
+    [InlineData("type")]
+    [InlineData("extra")]
+    [InlineData("duplicate")]
+    [InlineData("negative")]
+    public void Stack_limit_damage_cannot_become_zero(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        var script = builder.AddScript("stackable", "test.stk").Tag("[stack limit]");
+        if (defect == "type") script.Quoted("bad"); else script.Int(defect == "negative" ? -1 : 100);
+        if (defect == "extra") script.Int(200);
+        if (defect == "duplicate") script.Tag("[stack limit]").Int(200);
+        script.Tag("[stackable type]").Quoted("[waste]").Int(1).End();
+        using var file = new BuiltArchive(builder);
+        var error = Assert.Throws<InvalidDataException>(() => ResolveMetadata(file));
+        Assert.Contains("[stack limit]", error.Message);
+        Assert.Contains("stackable/test.stk", error.Message);
+    }
+
+    [Fact]
+    public void Nested_reward_item_metadata_does_not_duplicate_the_root_fields()
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("stackable", "test.stk").Tag("[stack limit]").Int(100)
+            .Tag("[stackable type]").Quoted("[waste]").Int(1)
+            .Tag("[booster info]").Tag("[stack limit]").Int(2)
+            .Tag("[stackable type]").Quoted("[material]").Int(0).Tag("[/booster info]").End();
+        using var file = new BuiltArchive(builder);
+        var metadata = ResolveMetadata(file);
+        Assert.Equal(100, metadata.StackLimit);
+        Assert.Equal((byte)2, metadata.ItemKind);
+    }
+
+    [Theory]
+    [InlineData("selection", "[choose option group]")]
+    [InlineData("group", "[option group]")]
+    [InlineData("level", "[level]")]
+    [InlineData("range", "[physical attack]")]
+    [InlineData("nonfinite", "[physical attack]")]
+    [InlineData("quantity", "[common]")]
+    [InlineData("cost", "[break seal cost]")]
+    [InlineData("change", "[option modification]")]
+    [InlineData("duplicatecost", "[break seal cost]")]
+    [InlineData("duplicaterange", "[physical attack]")]
+    public async Task Magic_seal_usable_prefix_does_not_hide_damage_later_in_the_field(string defect, string field)
+    {
+        using var file = new BuiltArchive(MagicSealBuilder(defect));
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfEquipmentMagicSealContentSource(file.Provider).GetEquipmentAsync(7, default).AsTask());
+        Assert.Contains(field, error.Message);
+        Assert.Contains("PVF '", error.Message);
+    }
+
+    [Fact]
+    public async Task Magic_seal_preserves_zero_weight_disabled_rows_and_costs()
+    {
+        using var file = new BuiltArchive(MagicSealBuilder());
+        var definition = await new PvfEquipmentMagicSealContentSource(file.Provider).GetEquipmentAsync(7, default);
+        Assert.NotNull(definition);
+        Assert.Equal(1720, definition.UnsealGoldCost);
+        Assert.Equal(3800, definition.ChangeGoldCost);
+        Assert.Single(definition.Quantities);
+        Assert.All(definition.InitialGroups, group => Assert.Equal(new RandomOptionState(15, 13, 98), Assert.Single(group).Option));
+    }
+
+    [Fact]
+    public async Task Magic_seal_valid_single_ranges_keep_the_existing_integer_projection_boundary()
+    {
+        using var file = new BuiltArchive(MagicSealBuilder("single"));
+        var definition = await new PvfEquipmentMagicSealContentSource(file.Provider).GetEquipmentAsync(7, default);
+        Assert.NotNull(definition);
+        Assert.Equal(new RandomOptionState(15, 8, 45), Assert.Single(definition.InitialGroups[0]).Option);
+    }
+
+    [Theory]
+    [InlineData("type")]
+    [InlineData("extra")]
+    [InlineData("empty")]
+    [InlineData("duplicate")]
+    public void Bad_stackable_type_does_not_become_the_default_consumable(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        var script = builder.AddScript("stackable", "test.stk").Tag("[stackable type]");
+        if (defect == "type") script.Int(99);
+        if (defect != "empty") script.Quoted("[material]").Int(0);
+        // Multiple integer operands are legal; a noninteger tail must still reject the whole declaration.
+        if (defect == "extra") script.Int(1).Quoted("invalid tail");
+        if (defect == "duplicate") script.Tag("[stackable type]").Quoted("[waste]").Int(1);
+        script.End();
+        using var file = new BuiltArchive(builder);
+        var error = Assert.Throws<InvalidDataException>(() => ResolveMetadata(file));
+        Assert.Contains("[stackable type]", error.Message);
+        Assert.Contains("stackable/test.stk", error.Message);
+    }
+
+    [Fact]
+    public void Undeclared_optional_stack_metadata_still_uses_existing_defaults()
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("stackable", "test.stk").Tag("[name]").Quoted("test").End();
+        using var file = new BuiltArchive(builder);
+        var metadata = ResolveMetadata(file);
+        Assert.Equal(0, metadata.StackLimit);
+        Assert.Equal((byte)2, metadata.ItemKind);
+    }
+
+    [Theory]
+    [InlineData("tail")]
+    [InlineData("type")]
+    public async Task Refill_rows_reject_complete_prefix_followed_by_structural_damage(string defect)
+    {
+        var builder = new PvfArchiveBuilder();
+        var script = builder.AddScript("etc", "chn_server_limititemusageinfo.etc").Tag("[refill item]")
+            .Int(7).Int(2).Quoted("2030-01-01 06:00:00");
+        if (defect == "type") script.Quoted("bad"); else script.Int(0).Int(8);
+        script.End();
+        using var file = new BuiltArchive(builder);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfEntryLifecycleContentSource(file.Provider)
+            .GetDailyRefillRulesAsync(DateTimeOffset.UtcNow, default).AsTask());
+        Assert.Contains("[refill item]", error.Message);
+        Assert.Contains("etc/chn_server_limititemusageinfo.etc", error.Message);
+    }
+
+    [Theory]
+    [InlineData("clamp", 255, 255)]
+    [InlineData("scopes", 14, 99)]
+    public async Task Magic_seal_finite_values_keep_byte_projection_and_separate_option_scopes(string content, int first, int second)
+    {
+        using var file = new BuiltArchive(MagicSealBuilder(content));
+        var definition = await new PvfEquipmentMagicSealContentSource(file.Provider).GetEquipmentAsync(7, default);
+        Assert.NotNull(definition);
+        Assert.Equal(new RandomOptionState(15, (byte)first, (byte)second), Assert.Single(definition.InitialGroups[0]).Option);
+    }
+
+    private static PvfArchiveBuilder DungeonBuilder()
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("dungeon", "dungeon.lst").Int(7).Quoted("test.dgn").End();
+        return builder;
+    }
+
+    private static PvfArchiveBuilder.ScriptWriter AddMaze(PvfArchiveBuilder.ScriptWriter script) =>
+        script.Tag("[maze info]").Tag("[size]").Int(3).Int(2)
+            .Tag("[map specification]").Quoted("map").Int(0).Int(1).Int(61000)
+            .Tag("[start map]").Int(0).Int(1).Tag("[boss map]").Int(0).Int(1);
+
+    private static PvfArchiveBuilder.ScriptWriter AddMonster(PvfArchiveBuilder.ScriptWriter script, bool omitRank = false)
+    {
+        script.Int(61670).Int(1).Int(0).Int(50).Int(30).Int(0).Int(1).Int(1).Quoted("[fixed]");
+        if (!omitRank) script.Quoted("[boss]");
+        return script;
+    }
+
+    private static void AddMinimumInfo(PvfArchiveBuilder.ScriptWriter script, bool wrongType)
+    {
+        script.Tag("[minimum info]").Quoted("guide");
+        if (wrongType) script.Quoted("bad"); else script.Int(0);
+        script.Int(2).Int(1).Int(1).Int(80).Int(0).Int(0).Int(0).Int(0).Int(0).Int(0)
+            .Quoted("no creature").Int(0).Int(0).Int(0);
+    }
+
+    private static PvfEntryLifecycleContentSource.RefillItemMetadata ResolveMetadata(BuiltArchive file) =>
+        PvfEntryLifecycleContentSource.ResolveItemMetadataFor(file.Provider.Archive, 7,
+            new Dictionary<int, (int Id, string RelativePath)> { [7] = (7, "test.stk") }, new Dictionary<int, string>());
+
+    private static PvfArchiveBuilder MagicSealBuilder(string? defect = null)
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("equipment", "equipment.lst").Int(7).Quoted("weapon/katana/test.equ").End();
+        builder.AddScript("equipment/weapon/katana", "test.equ").Tag("[random option]").Int(1)
+            .Tag("[rarity]").Int(2).Tag("[minimum level]").Int(75).Tag("[equipment type]").Quoted("[weapon]").Int(0).End();
+        var selection = builder.AddScript("etc/randomoption", "optiongroupselection.etc").Tag("[choose option group]")
+            .Int(2).Int(-1).Quoted("katana").Int(1).Int(3).Int(1000).Int(1000).Int(1000).Int(0).Int(0).Int(1000);
+        if (defect == "selection") selection.Int(9);
+        selection.End();
+        builder.AddScript("etc/randomoption", "randomoption.lst").Int(15).Quoted("option.etc").End();
+        var group = builder.AddScript("etc/randomoption", "optiongrouping.etc").Tag("[option group]").Int(1000).Int(15).Int(10);
+        if (defect == "group") group.Quoted("bad");
+        group.Tag("[/option group]").End();
+        var option = builder.AddScript("etc/randomoption", "option.etc").Tag("[dungeon]").Tag("[option]").Int(15)
+            .Tag("[level]").Int(1).Tag("[physical attack]").Int(8).Int(45).Tag("[/level]").Tag("[level]").Int(75);
+        if (defect == "level") option.Int(76);
+        option.Tag("[physical attack]");
+        if (defect == "single") option.Single(13.5f).Single(98.5f);
+        else if (defect == "nonfinite") option.Single(float.NaN).Int(98);
+        else if (defect == "clamp") option.Int(300).Int(500);
+        else option.Int(13).Int(98);
+        if (defect == "range") option.Quoted("bad");
+        if (defect == "duplicaterange") option.Tag("[physical attack]").Int(13).Int(98);
+        option.Tag("[/level]");
+        if (defect == "scopes") option.Tag("[pvp]").Tag("[option]").Int(15).Tag("[level]").Int(75)
+            .Tag("[physical attack]").Int(14).Int(99).Tag("[/level]");
+        option.End();
+        var quantity = builder.AddScript("etc/randomoption", "optionquantity.etc").Tag("[common]").Int(1).Int(1000).Int(2).Int(0);
+        if (defect == "quantity") quantity.Int(3);
+        quantity.Tag("[/common]").End();
+        var costs = builder.AddScript("etc/randomoption", "randomizedoptionoverall2.etc").Tag("[break seal cost]").Int(2).Int(75).Int(1).Int(1720);
+        if (defect == "cost") costs.Int(99);
+        if (defect == "duplicatecost") costs.Int(2).Int(75).Int(1).Int(1720);
+        costs.Tag("[option modification]").Int(75).Int(3800).Int(38000);
+        if (defect == "change") costs.Quoted("bad");
+        costs.End();
+        return builder;
+    }
+
+    private sealed class BuiltArchive : IDisposable
+    {
+        private readonly string path = Path.Combine(Path.GetTempPath(), $"pvf-dungeon-typed-{Guid.NewGuid():N}.pvf");
+        internal PvfArchiveProvider Provider { get; }
+        internal BuiltArchive(PvfArchiveBuilder builder)
+        {
+            File.WriteAllBytes(path, builder.Build());
+            Provider = new(new PvfContentOptions { ArchivePath = path });
+        }
+        public void Dispose() { Provider.Dispose(); File.Delete(path); }
+    }
+}

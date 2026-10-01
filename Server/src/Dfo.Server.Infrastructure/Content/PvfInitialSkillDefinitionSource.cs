@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -21,6 +22,15 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> TypeField = PvfField.String("[type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> InitialValueField = PvfField.Tokens("[initial value]", optional: true);
+        internal static readonly PvfField<bool> CloseInitialValueField = PvfField.Marker("[/initial value]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> SkillField = PvfField.Int32List("[skill]", optional: true);
+        internal static readonly PvfField<bool> CloseSkillField = PvfField.Marker("[/skill]", optional: true);
+    }
+
     private const string ListPath = "character/character.lst";
     private const string CharacterDirectory = "character";
 
@@ -71,61 +81,27 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
         if (fileIndex < 0)
             return [];
 
-        var tags = new CharacterTags(archive);
         var skillPaths = SkillPaths(archive, job);
         var grants = new List<InitialSkillGrant>();
         var inInitialValue = false;
-        var inSkill = false;
-        int? pendingSkillId = null;
-
-        var reader = archive.OpenScript(fileIndex);
-        while (reader.Read(out var token))
+        var path = $"{CharacterDirectory}/{relativePath}";
+        foreach (var section in PvfDocument.Open(archive, path).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
+            if (Fields.InitialValueField.Matches(section.Name)) inInitialValue = true;
+            else if (Fields.CloseInitialValueField.Matches(section.Name)) break;
+            else if (inInitialValue && Fields.SkillField.Matches(section.Name))
             {
-                var name = archive.ResolveString(token.Value);
-                if (!name.StartsWith('['))
-                    continue;
-
-                if (token.Value == tags.InitialValue) inInitialValue = true;
-                else if (token.Value == tags.InitialValueClose) return grants;
-                else if (token.Value == tags.Skill) inSkill = inInitialValue;
-                else if (token.Value == tags.SkillClose)
+                var values = Fields.SkillField.Decode(archive, section.Values, path);
+                if (values.Count % 2 != 0) throw new InvalidDataException($"PVF '{path}', field '{Fields.SkillField.Name}': incomplete skill/level pair.");
+                for (var i = 0; i < values.Count; i += 2)
                 {
-                    if (inSkill)
-                        return grants;
+                    if (values[i] < 0 || values[i + 1] is < 0 or > byte.MaxValue)
+                        throw new InvalidDataException($"PVF '{path}', field '{Fields.SkillField.Name}': invalid skill/level range.");
+                    grants.Add(new((uint)values[i], (byte)values[i + 1], IsActiveSkill(archive, skillPaths, values[i])));
                 }
-                else if (inSkill)
-                {
-                    // Any other tag ends the block too: the observed files close [skill] properly,
-                    // but a file that did not would otherwise swallow the next section's integers.
-                    return grants;
-                }
-
-                pendingSkillId = null;
-                continue;
+                break;
             }
-
-            if (!inSkill || token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            if (pendingSkillId is null)
-            {
-                pendingSkillId = token.Value;
-                continue;
-            }
-
-            if (pendingSkillId >= 0 && token.Value is >= 0 and <= byte.MaxValue)
-            {
-                grants.Add(new InitialSkillGrant(
-                    (uint)pendingSkillId.Value,
-                    (byte)token.Value,
-                    IsActiveSkill(archive, skillPaths, pendingSkillId.Value)));
-            }
-
-            pendingSkillId = null;
         }
-
         return grants;
     }
 
@@ -149,29 +125,9 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
         if (fileIndex < 0)
             return false;
 
-        var typeTag = archive.GetTag("[type]").Offset;
-        var reader = archive.OpenScript(fileIndex);
-        var expecting = false;
-        while (reader.Read(out var token))
-        {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                var name = archive.ResolveString(token.Value);
-                if (name.StartsWith('['))
-                {
-                    expecting = token.Value == typeTag;
-                    continue;
-                }
-            }
-
-            if (expecting && token.IsString)
-            {
-                return archive.ResolveString(token.Value)
-                    .Contains("active", StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        return false;
+        var document = PvfDocument.Open(archive, $"skill/{relativePath}");
+        return document.TryRead(Fields.TypeField, out var type)
+            && type.Contains("active", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>The job's skill index, mapping identifiers to their definition files.</summary>
@@ -222,10 +178,10 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
     {
         public CharacterTags(PvfArchive archive)
         {
-            InitialValue = archive.GetTag("[initial value]").Offset;
-            InitialValueClose = archive.GetTag("[/initial value]").Offset;
-            Skill = archive.GetTag("[skill]").Offset;
-            SkillClose = archive.GetTag("[/skill]").Offset;
+            InitialValue = archive.GetTag(Fields.InitialValueField).Offset;
+            InitialValueClose = archive.GetTag(Fields.CloseInitialValueField).Offset;
+            Skill = archive.GetTag(Fields.SkillField).Offset;
+            SkillClose = archive.GetTag(Fields.CloseSkillField).Offset;
         }
 
         public int InitialValue { get; }

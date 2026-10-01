@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -10,6 +11,25 @@ internal sealed class PvfCreatureRuleSource(
     PvfArchiveProvider provider,
     ICreatureDefinitionSource definitions) : ICreatureRuleSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> EquipmentTypeField = PvfField.Custom<string>("[equipment type]", (archive, values, path) =>
+        {
+            if (values.Count == 0 || !values[0].IsString || values.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32))
+                throw new InvalidDataException($"PVF '{path}', field '[equipment type]': expected type string and optional Int32 operands.");
+            return archive.ResolveString(values[0].Value);
+        }, optional: true);
+        internal static readonly PvfField<int> SubTypeField = PvfField.Int32("[sub type]", optional: true);
+        internal static readonly PvfField<int> CreatureSpeciesField = PvfField.Int32("[creature species]", optional: true);
+        internal static readonly PvfField<int> OutputIndexField = PvfField.Int32("[output index]", optional: true);
+        internal static readonly PvfField<int> CreatureMinimumLevelField = PvfField.Int32("[creature minimum level]", optional: true);
+        internal static readonly PvfField<double> CreatureExperienceAmountRateField = PvfField.Number("[creature experience amount rate]", optional: true);
+        internal static readonly PvfField<bool> SelectiveGrowCreatureField = PvfField.Marker("[selective grow creature]", optional: true);
+        internal static readonly PvfField<int> UsingExpItemField = PvfField.Int32("[using exp item]", optional: true);
+        internal static readonly PvfField<int> GrowAtypeItemIndexField = PvfField.Int32("[grow Atype item index]", optional: true);
+        internal static readonly PvfField<int> GrowBtypeItemIndexField = PvfField.Int32("[grow Btype item index]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private Catalog? catalog;
     private readonly Dictionary<int, CreatureRule?> ruleCache = [];
@@ -119,38 +139,22 @@ internal sealed class PvfCreatureRuleSource(
 
     private static EquipmentFields ReadEquipment(PvfArchive archive, string path)
     {
-        var typeTag = archive.GetTag("[equipment type]").Offset;
-        var subtypeTag = archive.GetTag("[sub type]").Offset;
-        var speciesTag = archive.GetTag("[creature species]").Offset;
-        var outputTag = archive.GetTag("[output index]").Offset;
-        var minimumTag = archive.GetTag("[creature minimum level]").Offset;
-        var experienceTag = archive.GetTag("[creature experience amount rate]").Offset;
-        var section = -1;
         var type = string.Empty;
         var subtype = 0;
         var species = 0;
         var output = 0;
         var minimum = 0;
         var percent = 0f;
-        var reader = archive.OpenScript(path);
-        while (reader.Read(out var token))
+        // Decode each occurrence independently: repeated scoped declarations retain last-value projection.
+        foreach (var section in PvfDocument.Open(archive, path).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier) { section = token.Value; continue; }
-            if (section == typeTag && token.IsString)
-                type = archive.ResolveString(token.Value);
-            else if (section == subtypeTag && token.Kind == PvfTokenKind.Int32)
-                subtype = token.Value;
-            else if (section == speciesTag && token.Kind == PvfTokenKind.Int32)
-                species = token.Value;
-            else if (section == outputTag && token.Kind == PvfTokenKind.Int32)
-                output = token.Value;
-            else if (section == minimumTag && token.Kind == PvfTokenKind.Int32)
-                minimum = token.Value;
-            else if (section == experienceTag)
-            {
-                if (token.Kind == PvfTokenKind.Single) percent = token.AsSingle();
-                else if (token.Kind == PvfTokenKind.Int32) percent = token.Value;
-            }
+            if (Fields.EquipmentTypeField.Matches(section.Name)) type = Fields.EquipmentTypeField.Decode(archive, section.Values, path);
+            else if (Fields.SubTypeField.Matches(section.Name)) subtype = Fields.SubTypeField.Decode(archive, section.Values, path);
+            else if (Fields.CreatureSpeciesField.Matches(section.Name)) species = Fields.CreatureSpeciesField.Decode(archive, section.Values, path);
+            else if (Fields.OutputIndexField.Matches(section.Name)) output = Fields.OutputIndexField.Decode(archive, section.Values, path);
+            else if (Fields.CreatureMinimumLevelField.Matches(section.Name)) minimum = Fields.CreatureMinimumLevelField.Decode(archive, section.Values, path);
+            else if (Fields.CreatureExperienceAmountRateField.Matches(section.Name))
+                percent = (float)Fields.CreatureExperienceAmountRateField.Decode(archive, section.Values, path);
         }
 
         return new EquipmentFields(
@@ -161,28 +165,20 @@ internal sealed class PvfCreatureRuleSource(
 
     private static bool? ReadHunger(PvfArchive archive, string path)
     {
-        var selectiveTag = archive.GetTag("[selective grow creature]").Offset;
-        var usingExpTag = archive.GetTag("[using exp item]").Offset;
-        var aTag = archive.GetTag("[grow Atype item index]").Offset;
-        var bTag = archive.GetTag("[grow Btype item index]").Offset;
-        var reader = archive.OpenScript(path);
-        var section = -1;
         var selective = false;
         var usingExp = false;
         var aItem = -1;
         var bItem = -1;
-        while (reader.Read(out var token))
+        foreach (var section in PvfDocument.Open(archive, path).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                section = token.Value;
-                if (section == selectiveTag) selective = true;
-                continue;
-            }
-            if (token.Kind != PvfTokenKind.Int32) continue;
-            if (section == usingExpTag) usingExp = token.Value != 0;
-            else if (section == aTag) aItem = token.Value;
-            else if (section == bTag) bItem = token.Value;
+            if (Fields.SelectiveGrowCreatureField.Matches(section.Name))
+                selective |= Fields.SelectiveGrowCreatureField.Decode(archive, section.Values, path);
+            else if (Fields.UsingExpItemField.Matches(section.Name))
+                usingExp = Fields.UsingExpItemField.Decode(archive, section.Values, path) != 0;
+            else if (Fields.GrowAtypeItemIndexField.Matches(section.Name))
+                aItem = Fields.GrowAtypeItemIndexField.Decode(archive, section.Values, path);
+            else if (Fields.GrowBtypeItemIndexField.Matches(section.Name))
+                bItem = Fields.GrowBtypeItemIndexField.Decode(archive, section.Values, path);
         }
 
         // 70 CCreatureScript::IsItemGrowCreature requires an A/B item and [using exp item].

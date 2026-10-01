@@ -1,0 +1,72 @@
+[
+  {
+    "name": "final-release-build",
+    "command": "dotnet build Server/86JP.Server.slnx -c Release --no-restore",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:12:39.7559366+00:00",
+    "finishedUtc": "2026-10-01T10:12:45.0570847+00:00"
+  },
+  {
+    "name": "final-Dfo.Pvf",
+    "command": "dotnet test Server/tests/Dfo.Pvf.Tests/Dfo.Pvf.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Pvf.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:12:45.0779489+00:00",
+    "finishedUtc": "2026-10-01T10:12:47.6805077+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Infrastructure",
+    "command": "dotnet test Server/tests/Dfo.Server.Infrastructure.Tests/Dfo.Server.Infrastructure.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Infrastructure.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:12:47.6834398+00:00",
+    "finishedUtc": "2026-10-01T10:13:05.6950590+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Application",
+    "command": "dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Application.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:13:05.6972450+00:00",
+    "finishedUtc": "2026-10-01T10:13:58.8193213+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Persistence",
+    "command": "dotnet test Server/tests/Dfo.Server.Persistence.Tests/Dfo.Server.Persistence.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Persistence.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:13:58.8212955+00:00",
+    "finishedUtc": "2026-10-01T10:14:18.2007305+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Protocol",
+    "command": "dotnet test Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Protocol.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:14:18.2027547+00:00",
+    "finishedUtc": "2026-10-01T10:14:21.8600700+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Networking",
+    "command": "dotnet test Server/tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Networking.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:14:21.8619902+00:00",
+    "finishedUtc": "2026-10-01T10:14:28.6870718+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.HttpApi",
+    "command": "dotnet test Server/tests/Dfo.Server.HttpApi.Tests/Dfo.Server.HttpApi.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.HttpApi.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:14:28.6892006+00:00",
+    "finishedUtc": "2026-10-01T10:14:31.0945954+00:00"
+  },
+  {
+    "name": "final-Dfo.Server.Host",
+    "command": "dotnet test Server/tests/Dfo.Server.Host.Tests/Dfo.Server.Host.Tests.csproj -c Release --no-build --no-restore --logger trx;LogFileName=final-Dfo.Server.Host.trx --results-directory E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\solo-play-roadmap\\Document\\tasks\\pvf-typed-schema\\verification",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:14:31.0967029+00:00",
+    "finishedUtc": "2026-10-01T10:15:14.2826837+00:00"
+  },
+  {
+    "name": "final-probe-build",
+    "command": "dotnet build Tool/PvfProbe/PvfProbe.csproj -c Release --no-restore",
+    "exitCode": 0,
+    "startedUtc": "2026-10-01T10:15:14.2845329+00:00",
+    "finishedUtc": "2026-10-01T10:15:15.2444519+00:00"
+  }
+]

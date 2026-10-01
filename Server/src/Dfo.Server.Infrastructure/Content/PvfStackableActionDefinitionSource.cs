@@ -1,3 +1,5 @@
+using Dfo.Pvf.Tokens;
+using Dfo.Pvf.Schema;
 using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Server.Abstractions.Content;
@@ -7,6 +9,14 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider provider)
     : IStackableActionDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField = PvfField.Tokens("[action type]", optional: true);
+        internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
+        internal static readonly PvfField<int> MaximumLevelField = PvfField.Int32("[maximum level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, StackableActionDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
@@ -30,29 +40,37 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
     {
         var reader = archive.OpenScript(path);
         var unreadable = false;
-        if (!PvfItemUseRuleDefinitionSource.TryReadFirstString(ref reader,
-            archive.GetTag("[action type]"), out var action, ref unreadable)) return null;
+        if (!PvfItemUseRuleDefinitionSource.TryReadFirstString(archive, ref reader,
+            Fields.ActionTypeField, out var action, ref unreadable)) return null;
         var actionName = archive.ResolveString(action.Value);
+        var document = PvfDocument.Open(archive, path).AtRoot();
+        if (actionName == "[add fatigue]")
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count != 2 || !operands[0].IsString || operands[1].Kind != PvfTokenKind.Int32)
+                unreadable = true;
+        }
         var recovery = 0;
         if (actionName == "[add fatigue]" && !reader.TryReadInt32(out recovery)) unreadable = true;
-        var min = PvfItemUseRuleDefinitionSource.FirstInt32(ref reader,
-            archive.GetTag("[minimum level]"), ref unreadable);
-        var maximumTag = archive.GetTag("[maximum level]");
+        var min = PvfItemUseRuleDefinitionSource.FirstInt32(archive, ref reader,
+            Fields.MinimumLevelField, ref unreadable);
+        var maximumTag = archive.GetTag(Fields.MaximumLevelField);
         reader.Reset();
         var max = maximumTag.IsResolved && reader.TryMovePast(maximumTag)
-            ? PvfItemUseRuleDefinitionSource.FirstInt32(ref reader, maximumTag, ref unreadable)
+            ? PvfItemUseRuleDefinitionSource.FirstInt32(archive, ref reader, Fields.MaximumLevelField, ref unreadable)
             : int.MaxValue;
         long expiry = 0;
-        var expiryTag = archive.GetTag("[expiration date]");
-        reader.Reset();
-        if (expiryTag.IsResolved && reader.TryMovePast(expiryTag))
+        if (document.TryRead(Fields.ExpirationDateField, out var dates))
         {
-            if (!reader.TryReadSectionValue(out var token)) unreadable = true;
-            else if (token.IsString && DateTime.TryParseExact(archive.ResolveString(token.Value),
-                "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-                expiry = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date)).ToUnixTimeSeconds();
-            else if (token.Kind != Dfo.Pvf.Tokens.PvfTokenKind.Int32 || token.Value != 0)
-                unreadable = true;
+            if (dates.Count != 1) unreadable = true;
+            else
+            {
+                var token = dates[0];
+                if (token.IsString && DateTime.TryParseExact(archive.ResolveString(token.Value),
+                    "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+                    expiry = new DateTimeOffset(date, TimeZoneInfo.Local.GetUtcOffset(date)).ToUnixTimeSeconds();
+                else if (token.Kind != PvfTokenKind.Int32 || token.Value != 0) unreadable = true;
+            }
         }
         return new(actionName, min, max, expiry,
             !unreadable && min >= 0 && max >= min

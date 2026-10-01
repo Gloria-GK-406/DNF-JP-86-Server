@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Concurrent;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -51,22 +52,22 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IClearRewardRateSource
 {
     /// <summary>How many bands each named profile holds.</summary>
-    private const string BandCountSection = "[drop prob count]";
+    private static readonly PvfField<int> BandCountSection = PvfField.Int32("[drop prob count]");
 
     /// <summary>The named profiles and their bands. The one section unlike the sibling family's.</summary>
-    private const string ProfileSection = "[drop prob]";
+    private static readonly PvfField<IReadOnlyList<PvfToken>> ProfileSection = PvfField.Tokens("[drop prob]", optional: true);
 
     /// <summary>Two numbers whose positions are not ascertained. Carried verbatim.</summary>
-    private const string DropKindSection = "[drop kind prob]";
+    private static readonly PvfField<IReadOnlyList<int>> DropKindSection = PvfField.Int32List("[drop kind prob]", optional: true);
 
     /// <summary>Four numbers, as many as a sibling band pays item rates. Carried verbatim.</summary>
-    private const string ItemTypeSection = "[drop item type prob]";
+    private static readonly PvfField<IReadOnlyList<int>> ItemTypeSection = PvfField.Int32List("[drop item type prob]", optional: true);
 
     /// <summary>One bonus per difficulty, indexed from zero. Its first entry is zero.</summary>
-    private const string DifficultySection = "[dungeon difficulty drop bonusrate]";
+    private static readonly PvfField<IReadOnlyList<int>> DifficultySection = PvfField.Int32List("[dungeon difficulty drop bonusrate]", optional: true);
 
     /// <summary>The cumulative rarity thresholds and the basis that closes them.</summary>
-    private const string RaritySection = "[basis of rarity dicision]";
+    private static readonly PvfField<IReadOnlyList<int>> RaritySection = PvfField.Int32List("[basis of rarity dicision]", optional: true);
 
     /// <summary>
     /// <c>1.02 1.38 1.6 1.9 2</c> in A21: one multiplier per difficulty, the same five
@@ -80,16 +81,16 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// multiplier has its multiplicand.
     /// </para>
     /// </summary>
-    private const string DifficultyGoldSection = "[dungeon difficulty gold drop bonusrate]";
+    private static readonly PvfField<IReadOnlyList<double>> DifficultyGoldSection = PvfField.Numbers("[dungeon difficulty gold drop bonusrate]", optional: true);
 
     /// <summary>One multiplier per party size, stored as singles.</summary>
-    private const string PartySection = "[party member drop bonusrate]";
+    private static readonly PvfField<IReadOnlyList<double>> PartySection = PvfField.Numbers("[party member drop bonusrate]", optional: true);
 
     /// <summary>Map count and the bonus that count carries, in pairs.</summary>
-    private const string MapCountSection = "[reward item rate per map max count]";
+    private static readonly PvfField<IReadOnlyList<int>> MapCountSection = PvfField.Int32List("[reward item rate per map max count]", optional: true);
 
     /// <summary>Level and what a paid flip costs at it, in pairs.</summary>
-    private const string CostSection = "[gold card cost table]";
+    private static readonly PvfField<IReadOnlyList<int>> CostSection = PvfField.Int32List("[gold card cost table]", optional: true);
 
     /// <summary>
     /// One number, stored as a float. <b>Read here and applied by nothing</b>: both faces are
@@ -97,16 +98,16 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// neither reads this. What it could be for, and what another server does with it, is on
     /// <see cref="ClearRewardTable.GoldCardCreateRate"/>.
     /// </summary>
-    private const string CreateRateSection = "[gold card create rate]";
+    private static readonly PvfField<double> CreateRateSection = PvfField.Single("[gold card create rate]", optional: true);
 
     /// <summary>The paid flip's fallback rows: weight, item, quantity.</summary>
-    private const string GoldBlankItemSection = "[gold card blank item]";
+    private static readonly PvfField<IReadOnlyList<int>> GoldBlankItemSection = PvfField.Int32List("[gold card blank item]", optional: true);
 
     /// <summary>The PC-room flip's fallback rows, in the same three columns.</summary>
-    private const string PcRoomBlankItemSection = "[pcroom card blank item]";
+    private static readonly PvfField<IReadOnlyList<int>> PcRoomBlankItemSection = PvfField.Int32List("[pcroom card blank item]", optional: true);
 
     /// <summary>Level, how far below, how far above: the grades a level draws from.</summary>
-    private const string GradeBandSection = "[item drop ref table]";
+    private static readonly PvfField<IReadOnlyList<int>> GradeBandSection = PvfField.Int32List("[item drop ref table]", optional: true);
 
     /// <summary>The two level bounds every band opens with.</summary>
     private const int BandLevelBoundCount = 2;
@@ -153,14 +154,14 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
         /// <c>2 13 17 0 -5</c> in A21. Five numbers, no declared column meanings, and the only
         /// negative number anywhere in the file. Purpose not ascertained; not read.
         /// </summary>
-        internal const string RarityControl = "[item drop rarity control]";
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RarityControl = PvfField.Tokens("[item drop rarity control]", optional: true);
 
         /// <summary>
         /// <c>0 50 1 75 2 100</c> in A21. Three pairs, and what the first of each indexes is
         /// not ascertained -- a set count, a tier, a slot, all fit the numbers equally well.
         /// Nothing on the card path asks for it; not read.
         /// </summary>
-        internal const string ChronicleSetRewardRate = "[chronicle set reward rate]";
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ChronicleSetRewardRate = PvfField.Tokens("[chronicle set reward rate]", optional: true);
 
     }
 
@@ -215,7 +216,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// them here would produce bands that divide evenly and mean nothing.
     /// </para>
     /// </remarks>
-    private static IReadOnlyList<ClearRewardProfile> ReadProfiles(
+    private IReadOnlyList<ClearRewardProfile> ReadProfiles(
         PvfArchive archive,
         IReadOnlyDictionary<string, List<PvfToken>> sections,
         int declaredBands,
@@ -228,7 +229,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
                     + $"'{BandCountSection}'.");
         }
 
-        if (!sections.TryGetValue(ProfileSection, out var tokens) || tokens.Count == 0)
+        if (!sections.TryGetValue(ProfileSection.Name, out var tokens) || tokens.Count == 0)
             throw new InvalidDataException($"'{archivePath}' declares no '{ProfileSection}'.");
 
         var profiles = new List<ClearRewardProfile>();
@@ -265,7 +266,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     }
 
     /// <summary>One profile's collected numbers, cut into the bands the file declared.</summary>
-    private static ClearRewardProfile CloseProfile(
+    private ClearRewardProfile CloseProfile(
         string? name, List<int> values, int declaredBands, string archivePath)
     {
         if (name is null)
@@ -311,7 +312,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// it. That last number is the basis, and reading it rather than assuming a round million is
     /// the point: see <see cref="RarityLadder"/> for what assuming it costs.
     /// </remarks>
-    private static RarityLadder? ReadLadder(
+    private RarityLadder? ReadLadder(
         IReadOnlyDictionary<string, List<PvfToken>> sections, string archivePath)
     {
         var values = Integers(sections, RaritySection);
@@ -329,8 +330,8 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     }
 
     /// <summary>A weighted fallback table, as weight/item/quantity rows.</summary>
-    private static IReadOnlyList<ClearRewardBlankItem> ReadBlankItems(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section, string archivePath)
+    private IReadOnlyList<ClearRewardBlankItem> ReadBlankItems(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<IReadOnlyList<int>> section, string archivePath)
     {
         var values = Integers(sections, section);
         if (values.Count == 0)
@@ -371,7 +372,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// did reach under grade zero could not produce a span no item can be in.
     /// </para>
     /// </remarks>
-    private static IReadOnlyDictionary<int, ItemGradeBand> ReadGradeBands(
+    private IReadOnlyDictionary<int, ItemGradeBand> ReadGradeBands(
         IReadOnlyDictionary<string, List<PvfToken>> sections, string archivePath)
     {
         var values = Integers(sections, GradeBandSection);
@@ -401,8 +402,8 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// A repeated key keeps the last row, which is the archive's own last word on it. Neither of
     /// the two sections read this way repeats one in A21.
     /// </remarks>
-    private static IReadOnlyDictionary<int, int> Pairs(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section, string archivePath)
+    private IReadOnlyDictionary<int, int> Pairs(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<IReadOnlyList<int>> section, string archivePath)
     {
         var values = Integers(sections, section);
         if (values.Count == 0)
@@ -434,7 +435,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// those carry no values.
     /// </para>
     /// </remarks>
-    private static Dictionary<string, List<PvfToken>> ReadSections(
+    private Dictionary<string, List<PvfToken>> ReadSections(
         PvfArchive archive, string archivePath)
     {
         var sections = new Dictionary<string, List<PvfToken>>(StringComparer.OrdinalIgnoreCase);
@@ -456,12 +457,10 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
         return sections;
     }
 
-    private static List<int> Integers(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section) =>
-        sections.TryGetValue(section, out var tokens)
-            ? [.. tokens.Where(token => token.Kind == PvfTokenKind.Int32)
-                .Select(token => token.Value)]
-            : [];
+    private List<int> Integers(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<IReadOnlyList<int>> section) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? [.. section.Decode(provider.Archive, tokens, section.Name)] : [];
 
     /// <remarks>
     /// Both numeric forms, because this file mixes them: its party multipliers are singles and
@@ -469,48 +468,19 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// away with an empty table, and an empty multiplier table is a parse failure wearing the
     /// costume of a multiplier of one.
     /// </remarks>
-    private static List<double> Reals(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section)
-    {
-        if (!sections.TryGetValue(section, out var tokens))
-            return [];
+    private List<double> Reals(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<IReadOnlyList<double>> section) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? [.. section.Decode(provider.Archive, tokens, section.Name)] : [];
 
-        var values = new List<double>(tokens.Count);
-        foreach (var token in tokens)
-        {
-            switch (token.Kind)
-            {
-                case PvfTokenKind.Int32:
-                    values.Add(token.Value);
-                    break;
-                case PvfTokenKind.Single:
-                    values.Add(token.AsSingle());
-                    break;
-            }
-        }
+    private double? FirstReal(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<double> section) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? section.Decode(provider.Archive, tokens, section.Name) : null;
 
-        return values;
-    }
-
-    /// <summary>The first number of a section, or null when the file declares no such section.</summary>
-    /// <remarks>
-    /// Read through <see cref="Reals"/> because the one section that arrives this way is stored as
-    /// a float; a reader taking integers only would come away with an empty list and could not
-    /// tell that from an absent section.
-    /// </remarks>
-    private static double? FirstReal(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section)
-    {
-        var values = Reals(sections, section);
-        return values.Count > 0 ? values[0] : null;
-    }
-
-    private static int Single(
-        IReadOnlyDictionary<string, List<PvfToken>> sections, string section, string archivePath)
-    {
-        var values = Integers(sections, section);
-        return values.Count > 0
-            ? values[0]
+    private int Single(
+        IReadOnlyDictionary<string, List<PvfToken>> sections, PvfField<int> section, string archivePath) =>
+        sections.TryGetValue(section.Name, out var tokens)
+            ? section.Decode(provider.Archive, tokens, archivePath)
             : throw new InvalidDataException($"'{archivePath}' declares no '{section}'.");
-    }
 }

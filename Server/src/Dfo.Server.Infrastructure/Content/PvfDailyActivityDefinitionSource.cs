@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -14,6 +15,17 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfDailyActivityDefinitionSource : IDailyActivityDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> GroupField = PvfField.Int32("[group]", optional: true);
+        internal static readonly PvfField<bool> CloseGroupField = PvfField.Marker("[/group]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> LevelField = PvfField.Int32List("[level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> SlotNumTableField = PvfField.Int32List("[slot num table]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> SlotField = PvfField.Int32List("[slot]", optional: true);
+        internal static readonly PvfField<bool> CloseSlotField = PvfField.Marker("[/slot]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> RewardTableField = PvfField.Int32List("[reward table]", optional: true);
+    }
+
     private const string TablePath = "etc/dailychallengetable.etc";
 
     private readonly PvfArchiveProvider _provider;
@@ -49,74 +61,66 @@ internal sealed class PvfDailyActivityDefinitionSource : IDailyActivityDefinitio
         if (fileIndex < 0)
             throw new InvalidOperationException($"The archive does not contain {TablePath}.");
 
-        var groupTag = archive.GetTag("[group]").Offset;
-        var groupClose = archive.GetTag("[/group]").Offset;
-        var levelTag = archive.GetTag("[level]").Offset;
-        var allowanceTag = archive.GetTag("[slot num table]").Offset;
-        var slotTag = archive.GetTag("[slot]").Offset;
-        var slotClose = archive.GetTag("[/slot]").Offset;
-        var rewardTag = archive.GetTag("[reward table]").Offset;
-
         var ordered = new List<DailyActivityGroupDefinition>();
         var byId = new Dictionary<int, DailyActivityGroupDefinition>();
-        var reader = archive.OpenScript(fileIndex);
-
         Draft? draft = null;
-        var section = -1;
-
-        while (reader.Read(out var token))
+        var slotOpen = false;
+        foreach (var section in PvfDocument.Open(archive, TablePath).Sections)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
+            if (Fields.GroupField.Matches(section.Name))
             {
-                if (token.Value == groupTag)
-                {
-                    draft = new Draft();
-                    section = groupTag;
-                }
-                else if (token.Value == groupClose && draft is not null)
-                {
-                    var definition = draft.ToDefinition();
-                    ordered.Add(definition);
-                    byId.TryAdd(definition.GroupId, definition);
-                    draft = null;
-                }
-                else if (token.Value == slotTag && draft is not null)
-                {
-                    draft.Slots.Add([]);
-                    section = slotTag;
-                }
-                else if (token.Value == slotClose)
-                {
-                    section = -1;
-                }
-                else
-                {
-                    section = token.Value;
-                }
-
-                continue;
+                var id = Fields.GroupField.Decode(archive, section.Values, TablePath);
+                if (draft is not null) throw new InvalidDataException($"{TablePath}: nested or unclosed group.");
+                draft = new Draft { GroupId = id };
             }
-
-            if (draft is null || token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            if (section == groupTag && draft.GroupId < 0)
-                draft.GroupId = token.Value;
-            else if (section == levelTag)
-                draft.LevelOperands.Add(token.Value);
-            else if (section == allowanceTag)
-                draft.AllowanceOperands.Add(token.Value);
-            else if (section == slotTag && draft.Slots.Count > 0)
-                draft.Slots[^1].Add(token.Value);
-            else if (section == rewardTag)
-                draft.RewardOperands.Add(token.Value);
+            else if (Fields.CloseGroupField.Matches(section.Name))
+            {
+                Fields.CloseGroupField.Decode(archive, section.Values, TablePath);
+                if (draft is null || slotOpen) throw new InvalidDataException($"{TablePath}: group close without opening or before slot close.");
+                var definition = draft.ToDefinition();
+                ordered.Add(definition); byId.TryAdd(definition.GroupId, definition); draft = null;
+            }
+            else if (Fields.LevelField.Matches(section.Name))
+            {
+                var values = Fields.LevelField.Decode(archive, section.Values, TablePath);
+                if (values.Count != 2) throw new InvalidDataException($"{TablePath}: {Fields.LevelField.Name} requires two level bounds.");
+                RequireDraft(draft).LevelOperands.AddRange(values);
+            }
+            else if (Fields.SlotNumTableField.Matches(section.Name))
+            {
+                var values = Fields.SlotNumTableField.Decode(archive, section.Values, TablePath);
+                if (values.Count % 3 != 0) throw new InvalidDataException($"{TablePath}: {Fields.SlotNumTableField.Name} requires level/level/count triples.");
+                RequireDraft(draft).AllowanceOperands.AddRange(values);
+            }
+            else if (Fields.SlotField.Matches(section.Name))
+            {
+                var values = Fields.SlotField.Decode(archive, section.Values, TablePath);
+                if (values.Count == 0 || slotOpen) throw new InvalidDataException($"{TablePath}: {Fields.SlotField.Name} requires index and a non-nested slot.");
+                RequireDraft(draft).Slots.Add(values.ToList()); slotOpen = true;
+            }
+            else if (Fields.CloseSlotField.Matches(section.Name))
+            {
+                Fields.CloseSlotField.Decode(archive, section.Values, TablePath);
+                if (!slotOpen) throw new InvalidDataException($"{TablePath}: slot close without opening.");
+                slotOpen = false;
+            }
+            else if (Fields.RewardTableField.Matches(section.Name))
+            {
+                var values = Fields.RewardTableField.Decode(archive, section.Values, TablePath);
+                if (values.Count % 4 != 0) throw new InvalidDataException($"{TablePath}: {Fields.RewardTableField.Name} requires level/level/item/count quadruples.");
+                RequireDraft(draft).RewardOperands.AddRange(values);
+            }
         }
+        if (draft is not null || slotOpen) throw new InvalidDataException($"{TablePath}: unclosed daily activity group or slot.");
 
         if (ordered.Count == 0)
             throw new InvalidOperationException($"{TablePath} declared no activity groups.");
 
         return new Catalog(ordered, byId);
     }
+
+    private static Draft RequireDraft(Draft? draft) => draft
+        ?? throw new InvalidDataException($"{TablePath}: daily activity field outside a group.");
 
     private sealed class Draft
     {

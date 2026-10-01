@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 
@@ -19,6 +20,8 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfGoldCarryLimitSource(PvfArchiveProvider provider) : IGoldCarryLimitSource
 {
+    private static readonly PvfField<IReadOnlyList<int>> GoldLimitPairs =
+        PvfField.Int32List("[gold limit from level]");
     private const string TablePath = "etc/(r)goldlimitbylevel.etc";
 
     /// <summary>The archive declares a hundred levels; fewer means the file is not the one meant.</summary>
@@ -47,13 +50,7 @@ internal sealed class PvfGoldCarryLimitSource(PvfArchiveProvider provider) : IGo
 
     private static IReadOnlyList<(int Level, int Limit)> Read(PvfArchiveProvider provider)
     {
-        var numbers = new List<int>();
-        var reader = provider.Archive.OpenScript(TablePath);
-        while (reader.Read(out var token))
-        {
-            if (token.Kind == PvfTokenKind.Int32)
-                numbers.Add(token.Value);
-        }
+        var numbers = PvfDocument.Open(provider.Archive, TablePath).Read(GoldLimitPairs);
 
         if (numbers.Count < DeclaredLevels * 2 || numbers.Count % 2 != 0)
         {

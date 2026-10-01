@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -6,6 +7,17 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) : IItemSaleDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<bool> BoosterInfoField = PvfField.Marker("[booster info]", optional: true);
+        internal static readonly PvfField<bool> CloseBoosterInfoField = PvfField.Marker("[/booster info]", optional: true);
+        internal static readonly PvfField<int> ValueField = PvfField.Int32("[value]", optional: true);
+        internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> ImpossibleContentsField = PvfField.Strings("[impossible contents]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> NotSellField = PvfField.Tokens("[not sell]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CannotSellField = PvfField.Tokens("[cannot sell]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, ItemSaleDefinition?> cache = [];
     private Dictionary<int, string>? equipment;
@@ -40,24 +52,24 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
         var boosterDepth = 0;
         foreach (var section in sections)
         {
-            if (section.Name == "[booster info]") { boosterDepth++; continue; }
-            if (section.Name == "[/booster info]") { if (boosterDepth-- <= 0) permitted = false; continue; }
+            if (section.Name == Fields.BoosterInfoField.Name) { boosterDepth++; continue; }
+            if (section.Name == Fields.CloseBoosterInfoField.Name) { if (boosterDepth-- <= 0) permitted = false; continue; }
             if (boosterDepth != 0) continue;
-            if (section.Name == "[value]")
+            if (section.Name == Fields.ValueField.Name)
             {
                 if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32)
                     permitted = false;
                 else
                     values.Add(section.Values[0].Value);
             }
-            if (section.Name == "[durability]")
+            if (section.Name == Fields.DurabilityField.Name)
             {
                 if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32)
                     permitted = false;
                 else
                     durabilityValues.Add(section.Values[0].Value);
             }
-            if (section.Name is "[impossible contents]" or "[not sell]" or "[cannot sell]")
+            if ((section.Name == Fields.ImpossibleContentsField.Name || section.Name == Fields.NotSellField.Name || section.Name == Fields.CannotSellField.Name))
                 permitted = false;
         }
         permitted &= boosterDepth == 0 && values.Count == 1 && values[0] >= 0;

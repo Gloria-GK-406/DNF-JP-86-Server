@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -8,6 +9,14 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provider)
     : IEquipmentForgingContentSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> SeparateUpgradeMaxField = PvfField.Int32("[separate upgrade max]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> TableField = PvfField.Numbers("[table]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ItemWeightsByGradeField = PvfField.Int32List("[item weights by grade]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> ItemWeightsByRarityField = PvfField.Numbers("[item weights by rarity]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private bool loaded;
     private EquipmentForgingTable? table;
@@ -29,10 +38,10 @@ internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provid
     private static EquipmentForgingTable? Read(PvfArchive archive)
     {
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "etc/upgrade_separate.etc");
-        var max = One(sections, "[separate upgrade max]");
-        var rows = One(sections, "[table]");
-        var grade = One(sections, "[item weights by grade]");
-        var rarity = One(sections, "[item weights by rarity]");
+        var max = One(sections, Fields.SeparateUpgradeMaxField);
+        var rows = One(sections, Fields.TableField);
+        var grade = One(sections, Fields.ItemWeightsByGradeField);
+        var rarity = One(sections, Fields.ItemWeightsByRarityField);
         if (max?.Values is not { Count: 1 } || Int(max.Values[0]) is not int maximum
             || maximum is <= 0 or > byte.MaxValue
             || rows is null || rows.Values.Count < maximum * 4 || rows.Values.Count % 4 != 0
@@ -68,9 +77,9 @@ internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provid
     }
 
     private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name) =>
-        sections.Count(section => section.Name == name) == 1
-            ? sections.First(section => section.Name == name) : null;
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name) =>
+        sections.Count(section => section.Name == name.Name) == 1
+            ? sections.First(section => section.Name == name.Name) : null;
 
     private static int? Int(PvfToken token) => token.Kind == PvfTokenKind.Int32
         ? token.Value : null;

@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -7,6 +8,19 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
     IEquipmentSlotDefinitionSource slots) : IInventorySortKeySource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> RarityField = PvfField.Int32("[rarity]", optional: true);
+        internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
+        internal static readonly PvfField<string> StackableTypeField = PvfField.Custom<string>("[stackable type]",
+            (archive, values, path) =>
+            {
+                if (values.Count == 0 || !values[0].IsString || values.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32))
+                    throw new InvalidDataException($"PVF '{path}', field '[stackable type]': expected type string and optional Int32 operands.");
+                return archive.ResolveString(values[0].Value);
+            }, optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, InventorySortKeys> cache = [];
     private Dictionary<int, string>? paths;
@@ -24,13 +38,10 @@ internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
                 .ToDictionary();
             if (!paths.TryGetValue(itemId, out var path))
                 throw new InvalidDataException($"No PVF sorting metadata for item {itemId}.");
-            var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, path);
-            int Number(string name) => sections.FirstOrDefault(section => section.Name == name)?.Values
-                .FirstOrDefault(token => token.Kind == PvfTokenKind.Int32).Value ?? 0;
-            var type = sections.FirstOrDefault(section => section.Name == "[stackable type]")?.Values
-                .FirstOrDefault(token => token.IsString);
-            result = new(Number("[rarity]"), Number("[minimum level]"), 0,
-                type is { IsString: true } token ? provider.Archive.ResolveString(token.Value) : "");
+            var document = PvfDocument.Open(provider.Archive, path).AtRoot();
+            int Number(PvfField<int> field) => document.TryRead(field, out var value) ? value : 0;
+            var type = document.TryRead(Fields.StackableTypeField, out var stackableType) ? stackableType : "";
+            result = new(Number(Fields.RarityField), Number(Fields.MinimumLevelField), 0, type);
         }
         var slot = await slots.GetAsync(itemId, ct).ConfigureAwait(false);
         result = result with { Part = slot?.Index ?? int.MaxValue };

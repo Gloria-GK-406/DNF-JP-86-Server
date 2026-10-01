@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -6,6 +7,37 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : INpcShopDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> NPCField = PvfField.Int32("[NPC]", optional: true);
+        internal static readonly PvfField<int> PriceField = PvfField.Int32("[price]", optional: true);
+        internal static readonly PvfField<int> AddPriceField = PvfField.Int32("[add price]", optional: true);
+        internal static readonly PvfField<int> DurabilityField = PvfField.Int32("[durability]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RoleField = PvfField.Tokens("[role]", optional: true);
+        internal static readonly PvfField<bool> BoosterInfoField = PvfField.Marker("[booster info]", optional: true);
+        internal static readonly PvfField<bool> CloseBoosterInfoField = PvfField.Marker("[/booster info]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> NeedMaterialField = PvfField.Int32List("[need material]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> DailyPurchaseLimitField = PvfField.Tokens("[daily purchase limit]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ResetDailyPurchaseItemField = PvfField.Tokens("[reset daily purchase item]", optional: true);
+        internal static readonly PvfField<string> AttachTypeField = PvfField.String("[attach type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CoinField = PvfField.Tokens("[coin]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> BuyCoinField = PvfField.Tokens("[buy coin]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CeraField = PvfField.Tokens("[cera]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> SeraField = PvfField.Tokens("[sera]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CashField = PvfField.Tokens("[cash]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> PriceTypeField = PvfField.Tokens("[price type]", optional: true);
+        internal static readonly PvfField<bool> SellInfoField = PvfField.Marker("[sell info]", optional: true);
+        internal static readonly PvfField<bool> CloseSellInfoField = PvfField.Marker("[/sell info]", optional: true);
+        internal static readonly PvfField<string> UseCategoryField = PvfField.String("[use category]", optional: true);
+        internal static readonly PvfField<bool> CategoryEntryField = PvfField.Marker("[category entry]", optional: true);
+        internal static readonly PvfField<bool> CloseCategoryEntryField = PvfField.Marker("[/category entry]", optional: true);
+        internal static readonly PvfField<int> IdField = PvfField.Int32("[id]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ItemListField = PvfField.Int32List("[item list]", optional: true);
+        internal static readonly PvfField<bool> TabField = PvfField.Marker("[tab]", optional: true);
+        internal static readonly PvfField<bool> CloseTabField = PvfField.Marker("[/tab]", optional: true);
+        internal static readonly PvfField<bool> CloseItemListField = PvfField.Marker("[/item list]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, NpcShopDefinition?> shops = [];
     private readonly Dictionary<int, NpcShopItemDefinition?> items = [];
@@ -43,7 +75,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         shopPaths ??= Paths(archive, "itemshop/itemshop.lst");
         if (!npcs.TryGetValue(npcId, out var npcPath))
             return null;
-        var role = Sections(archive, "npc/" + npcPath).FirstOrDefault(section => section.Name == "[role]");
+        var role = Sections(archive, "npc/" + npcPath).FirstOrDefault(section => section.Name == Fields.RoleField.Name);
         var shopId = 0;
         if (role is not null)
             for (var i = 0; i + 1 < role.Values.Count; i++)
@@ -60,7 +92,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                 + (relative.Contains('/') ? "/" : "") + "(r)" + Path.GetFileName(relative);
         var sections = Sections(archive, path);
         var readable = true;
-        if (Integer(sections, "[NPC]", ref readable) != npcId || !readable)
+        if (Integer(archive, sections, Fields.NPCField, ref readable) != npcId || !readable)
             return null;
         var pages = new List<NpcShopPage>();
         var selling = false;
@@ -70,26 +102,26 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         {
             switch (section.Name)
             {
-                case "[sell info]": selling = true; break;
-                case "[/sell info]": selling = false; break;
-                case "[use category]" when selling:
+                case var fieldName when (Fields.SellInfoField.Matches(fieldName)): selling = true; break;
+                case var fieldName when (Fields.CloseSellInfoField.Matches(fieldName)): selling = false; break;
+                case var fieldName when (Fields.UseCategoryField.Matches(fieldName)) && selling:
                     if (section.Values.Count != 1 || Text(archive, section.Values[0]) != "basic job")
                         return null;
                     break;
-                case "[category entry]" when selling: categoryEntry = true; job = null; break;
-                case "[/category entry]": categoryEntry = false; job = null; break;
-                case "[id]" when selling && categoryEntry:
+                case var fieldName when (Fields.CategoryEntryField.Matches(fieldName)) && selling: categoryEntry = true; job = null; break;
+                case var fieldName when (Fields.CloseCategoryEntryField.Matches(fieldName)): categoryEntry = false; job = null; break;
+                case var fieldName when (Fields.IdField.Matches(fieldName)) && selling && categoryEntry:
                     if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32)
                         return null;
                     job = section.Values[0].Value;
                     break;
-                case "[item list]" when selling:
+                case var fieldName when (Fields.ItemListField.Matches(fieldName)) && selling:
                     if (categoryEntry && job is null
                         || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value <= 0))
                         return null;
                     pages.Add(new(job, section.Values.Select(value => value.Value).Distinct().ToArray()));
                     break;
-                case "[tab]" or "[/tab]" or "[/item list]": break;
+                case var fieldName when (Fields.TabField.Matches(fieldName) || Fields.CloseTabField.Matches(fieldName) || Fields.CloseItemListField.Matches(fieldName)): break;
                 default:
                     // Unknown sale conditions must not become an unrestricted item list.
                     if (selling)
@@ -121,9 +153,9 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         var boosterDepth = 0;
         foreach (var section in sections)
         {
-            if (section.Name == "[booster info]")
+            if (section.Name == Fields.BoosterInfoField.Name)
                 boosterDepth++;
-            else if (section.Name == "[/booster info]")
+            else if (section.Name == Fields.CloseBoosterInfoField.Name)
             {
                 if (boosterDepth == 0)
                     readable = false;
@@ -135,11 +167,11 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         }
         readable &= boosterDepth == 0;
         sections = itemSections;
-        var price = Integer(sections, "[price]", ref readable);
-        var correction = Integer(sections, "[add price]", ref readable) ?? 0;
-        var durability = Integer(sections, "[durability]", ref readable) ?? 0;
+        var price = Integer(archive, sections, Fields.PriceField, ref readable);
+        var correction = Integer(archive, sections, Fields.AddPriceField, ref readable) ?? 0;
+        var durability = Integer(archive, sections, Fields.DurabilityField, ref readable) ?? 0;
         var materials = new List<NpcShopMaterialCost>();
-        foreach (var section in sections.Where(section => section.Name == "[need material]"))
+        foreach (var section in sections.Where(section => section.Name == Fields.NeedMaterialField.Name))
         {
             if (section.Values.Count == 0 || section.Values.Count % 2 != 0
                 || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value <= 0))
@@ -152,7 +184,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         }
 
         NpcShopPurchaseLimit? limit = null;
-        var limits = sections.Where(section => section.Name == "[daily purchase limit]").ToArray();
+        var limits = sections.Where(section => section.Name == Fields.DailyPurchaseLimitField.Name).ToArray();
         if (limits.Length > 1)
             readable = false;
         if (limits.FirstOrDefault() is { } limited)
@@ -163,21 +195,26 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                 readable = false;
             else
                 limit = new(scope == "account" ? NpcShopLimitScope.Account : NpcShopLimitScope.Character,
-                    limited.Values[1].Value, sections.Any(section => section.Name == "[reset daily purchase item]"));
+                    limited.Values[1].Value, sections.Any(section => section.Name == Fields.ResetDailyPurchaseItemField.Name));
         }
-        var attach = sections.FirstOrDefault(section => section.Name == "[attach type]");
-        var sealedItem = attach?.Values.Count == 1 && Text(archive, attach.Values[0]) == "[sealing]";
+        var attachments = sections.Where(section => Fields.AttachTypeField.Matches(section.Name)).ToArray();
+        var sealedItem = false;
+        if (attachments.Length > 1) readable = false;
+        if (attachments.Length == 1)
+        {
+            try { sealedItem = Fields.AttachTypeField.Decode(archive, attachments[0].Values, "NPC shop item").Equals("[sealing]", StringComparison.OrdinalIgnoreCase); }
+            catch (InvalidDataException) { readable = false; }
+        }
         if (price is < 0 || durability is < 0 or > ushort.MaxValue
-            || sections.Any(section => section.Name is "[coin]" or "[buy coin]" or "[cera]"
-                or "[sera]" or "[cash]" or "[price type]"))
+            || sections.Any(section => (section.Name == Fields.CoinField.Name || section.Name == Fields.BuyCoinField.Name || section.Name == Fields.CeraField.Name || section.Name == Fields.SeraField.Name || section.Name == Fields.CashField.Name || section.Name == Fields.PriceTypeField.Name)))
             readable = false;
         return new(itemId, price, correction, materials, limit,
             (ushort)Math.Clamp(durability, 0, ushort.MaxValue), sealedItem, readable);
     }
 
-    private static int? Integer(IReadOnlyList<Section> sections, string name, ref bool readable)
+    private static int? Integer(PvfArchive archive, IReadOnlyList<Section> sections, PvfField<int> name, ref bool readable)
     {
-        var found = sections.Where(section => section.Name == name).ToArray();
+        var found = sections.Where(section => section.Name == name.Name).ToArray();
         if (found.Length == 0)
             return null;
         if (found.Length != 1 || found[0].Values.Count != 1 || found[0].Values[0].Kind != PvfTokenKind.Int32)
@@ -185,7 +222,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
             readable = false;
             return null;
         }
-        return found[0].Values[0].Value;
+        return name.Decode(archive, found[0].Values, "NPC shop item");
     }
 
     private static string? Text(PvfArchive archive, PvfToken token) =>
@@ -201,6 +238,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         var index = archive.FindFile(path);
         if (index < 0)
             return [];
+        if (archive.GetFileBytes(index).Length % PvfToken.Size != 0)
+            throw new InvalidDataException($"PVF '{path}': truncated token record.");
         var reader = archive.OpenScript(index);
         var result = new List<Section>();
         Section? section = null;

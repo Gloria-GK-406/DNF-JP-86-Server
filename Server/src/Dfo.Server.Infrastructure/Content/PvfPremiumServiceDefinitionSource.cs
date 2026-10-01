@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 
@@ -5,6 +6,22 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provider) : IPremiumServiceDefinitionSource, IQuestHelperPuppetDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<int>> FreeStaminaField = PvfField.Int32List("[free_stamina]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> PlusGoldcardField = PvfField.Int32List("[plus_goldcard]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> BuffServiceField = PvfField.Int32List("[buff_service]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> AutoRepairField = PvfField.Int32List("[auto_repair]", optional: true);
+        internal static readonly PvfField<int> BonusExpField = PvfField.Int32("[bonus exp]", optional: true);
+        internal static readonly PvfField<int> ExpField = PvfField.Int32("[exp]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> QuestHelperField = PvfField.Int32List("[quest_helper]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> LotteryOnemoreField = PvfField.Int32List("[lottery_onemore]", optional: true);
+        internal static readonly PvfField<int> TypeField = PvfField.Int32("[type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> IndependentDropRateField = PvfField.Int32List("[independent drop rate]", optional: true);
+        internal static readonly PvfField<int> OverSkillField = PvfField.Int32("[over skill]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> OverEquipinfoField = PvfField.Int32List("[over equipinfo]", optional: true);
+    }
+
     public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() =>
         Array.AsReadOnly(ReadQuestHelperValues().Skip(1).Take(3).ToArray());
 
@@ -19,7 +36,7 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
     private int[] ReadQuestHelperValues()
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
-            .Single(s => s.Name == "[quest_helper]");
+            .Single(s => s.Name == Fields.QuestHelperField.Name);
         // A21 stores an unknown shared prefix, three effect values, then four doll IDs.
         // Interpreting the effect values as per-attempt floors is our adopted server policy.
         if (section.Values.Count != 8 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
@@ -32,40 +49,40 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
     public DoublePotRules ReadDoublePotRules()
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
-            .Single(s => s.Name == "[lottery_onemore]");
+            .Single(s => s.Name == Fields.LotteryOnemoreField.Name);
         if (section.Values.Count < 3 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
             || section.Values[1].Value is < 1 or > 255 || section.Values.Skip(2).Any(v => v.Value <= 0))
             throw new InvalidDataException("Invalid double pot rules.");
         return new(section.Values[1].Value, section.Values.Skip(2).Select(v => v.Value).ToHashSet());
     }
-    public int ReadFreeWeaknessDailyLimit() => ReadDailyLimit("[free_stamina]");
-    public int ReadFreeGoldCardDailyLimit() => ReadDailyLimit("[plus_goldcard]");
-    public int ReadDungeonBuffDailyLimit() => ReadDailyLimit("[buff_service]", 23);
-    public int ReadAutoRepairDailyLimit() => ReadDailyLimit("[auto_repair]");
-    private int ReadDailyLimit(string name, int valueCount = 2)
+    public int ReadFreeWeaknessDailyLimit() => ReadDailyLimit(Fields.FreeStaminaField);
+    public int ReadFreeGoldCardDailyLimit() => ReadDailyLimit(Fields.PlusGoldcardField);
+    public int ReadDungeonBuffDailyLimit() => ReadDailyLimit(Fields.BuffServiceField, 23);
+    public int ReadAutoRepairDailyLimit() => ReadDailyLimit(Fields.AutoRepairField);
+    private int ReadDailyLimit(PvfField<IReadOnlyList<int>> name, int valueCount = 2)
     {
         var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
-            .Single(s => s.Name == name);
+            .Single(s => s.Name == name.Name);
         if (section.Values.Count != valueCount || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
             || section.Values[1].Value is < 1 or > 255)
             throw new InvalidDataException("Invalid free stamina daily limit.");
-        return section.Values[1].Value;
+        return name.Decode(provider.Archive, section.Values, "etc/chn_characpremium.etc")[1];
     }
-    public double ReadGrowthExperienceBonusRate() => ReadExperienceRate(84, "[bonus exp]");
-    public double ReadBlackDiamondExperienceBonusRate() => ReadExperienceRate(56, "[exp]");
+    public double ReadGrowthExperienceBonusRate() => ReadExperienceRate(84, Fields.BonusExpField);
+    public double ReadBlackDiamondExperienceBonusRate() => ReadExperienceRate(56, Fields.ExpField);
 
-    private double ReadExperienceRate(int premiumType, string tag)
+    private double ReadExperienceRate(int premiumType, PvfField<int> tag)
     {
         var type = 0;
-        foreach (var section in PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"))
+        foreach (var section in PremiumSections())
         {
-            if (section.Name == "[type]" && section.Values.Count == 1)
-                type = section.Values[0].Value;
-            if (type != premiumType || section.Name != tag) continue;
+            if (section.Name == Fields.TypeField.Name)
+                type = Fields.TypeField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
+            if (type != premiumType || section.Name != tag.Name) continue;
             if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32
                 || section.Values[0].Value < 0)
                 throw new InvalidDataException($"Invalid premium {premiumType} experience rate.");
-            return section.Values[0].Value / 100d;
+            return tag.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc") / 100d;
         }
         throw new InvalidDataException($"Missing premium {premiumType} experience rate.");
     }
@@ -73,28 +90,39 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
     public IReadOnlyList<int> ReadGrowthBossEquipmentBonusPercents()
     {
         var type = 0;
-        foreach (var section in PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"))
+        foreach (var section in PremiumSections())
         {
-            if (section.Name == "[type]" && section.Values.Count == 1) type = section.Values[0].Value;
-            if (type != 84 || section.Name != "[independent drop rate]") continue;
+            if (section.Name == Fields.TypeField.Name)
+                type = Fields.TypeField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
+            if (type != 84 || section.Name != Fields.IndependentDropRateField.Name) continue;
             if (section.Values.Count != 4 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32 || v.Value < 0))
                 throw new InvalidDataException("Invalid growth contract boss equipment rates.");
-            return Array.AsReadOnly(section.Values.Select(v => v.Value).ToArray());
+            return Fields.IndependentDropRateField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
         }
         throw new InvalidDataException("Missing growth contract boss equipment rates.");
+    }
+
+    private IReadOnlyList<PvfNpcShopDefinitionSource.Section> PremiumSections()
+    {
+        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc");
+        foreach (var section in sections.Where(section => Fields.TypeField.Matches(section.Name)))
+            Fields.TypeField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
+        return sections;
     }
 
     public PremiumContractLevels ReadContractLevels()
     {
         var type = 0; var skill = 0; var equipment = 0;
-        foreach (var section in PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"))
+        foreach (var section in PremiumSections())
         {
-            if (section.Values.Any(value => value.Kind != PvfTokenKind.Int32)) continue;
-            var values = section.Values.Select(value => value.Value).ToArray();
-            if (section.Name == "[type]" && values.Length == 1) type = values[0];
-            if (type == 27 && section.Name == "[over skill]" && values.Length == 1) skill = values[0];
-            if (type == 22 && section.Name == "[over equipinfo]" && values.Length > 0)
+            if (section.Name == Fields.TypeField.Name)
+                type = Fields.TypeField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
+            if (type == 27 && section.Name == Fields.OverSkillField.Name)
+                skill = Fields.OverSkillField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
+            if (type == 22 && section.Name == Fields.OverEquipinfoField.Name)
             {
+                var values = Fields.OverEquipinfoField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc").ToArray();
+                if (values.Length == 0) throw new InvalidDataException("Malformed over-equipment contract declaration.");
                 if (values[0] <= 0 || values.Length != 1 + 2 * values[0])
                     throw new InvalidDataException("Malformed over-equipment contract declaration.");
                 var allowances = values.Skip(2).Where((_, index) => index % 2 == 0).Distinct().ToArray();

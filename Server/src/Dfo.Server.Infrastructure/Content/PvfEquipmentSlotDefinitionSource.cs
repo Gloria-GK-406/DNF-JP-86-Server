@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -21,6 +22,17 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> EquipmentTypeField = PvfField.Custom<string>("[equipment type]", (archive, values, source) =>
+        {
+            if (values.Count is < 1 or > 2 || !values[0].IsString ||
+                values.Count == 2 && (values[1].Kind != PvfTokenKind.Int32 || values[1].Value < 0))
+                throw new InvalidDataException($"PVF '{source}', field '[equipment type]': expected type name and optional nonnegative Int32 subtype.");
+            return archive.ResolveString(values[0].Value);
+        }, optional: true);
+    }
+
     private const string EquipmentListPath = "equipment/equipment.lst";
     private const string EquipmentDirectory = "equipment";
 
@@ -62,20 +74,13 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
         if (fileIndex < 0)
             return null;
 
-        var tag = archive.GetTag("[equipment type]");
-        if (!tag.IsResolved)
-            return null;
-
-        var reader = archive.OpenScript(fileIndex);
-        if (!reader.TryMovePast(tag)
-            || !reader.TryReadSectionValue(out var value)
-            || !value.IsString)
+        try
         {
-            return null;
+            var document = PvfDocument.Open(archive, $"{EquipmentDirectory}/{path}").AtRoot();
+            return document.TryRead(Fields.EquipmentTypeField, out var type)
+                && PvfEquipmentSlots.BusinessByName.TryGetValue(type, out var slot) ? slot : null;
         }
+        catch (InvalidDataException) { return null; }
 
-        return PvfEquipmentSlots.BusinessByName.TryGetValue(archive.ResolveString(value.Value), out var slot)
-            ? slot
-            : null;
     }
 }

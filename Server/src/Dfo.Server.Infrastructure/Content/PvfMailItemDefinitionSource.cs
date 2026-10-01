@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -7,6 +8,12 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
     : IMailItemDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<string> AttachTypeField = PvfField.String("[attach type]", optional: true);
+        internal static readonly PvfField<int> TradeLimitMaxField = PvfField.Int32("[trade limit max]", optional: true);
+    }
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, MailItemDefinition?> cache = [];
     private Dictionary<int, string>? equipmentPaths;
@@ -38,17 +45,9 @@ internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
         if (path is null || archive.FindFile(path) < 0)
             return null;
 
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
-        var attach = sections.Where(section => section.Name == "[attach type]").ToArray();
-        var raw = attach.Length == 1 && attach[0].Values.Count == 1
-                  && attach[0].Values[0].IsString
-            ? archive.ResolveString(attach[0].Values[0].Value)
-            : string.Empty;
-        var limit = sections.Where(section => section.Name == "[trade limit max]").ToArray();
-        int? tradeLimitMax = limit.Length == 1 && limit[0].Values.Count == 1
-            && limit[0].Values[0].Kind == PvfTokenKind.Int32
-            ? limit[0].Values[0].Value
-            : null;
+        var document = PvfDocument.Open(archive, path);
+        var raw = document.TryRead(Fields.AttachTypeField, out var attachType) ? attachType : string.Empty;
+        int? tradeLimitMax = document.TryRead(Fields.TradeLimitMaxField, out var limit) ? limit : null;
         return new MailItemDefinition(AttachTypeOf(raw), raw, tradeLimitMax);
     }
 

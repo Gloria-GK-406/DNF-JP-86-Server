@@ -1,0 +1,74 @@
+{
+  "verifiedUtc": "2026-10-01T10:15:38.209050+00:00",
+  "checks": 10,
+  "passed": 5198,
+  "failed": 0,
+  "skipped": 2,
+  "projects": [
+    {
+      "project": "Dfo.Pvf",
+      "passed": 80,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Pvf.trx"
+    },
+    {
+      "project": "Dfo.Server.Infrastructure",
+      "passed": 739,
+      "failed": 0,
+      "skipped": 2,
+      "trx": "final-Dfo.Server.Infrastructure.trx"
+    },
+    {
+      "project": "Dfo.Server.Application",
+      "passed": 2599,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Server.Application.trx"
+    },
+    {
+      "project": "Dfo.Server.Persistence",
+      "passed": 392,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Server.Persistence.trx"
+    },
+    {
+      "project": "Dfo.Server.Protocol",
+      "passed": 1226,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Server.Protocol.trx"
+    },
+    {
+      "project": "Dfo.Server.Networking",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Server.Networking.trx"
+    },
+    {
+      "project": "Dfo.Server.HttpApi",
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Server.HttpApi.trx"
+    },
+    {
+      "project": "Dfo.Server.Host",
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "final-Dfo.Server.Host.trx"
+    }
+  ],
+  "skippedTests": [
+    "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+    "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message"
+  ],
+  "sourceFingerprint": "b57df3617b80064a915bf10ee15e8ffb2df0400f599bb26c723b10ea78c38003",
+  "sourceFileCount": 72,
+  "acceptedBaseline": "828e769600122f23db2b244e8cfc44ef400d0ffe",
+  "sourceCheckoutHead": "10ccbad248495abc80dc0ce8df86b3d552808e86",
+  "fingerprintOrdering": "Python sorted POSIX relative paths, path|lowercase file SHA256, LF ending, UTF8 SHA256"
+}

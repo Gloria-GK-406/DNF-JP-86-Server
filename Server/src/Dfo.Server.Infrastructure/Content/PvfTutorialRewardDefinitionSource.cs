@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -15,6 +16,12 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfTutorialRewardDefinitionSource : ITutorialRewardDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<int>> EscaladeTutorialRewardField = PvfField.Int32List("[escalade tutorial reward]", optional: true);
+        internal static readonly PvfField<bool> CloseEscaladeTutorialRewardField = PvfField.Marker("[/escalade tutorial reward]", optional: true);
+    }
+
     private const string ParameterPath = "etc/serverparameter.etc";
 
     private readonly PvfArchiveProvider _provider;
@@ -43,48 +50,16 @@ internal sealed class PvfTutorialRewardDefinitionSource : ITutorialRewardDefinit
         if (fileIndex < 0)
             return table.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<TutorialRewardItem>)pair.Value);
 
-        var open = archive.GetTag("[escalade tutorial reward]").Offset;
-        var close = archive.GetTag("[/escalade tutorial reward]").Offset;
-        var inside = false;
-        var operands = new List<int>(3);
-
-        var reader = archive.OpenScript(fileIndex);
-        while (reader.Read(out var token))
+        var document = PvfDocument.Open(archive, ParameterPath);
+        if (!document.TryRead(Fields.EscaladeTutorialRewardField, out var values)) return table
+            .ToDictionary(pair => pair.Key, pair => (IReadOnlyList<TutorialRewardItem>)pair.Value);
+        if (values.Count % 3 != 0)
+            throw new InvalidDataException($"PVF '{ParameterPath}', field '{Fields.EscaladeTutorialRewardField.Name}': incomplete reward triple.");
+        for (var i = 0; i < values.Count; i += 3)
         {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                var name = archive.ResolveString(token.Value);
-                if (!name.StartsWith('['))
-                    continue;
-                if (token.Value == open)
-                {
-                    inside = true;
-                    operands.Clear();
-                }
-                else if (inside)
-                {
-                    // Closed by its own tag, and by any other tag as well: an unterminated block
-                    // would otherwise read the next section's integers as reward triples.
-                    _ = close;
-                    break;
-                }
-
-                continue;
-            }
-
-            if (!inside || token.Kind != PvfTokenKind.Int32)
-                continue;
-
-            operands.Add(token.Value);
-            if (operands.Count < 3)
-                continue;
-
-            var (flag, itemId, count) = (operands[0], operands[1], operands[2]);
-            operands.Clear();
-            if (flag < 0 || count <= 0)
-                continue;
-            if (!table.TryGetValue((uint)flag, out var items))
-                table[(uint)flag] = items = [];
+            var (flag, itemId, count) = (values[i], values[i + 1], values[i + 2]);
+            if (flag < 0 || count <= 0) continue;
+            if (!table.TryGetValue((uint)flag, out var items)) table[(uint)flag] = items = [];
             items.Add(new TutorialRewardItem(itemId, count));
         }
 

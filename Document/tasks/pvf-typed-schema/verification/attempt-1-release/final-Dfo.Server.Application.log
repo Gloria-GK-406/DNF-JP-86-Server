@@ -1,0 +1,410 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:01.83]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_projects_totals_free_grants_and_learned_skill_costs [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_projects_totals_free_grants_and_learned_skill_costs [488 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 56
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_projects_totals_free_grants_and_learned_skill_costs() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 37
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:02.49]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Multi_value_maximum_uses_the_career_slot [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Multi_value_maximum_uses_the_career_slot [671 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Mage/ElementalShower.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 56
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Multi_value_maximum_uses_the_career_slot() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 16
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:03.07]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Nested_fixed_level_block_is_recognized [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Nested_fixed_level_block_is_recognized [571 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 56
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Nested_fixed_level_block_is_recognized() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 24
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:03.84]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_distinguishes_inapplicable_skills_from_applicable_zero_level_caps [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_distinguishes_inapplicable_skills_from_applicable_zero_level_caps [771 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 56
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_distinguishes_inapplicable_skills_from_applicable_zero_level_caps() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 141
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:04.95]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Static_rules_are_shared_across_levels_learned_sets_and_racing_callers [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Static_rules_are_shared_across_levels_learned_sets_and_racing_callers [491 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 56
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Static_rules_are_shared_across_levels_learned_sets_and_racing_callers() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 82
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:05.54]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_skills_answer_career_prerequisite_and_cumulative_cost_questions [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_skills_answer_career_prerequisite_and_cumulative_cost_questions [584 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Get(Byte job, Int32 skillId) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 32
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_skills_answer_career_prerequisite_and_cumulative_cost_questions() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 99
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:06.12]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_preserves_initial_skill_source_order_for_normal_and_dark_knight_jobs [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_preserves_initial_skill_source_order_for_normal_and_dark_knight_jobs [571 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Fighter/Typhoon.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 56
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_preserves_initial_skill_source_order_for_normal_and_dark_knight_jobs() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 54
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:06.76]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Unsupported_careers_are_not_inferred_from_a_scalar_maximum_or_initial_grant [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Unsupported_careers_are_not_inferred_from_a_scalar_maximum_or_initial_grant [646 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/DemonicSwordman/BasicAttackUp.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Get(Byte job, Int32 skillId) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 32
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Unsupported_careers_are_not_inferred_from_a_scalar_maximum_or_initial_grant() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 129
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:07.18]     Dfo.Server.Application.Tests.Characters.CareerReconciliationTests.Real_spitfire_quest_commits_or_rolls_back_the_whole_completion(failGrant: False) [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CareerReconciliationTests.Real_spitfire_quest_commits_or_rolls_back_the_whole_completion(failGrant: False) [1 s]
+  错误消息:
+   Dfo.Server.Protocol.Game.QuestCompletion.QuestFinishRejectedException : Quest completion settlement was rejected.
+---- System.IO.InvalidDataException : PVF 'skill/Gunner/SatelliteLaser.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommandHandler.HandleAsync(CommandExecutionContext context, FinishQuestCommand command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Protocol\Game\QuestCompletion\FinishQuestCommand.cs:line 129
+   at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+   at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+   at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+   at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+   at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+   at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+   at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+   at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+   at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+   at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+   at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs:line 60
+   at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs:line 60
+   at Dfo.Server.Application.Tests.Characters.CareerReconciliationTests.Real_spitfire_quest_commits_or_rolls_back_the_whole_completion(Boolean failGrant) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CareerReconciliationTests.cs:line 126
+   at Dfo.Server.Application.Tests.Characters.CareerReconciliationTests.Real_spitfire_quest_commits_or_rolls_back_the_whole_completion(Boolean failGrant) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CareerReconciliationTests.cs:line 134
+--- End of stack trace from previous location ---
+----- Inner Stack Trace -----
+   at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetLedger(CharacterCareer career, Int32 characterLevel, IReadOnlyList`1 pages, CharacterSkillPointBasisState basis) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 48
+   at Dfo.Server.Application.Quests.QuestCompletionEffectRuleService.CompleteAsync(UInt16 questId, QuestCompletionRewardPlan reward, QuestCompletionFacts facts, ImmutableArray`1 rewardEffects, InventoryEffectHoldingsSnapshot after, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Quests\QuestCompletionEffectRuleService.cs:line 91
+   at Dfo.Server.Application.Quests.QuestCompletionDomainService.FinishAsync(AccountId account, CharacterId id, UInt16 quest, UInt16 selection, UInt16 count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity session) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Quests\QuestCompletionDomainService.cs:line 49
+   at Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommandHandler.HandleAsync(CommandExecutionContext context, FinishQuestCommand command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Protocol\Game\QuestCompletion\FinishQuestCommand.cs:line 103
+[xUnit.net 00:00:07.57]     Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload [665 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetLedger(CharacterCareer career, Int32 characterLevel, IReadOnlyList`1 pages, CharacterSkillPointBasisState basis) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 48
+   at Dfo.Server.Application.Characters.CharacterSkillPointDomainService.LedgerAsync(CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillPointDomainService.cs:line 15
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.ReadAsync(ICharacter character) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 165
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 35
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 78
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:08.62]     Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration [1 s]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Swordman/Hellbenter.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetLedger(CharacterCareer career, Int32 characterLevel, IReadOnlyList`1 pages, CharacterSkillPointBasisState basis) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 48
+   at Dfo.Server.Application.Characters.CharacterSkillPointDomainService.LedgerAsync(CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillPointDomainService.cs:line 15
+   at Dfo.Server.Application.Characters.CharacterStateProjectionDomainService.RefreshAsync(SelectCharacterResult result, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterStateProjectionDomainService.cs:line 20
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 102
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 124
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 124
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:08.77]     Dfo.Server.Application.Tests.Characters.CharacterSkillLearningTests.Real_guardian_archive_initial_skills_support_learning_one_to_three_and_reloading [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillLearningTests.Real_guardian_archive_initial_skills_support_learning_one_to_three_and_reloading [916 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'skill/Knight/Charge.skl', field '[fixed level skill]': expected exactly one Int32.
+  堆栈跟踪:
+     at Dfo.Pvf.Schema.PvfField.Require(Boolean condition, String source, String name, String reason) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 106
+   at Dfo.Pvf.Schema.PvfField.<>c__DisplayClass16_0.<Int32>b__0(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 41
+   at Dfo.Pvf.Schema.PvfField`1.Decode(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 130
+   at Dfo.Pvf.Schema.PvfField`1.Validate(PvfArchive archive, IReadOnlyList`1 values, String source) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Pvf\Schema\PvfField.cs:line 131
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadAllIntSections(PvfArchive archive, String path) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 165
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.ReadSkill(PvfArchive archive, Int32 skillId, String relative) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 127
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass7_0.<Read>b__1(KeyValuePair`2 pair) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 61
+   at System.Linq.Enumerable.ToDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary[TSource,TKey,TElement](IEnumerable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer)
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Read(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 60
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.<>c__DisplayClass6_0.<Get>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 55
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Infrastructure.Content.PvfSkillPointDefinitionSource.Get(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfSkillPointDefinitionSource.cs:line 54
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.<>c__DisplayClass4_0.<For>b__1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 26
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.For(Byte job) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 24
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 63
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetLedger(CharacterCareer career, Int32 characterLevel, IReadOnlyList`1 pages, CharacterSkillPointBasisState basis) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 48
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillLearningTests.Real_guardian_archive_initial_skills_support_learning_one_to_three_and_reloading() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillLearningTests.cs:line 324
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillLearningTests.Real_guardian_archive_initial_skills_support_learning_one_to_three_and_reloading() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillLearningTests.cs:line 335
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:35.77]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_avatar_pet_artifact_and_package_pass_through_production_sources_and_storage [FAIL]
+  失败 Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_avatar_pet_artifact_and_package_pass_through_production_sources_and_storage [581 ms]
+  错误消息:
+   System.IO.InvalidDataException : PVF 'stackable/cash/chn_20140311_occupation/chn_stk_avatar_option_discount_50_coupon_2683473.stk', field '[stackable type]': expected a type name and optional nonnegative Int32.
+  堆栈跟踪:
+     at Dfo.Server.Infrastructure.Content.PvfEntryLifecycleContentSource.TypeName(PvfArchive archive, IReadOnlyList`1 values, String path, PvfField field) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfEntryLifecycleContentSource.cs:line 266
+   at Dfo.Server.Infrastructure.Content.PvfEntryLifecycleContentSource.ResolveItemMetadata(PvfArchive archive, Int32 itemId, IReadOnlyDictionary`2 stackables, IReadOnlyDictionary`2 equipment) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfEntryLifecycleContentSource.cs:line 185
+   at Dfo.Server.Infrastructure.Content.PvfEntryLifecycleContentSource.ResolveItemMetadataFor(PvfArchive archive, Int32 itemId, IReadOnlyDictionary`2 stackables, IReadOnlyDictionary`2 equipment) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfEntryLifecycleContentSource.cs:line 170
+   at Dfo.Server.Infrastructure.Content.PvfItemPlacementDefinitionSource.GetAsync(Int32 itemId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Infrastructure\Content\PvfItemPlacementDefinitionSource.cs:line 43
+   at Dfo.Server.Application.Inventory.ItemPlacementRuleService.PlacementForAsync(Int32 itemId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Inventory\ItemPlacementRuleService.cs:line 27
+   at Dfo.Server.Application.Inventory.CeraShopRuleService.ExpandAsync(CeraShopItemDefinition item, Int32 count, Int32 expiration, Byte directAbility, Boolean packageChoice, Choices choices, HashSet`1 ancestors, Builder grants, Int32 level, DateTimeOffset now, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Inventory\CeraShopRuleService.cs:line 206
+   at Dfo.Server.Application.Inventory.CeraShopRuleService.ExpandAsync(CeraShopItemDefinition item, Int32 count, Int32 expiration, Byte directAbility, Boolean packageChoice, Choices choices, HashSet`1 ancestors, Builder grants, Int32 level, DateTimeOffset now, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Inventory\CeraShopRuleService.cs:line 198
+   at Dfo.Server.Application.Inventory.CeraShopRuleService.QuoteAsync(CeraShopPurchaseInput input, Int32 characterLevel, DateTimeOffset now, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Inventory\CeraShopRuleService.cs:line 72
+   at Dfo.Server.Application.Inventory.CeraShopDomainService.PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input, DateTimeOffset now, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Inventory\CeraShopDomainService.cs:line 44
+   at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+   at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+   at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+   at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+   at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+   at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+   at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 43
+   at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 47
+   at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34
+   at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34
+   at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+   at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+   at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs:line 60
+   at Dfo.Server.Application.Commands.CommandBus.SendAsync[TResult](ICommand`1 command, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\src\Dfo.Server.Application\Commands\CommandBus.cs:line 60
+   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_avatar_pet_artifact_and_package_pass_through_production_sources_and_storage() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 327
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\solo-play-roadmap\Document\tasks\pvf-typed-schema\verification\final-Dfo.Server.Application.trx
+
+失败!  - 失败:    13，通过:  2586，已跳过:     0，总计:  2599，持续时间: 36 s - Dfo.Server.Application.Tests.dll (net10.0)

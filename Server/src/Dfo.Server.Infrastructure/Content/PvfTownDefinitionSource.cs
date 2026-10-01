@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -21,6 +22,19 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<int>> TownMovableAreaField = PvfField.Int32List("[town movable area]", optional: true);
+        internal static readonly PvfField<bool> CloseTownMovableAreaField = PvfField.Marker("[/town movable area]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> VirtualMovableAreaField = PvfField.Int32List("[virtual movable area]", optional: true);
+        internal static readonly PvfField<bool> CloseVirtualMovableAreaField = PvfField.Marker("[/virtual movable area]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> AreaField = PvfField.Tokens("[area]", optional: true);
+        internal static readonly PvfField<bool> CloseAreaField = PvfField.Marker("[/area]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> PermissionField = PvfField.Tokens("[permission]", optional: true);
+        internal static readonly PvfField<bool> ClosePermissionField = PvfField.Marker("[/permission]", optional: true);
+        internal static readonly PvfField<string> NameField = PvfField.String("[name]", optional: true);
+    }
+
     private const string ListPath = "town/town.lst";
     private const string TownDirectory = "town";
     private const string MapDirectory = "map";
@@ -97,6 +111,11 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
     private static TownDefinition ReadTown(PvfArchive archive, TownTags tags, int townId, int fileIndex)
     {
         var areas = new List<TownAreaDefinition>();
+        var scriptEntry = archive.GetEntry(fileIndex);
+        var scriptPath = $"{archive.ResolveString(scriptEntry.PathOffset)}/{archive.ResolveString(scriptEntry.NameOffset)}";
+        // Quoted area operands may resume immediately after [/permission]; the scoped
+        // reader owns that boundary rather than treating them as closing-marker operands.
+        PvfDocument.Open(archive, scriptPath).ValidateFields(Fields.NameField, Fields.CloseAreaField);
         var reader = archive.OpenScript(fileIndex);
         var name = string.Empty;
 
@@ -112,13 +131,14 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
 
                 if (token.Value == tags.AreaOpen)
                 {
-                    draft = new AreaDraft();
+                    if (draft is not null) throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.AreaField}': nested or unclosed area.");
+                    draft = new AreaDraft(scriptPath);
                     inPermission = false;
                 }
                 else if (token.Value == tags.AreaClose)
                 {
-                    if (draft is not null)
-                        areas.Add(draft.ToDefinition());
+                    if (draft is null || inPermission) throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.AreaField}': area close without opening or with unclosed permission.");
+                    areas.Add(draft.ToDefinition());
 
                     draft = null;
                 }
@@ -153,6 +173,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
             draft.Accept(archive, token);
         }
 
+        if (draft is not null) throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.AreaField}': unclosed area.");
         return new TownDefinition(townId, name, areas);
     }
 
@@ -163,14 +184,15 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         if (fileIndex < 0)
             return null;
 
-        var transit = RequireTag(archive, "[town movable area]");
-        var transitClose = RequireTag(archive, "[/town movable area]");
-        var walkable = RequireTag(archive, "[virtual movable area]");
-        var walkableClose = RequireTag(archive, "[/virtual movable area]");
+        var transit = RequireTag(archive, Fields.TownMovableAreaField);
+        var transitClose = RequireTag(archive, Fields.CloseTownMovableAreaField);
+        var walkable = RequireTag(archive, Fields.VirtualMovableAreaField);
+        var walkableClose = RequireTag(archive, Fields.CloseVirtualMovableAreaField);
 
         var transitValues = new List<int>();
         var walkableValues = new List<int>();
         List<int>? active = null;
+        var segmentStart = 0;
         var nested = 0;
         var reader = archive.OpenScript(fileIndex);
 
@@ -180,16 +202,21 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
             {
                 if (token.Value == transit)
                 {
+                    ValidateSegment();
                     active = transitValues;
+                    segmentStart = active.Count;
                     nested = 0;
                 }
                 else if (token.Value == walkable)
                 {
+                    ValidateSegment();
                     active = walkableValues;
+                    segmentStart = active.Count;
                     nested = 0;
                 }
                 else if (token.Value == transitClose || token.Value == walkableClose)
                 {
+                    ValidateSegment();
                     active = null;
                     nested = 0;
                 }
@@ -210,10 +237,15 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
                 continue;
             }
 
-            if (active is not null && nested == 0 && token.Kind == PvfTokenKind.Int32)
+            if (active is not null && nested == 0)
+            {
+                if (token.Kind != PvfTokenKind.Int32)
+                    throw new InvalidDataException($"PVF '{MapDirectory}/{normalized}', field '{(ReferenceEquals(active, transitValues) ? Fields.TownMovableAreaField.Name : Fields.VirtualMovableAreaField.Name)}': expected Int32 geometry.");
                 active.Add(token.Value);
+            }
         }
 
+        ValidateSegment();
         var transits = new List<TownTransitArea>(transitValues.Count / TransitRowLength);
         for (var offset = 0; offset + TransitRowLength <= transitValues.Count; offset += TransitRowLength)
         {
@@ -238,6 +270,16 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         }
 
         return new MapGeometry(transits, walkables);
+
+        void ValidateSegment()
+        {
+            if (active is null) return;
+            var isTransit = ReferenceEquals(active, transitValues);
+            var field = isTransit ? Fields.TownMovableAreaField : Fields.VirtualMovableAreaField;
+            var width = isTransit ? TransitRowLength : WalkableRowLength;
+            if (nested != 0 || (active.Count - segmentStart) % width != 0)
+                throw new InvalidDataException($"PVF '{MapDirectory}/{normalized}', field '{field}': incomplete row or nested block in this declaration.");
+        }
     }
 
     /// <summary>
@@ -249,7 +291,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
     /// match nothing, yield an empty-but-present geometry, and surface later as an accusation
     /// that the content states no arrival point — blaming the archive for a parser fault.
     /// </remarks>
-    private static int RequireTag(PvfArchive archive, string tag)
+    private static int RequireTag(PvfArchive archive, PvfField tag)
     {
         var resolved = archive.GetTag(tag);
         return resolved.IsResolved
@@ -258,10 +300,10 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
                 $"The archive contains no '{tag}' tag, so map geometry cannot be read from it.");
     }
 
-    private sealed class AreaDraft
+    private sealed class AreaDraft(string source)
     {
-        private const string MinimapOpen = "[minimap rect]";
-        private const string MinimapClose = "[/minimap rect]";
+        private static readonly PvfField<IReadOnlyList<PvfToken>> MinimapOpen = PvfField.Tokens("[minimap rect]", optional: true, tokenKind: PvfTokenKind.QuotedString);
+        private static readonly PvfField<bool> MinimapClose = PvfField.Marker("[/minimap rect]", optional: true, tokenKind: PvfTokenKind.QuotedString);
 
         private readonly List<int> _operands = [];
         private int _areaId = TownAreaDefinition.NoOperand;
@@ -270,6 +312,11 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         private bool _haveAreaId;
         private bool _haveKind;
         private bool _inMinimapRect;
+        private int _minimapIntegers;
+        private bool _haveMinimap;
+
+        private InvalidDataException Invalid(PvfField field, string reason) =>
+            new($"PVF '{source}', field '{field}': {reason}.");
 
         public void Accept(PvfArchive archive, in PvfToken token)
         {
@@ -277,14 +324,15 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
             {
                 // The minimap rectangle is four integers of presentation data. Counting them
                 // as operands would put a rectangle corner where a spawn position belongs.
-                if (_inMinimapRect)
-                    return;
+                if (_inMinimapRect) { _minimapIntegers++; return; }
 
                 if (!_haveAreaId)
                 {
+                    if (token.Value < 0) throw Invalid(Fields.AreaField, "area ID must be nonnegative");
                     _areaId = token.Value;
                     _haveAreaId = true;
                 }
+                else if (_mapPath.Length == 0) throw Invalid(Fields.AreaField, "expected map path after area ID");
                 else if (_haveKind)
                 {
                     // Only the numbers following the kind are its operands. Modifier markers
@@ -296,22 +344,29 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
                 return;
             }
 
-            if (token.Kind != PvfTokenKind.QuotedString)
-                return;
+            if (token.Kind != MinimapOpen.TokenKind)
+                throw Invalid(Fields.AreaField, $"unexpected {token.Kind}");
 
             var value = archive.ResolveString(token.Value).Trim();
             switch (value)
             {
-                case MinimapOpen:
+                case var fieldName when MinimapOpen.Matches(fieldName):
+                    if (!_haveAreaId || _mapPath.Length == 0 || _haveMinimap) throw Invalid(MinimapOpen, "rectangle must follow a complete area header and occur once");
+                    _haveMinimap = true;
                     _inMinimapRect = true;
+                    _minimapIntegers = 0;
                     return;
-                case MinimapClose:
+                case var fieldName when MinimapClose.Matches(fieldName):
+                    if (!_inMinimapRect || _minimapIntegers != 4) throw Invalid(MinimapOpen, "expected four Int32 coordinates");
                     _inMinimapRect = false;
                     return;
             }
 
+            if (_inMinimapRect) throw Invalid(MinimapOpen, "expected Int32 coordinate or closing marker");
+            if (!_haveAreaId) throw Invalid(Fields.AreaField, "expected area ID before map path");
             if (_mapPath.Length == 0)
             {
+                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('[')) throw Invalid(Fields.AreaField, "expected nonempty map path");
                 _mapPath = value.Replace('\\', '/');
                 return;
             }
@@ -327,12 +382,14 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
             }
         }
 
-        public TownAreaDefinition ToDefinition() => new(
-            _areaId,
-            _mapPath,
-            _kind,
-            _operands.Count > 0 ? _operands[0] : TownAreaDefinition.NoOperand,
-            _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand);
+        public TownAreaDefinition ToDefinition()
+        {
+            if (_inMinimapRect) throw Invalid(MinimapOpen, "unclosed rectangle");
+            if (!_haveAreaId || _mapPath.Length == 0) throw Invalid(Fields.AreaField, "incomplete area ID/map header");
+            return new(_areaId, _mapPath, _kind,
+                _operands.Count > 0 ? _operands[0] : TownAreaDefinition.NoOperand,
+                _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand);
+        }
 
         /// <remarks>
         /// The kinds modelled here are the ones entry policy acts on. The content declares
@@ -359,11 +416,11 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
     {
         public TownTags(PvfArchive archive)
         {
-            AreaOpen = archive.GetTag("[area]").Offset;
-            AreaClose = archive.GetTag("[/area]").Offset;
-            PermissionOpen = archive.GetTag("[permission]").Offset;
-            PermissionClose = archive.GetTag("[/permission]").Offset;
-            Name = archive.GetTag("[name]").Offset;
+            AreaOpen = archive.GetTag(Fields.AreaField).Offset;
+            AreaClose = archive.GetTag(Fields.CloseAreaField).Offset;
+            PermissionOpen = archive.GetTag(Fields.PermissionField).Offset;
+            PermissionClose = archive.GetTag(Fields.ClosePermissionField).Offset;
+            Name = archive.GetTag(Fields.NameField).Offset;
         }
 
         public int AreaOpen { get; }

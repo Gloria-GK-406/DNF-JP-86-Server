@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -12,13 +13,20 @@ internal sealed class PvfEntryLifecycleContentSource(
     IInventorySlotMappingRuleService? slotMappings = null)
     : IEntryLifecycleContentSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> RefillItemField = PvfField.Tokens("[refill item]", optional: true);
+        internal static readonly PvfField<int> StackLimitField = PvfField.Int32("[stack limit]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> StackableTypeField = PvfField.Tokens("[stackable type]", optional: true);
+    }
+
     private readonly IInventorySlotMappingRuleService slotMappings =
         slotMappings ?? new InventorySlotMappingRuleService();
     private const string RefillPath = "etc/chn_server_limititemusageinfo.etc";
     private const string StackableListPath = "stackable/stackable.lst";
     private const string EquipmentListPath = "equipment/equipment.lst";
     private const string EquipmentDirectory = "equipment";
-    private const string EquipmentTypeTag = "[equipment type]";
+    private static readonly PvfField<IReadOnlyList<PvfToken>> EquipmentTypeTag = PvfField.Tokens("[equipment type]", optional: true);
 
     /// <summary>The contract creature's own equipment type, as the archive spells it.</summary>
     private const string CreatureEquipmentType = "[creature]";
@@ -57,7 +65,7 @@ internal sealed class PvfEntryLifecycleContentSource(
     {
         cancellationToken.ThrowIfCancellationRequested();
         var archive = provider.Archive;
-        var values = ReadSectionValues(archive, RefillPath, "[refill item]");
+        var values = ReadSectionValues(archive, RefillPath, Fields.RefillItemField);
         var stackables = PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
         var equipment = ReadEquipmentPaths(archive);
         var parsed = Parse(values, preparedAt,
@@ -131,22 +139,24 @@ internal sealed class PvfEntryLifecycleContentSource(
         return result;
     }
 
-    private static IReadOnlyList<string> ReadSectionValues(PvfArchive archive, string path, string tag)
+    private static IReadOnlyList<string> ReadSectionValues(PvfArchive archive, string path, PvfField<IReadOnlyList<PvfToken>> tag)
     {
-        var section = archive.GetTag(tag);
-        if (!section.IsResolved)
-            throw new InvalidDataException($"PVF section {tag} is unavailable.");
+        var document = PvfDocument.Open(archive, path);
+        if (!document.TryRead(tag, out var tokens)) throw Invalid(path, tag, "required refill declaration is missing");
+        if (tokens.Count % 4 != 0) throw Invalid(path, tag, "truncated refill tuple");
         var values = new List<string>();
-        var reader = archive.OpenScript(path);
-        if (!reader.TryMovePast(section))
-            throw new InvalidDataException($"PVF {path} does not contain {tag}.");
-        while (reader.TryReadSectionValue(out var token))
+        for (var offset = 0; offset < tokens.Count; offset += 4)
         {
-            values.Add(token.Kind == PvfTokenKind.Int32
-                ? token.Value.ToString(CultureInfo.InvariantCulture)
-                : token.IsString
-                    ? archive.ResolveString(token.Value)
-                    : throw new InvalidDataException($"PVF {path} {tag} contains unsupported token {token.Kind}."));
+            if (tokens[offset].Kind != PvfTokenKind.Int32 || tokens[offset + 1].Kind != PvfTokenKind.Int32
+                || tokens[offset + 2].Kind != PvfTokenKind.QuotedString || tokens[offset + 3].Kind != PvfTokenKind.Int32)
+                throw Invalid(path, tag, "expected item id, quantity, quoted expiration and mode");
+            var expiration = archive.ResolveString(tokens[offset + 2].Value);
+            if (!DateTime.TryParseExact(expiration, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+                throw Invalid(path, tag, "invalid refill expiration");
+            values.Add(tokens[offset].Value.ToString(CultureInfo.InvariantCulture));
+            values.Add(tokens[offset + 1].Value.ToString(CultureInfo.InvariantCulture));
+            values.Add(expiration);
+            values.Add(tokens[offset + 3].Value.ToString(CultureInfo.InvariantCulture));
         }
         return values;
     }
@@ -170,21 +180,12 @@ internal sealed class PvfEntryLifecycleContentSource(
                 ? WornPieceMetadata(ReadEquipmentType(archive, equipmentPath))
                 : new RefillItemMetadata(0, 0, 0, -1, ItemWorldClass.Interchangeable);
 
-        var limitTag = archive.GetTag("[stack limit]");
-        var typeTag = archive.GetTag("[stackable type]");
-        var reader = archive.OpenScript("stackable/" + entry.RelativePath);
-        var limit = 0;
-        if (limitTag.IsResolved && reader.TryMovePast(limitTag)
-            && reader.TryReadSectionValue(out var limitToken)
-            && limitToken.Kind == PvfTokenKind.Int32)
-            limit = Math.Max(0, limitToken.Value);
-
-        reader.Reset();
-        string? stackableType = null;
-        if (typeTag.IsResolved && reader.TryMovePast(typeTag)
-            && reader.TryReadSectionValue(out var typeToken)
-            && typeToken.IsString)
-            stackableType = archive.ResolveString(typeToken.Value);
+        var path = "stackable/" + entry.RelativePath;
+        var sections = RootSections(PvfDocument.Open(archive, path).Sections);
+        var limit = TryRead(archive, sections, Fields.StackLimitField, path, out var declaredLimit) ? declaredLimit : 0;
+        if (limit < 0) throw Invalid(path, Fields.StackLimitField, "negative stack limit");
+        string? stackableType = TryRead(archive, sections, Fields.StackableTypeField, path, out var typeValues)
+            ? TypeName(archive, typeValues, path, Fields.StackableTypeField) : null;
 
         var kind = ResolveStackableItemKind(itemId, stackableType);
         var range = ResolveSlotRange(kind, stackableType);
@@ -252,17 +253,54 @@ internal sealed class PvfEntryLifecycleContentSource(
         if (fileIndex < 0)
             return null;
 
-        var tag = archive.GetTag(EquipmentTypeTag);
-        if (!tag.IsResolved)
-            return null;
-
-        var reader = archive.OpenScript(fileIndex);
-        return reader.TryMovePast(tag)
-            && reader.TryReadSectionValue(out var value)
-            && value.IsString
-            ? archive.ResolveString(value.Value)
-            : null;
+        var path = EquipmentDirectory + "/" + relativePath;
+        var sections = RootSections(PvfDocument.Open(archive, path).Sections);
+        return TryRead(archive, sections, EquipmentTypeTag, path, out var values)
+            ? TypeName(archive, values, path, EquipmentTypeTag) : null;
     }
+
+    private static string TypeName(PvfArchive archive, IReadOnlyList<PvfToken> values, string path, PvfField field)
+    {
+        // Stackable types carry a variable integer operand list (for example coupon 26 0).
+        // Equipment type has only its optional single icon/sprite subtype.
+        if (values.Count < 1 || !values[0].IsString
+            || field != Fields.StackableTypeField && values.Count > 2
+            || values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32 || value.Value < 0))
+            throw Invalid(path, field, "expected a type name and complete nonnegative Int32 operands");
+        var name = archive.ResolveString(values[0].Value);
+        if (string.IsNullOrWhiteSpace(name)) throw Invalid(path, field, "empty type name");
+        return name;
+    }
+
+    private static bool TryRead<T>(PvfArchive archive, IReadOnlyList<PvfSection> sections,
+        PvfField<T> field, string path, out T value)
+    {
+        var found = sections.Where(section => field.Matches(section.Name)).ToArray();
+        if (found.Length == 0) { value = default!; return false; }
+        if (found.Length != 1) throw Invalid(path, field, "duplicate field");
+        value = field.Decode(archive, found[0].Values, path);
+        return true;
+    }
+
+    // The same names can legitimately occur inside a booster or another conditional block.
+    private static IReadOnlyList<PvfSection> RootSections(IReadOnlyList<PvfSection> sections)
+    {
+        var closing = sections.Where(section => section.Name.StartsWith("[/", StringComparison.Ordinal))
+            .Select(section => section.Name).ToHashSet(StringComparer.Ordinal);
+        var stack = new Stack<string>();
+        var root = new List<PvfSection>();
+        foreach (var section in sections)
+        {
+            if (stack.TryPeek(out var expected) && section.Name == expected) { stack.Pop(); continue; }
+            if (stack.Count == 0) root.Add(section);
+            var close = "[/" + section.Name[1..];
+            if (closing.Contains(close)) stack.Push(close);
+        }
+        return root;
+    }
+
+    private static InvalidDataException Invalid(string path, PvfField field, string reason) =>
+        new($"PVF '{path}', field '{field}': {reason}.");
 
     /// <summary>What an <c>[equipment type]</c> name says the piece is.</summary>
     internal static ItemWorldClass ClassifyEquipmentType(string? equipmentType)

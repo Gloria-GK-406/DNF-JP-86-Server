@@ -1,12 +1,17 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Immutable;
 using Dfo.Pvf;
-using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfMonsterDeclaredDropTableSource(PvfArchiveProvider provider) : IMonsterDeclaredDropTableSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<int>> ItemField = PvfField.Int32List("[item]", optional: true);
+    }
+
     public IReadOnlyList<MonsterDeclaredDropTable> Load()
     {
         var archive = provider.Archive;
@@ -19,11 +24,14 @@ internal sealed class PvfMonsterDeclaredDropTableSource(PvfArchiveProvider provi
             try
             {
                 var sections = PvfNpcShopDefinitionSource.Sections(archive, path)
-                    .Where(section => section.Name == "[item]" && section.Values.Count > 0).ToArray();
+                    .Where(section => section.Name == Fields.ItemField.Name).ToArray();
                 if (sections.Length == 0) continue;
-                if (sections.Length != 1 || sections[0].Values.Any(token => token.Kind != PvfTokenKind.Int32))
-                    throw new InvalidDataException($"{path}: malformed [item].");
-                var table = Parse(row.Id, sections[0].Values.Select(token => token.Value).ToArray(),
+                var declarations = sections.Select(section => Fields.ItemField.Decode(archive, section.Values, path)).ToArray();
+                var activeDeclarations = declarations.Where(values => values.Count > 0).ToArray();
+                if (activeDeclarations.Length > 1)
+                    throw new InvalidDataException($"{path}: duplicate nonempty {Fields.ItemField.Name}.");
+                if (activeDeclarations.Length == 0) continue;
+                var table = Parse(row.Id, activeDeclarations[0],
                     id => items.Get(id) ?? throw new InvalidDataException($"{path}: missing item {id}."));
                 if (!table.Entries.IsEmpty) result.Add(table);
             }

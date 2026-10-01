@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -9,6 +10,29 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvider provider)
     : IEquipmentReinforcementDefinitionSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField = PvfField.Tokens("[action type]", optional: true);
+        internal static readonly PvfField<int> NoticeField = PvfField.Int32("[notice]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> CostField = PvfField.Numbers("[cost]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CostWeightsByRarityField = PvfField.Tokens("[cost weights by rarity]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> TypeField = PvfField.Numbers("[type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> CostWeightByUpgradeLevelField = PvfField.Numbers("[cost weight by upgrade level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> DestroyLevelByRarityField = PvfField.Tokens("[destroy level by rarity]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> MaxUpgradeLevelByRarityField = PvfField.Tokens("[max upgrade level by rarity]", optional: true);
+        internal static readonly PvfField<int> DisjointBonusItemField = PvfField.Int32("[disjoint bonus item]", optional: true);
+        internal static readonly PvfField<int> EquipLevelConstField = PvfField.Int32("[equip level const]", optional: true);
+        internal static readonly PvfField<int> UpgradeConstForBonusItemCountField = PvfField.Int32("[upgrade const for bonus item count]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> UpgradeFailedBonusWeightByRarityField = PvfField.Tokens("[upgrade failed bonus weight by rarity]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> CorrectionGradeByRarityField = PvfField.Tokens("[correction grade by rarity]", optional: true);
+        internal static readonly PvfField<bool> CloseActionTypeField = PvfField.Marker("[/action type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> TableField = PvfField.Numbers("[table]", optional: true);
+        internal static readonly PvfField<string> TableTypeField = PvfField.String("[table type]", optional: true);
+        internal static readonly PvfField<bool> CloseTableField = PvfField.Marker("[/table]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> DisjointField = PvfField.Int32List("[disjoint]", optional: true);
+        internal static readonly PvfField<bool> CloseDisjointField = PvfField.Marker("[/disjoint]", optional: true);
+    }
+
     private static readonly IReadOnlyDictionary<string, int> Rarities = new Dictionary<string, int>(
         StringComparer.OrdinalIgnoreCase)
     {
@@ -73,10 +97,10 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         if (!stackablePaths.TryGetValue(itemId, out var path))
             return null;
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + path);
-        var action = One(sections, "[action type]");
-        var actionIndex = sections.ToList().FindIndex(section => section.Name == "[action type]");
+        var action = One(sections, Fields.ActionTypeField);
+        var actionIndex = sections.ToList().FindIndex(section => section.Name == Fields.ActionTypeField.Name);
         if (action is null || actionIndex < 0 || actionIndex + 1 >= sections.Count
-            || sections[actionIndex + 1].Name != "[/action type]"
+            || sections[actionIndex + 1].Name != Fields.CloseActionTypeField.Name
             || action.Values.Count == 0
             || !TryName(archive, action.Values[0], out var actionName))
             return null;
@@ -103,9 +127,9 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         PvfNpcShopDefinitionSource.Section? normal = null;
         for (var index = 0; index < sections.Count; index++)
         {
-            if (sections[index].Name != "[table]") continue;
-            if (index + 2 >= sections.Count || sections[index + 1].Name != "[table type]"
-                || sections[index + 2].Name != "[/table]")
+            if (sections[index].Name != Fields.TableField.Name) continue;
+            if (index + 2 >= sections.Count || sections[index + 1].Name != Fields.TableTypeField.Name
+                || sections[index + 2].Name != Fields.CloseTableField.Name)
                 return null;
             var tableType = sections[index + 1];
             if (tableType.Values.Count == 0 || !TryName(archive, tableType.Values[0], out var name))
@@ -138,16 +162,16 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
                 penaltyValue, material, count));
         }
 
-        var notice = OneInt(sections, "[notice]");
-        var baseGold = IntList(One(sections, "[cost]"), minimumCount: 2, allowZero: true);
-        var rarityWeights = NumberList(One(sections, "[cost weights by rarity]"), 7, allowZero: false);
-        var typeWeights = NumberList(One(sections, "[type]"), 12, allowZero: true);
+        var notice = OneInt(archive, sections, Fields.NoticeField);
+        var baseGold = IntList(One(sections, Fields.CostField), minimumCount: 2, allowZero: true);
+        var rarityWeights = NumberList(One(sections, Fields.CostWeightsByRarityField), 7, allowZero: false);
+        var typeWeights = NumberList(One(sections, Fields.TypeField), 12, allowZero: true);
         // A21 amplification omits this optional factor entirely; each level has neutral weight.
-        var costSection = One(sections, "[cost weight by upgrade level]");
-        var costByLevel = tableName == "amplify" && !sections.Any(section => section.Name == "[cost weight by upgrade level]")
+        var costSection = One(sections, Fields.CostWeightByUpgradeLevelField);
+        var costByLevel = tableName == "amplify" && !sections.Any(section => section.Name == Fields.CostWeightByUpgradeLevelField.Name)
             ? new Dictionary<int, double>() : IntDoubleMap(costSection);
-        var destroyLevels = RarityIntMap(archive, One(sections, "[destroy level by rarity]"));
-        var maxLevels = RarityIntMap(archive, One(sections, "[max upgrade level by rarity]"));
+        var destroyLevels = RarityIntMap(archive, One(sections, Fields.DestroyLevelByRarityField));
+        var maxLevels = RarityIntMap(archive, One(sections, Fields.MaxUpgradeLevelByRarityField));
         var bonus = ReadDestroyBonus(archive, sections);
         if (notice is not >= 0 || baseGold is null || rarityWeights is null
             || typeWeights is null || costByLevel is null || destroyLevels is null
@@ -163,18 +187,18 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
     {
         var start = sections.Select((section, index) => (section, index))
-            .Where(pair => pair.section.Name == "[disjoint]").ToArray();
+            .Where(pair => pair.section.Name == Fields.DisjointField.Name).ToArray();
         var end = sections.Select((section, index) => (section, index))
-            .Where(pair => pair.section.Name == "[/disjoint]").ToArray();
+            .Where(pair => pair.section.Name == Fields.CloseDisjointField.Name).ToArray();
         if (start.Length != 1 || end.Length != 1 || end[0].index <= start[0].index)
             return null;
         var children = sections.Skip(start[0].index + 1)
             .Take(end[0].index - start[0].index - 1).ToArray();
-        var itemId = OneInt(children, "[disjoint bonus item]");
-        var level = OneInt(children, "[equip level const]");
-        var upgradeBase = OneInt(children, "[upgrade const for bonus item count]");
-        var weights = RarityDoubleMap(archive, One(children, "[upgrade failed bonus weight by rarity]"));
-        var correction = RarityIntMap(archive, One(children, "[correction grade by rarity]"),
+        var itemId = OneInt(archive, children, Fields.DisjointBonusItemField);
+        var level = OneInt(archive, children, Fields.EquipLevelConstField);
+        var upgradeBase = OneInt(archive, children, Fields.UpgradeConstForBonusItemCountField);
+        var weights = RarityDoubleMap(archive, One(children, Fields.UpgradeFailedBonusWeightByRarityField));
+        var correction = RarityIntMap(archive, One(children, Fields.CorrectionGradeByRarityField),
             allowZero: true);
         return itemId is > 0 && level is > 0 && upgradeBase is >= 0
             && weights is { Count: > 0 } && correction is { Count: > 0 }
@@ -202,18 +226,18 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
     }
 
     private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name)
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name)
     {
-        var matches = sections.Where(section => section.Name == name).ToArray();
+        var matches = sections.Where(section => section.Name == name.Name).ToArray();
         return matches.Length == 1 ? matches[0] : null;
     }
 
     private static int? OneInt(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name)
+        PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<int> name)
     {
         var section = One(sections, name);
-        return section is { Values.Count: 1 } && TryInt(section.Values[0], out var value)
-            ? value : null;
+        return section is { Values.Count: 1 } && TryInt(section.Values[0], out _)
+            ? name.Decode(archive, section.Values, "equipment reinforcement") : null;
     }
 
     private static int[]? IntList(

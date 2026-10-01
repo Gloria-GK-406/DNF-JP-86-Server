@@ -1,3 +1,4 @@
+using Dfo.Pvf.Schema;
 using System.Collections.Frozen;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
@@ -9,6 +10,24 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <summary>One startup scan; masks are expanded into reusable grade/rarity buckets.</summary>
 internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : IExtraDropContentSource
 {
+    private static class Fields
+    {
+        internal static readonly PvfField<int> SpecialMonsterDropField = PvfField.Int32("[special monster drop]", optional: true);
+        internal static readonly PvfField<int> CreationRateField = PvfField.Int32("[creation rate]", optional: true);
+        internal static readonly PvfField<int> GradeField = PvfField.Int32("[grade]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> DifficultyForExtraDropField = PvfField.Strings("[difficulty for extra drop]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<string>> DungeonTypeForExtraDropField = PvfField.Strings("[dungeon type for extra drop]", optional: true);
+        internal static readonly PvfField<string> EquipmentTypeField = PvfField.Custom<string>("[equipment type]", (archive, values, source) =>
+        {
+            if (values.Count is < 1 or > 2 || !values[0].IsString ||
+                values.Count == 2 && (values[1].Kind != PvfTokenKind.Int32 || values[1].Value < 0))
+                throw new InvalidDataException($"PVF '{source}', field '[equipment type]': expected type name and optional nonnegative Int32 subtype.");
+            return archive.ResolveString(values[0].Value);
+        }, optional: true);
+        internal static readonly PvfField<int> AncientDungeonField = PvfField.Int32("[ancient dungeon]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> DimensionDungeonField = PvfField.Tokens("[dimension dungeon]", optional: true);
+    }
+
     private readonly Lazy<ExtraDropContent> cache = new(() => Read(provider.Archive));
     public ExtraDropContent Load() => cache.Value;
 
@@ -30,34 +49,37 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
             var tagged = false;
             while (reader.Read(out var token))
                 if (token.Kind == PvfTokenKind.Identifier
-                    && archive.ResolveString(token.Value) == "[special monster drop]") { tagged = true; break; }
+                    && archive.ResolveString(token.Value) == Fields.SpecialMonsterDropField.Name) { tagged = true; break; }
             if (!tagged) continue;
-            var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
-            int Number(string name, int fallback)
+            var document = PvfDocument.Open(archive, path).AtRoot();
+            if (!document.TryRead(Fields.SpecialMonsterDropField, out var specialDrop)) continue;
+            var typeName = document.TryRead(Fields.EquipmentTypeField, out var declaredType) ? declaredType : null;
+            var sections = document.Sections.Select(section =>
+                new PvfNpcShopDefinitionSource.Section(section.Name, section.Values.ToList())).ToArray();
+            int Number(PvfField<int> name, int fallback)
             {
-                var fields = sections.Where(s => s.Name == name).ToArray();
+                var fields = sections.Where(s => s.Name == name.Name).ToArray();
                 if (fields.Length == 0) return fallback;
                 if (fields.Length != 1 || fields[0].Values.Count != 1
                     || fields[0].Values[0].Kind != PvfTokenKind.Int32)
                     throw new InvalidDataException($"{path}: malformed {name}.");
-                return fields[0].Values[0].Value;
+                return name.Decode(archive, fields[0].Values, path);
             }
-            if (Number("[special monster drop]", 0) != 1)
+            if (specialDrop != 1)
                 throw new InvalidDataException($"{path}: [special monster drop] requires 1.");
-            var weight = Number("[creation rate]", 0);
-            var grade = Number("[grade]", -1);
+            var weight = Number(Fields.CreationRateField, 0);
+            var grade = Number(Fields.GradeField, -1);
             if (weight < 0) throw new InvalidDataException($"{path}: negative creation rate.");
             if (weight == 0) continue;
             if (grade < 0) throw new InvalidDataException($"{path}: missing item grade.");
-            var difficulties = ReadMask(archive, sections, "[difficulty for extra drop]",
+            var difficulties = ReadMask(archive, sections, Fields.DifficultyForExtraDropField,
                 ["[easy]", "[medium]", "[hard]", "[ultimate]", "[hero]"]);
-            var types = ReadMask(archive, sections, "[dungeon type for extra drop]",
+            var types = ReadMask(archive, sections, Fields.DungeonTypeForExtraDropField,
                 ["[normal]", "[ancient]", "[dimension]"]);
             if (difficulties.Length == 0 || types.Length == 0) continue;
             var item = items.Get(row.Id)
                 ?? throw new InvalidDataException($"{path}: unresolved item {row.Id}.");
-            if (sections.Any(s => s.Name == "[equipment type]" && s.Values.Any(t =>
-                t.IsString && archive.ResolveString(t.Value).EndsWith("avatar]", StringComparison.Ordinal))))
+            if (typeName?.EndsWith("avatar]", StringComparison.Ordinal) == true)
                 item = item with { Kind = DropItemKind.Avatar };
             foreach (var difficulty in difficulties)
             foreach (var type in types)
@@ -79,9 +101,10 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
             if (archive.FindFile(path) < 0)
                 throw new InvalidDataException($"Extra drops: missing dungeon {row.Id}: {path}.");
             var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
-            var ancient = sections.Any(s => s.Name == "[ancient dungeon]"
-                && s.Values.Any(v => v.Kind == PvfTokenKind.Int32 && v.Value == 1));
-            var dimension = sections.Any(s => s.Name == "[dimension dungeon]");
+            var ancientSections = sections.Where(section => section.Name == Fields.AncientDungeonField.Name).ToArray();
+            if (ancientSections.Length > 1) throw new InvalidDataException($"PVF '{path}', field '{Fields.AncientDungeonField.Name}': duplicate field.");
+            var ancient = ancientSections.Length == 1 && Fields.AncientDungeonField.Decode(archive, ancientSections[0].Values, path) == 1;
+            var dimension = sections.Any(s => s.Name == Fields.DimensionDungeonField.Name);
             dungeons.Add(row.Id, dimension ? ExtraDropDungeonType.Dimension
                 : ancient ? ExtraDropDungeonType.Ancient : ExtraDropDungeonType.Normal);
         }
@@ -92,13 +115,12 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
     }
 
     private static int[] ReadMask(PvfArchive archive,
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, string name, string[] allowed)
+        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<IReadOnlyList<string>> name, string[] allowed)
     {
-        var fields = sections.Where(s => s.Name == name).ToArray();
+        var fields = sections.Where(s => s.Name == name.Name).ToArray();
         if (fields.Length == 0) return [];
         if (fields.Length != 1) throw new InvalidDataException($"Duplicate {name}.");
-        return ParseMask(fields[0].Values.Select(t => t.IsString ? archive.ResolveString(t.Value)
-            : throw new InvalidDataException($"Non-string {name} mask.")), allowed);
+        return ParseMask(name.Decode(archive, fields[0].Values, "extra drop mask"), allowed);
     }
 
     internal static int[] ParseMask(IEnumerable<string> values, string[] allowed)
