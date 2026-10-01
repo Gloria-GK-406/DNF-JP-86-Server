@@ -26,3 +26,7 @@ H01、H02、H04、H05、H06、H07按用户实测反馈记通过。H03只确认�
 测试版本33e26f34，运行PID15484。用户反馈H08/H09通过；H10缺红字装备样本；H11宝珠附魔、魔法封印解封通过，赛丽亚处转换属性失败；H12确认client自带非武器过滤；H13只剩一台便携分解机仍可分解两次。H08/H09记ClientVerified，H11/H12分项记Partial，H10缺样本与H13待复验。
 
 H13运行日志：19:25:11.204 target Main/33、toolSlot86、providerId0进入PortableDisjointItemCommand；19:25:23.965 target Main/25、toolSlot-1、providerId0却进入NpcDisjointItemCommand并成功。这是解码后的现场日志，未新增归档原始帧，不将其标为WireCaptured。修复和复验条件见[H13记录](../../../Verification/H13-portable-disjoint-20261001.md)。
+
+后续客户端静态调查确认：成功ACK末尾检查便携工具耗尽并关窗，旧顺序ACK先于工具清空NOTI导致
+迟一次检查。两项H13修复现已部署PID21384，最后工具的清空NOTI提前到ACK之前，装备/产物刷新
+仍在其后；1123已补发两台优质便携分解机。自动回归通过，立即关窗与完整客户端效果仍HumanPending。

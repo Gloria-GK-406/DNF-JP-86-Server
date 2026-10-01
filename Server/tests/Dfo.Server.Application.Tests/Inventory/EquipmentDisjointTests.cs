@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -11,6 +12,39 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentDisjointTests
 {
+    [Theory]
+    [InlineData(65)]
+    [InlineData(3)]
+    public async Task Exhausted_portable_machine_is_cleared_before_success_ack(short toolSlot)
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(9, Piece());
+        await shop.Seed(toolSlot, 2600469, 1);
+
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(new(1, 0x001A, 0, 90),
+            new(InventoryContainerType.Main, 9), toolSlot, 0));
+
+        var encoders = shop.Services.GetServices<ServerMessageEncoderRegistration>()
+            .ToDictionary(registration => registration.MessageType);
+        var frames = shop.Sender.Messages.SelectMany(message =>
+            ((IServerMessageEncoder)shop.Services.GetRequiredService(encoders[message.GetType()].EncoderType))
+                .Encode(message)).Select(frame => frame.ToArray()).ToArray();
+        // NOTI 000E must clear the tool before CMD 001A checks the native window's tool pointer.
+        Assert.Equal((byte)0, frames[0][0]);
+        Assert.Equal((ushort)0x000E, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frames[0].AsSpan(1)));
+        Assert.Equal(toolSlot, System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(frames[0].AsSpan(18)));
+        Assert.Equal(-1, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(frames[0].AsSpan(20)));
+        Assert.Equal((byte)1, frames[1][0]);
+        Assert.Equal((ushort)0x001A, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frames[1].AsSpan(1)));
+        Assert.Equal((short)9, System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(frames[2].AsSpan(18)));
+        Assert.Single(frames, frame => frame[0] == 0
+            && System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x000E
+            && System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(frame.AsSpan(18)) == toolSlot);
+        Assert.Equal(0, shop.Count(2600469));
+        Assert.Equal(12, shop.Count(1000));
+        Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
+    }
+
     [Fact]
     public async Task Last_portable_machine_cannot_turn_a_later_request_into_free_npc_disjoint()
     {
@@ -312,6 +346,7 @@ public sealed class EquipmentDisjointTests
         Assert.Equal(1, shop.Count(2600469));
         Assert.Equal(12, shop.Count(1000));
         Assert.NotNull(Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).TargetSlot);
+        Assert.IsType<DisjointItemResponse>(shop.Sender.Messages[0]);
         Assert.Equal(2, shop.Sender.Messages.Count(message =>
             message.MessageType == ServerMessageType.GameStateSynchronization));
     }

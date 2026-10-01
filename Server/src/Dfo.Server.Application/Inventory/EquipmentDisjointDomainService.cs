@@ -116,7 +116,8 @@ internal sealed class EquipmentDisjointDomainService(
         var accounts = EquipmentEffectReceiptProjection.AccountChanges(applied).GroupBy(change => change.Kind)
             .Select(group => group.Last() with { AddedCount = group.Sum(change => change.AddedCount) }).ToArray();
         return new(EquipmentDisjointRejection.None, new(session, targetSlot, physical, accounts,
-            final.Select(change => new EquipmentDisjointSlotChange(change.Slot, change.Core)).ToArray(), context.At));
+            final.Select(change => new EquipmentDisjointSlotChange(change.Slot, change.Core)).ToArray(),
+            context.At, portableMachine?.Slot));
     }
 
     private sealed record PortableMachineUse(BusinessSlot Slot);

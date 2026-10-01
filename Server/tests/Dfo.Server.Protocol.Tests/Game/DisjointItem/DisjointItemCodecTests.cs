@@ -67,7 +67,8 @@ public sealed class DisjointItemCodecTests
                 new(new BusinessSlot(BusinessInventorySpace.Material, 0),
                     StackableItemCore.Create(3, 3037, 112)),
             ],
-            DateTimeOffset.UnixEpoch);
+            DateTimeOffset.UnixEpoch,
+            new BusinessSlot(BusinessInventorySpace.Consumable, 0));
 
         var messages = await new EquipmentDisjointCompletedHandler(
             sessions, new SlotProjection()).ComposeAsync(
