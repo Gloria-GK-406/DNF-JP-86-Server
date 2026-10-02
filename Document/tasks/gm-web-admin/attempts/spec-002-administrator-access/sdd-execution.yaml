@@ -4,7 +4,7 @@ contract:
   path: ./TaskContract.md
   revision: 1
 current_stage: verification
-state: in_progress
+state: completed
 parent_controller: ../../multi-spec-map.md
 artifacts:
   spec: ./spec.md
@@ -45,8 +45,8 @@ stages:
   gate: auto
   writes:
   - spec_review
-  done_when: the current spec is independently approved at its declared resolution and all configured challenges
-    are adjudicated
+  done_when: the current spec is independently approved at its declared resolution
+    and all configured challenges are adjudicated
 - id: implementation
   reads:
   - spec
@@ -54,8 +54,8 @@ stages:
   - executing-tasks
   - test-driven-development
   gate: auto
-  done_when: the chosen planning mode is delivered with usable Task plans and passing required self-checks when
-    using units, and no remaining required high-level work
+  done_when: the chosen planning mode is delivered with usable Task plans and passing
+    required self-checks when using units, and no remaining required high-level work
 - id: drift-check
   reads:
   - contract
@@ -65,7 +65,8 @@ stages:
   gate: auto
   writes:
   - drift_review
-  done_when: independent accumulated-work drift review is approved with disposition aligned
+  done_when: independent accumulated-work drift review is approved with disposition
+    aligned
 - id: change-adversarial
   reads:
   - contract
@@ -85,8 +86,9 @@ stages:
   skills:
   - reviewing-work
   gate: auto
-  done_when: the complete code, non-code, or mixed result is independently approved against the governing artifacts
-    and actual output criteria; all configured change challenges are adjudicated
+  done_when: the complete code, non-code, or mixed result is independently approved
+    against the governing artifacts and actual output criteria; all configured change
+    challenges are adjudicated
   writes:
   - change_review
 - id: verification

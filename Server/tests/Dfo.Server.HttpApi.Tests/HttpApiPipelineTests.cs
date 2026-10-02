@@ -476,6 +476,7 @@ public sealed class HttpApiPipelineTests
 
     private sealed class ReadyGame : Dfo.Server.Abstractions.Hosting.IGameServerReadiness
     {
+        public bool NetworkEnabled => true;
         public bool IsReady => true;
     }
 

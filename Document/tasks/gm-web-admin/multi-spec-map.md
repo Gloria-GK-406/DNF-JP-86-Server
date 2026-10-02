@@ -5,15 +5,15 @@ contract:
   revision: 1
 phase: child_execution
 phase_state: in_progress
-active_attempt: spec-002
+active_attempt: spec-003
 last_transition: child-created
-transition_evidence: ./attempts/spec-002-administrator-access/activation.md
+transition_evidence: ./attempts/spec-003-player-directory/activation.md
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin/Document/tasks/gm-web-admin
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin
   branch: feature/gm-web-admin
-  baseline: 0630348d2bace7a35887b43b8aaa0c145b0b66a2
+  baseline: 416f26c9919383b58b0bd0e7179a99734fe53b48
   baseline_evidence: ./workspace.md
 ---
 
@@ -27,6 +27,8 @@ workspace:
 
 按项目与启动骨架 → 管理员和审计 → 服务/账号/角色查询 → 官方邮件 → 账号点券发放 → 集成收尾推进。只创建当前最小稳定子合同，后续具体设计从已验收结果继续收敛。
 
+后续连接的代码事实（尚非已接受设计）：`MailBuilder.FromSystem`/`IMailboxDomainService`已支持系统邮箱持有附件、领取才入背包；普通装备必须用新分配的 detached UID，不能伪造模板为实例。当前邮箱投影把标题、换行和正文合并，并有512字节编码边界，后续编辑/预览需保证可完整表示。`IAccountTable`提供账号三币读取/CAS，现通用EffectExecutionContext要求角色归属，点券发放不能通过虚构角色ID绕过无角色账号。账号执行管线已有多账号有序租约与共同SQLite事务；通知本来在提交后best effort，可通过Abstractions通知契约与Protocol投影衔接。最终CI与release.py仍缺Node构建/测试和干净checkout的GM资源检查，留在最终集成阶段闭合。
+
 ## Controller Cursor
 
 按 multi-spec-workflow 的 transition/validation 引用执行；每次激活或恢复检查唯一 active child、合同与依赖链接、HEAD 基线和路径包含关系。
@@ -36,7 +38,7 @@ workspace:
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
 | SC-1 | 模块启动和前端发布 | in_progress | spec-001，0630348d | 最终管理配置集成 | aligned |
-| SC-2 | 管理员权限与追踪 | not_started | none | 完整能力 | aligned |
+| SC-2 | 管理员权限与追踪 | satisfied | spec-002验收证据，416f26c9 | 后续写操作复用边界并回归 | aligned |
 | SC-3 | 查询和在线状态 | not_started | none | 完整能力 | aligned |
 | SC-4 | 官方邮件 | not_started | none | 完整能力 | aligned |
 | SC-5 | 点券发放 | not_started | none | 完整能力 | aligned |
@@ -47,4 +49,11 @@ workspace:
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
 | 1 | spec-001 | attempts/spec-001-project-foundation/TaskContract.md | 项目与启动骨架 | SC-1, SC-6 | completed | attempts/spec-001-project-foundation/spec-result.md | 0630348d |
-| 2 | spec-002 | attempts/spec-002-administrator-access/TaskContract.md | 管理员认证与审计 | SC-2, SC-6 | running | pending | active |
+| 2 | spec-002 | attempts/spec-002-administrator-access/TaskContract.md | 管理员认证与审计 | SC-2, SC-6 | completed | attempts/spec-002-administrator-access/spec-result.md | 416f26c9 |
+| 3 | spec-003 | attempts/spec-003-player-directory/TaskContract.md | 服务概览与玩家查询 | SC-3, SC-6 | running | pending | active |
+
+## Evaluation after spec-002
+
+从已接受416f26c9和封存结果复评：SC-2 satisfied，SC-3/4/5尚未实现，SC-1/6保留最终集成缺口；所有约束aligned。child-sealed/child-accepted证据见workspace.md，root gaps-remain后进入successor_decision。
+
+下一最小稳定结果为服务概览、全服账号/角色只读查询及当前在线/频道/位置。根task授权覆盖，已接受的QueryPlayers和会话边界复用，不修改资产，不切换现服；只涉及当前进程，没有外部未决前置。safe-successor→child_modeling，下一身份spec-003-player-directory。

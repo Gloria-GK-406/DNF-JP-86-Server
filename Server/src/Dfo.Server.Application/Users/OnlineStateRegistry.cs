@@ -157,6 +157,26 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         }
     }
 
+    public IReadOnlyList<AccountId> SnapshotAuthenticatedGameAccounts()
+    {
+        lock (sync)
+            return byId.Values.Where(user => user.AccountId.HasValue
+                && user.Connection.EndpointKind == NetworkEndpointKind.Game)
+                .Select(user => user.AccountId!.Value).Distinct().ToArray();
+    }
+
+    public bool IsActiveExact(SelectedSessionIdentity session)
+    {
+        lock (sync)
+            return activeByAccount.TryGetValue(session.AccountId, out var active)
+                && active.Session == session
+                && byId.TryGetValue(active.OnlineUserId, out var user)
+                && user.Connection.ConnectionId == session.ConnectionId
+                && user.Connection.EndpointKind == NetworkEndpointKind.Game
+                && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
+                && byConnection.TryGetValue(session.ConnectionId, out var owner) && owner == active.OnlineUserId;
+    }
+
     public bool TryGetByConnection(
         NetworkConnectionId connectionId,
         out OnlineUserSnapshot? onlineUser)

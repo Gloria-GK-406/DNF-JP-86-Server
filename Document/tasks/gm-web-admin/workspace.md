@@ -11,3 +11,9 @@
 
 - approved review + fresh verification exit0 后一次验收提交 0630348d2bace7a35887b43b8aaa0c145b0b66a2，父提交为原基线5fbe2dad，35个完整范围路径。
 - 提交后 `git status --short` 为空；源 main 仍5fbe2dad且干净。成功验收后更新 controller/child cursor，剩余变更仅为声明的 Document/tasks/gm-web-admin durable artifacts。
+
+## spec-002 acceptance
+
+- 独立 approved/aligned 与最终 approved Round2、fresh verification pass 后接受为 `416f26c9919383b58b0bd0e7179a99734fe53b48`，父提交0630348d；52路径包含完整产品、测试与证据。
+- 提交后worktree状态为空、分支feature/gm-web-admin，source main仍5fbe2dad且干净。child结果封存，游标转completed；随后root child-sealed→child-accepted推进基线。
+- 验收时unstaged diff check exit0；首次暂存完整新增文件后的 diff check exit1，仅由execution YAML混合CRLF产生行尾空白提示，未形成语义或产品失败，提交已成功且身份可证。游标completed正常重写时统一LF，不改封存spec-result或提交历史。后续完整暂存检查应按退出码顺序消费，不能让前一检查失效被后续命令掩盖。

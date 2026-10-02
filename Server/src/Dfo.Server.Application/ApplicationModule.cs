@@ -528,6 +528,14 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionCleanupDomainService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryDomainService, SelectCharacterSessionEntryService>();
         services.AddCommandDispatching();
+        services.TryAddSingleton<IAuthenticatedGamePresenceQuery>(provider => provider.GetRequiredService<OnlineUserDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.Administration.GmPlayerRuntimeQuery>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmPlayerDirectoryDomainService, Dfo.Server.Application.Administration.GmPlayerDirectoryDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmAccountsCommand, Dfo.Server.Data.Administration.GmPage<Dfo.Server.Data.Administration.GmAccountView>, Dfo.Server.Application.Administration.QueryGmAccountsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmCharactersCommand, Dfo.Server.Data.Administration.GmPage<Dfo.Server.Data.Administration.GmCharacterView>, Dfo.Server.Application.Administration.QueryGmCharactersCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.FindGmAccountCommand, Dfo.Server.Data.Administration.GmAccountLookup, Dfo.Server.Application.Administration.FindGmAccountCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.FindGmCharacterCommand, Dfo.Server.Data.Administration.GmCharacterLookup, Dfo.Server.Application.Administration.FindGmCharacterCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmOverviewCommand, Dfo.Server.Data.Administration.GmOverview, Dfo.Server.Application.Administration.QueryGmOverviewCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAccessDomainService, Dfo.Server.Application.Administration.GmAccessDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAuditDomainService, Dfo.Server.Application.Administration.GmAuditDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.BootstrapGmAdministratorCommand, bool, Dfo.Server.Application.Administration.BootstrapGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);

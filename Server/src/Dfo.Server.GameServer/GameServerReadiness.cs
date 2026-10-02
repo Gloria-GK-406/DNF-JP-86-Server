@@ -8,6 +8,7 @@ internal sealed class GameServerReadiness(
     NetworkingOptions options,
     IHostApplicationLifetime lifetime) : IGameServerReadiness
 {
+    public bool NetworkEnabled => options.Enabled;
     public bool IsReady => options.Enabled
         && lifetime.ApplicationStarted.IsCancellationRequested
         && !lifetime.ApplicationStopping.IsCancellationRequested;

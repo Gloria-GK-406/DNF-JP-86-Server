@@ -29,6 +29,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         var group = endpoints.MapGroup("").WithMetadata(new HttpListenerScope(options.ListenUrl!.Port));
         group.MapGet("/api/gm/v1/health", () => Results.Ok(new { status = "ready" })).WithMetadata(new GmPublicEndpoint());
         GmAuthenticationEndpoints.Map(group);
+        GmPlayerDirectoryEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage);
     }
 

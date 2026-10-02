@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Alert, App, Button, Card, Empty, Form, Input, Layout, Menu, Space, Spin, Table, Tag, Typography } from 'antd';
 import { api, ApiError, type AuditPage, type Identity, type Permission } from './api';
+import { OverviewView } from './OverviewView';
+import { PlayerDirectoryView } from './PlayerDirectoryView';
 
 const pages: { key: string; label: string; permission: Permission | null }[] = [
   { key: '/', label: '服务概览', permission: 'QueryPlayers' }, { key: '/characters', label: '账号与角色', permission: 'QueryPlayers' },
@@ -27,6 +29,11 @@ export function AdminApp() {
   function expire(epoch: number) {
     if (!isCurrent(epoch) || transitioning.current) return;
     generation.current++; applyIdentity(null); setError('会话已失效，请重新登录。');
+  }
+  function denyQueries(epoch: number) {
+    if (!isCurrent(epoch) || transitioning.current || !currentIdentity.current) return;
+    generation.current++;
+    applyIdentity({ ...currentIdentity.current, permissions: currentIdentity.current.permissions.filter(permission => permission !== 'QueryPlayers') });
   }
   async function refresh() {
     const epoch = beginTransition();
@@ -98,6 +105,8 @@ export function AdminApp() {
     <Layout.Content className="content"><Typography.Title level={3}>{page?.label ?? '管理后台'}</Typography.Title>
       {!allowed ? <Alert type="warning" title="没有访问此页面的权限" showIcon /> : location.pathname === '/operations' ?
         <AuditView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} /> :
+        location.pathname === '/' ? <OverviewView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyQueries(viewGeneration)} /> :
+        location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyQueries(viewGeneration)} /> :
         <Empty description="本模块将在后续阶段接入。" />}
     </Layout.Content></Layout></Layout>;
 }

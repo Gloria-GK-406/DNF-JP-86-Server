@@ -28,12 +28,15 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
     internal const string Password = "gm-isolated-test-password";
     internal HttpClient Client { get; } = client;
     internal GmLogCapture Logs { get; } = logs;
+    internal IServiceProvider Services => host.Services;
+    internal Uri Address => Client.BaseAddress!;
     internal static string NewDirectory() { var path = Path.Combine(Path.GetTempPath(), "dfo-gm-auth-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(path); return path; }
     internal static async Task<GmTestHost> StartAsync(string? administrator = "operator", string password = Password, string permissions = "All", string? directory = null,
-        CookieContainer? cookies = null, TimeProvider? clock = null, bool remoteConnection = false, bool https = false, GmAuditFault? fault = null)
+        CookieContainer? cookies = null, TimeProvider? clock = null, bool remoteConnection = false, bool https = false, GmAuditFault? fault = null,
+        IReadOnlyDictionary<string, string?>? configuration = null, Action<IServiceCollection>? configureServices = null, int? listenerPort = null)
     {
         directory ??= NewDirectory();
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
+        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = listenerPort ?? ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
         var url = $"{(https ? "https" : "http")}://127.0.0.1:{port}";
         var config = new ConfigurationManager();
         config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -43,11 +46,12 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
             ["LauncherAuth:Enabled"] = "false", ["Networking:Enabled"] = "false", ["Game:EndpointHost"] = "127.0.0.1",
             ["GameLogin:ConnectionPort"] = "10128", ["GameLogin:EndpointPortA"] = "17200", ["GameLogin:EndpointPortB"] = "17201",
         });
+        if (configuration is not null) config.AddInMemoryCollection(configuration);
         var logs = new GmLogCapture(); var feature = new GmWebModule(config);
         var builder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().ConfigureLogging(logging => logging.AddProvider(logs))
             .ConfigureAppConfiguration((_, sources) => { sources.Sources.Clear(); sources.AddConfiguration(config); })
             .AddServerModules(new InfrastructureModule(), new PersistenceModule(), new ApplicationModule()).ConfigureGameServer()
-            .ConfigureServices(services => { if (clock is not null) services.AddSingleton(clock); if (fault is not null) services.AddSingleton<IGmAuditDomainService>(provider => new GmFaultAudit(provider.GetRequiredService<IGmAdministrationPersistence>(), fault)); });
+            .ConfigureServices(services => { if (clock is not null) services.AddSingleton(clock); if (fault is not null) services.AddSingleton<IGmAuditDomainService>(provider => new GmFaultAudit(provider.GetRequiredService<IGmAdministrationPersistence>(), fault)); configureServices?.Invoke(services); });
         X509Certificate2? certificate = null;
         if (https)
         {
