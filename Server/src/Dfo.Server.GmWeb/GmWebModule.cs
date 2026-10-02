@@ -30,6 +30,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         group.MapGet("/api/gm/v1/health", () => Results.Ok(new { status = "ready" })).WithMetadata(new GmPublicEndpoint());
         GmAuthenticationEndpoints.Map(group);
         GmPlayerDirectoryEndpoints.Map(group);
+        GmOfficialMailEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage);
     }
 

@@ -41,6 +41,8 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 ## 服务概览与玩家查询
 
+官方邮件编辑、内容模板、明确收件人、原子发放和安全重试见 [GM 官方邮件](gm-official-mail.md)。
+
 `QueryPlayers` 控制概览、账号/角色列表及详情。账号和角色可分别按 ID、登录名/姓名字面子串搜索，角色还可按归属账号筛选；中文、`%`、`_`、引号作为普通文本，不是 SQL 通配符。页面支持仅在线、分页、手动刷新，以及按 ID 打开角色归属账号/账号角色列表。无角色账号可正常显示三币余额。软删除角色保留记录并明确标注。
 
 所有查询使用 `GET /api/gm/v1`：`/overview`、`/accounts`、`/accounts/{accountId}`、`/characters`、`/characters/{characterId}`。列表参数 `page` 默认1（1..1,000,000）、`pageSize` 默认20（1..100）、`q` 最多128字符、`onlineOnly` 为 true/false；账号支持 `accountId`，角色支持 `accountId` 和 `characterId`。条件按 AND 组合；结果按 ID 升序，先筛选再分页，返回 items/total/page/pageSize/sampledAt。详情包含相同事实与采样时间，角色详情是平铺字段并附账号 balances。非法参数400、不存在404、失效401、无权限403；内部失败返回通用中文500并在服务器记录诊断。

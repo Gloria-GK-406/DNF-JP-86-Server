@@ -5,11 +5,36 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Mail;
+using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 namespace Dfo.Server.Protocol.Tests.Game.Mailbox;
 public sealed class MailboxProtocolTests
 {
+    [Fact]
+    public async Task NeutralMailboxChangeComposesCurrentCountAndRetainsExistingAlarmWire()
+    {
+        var query = new CurrentMailbox(); var handler = new MailboxChangedHandler(query); var character = new CharacterId(1);
+        var recipient = new NotificationRecipient(character, new NetworkConnectionId("Game:1")); var notice = new MailboxChanged(character);
+        query.Count = 2;
+        var first = Assert.IsType<MailboxAlarm>(Assert.Single(await handler.ComposeAsync(recipient, notice, default)));
+        Assert.Equal(new byte[] { 2, 0 }, Body(new MailboxAlarmEncoder().Encode(first)));
+        query.Count = 0;
+        var afterClaim = Assert.IsType<MailboxAlarm>(Assert.Single(await handler.ComposeAsync(recipient, notice, default)));
+        Assert.Equal(new byte[] { 0, 0 }, Body(new MailboxAlarmEncoder().Encode(afterClaim)));
+        query.Count = 7;
+        Assert.Equal((ushort)7, Assert.IsType<MailboxAlarm>(Assert.Single(await handler.ComposeAsync(recipient, notice, default))).Count);
+        Assert.Empty(await handler.ComposeAsync(new(new CharacterId(2), new NetworkConnectionId("Game:2")), notice, default));
+    }
+    private sealed class CurrentMailbox : IMailboxQueryDomainService
+    {
+        internal int Count { get; set; }
+        public ValueTask<MailPage> PageAsync(CharacterId id, int size, CancellationToken token = default) => ValueTask.FromResult(new MailPage(Count, []));
+        public ValueTask<MailRecipient?> FindRecipientAsync(byte[] name, CancellationToken token = default) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Abstractions.Characters.CharacterMailboxStorageRecord> ReadStorageAsync(CharacterId id, CancellationToken token = default) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<MailView>> InboxAsync(CharacterId id, CancellationToken token = default) => throw new NotSupportedException();
+    }
     [Theory]
     [InlineData(0x5F, "01000040")]
     [InlineData(0x86, "010000000200")]

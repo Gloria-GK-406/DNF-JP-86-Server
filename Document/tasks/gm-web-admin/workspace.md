@@ -17,3 +17,9 @@
 - 独立 approved/aligned 与最终 approved Round2、fresh verification pass 后接受为 `416f26c9919383b58b0bd0e7179a99734fe53b48`，父提交0630348d；52路径包含完整产品、测试与证据。
 - 提交后worktree状态为空、分支feature/gm-web-admin，source main仍5fbe2dad且干净。child结果封存，游标转completed；随后root child-sealed→child-accepted推进基线。
 - 验收时unstaged diff check exit0；首次暂存完整新增文件后的 diff check exit1，仅由execution YAML混合CRLF产生行尾空白提示，未形成语义或产品失败，提交已成功且身份可证。游标completed正常重写时统一LF，不改封存spec-result或提交历史。后续完整暂存检查应按退出码顺序消费，不能让前一检查失效被后续命令掩盖。
+
+## spec-003 acceptance
+
+- 已封存completed result、approved/aligned独立审查及fresh verification pass；一次接受提交573be46b075d8363f0882c2f40a5a0135d1ada0c，父提交416f26c9。完整暂存diff检查exit0后才提交，未改sealed结果。
+- 提交后status为空，任务分支feature/gm-web-admin；source main仍5fbe2dad且干净。全解决方案5317 passed / 0 failed / 2 deliberate skips，前端25 passed，构建与发布核对通过，实际浏览器查询检查及隔离夹具正常退出另有证据。
+- root恢复依序消费child-sealed→child-accepted；基线推进573be46b。后续正常游标变化仅声明的durable task artifacts。

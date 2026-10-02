@@ -5,15 +5,15 @@ contract:
   revision: 1
 phase: child_execution
 phase_state: in_progress
-active_attempt: spec-003
+active_attempt: spec-004
 last_transition: child-created
-transition_evidence: ./attempts/spec-003-player-directory/activation.md
+transition_evidence: ./attempts/spec-004-official-mail/activation.md
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin/Document/tasks/gm-web-admin
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin
   branch: feature/gm-web-admin
-  baseline: 416f26c9919383b58b0bd0e7179a99734fe53b48
+  baseline: 573be46b075d8363f0882c2f40a5a0135d1ada0c
   baseline_evidence: ./workspace.md
 ---
 
@@ -39,10 +39,10 @@ workspace:
 |---|---|---|---|---|---|
 | SC-1 | 模块启动和前端发布 | in_progress | spec-001，0630348d | 最终管理配置集成 | aligned |
 | SC-2 | 管理员权限与追踪 | satisfied | spec-002验收证据，416f26c9 | 后续写操作复用边界并回归 | aligned |
-| SC-3 | 查询和在线状态 | not_started | none | 完整能力 | aligned |
+| SC-3 | 查询和在线状态 | satisfied | spec-003验收证据，573be46b | 后续模块回归共用边界 | aligned |
 | SC-4 | 官方邮件 | not_started | none | 完整能力 | aligned |
 | SC-5 | 点券发放 | not_started | none | 完整能力 | aligned |
-| SC-6 | 集成和验收材料 | in_progress | spec-001 运行说明与发布 smoke | 标准 CI、完整回归和最终验收表 | aligned |
+| SC-6 | 集成和验收材料 | in_progress | spec-001/002/003构建、发布及模块验证 | 标准 CI、完整回归和最终验收表 | aligned |
 
 ## Spec Attempts
 
@@ -50,10 +50,17 @@ workspace:
 |---:|---|---|---|---|---|---|---|
 | 1 | spec-001 | attempts/spec-001-project-foundation/TaskContract.md | 项目与启动骨架 | SC-1, SC-6 | completed | attempts/spec-001-project-foundation/spec-result.md | 0630348d |
 | 2 | spec-002 | attempts/spec-002-administrator-access/TaskContract.md | 管理员认证与审计 | SC-2, SC-6 | completed | attempts/spec-002-administrator-access/spec-result.md | 416f26c9 |
-| 3 | spec-003 | attempts/spec-003-player-directory/TaskContract.md | 服务概览与玩家查询 | SC-3, SC-6 | running | pending | active |
+| 3 | spec-003 | attempts/spec-003-player-directory/TaskContract.md | 服务概览与玩家查询 | SC-3, SC-6 | completed | attempts/spec-003-player-directory/spec-result.md | 573be46b |
+| 4 | spec-004 | attempts/spec-004-official-mail/TaskContract.md | 官方邮件编辑与发送 | SC-4, SC-6 | running | pending | active |
 
 ## Evaluation after spec-002
 
 从已接受416f26c9和封存结果复评：SC-2 satisfied，SC-3/4/5尚未实现，SC-1/6保留最终集成缺口；所有约束aligned。child-sealed/child-accepted证据见workspace.md，root gaps-remain后进入successor_decision。
 
 下一最小稳定结果为服务概览、全服账号/角色只读查询及当前在线/频道/位置。根task授权覆盖，已接受的QueryPlayers和会话边界复用，不修改资产，不切换现服；只涉及当前进程，没有外部未决前置。safe-successor→child_modeling，下一身份spec-003-player-directory。
+
+## Evaluation after spec-003
+
+从sealed result、fresh verification与573be46b干净接受证明复评：SC-2/3 satisfied；SC-4/5 not_started；SC-1/6仍保留最终集成和验收清单缺口，约束全部aligned。child-sealed→child-accepted证据见workspace.md，root gaps-remain后进入successor_decision。
+
+下一最小稳定结果为官方邮件编辑（草稿/模板/预览）、明确选择单个或多个角色发送合法附件及可追溯记录。复用管理员SendMail与已接受玩家查询，在隔离库验证；现服和真实玩家不操作。根原授权覆盖，没有未决外部前置；safe-successor→child_modeling，身份spec-004-official-mail。重试不重复邮件、通知不倒退持久化事实与客户端可表示边界构成本child风险控制重点。

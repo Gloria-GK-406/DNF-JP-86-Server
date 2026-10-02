@@ -58,6 +58,8 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<IAuthenticationPersistence, SqliteAuthenticationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAdministrationPersistence, Dfo.Server.Persistence.Administration.SqliteGmAdministrationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmPlayerDirectoryPersistence, Dfo.Server.Persistence.Administration.SqliteGmPlayerDirectoryPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailPersistence, Dfo.Server.Persistence.Administration.SqliteGmMailPersistence>();
+        services.TryAddSingleton<IWorldItemTable, SqliteWorldItemTable>();
         services.TryAddSingleton<IAccountSettingsTable>(
             provider => new SqliteAccountSettingsTable(
                 provider.GetRequiredService<SqliteDatabase>()));

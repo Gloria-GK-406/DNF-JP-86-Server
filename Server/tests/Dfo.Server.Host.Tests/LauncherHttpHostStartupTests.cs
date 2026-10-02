@@ -51,6 +51,10 @@ public sealed class LauncherHttpHostStartupTests
                 Assert.Equal(HttpStatusCode.OK, bootstrap.StatusCode);
                 using var gmAtLauncher = await client.GetAsync("/api/gm/v1/health", timeout.Token);
                 Assert.Equal(HttpStatusCode.NotFound, gmAtLauncher.StatusCode);
+                using var mailAtLauncher = await client.GetAsync("/api/gm/v1/mail/draft", timeout.Token);
+                Assert.Equal(HttpStatusCode.NotFound, mailAtLauncher.StatusCode);
+                using var sendAtLauncher = await client.PostAsync("/api/gm/v1/mail/send", new StringContent("{}", Encoding.UTF8, "application/json"), timeout.Token);
+                Assert.Equal(HttpStatusCode.NotFound, sendAtLauncher.StatusCode);
             }
             else Assert.False(await CanConnectAsync(httpPort));
         }

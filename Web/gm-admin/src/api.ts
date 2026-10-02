@@ -12,21 +12,21 @@ export type CharacterDetail = CharacterView & { balances: Balances };
 export type Overview = { networkEnabled: boolean; gameReady: boolean; totalAccounts: number; totalCharacters: number; onlineAccounts: number; onlineCharacters: number;
   channels: { channelId: number; name: string; onlineCharacters: number }[]; unmappedOnlineCharacters: number; sampledAt: string };
 
-export class ApiError extends Error { constructor(public status: number, message: string) { super(message); } }
+export class ApiError extends Error { constructor(public status: number, message: string, public outcome?: string) { super(message); } }
 
-export async function api<T>(path: string, payload?: unknown): Promise<T> {
+export async function api<T>(path: string, payload?: unknown, method?: 'PUT' | 'DELETE'): Promise<T> {
   const headers: Record<string, string> = {};
   if (payload !== undefined) {
-    const response = await fetch('/api/gm/v1/auth/csrf', { credentials: 'same-origin' });
+    const response = await fetch('/api/gm/v1/auth/csrf', { credentials: 'same-origin', signal: AbortSignal.timeout(30000) });
     if (!response.ok) throw new ApiError(response.status, '请求验证失败，请刷新页面。');
     headers['X-GM-CSRF'] = (await response.json()).token;
     headers['Content-Type'] = 'application/json';
   }
-  const response = await fetch(`/api/gm/v1/${path}`, { credentials: 'same-origin', method: payload === undefined ? 'GET' : 'POST', headers,
+  const response = await fetch(`/api/gm/v1/${path}`, { credentials: 'same-origin', method: method ?? (payload === undefined ? 'GET' : 'POST'), headers, signal: AbortSignal.timeout(30000),
     body: payload === undefined ? undefined : JSON.stringify(payload) });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, body.message ?? '服务暂不可用，请稍后重试。');
+    throw new ApiError(response.status, body.message ?? '服务暂不可用，请稍后重试。', body.outcome);
   }
   return response.status === 204 ? undefined as T : response.json();
 }

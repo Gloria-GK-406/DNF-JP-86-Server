@@ -4,14 +4,15 @@ import { Alert, App, Button, Card, Empty, Form, Input, Layout, Menu, Space, Spin
 import { api, ApiError, type AuditPage, type Identity, type Permission } from './api';
 import { OverviewView } from './OverviewView';
 import { PlayerDirectoryView } from './PlayerDirectoryView';
+import { OfficialMailView } from './OfficialMailView';
 
 const pages: { key: string; label: string; permission: Permission | null }[] = [
   { key: '/', label: '服务概览', permission: 'QueryPlayers' }, { key: '/characters', label: '账号与角色', permission: 'QueryPlayers' },
   { key: '/mail', label: '官方邮件', permission: 'SendMail' }, { key: '/wallet', label: '点券发放', permission: 'GrantCera' },
   { key: '/operations', label: '操作记录', permission: 'ViewAudit' },
 ];
-const actionLabels: Record<string, string> = { Login: '登录', Logout: '退出' };
-const outcomeLabels: Record<string, string> = { Succeeded: '成功', Rejected: '拒绝' };
+const actionLabels: Record<string, string> = { Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
+const outcomeLabels: Record<string, string> = { Succeeded: '成功', Rejected: '拒绝', RolledBack: '已回滚', Unknown: '结果未确认' };
 
 export function AdminApp() {
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -30,10 +31,10 @@ export function AdminApp() {
     if (!isCurrent(epoch) || transitioning.current) return;
     generation.current++; applyIdentity(null); setError('会话已失效，请重新登录。');
   }
-  function denyQueries(epoch: number) {
+  function denyPermission(epoch: number, permission: Permission) {
     if (!isCurrent(epoch) || transitioning.current || !currentIdentity.current) return;
     generation.current++;
-    applyIdentity({ ...currentIdentity.current, permissions: currentIdentity.current.permissions.filter(permission => permission !== 'QueryPlayers') });
+    applyIdentity({ ...currentIdentity.current, permissions: currentIdentity.current.permissions.filter(value => value !== permission) });
   }
   async function refresh() {
     const epoch = beginTransition();
@@ -70,7 +71,7 @@ export function AdminApp() {
     try {
       const current = await api<Identity>('auth/login', values);
       if (!isCurrent(epoch)) return;
-      applyIdentity(current); navigate(current.permissions.includes('ViewAudit') ? '/operations' : '/');
+      applyIdentity(current); navigate(current.permissions.includes('ViewAudit') ? '/operations' : pages.find(page => page.permission !== null && current.permissions.includes(page.permission))?.key ?? '/');
     } catch (failure) { if (isCurrent(epoch)) setError((failure as Error).message); }
     finally { if (isCurrent(epoch)) { transitioning.current = false; setLoading(false); } }
   }
@@ -105,8 +106,9 @@ export function AdminApp() {
     <Layout.Content className="content"><Typography.Title level={3}>{page?.label ?? '管理后台'}</Typography.Title>
       {!allowed ? <Alert type="warning" title="没有访问此页面的权限" showIcon /> : location.pathname === '/operations' ?
         <AuditView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} /> :
-        location.pathname === '/' ? <OverviewView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyQueries(viewGeneration)} /> :
-        location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyQueries(viewGeneration)} /> :
+        location.pathname === '/' ? <OverviewView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
+        location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
+        location.pathname === '/mail' ? <OfficialMailView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'SendMail')} /> :
         <Empty description="本模块将在后续阶段接入。" />}
     </Layout.Content></Layout></Layout>;
 }
