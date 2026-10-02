@@ -150,7 +150,10 @@ public sealed partial class GmOfficialMailHttpTests
     [InlineData("CREATE TRIGGER fail_success_audit BEFORE INSERT ON gm_audit WHEN NEW.action='SendOfficialMail' AND NEW.outcome='Succeeded' BEGIN SELECT RAISE(ABORT,'isolated audit fault'); END")]
     public async Task MidBatchStorageFailureRollsBackEntireBatchAndSeparatelyRecordsFailure(string trigger)
     {
-        await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host); await host.ExecuteAsync(trigger);
+        await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
+        using var preview = await host.PostAsync("/api/gm/v1/mail/preview", login.Csrf, Payload(Guid.NewGuid(), [1, 2], items: [new { itemId = 27312, count = 1 }]));
+        Assert.True(preview.IsSuccessStatusCode, await preview.Content.ReadAsStringAsync());
+        await host.ExecuteAsync(trigger);
         using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(Guid.NewGuid(), [1, 2], items: [new { itemId = 27312, count = 1 }]));
         Assert.Equal(HttpStatusCode.InternalServerError, sent.StatusCode);
         Assert.Equal("rolledBack", (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("outcome").GetString());
@@ -205,9 +208,14 @@ public sealed partial class GmOfficialMailHttpTests
     }
 
     [Fact]
-    public async Task ActualPvfEquipmentStackAndAccountMaterialsAreDetachedThenClaimedThroughExistingMailbox()
+    public Task EquipmentStackAndAccountMaterialsAreDetachedThenClaimedThroughExistingMailbox() => VerifyMixedAttachmentClaims(false);
+
+    [Dfo.Server.Testing.PvfFact]
+    public Task ActualPvfEquipmentStackAndAccountMaterialsAreDetachedThenClaimedThroughExistingMailbox() => VerifyMixedAttachmentClaims(true);
+
+    private static async Task VerifyMixedAttachmentClaims(bool realContent)
     {
-        await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
+        await using var host = await GmTestHost.StartAsync(realContent: realContent); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
         await host.ExecuteAsync("INSERT INTO character_stats(character_id,carried_gold) VALUES(1,0),(2,0);");
         object[] items = [new { itemId = 27312, count = 2 }, new { itemId = 3, count = 3 }, new { itemId = 3037, count = 4 }];
         using var preview = await host.PostAsync("/api/gm/v1/mail/preview", login.Csrf, Payload(Guid.NewGuid(), items: items));

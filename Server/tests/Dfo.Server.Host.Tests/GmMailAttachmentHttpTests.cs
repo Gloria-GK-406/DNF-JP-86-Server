@@ -44,13 +44,18 @@ public sealed partial class GmOfficialMailHttpTests
     }
 
     [Fact]
-    public async Task ConfiguredJewelryWithoutDurabilitySurvivesDraftTemplatePreviewClaimAndRestart()
+    public Task ConfiguredJewelryWithoutDurabilitySurvivesDraftTemplatePreviewClaimAndRestart() => VerifyConfiguredJewelry(false);
+
+    [Dfo.Server.Testing.PvfFact]
+    public Task ActualPvfConfiguredJewelrySurvivesClaimAndRestart() => VerifyConfiguredJewelry(true);
+
+    private static async Task VerifyConfiguredJewelry(bool realContent)
     {
         var directory = GmTestHost.NewDirectory();
         var requestId = Guid.NewGuid();
         object[] items = [new { itemId = 100310498, count = 1, equipment = new { seal = "unsealed", growth = "amplification", level = 10, amplifyType = 3 } }];
         string core;
-        await using (var host = await GmTestHost.StartAsync(directory: directory))
+        await using (var host = await GmTestHost.StartAsync(directory: directory, realContent: realContent))
         {
             await GmPlayerDirectoryHttpTests.SeedAsync(host);
             var login = await Login(host);
@@ -90,7 +95,7 @@ public sealed partial class GmOfficialMailHttpTests
             Assert.Equal(core, Assert.Single(await host.ReadAsync("SELECT hex(item_core) FROM items;")));
             GmPlayerDirectoryHttpTests.Cleanup(host, session);
         }
-        await using (var host = await GmTestHost.StartAsync(directory: directory))
+        await using (var host = await GmTestHost.StartAsync(directory: directory, realContent: realContent))
         {
             var login = await Login(host);
             var draft = await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/draft");
@@ -155,9 +160,14 @@ public sealed partial class GmOfficialMailHttpTests
     }
 
     [Fact]
-    public async Task ItemCatalogFiltersAndPagesOnlyMailableItemsAndChecksPermission()
+    public Task ItemCatalogFiltersAndPagesOnlyMailableItemsAndChecksPermission() => VerifyItemCatalog(false);
+
+    [Dfo.Server.Testing.PvfFact]
+    public Task ActualPvfItemCatalogFiltersAndPagesOnlyMailableItems() => VerifyItemCatalog(true);
+
+    private static async Task VerifyItemCatalog(bool realContent)
     {
-        await using var host = await GmTestHost.StartAsync(permissions: "SendMail");
+        await using var host = await GmTestHost.StartAsync(permissions: "SendMail", realContent: realContent);
         Assert.Equal(HttpStatusCode.Unauthorized, (await host.Client.GetAsync("/api/gm/v1/mail/items?itemId=3")).StatusCode);
         await Login(host);
         var single = await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/items?itemId=3037&category=material");

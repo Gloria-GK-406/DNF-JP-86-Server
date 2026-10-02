@@ -74,6 +74,8 @@ Linux原生构建使用 `RELEASE_RID=linux-x64`。package入口每次重新 `npm
 
 云端不分发 PVF，已有内容依赖测试及新增 PvfFact/PvfTheory 会明确显示跳过。普通业务、协议编解码、持久化、网络和 Host 测试继续执行。TRX 和 Actions Summary 都保留通过、失败、跳过数量，不能把绿灯解读为全部内容或客户端已验证。
 
+GM 业务测试固定使用显式内容夹具，事务回滚、幂等、附件配置与领取判据不依赖开发机档案。真实 PVF 的物品目录、装备领取和商城消费竞争另有内容集成测试；有档案时必须执行，缺档案时明确跳过。邮件浏览器夹具仍使用真实 PVF。
+
 本机完整内容验证：设置 `PVF_ARCHIVE_PATH` 后运行 `dotnet test Server/86JP.Server.slnx -c Release`。不得用 continue-on-error 或宽泛过滤来掩盖失败。
 
 CI 使用 .NET 10 最新稳定维护版（setup-dotnet 10.0.x，符合 global.json），实际 SDK 写入发布包清单。Actions 依赖固定提交 SHA；更新 SDK/Action 时仍应经过 PR 和两个平台验证。

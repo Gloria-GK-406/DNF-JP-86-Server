@@ -258,10 +258,10 @@ public sealed class GmCeraHttpTests
         Assert.Equal(HttpStatusCode.BadRequest,(await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(Guid.NewGuid(),reason:new string('x',33000)))).StatusCode);
         Assert.Equal(new[]{"1"},await host.ReadAsync("SELECT COUNT(*) FROM gm_cera_operations;"));
     }
-    [Fact]
+    [Dfo.Server.Testing.PvfFact]
     public async Task RealShopPurchasesCompeteWithGrantsWithoutLostSpendingOrRoleMultiplication()
     {
-        await using var host=await GmTestHost.StartAsync();await GmPlayerDirectoryHttpTests.SeedAsync(host);
+        await using var host=await GmTestHost.StartAsync(realContent: true);await GmPlayerDirectoryHttpTests.SeedAsync(host);
         await host.ExecuteAsync("UPDATE accounts SET cera=100000,token_cera=0,happy_token_cera=0 WHERE account_id=1; INSERT INTO character_stats(character_id,carried_gold) VALUES(1,0);");
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
         var csrf=await Login(host);var commands=host.Services.GetRequiredService<ICommandBus>();

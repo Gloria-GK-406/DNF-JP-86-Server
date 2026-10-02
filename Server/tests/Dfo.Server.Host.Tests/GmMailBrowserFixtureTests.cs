@@ -17,7 +17,7 @@ public sealed class GmMailBrowserFixtureTests
             throw new InvalidOperationException("Browser fixture must remain within its isolated artifact directory.");
         if (File.Exists(Path.Combine(directory, "test.db"))) throw new InvalidOperationException("Use a fresh fixture database; this test never resets a database.");
         Directory.CreateDirectory(directory);
-        await using var host = await GmTestHost.StartAsync(directory: directory, listenerPort: 18083);
+        await using var host = await GmTestHost.StartAsync(directory: directory, listenerPort: 18083, realContent: true);
         await GmPlayerDirectoryHttpTests.SeedAsync(host);
         await host.ExecuteAsync("INSERT INTO character_stats(character_id,carried_gold) VALUES(1,0),(2,0),(3,0);");
         using var page = await host.Client.GetAsync("/gm/"); page.EnsureSuccessStatusCode();
