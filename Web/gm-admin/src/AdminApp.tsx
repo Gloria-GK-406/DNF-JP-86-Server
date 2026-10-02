@@ -100,9 +100,9 @@ export function AdminApp() {
   const page = pages.find(item => item.key === location.pathname);
   const allowed = page?.permission === null || (page?.permission !== undefined && identity.permissions.includes(page.permission));
   const viewGeneration = generation.current;
-  return <Layout className="shell"><Layout.Sider theme="light" width={216}>
+  return <Layout className="shell"><Layout.Sider className="sidebar" theme="light" width={216}>
     <div className="brand">DNF <span>GM 控制台</span></div><Menu items={visible} selectedKeys={[location.pathname]} onClick={({ key }) => navigate(key)} />
-  </Layout.Sider><Layout><Layout.Header className="header"><Typography.Text strong>JP Act.86 服务管理</Typography.Text>
+  </Layout.Sider><Layout className="workspace"><Layout.Header className="header"><Typography.Text strong>JP Act.86 服务管理</Typography.Text>
     <Space><Typography.Text>{identity.loginName}</Typography.Text><Button loading={loading} onClick={() => void logout()}>退出登录</Button></Space></Layout.Header>
     <Layout.Content className="content"><Typography.Title level={3}>{page?.label ?? '管理后台'}</Typography.Title>
       {!allowed ? <Alert type="warning" title="没有访问此页面的权限" showIcon /> : location.pathname === '/operations' ?

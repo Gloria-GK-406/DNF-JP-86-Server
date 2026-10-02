@@ -1,9 +1,11 @@
 body { margin: 0; color: #243247; background: #f4f6fa; }
-.shell { min-height: 100vh; }
+.shell { height: 100vh; height: 100dvh; overflow: hidden; }
+.sidebar { height: 100%; overflow: hidden; }
+.workspace { min-width: 0; min-height: 0; overflow: hidden; }
 .brand { height: 64px; display: flex; align-items: center; padding: 0 24px; font-size: 22px; font-weight: 700; color: #3157a4; gap: 12px; }
 .brand span { color: #243247; font-size: 15px; }
-.header { background: white; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; border-bottom: 1px solid #e8edf4; }
-.content { padding: 24px 28px; }
+.header { background: white; display: flex; flex-shrink: 0; justify-content: space-between; align-items: center; padding: 0 28px; border-bottom: 1px solid #e8edf4; }
+.content { min-height: 0; min-width: 0; overflow: auto; padding: 24px 28px; }
 .ant-empty { padding: 96px 0; }
 .login-page { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 24px; box-sizing: border-box; }
 .login-card { width: 400px; max-width: 100%; }
