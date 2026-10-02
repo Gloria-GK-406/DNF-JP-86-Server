@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Alert, App, Button, Card, Empty, Form, Input, Layout, Menu, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Alert, App, Button, Card, Empty, Form, Input, Layout, Menu, Spin, Table, Tag, Typography } from 'antd';
 import { api, ApiError, type AuditPage, type Identity, type Permission } from './api';
 import { OverviewView } from './OverviewView';
 import { PlayerDirectoryView } from './PlayerDirectoryView';
@@ -102,8 +102,9 @@ export function AdminApp() {
   const viewGeneration = generation.current;
   return <Layout className="shell"><Layout.Sider className="sidebar" theme="light" width={216}>
     <div className="brand">DNF <span>GM 控制台</span></div><Menu items={visible} selectedKeys={[location.pathname]} onClick={({ key }) => navigate(key)} />
-  </Layout.Sider><Layout className="workspace"><Layout.Header className="header"><Typography.Text strong>JP Act.86 服务管理</Typography.Text>
-    <Space><Typography.Text>{identity.loginName}</Typography.Text><Button loading={loading} onClick={() => void logout()}>退出登录</Button></Space></Layout.Header>
+    <div className="sidebar-footer"><Button block loading={loading} onClick={() => void logout()}>退出登录</Button></div>
+  </Layout.Sider><Layout className="workspace"><Layout.Header className="header">
+    <Typography.Text>{identity.loginName}</Typography.Text></Layout.Header>
     <Layout.Content className="content"><Typography.Title level={3}>{page?.label ?? '管理后台'}</Typography.Title>
       {!allowed ? <Alert type="warning" title="没有访问此页面的权限" showIcon /> : location.pathname === '/operations' ?
         <AuditView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} /> :
