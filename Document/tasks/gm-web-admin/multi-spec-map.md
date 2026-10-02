@@ -3,17 +3,17 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-phase: root_review
-phase_state: in_progress
+phase: completed
+phase_state: completed
 active_attempt: null
-last_transition: root-satisfied
-transition_evidence: ./multi-spec-map.md#evaluation-after-spec-006
+last_transition: verification-passed
+transition_evidence: ./root-verification.md
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin/Document/tasks/gm-web-admin
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin
   branch: feature/gm-web-admin
-  baseline: a4195c310a3b11eb5e8c1798cc0680ccdec35a44
+  baseline: f63b7c67473f2f4d8f7593f704c9e15d4f1c5e38
   baseline_evidence: ./workspace.md
 ---
 
@@ -42,9 +42,9 @@ workspace:
 | SC-1 | 模块启动和前端发布 | satisfied | spec-001启动矩阵；spec-006当前package及a4195c31 | 无开发缺口，实机待验 | aligned |
 | SC-2 | 管理员权限与追踪 | satisfied | spec-002验收证据，416f26c9 | 后续写操作复用边界并回归 | aligned |
 | SC-3 | 查询和在线状态 | satisfied | spec-003验收证据，573be46b | 后续模块回归共用边界 | aligned |
-| SC-4 | 官方邮件 | in_progress | spec-004接受证据；root-review-r1 F-001 | 未知请求失权重试保留编号根rework | violated |
+| SC-4 | 官方邮件 | satisfied | spec-004及root F-001接受f63b7c67；56前端回归 | A21客户端MAIL清单交用户验收 | aligned |
 | SC-5 | 点券发放 | satisfied | spec-005验收证据，aa5b6636 | A21三币展示交用户验收 | aligned |
-| SC-6 | 集成和验收材料 | in_progress | spec-006接受证据；根完整审查r1 | F-001根rework及最终当前资源验证 | at_risk |
+| SC-6 | 集成和验收材料 | satisfied | spec-006及root当前approved/fresh证据；f63b7c67候选 | 根accepted-baseline最终验证 | aligned |
 
 ## Spec Attempts
 
@@ -96,3 +96,15 @@ root-satisfied进入root_review；请求独立完整根结果审查当前接受�
 独立完整根审查目标原baseline5fbe2dad→接受a4195c31，报告 [root-review-r1.md](reviews/root-review-r1.md)，SHA F1DED513609A0AFFE66D1D36ED474A321C2A1C953F63783089DF765158B82A59。除F-001外根功能完整且无其它实质缺陷；SC-4/6暂降为in_progress，未知失权重试约束violated，不能宣称根完成。
 
 根review仍in_progress，局部修复路线明确、原授权/接受边界不变，按 [root-rework.md](root-rework.md) 修正当前根完整结果，待独立重审和fresh验证。六sealed结果/提交不改写；不应用尚有未解决缺陷的review-approved，也不为可本地修正的缺陷提前封存terminal根block。
+
+### Round 2 — approved and accepted
+
+当前重审 [root-review.md](reviews/root-review.md) approved，SHA185410C5；其余完整根检查引用不可改写r1。两文件当前manifest380FE146逐字节匹配接受f63b7c67，fresh [root-rework-verification.md](root-rework-verification.md) pass，接受clean/parent/source证明见workspace.md。F-001已解决，无未解阻塞，SC-1..6恢复satisfied、全部constraints aligned；六历史child仍completed，active null。
+
+review-approved进入root_verification，最终只从接受baseline及当前源码/资源身份作完成判断。
+
+## Root Verification
+
+[根完成验证](root-verification.md) decision pass。当前接受baseline f63b7c67，source main5fbe2dadclean；完整5373服务端同源码、当前56前端/11工具、clean接受提交最终Win候选/HTTP/文档和代码身份通过。独立Root Review approved，所有SC satisfied及constraints aligned，6 unique completed rows/no active断言通过。真实A21/Linux/真实断网边界保持人工待验。
+
+verification-passed原子封存completed/completed。开发和自动验证完成；分支/工作区保留，外部部署/整合另行授权。

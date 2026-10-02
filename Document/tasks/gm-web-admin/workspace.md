@@ -42,3 +42,9 @@
 - 当前完整独立approved及fresh verification pass后，一次接受提交a4195c310a3b11eb5e8c1798cc0680ccdec35a44，父aa5b6636；23完整分类路径、全暂存空白检查exit0。提交后任务分支feature/gm-web-admin且clean，source main仍5fbe2dad且clean。
 - 在尚未写游标metadata的干净接受HEAD运行标准package exit0，release.commit明确a4195c31。Windows候选53211031字节，SHA256 2f0de0350a5056b6ad8fd30beac17061f7bb5ade8e618bfed5332260237cfdd6；3资源/CRC/校验文件/默认3关闭/无部署数据、全部8文档链接及7源文档字节核对通过，HTTP3资源/未初始化/私有401，子进程正常结束。artifacts/gm-tests/spec006/accepted-package.log及accepted-package-proof.json。
 - sealed result保持不变；child verification/completed，root消费child-sealed进入child_disposition，再以接受提交/clean/parent事实执行child-accepted，清除active并推进baseline a4195c31。
+
+## Root review rework acceptance
+
+- 原完整根审查唯一F-001邮件未知失权恢复已局部修正。当前独立重审approved、56前端/11工具freshpass及新资源原生候选pass后，一次接受f63b7c67473f2f4d8f7593f704c9e15d4f1c5e38，父a4195c31；10完整分类路径、暂存空白检查exit0，接受后任务clean、source main5fbe2dadclean。六childsealed结果和接受链未改写。
+- 在游标metadata尚未写回的clean f63b7c67运行standard package exit0，release.commit精确f63b7c67；资源已经包含当前F-001修复，HTTP3资产/未初始化/401及ownprocess cleanup通过。日志artifacts/gm-tests/root/accepted-package.log；最终archive/文档校验由根verification记录。
+- root workspace controller以approved+freshpass+完整diff接受root审查rework，推进accepted baseline f63b7c67；Root Review current目标与其2产品字节一致，约束恢复aligned，才能review-approved进入根verification。没有新child、没有重开sealedSpec或root terminal。
