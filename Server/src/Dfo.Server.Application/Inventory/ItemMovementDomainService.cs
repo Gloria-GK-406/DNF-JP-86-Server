@@ -38,6 +38,12 @@ internal sealed class ItemMovementDomainService(
         var moveCount = requestedCount <= 0 || requestedCount > moving.Count
             ? moving.Count : requestedCount;
 
+        // Instance metadata (notably expiry) must not turn a nonstackable same-item
+        // deposit into a swap that the client's movement acknowledgement treats as a merge.
+        if (moving.IsPile && displaced is { IsPile: true } && moving.ItemId == displaced.ItemId
+            && placement.StackLimit == 1)
+            return new ItemMoveOutcome.Refused(ItemMoveRefusal.MergeExceedsStackLimit);
+
         if (displaced is null)
         {
             if (moveCount == moving.Count)

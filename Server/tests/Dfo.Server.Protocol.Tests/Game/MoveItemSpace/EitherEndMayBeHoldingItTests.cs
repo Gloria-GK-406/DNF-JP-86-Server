@@ -741,7 +741,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             new MoveItemSpaceHandler(
                 new OneSession(), new NoPublishedRuntime(),
                 new InventorySlotMappingRuleService(),
-                new DirectMoveBus(side.Handler), sender, logger),
+                new DirectMoveBus(side.Handler), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger,
             side);

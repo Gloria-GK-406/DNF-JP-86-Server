@@ -822,7 +822,10 @@ public sealed class MoveItemSpaceHandler(
     IInventorySlotMappingRuleService slotMappings,
     ICommandBus commandBus,
     IGameMessageSender sender,
-    ILogger<MoveItemSpaceHandler> logger) : ClientMessageHandler<MoveItemSpaceRequest>
+    ILogger<MoveItemSpaceHandler> logger,
+    ICharacterInventoryEntryDomainService characterInventories,
+    IAccountInventoryEntryDomainService accountInventories,
+    TimeProvider time) : ClientMessageHandler<MoveItemSpaceRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -832,6 +835,18 @@ public sealed class MoveItemSpaceHandler(
         var (response, result) = await ResolveAsync(context, message, cancellationToken)
             .ConfigureAwait(false);
         List<IGameServerMessage> frames = [response];
+        if (result is not null && (IsCargo(response.SourceSlot) || IsCargo(response.DestinationSlot)))
+        {
+            try
+            {
+                await AppendCargoStateAsync(context, response, frames, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError(failure, "Move item space {ConnectionId}: cargo snapshot failed after settlement",
+                    context.Connection.ConnectionId);
+            }
+        }
         if (result?.Status is ItemMoveStatus.Moved)
         {
             // Nothing raised while working out the appearance may cost the player the
@@ -866,6 +881,32 @@ public sealed class MoveItemSpaceHandler(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool IsCargo(GameSlot slot) =>
+        slot.Space is InventoryContainerType.PersonalCargo or InventoryContainerType.AccountCargo;
+
+    private async ValueTask AppendCargoStateAsync(NetworkDispatchContext context, MoveItemSpaceResponse response,
+        List<IGameServerMessage> frames, CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null) return;
+        var character = await characterInventories.ReadCurrentAsync(session.AccountId, session.CharacterId,
+            cancellationToken).ConfigureAwait(false);
+        var account = await accountInventories.LoadAsync(session.AccountId, session.CharacterId,
+            cancellationToken).ConfigureAwait(false);
+        if (selectedSessions.FindByConnection(session.ConnectionId) != session) return;
+        var preparedAt = time.GetUtcNow();
+        // A full container snapshot also removes phantom entries after a refused stale move.
+        // The CMD must arrive first: it applies the client's local movement before reconciliation.
+        foreach (var type in new[] { response.SourceSlot.Space, response.DestinationSlot.Space }.Distinct())
+        {
+            var container = type == InventoryContainerType.AccountCargo
+                ? account.Cargo.Container
+                : character.Containers.SingleOrDefault(value => value.ContainerType == type);
+            if (container is not null)
+                frames.Add(new InventoryFullSnapshotMessage(container, character, account, preparedAt));
+        }
     }
 
     /// <summary>

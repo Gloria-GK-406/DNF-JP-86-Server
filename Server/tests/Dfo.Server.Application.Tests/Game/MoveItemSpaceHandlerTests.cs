@@ -391,7 +391,7 @@ public sealed class MoveItemSpaceHandlerTests
                 mappings,
                 new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
                 sender,
-                NullLogger<MoveItemSpaceHandler>.Instance),
+                NullLogger<MoveItemSpaceHandler>.Instance, null!, null!, TimeProvider.System),
             sender);
     }
 

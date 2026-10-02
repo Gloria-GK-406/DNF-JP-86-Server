@@ -239,7 +239,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             new MoveItemSpaceHandler(
                 new OneSession(), new NoPublishedRuntime(),
                 mappings,
-                new DirectMoveBus(commandHandler), sender, logger),
+                new DirectMoveBus(commandHandler), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger);
     }

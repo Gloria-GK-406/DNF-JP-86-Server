@@ -422,7 +422,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                 mappings,
                 new DirectMoveBus(commandHandler),
                 sender,
-                logger),
+                logger, null!, null!, TimeProvider.System),
             sender,
             runtime,
             currentViews,
