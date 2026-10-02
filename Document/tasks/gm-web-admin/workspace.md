@@ -28,3 +28,11 @@
 
 - 当前Round2独立approved/aligned与fresh verification pass后一次验收提交07e1f607777c082a09e4614d5d81cf137dee41ce，父提交573be46b。完整60路径，cr-at-eol兼容历史CRLF的暂存检查exit0；提交后worktree干净、source main仍5fbe2dad且干净、分支feature/gm-web-admin。
 - fresh全量5355 passed/0 failed/2 deliberate skips，前端41 passed，当前构建/发布及隔离夹具正常停止通过。sealed result保持不可变。child游标完成后，root依序child-sealed进入child_disposition、child-accepted进入root_evaluation，推进基线与SC-4。
+
+## spec-005 acceptance
+
+- 当前独立approved/aligned、fresh5373pass/0fail/2deliberate skip、前端54pass、真实Chrome和当前发布/夹具通过后，一次验收提交aa5b663672c1beaac82484e57c3bbbeff5429d44，父07e1f607；56完整路径。两份raw历史日志原样保留，暂存空白检查仅排除当前verification原始*.log，所有产品/文档/其它证据check exit0；没有失败commit或重试。
+- 提交后status为空、branch feature/gm-web-admin，source main仍5fbe2dad且干净，accepted链只前进此一commit。sealed result不回填ownSHA；child cursor verification/completed。
+- 消费terminal completed result与repo状态，child-sealed进入child_disposition/pending。
+
+- child-disposition复核completed/currentpass与parent identity，child-accepted推进baseline aa5b6636，清除active child/封存第5行；仅根声明durable artifacts正常变化。
