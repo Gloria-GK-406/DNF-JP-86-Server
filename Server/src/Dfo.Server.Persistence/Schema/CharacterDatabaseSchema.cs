@@ -232,6 +232,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS gm_mail_drafts (administrator_id INTEGER PRIMARY KEY,document TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
+        CREATE TABLE IF NOT EXISTS gm_cera_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
         CREATE TABLE IF NOT EXISTS notice_states (
             owner_type INTEGER NOT NULL CHECK(owner_type IN (0,1)),
             owner_id INTEGER NOT NULL CHECK(owner_id > 0),
@@ -299,6 +300,7 @@ internal static class CharacterDatabaseSchema
     private const string IndexDeclarations = """
         CREATE INDEX IF NOT EXISTS ix_gm_audit_time ON gm_audit(occurred_at DESC,operation_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_mail_operations_time ON gm_mail_operations(administrator_id,committed_at DESC,request_id DESC);
+        CREATE INDEX IF NOT EXISTS ix_gm_cera_operations_time ON gm_cera_operations(administrator_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_sessions_expiry ON gm_sessions(expires_at);
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account';

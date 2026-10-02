@@ -5,6 +5,7 @@ import { api, ApiError, type AuditPage, type Identity, type Permission } from '.
 import { OverviewView } from './OverviewView';
 import { PlayerDirectoryView } from './PlayerDirectoryView';
 import { OfficialMailView } from './OfficialMailView';
+import { CeraGrantView } from './CeraGrantView';
 
 const pages: { key: string; label: string; permission: Permission | null }[] = [
   { key: '/', label: '服务概览', permission: 'QueryPlayers' }, { key: '/characters', label: '账号与角色', permission: 'QueryPlayers' },
@@ -109,6 +110,7 @@ export function AdminApp() {
         location.pathname === '/' ? <OverviewView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
         location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
         location.pathname === '/mail' ? <OfficialMailView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'SendMail')} /> :
+        location.pathname === '/wallet' ? <CeraGrantView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'GrantCera')} /> :
         <Empty description="本模块将在后续阶段接入。" />}
     </Layout.Content></Layout></Layout>;
 }

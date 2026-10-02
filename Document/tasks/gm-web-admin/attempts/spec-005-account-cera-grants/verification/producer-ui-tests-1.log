@@ -1,0 +1,13 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run CeraGrant.test.tsx
+
+
+ RUN  v5.0.3 E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin/Web/gm-admin
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  13:34:38
+   Duration  5.34s (tests 49%, import 32%, environment 14%, setup 3%, transform 2%)
+

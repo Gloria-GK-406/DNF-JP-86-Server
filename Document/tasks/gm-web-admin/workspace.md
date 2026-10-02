@@ -23,3 +23,8 @@
 - 已封存completed result、approved/aligned独立审查及fresh verification pass；一次接受提交573be46b075d8363f0882c2f40a5a0135d1ada0c，父提交416f26c9。完整暂存diff检查exit0后才提交，未改sealed结果。
 - 提交后status为空，任务分支feature/gm-web-admin；source main仍5fbe2dad且干净。全解决方案5317 passed / 0 failed / 2 deliberate skips，前端25 passed，构建与发布核对通过，实际浏览器查询检查及隔离夹具正常退出另有证据。
 - root恢复依序消费child-sealed→child-accepted；基线推进573be46b。后续正常游标变化仅声明的durable task artifacts。
+
+## spec-004 acceptance
+
+- 当前Round2独立approved/aligned与fresh verification pass后一次验收提交07e1f607777c082a09e4614d5d81cf137dee41ce，父提交573be46b。完整60路径，cr-at-eol兼容历史CRLF的暂存检查exit0；提交后worktree干净、source main仍5fbe2dad且干净、分支feature/gm-web-admin。
+- fresh全量5355 passed/0 failed/2 deliberate skips，前端41 passed，当前构建/发布及隔离夹具正常停止通过。sealed result保持不可变。child游标完成后，root依序child-sealed进入child_disposition、child-accepted进入root_evaluation，推进基线与SC-4。
