@@ -123,10 +123,10 @@ public sealed class ItemRefusalCodeTests
 
     /// <remarks>
     /// 「金库空间不足， 无法放入物品」 is a sentence about space. It is reserved for a target
-    /// container that has none, and no refusal this server can currently reach is that.
+    /// container that has none; missing sessions, bindings or items must not borrow it.
     /// </remarks>
     [Fact]
-    public void No_move_refusal_borrows_the_sentence_about_space()
+    public void Only_a_full_container_uses_the_sentence_about_space()
     {
         const byte NoFreeSpace = 4;
 
@@ -135,7 +135,10 @@ public sealed class ItemRefusalCodeTests
             if (status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)
                 continue;
 
-            Assert.NotEqual(NoFreeSpace, MoveItemSpaceHandler.ErrorCodeFor(status));
+            if (status == ItemMoveStatus.ContainerFull)
+                Assert.Equal(NoFreeSpace, MoveItemSpaceHandler.ErrorCodeFor(status));
+            else
+                Assert.NotEqual(NoFreeSpace, MoveItemSpaceHandler.ErrorCodeFor(status));
         }
     }
 

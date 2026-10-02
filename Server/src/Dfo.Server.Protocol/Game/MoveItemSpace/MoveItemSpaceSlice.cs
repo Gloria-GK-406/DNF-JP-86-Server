@@ -61,11 +61,9 @@ public sealed record MoveItemSpaceResponse(
     /// equipping, trading, or a restricted area, and borrowing one is handing the player a
     /// sentence about something that did not happen.
     /// <para>
-    /// Code <c>4</c> is deliberately absent from this list. It says 「金库空间不足， 无法放入物品」
-    /// and is reserved for a target container that genuinely has no free slot -- a condition this
-    /// server cannot yet reach, since a move names both of its slots. It used to carry the missing
-    /// session, the missing binding, two empty slots and a lost race, each of which the player read
-    /// as a space problem.
+    /// Code <c>4</c> says 「金库空间不足， 无法放入物品」 and is reserved for an automatic
+    /// cargo deposit with no open empty slot. Missing sessions, bindings, items or lost races
+    /// must not be reported as a space problem.
     /// </para>
     /// <para>
     /// Code <c>19</c> prints the same sentence as <c>23</c> and adds a log line about permissions,
@@ -77,6 +75,8 @@ public sealed record MoveItemSpaceResponse(
 
     /// <summary>「物品栏已有同类物品」 -- the merge would burst the stack limit.</summary>
     public const byte StackLimitReached = 17;
+
+    public const byte ContainerFull = 4;
 
     /// <summary>
     /// A code the client shows nothing for.
@@ -195,6 +195,9 @@ public enum ItemMoveStatus
     /// <summary>Merging the two piles would exceed the item's stack limit.</summary>
     MergeExceedsStackLimit,
 
+    /// <summary>No open empty cargo slot remains for an automatic deposit.</summary>
+    ContainerFull,
+
     /// <summary>A swap was asked for with only part of the pile.</summary>
     PartialSwapNotAllowed,
 
@@ -230,6 +233,7 @@ public enum ItemMoveStatus
 /// <summary>Where the item ended up, or why it stayed.</summary>
 public sealed record ItemMoveResult(ItemMoveStatus Status, int MoveValue, int ItemId)
 {
+    public BusinessSlot? ActualDestinationSlot { get; init; }
     public IReadOnlyList<CreatureRuntimeChange> CreatureChanges { get; init; } = [];
     /// <summary>A refusal decided before anything was read, so no template is named.</summary>
     public static ItemMoveResult Refused(ItemMoveStatus status) => new(status, 0, 0);
@@ -424,7 +428,8 @@ public sealed class MoveItemSpaceCommandHandler(
                 command.MoveCount, cancellationToken).ConfigureAwait(false);
             return transfer switch
             {
-                ItemMoveOutcome.Moved moved => new(ItemMoveStatus.Moved, moved.MoveCount, moved.ItemId),
+                ItemMoveOutcome.Moved moved => new(ItemMoveStatus.Moved, moved.MoveCount, moved.ItemId)
+                    { ActualDestinationSlot = moved.ActualDestinationSlot },
                 ItemMoveOutcome.Unchanged => new(ItemMoveStatus.Unchanged, 0, 0),
                 ItemMoveOutcome.Refused refused => ItemMoveResult.Refused(StatusFor(refused.Reason)),
                 _ => throw new InvalidOperationException("Unknown cargo move outcome."),
@@ -802,6 +807,7 @@ public sealed class MoveItemSpaceCommandHandler(
         ItemMoveRefusal.BothSlotsEmpty => ItemMoveStatus.BothSlotsEmpty,
         ItemMoveRefusal.ItemCannotOccupySlot => ItemMoveStatus.ItemCannotOccupySlot,
         ItemMoveRefusal.MergeExceedsStackLimit => ItemMoveStatus.MergeExceedsStackLimit,
+        ItemMoveRefusal.ContainerFull => ItemMoveStatus.ContainerFull,
         ItemMoveRefusal.PartialSwapNotAllowed => ItemMoveStatus.PartialSwapNotAllowed,
         ItemMoveRefusal.DisplacedCannotOccupySlot => ItemMoveStatus.DisplacedCannotOccupySlot,
         _ => throw new ArgumentOutOfRangeException(
@@ -813,8 +819,8 @@ public sealed class MoveItemSpaceCommandHandler(
 /// Turns the request into a command and the command's answer into something the client can read.
 /// </summary>
 /// <remarks>
-/// Both readings of the request are answered with the request's own source and destination echoed
-/// back, because the client matches the acknowledgement against what it sent.
+/// The source echoes the request. The destination normally does too, except that an automatic
+/// cargo deposit reports the actual empty slot selected by the domain service.
 /// </remarks>
 public sealed class MoveItemSpaceHandler(
     ISelectedSessionDomainService selectedSessions,
@@ -987,6 +993,8 @@ public sealed class MoveItemSpaceHandler(
 
         if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)
         {
+            if (result.ActualDestinationSlot is { } actualDestination)
+                responseDestination = slotMappings.ToGameSlot(actualDestination);
             logger.LogInformation(
                 "Move item space {ConnectionId} character={CharacterId}: item {ItemId} "
                     + "from list {FromList} slot {From} to list {ToList} slot {To} count={Count}",
@@ -1064,6 +1072,7 @@ public sealed class MoveItemSpaceHandler(
         ItemMoveStatus.PartialSwapNotAllowed => MoveItemSpaceResponse.NotMovable,
         ItemMoveStatus.DisplacedCannotOccupySlot => MoveItemSpaceResponse.NotMovable,
         ItemMoveStatus.MergeExceedsStackLimit => MoveItemSpaceResponse.StackLimitReached,
+        ItemMoveStatus.ContainerFull => MoveItemSpaceResponse.ContainerFull,
         ItemMoveStatus.NoSession => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.NoBoundContainer => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.BothSlotsEmpty => MoveItemSpaceResponse.Silent,

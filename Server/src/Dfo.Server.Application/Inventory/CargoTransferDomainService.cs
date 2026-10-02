@@ -13,7 +13,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class CargoTransferDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterTable characters, IDungeonRunDomainService runs,
     IBusinessInventorySlotDomainService slots, ICargoItemRuleService rules,
-    IItemMovementDomainService movement, TimeProvider time) : ICargoTransferDomainService
+    IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time) : ICargoTransferDomainService
 {
     public async ValueTask<ItemMoveOutcome> MoveAsync(SelectedSessionIdentity session, BusinessSlot source,
         BusinessSlot destination, int count, CancellationToken cancellationToken)
@@ -41,7 +41,26 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
                 && !await rules.CanStoreAsync(from.Slot.Space, second, time.GetUtcNow(), cancellationToken).ConfigureAwait(false))
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.DisplacedCannotOccupySlot);
         }
-        return await movement.MoveBetweenContainersAsync(from, into, count, cancellationToken).ConfigureAwait(false);
+        BusinessSlot? actualDestination = null;
+        // A21 click-deposit may nominate an existing copy even when the item stacks only to one.
+        // Redirect only incoming cargo deposits; an ordinary same-container drag stays explicit.
+        if (from.Slot.Space.IsCarriedItemSpace() && Cargo(into.Slot.Space)
+            && first is { IsPile: true } && second is { IsPile: true } && first.ItemId == second.ItemId
+            && (await placements.PlacementForAsync(first.ItemId, cancellationToken).ConfigureAwait(false))?.StackLimit == 1)
+        {
+            var openSlots = await into.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
+            if (into.Slot.Index < 0 || into.Slot.Index >= openSlots)
+                return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
+            var occupied = (await into.Container.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                .Select(item => item.SlotIndex).ToHashSet();
+            var empty = Enumerable.Range(0, openSlots).FirstOrDefault(index => !occupied.Contains(index), -1);
+            if (empty < 0) return new ItemMoveOutcome.Refused(ItemMoveRefusal.ContainerFull);
+            actualDestination = new BusinessSlot(into.Slot.Space, empty);
+            into = new BoundInventorySlot(actualDestination.Value, into.Container);
+        }
+        var result = await movement.MoveBetweenContainersAsync(from, into, count, cancellationToken).ConfigureAwait(false);
+        return result is ItemMoveOutcome.Moved moved && actualDestination is not null
+            ? moved with { ActualDestinationSlot = actualDestination } : result;
 
         bool Owned(BoundInventorySlot slot) => slot.Slot.Space == BusinessInventorySpace.AccountCargo
             ? slot.Container.StorageId.TryGetAccountCargoOwner(out var owner) && owner == session.AccountId

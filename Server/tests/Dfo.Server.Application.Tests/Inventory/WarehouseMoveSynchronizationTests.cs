@@ -16,7 +16,7 @@ public sealed class WarehouseMoveSynchronizationTests
     [InlineData(2, true)]
     [InlineData(12, false)]
     [InlineData(12, true)]
-    public async Task Nonstackable_coupons_keep_separate_slots_and_expiry_even_when_target_is_occupied(
+    public async Task Clicking_a_nonstackable_coupon_into_cargo_chooses_an_empty_slot_and_keeps_each_expiry(
         byte list, bool differentExpiry)
     {
         using var host = WarehouseStorageTests.Fixture();
@@ -27,17 +27,20 @@ public sealed class WarehouseMoveSynchronizationTests
         await Send(host, 0, 65, list, 0);
         await host.SeedCore(65, second);
         await Send(host, 0, 65, list, 0);
-        Assert.Equal(MoveItemSpaceResponse.StackLimitReached,
-            host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last().ErrorCode);
-        Assert.Equal(second, (await WarehouseStorageTests.Bag(host, BusinessInventorySpace.Consumable)
-            .ReadSlotAsync(0, default))!.Core);
+        var acknowledgement = host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last();
+        Assert.Null(acknowledgement.ErrorCode);
+        Assert.Equal(new((InventoryContainerType)list, 1), acknowledgement.DestinationSlot);
+        Assert.Null(await WarehouseStorageTests.Bag(host, BusinessInventorySpace.Consumable)
+            .ReadSlotAsync(0, default));
         Assert.Equal(first, (await WarehouseStorageTests.Bag(host, list == 2
             ? BusinessInventorySpace.PersonalCargo : BusinessInventorySpace.AccountCargo).ReadSlotAsync(0, default))!.Core);
-        AssertSlot(host, 0, 65, 4000, 1, second.ExpireTime);
-        AssertSlot(host, list, 0, 4000, 1, first.ExpireTime);
-        await Send(host, 0, 65, list, 1);
-        Assert.Null(host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last().ErrorCode);
         AssertSlot(host, 0, 65, -1, 0, 0);
+        AssertSlot(host, list, 0, 4000, 1, first.ExpireTime);
+        AssertSlot(host, list, 1, 4000, 1, second.ExpireTime);
+        await Send(host, 0, 65, list, 0, instance: 4000);
+        Assert.NotNull(host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last().ErrorCode);
+        AssertSlot(host, 0, 65, -1, 0, 0);
+        AssertSlot(host, list, 0, 4000, 1, first.ExpireTime);
         AssertSlot(host, list, 1, 4000, 1, second.ExpireTime);
         await Send(host, list, 0, 0, 65);
         AssertSlot(host, list, 0, -1, 0, 0);
@@ -49,6 +52,40 @@ public sealed class WarehouseMoveSynchronizationTests
         await Send(host, list, 1, list, 2);
         AssertSlot(host, list, 1, -1, 0, 0);
         AssertSlot(host, list, 2, 4000, 1, second.ExpireTime);
+        await Send(host, 0, 65, list, 0);
+        await Send(host, list, 2, list, 0);
+        Assert.Equal(MoveItemSpaceResponse.StackLimitReached,
+            host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last().ErrorCode);
+        AssertSlot(host, list, 0, 4000, 1, first.ExpireTime);
+        AssertSlot(host, list, 2, 4000, 1, second.ExpireTime);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(12)]
+    public async Task Click_deposit_uses_the_last_open_slot_and_refuses_only_when_all_open_slots_are_full(byte list)
+    {
+        using var host = WarehouseStorageTests.Fixture();
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
+        for (var slot = 0; slot < 7; slot++)
+        {
+            await host.Seed(65, 4000, 1);
+            await Send(host, 0, 65, list, slot);
+            Assert.Null(host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last().ErrorCode);
+        }
+        await host.Seed(65, 4000, 1);
+        await Send(host, 0, 65, list, 0);
+        var acknowledgement = host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last();
+        Assert.Null(acknowledgement.ErrorCode);
+        Assert.Equal(new((InventoryContainerType)list, 7), acknowledgement.DestinationSlot);
+        AssertSlot(host, list, 7, 4000, 1, 0);
+        await host.Seed(65, 4000, 1);
+        var before = host.StoredCore(65);
+        await Send(host, 0, 65, list, 0);
+        Assert.Equal((byte)4, host.Sender.Messages.OfType<MoveItemSpaceResponse>().Last().ErrorCode);
+        Assert.Equal(before, host.StoredCore(65));
+        Assert.Equal(8, host.Scalar($"SELECT COUNT(*) FROM item_slots WHERE list_type={list}"));
+        AssertSlot(host, list, 8, -1, 0, 0);
     }
 
     [Theory]
@@ -79,12 +116,14 @@ public sealed class WarehouseMoveSynchronizationTests
         using var host = WarehouseStorageTests.Fixture();
         host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
         await host.Seed(65, 4000, 1);
+        await Send(host, 0, 65, list, 0);
+        await host.Seed(65, 4000, 1);
         var before = host.StoredCore(65);
         host.Sql($"CREATE TRIGGER reject_cargo BEFORE INSERT ON item_slots WHEN NEW.list_type={list} BEGIN SELECT RAISE(ABORT,'forced'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Send(host, 0, 65, list, 0).AsTask());
         Assert.Empty(host.Sender.Messages);
         Assert.Equal(before, host.StoredCore(65));
-        Assert.Equal(0, host.Scalar($"SELECT COUNT(*) FROM item_slots WHERE list_type={list}"));
+        Assert.Equal(1, host.Scalar($"SELECT COUNT(*) FROM item_slots WHERE list_type={list}"));
     }
 
     private static ValueTask Send(ShopFixture host, byte from, int source, byte into, int target,

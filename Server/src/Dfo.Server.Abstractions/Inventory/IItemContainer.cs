@@ -264,6 +264,9 @@ public enum ItemMoveRefusal
 
     /// <summary>The pile being displaced may not occupy the slot being vacated.</summary>
     DisplacedCannotOccupySlot,
+
+    /// <summary>The destination has no open empty slot for an automatic deposit.</summary>
+    ContainerFull,
 }
 
 /// <summary>What became of a move.</summary>
@@ -275,7 +278,11 @@ public abstract record ItemMoveOutcome
 
     /// <param name="MoveCount">How much of the pile moved.</param>
     /// <param name="ItemId">What moved, for the caller to report.</param>
-    public sealed record Moved(int MoveCount, int ItemId) : ItemMoveOutcome;
+    public sealed record Moved(int MoveCount, int ItemId) : ItemMoveOutcome
+    {
+        /// <summary>Set when cargo selected a different slot from the requested occupied one.</summary>
+        public BusinessSlot? ActualDestinationSlot { get; init; }
+    }
 
     /// <summary>Both ends were the same slot: nothing happened and nothing is wrong.</summary>
     public sealed record Unchanged : ItemMoveOutcome;
