@@ -31,11 +31,15 @@ public static class HttpApiApplicationExtensions
     {
         application.UseMiddleware<HttpApiExceptionMiddleware>();
         application.UseRouting();
+        application.UseMiddleware<HttpListenerBoundaryMiddleware>();
         application.UseMiddleware<CredentialTransportGateMiddleware>();
     }
 
-    internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints)
+    internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints) => MapHttpApiEndpoints(endpoints, null);
+
+    internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints, HttpListenerScope? listener)
     {
+        if (listener is not null) endpoints = endpoints.MapGroup("").WithMetadata(listener);
         endpoints.MapGet(BootstrapPath, (HttpApiReadiness readiness) =>
             readiness.IsReady
                 ? Results.Json(new BootstrapResponse("1", "ready", true))
@@ -209,7 +213,7 @@ internal sealed class HttpApiExceptionMiddleware(
         catch (Exception) when (!context.Response.HasStarted)
         {
             logger.LogError(
-                "Launcher API request failed with code {ErrorCode}; TraceId={TraceId}.",
+                "HTTP API request failed with code {ErrorCode}; TraceId={TraceId}.",
                 "internal_error",
                 context.TraceIdentifier);
             await ApiResponses.WriteErrorAsync(

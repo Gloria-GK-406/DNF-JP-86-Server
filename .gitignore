@@ -41,3 +41,7 @@ Thumbs.db
 # 排除写在这里而不是 .git/info/exclude，是为了让它随仓库分发——
 # 不然每个克隆都要各自再排一次，迟早有人把一整份采集提交上来。
 .crap/
+
+# Web dependencies
+node_modules/
+*.tsbuildinfo

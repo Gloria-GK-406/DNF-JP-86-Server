@@ -1,0 +1,129 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.HttpApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.HttpApi\bin\Debug\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.GmWeb -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.GmWeb\bin\Debug\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.GameServer -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.GameServer\bin\Debug\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.41]   Discovering: Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.45]   Discovered:  Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.46]   Starting:    Dfo.Server.Host.Tests
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[63]
+      User profile is available. Using 'C:\Users\Gloria\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=7001; GamePorts=10011
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 50 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 151 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command BootstrapGmAdministratorCommand handled by BootstrapGmAdministratorCommandHandler as Transactional with execution 115f2537-ee0c-4f9b-9b9f-d8ca036036a2 in 86.3484 ms
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:14146
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:14146/api/gm/v1/auth/csrf - - -
+info: Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider[45]
+      Using ephemeral data protection provider. Payloads will be undecipherable upon application shutdown.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+warn: Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery[8]
+      The 'Cache-Control' and 'Pragma' headers have been overridden and set to 'no-cache, no-store' and 'no-cache' respectively to prevent caching of this response. Any response that uses antiforgery should not be cached.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType2`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:14146/api/gm/v1/auth/csrf - 200 - application/json;+charset=utf-8 73.3487ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:14146/api/gm/v1/auth/login - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/auth/login => LoginAsync'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command LoginGmAdministratorCommand handled by LoginGmAdministratorCommandHandler as Transactional with execution 49fbbcd5-650c-4049-9794-1fa3ce69dfb4 in 75.1198 ms
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType3`4' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/auth/login => LoginAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:14146/api/gm/v1/auth/login - 200 - application/json;+charset=utf-8 95.6582ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:14146/api/gm/v1/auth/csrf - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+warn: Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery[8]
+      The 'Cache-Control' and 'Pragma' headers have been overridden and set to 'no-cache, no-store' and 'no-cache' respectively to prevent caching of this response. Any response that uses antiforgery should not be cached.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType2`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:14146/api/gm/v1/auth/csrf - 200 - application/json;+charset=utf-8 1.9150ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:14146/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:14146/api/gm/v1/cera/grant - 403 - application/json;+charset=utf-8 0.9920ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:04.00]     Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce [FAIL]
+[xUnit.net 00:00:04.01]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:04.01]       Expected: OK
+[xUnit.net 00:00:04.01]       Actual:   Forbidden
+[xUnit.net 00:00:04.01]       Stack Trace:
+[xUnit.net 00:00:04.01]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs(24,0): at Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce()
+[xUnit.net 00:00:04.01]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs(30,0): at Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce()
+[xUnit.net 00:00:04.01]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:04.01]   Finished:    Dfo.Server.Host.Tests
+  失败 Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce [3 s]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: OK
+Actual:   Forbidden
+  堆栈跟踪:
+     at Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs:line 24
+   at Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs:line 30
+--- End of stack trace from previous location ---
+
+测试运行失败。
+测试总数: 1
+     失败数: 1
+总时间: 4.9900 秒

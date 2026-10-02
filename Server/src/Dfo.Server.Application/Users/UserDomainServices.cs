@@ -9,8 +9,10 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Users;
 
 /// <summary>Who is connected, and the lifecycle of those connections.</summary>
-internal sealed class OnlineUserDomainService(OnlineStateRegistry state) : IOnlineUserDomainService
+internal sealed class OnlineUserDomainService(OnlineStateRegistry state) : IOnlineUserDomainService, IAuthenticatedGamePresenceQuery
 {
+    public IReadOnlyList<AccountId> SnapshotAccounts() => state.SnapshotAuthenticatedGameAccounts();
+    public bool IsActiveExact(SelectedSessionIdentity session) => state.IsActiveExact(session);
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection) =>
         state.RegisterConnection(connection);
 

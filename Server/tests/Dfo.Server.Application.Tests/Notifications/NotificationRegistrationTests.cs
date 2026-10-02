@@ -45,14 +45,14 @@ public sealed class NotificationRegistrationTests
     /// <summary>A catalogue that declares no notification is not a gap.</summary>
     /// <remarks>
     /// This says only that: an assembly with nothing to handle passes. It is not evidence about
-    /// the filter -- the contract assembly has no candidate types at all, so nothing is filtered
+    /// the filter -- the DTO assembly has no candidate types at all, so nothing is filtered
     /// -- and the case above is where the filter is actually answerable.
     /// </remarks>
     [Fact]
     public void An_assembly_that_declares_no_notification_leaves_nothing_to_handle() =>
         Assert.NotNull(new NotificationHandlerRegistry(
             [],
-            [new NotificationCatalogRegistration(typeof(INotification<>).Assembly)]));
+            [new NotificationCatalogRegistration(typeof(GameMessageMetadata).Assembly)]));
 
     /// <summary>The registry is asked for before the first hosted service starts.</summary>
     /// <remarks>

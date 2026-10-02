@@ -35,6 +35,19 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22.19.0
+          package-manager-cache: false
+      - name: Prepare GM frontend
+        working-directory: Web/gm-admin
+        run: npm ci
+      - name: Test GM frontend
+        working-directory: Web/gm-admin
+        run: npm test
+      - name: Build GM frontend
+        working-directory: Web/gm-admin
+        run: npm run build
       - name: Verify release guard
         run: python -m unittest discover -s Tool/Release -p "test_*.py"
       - name: Restore

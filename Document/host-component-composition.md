@@ -2,11 +2,12 @@
 
 ## 入口与依赖
 
-`Dfo.Server.Host` 是唯一可执行程序和组合根，一次构建 Generic Host。公共 Application、Infrastructure、Persistence 由它注册一次，再接入两个组件：
+`Dfo.Server.Host` 是唯一可执行程序和组合根，一次构建 Generic Host。公共 Application、Infrastructure、Persistence 由它注册一次，再接入 HTTP、GM 和游戏组件：
 
 ```text
 Host
 ├── HttpApi（Kestrel、HTTP 中间件、启动器路由）
+├── GmWeb（独立管理员、查询、官方邮件、账号点券）
 ├── GameServer（游戏装配、内容预热）
 │   ├── Networking（Channel/Game TCP、可选 UDP）
 │   └── Protocol（报文/命令处理）
@@ -32,6 +33,8 @@ GameServer 装配已有网络/协议模块，不复制其源码，也不注册�
 
 `Networking:UdpDiscoveryEnabled` 只在游戏网络启用时生效。HTTP 仅在启用时装配 WebHost，它由同一个 Generic Host 管理。HTTP 本身 ready 与游戏会话入口 ready 分开，后者经 Abstractions 中 `IGameServerReadiness` 提供。
 
+上表的 HTTP 开关指 `LauncherAuth:Enabled`。GM 另由 `GmWeb:Enabled` 独立控制：GM 或 Launcher 任一启用才启动共同 Kestrel，各自使用独立监听端口，路由不跨端口提供。GM 单开时无需游戏网络，管理员查询/邮件/点券共用同一领域和持久化服务；配置、权限及操作说明见 [gm-web-admin.md](gm-web-admin.md)。
+
 ## 生命周期
 
 1. 构建一次服务容器并验证配置。
@@ -43,6 +46,6 @@ PVF 缺失仍按历史行为允许启动、具体内容请求明确失败；存�
 
 ## 构建与发布
 
-解决方案新增 GameServer，LauncherApi 及其测试项目更名为 HttpApi。输出仍是一份 `Dfo.Server.Host`，发布自动带上两个组件程序集、appsettings、experience 和频道资源；现有 CI 与 Windows/Linux 自包含包流程不拆分。
+解决方案包含 GameServer、HttpApi 和 GmWeb。输出仍是一份 `Dfo.Server.Host`，标准候选打包先构建 GM 前端，再发布组件程序集、`wwwroot/gm`、appsettings、experience 和频道资源；Windows/Linux 自包含包流程不拆分。构建机需要 Node/npm，运行发布包无需 Node，流程见 [server-ci-release.md](server-ci-release.md)。
 
 这次是装配与生命周期重构，不改变客户端协议知识或赋予新的 ClientVerified 证据。Docker/真实客户端后续验收仍独立于自动化检查；未调整 HTTPS 凭证保护。

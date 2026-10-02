@@ -482,9 +482,8 @@ internal sealed class SqliteCharacterTitleBookTable(SqliteDatabase database)
 /// which is the question the table could not be asked while a row was destroyed and rebuilt every
 /// time the thing moved.
 ///
-/// Nothing in the server reaches this yet. It is registered nowhere and called only by the tests
-/// that hold it to its contract; what the server does with a thing, it does through the two
-/// callers that also settle where the thing is.
+/// Official mail creates a detached ordinary equipment row here, then gives its custody to the
+/// mailbox in the same transaction. Claiming transfers that existing identity into a container.
 /// </remarks>
 internal sealed class SqliteWorldItemTable(SqliteDatabase database) : IWorldItemTable
 {

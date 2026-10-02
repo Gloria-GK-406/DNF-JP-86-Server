@@ -1,4 +1,5 @@
 using Dfo.Server.Application;
+using Dfo.Server.Abstractions.Hosting;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Persistence;
@@ -161,11 +162,19 @@ public sealed class CommandRegistrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        // GameServer provides this host fact; the module-only fixture has no game listener.
+        services.AddSingleton<IGameServerReadiness, DisabledGameReadiness>();
         var configuration = new ConfigurationBuilder().Build();
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
         return services.BuildServiceProvider();
+    }
+
+    private sealed class DisabledGameReadiness : IGameServerReadiness
+    {
+        public bool NetworkEnabled => false;
+        public bool IsReady => false;
     }
 }

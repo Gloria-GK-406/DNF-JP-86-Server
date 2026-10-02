@@ -1,0 +1,103 @@
+kind: rks-sdd-execution
+controller: sdd-governed
+contract:
+  path: ./TaskContract.md
+  revision: 1
+current_stage: verification
+state: completed
+parent_controller: ../../multi-spec-map.md
+artifacts:
+  spec: ./spec.md
+  result: ./spec-result.md
+  change_review: ./reviews/change-review.md
+  completion_evidence: ./verification/completion-evidence.md
+  spec_challenges: ./reviews/spec-challenges.md
+  spec_review: ./reviews/spec-review.md
+  drift_review: ./reviews/drift-review.md
+  change_challenges: ./reviews/change-challenges.md
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: the Spec defines the requested result, scope, and evidence-based acceptance
+  writes:
+  - spec
+- id: spec-adversarial
+  reads:
+  - contract
+  - spec
+  skills:
+  - generating-adversarial-challenges
+  gate: none
+  writes:
+  - spec_challenges
+  done_when: credible challenges against the current spec are recorded
+- id: spec-review
+  reads:
+  - contract
+  - spec
+  - spec_challenges
+  skills:
+  - reviewing-work
+  gate: auto
+  writes:
+  - spec_review
+  done_when: the current spec is independently approved at its declared resolution
+    and all configured challenges are adjudicated
+- id: implementation
+  reads:
+  - spec
+  skills:
+  - executing-tasks
+  - test-driven-development
+  gate: auto
+  done_when: the chosen planning mode is delivered with usable Task plans and passing
+    required self-checks when using units, and no remaining required high-level work
+- id: drift-check
+  reads:
+  - contract
+  - spec
+  skills:
+  - reviewing-work
+  gate: auto
+  writes:
+  - drift_review
+  done_when: independent accumulated-work drift review is approved with disposition
+    aligned
+- id: change-adversarial
+  reads:
+  - contract
+  - spec
+  skills:
+  - generating-adversarial-challenges
+  gate: none
+  writes:
+  - change_challenges
+  done_when: credible challenges against the complete delivery are recorded
+- id: final-review
+  reads:
+  - contract
+  - spec
+  - drift_review
+  - change_challenges
+  skills:
+  - reviewing-work
+  gate: auto
+  done_when: the complete code, non-code, or mixed result is independently approved
+    against the governing artifacts and actual output criteria; all configured change
+    challenges are adjudicated
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves every TaskContract success condition
+  writes:
+  - completion_evidence

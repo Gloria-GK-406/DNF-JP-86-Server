@@ -1,0 +1,481 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.HttpApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.HttpApi\bin\Debug\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.GmWeb -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.GmWeb\bin\Debug\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.GameServer -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.GameServer\bin\Debug\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.07]   Discovering: Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.10]   Discovered:  Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.12]   Starting:    Dfo.Server.Host.Tests
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[63]
+      User profile is available. Using 'C:\Users\Gloria\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=7001; GamePorts=10011
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 48 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 158 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command BootstrapGmAdministratorCommand handled by BootstrapGmAdministratorCommandHandler as Transactional with execution 98a49fe5-960c-48b8-ad6c-9e6f35898c81 in 85.1292 ms
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:9659
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:9659/api/gm/v1/auth/csrf - - -
+info: Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider[45]
+      Using ephemeral data protection provider. Payloads will be undecipherable upon application shutdown.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+warn: Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery[8]
+      The 'Cache-Control' and 'Pragma' headers have been overridden and set to 'no-cache, no-store' and 'no-cache' respectively to prevent caching of this response. Any response that uses antiforgery should not be cached.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType2`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:9659/api/gm/v1/auth/csrf - 200 - application/json;+charset=utf-8 66.8537ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/auth/login - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/auth/login => LoginAsync'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command LoginGmAdministratorCommand handled by LoginGmAdministratorCommandHandler as Transactional with execution 601836e3-f21d-48ee-af33-ddb2598f4663 in 74.0392 ms
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType3`4' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/auth/login => LoginAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/auth/login - 200 - application/json;+charset=utf-8 94.4649ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:9659/api/gm/v1/auth/csrf - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+warn: Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery[8]
+      The 'Cache-Control' and 'Pragma' headers have been overridden and set to 'no-cache, no-store' and 'no-cache' respectively to prevent caching of this response. Any response that uses antiforgery should not be cached.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType2`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:9659/api/gm/v1/auth/csrf - 200 - application/json;+charset=utf-8 2.0805ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution f1195cdc-4a46-4c30-ba95-ce3f32d51641 after 3.016 ms
+      Dfo.Server.Data.Administration.GmCeraException: ���������Ч��
+         at Dfo.Server.Application.Administration.GmCeraDomainService.RequireId(Guid id) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 114
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 13.9073ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand handled by QueryGmCeraCommandHandler as Transactional with execution 12f0c567-1219-4f49-821f-febf60bfd868 in 1.4645 ms
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantGmCeraCommand failed in handler GrantGmCeraCommandHandler as Transactional with execution 71530386-8e12-4691-8a14-c638109fb3f1 after 12.4773 ms
+      Dfo.Server.Data.Administration.GmCeraException: �˺� 3 �����ڡ�
+         at Dfo.Server.Application.Administration.GmCeraDomainService.Changes(GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 95
+         at Dfo.Server.Application.Administration.GmCeraDomainService.GrantAsync(String secret, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 73
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 43
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution f386d3b0-5083-4cec-85b8-bae7a7444276 in 1.3288 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 19.7247ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution d8d6062f-aa5b-4d8c-bbfe-6c89b3a4146f after 0.2888 ms
+      Dfo.Server.Data.Administration.GmCeraException: ����ȷѡ�� 1..100 ���˺ţ��˺� ID ����Ϊ��������
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 16
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution bfcbe9a8-7349-4ad5-8072-63efa1512005 in 0.6483 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 11.1411ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution c87ad7e2-9dba-4a30-bce1-0eae7f132acd after 0.1216 ms
+      Dfo.Server.Data.Administration.GmCeraException: ����ȷѡ�� 1..100 ���˺ţ��˺� ID ����Ϊ��������
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 16
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution 6ce69c4f-cdb5-4af4-94eb-057a520c0f91 in 0.5231 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 2.4883ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution 39685ecf-52b4-44c6-8e31-36586fa9f332 after 0.1069 ms
+      Dfo.Server.Data.Administration.GmCeraException: ����ȷѡ�� 1..100 ���˺ţ��˺� ID ����Ϊ��������
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 16
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution e284fe2a-4b4e-45c1-bbcf-61d591a72025 in 0.6027 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.5402ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution a3131805-e4a2-4abf-aa12-442f33d7a8e3 after 0.1122 ms
+      Dfo.Server.Data.Administration.GmCeraException: ÿ�˺�������Ϊ 1..2147483647 ��������
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 18
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution 54d86b02-70f0-475b-b236-d50014fbfe74 in 0.559 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.4643ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution d6d45d40-5496-423b-8a24-3da832410f6c after 0.101 ms
+      Dfo.Server.Data.Administration.GmCeraException: ÿ�˺�������Ϊ 1..2147483647 ��������
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 18
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution 97db0ff5-33cb-4b7b-9a71-8384c0b61c15 in 0.4835 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.3304ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution 0f3a2f5b-4219-4620-94ec-7ead04942ae8 after 0.1335 ms
+      Dfo.Server.Data.Administration.GmCeraException: ������Ч��
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 17
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution 5aa5bb21-435c-4a21-b80f-de753efc79fd in 0.4922 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.3666ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution b16070eb-252f-4348-990c-3d8b5131f69e after 0.1372 ms
+      Dfo.Server.Data.Administration.GmCeraException: ����ԭ����Ϊ 1..256 ���ַ������ܺ���Ч�����ַ���
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 21
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution 76f3947a-9c71-4636-801d-19991b3903fa in 0.4863 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.4030ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution 3e08dcfb-ea1a-4ce1-80e0-90e200383588 after 0.098 ms
+      Dfo.Server.Data.Administration.GmCeraException: ����ԭ����Ϊ 1..256 ���ַ������ܺ���Ч�����ַ���
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 21
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution aa3dbbf2-962c-41fd-988a-78d89b36b1ab in 0.4729 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.3474ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand failed in handler QueryGmCeraCommandHandler as Transactional with execution fb416449-9931-448a-88cc-d3c1f82de732 after 0.1014 ms
+      Dfo.Server.Data.Administration.GmCeraException: ����ԭ����Ϊ 1..256 ���ַ������ܺ���Ч�����ַ���
+         at Dfo.Server.Application.Administration.GmCeraRuleService.Normalize(GmCeraInput input) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraRuleService.cs:line 21
+         at Dfo.Server.Application.Administration.GmCeraDomainService.QueryAsync(String secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput input, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Administration\GmCeraDomainService.cs:line 53
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 40
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 49
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 50
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionSettlementBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionSettlementBehavior.cs:line 18
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\TransactionalExecutionBehavior.cs:line 35
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 20
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 19
+         at Dfo.Server.Application.Commands.Pipeline.SelectedSessionExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\SelectedSessionExecutionBehavior.cs:line 15
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command RecordGmCeraFailureCommand handled by RecordGmCeraFailureCommandHandler as Transactional with execution 79925b00-7317-4614-8b7d-6c31abb25bd3 in 0.4699 ms
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.2548ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 1.2146ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Http.Result.JsonResult[1]
+      Setting HTTP status code 400.
+info: Microsoft.AspNetCore.Http.Result.JsonResult[3]
+      Writing value of type '<>f__AnonymousType5`2' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 400 - application/json;+charset=utf-8 0.4833ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand handled by QueryGmCeraCommandHandler as Transactional with execution 8e614b8e-d258-4360-819b-095e901b7c18 in 0.0981 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantGmCeraCommand handled by GrantGmCeraCommandHandler as Transactional with execution 25fed11c-01af-42a3-ba3d-d79cda4665fa in 5.8267 ms
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType4`3' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:9659/api/gm/v1/cera/grant - 200 - application/json;+charset=utf-8 10.1831ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:02.97]     Dfo.Server.Host.Tests.GmCeraHttpTests.BoundariesMissingFieldsUnknownTypesAndCorruptWalletNeverCredit [FAIL]
+[xUnit.net 00:00:02.97]       Expected 400 for {"requestId":"35e8671f-bd90-4379-98f7-879e2708793c","accountIds":[1],"currency":"Cera","amount":"1","reason":"\u5B57\u7B26\u4E32"}; received 200: {"receipt":{"requestId":"35e8671f-bd90-4379-98f7-879e2708793c","administratorId":1,"administratorName":"operator","committedAt":"2026-10-02T05:33:13.626943+00:00","input":{"accountIds":[1],"currency":"Cera","amount":1,"reason":"字符串"},"accounts":[{"accountId":1,"loginName":"zero-role","before":{"cera":10,"tokenCera":20,"happyTokenCera":30},"after":{"cera":11,"tokenCera":20,"happyTokenCera":30}}]},"replayed":false,"reminder":"attempted"}
+[xUnit.net 00:00:02.97]       Stack Trace:
+[xUnit.net 00:00:02.97]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs(131,0): at Dfo.Server.Host.Tests.GmCeraHttpTests.BoundariesMissingFieldsUnknownTypesAndCorruptWalletNeverCredit()
+[xUnit.net 00:00:02.97]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs(144,0): at Dfo.Server.Host.Tests.GmCeraHttpTests.BoundariesMissingFieldsUnknownTypesAndCorruptWalletNeverCredit()
+[xUnit.net 00:00:02.97]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.98]   Finished:    Dfo.Server.Host.Tests
+  失败 Dfo.Server.Host.Tests.GmCeraHttpTests.BoundariesMissingFieldsUnknownTypesAndCorruptWalletNeverCredit [2 s]
+  错误消息:
+   Expected 400 for {"requestId":"35e8671f-bd90-4379-98f7-879e2708793c","accountIds":[1],"currency":"Cera","amount":"1","reason":"\u5B57\u7B26\u4E32"}; received 200: {"receipt":{"requestId":"35e8671f-bd90-4379-98f7-879e2708793c","administratorId":1,"administratorName":"operator","committedAt":"2026-10-02T05:33:13.626943+00:00","input":{"accountIds":[1],"currency":"Cera","amount":1,"reason":"字符串"},"accounts":[{"accountId":1,"loginName":"zero-role","before":{"cera":10,"tokenCera":20,"happyTokenCera":30},"after":{"cera":11,"tokenCera":20,"happyTokenCera":30}}]},"replayed":false,"reminder":"attempted"}
+  堆栈跟踪:
+     at Dfo.Server.Host.Tests.GmCeraHttpTests.BoundariesMissingFieldsUnknownTypesAndCorruptWalletNeverCredit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs:line 131
+   at Dfo.Server.Host.Tests.GmCeraHttpTests.BoundariesMissingFieldsUnknownTypesAndCorruptWalletNeverCredit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\GmCeraHttpTests.cs:line 144
+--- End of stack trace from previous location ---
+
+测试运行失败。
+测试总数: 1
+     失败数: 1
+总时间: 3.4095 秒

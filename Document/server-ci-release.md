@@ -6,7 +6,7 @@
 
 - 开发使用功能分支，经 PR 合并到 `main`，不直接向主干推送开发提交。
 - PR 面向 main 时运行 CI；合并产生 main push 后再次运行 CI。
-- 正式版本基线为 `0.1.0`，唯一声明位于 `Server/Directory.Build.props` 的 `VersionPrefix`。本次建立基线的 PR 保持 `0.1.0`；以后每个 PR 默认将目标 main 的 PATCH 加一，同一 PR 追加提交不再加。用户明确指定版本时以用户要求为准；并行 PR 在合并前重新核对 main。该递增由开发流程执行，不由 Actions 额外向主干提交。
+- 当前版本为 `0.2.1`，唯一声明位于 `Server/Directory.Build.props` 的 `VersionPrefix`。每个 PR 默认将目标 main 的 PATCH 加一，同一 PR 追加提交不再加。用户明确指定版本时以用户要求为准；并行 PR 在合并前重新核对 main。该递增由开发流程执行，不由 Actions 额外向主干提交。
 - 日常构建及 CI 候选包使用源码版本，程序集信息保留提交标识。版本递增本身不打 tag、不创建 Release；只有用户明确要求发布时才走下面的 tag 流程。
 - Windows x64 / Linux x64 分别还原、Release 构建、运行测试、生成候选包并启动验证；任一失败均标红。CI 不创建 GitHub Release。
 - `vMAJOR.MINOR.PATCH` 或 `vMAJOR.MINOR.PATCH-rc.1` tag 推送后触发 Release。
@@ -33,24 +33,48 @@ Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不�
 
 ## 发布包与运行
 
-附件为 Windows `.zip`、Linux `.tar.gz`，各有 `.sha256` 校验文件。压缩包带单一顶层目录，包含 .NET 10 自包含运行时、服务端程序、默认配置、频道资源、经验配置、本文档和 `release.json`（版本、提交、SDK、目标平台）。无需另装 .NET；Linux 仍需要系统的 glibc、ICU、OpenSSL 等原生运行库。本流程的 Linux 实测基线为 Ubuntu 24.04 x64，Windows 为 Windows Server 2022 x64，不声明 Alpine/musl 或旧发行版兼容。
+附件为 Windows `.zip`、Linux `.tar.gz`，各有 `.sha256` 校验文件。压缩包带单一顶层目录，包含 .NET 10 自包含运行时、服务端程序、默认配置、频道资源、经验配置、GM 页面资源与模块说明/验收表，及 `release.json`（版本、提交、SDK、目标平台和GM资源SHA256）。无需另装 .NET 或 Node；Linux 仍需要系统的 glibc、ICU、OpenSSL 等原生运行库。CI 平台为 Ubuntu 24.04 x64 / Windows Server 2022 x64；具体版本的双平台测试及发布包检查以该提交的 Server CI 结果为准，本机浏览器验证不替代 Linux CI。
 
 运行入口：Windows `Dfo.Server.Host.exe`；Linux `./Dfo.Server.Host`。Linux tar 包保留可执行权限。
 
-Host 内组合 HttpApi 与 GameServer，仍为一份发布包和一个进程；组件边界、启动顺序和 HTTP 单开行为见 [host-component-composition.md](host-component-composition.md)。原 LauncherAuth 配置键与 HTTP 路径保持兼容。
+Host 内组合 HttpApi、GmWeb 与 GameServer，仍为一份发布包和一个进程；组件边界、启动顺序和 HTTP 单开行为见 [host-component-composition.md](host-component-composition.md)。原 LauncherAuth 配置键与 HTTP 路径保持兼容。
 
-默认 `Networking:Enabled` 与 `LauncherAuth:Enabled` 均为 false。实际部署需配置地址、端口、数据库与 PVF，再开启所需服务。数据资源不随包发布：
+默认 `Networking:Enabled`、`LauncherAuth:Enabled` 与 `GmWeb:Enabled` 均为 false。实际部署需配置地址、端口、数据库与 PVF，再开启所需服务。GM默认监听本机18081，管理员由部署秘密首次初始化，见 [gm-web-admin.md](gm-web-admin.md)。数据资源不随包发布：
 
 - 使用合法持有的 `Script.pvf`，通过环境变量 `PVF_ARCHIVE_PATH` 指定，或放入 `Data/Pvf/Script.pvf`。
 - 默认数据库为程序目录下 `Data/dfo-server.db`。可以用环境变量 `Database__Path` 指定外部数据位置。
 - 环境变量配置键使用双下划线，例如 `Networking__Enabled=true`。
 - 升级时保留现有数据库、PVF 和部署配置；先备份数据库。本工作流只产出附件，不自动部署，不复制开发机数据库，不修改正在运行的服务。
 
-启动冒烟测试只确认发布后的本机可执行文件能在独立临时目录启动、加载依赖和默认资源；网络关闭，不是游戏实机验收。
+启动冒烟在发布副本、独立临时数据库与本机临时端口启用GM，关闭游戏/Launcher，清除继承的管理员初始化配置。验证GM入口及全部资源的HTTP内容/类型、未初始化状态和私有API401，再结束自己的进程。数据库和日志均留在临时目录，不进入压缩包；这不代表游戏客户端验收。
+
+## 从源码构建 GM 与候选包
+
+构建机使用 Node 22.19.0/npm、固定 .NET SDK 和 Python；标准CI按lockfile执行 `npm ci`、前端测试、TypeScript/Vite构建，然后运行原服务端构建/测试。所有步骤正常失败即停止，不忽略错误。
+
+```powershell
+npm.cmd --prefix Web/gm-admin ci
+npm.cmd --prefix Web/gm-admin test
+npm.cmd --prefix Web/gm-admin run build
+dotnet build Server/86JP.Server.slnx -c Release
+```
+
+Windows本地候选（不创建tag或外部Release）：
+
+```powershell
+$env:RELEASE_RID = 'win-x64'
+python Tool/Release/release.py package
+```
+
+Linux原生构建使用 `RELEASE_RID=linux-x64`。package入口每次重新 `npm ci` 和build，不依赖遗留dist；前端失败、HTML引用缺资源、发布资源与新dist不同、默认开关错误或环境数据进入包均明确失败。候选生成在 `artifacts/release`。开发者单独运行dotnet publish时也应先构建前端；标准交付入口以package为准。
+
+最终人工验收按 [gm-acceptance-list.md](gm-acceptance-list.md) 顺序执行，后台浏览器检查与A21真实邮件/余额展示分开记录。
 
 ## 测试范围与维护
 
 云端不分发 PVF，已有内容依赖测试及新增 PvfFact/PvfTheory 会明确显示跳过。普通业务、协议编解码、持久化、网络和 Host 测试继续执行。TRX 和 Actions Summary 都保留通过、失败、跳过数量，不能把绿灯解读为全部内容或客户端已验证。
+
+GM 业务测试固定使用显式内容夹具，事务回滚、幂等、附件配置与领取判据不依赖开发机档案。真实 PVF 的物品目录、装备领取和商城消费竞争另有内容集成测试；有档案时必须执行，缺档案时明确跳过。邮件浏览器夹具仍使用真实 PVF。
 
 本机完整内容验证：设置 `PVF_ARCHIVE_PATH` 后运行 `dotnet test Server/86JP.Server.slnx -c Release`。不得用 continue-on-error 或宽泛过滤来掩盖失败。
 

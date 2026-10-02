@@ -1,0 +1,141 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.HttpApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.HttpApi\bin\Debug\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.GmWeb -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.GmWeb\bin\Debug\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.GameServer -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.GameServer\bin\Debug\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.26]   Discovering: Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.30]   Discovered:  Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.32]   Starting:    Dfo.Server.Host.Tests
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[63]
+      User profile is available. Using 'C:\Users\Gloria\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+info: Dfo.Server.GameServer[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol, HttpApi
+info: Dfo.Server.GameServer[0]
+      Effective startup configuration: ContentRoot=E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0; ChannelScript=E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=7001; GamePorts=10011
+info: Dfo.Server.GameServer[0]
+      Static content archive: E:/Project/DNF/DNFClient-A21-protocol/Script.pvf (73054406 bytes, 2026-09-30 13:26:22Z)
+info: Dfo.Server.GameServer[0]
+      Equipment content index initialized: 118479 templates
+warn: Dfo.Server.Application.World.IndependentDropRuleService[0]
+      Independent drop row=2801 sourceType=0 sourceId=65696 item=10150672 has no PVF definition; rule and weight retained
+info: IndependentDrops[0]
+      Cached 3046 independent drop rows
+info: Dfo.Server.GameServer[0]
+      Extra drop content initialized: 0 tagged candidates
+info: Dfo.Server.GameServer[0]
+      Monster declared drops initialized: 552 tables
+info: Dfo.Server.GameServer[0]
+      World drop tables initialized: 200 levels in 49 ms
+info: Dfo.Server.GameServer[0]
+      Vending machine definitions initialized: 2 groups
+info: Dfo.Server.GameServer[0]
+      Lottery definitions initialized: 1569 pots in 152 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command BootstrapGmAdministratorCommand handled by BootstrapGmAdministratorCommandHandler as Transactional with execution 62fadd75-a98c-4ec7-af24-34a06b21abc9 in 85.733 ms
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:5250
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\gm-web-admin\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:5250/api/gm/v1/auth/csrf - - -
+info: Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider[45]
+      Using ephemeral data protection provider. Payloads will be undecipherable upon application shutdown.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+warn: Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery[8]
+      The 'Cache-Control' and 'Pragma' headers have been overridden and set to 'no-cache, no-store' and 'no-cache' respectively to prevent caching of this response. Any response that uses antiforgery should not be cached.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType2`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:5250/api/gm/v1/auth/csrf - 200 - application/json;+charset=utf-8 70.9950ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:5250/api/gm/v1/auth/login - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/auth/login => LoginAsync'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command LoginGmAdministratorCommand handled by LoginGmAdministratorCommandHandler as Transactional with execution 6dfd2982-20d5-496a-afbd-3edfd0557f0e in 73.7721 ms
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType3`4' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/auth/login => LoginAsync'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:5250/api/gm/v1/auth/login - 200 - application/json;+charset=utf-8 93.7501ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 GET http://127.0.0.1:5250/api/gm/v1/auth/csrf - - -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+warn: Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery[8]
+      The 'Cache-Control' and 'Pragma' headers have been overridden and set to 'no-cache, no-store' and 'no-cache' respectively to prevent caching of this response. Any response that uses antiforgery should not be cached.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType2`1' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: GET /api/gm/v1/auth/csrf'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://127.0.0.1:5250/api/gm/v1/auth/csrf - 200 - application/json;+charset=utf-8 2.1076ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:5250/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand handled by QueryGmCeraCommandHandler as Transactional with execution 23b6aab7-0051-4ef0-915e-676f8cf0cdaf in 2.9378 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantGmCeraCommand handled by GrantGmCeraCommandHandler as Transactional with execution c2d4ccfd-75b9-451f-95f9-bd0ff99b8888 in 16.9708 ms
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType4`3' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:5250/api/gm/v1/cera/grant - 200 - application/json;+charset=utf-8 30.0034ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/1.1 POST http://127.0.0.1:5250/api/gm/v1/cera/grant - application/json;+charset=utf-8 -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command QueryGmCeraCommand handled by QueryGmCeraCommandHandler as Transactional with execution 391a18dd-f659-4d10-b9ba-ca18b59ee328 in 0.1207 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantGmCeraCommand handled by GrantGmCeraCommandHandler as Transactional with execution 17b87cda-21db-484a-a3e6-1f28158f4b07 in 2.8154 ms
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[1]
+      Setting HTTP status code 200.
+info: Microsoft.AspNetCore.Http.Result.OkObjectResult[3]
+      Writing value of type '<>f__AnonymousType4`3' as Json.
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'HTTP: POST /api/gm/v1/cera/grant => Grant'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 POST http://127.0.0.1:5250/api/gm/v1/cera/grant - 200 - application/json;+charset=utf-8 5.1877ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:03.61]   Finished:    Dfo.Server.Host.Tests
+  已通过 Dfo.Server.Host.Tests.GmCeraHttpTests.GrantOnlyAdministratorCreditsAccountWithoutCharacterAndReplaysOnce [3 s]
+
+测试运行成功。
+测试总数: 1
+     通过数: 1
+总时间: 4.0186 秒
