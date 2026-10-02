@@ -6,7 +6,7 @@
 
 - 开发使用功能分支，经 PR 合并到 `main`，不直接向主干推送开发提交。
 - PR 面向 main 时运行 CI；合并产生 main push 后再次运行 CI。
-- 当前版本为 `0.2.0`，唯一声明位于 `Server/Directory.Build.props` 的 `VersionPrefix`。每个 PR 默认将目标 main 的 PATCH 加一，同一 PR 追加提交不再加。用户明确指定版本时以用户要求为准；并行 PR 在合并前重新核对 main。该递增由开发流程执行，不由 Actions 额外向主干提交。
+- 当前版本为 `0.2.1`，唯一声明位于 `Server/Directory.Build.props` 的 `VersionPrefix`。每个 PR 默认将目标 main 的 PATCH 加一，同一 PR 追加提交不再加。用户明确指定版本时以用户要求为准；并行 PR 在合并前重新核对 main。该递增由开发流程执行，不由 Actions 额外向主干提交。
 - 日常构建及 CI 候选包使用源码版本，程序集信息保留提交标识。版本递增本身不打 tag、不创建 Release；只有用户明确要求发布时才走下面的 tag 流程。
 - Windows x64 / Linux x64 分别还原、Release 构建、运行测试、生成候选包并启动验证；任一失败均标红。CI 不创建 GitHub Release。
 - `vMAJOR.MINOR.PATCH` 或 `vMAJOR.MINOR.PATCH-rc.1` tag 推送后触发 Release。
@@ -33,7 +33,7 @@ Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不�
 
 ## 发布包与运行
 
-附件为 Windows `.zip`、Linux `.tar.gz`，各有 `.sha256` 校验文件。压缩包带单一顶层目录，包含 .NET 10 自包含运行时、服务端程序、默认配置、频道资源、经验配置、GM 页面资源与模块说明/验收表，及 `release.json`（版本、提交、SDK、目标平台和GM资源SHA256）。无需另装 .NET 或 Node；Linux 仍需要系统的 glibc、ICU、OpenSSL 等原生运行库。既有服务器CI平台为 Ubuntu 24.04 x64 / Windows Server 2022 x64；当前GM集成本机验证为Windows，尚未执行远程Linux CI，不声明其已通过。
+附件为 Windows `.zip`、Linux `.tar.gz`，各有 `.sha256` 校验文件。压缩包带单一顶层目录，包含 .NET 10 自包含运行时、服务端程序、默认配置、频道资源、经验配置、GM 页面资源与模块说明/验收表，及 `release.json`（版本、提交、SDK、目标平台和GM资源SHA256）。无需另装 .NET 或 Node；Linux 仍需要系统的 glibc、ICU、OpenSSL 等原生运行库。CI 平台为 Ubuntu 24.04 x64 / Windows Server 2022 x64；具体版本的双平台测试及发布包检查以该提交的 Server CI 结果为准，本机浏览器验证不替代 Linux CI。
 
 运行入口：Windows `Dfo.Server.Host.exe`；Linux `./Dfo.Server.Host`。Linux tar 包保留可执行权限。
 

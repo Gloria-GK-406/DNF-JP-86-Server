@@ -30,4 +30,4 @@
 
 邮件操作和边界见 [官方邮件](gm-official-mail.md)，三币与未知恢复见 [点券说明](gm-cera-grants.md)。若结果暂未确认，保留原编号；查询不到成功收据不能证明原请求已经回滚。
 
-证据分级：HTTP/SQLite/协议/自动测试为CurrentImplementation；本机Chrome已实际完成邮件编辑预览，以及点券单账号/明确批量/正常刷新记录/跨页选择。未知浏览器断网恢复目前由前端行为测试验证。真实A21显示、附件领取体验、在线提醒接收和重登余额仍由用户验收，未标记ClientVerified。Windows自包含候选在本机验证；Linux配置保留CI矩阵，远程CI尚未执行。
+证据分级：HTTP/SQLite/协议/自动测试为CurrentImplementation；本机Chrome已实际完成邮件编辑预览，以及点券单账号/明确批量/正常刷新记录/跨页选择。未知浏览器断网恢复目前由前端行为测试验证。真实A21显示、附件领取体验、在线提醒接收和重登余额仍由用户验收，未标记ClientVerified。Windows自包含候选在本机验证；双平台测试及发布包检查以对应提交的 Server CI 结果为准。

@@ -1,6 +1,6 @@
 # GM Web 管理后台
 
-完整功能已包含查询、官方邮件和三币发放。按 [最终验收表](gm-acceptance-list.md) 接手；标准候选构建与发布资源检查见 [server-ci-release.md](server-ci-release.md)。本任务完成开发和隔离验证，当前真实运行服务仍使用原版本，切换部署另行执行。
+完整功能已包含查询、官方邮件和三币发放。按 [最终验收表](gm-acceptance-list.md) 接手；标准候选构建与发布资源检查见 [server-ci-release.md](server-ci-release.md)。本机已部署邮件附件配置版本，运行与恢复信息见 [部署记录](deployments/gm-mail-attachments-20261002.md)；真实 A21 验收边界仍按验收表保留。
 
 开发分支基于 0.2.0。当前提供独立 HTTP 模块、中文管理员登录、权限菜单、分页审计、服务概览与全服账号/角色查询，并支持官方邮件和按实际账号发放三种点券。模块说明见 [官方邮件](gm-official-mail.md) 与 [点券发放](gm-cera-grants.md)。
 
