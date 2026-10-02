@@ -3,17 +3,17 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-phase: child_disposition
+phase: child_execution
 phase_state: in_progress
-active_attempt: spec-001
-last_transition: child-sealed
-transition_evidence: ./attempts/spec-001-project-foundation/spec-result.md
+active_attempt: spec-002
+last_transition: child-created
+transition_evidence: ./attempts/spec-002-administrator-access/activation.md
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin/Document/tasks/gm-web-admin
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin
   branch: feature/gm-web-admin
-  baseline: 5fbe2dad35bf871a048ce4667055751e973bd844
+  baseline: 0630348d2bace7a35887b43b8aaa0c145b0b66a2
   baseline_evidence: ./workspace.md
 ---
 
@@ -35,15 +35,16 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 模块启动和前端发布 | not_started | none | 完整能力 | aligned |
+| SC-1 | 模块启动和前端发布 | in_progress | spec-001，0630348d | 最终管理配置集成 | aligned |
 | SC-2 | 管理员权限与追踪 | not_started | none | 完整能力 | aligned |
 | SC-3 | 查询和在线状态 | not_started | none | 完整能力 | aligned |
 | SC-4 | 官方邮件 | not_started | none | 完整能力 | aligned |
 | SC-5 | 点券发放 | not_started | none | 完整能力 | aligned |
-| SC-6 | 集成和验收材料 | not_started | none | 完整能力 | aligned |
+| SC-6 | 集成和验收材料 | in_progress | spec-001 运行说明与发布 smoke | 标准 CI、完整回归和最终验收表 | aligned |
 
 ## Spec Attempts
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| 1 | spec-001 | attempts/spec-001-project-foundation/TaskContract.md | 项目与启动骨架 | SC-1, SC-6 | running | pending | active |
+| 1 | spec-001 | attempts/spec-001-project-foundation/TaskContract.md | 项目与启动骨架 | SC-1, SC-6 | completed | attempts/spec-001-project-foundation/spec-result.md | 0630348d |
+| 2 | spec-002 | attempts/spec-002-administrator-access/TaskContract.md | 管理员认证与审计 | SC-2, SC-6 | running | pending | active |

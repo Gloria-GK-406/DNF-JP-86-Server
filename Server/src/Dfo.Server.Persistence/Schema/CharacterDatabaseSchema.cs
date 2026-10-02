@@ -226,6 +226,9 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS gm_administrators (id INTEGER PRIMARY KEY AUTOINCREMENT,login_name TEXT NOT NULL UNIQUE,password_record TEXT NOT NULL,enabled INTEGER NOT NULL,permissions INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS gm_sessions (token_hash TEXT PRIMARY KEY,administrator_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS gm_audit (operation_id TEXT PRIMARY KEY,occurred_at INTEGER NOT NULL,action TEXT NOT NULL,administrator_id INTEGER,administrator_name TEXT,target TEXT NOT NULL,outcome TEXT NOT NULL,reason TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS notice_states (
             owner_type INTEGER NOT NULL CHECK(owner_type IN (0,1)),
             owner_id INTEGER NOT NULL CHECK(owner_id > 0),
@@ -291,6 +294,8 @@ internal static class CharacterDatabaseSchema
         """;
 
     private const string IndexDeclarations = """
+        CREATE INDEX IF NOT EXISTS ix_gm_audit_time ON gm_audit(occurred_at DESC,operation_id DESC);
+        CREATE INDEX IF NOT EXISTS ix_gm_sessions_expiry ON gm_sessions(expires_at);
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account';
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);

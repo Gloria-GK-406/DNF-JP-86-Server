@@ -528,6 +528,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionCleanupDomainService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryDomainService, SelectCharacterSessionEntryService>();
         services.AddCommandDispatching();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAccessDomainService, Dfo.Server.Application.Administration.GmAccessDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAuditDomainService, Dfo.Server.Application.Administration.GmAuditDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Administration.BootstrapGmAdministratorCommand, bool, Dfo.Server.Application.Administration.BootstrapGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.LoginGmAdministratorCommand, Dfo.Server.Data.Administration.GmLoginResult, Dfo.Server.Application.Administration.LoginGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.LogoutGmAdministratorCommand, bool, Dfo.Server.Application.Administration.LogoutGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmAuditCommand, Dfo.Server.Data.Administration.GmAuditPage, Dfo.Server.Application.Administration.QueryGmAuditCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace Dfo.Server.GmWeb;
 
@@ -13,13 +14,21 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
     private readonly GmWebOptions options = GmWebOptions.FromConfiguration(configuration);
     public bool Enabled => options.Enabled;
     public Uri? ListenUrl => options.ListenUrl;
-    public void ConfigureServices(IServiceCollection services) => services.AddSingleton(options);
-    public void ConfigureMiddleware(IApplicationBuilder application) { }
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton(options);
+        services.AddDataProtection().UseEphemeralDataProtectionProvider();
+        services.AddAntiforgery(options => { options.HeaderName = "X-GM-CSRF"; options.Cookie.Name = "Dfo.Gm.Csrf"; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.HttpOnly = true; });
+        services.AddSingleton<GmLoginLimiter>();
+        services.AddHostedService<GmBootstrapService>();
+    }
+    public void ConfigureMiddleware(IApplicationBuilder application) => application.UseMiddleware<GmAccessBoundary>();
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("").WithMetadata(new HttpListenerScope(options.ListenUrl!.Port));
-        group.MapGet("/api/gm/v1/health", () => Results.Ok(new { status = "ready" }));
+        group.MapGet("/api/gm/v1/health", () => Results.Ok(new { status = "ready" })).WithMetadata(new GmPublicEndpoint());
+        GmAuthenticationEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage);
     }
 

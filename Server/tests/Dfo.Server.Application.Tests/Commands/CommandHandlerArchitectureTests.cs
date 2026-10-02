@@ -123,8 +123,8 @@ public sealed class CommandHandlerArchitectureTests
         Assert.All(Exempt, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Value)));
 
     private static IEnumerable<Type> ProductionCommandHandlers() =>
-        typeof(ChannelConnectHandler).Assembly
-            .GetTypes()
+        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.Authentication.RegisterAccountCommand).Assembly }
+            .Distinct().SelectMany(assembly => assembly.GetTypes())
             .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
                 contract.IsGenericType
                 && contract.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)));
