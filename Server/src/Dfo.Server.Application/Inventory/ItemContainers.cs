@@ -271,7 +271,9 @@ internal abstract class StoreBackedItemContainer(
                 $"Account material {core.ItemId} cannot be written into character container "
                     + $"'{this.Id.Value}'; route the grant through IItemGrantDomainService.");
         }
-        if (capacities is not null)
+        // Main 0..2 are virtual currency counters, not expandable item slots.
+        // Their grant effects validate balances and overflow before this write.
+        if (capacities is not null && !(Type == InventoryContainerType.Main && slotIndex is >= 0 and <= 2))
         {
             var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, slotIndex), core.ItemKind);
             var open = await capacities.OpenSlotCountAsync(id, business.Space, cancellationToken).ConfigureAwait(false);

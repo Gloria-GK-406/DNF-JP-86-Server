@@ -1,8 +1,8 @@
 # 仓库与扩容实机测试流程
 
-2026-10-02 已部署服务端提交 `86b8ed86`。本表用于 A21 客户端验收，尚未勾选的项目不算 ClientVerified。先做下列主流程，再按需要进行边界测试。
+2026-10-02 首次部署服务端提交 `86b8ed86`；后续开盒回归修复与当前运行位置见文末。本表用于 A21 客户端验收，尚未勾选的项目不算 ClientVerified。先做下列主流程，再按需要进行边界测试。
 
-## 当前起点
+## 首次部署时的起点
 
 - 测试角色：`1123`，角色 ID `2`、账号 ID `4`、80 级。
 - 已清空随身背包全部 128 个占用槽位（包含快捷栏），背包扩容参数由 `24` 重置为 `0`：每分类初始 32 格。
@@ -52,3 +52,13 @@
 - 旧运行目录保留：`E:/Project/DNF/DNF-JP-86-Server/artifacts/gm-mail-attachments-20261002-170520/runtime`。回退程序前核对并停止当前进程；恢复备份会撤销备份后的整个数据库变更，不要在游戏运行时覆盖数据库。
 
 部署检查：Windows x64 自包含发布和 GM 前端构建通过；新进程监听各原端口，Launcher ready、GM initialized、页面HTTP 200；重置后 SQLite integrity_check=ok，除目标物品/槽位、背包阶段与六条补给日期外其余52张表未变。自动化功能回归此前为5429通过、2跳过；本表实机结果仍待用户操作。
+
+## 23:07 开盒虚拟资源回归修复
+
+实机日志在22:57三次记录 `StorageFailure`，异常为 `Game inventory slot 0/1 has no business mapping`。本次仓库容量检查将复活币虚拟槽位误送进普通物品映射；通用失败响应又被客户端显示为“空间不足”。普通消耗品原本已支持快捷栏满后顺延到消耗品栏。
+
+修复仅将 Main 的0～2虚拟资源计数排除在物理格数校验之外，保留虚拟奖励的数量/溢出校验和普通物品的开放格数限制。启用真实容量服务的新测试在修复前复现3项相同映射异常，1项真实满包回滚通过；修复后4项通过。开盒/仓库相关66项通过，完整Application测试2694项通过、0跳过。证据在工作树 `artifacts/opening-capacity-red-confirmed`、`opening-capacity-green`、`opening-capacity-application`；对应命令为 `dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj`，RED使用 `--filter FullyQualifiedName~OpeningCapacityRegressionTests`，完整回归启用原A21的 `PVF_ARCHIVE_PATH`。
+
+当前运行目录改为 `E:/Project/DNF/DNF-JP-86-Server/artifacts/opening-capacity-20261002-230704/runtime`，启动PID `12376`。配置、端口、数据库、GM凭据及用户最新游戏进度保留，未再次清包或重置扩容。该目录的上一级保存 `before-deploy.db`、`data-check.json`、`verification.json` 和服务日志；部署前后56张表一致，SQLite完整性正常。原仓库运行包保留用于程序回退。
+
+复测：重新登录1123，从快捷栏开启赛丽亚礼盒；快捷栏满时普通产物应进入消耗品栏，抽到复活币时应正常增加计数。再从消耗品栏开启一次，核对物品消耗与产物；真正满包时仍应拒绝且不扣礼盒。此次尚未代替用户完成A21实机验收。
