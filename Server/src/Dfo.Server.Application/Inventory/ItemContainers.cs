@@ -10,12 +10,8 @@ namespace Dfo.Server.Application.Inventory;
 /// <summary>
 /// The stack shape a container writes when it has to produce an item row of its own.
 /// </summary>
-/// <remarks>
-/// A split makes a second pile out of one. The pile it makes carries only what a pile is -- kind,
-/// identifier, count -- because everything else a core can hold describes an individual piece of
-/// gear, and gear does not split. Persistent storage writes exactly this shape, so a transient
-/// container that wrote a copy of the original instead would answer differently for the same move.
-/// </remarks>
+/// <remarks>New grants start with this shape. Splits preserve their source core so expiry and
+/// trade restrictions cannot be removed by moving part of a pile.</remarks>
 public static class StackableItemCore
 {
     private static readonly ChronicleOptionState NoChronicle = new(0, 0, 0, 0, 0);
@@ -170,7 +166,7 @@ internal abstract class StoreBackedItemContainer(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules) : IItemContainer
+    IItemSlotRuleService slotRules, IInventoryCapacityDomainService? capacities = null) : IItemContainer
 {
     public ValueTask FlushAsync(CancellationToken cancellationToken) =>
         this.ApplyDecidedWritesAsync(cancellationToken);
@@ -275,6 +271,18 @@ internal abstract class StoreBackedItemContainer(
                 $"Account material {core.ItemId} cannot be written into character container "
                     + $"'{this.Id.Value}'; route the grant through IItemGrantDomainService.");
         }
+        if (capacities is not null)
+        {
+            var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, slotIndex), core.ItemKind);
+            var open = await capacities.OpenSlotCountAsync(id, business.Space, cancellationToken).ConfigureAwait(false);
+            if (business.Index >= open)
+            {
+                var existing = await ReadSlotAsync(slotIndex, cancellationToken).ConfigureAwait(false);
+                if (!(existing is { IsPile: true } && core.Value > 0 && core.Value < existing.Count
+                    && core with { Value = 0 } == existing.Core with { Value = 0 }))
+                    throw new InvalidOperationException($"Slot {business} is not open.");
+            }
+        }
         var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
             .ConfigureAwait(false);
         if (avatarDetail is not null && (worldClass != ItemWorldClass.Avatar || core.ItemKind != 8)
@@ -305,6 +313,12 @@ internal abstract class StoreBackedItemContainer(
             return new ItemPlacementOutcome.UnknownItem();
         }
 
+        if (capacities is not null)
+        {
+            placement = InventoryCapacityPlacement.Limit(placement,
+                await capacities.OpenSlotCountAsync(id, placement.Destination.Space, cancellationToken).ConfigureAwait(false));
+            if (placement is null) return new ItemPlacementOutcome.NoRoom();
+        }
         var held = await this.ReadAllAsync(cancellationToken).ConfigureAwait(false);
         var arrival = arrivals.ForGrant(
             this.PilesOf(held, itemId, Candidates(placement)), count, placement,
@@ -321,6 +335,13 @@ internal abstract class StoreBackedItemContainer(
     {
         ArgumentNullException.ThrowIfNull(refill);
         var held = await this.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        if (capacities is not null)
+        {
+            var open = await capacities.OpenSlotCountAsync(id, refill.Destination.Space, cancellationToken).ConfigureAwait(false);
+            if (open <= refill.Destination.FirstIndex) return new ItemPlacementOutcome.NoRoom();
+            refill = refill with { Destination = new(refill.Destination.Space, refill.Destination.FirstIndex,
+                Math.Min(refill.Destination.LastIndex, open - 1)) };
+        }
         var candidates = SlotsIn(refill.Destination);
         var arrival = arrivals.ForDailyRefill(
             this.PilesOf(held, refill.ItemId, candidates),
@@ -546,9 +567,9 @@ internal sealed class PersistentItemContainer(
     IEntryInventoryMutationRepository? snapshots,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
-    IItemSlotRuleService slotRules)
+    IItemSlotRuleService slotRules, IInventoryCapacityDomainService? capacities = null)
     : StoreBackedItemContainer(
-        id, shape, store, transactions, placementRules, arrivals, slotRules)
+        id, shape, store, transactions, placementRules, arrivals, slotRules, capacities)
 {
     public override bool IsRemovable => false;
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
@@ -18,6 +19,21 @@ public readonly record struct ContainerId(string Value)
     /// <summary>The identifier of a character's own container of one type.</summary>
     public static ContainerId ForCharacter(CharacterId characterId, InventoryContainerType type) =>
         new($"{CharacterScope}:{characterId.Value}:{type}");
+
+    public static ContainerId ForAccountCargo(AccountId accountId) =>
+        new($"account:{accountId.Value}:AccountCargo");
+
+    public bool TryGetAccountCargoOwner(out AccountId accountId)
+    {
+        accountId = default;
+        var parts = Value?.Split(':');
+        if (parts is not { Length: 3 } || parts[0] != "account" || parts[2] != "AccountCargo"
+            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var owner)
+            || owner <= 0 || owner.ToString(CultureInfo.InvariantCulture) != parts[1])
+            return false;
+        accountId = new AccountId(owner);
+        return true;
+    }
 
     /// <summary>
     /// Reads back the owner of an identifier minted by <see cref="ForCharacter"/>, or answers false

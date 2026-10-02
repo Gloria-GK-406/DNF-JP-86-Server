@@ -147,6 +147,7 @@ public sealed class RecipeCraftTests
         using var f = new ShopFixture(s => { s.AddSingleton<IRecipeContentSource>(new Recipes());
             s.AddSingleton<IPackageOpeningDefinitionSource>(content); s.AddSingleton<IItemUseRuleDefinitionSource>(content);
             s.AddSingleton<IItemPlacementDefinitionSource>(content); });
+        f.Sql("INSERT INTO character_container_state(character_id,list_type,list_param16) VALUES(1,0,8)");
         await Seed(f); for (var i = 3; i <= 8; i++) await f.Seed(i, 6000, 1);
         var receipt = await Craft(f); Assert.Equal(new(BusinessInventorySpace.Consumable, 36), Assert.Single(receipt.Inventory.Rewards).Slot);
     }

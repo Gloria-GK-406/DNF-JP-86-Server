@@ -283,7 +283,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     /// refusal and a store nobody touched.
     /// </remarks>
     [Dfo.Server.Testing.PvfFact]
-    public async Task An_unserved_list_is_still_refused()
+    public async Task Unbound_cargo_and_direct_worn_to_worn_moves_are_refused()
     {
         var side = this.Build();
         side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
@@ -295,7 +295,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             InventoryContainerType.Equipment, WornCostumeSlot,
             InventoryContainerType.Equipment, 4);
 
-        Assert.Equal(ItemMoveStatus.ListNotServed, fromCargo.Status);
+        Assert.Equal(ItemMoveStatus.NoBoundContainer, fromCargo.Status);
         Assert.Equal(ItemMoveStatus.ListNotServed, wornToWorn.Status);
         Assert.Equal(
             Costume,

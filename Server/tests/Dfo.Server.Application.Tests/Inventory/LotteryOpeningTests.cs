@@ -205,7 +205,7 @@ public sealed class LotteryOpeningTests
     public async Task One_free_slot_rejects_double_and_rolls_back_pot_gold_and_quota()
     {
         using var shop = Fixture(); Subscribe(shop); await shop.Host.Seed(65, 7110, 2);
-        for (var slot = 9; slot < 64; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
+        for (var slot = 9; slot < 40; slot++) await shop.Host.Seed(slot, 20002, 1, 1);
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => Command(shop, mode: 1));
         Assert.Equal(OpeningRejection.NoRoom, error.Reason);
         Assert.Equal(0, Used(shop)); Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(100000, shop.Host.Gold);

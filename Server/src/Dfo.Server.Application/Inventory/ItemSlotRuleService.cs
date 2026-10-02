@@ -26,19 +26,7 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
     private const byte KindAvatar = 8;
     private const byte KindAvatarEmblem = 9;
 
-    /// <summary>How far the avatar list runs, and what may sit anywhere in it.</summary>
-    /// <remarks>
-    /// Two hundred and ten slots, and only avatars. Read out of the reference A21 server:
-    /// <c>ItemSlotBoundService.GetAvatarOpenRange</c> takes a list parameter, discards it, and
-    /// returns <c>0..209</c> whatever it is handed; <c>TryGetItemKindBySlot</c> answers
-    /// <c>KindAvatar</c> for every slot of that list rather than dividing it into bands the way
-    /// the main list is divided. <b>Read from upstream source, not measured against a client.</b>
-    /// <para>
-    /// The list has no bands and no expansion. Upstream has no avatar-expansion concept at all,
-    /// which is why the parameter it is handed goes unread -- see the open question about what
-    /// that parameter means to the client, which this does not answer and does not depend on.
-    /// </para>
-    /// </remarks>
+    // Physical placement only; current purchased capacity is enforced by the business container.
     public bool CanOccupySlot(BusinessSlot slot, ItemPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(placement);
@@ -47,6 +35,8 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
         {
             BusinessInventorySpace.QuickSlot => AllowsQuickSlot(placement.ItemKind),
             BusinessInventorySpace.Avatar => placement.WorldClass == ItemWorldClass.Avatar,
+            BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo =>
+                placement.ItemKind is 1 or 2 or 3 or 10,
             BusinessInventorySpace.CreatureInventory =>
                 placement.WorldClass == ItemWorldClass.Creature && placement.Destination.Contains(slot),
             BusinessInventorySpace.CreatureEquipment =>

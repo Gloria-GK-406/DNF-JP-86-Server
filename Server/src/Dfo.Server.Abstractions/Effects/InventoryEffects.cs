@@ -52,6 +52,7 @@ public interface IInventoryEffectPreviewHandler
 }
 public interface IInventoryEffectPreviewState
 {
+    ValueTask<int> OpenSlotCountAsync(BusinessInventorySpace space, CancellationToken ct) => ValueTask.FromResult(int.MaxValue);
     ValueTask<ContainerSlotItem?> ReadSlotAsync(BusinessSlot slot, CancellationToken ct);
     void SetSlot(BusinessSlot slot, ContainerSlotItem? item);
     ValueTask<int> AccountCountAsync(AccountMaterialKind kind, CancellationToken ct);

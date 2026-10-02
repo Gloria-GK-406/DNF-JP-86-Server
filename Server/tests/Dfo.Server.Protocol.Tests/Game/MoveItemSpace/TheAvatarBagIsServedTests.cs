@@ -291,14 +291,14 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>
-    /// The lists still nobody serves, which no play reaches and no other case covers.
+    /// Cargo requires the selected session and its bound containers.
     /// </summary>
     /// <remarks>
-    /// One with an unserved list as the source, one with it as the destination, and one with both.
+    /// One with cargo as the source, one as the destination, and one with both.
     /// They are here because the way to break this change is to stop looking at the list numbers,
     /// and nothing else in the suite would notice.
     /// </remarks>
-    public static TheoryData<InventoryContainerType, InventoryContainerType> ListsStillNotServed() =>
+    public static TheoryData<InventoryContainerType, InventoryContainerType> UnboundCargoLists() =>
         new()
         {
             { InventoryContainerType.PersonalCargo, InventoryContainerType.Main },
@@ -307,15 +307,15 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         };
 
     [Dfo.Server.Testing.PvfTheory]
-    [MemberData(nameof(ListsStillNotServed))]
-    public async Task A_list_this_server_does_not_serve_is_still_refused(
+    [MemberData(nameof(UnboundCargoLists))]
+    public async Task A_cargo_list_without_a_bound_session_is_refused(
         InventoryContainerType source, InventoryContainerType destination)
     {
         var side = Build(avatarAt: AvatarSlot, costumeInBagAt: BagSlot);
 
         var result = await side.MoveAsync(source, SlotIn(source), destination, SlotIn(destination));
 
-        Assert.Equal(ItemMoveStatus.ListNotServed, result.Status);
+        Assert.Equal(ItemMoveStatus.NoBoundContainer, result.Status);
     }
 
     [Dfo.Server.Testing.PvfFact]

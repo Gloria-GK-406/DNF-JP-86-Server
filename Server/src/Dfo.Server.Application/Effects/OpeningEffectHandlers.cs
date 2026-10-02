@@ -62,7 +62,11 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     public override async ValueTask PreviewAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, IInventoryEffectPreviewState state, CancellationToken ct)
     {
         await ValidateAsync(context, effect, ct).ConfigureAwait(false);
-        var candidates = Candidates(effect.Grant.Item.Placement);
+        var placement = InventoryCapacityPlacement.Limit(effect.Grant.Item.Placement,
+            await state.OpenSlotCountAsync(effect.Grant.Item.Placement.Destination.Space, ct).ConfigureAwait(false))
+            ?? throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
+        effect = effect with { Grant = effect.Grant with { Item = effect.Grant.Item with { Placement = placement } } };
+        var candidates = Candidates(placement);
         var held = new Dictionary<BusinessSlot, ContainerSlotItem?>();
         foreach (var s in candidates) held[s] = await state.ReadSlotAsync(s, ct).ConfigureAwait(false);
         var remaining = effect.Grant.Reward.Count;
@@ -77,7 +81,12 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)
     {
         var grant = effect.Grant;
-        var candidates = Candidates(grant.Item.Placement);
+        var placement = InventoryCapacityPlacement.Limit(grant.Item.Placement,
+            await slots.Get(context.CharacterId, new(grant.Item.Placement.Destination.Space, 0)).Container
+                .OpenSlotCountAsync(ct).ConfigureAwait(false))
+            ?? throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
+        grant = grant with { Item = grant.Item with { Placement = placement } };
+        var candidates = Candidates(placement);
         var held = new Dictionary<BusinessSlot, ContainerSlotItem?>();
         foreach (var s in candidates) held[s] = await slots.Get(context.CharacterId, s).Container.ReadSlotAsync(s.Index, ct).ConfigureAwait(false);
         var displayed = ImmutableArray.CreateBuilder<OpeningRewardDisplay>();

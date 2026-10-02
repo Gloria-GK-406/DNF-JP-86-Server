@@ -2,6 +2,12 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameCreateAccountCargo = 0x0001_0131,
+    GameUpgradeAccountCargo = 0x0001_0132,
+    GameDepositAccountCargo = 0x0001_0133,
+    GameWithdrawAccountCargo = 0x0001_0134,
+    GameUpgradeCargo = 0x0001_0198,
+    GameUpgradeInventory = 0x0001_01AF,
     GameMailboxSend = 0x0001_005E,
     GameMailboxSendMulti = 0x0001_013B,
     GameMailboxClaim = 0x0001_005F,
@@ -185,6 +191,12 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameCreateAccountCargo = 0x0001_0131,
+    GameUpgradeAccountCargo = 0x0001_0132,
+    GameDepositAccountCargo = 0x0001_0133,
+    GameWithdrawAccountCargo = 0x0001_0134,
+    GameUpgradeCargo = 0x0001_0198,
+
     GameMailboxSend = 0x0001_005E,
     GameMailboxSendMulti = 0x0001_013B,
     GameMailboxClaim = 0x0001_005F,

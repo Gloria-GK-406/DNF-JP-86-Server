@@ -124,7 +124,7 @@ public sealed class MoveItemSpaceHandlerTests
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task A_list_other_than_the_main_one_is_refused()
+    public async Task An_unserved_guild_medal_list_is_refused()
     {
         var inventory = new FakeInventory { [65] = (8474, 1) };
         var (handler, sender) = Build(inventory);
@@ -133,7 +133,7 @@ public sealed class MoveItemSpaceHandlerTests
             Context,
             ObservedRequest with
             {
-                DestinationSlot = new GameSlot(InventoryContainerType.PersonalCargo, 65),
+                DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
             },
             CancellationToken.None);
 

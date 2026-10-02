@@ -62,6 +62,10 @@ internal sealed class NpcShopDomainService(
             held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
         }
 
+        var boundedPlacement = InventoryCapacityPlacement.Limit(quote.Placement,
+            await bags[quote.Placement.Destination.Space].OpenSlotCountAsync(cancellationToken).ConfigureAwait(false));
+        if (boundedPlacement is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.NoRoom);
+        quote = quote with { Placement = boundedPlacement };
         NpcShopPurchaseKey? purchaseKey = null;
         if (quote.Definition.Limit is { } limit)
         {

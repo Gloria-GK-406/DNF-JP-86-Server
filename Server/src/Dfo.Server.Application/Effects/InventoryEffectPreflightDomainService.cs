@@ -116,7 +116,10 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
     {
         if (count <= 0 || itemId <= 0 || placement.ItemKind == 0 || accountRules.TryGetByItemId(itemId, out _))
             Refuse(InventoryEffectRejection.UnsupportedItem);
-        var available = Enumerable.Range(placement!.Destination.FirstIndex,
+        placement = InventoryCapacityPlacement.Limit(placement,
+            await state.OpenSlotCountAsync(placement.Destination.Space, ct).ConfigureAwait(false))
+            ?? throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
+        var available = Enumerable.Range(placement.Destination.FirstIndex,
             placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
         if (ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
@@ -217,6 +220,8 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         public async ValueTask<DoublePotCounterState> DoublePotCountersAsync(CancellationToken ct) => doublePot ??=
             (await usage!.DoublePotFactsAsync(context.AccountId, context.CharacterId, context.At, ct).ConfigureAwait(false)).Counters;
         public void SetDoublePotCounters(DoublePotCounterState counters) => doublePot = counters;
+        public ValueTask<int> OpenSlotCountAsync(BusinessInventorySpace space, CancellationToken ct) =>
+            slots.Get(context.CharacterId, new(space, 0)).Container.OpenSlotCountAsync(ct);
         public void AddedPhysicalRewardEntries(int count) => PhysicalRewardEntries += count;
         public void AddedAccountReward(AccountMaterialKind kind) => rewardKinds.Add(kind);
         public async ValueTask<InventoryEffectHoldingsSnapshot> HoldingsAsync(CancellationToken ct)

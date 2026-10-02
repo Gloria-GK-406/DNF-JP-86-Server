@@ -4,6 +4,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -21,7 +22,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules,
     ICharacterEntryPreparationRuleService preparationRules,
-    IInventorySlotMappingRuleService? slotMappings = null) : ISelectCharacterEntryInventoryDomainService
+    IInventorySlotMappingRuleService? slotMappings = null, IInventoryCapacityDomainService? capacities = null) : ISelectCharacterEntryInventoryDomainService
 {
     private readonly IInventorySlotMappingRuleService slotMappings = slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
@@ -31,7 +32,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         reloaded = await SupportCreatureMarkerProjection.CompleteAsync(
             reloaded, preparationRules, result.World.PreparedAt, cancellationToken).ConfigureAwait(false);
-        BindContainers(session.CharacterId, reloaded);
+        BindContainers(session.AccountId, session.CharacterId, reloaded, result.AccountInventory.Cargo.Container);
         return result with { CharacterInventory = reloaded };
     }
 
@@ -49,7 +50,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     /// a character that got past here unbound would be shown a full inventory whose every drag came
     /// back refused -- with an error code a dozen legitimate refusals also use.
     /// </remarks>
-    private void BindContainers(CharacterId characterId, CharacterInventoryEntryState inventory)
+    private void BindContainers(AccountId accountId, CharacterId characterId, CharacterInventoryEntryState inventory,
+        InventoryContainerState accountCargo)
     {
         var main = inventory.Containers.SingleOrDefault(
                 value => value.ContainerType == InventoryContainerType.Main)
@@ -78,10 +80,13 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
 
         containers.Clear(characterId);
         foreach (var container in ((InventoryContainerState[])[main, equipment, avatar])
-            .Concat(inventory.Containers.Where(value => value.ContainerType == InventoryContainerType.Pet)))
+            .Concat(inventory.Containers.Where(value => value.ContainerType is InventoryContainerType.Pet
+                or InventoryContainerType.PersonalCargo)).Append(accountCargo))
         {
             containers.Register(characterId, new PersistentItemContainer(
-                ContainerId.ForCharacter(characterId, container.ContainerType),
+                container.ContainerType == InventoryContainerType.AccountCargo
+                    ? ContainerId.ForAccountCargo(accountId)
+                    : ContainerId.ForCharacter(characterId, container.ContainerType),
                 characterId,
                 new ContainerShape(container.ContainerType, container.Parameter),
                 itemStore,
@@ -89,7 +94,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 mutations,
                 placementRules,
                 arrivals,
-                slotRules));
+                slotRules, capacities));
         }
     }
 

@@ -8,6 +8,8 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -264,7 +266,11 @@ public sealed record MoveItemSpaceCommand(
     int MoveCount,
     BusinessSlot DestinationSlot,
     int SourceInstanceValue = 0,
-    int DestinationInstanceValue = 0) : ICommand<ItemMoveResult>;
+    int DestinationInstanceValue = 0) : ICommand<ItemMoveResult>, IAccountCommand
+{
+    public SelectedSessionIdentity? Session { get; init; }
+    public AccountId AccountId => Session?.AccountId ?? default;
+}
 
 /// <summary>
 /// Hands the move to the character's bag and reports what it answered.
@@ -290,7 +296,8 @@ public sealed record MoveItemSpaceCommand(
 public sealed class MoveItemSpaceCommandHandler(
     IBusinessInventorySlotDomainService inventory,
     IItemMovementDomainService moves,
-    ICreatureRuntimeDomainService? creatures = null, ISelectedSessionDomainService? sessions = null)
+    ICreatureRuntimeDomainService? creatures = null, ISelectedSessionDomainService? sessions = null,
+    ICargoTransferDomainService? cargo = null)
     : ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>
 {
     /// <summary>A piece of equipment does not stack, so exactly one of it ever moves.</summary>
@@ -399,6 +406,30 @@ public sealed class MoveItemSpaceCommandHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (command.SourceSlot.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo
+            || command.DestinationSlot.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo)
+        {
+            if (cargo is null || command.Session is not { } selected || selected.CharacterId != command.CharacterId)
+                return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
+            var cargoFrom = inventory.Find(command.CharacterId, command.SourceSlot);
+            var cargoInto = inventory.Find(command.CharacterId, command.DestinationSlot);
+            if (cargoFrom is null || cargoInto is null) return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
+            var cargoFirst = await cargoFrom.Container.ReadSlotAsync(command.SourceSlot.Index, cancellationToken).ConfigureAwait(false);
+            var cargoSecond = await cargoInto.Container.ReadSlotAsync(command.DestinationSlot.Index, cancellationToken).ConfigureAwait(false);
+            if (AlreadyCarriedOut(command.SourceInstanceValue, cargoFirst, cargoSecond)
+                || AlreadyCarriedOut(command.DestinationInstanceValue, cargoSecond, cargoFirst))
+                return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade);
+            var transfer = await cargo.MoveAsync(selected, command.SourceSlot, command.DestinationSlot,
+                command.MoveCount, cancellationToken).ConfigureAwait(false);
+            return transfer switch
+            {
+                ItemMoveOutcome.Moved moved => new(ItemMoveStatus.Moved, moved.MoveCount, moved.ItemId),
+                ItemMoveOutcome.Unchanged => new(ItemMoveStatus.Unchanged, 0, 0),
+                ItemMoveOutcome.Refused refused => ItemMoveResult.Refused(StatusFor(refused.Reason)),
+                _ => throw new InvalidOperationException("Unknown cargo move outcome."),
+            };
+        }
 
         var sourceIsCarried = IsCarried(command.SourceSlot.Space);
         var destinationIsCarried = IsCarried(command.DestinationSlot.Space);
@@ -556,6 +587,8 @@ public sealed class MoveItemSpaceCommandHandler(
         if (!await moves.CanWearAsync(command.CharacterId, piece.ItemId, cancellationToken).ConfigureAwait(false))
             return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
+        if (displaced is not null && bag.Slot.Index >= await bag.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot);
         if (displaced is not null && await moves.MayOccupySlotAsync(
                 command.SourceSlot, displaced.ItemId, cancellationToken).ConfigureAwait(false)
             != SlotAdmission.Allowed)
@@ -624,6 +657,10 @@ public sealed class MoveItemSpaceCommandHandler(
                     .ConfigureAwait(false);
         }
 
+        if (into.Slot.Index >= await into.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
+        if (displaced is not null && from.Slot.Index >= await from.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot);
         switch (await moves.MayOccupySlotAsync(
             command.DestinationSlot, moving.ItemId, cancellationToken)
             .ConfigureAwait(false))
@@ -705,6 +742,8 @@ public sealed class MoveItemSpaceCommandHandler(
                     .ConfigureAwait(false);
         }
 
+        if (bag.Slot.Index >= await bag.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
         switch (await moves.MayOccupySlotAsync(
             command.DestinationSlot, piece.ItemId, cancellationToken)
             .ConfigureAwait(false))
@@ -902,7 +941,7 @@ public sealed class MoveItemSpaceHandler(
                 message.MoveCount,
                 destination,
                 message.SourceInstanceValue,
-                message.DestinationInstanceValue),
+                message.DestinationInstanceValue) { Session = session },
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)

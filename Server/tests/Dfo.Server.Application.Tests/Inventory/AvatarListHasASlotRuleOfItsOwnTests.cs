@@ -95,15 +95,13 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     /// <summary>Every list with no rule written for it is shut, costume or not.</summary>
     /// <remarks>
     /// This is the half no other test covers and no play reaches. A move naming one of these lists
-    /// is refused before this is asked -- the handler serves four combinations and nothing else --
+    /// is refused before this is asked -- these lists do not accept costume or potion placement --
     /// so if that refusal were ever loosened, this is what would still be standing.
     /// </remarks>
     public static TheoryData<BusinessInventorySpace> ListsWithNoRuleOfTheirOwn() =>
     [
-        BusinessInventorySpace.PersonalCargo,
         BusinessInventorySpace.WornEquipment,
         BusinessInventorySpace.CreatureInventory,
-        BusinessInventorySpace.AccountCargo,
         BusinessInventorySpace.GuildMedal,
     ];
 

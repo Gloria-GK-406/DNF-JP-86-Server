@@ -15,6 +15,7 @@ public sealed record CeraShopGrant(CeraShopItemDefinition Item, ItemPlacement Pl
 public sealed record CeraShopQuote(ImmutableArray<int> ProductIds, ImmutableArray<CeraShopCharge> Charges,
     ImmutableArray<CeraShopGrant> Grants)
 {
+    public ImmutableArray<InventoryExpansionGrant> Expansions { get; init; } = [];
     public ImmutableArray<CeraShopSubscriptionGrant> Subscriptions { get; init; } = [];
     public ImmutableArray<CeraShopPurchaseRestrictionDeclaration> Restrictions { get; init; } = [];
 }

@@ -130,6 +130,11 @@ internal sealed class DailyRefillService(
         CancellationToken cancellationToken)
     {
         var held = await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var open = await bag.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
+        if (open <= rule.Destination.FirstIndex) throw new InvalidDataException("Daily refill inventory is closed.");
+        rule = rule with { Destination = new(rule.Destination.Space, rule.Destination.FirstIndex,
+            Math.Min(rule.Destination.LastIndex, open - 1)) };
+        held = held.Where(item => item.SlotIndex < open).ToArray();
         var candidates = Enumerable.Range(rule.Destination.FirstIndex,
                 rule.Destination.LastIndex - rule.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(rule.Destination.Space, index)).ToArray();

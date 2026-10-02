@@ -30,6 +30,42 @@ public sealed class SqliteItemDomainStoreTests
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Equipment);
 
     [Fact]
+    public async Task AccountCargo_TransfersAnInstanceAcrossCharactersWithoutChangingItsIdentity()
+    {
+        await using var store = await NewStoreAsync((9, Core(1, 1234, 5678)));
+        var cargo = new ContainerId("account:6:AccountCargo");
+        var otherAccount = new ContainerId("account:7:AccountCargo");
+        var otherCharacter = ContainerId.ForCharacter(new CharacterId(61), InventoryContainerType.Main);
+        var deposit = new StubTransaction();
+        var first = store.Value.SessionIn(deposit);
+        var original = (await first.ReadAsync(Main, 9, CancellationToken.None))!;
+        first.Write(cargo, original with { SlotIndex = 0, WorldClass = ItemWorldClass.Equipment,
+            TransferFrom = new(Main, 9) });
+        first.Clear(Main, 9);
+        await deposit.SettleAsync();
+
+        var withdraw = new StubTransaction();
+        var second = store.Value.SessionIn(withdraw);
+        Assert.Null(await second.ReadAsync(Main, 9, CancellationToken.None));
+        Assert.Empty(await second.ReadAllAsync(otherAccount, CancellationToken.None));
+        var stored = (await second.ReadAsync(cargo, 0, CancellationToken.None))!;
+        Assert.Equal(original.Identity, stored.Identity);
+        Assert.Equal(original.Core, stored.Core);
+        second.Write(otherCharacter, stored with { SlotIndex = 9, WorldClass = ItemWorldClass.Equipment,
+            TransferFrom = new(cargo, 0) });
+        second.Clear(cargo, 0);
+        await withdraw.SettleAsync();
+
+        var inspect = new StubTransaction();
+        var third = store.Value.SessionIn(inspect);
+        Assert.Empty(await third.ReadAllAsync(cargo, CancellationToken.None));
+        var received = (await third.ReadAsync(otherCharacter, 9, CancellationToken.None))!;
+        Assert.Equal(original.Identity, received.Identity);
+        Assert.Equal(original.Core, received.Core);
+        await inspect.RollbackAsync();
+    }
+
+    [Fact]
     public async Task Relocate_IsExpressedAsAClearAndAWrite()
     {
         await using var store = await NewStoreAsync(

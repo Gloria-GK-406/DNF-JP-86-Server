@@ -91,6 +91,9 @@ internal sealed class EquipmentTransferDomainService(
             foreach (var item in await inventory.ReadAllAsync(cancellationToken).ConfigureAwait(false))
                 occupied.Add(new BusinessSlot(space, item.SlotIndex));
         }
+        placement = InventoryCapacityPlacement.Limit(placement,
+            await target.GetContainer(placement.Destination.Space).OpenSlotCountAsync(cancellationToken).ConfigureAwait(false));
+        if (placement is null) throw new EquipmentTransferException(EquipmentTransferFailure.NoRoom);
         var arrival = arrivals.ForGrant([], 1, placement, occupied);
         if (arrival is not ItemArrival.IntoEmptySlot empty || empty.Count != 1)
             throw new EquipmentTransferException(EquipmentTransferFailure.NoRoom);

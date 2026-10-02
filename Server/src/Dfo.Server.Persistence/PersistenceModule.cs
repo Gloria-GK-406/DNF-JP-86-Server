@@ -91,6 +91,7 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteAccountCargoItemTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterContainerStateTable>(
             provider => new SqliteCharacterContainerStateTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IInventoryExpansionStateTable, SqliteInventoryExpansionStateTable>();
         services.TryAddSingleton<IAccountCargoStateTable>(
             provider => new SqliteAccountCargoStateTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterConditionTable>(

@@ -14,19 +14,7 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 /// <summary>
 /// What comes of taking part of one pile into a slot of its own.
 /// </summary>
-/// <remarks>
-/// A split is the moment a pile could quietly acquire an identity. The obvious way to write it is
-/// to copy the pile that is being divided -- it is right there, it already has the item and the
-/// kind -- and a copy brings everything else the original was carrying: its durability, its seal,
-/// whatever a previous life left on the row. The two halves would then differ from one another,
-/// which is precisely what a pile is defined not to do, and every later question about "which of
-/// these two" would have an answer where there should be none.
-///
-/// So this asks the two halves the questions that could separate them and gets no answer from
-/// either: neither carries a name, neither's slot row names a world row, and the new half's payload
-/// is the plain pile shape rather than a copy of the one it came from. It then keeps moving both,
-/// because a half that cannot be used again is not a usable slot however clean its bytes are.
-/// </remarks>
+/// <remarks>Splitting preserves core restrictions and expiry but creates no world identity.</remarks>
 public sealed class SplitPileTests
 {
     private const int Character = 70;
@@ -41,13 +29,7 @@ public sealed class SplitPileTests
     /// <summary>
     /// Splitting a pile leaves two usable slots, and the new one is marked with nothing.
     /// </summary>
-    /// <remarks>
-    /// The pile that is divided is seeded carrying three things a pile has no business carrying --
-    /// a durability, an enchant count and a seal -- so that a new slot written as a copy of it
-    /// would be caught by its bytes rather than by an argument. The new slot is compared against
-    /// the whole plain pile shape rather than against those three fields, so a fourth field
-    /// inherited later is caught as well.
-    /// </remarks>
+    /// <remarks>Both halves retain the original payload except for count.</remarks>
     [Fact]
     public async Task SplittingAPileLeavesTwoUsablePilesAndMarksNeither()
     {
@@ -80,10 +62,9 @@ public sealed class SplitPileTests
             Assert.Equal((PotionKind, PotionId, 3), (left.ItemKind, left.ItemId, left.Count));
             Assert.Equal((PotionKind, PotionId, 2), (opened.ItemKind, opened.ItemId, opened.Count));
 
-            // The half that stayed keeps what it was carrying; the half that was opened carries
-            // the plain pile shape and not one byte of the other's.
+            // Splitting must not remove restrictions or expiry from either half.
             Assert.Equal(Marked(3), left.Core);
-            Assert.Equal(StackableItemCore.Create(PotionKind, PotionId, 2), opened.Core);
+            Assert.Equal(Marked(2), opened.Core);
 
             // Neither position names a world row, so neither half has a name for anything to tell
             // it apart by -- which is the same thing the projection says a moment later.
@@ -184,13 +165,15 @@ public sealed class SplitPileTests
         }
     }
 
-    /// <summary>A pile carrying three things a pile has no business carrying.</summary>
+    /// <summary>A pile with payload metadata, expiry and trade restrictions.</summary>
     private static InventoryItemCoreState Marked(int count) =>
         StackableItemCore.Create(PotionKind, PotionId, count) with
         {
             Durability = 4242,
             EnchantUpgradeCount = 9,
             SealFlag = 3,
+            ExpireTime = 1800000000,
+            TradeRestriction = 1,
         };
 
     /// <summary>What one position of <c>item_slots</c> says it holds.</summary>

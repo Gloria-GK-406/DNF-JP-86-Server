@@ -38,6 +38,8 @@ public sealed class SortItemCodecTests
     [InlineData(0, 9, BusinessInventorySpace.AvatarEmblem)]
     [InlineData(0, 10, BusinessInventorySpace.ExpertMaterial)]
     [InlineData(1, 8, BusinessInventorySpace.Avatar)]
+    [InlineData(2, 11, BusinessInventorySpace.PersonalCargo)]
+    [InlineData(12, 11, BusinessInventorySpace.AccountCargo)]
     [InlineData(7, 6, BusinessInventorySpace.CreatureEquipment)]
     [InlineData(7, 7, BusinessInventorySpace.CreatureConsumable)]
     public void Categories_map_to_local_business_spaces(byte list, byte category, BusinessInventorySpace expected)
@@ -48,7 +50,6 @@ public sealed class SortItemCodecTests
 
     [Theory]
     [InlineData(3, 1)]
-    [InlineData(2, 11)]
     [InlineData(7, 5)]
     [InlineData(0, 255)]
     public void Unsupported_lists_and_categories_are_rejected(byte list, byte category) =>

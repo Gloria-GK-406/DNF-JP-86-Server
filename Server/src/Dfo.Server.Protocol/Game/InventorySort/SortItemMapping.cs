@@ -16,6 +16,8 @@ internal static class SortItemMapping
             (0, 9) => BusinessInventorySpace.AvatarEmblem,
             (0, 10) => BusinessInventorySpace.ExpertMaterial,
             (1, 8) => BusinessInventorySpace.Avatar,
+            (2, 11) => BusinessInventorySpace.PersonalCargo,
+            (12, _) => BusinessInventorySpace.AccountCargo,
             (7, 6) => BusinessInventorySpace.CreatureEquipment,
             (7, 7) => BusinessInventorySpace.CreatureConsumable,
             _ => (BusinessInventorySpace?)null,

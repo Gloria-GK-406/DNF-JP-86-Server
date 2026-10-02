@@ -20,7 +20,7 @@ public static class LegacyInventoryStorageCoordinates
         new(BusinessInventorySpace.ExpertMaterial, InventoryContainerType.Main, 233, 288),
         new(BusinessInventorySpace.AvatarEmblem, InventoryContainerType.Main, 289, 351),
         new(BusinessInventorySpace.Avatar, InventoryContainerType.Avatar, 0, 209),
-        new(BusinessInventorySpace.PersonalCargo, InventoryContainerType.PersonalCargo, 0, 151),
+        new(BusinessInventorySpace.PersonalCargo, InventoryContainerType.PersonalCargo, 0, 199),
         new(BusinessInventorySpace.WornAvatar, InventoryContainerType.Equipment, 0, 11),
         new(BusinessInventorySpace.WornEquipment, InventoryContainerType.Equipment, 12, 24),
         new(BusinessInventorySpace.WornCreature, InventoryContainerType.Equipment, 25, 25),
@@ -29,7 +29,7 @@ public static class LegacyInventoryStorageCoordinates
         new(BusinessInventorySpace.CreatureInventory, InventoryContainerType.Pet, 0, 139),
         new(BusinessInventorySpace.CreatureEquipment, InventoryContainerType.Pet, 140, 188),
         new(BusinessInventorySpace.CreatureConsumable, InventoryContainerType.Pet, 189, 239),
-        new(BusinessInventorySpace.AccountCargo, InventoryContainerType.AccountCargo, 0, 63),
+        new(BusinessInventorySpace.AccountCargo, InventoryContainerType.AccountCargo, 0, 119),
         new(BusinessInventorySpace.GuildMedal, InventoryContainerType.GuildMedal, 0, 48),
         new(BusinessInventorySpace.GuardianGem, InventoryContainerType.GuildMedal, 49, 97),
     ];

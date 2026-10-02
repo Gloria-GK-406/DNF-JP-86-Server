@@ -163,6 +163,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<LegacyWornItemNormalizer>();
         services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
+        services.TryAddSingleton<IInventoryExpansionRuleService, InventoryExpansionRuleService>();
+        services.TryAddSingleton<IInventoryExpansionDomainService, InventoryExpansionDomainService>();
+        services.TryAddSingleton<IInventoryCapacityRuleService, InventoryCapacityRuleService>();
+        services.TryAddSingleton<IInventoryCapacityDomainService, InventoryCapacityDomainService>();
+        services.TryAddSingleton<ICargoItemRuleService, CargoItemRuleService>();
+        services.TryAddSingleton<ICargoTransferDomainService, CargoTransferDomainService>();
         // Where an item belongs, which slot it is worn in, and whether it is equipment at all --
         // the one place the archive's item definitions are read for those three answers.
         services.TryAddSingleton<IItemPlacementRuleService, ItemPlacementRuleService>();

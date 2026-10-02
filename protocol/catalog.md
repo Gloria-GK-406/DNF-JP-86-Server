@@ -1,5 +1,19 @@
 # 协议清单
 
+## 2026-10-02 仓库与四类扩容（待实机）
+
+个人仓库、账号金库、装扮栏与主背包容量按A21阶段实现。静态证据、实现与自动验证的边界见[设计与验收表](../Document/WarehouseStorageDesign-20261002.md)；本轮没有新增ClientVerified。
+
+| Command | Type | 当前入口/输出 | 证据与范围 |
+|---|---|---|---|
+| `0x01` | [0x0131](game/client-to-server/0x0131.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| `0x01` | [0x0132](game/client-to-server/0x0132.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| `0x01` | [0x0133](game/client-to-server/0x0133.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| `0x01` | [0x0134](game/client-to-server/0x0134.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| `0x01` | [0x0198](game/client-to-server/0x0198.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| `0x01` | [0x01AF](game/client-to-server/0x01AF.md) | WarehouseDecoder / WarehouseHandler；NOTI000D | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| 原有入口扩展 | [0012](game/client-to-server/0x0012.md) / [0014](game/client-to-server/0x0014.md) / [0040](game/client-to-server/0x0040.md) | 仓库存取/整理/付费扩容 | 新增范围CurrentImplementation；HumanPending |
+
 ## 2026-10-01 0.2.0验收收口与新增接入
 
 用户确认C01/C02/S01/S02通过，当前交付范围验收完成；红字净化／清除／赋予／扭转等未验组合移交[#49](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/49)。普通强化保护、已辨识首饰增幅、普通武器锻造、宝珠附魔、魔法封印解封／转换、设计图、通关出售与当前城镇药剂沿各页的限定反馈记录。整体接受不新增原服实帧，不覆盖隔离入口或历史未测分支。见[0.2.0范围](../Document/releases/0.2.0.md)及[effect流程](patterns/flow-item-effects.md)。下方带日期的旧阶段状态保留作历史。

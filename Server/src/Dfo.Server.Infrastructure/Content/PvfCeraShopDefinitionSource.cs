@@ -511,6 +511,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         path = path.ToLowerInvariant();
         return path is "stackable/cash/skilltree_plusitem.stk" or "stackable/cash/character_slotkit.stk"
             or "stackable/cash/chn_character_rename.stk"
+            or "stackable/cash/chn_20140617_new_sales_item/chn_inventory_3rd_expansion_2683675.stk"
             || path.StartsWith("stackable/cash/safe_upgradekit", StringComparison.Ordinal)
             || path.StartsWith("stackable/cash/chn_account_cargo/account_cargo", StringComparison.Ordinal)
             || path.StartsWith("stackable/cash/inven_upgradekit", StringComparison.Ordinal)

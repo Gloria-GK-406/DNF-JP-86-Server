@@ -42,6 +42,8 @@ public interface IBusinessItemContainer
     BusinessContainerId Id { get; }
     ContainerId StorageId { get; }
     BusinessInventorySpace Space { get; }
+    ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(int.MaxValue);
     ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken);
     ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken cancellationToken);

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Creatures;
@@ -209,6 +210,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailboxChanged).Assembly);
         // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<Dfo.Server.Abstractions.Administration.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
@@ -395,7 +397,7 @@ public sealed class ProtocolModule : IServerModule
         // it afterwards would leave a window in which a move was several writes with nothing to
         // settle them together -- a window every test would pass through green.
         services.AddCommandHandler<MoveItemSpaceCommand, ItemMoveResult, MoveItemSpaceCommandHandler>(
-            CommandExecutionKind.Transactional);
+            CommandExecutionKind.Transactional, UserAccessMode.Unscoped, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<HatchCreatureCommand, HatchCreatureResult, HatchCreatureCommandHandler>(
@@ -447,6 +449,8 @@ public sealed class ProtocolModule : IServerModule
             ForgingCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<WarehouseCommand, InventoryExpansionResult, WarehouseCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -613,6 +617,18 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameCreateAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0131, ClientMessageType.GameCreateAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0132, ClientMessageType.GameUpgradeAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameDepositAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0133, ClientMessageType.GameDepositAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameWithdrawAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0134, ClientMessageType.GameWithdrawAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0198, ClientMessageType.GameUpgradeCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeInventory);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
         services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
@@ -1000,6 +1016,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<InvestAmplifyOptionResponse, InvestAmplifyOptionEncoder>();
         services.AddGameCmdMessageEncoder<ForgingResponse, ForgingEncoder>();
         services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
+        services.AddGameCmdMessageEncoder<WarehouseResponse, WarehouseResponseEncoder>();
         services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();

@@ -101,7 +101,7 @@ public sealed class ItemSaleTests
     [Theory]
     [InlineData(0, 0)]
     [InlineData(0, 354)]
-    [InlineData(12, 65)]
+    [InlineData(12, 120)]
     [InlineData(255, 65)]
     public async Task An_unmappable_game_slot_is_a_boundary_failure_and_cannot_reach_the_command(
         byte container, short slot)

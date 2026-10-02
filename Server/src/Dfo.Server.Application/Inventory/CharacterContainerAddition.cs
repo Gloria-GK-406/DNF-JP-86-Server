@@ -13,7 +13,7 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
     IAccountMaterialBagDomainService accountBags, ICharacterTable owners,
     DomainTransactionScope transactions, IItemDomainStore store,
     IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules,
-    ICreatureDefinitionSource? creatures = null)
+    ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)
 {
     public async ValueTask<ContainerAddition> AddAsync(ICharacterContainerDomainService containers,
         CharacterId character, int itemId, int count, CancellationToken ct)
@@ -42,7 +42,7 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
                 // the persistent bag without publishing a fictitious online registration.
                 var bag = containers.FindContainer(character, type) ?? new PersistentItemContainer(
                     ContainerId.ForCharacter(character, type), character, new(type, 0), store,
-                    transactions, null, placements, arrivals, slotRules);
+                    transactions, null, placements, arrivals, slotRules, capacities);
                 // Full-quantity rollback currently relies on the store-backed transaction contract.
                 // Do not mutate an arbitrary in-memory implementation that cannot be rolled back.
                 if (bag is not StoreBackedItemContainer)
@@ -50,7 +50,7 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
                 if (bag.Id.TryGetCharacterOwner(out var bagOwner, out var bagType)
                     && (bagOwner != character || bagType != type))
                     throw new InvalidOperationException("The selected container belongs to another character or inventory type.");
-                var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures);
+                var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures, capacities);
                 var changes = new List<ContainerItemAddition>();
                 var remaining = count;
                 while (remaining > 0)

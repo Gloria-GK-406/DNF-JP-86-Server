@@ -15,7 +15,7 @@ internal sealed class InventorySortDomainService(
             || slot.Space == BusinessInventorySpace.AvatarEmblem || slot.Index < 0) return null;
         var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(slot.Space))
             .FindContainer(slot.Space);
-        if (container is null) return null;
+        if (container is null || slot.Index >= await container.OpenSlotCountAsync(ct).ConfigureAwait(false)) return null;
         var item = await container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
         if (item is null) return null;
         var locked = action == InventorySortLockAction.Toggle && item.Core.SortLockFlag != 1;
@@ -29,14 +29,17 @@ internal sealed class InventorySortDomainService(
         BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.Consumable
         or BusinessInventorySpace.Material or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial
         or BusinessInventorySpace.AvatarEmblem or BusinessInventorySpace.Avatar
-        or BusinessInventorySpace.CreatureEquipment or BusinessInventorySpace.CreatureConsumable;
+        or BusinessInventorySpace.CreatureEquipment or BusinessInventorySpace.CreatureConsumable
+        or BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo;
 
     public async ValueTask<bool> SortAsync(CharacterId character, BusinessInventorySpace space,
         InventorySortOrder order, CancellationToken ct)
     {
         if (!Enum.IsDefined(order) || !IsSortable(space)) return false;
         var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
-        var items = await container.ReadAllAsync(ct).ConfigureAwait(false);
+        var open = await container.OpenSlotCountAsync(ct).ConfigureAwait(false);
+        if (open <= 0) return false;
+        var items = (await container.ReadAllAsync(ct).ConfigureAwait(false)).Where(i => i.SlotIndex < open).ToArray();
         var locked = items.Where(item => item.Core.SortLockFlag == 1).Select(item => item.SlotIndex).ToHashSet();
         var movable = items.Where(item => !locked.Contains(item.SlotIndex)).OrderBy(item => item.SlotIndex).ToArray();
         var metadata = new Dictionary<int, InventorySortKeys>();

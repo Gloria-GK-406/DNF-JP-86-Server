@@ -57,6 +57,8 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<PvfArchiveProvider>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
+        services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
+        services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
         services.TryAddSingleton<IGmMailItemCatalogSource, PvfGmMailItemCatalogSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();

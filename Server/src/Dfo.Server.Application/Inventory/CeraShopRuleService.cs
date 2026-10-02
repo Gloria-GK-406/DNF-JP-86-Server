@@ -10,7 +10,8 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
-    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals) : ICeraShopRuleService
+    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
+    IInventoryExpansionDefinitionSource? expansionContent = null) : ICeraShopRuleService
 {
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -21,6 +22,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         var products = ImmutableArray.CreateBuilder<int>();
         var charges = ImmutableArray.CreateBuilder<CeraShopCharge>();
         var grants = ImmutableArray.CreateBuilder<CeraShopGrant>();
+        var expansions = ImmutableArray.CreateBuilder<InventoryExpansionGrant>();
         var subscriptions = ImmutableArray.CreateBuilder<CeraShopSubscriptionGrant>();
         var restrictions = ImmutableArray.CreateBuilder<CeraShopPurchaseRestrictionDeclaration>();
         try
@@ -49,7 +51,11 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     if (!entry.AvatarChoices.IsEmpty || !entry.Selections.IsEmpty
                         || entry.Attribute is not (0 or 255) || entry.Variant is not (0 or 255))
                         throw Refuse(CeraShopRejection.InvalidChoice, "Unexpected subscription options.");
-                    if (product.Category == "[premium]" && product.Count == 1
+                    var expansion = expansionContent is null ? null : await expansionContent.ProductAsync(
+                        product.ProductId, product.ItemId, cancellationToken).ConfigureAwait(false);
+                    if (expansion is not null && product.Count == 1 && price.Period == 0)
+                        expansions.Add(expansion);
+                    else if (product.Category == "[premium]" && product.Count == 1
                         && product.Premium is { PremiumType: 22 or 27 or 84 or 97 } contract && contract.Duration > TimeSpan.Zero)
                     {
                         subscriptions.Add(new((PremiumServiceType)contract.PremiumType, contract.Duration));
@@ -89,7 +95,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         ? CeraShopPaymentMode.PointsOnly : CeraShopPaymentMode.Ordinary));
             }
             return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable())
-                { Subscriptions = subscriptions.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
+                { Expansions = expansions.ToImmutable(), Subscriptions = subscriptions.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
         }
         catch (QuoteRefusal failure) { return new(failure.Reason, null, failure.Message); }
         catch (OverflowException) { return new(CeraShopRejection.UnsupportedProduct, null, "Purchase quantity or expiration cannot be represented."); }

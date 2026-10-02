@@ -93,10 +93,11 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                 SELECT place.slot_index, held.item_core, held.item_uid
                 FROM item_slots place
                 JOIN items held ON held.item_uid = place.core_uid
-                WHERE place.owner_scope = 'character' AND place.owner_id = @owner
+                WHERE place.owner_scope = @scope AND place.owner_id = @owner
                   AND place.list_type = @list;
                 """;
-            command.Parameters.AddWithValue("@owner", place.Character);
+            command.Parameters.AddWithValue("@scope", place.Scope);
+            command.Parameters.AddWithValue("@owner", place.Owner);
             command.Parameters.AddWithValue("@list", place.ListType);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -146,10 +147,11 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
             SELECT held.item_core, held.item_uid
             FROM item_slots place
             JOIN items held ON held.item_uid = place.core_uid
-            WHERE place.owner_scope = 'character' AND place.owner_id = @owner
+            WHERE place.owner_scope = @scope AND place.owner_id = @owner
               AND place.list_type = @list AND place.slot_index = @slot;
             """;
-        command.Parameters.AddWithValue("@owner", place.Character);
+        command.Parameters.AddWithValue("@scope", place.Scope);
+        command.Parameters.AddWithValue("@owner", place.Owner);
         command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", slotIndex);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken)
@@ -331,10 +333,11 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                     SELECT held.item_uid, held.item_core
                     FROM item_slots place
                     JOIN items held ON held.item_uid = place.core_uid
-                    WHERE place.owner_scope = 'character' AND place.owner_id = @owner
+                    WHERE place.owner_scope = @scope AND place.owner_id = @owner
                       AND place.list_type = @list AND place.slot_index = @slot;
                     """;
-                command.Parameters.AddWithValue("@owner", place.Character);
+                command.Parameters.AddWithValue("@scope", place.Scope);
+                command.Parameters.AddWithValue("@owner", place.Owner);
                 command.Parameters.AddWithValue("@list", place.ListType);
                 command.Parameters.AddWithValue("@slot", slot);
                 await using var reader = await command.ExecuteReaderAsync(cancellationToken)
@@ -555,7 +558,7 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// filled is what lets two things swap places without anywhere to park.
     /// </remarks>
     private async ValueTask EmptyAsync(
-        (int Character, int ListType) place,
+        (string Scope, int Owner, int ListType) place,
         int slotIndex,
         IReadOnlyList<long> spared,
         CancellationToken cancellationToken)
@@ -569,13 +572,14 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         command.CommandText =
             "DELETE FROM items WHERE item_uid IN ("
             + "SELECT core_uid FROM item_slots "
-            + "WHERE owner_scope = 'character' AND owner_id = @owner "
+            + "WHERE owner_scope = @scope AND owner_id = @owner "
             + "AND list_type = @list AND slot_index = @slot)"
             + keep + ";"
             + "DELETE FROM item_slots "
-            + "WHERE owner_scope = 'character' AND owner_id = @owner "
+            + "WHERE owner_scope = @scope AND owner_id = @owner "
             + "AND list_type = @list AND slot_index = @slot;";
-        command.Parameters.AddWithValue("@owner", place.Character);
+        command.Parameters.AddWithValue("@scope", place.Scope);
+        command.Parameters.AddWithValue("@owner", place.Owner);
         command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", slotIndex);
         for (var index = 0; index < spared.Count; index++)
@@ -724,7 +728,7 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// asking where anything is.
     /// </remarks>
     private async ValueTask HoldAsync(
-        (int Character, int ListType) place,
+        (string Scope, int Owner, int ListType) place,
         int slotIndex,
         StoredItem item,
         int identity,
@@ -735,9 +739,10 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         command.CommandText = """
             INSERT INTO item_slots(
                 owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
-            VALUES('character', @owner, @list, @slot, @kind, @id, @core, @count);
+            VALUES(@scope, @owner, @list, @slot, @kind, @id, @core, @count);
             """;
-        command.Parameters.AddWithValue("@owner", place.Character);
+        command.Parameters.AddWithValue("@scope", place.Scope);
+        command.Parameters.AddWithValue("@owner", place.Owner);
         command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", slotIndex);
         command.Parameters.AddWithValue("@kind", pile ? "template" : "world");
@@ -820,12 +825,14 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// A container identifier this store cannot place is refused rather than silently read as
     /// empty, which would let a use case believe a container it cannot reach is simply unfilled.
     ///
-    /// Account cargo is refused along with the rest: it is a character container type by name only,
-    /// and its rows live in another table keyed by account. Writing it here would leave a row this
-    /// server rejects on the character's next entry -- a corruption found as a failure to log in.
+    /// Account cargo accepts only an account-scoped identity; a character-scoped spelling is
+    /// refused so the two ownership namespaces cannot alias.
     /// </remarks>
-    private static (int Character, int ListType) OwnerOf(ContainerId containerId)
+    private static (string Scope, int Owner, int ListType) OwnerOf(ContainerId containerId)
     {
+        if (containerId.TryGetAccountCargoOwner(out var accountId))
+            return ("account", accountId.Value, (int)InventoryContainerType.AccountCargo);
+
         if (!containerId.TryGetCharacterOwner(out var characterId, out var containerType))
         {
             throw new InvalidOperationException(
@@ -842,6 +849,6 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
                 $"Container '{containerId.Value}' is not one this store keeps rows for.");
         }
 
-        return (characterId.Value, (int)containerType);
+        return ("character", characterId.Value, (int)containerType);
     }
 }

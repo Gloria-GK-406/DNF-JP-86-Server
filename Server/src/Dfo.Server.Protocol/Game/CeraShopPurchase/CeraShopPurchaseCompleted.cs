@@ -23,6 +23,11 @@ public sealed class CeraShopPurchaseCompletedHandler(ISelectedSessionDomainServi
         messages.Add(GameInstanceDelivery.Wallet(receipt.Balances));
         if (receipt.GoldSpent) messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));
         messages.AddRange(GameInventoryDelivery.Notifications(receipt.Updates));
+        if (receipt.ExpandedCharacterInventory is { } character && receipt.ExpandedAccountInventory is { } account)
+            foreach (var type in receipt.ExpandedContainers)
+                messages.Add(new InventoryFullSnapshotMessage(type == InventoryContainerType.AccountCargo
+                    ? account.Cargo.Container : character.Containers.Single(c => c.ContainerType == type),
+                    character, account, receipt.PreparedAt));
         if (receipt.CreaturesChanged) messages.Add(GameInstanceDelivery.Creatures(receipt.Pets));
         if (receipt.PurchaseRestrictions is { } restrictions)
             messages.Add(new PurchaseRestrictionCompatibilityMessage(restrictions));

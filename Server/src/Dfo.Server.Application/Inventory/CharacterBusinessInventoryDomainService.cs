@@ -9,18 +9,19 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class CharacterBusinessInventoryDomainService(ICharacterContainerDomainService backing,
     IItemPlacementRuleService? placements = null, IItemArrivalRuleService? arrivals = null,
     ICreatureDefinitionSource? creatures = null, IItemDomainStore? items = null,
-    IDomainTransactionAccessor? transactions = null, IItemSlotRuleService? slotRules = null)
+    IDomainTransactionAccessor? transactions = null, IItemSlotRuleService? slotRules = null,
+    IInventoryCapacityDomainService? capacities = null)
     : ICharacterBusinessInventoryDomainService
 {
     public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) =>
         new BusinessInventoryStore(characterId, kind, backing, placements, arrivals, creatures,
-            items, transactions, slotRules);
+            items, transactions, slotRules, capacities);
 
     private sealed class BusinessInventoryStore(CharacterId characterId, BusinessInventoryStoreKind kind,
         ICharacterContainerDomainService backing, IItemPlacementRuleService? placements,
         IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
         IItemDomainStore? items, IDomainTransactionAccessor? transactions,
-        IItemSlotRuleService? slotRules) : IBusinessInventoryStore
+        IItemSlotRuleService? slotRules, IInventoryCapacityDomainService? capacities) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
 
@@ -30,12 +31,13 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
                 throw new InvalidOperationException($"{space} does not belong to the {kind} store.");
             var address = LegacyInventoryStorageCoordinates.ToStorage(new BusinessSlot(space, 0));
             var container = backing.FindContainer(characterId, address.List);
-            if (container is null && items is not null && transactions is not null
+            if (container is null && space != BusinessInventorySpace.AccountCargo
+                && items is not null && transactions is not null
                 && placements is not null && arrivals is not null && slotRules is not null)
                 container = new PersistentItemContainer(ContainerId.ForCharacter(characterId, address.List),
                     characterId, new ContainerShape(address.List, 0), items, transactions,
-                    null, placements, arrivals, slotRules);
-            return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures);
+                    null, placements, arrivals, slotRules, capacities);
+            return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures, capacities);
         }
 
         public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
@@ -46,12 +48,16 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
 internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemContainer backing,
     IItemPlacementRuleService? placements = null, IItemArrivalRuleService? arrivals = null,
-    ICreatureDefinitionSource? creatures = null)
+    ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)
     : IBusinessItemContainer
 {
     public BusinessContainerId Id => new(space, backing.Id);
     public ContainerId StorageId => backing.Id;
     public BusinessInventorySpace Space => space;
+
+    public ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
+        capacities is null ? ValueTask.FromResult(int.MaxValue)
+            : capacities.OpenSlotCountAsync(backing.Id, space, cancellationToken);
 
     public async ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken cancellationToken)
     {
@@ -88,14 +94,14 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
 
     public async ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken cancellationToken)
     {
-        var physical = await WritableIndexAsync(index, cancellationToken).ConfigureAwait(false);
+        var physical = await WritableIndexAsync(index, cancellationToken, core).ConfigureAwait(false);
         await backing.PutAsync(physical, core, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
         IBusinessItemContainer source, int sourceIndex, CancellationToken cancellationToken)
     {
-        var physical = await WritableIndexAsync(index, cancellationToken).ConfigureAwait(false);
+        var physical = await WritableIndexAsync(index, cancellationToken, core).ConfigureAwait(false);
         var from = LegacyInventoryStorageCoordinates.ToStorage(new(source.Space, sourceIndex));
         await backing.PutTransferredAsync(physical, core, source.StorageId, from.Index,
             cancellationToken).ConfigureAwait(false);
@@ -104,7 +110,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
     public async ValueTask PutNewAsync(int index, InventoryItemCoreState core, InventoryItemCreationFacts facts,
         CancellationToken cancellationToken)
     {
-        var physical = await WritableIndexAsync(index, cancellationToken).ConfigureAwait(false);
+        var physical = await WritableIndexAsync(index, cancellationToken, core).ConfigureAwait(false);
         await backing.PutNewAsync(physical, core, facts, cancellationToken).ConfigureAwait(false);
     }
 
@@ -120,10 +126,15 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         await backing.ClearAsync(physical, cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask<int> WritableIndexAsync(int index, CancellationToken ct)
+    private async ValueTask<int> WritableIndexAsync(int index, CancellationToken ct, InventoryItemCoreState? replacement = null)
     {
         var physical = this.StorageIndex(new(space, index));
         var existing = await backing.ReadSlotAsync(physical, ct).ConfigureAwait(false);
+        if (index >= await OpenSlotCountAsync(ct).ConfigureAwait(false)
+            && !(existing is { IsPile: true } && replacement is { Value: > 0 }
+                && replacement.Value < existing.Count
+                && replacement with { Value = 0 } == existing.Core with { Value = 0 }))
+            throw new InvalidOperationException($"Inventory slot {space}/{index} is not open.");
         if (existing is not null)
         {
             var owner = LegacyInventoryStorageCoordinates.ToBusiness(
@@ -148,7 +159,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
             throw new InvalidOperationException($"Item {itemId} belongs to {placement.Destination.Space}, not {space}.");
         var quick = backing.Type == InventoryContainerType.Main
             && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
-            ? new BusinessItemContainer(BusinessInventorySpace.QuickSlot, backing, placements, arrivals, creatures)
+            ? new BusinessItemContainer(BusinessInventorySpace.QuickSlot, backing, placements, arrivals, creatures, capacities)
             : null;
         var own = await ReadAllAsync(cancellationToken).ConfigureAwait(false);
         var held = own.Select(item => (Slot: new BusinessSlot(space, item.SlotIndex), Item: item))
@@ -156,7 +167,11 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
                 .Select(item => (Slot: new BusinessSlot(BusinessInventorySpace.QuickSlot, item.SlotIndex), Item: item)))
             .ToArray();
         var occupied = held.Select(entry => entry.Slot).ToHashSet();
-        var piles = held.Where(entry => entry.Item.ItemId == itemId)
+        var open = await OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
+        for (var index = open; index <= placement.Destination.LastIndex; index++)
+            occupied.Add(new(space, index));
+        var piles = held.Where(entry => entry.Item.ItemId == itemId
+                && (entry.Slot.Space != space || entry.Slot.Index < open))
             .Select(entry => new ItemPile(entry.Slot, entry.Item.Count)).ToArray();
         var arrival = arrivals.ForGrant(piles, count, placement, occupied);
         switch (arrival)
