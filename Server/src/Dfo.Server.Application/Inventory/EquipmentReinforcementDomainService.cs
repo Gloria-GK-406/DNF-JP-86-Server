@@ -37,7 +37,8 @@ internal sealed class EquipmentReinforcementDomainService(
             || online.AccountId != session.AccountId
             || online.CurrentCharacterId != session.CharacterId)
             return new(EquipmentReinforcementRejection.NoSession);
-        if (!targetSlot.Space.IsCarriedItemSpace() || expectedItemId <= 0
+        if (!(targetSlot.Space.IsCarriedItemSpace() || targetSlot.Space.IsWornEquipmentSpace())
+            || expectedItemId <= 0
             || materialSlot is { } candidateMaterial
                 && (!candidateMaterial.Space.IsCarriedItemSpace() || candidateMaterial == targetSlot)
             || materialSlot is not null && accountMaterialItemId is not null

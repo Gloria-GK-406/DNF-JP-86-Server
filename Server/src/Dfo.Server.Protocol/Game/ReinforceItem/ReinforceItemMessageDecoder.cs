@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.ReinforceItem;
@@ -15,11 +16,12 @@ internal sealed class ReinforceItemMessageDecoder : IGameMessageDecoder
             throw new InvalidDataException("UPGRADE_ITEM has an invalid item-name length.");
         return new ReinforceItemRequest(
             metadata,
-            BinaryPrimitives.ReadUInt16LittleEndian(body),
+            body[0],
             BinaryPrimitives.ReadInt16LittleEndian(body[2..]),
             BinaryPrimitives.ReadInt32LittleEndian(body[4..]),
             BinaryPrimitives.ReadInt16LittleEndian(body[8..]),
             BinaryPrimitives.ReadInt16LittleEndian(body[10..]),
-            body.Slice(16, nameLength).ToArray());
+            body.Slice(16, nameLength).ToArray(),
+            (InventoryContainerType)body[1]);
     }
 }

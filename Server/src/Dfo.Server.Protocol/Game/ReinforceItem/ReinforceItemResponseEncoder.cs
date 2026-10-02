@@ -26,7 +26,7 @@ internal sealed class ReinforceItemResponseEncoder : GameCmdMessageEncoder<Reinf
         writer.Write(message.OldLevel);
         writer.Write((byte)message.Outcome);
         writer.Write(message.NewLevel);
-        writer.Write((byte)0);
+        writer.Write((byte)message.TargetList);
         writer.Write(message.TargetSlot);
         writer.Write(message.OptionalTicketSlot);
         if (message.Outcome == Dfo.Server.Data.Inventory.EquipmentReinforcementOutcome.Destroyed)

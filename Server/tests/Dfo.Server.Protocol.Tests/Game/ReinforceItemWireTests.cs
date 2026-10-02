@@ -6,6 +6,25 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class ReinforceItemWireTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void Equipped_target_is_a_separate_byte_from_upgrade_method(byte method)
+    {
+        var body = new byte[16];
+        body[0] = method;
+        body[1] = 3;
+        body[2] = 12;
+        var request = Assert.IsType<ReinforceItemRequest>(
+            new ReinforceItemMessageDecoder().Decode(GameMessageMetadata.Empty, body));
+        Assert.Equal(method, request.Method);
+        Assert.Equal(InventoryContainerType.Equipment, request.TargetList);
+        var ack = ReinforceItemResponseEncoder.EncodeBody(new(true, Method: method,
+            TargetSlot: 12, TargetList: request.TargetList));
+        Assert.Equal((byte)3, ack[14]);
+        Assert.Equal((short)12, BitConverter.ToInt16(ack, 15));
+    }
+
     [Fact]
     public void Amplification_ack_preserves_method_one_and_the_shared_body_layout()
     {
@@ -28,7 +47,7 @@ public sealed class ReinforceItemWireTests
         var request = Assert.IsType<ReinforceItemRequest>(
             new ReinforceItemMessageDecoder().Decode(GameMessageMetadata.Empty, body));
 
-        Assert.Equal((ushort)0, request.Method);
+        Assert.Equal((byte)0, request.Method);
         Assert.Equal((short)9, request.TargetSlot);
         Assert.Equal(3000, request.ExpectedItemId);
         Assert.Equal((short)358, request.MaterialSlot);

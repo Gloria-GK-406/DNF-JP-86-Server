@@ -7,12 +7,13 @@ namespace Dfo.Server.Protocol.Game.ReinforceItem;
 
 public sealed record ReinforceItemRequest(
     GameMessageMetadata Metadata,
-    ushort Method,
+    byte Method,
     short TargetSlot,
     int ExpectedItemId,
     short MaterialSlot,
     short OptionalTicketSlot,
-    byte[] ReportedItemNameBytes) : IEffectSettlementRequest
+    byte[] ReportedItemNameBytes,
+    InventoryContainerType TargetList = InventoryContainerType.Main) : IEffectSettlementRequest
 {
     public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory;
     public ClientMessageType MessageType => ClientMessageType.GameReinforceItem;
@@ -31,7 +32,8 @@ public sealed record ReinforceItemResponse(
     EquipmentReinforcementOutcome Outcome = EquipmentReinforcementOutcome.Succeeded,
     byte NewLevel = 0,
     short TargetSlot = -1,
-    IReadOnlyList<ReinforceItemReward>? DestroyRewards = null) : IGameCmdMessage
+    IReadOnlyList<ReinforceItemReward>? DestroyRewards = null,
+    InventoryContainerType TargetList = InventoryContainerType.Main) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameReinforceItem;
 }

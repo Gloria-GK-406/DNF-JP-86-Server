@@ -149,7 +149,7 @@ public sealed class EquipmentAmplificationTests
     { await f.SeedCore(9, core); await f.Seed(121, 3242, 20, 3); }
     private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1234)
         with { Durability = 45, AmplifyType = 4, AmplifyValue = 5 };
-    private static ValueTask Send(ShopFixture f, ushort sequence, ushort method = 1) =>
+    private static ValueTask Send(ShopFixture f, ushort sequence, byte method = 1) =>
         EffectRequestTransport.Send(f,
             new ReinforceItemRequest(new(1, 0x50, 0, sequence), method, 9, 3000, 121, -1, []));
     private static IEnumerable<byte[]> DeltaEntries(ShopFixture f)

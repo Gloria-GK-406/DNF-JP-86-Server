@@ -40,7 +40,7 @@ public sealed class EquipmentReinforcementHandlerTests
             Assert.Equal(100000, shop.Gold);
             Assert.Equal(draw < 90000 ? (byte)0xAC : (byte)0xA3, shop.StoredCore(9)[9]);
         };
-        await Send(shop, 70, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        await Send(shop, 70, method: amplification ? (byte)1 : (byte)0, materialSlot: 101);
         var response = Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.True(response.Success); // Request accepted; outcome independently conveys the probability result.
         Assert.Equal(draw < 90000 ? EquipmentReinforcementOutcome.Succeeded : EquipmentReinforcementOutcome.Retained, response.Outcome);
@@ -49,12 +49,12 @@ public sealed class EquipmentReinforcementHandlerTests
         Assert.Equal(1, BitConverter.ToInt32(coupon, 6));
         if (draw < 90000)
             Assert.Equal((byte)0xAC, Assert.Single(DeltaEntries(shop), entry => BitConverter.ToInt16(entry, 0) == 9)[0x0A]);
-        await Send(shop, 70, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        await Send(shop, 70, method: amplification ? (byte)1 : (byte)0, materialSlot: 101);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.Equal(1, rolls.Calls);
         Assert.Equal(1, shop.Count(itemId));
         shop.Sender.BeforeSend = null;
-        await Send(shop, 71, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        await Send(shop, 71, method: amplification ? (byte)1 : (byte)0, materialSlot: 101);
         Assert.Equal(2, rolls.Calls);
         Assert.Equal(0, shop.Count(itemId));
         Assert.Equal(100000, shop.Gold);
@@ -507,7 +507,7 @@ public sealed class EquipmentReinforcementHandlerTests
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = 45 };
 
-    private static ValueTask Send(ShopFixture shop, ushort sequence, ushort method = 0,
+    private static ValueTask Send(ShopFixture shop, ushort sequence, byte method = 0,
         int expectedItemId = 3000, short materialSlot = 121) =>
         EffectRequestTransport.Send(shop,
             new ReinforceItemRequest(new(1, 0x0050, 0, sequence), method,

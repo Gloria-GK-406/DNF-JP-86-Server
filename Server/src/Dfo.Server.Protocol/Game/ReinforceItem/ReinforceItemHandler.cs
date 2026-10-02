@@ -79,13 +79,14 @@ public sealed class ReinforceItemHandler(
         material = null;
         accountMaterialItemId = null;
         ticket = null;
-        if (message.TargetSlot < 0 || message.MaterialSlot < -1
+        if (message.TargetList is not (InventoryContainerType.Main or InventoryContainerType.Equipment)
+            || message.TargetSlot < 0 || message.MaterialSlot < -1
             || message.OptionalTicketSlot < -1)
             return false;
         try
         {
             target = slotMappings.ToBusinessSlot(
-                new(InventoryContainerType.Main, message.TargetSlot));
+                new(message.TargetList, message.TargetSlot));
             if (message.MaterialSlot is >= 354 and <= 364)
                 accountMaterialItemId = AccountMaterialCatalog.Definitions
                     .Single(definition => definition.VirtualSlotIndex == message.MaterialSlot).ItemId;
@@ -110,6 +111,7 @@ public sealed class ReinforceItemHandler(
             Outcome: receipt.Outcome,
             NewLevel: receipt.NewLevel,
             TargetSlot: checked((short)slotMappings.ToGameSlot(receipt.TargetSlot).Index),
+            TargetList: slotMappings.ToGameSlot(receipt.TargetSlot).Space,
             DestroyRewards: receipt.DestroyRewards.Select(reward =>
                 new ReinforceItemReward(reward.VirtualSlotIndex is { } virtualSlot
                         ? new GameSlot(InventoryContainerType.Main, virtualSlot)

@@ -1,6 +1,6 @@
 # 仓库与扩容实机测试流程
 
-2026-10-02 首次部署服务端提交 `86b8ed86`；后续开盒回归修复与当前运行位置见文末。本表用于 A21 客户端验收，尚未勾选的项目不算 ClientVerified。先做下列主流程，再按需要进行边界测试。
+2026-10-02 首次部署服务端提交 `86b8ed86`；后续开盒、穿戴强化券修复与运行记录见文末。本表用于 A21 客户端验收，尚未勾选的项目不算 ClientVerified。先做下列主流程，再按需要进行边界测试。
 
 ## 首次部署时的起点
 
@@ -59,6 +59,14 @@
 
 修复仅将 Main 的0～2虚拟资源计数排除在物理格数校验之外，保留虚拟奖励的数量/溢出校验和普通物品的开放格数限制。启用真实容量服务的新测试在修复前复现3项相同映射异常，1项真实满包回滚通过；修复后4项通过。开盒/仓库相关66项通过，完整Application测试2694项通过、0跳过。证据在工作树 `artifacts/opening-capacity-red-confirmed`、`opening-capacity-green`、`opening-capacity-application`；对应命令为 `dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj`，RED使用 `--filter FullyQualifiedName~OpeningCapacityRegressionTests`，完整回归启用原A21的 `PVF_ARCHIVE_PATH`。
 
-当前运行目录改为 `E:/Project/DNF/DNF-JP-86-Server/artifacts/opening-capacity-20261002-230704/runtime`，启动PID `12376`。配置、端口、数据库、GM凭据及用户最新游戏进度保留，未再次清包或重置扩容。该目录的上一级保存 `before-deploy.db`、`data-check.json`、`verification.json` 和服务日志；部署前后56张表一致，SQLite完整性正常。原仓库运行包保留用于程序回退。
+该次运行目录为 `E:/Project/DNF/DNF-JP-86-Server/artifacts/opening-capacity-20261002-230704/runtime`，启动PID `12376`。配置、端口、数据库、GM凭据及用户最新游戏进度保留，未再次清包或重置扩容。该目录的上一级保存 `before-deploy.db`、`data-check.json`、`verification.json` 和服务日志；部署前后56张表一致，SQLite完整性正常。原仓库运行包保留用于程序回退。
 
 复测：重新登录1123，从快捷栏开启赛丽亚礼盒；快捷栏满时普通产物应进入消耗品栏，抽到复活币时应正常增加计数。再从消耗品栏开启一次，核对物品消耗与产物；真正满包时仍应拒绝且不扣礼盒。此次尚未代替用户完成A21实机验收。
+
+## 2026-10-02 穿戴强化券修复与复测
+
+穿戴使用券被拒绝的原因与协议修正见 [0050目标容器](../protocol/game/client-to-server/0x0050.md#2026-10-02-穿戴目标容器修正)。新增回归在旧逻辑下复现2项解包错误、4项穿戴结算失败；修复后穿戴券7项及wire11项通过。完整Application 2701项、Protocol 1244项通过，均0失败/0跳过（启用同一A21 PVF）；TRX分别在工作树 `artifacts/equipped-ticket-final/application.trx`、`protocol.trx`。
+
+部署包目录：`E:/Project/DNF/DNF-JP-86-Server/artifacts/equipped-upgrade-20261002-2336/runtime`。启动结果、实际PID、源码提交、数据库一致性检查以其上级 `verification.json` / `data-check.json` 为准；`before-deploy.db` 为停服后的部署前备份。使用原数据库及配置，保留开盒后的游戏进度。
+
+待人工复测：重新登录1123，保持十字斩刀穿戴，使用原强化券；确认不会再立即提示目标不能强化，券按一次尝试消耗，结果与券本身成功率相符。查看装备等级后重登，确认装备仍在穿戴位且等级保持。自动测试使用确定结果的券验证结算；用户原概率券仍可能正常失败，不应把概率失败当作请求被拒绝。
