@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, act, cleanup } from '@testing-library/react';
 import { App, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MemoryRouter } from 'react-router-dom';
@@ -157,4 +157,37 @@ it('附件与金币编辑进入预览，收件人查询使用邮件窄投影', a
   await waitFor(() => expect(mocked).toHaveBeenCalledWith('mail/recipients?page=1&pageSize=20&q=%E4%B8%AD%E6%96%87%25_'));
   fireEvent.click(screen.getByRole('button', { name: '预览并核对' })); await screen.findByText('确认整批发送');
   expect(mocked).toHaveBeenCalledWith('mail/preview', expect.objectContaining({ items: [{ itemId: 3037, count: 9 }], gold: 1000, recipientIds: [1] }));
+});
+
+it.each([401, 403])('未知发送的失权重试%s保留原UUID，恢复身份后仍按同一内容恢复结果', async status => {
+  const original = mocked.getMockImplementation()!; let attempts = 0; let currentIdentity = identity;
+  mocked.mockImplementation(async (path, payload) => {
+    if (path === 'auth/session') return currentIdentity;
+    if (path === 'mail/send') {
+      attempts++;
+      if (attempts === 1) throw new Error('response lost after possible commit');
+      if (attempts === 2) throw new ApiError(status, '身份或权限失效');
+      return { receipt: receipt((payload as { requestId: string }).requestId), replayed: true, reminder: 'unconfirmed' };
+    }
+    return original(path, payload);
+  });
+  open(); await preview(); fireEvent.click(screen.getByRole('button', { name: '确认整批发送' }));
+  await screen.findByText('发送结果待确认');
+  const frozen = sessionStorage.getItem('dfo.gm.mail.pending.1'); expect(frozen).not.toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '按原内容安全重试' }));
+  if (status === 401) await screen.findByLabelText('管理员账号'); else await screen.findByText('没有访问此页面的权限');
+  expect(screen.queryByLabelText('邮件正文')).toBeNull(); expect(screen.queryByText('发送结果待确认')).toBeNull();
+  expect(sessionStorage.getItem('dfo.gm.mail.pending.1')).toBe(frozen);
+  currentIdentity = { ...identity, id: 2, loginName: '另一管理员' };
+  cleanup(); open(); await ready();
+  expect(screen.queryByText('发送结果待确认')).toBeNull();
+  expect(sessionStorage.getItem('dfo.gm.mail.pending.1')).toBe(frozen);
+  currentIdentity = identity;
+  cleanup(); open(); await screen.findByText('发送结果待确认');
+  expect(mocked.mock.calls.filter(([path]) => path === 'mail/send')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: '按原内容安全重试' }));
+  await screen.findByText('已恢复原发送结果，没有重复发放。');
+  const sends = mocked.mock.calls.filter(([path]) => path === 'mail/send');
+  expect(sends).toHaveLength(3); expect(sends[1][1]).toEqual(sends[0][1]); expect(sends[2][1]).toEqual(sends[0][1]);
+  expect(sessionStorage.getItem('dfo.gm.mail.pending.1')).toBeNull();
 });

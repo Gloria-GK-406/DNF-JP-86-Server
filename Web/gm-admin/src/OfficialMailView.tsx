@@ -73,7 +73,8 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
       setResult(delivered); forgetPending(); setPreview(undefined); history.refresh(); setNotice(delivered.replayed ? '已恢复原发送结果，没有重复发放。' : '整批邮件已提交。');
     } catch (failure) {
       if (!alive.current || epoch !== generation.current) return;
-      if (failure instanceof ApiError && failure.outcome !== 'unknown' && (failure.status < 500 || failure.outcome === 'rolledBack' || failure.outcome === 'rejected')) {
+      if (failure instanceof ApiError && (failure.status === 401 || failure.status === 403)) { refused(failure); }
+      else if (failure instanceof ApiError && failure.outcome !== 'unknown' && (failure.status < 500 || failure.outcome === 'rolledBack' || failure.outcome === 'rejected')) {
         forgetPending(); setPreview(undefined); refused(failure);
       } else { setError('结果暂未确认。请查询原编号或用原内容重试，勿新建编号再次发送。'); }
     } finally { if (alive.current && epoch === generation.current) setBusy(false); }

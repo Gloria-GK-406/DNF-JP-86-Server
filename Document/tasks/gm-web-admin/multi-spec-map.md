@@ -3,17 +3,17 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-phase: child_execution
+phase: root_review
 phase_state: in_progress
-active_attempt: spec-006
-last_transition: child-created
-transition_evidence: ./attempts/spec-006-release-integration/activation.md
+active_attempt: null
+last_transition: root-satisfied
+transition_evidence: ./multi-spec-map.md#evaluation-after-spec-006
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin/Document/tasks/gm-web-admin
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gm-web-admin
   branch: feature/gm-web-admin
-  baseline: aa5b663672c1beaac82484e57c3bbbeff5429d44
+  baseline: a4195c310a3b11eb5e8c1798cc0680ccdec35a44
   baseline_evidence: ./workspace.md
 ---
 
@@ -39,12 +39,12 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 模块启动和前端发布 | in_progress | spec-001，0630348d | 最终管理配置集成 | aligned |
+| SC-1 | 模块启动和前端发布 | satisfied | spec-001启动矩阵；spec-006当前package及a4195c31 | 无开发缺口，实机待验 | aligned |
 | SC-2 | 管理员权限与追踪 | satisfied | spec-002验收证据，416f26c9 | 后续写操作复用边界并回归 | aligned |
 | SC-3 | 查询和在线状态 | satisfied | spec-003验收证据，573be46b | 后续模块回归共用边界 | aligned |
-| SC-4 | 官方邮件 | satisfied | spec-004当前验收证据，07e1f607 | A21客户端MAIL清单交用户验收 | aligned |
+| SC-4 | 官方邮件 | in_progress | spec-004接受证据；root-review-r1 F-001 | 未知请求失权重试保留编号根rework | violated |
 | SC-5 | 点券发放 | satisfied | spec-005验收证据，aa5b6636 | A21三币展示交用户验收 | aligned |
-| SC-6 | 集成和验收材料 | in_progress | spec-001/002/003构建、发布及模块验证 | 标准 CI、完整回归和最终验收表 | aligned |
+| SC-6 | 集成和验收材料 | in_progress | spec-006接受证据；根完整审查r1 | F-001根rework及最终当前资源验证 | at_risk |
 
 ## Spec Attempts
 
@@ -55,7 +55,7 @@ workspace:
 | 3 | spec-003 | attempts/spec-003-player-directory/TaskContract.md | 服务概览与玩家查询 | SC-3, SC-6 | completed | attempts/spec-003-player-directory/spec-result.md | 573be46b |
 | 4 | spec-004 | attempts/spec-004-official-mail/TaskContract.md | 官方邮件编辑与发送 | SC-4, SC-6 | completed | attempts/spec-004-official-mail/spec-result.md | 07e1f607 |
 | 5 | spec-005 | attempts/spec-005-account-cera-grants/TaskContract.md | 按账号发放点券 | SC-5, SC-6 | completed | attempts/spec-005-account-cera-grants/spec-result.md | aa5b6636 |
-| 6 | spec-006 | attempts/spec-006-release-integration/TaskContract.md | 构建发布与最终验收集成 | SC-1, SC-6 | running | pending | active |
+| 6 | spec-006 | attempts/spec-006-release-integration/TaskContract.md | 构建发布与最终验收集成 | SC-1, SC-6 | completed | attempts/spec-006-release-integration/spec-result.md | a4195c31 |
 
 ## Evaluation after spec-002
 
@@ -82,3 +82,17 @@ workspace:
 根原授权覆盖最终集成；最小稳定结果为标准CI/本地打包可从源码构建GM资产、随Host独立配置运行，候选包检查无需Node运行时、不夹带环境数据，并提供最终清单。没有未决外部前置；Linux/远程CI只配置和静态核对，本机Windows实测，不宣称已执行远程平台。
 
 下一身份为spec-006-release-integration，结果仅CI/本地候选发布集成与最终验收材料；根task授权覆盖，不操作现服、真实资产或外部Release。基于已接受模块与确定发布接缝，safe-successor进入child_modeling。
+
+## Evaluation after spec-006
+
+接受baseline a4195c31及最近sealed result重新核根合同：SC-1..6均satisfied，约束全部aligned。当前5373/54/11完整自动检查和原生Windows干净候选成立；既有独立启动矩阵/权限/会话/邮件领取/三币并发持久化证据与当前全量代码一致。GM01..21交付清楚保留A21和Linux/远程CI未执行边界。六attempt唯一且全completed，active为空；没有开发范围缺口，真实部署不在根授权。
+
+root-satisfied进入root_review；请求独立完整根结果审查当前接受源码及契约覆盖。分支/工作区保留，不merge/push/清理，不修改封存结果。
+
+## Root Review
+
+### Round 1 — changes_required, local rework
+
+独立完整根审查目标原baseline5fbe2dad→接受a4195c31，报告 [root-review-r1.md](reviews/root-review-r1.md)，SHA F1DED513609A0AFFE66D1D36ED474A321C2A1C953F63783089DF765158B82A59。除F-001外根功能完整且无其它实质缺陷；SC-4/6暂降为in_progress，未知失权重试约束violated，不能宣称根完成。
+
+根review仍in_progress，局部修复路线明确、原授权/接受边界不变，按 [root-rework.md](root-rework.md) 修正当前根完整结果，待独立重审和fresh验证。六sealed结果/提交不改写；不应用尚有未解决缺陷的review-approved，也不为可本地修正的缺陷提前封存terminal根block。
