@@ -19,6 +19,16 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private static GmMailInput Empty => new("", "", [], [], 0);
+    public async ValueTask<GmMailCatalogPage> SearchItemsAsync(string secret, GmMailItemFilter filter, CancellationToken token)
+    {
+        await AuthorizeAsync(secret, token);
+        return await rules.SearchItemsAsync(filter, token);
+    }
+    public async ValueTask<GmMailItemDetails> ItemDetailsAsync(string secret, int itemId, CancellationToken token)
+    {
+        await AuthorizeAsync(secret, token);
+        return await rules.ItemDetailsAsync(itemId, token);
+    }
     public async ValueTask<GmMailQueryResult> QueryAsync(string secret, GmMailQuery kind, GmPlayerFilter filter, Guid id, GmMailInput? input, CancellationToken token)
     {
         var actor = await AuthorizeAsync(secret, token);
@@ -127,7 +137,7 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
             await persistence.AssertMailWireRangeAsync(mailed.MailId, token);
             sent.Add(new(Recipient(target), target.AccountId, mailed.MailId, uids.ToArray()));
         }
-        var receipt = new GmMailReceipt(id, actor.Id, actor.LoginName, at, expires, input, sent);
+        var receipt = new GmMailReceipt(id, actor.Id, actor.LoginName, at, expires, input, sent, grants.Select(item => item.Preview).ToArray());
         await persistence.SaveOperationAsync(actor.Id, new(rules.PayloadHash(input), receipt), token);
         await audit.AppendAsync(new(Guid.NewGuid().ToString("N"), at, "SendOfficialMail", actor.Id, actor.LoginName,
             id.ToString("N"), "Succeeded", $"已向 {sent.Count.ToString(CultureInfo.InvariantCulture)} 个角色发送"), token);

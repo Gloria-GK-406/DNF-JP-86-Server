@@ -23,6 +23,15 @@ public interface IGmMailRuleService
     string DisplayText(GmMailInput input);
     string PayloadHash(GmMailInput input);
     ValueTask<IReadOnlyList<GmMailPreparedItem>> PrepareItemsAsync(GmMailInput input, DateTimeOffset now, CancellationToken token);
+    ValueTask<GmMailCatalogPage> SearchItemsAsync(GmMailItemFilter filter, CancellationToken token);
+    ValueTask<GmMailItemDetails> ItemDetailsAsync(int itemId, CancellationToken token);
+}
+
+public interface IGmMailEquipmentRuleService
+{
+    ValueTask<GmMailEquipmentCapabilities> CapabilitiesAsync(Dfo.Server.Data.Inventory.InventoryItemCoreState core, CancellationToken token);
+    ValueTask<Dfo.Server.Data.Inventory.InventoryItemCoreState> ConfigureAsync(Dfo.Server.Data.Inventory.InventoryItemCoreState core,
+        GmMailEquipmentOptions options, CancellationToken token);
 }
 
 public interface IGmOfficialMailDomainService
@@ -31,4 +40,6 @@ public interface IGmOfficialMailDomainService
     ValueTask<GmMailDocument> EditAsync(string secret, GmMailEdit kind, Guid id, GmMailEditorRequest input, CancellationToken token);
     ValueTask<GmMailSendResult> SendAsync(string secret, GmMailPreparation preparation, CancellationToken token);
     ValueTask<bool> RecordFailureAsync(string secret, Guid requestId, string outcome, string reason, CancellationToken token);
+    ValueTask<GmMailCatalogPage> SearchItemsAsync(string secret, GmMailItemFilter filter, CancellationToken token);
+    ValueTask<GmMailItemDetails> ItemDetailsAsync(string secret, int itemId, CancellationToken token);
 }

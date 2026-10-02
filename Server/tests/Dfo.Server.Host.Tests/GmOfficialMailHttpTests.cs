@@ -21,7 +21,7 @@ using Dfo.Server.Protocol.Game.Mailbox;
 
 namespace Dfo.Server.Host.Tests;
 
-public sealed class GmOfficialMailHttpTests
+public sealed partial class GmOfficialMailHttpTests
 {
     private static object Payload(Guid id, int[]? recipients = null, string body = "测试金币", string title = "官方补偿", int gold = 100, object[]? items = null) =>
         new { requestId = id, title, body, recipientIds = recipients ?? [1], items = items ?? [], gold };

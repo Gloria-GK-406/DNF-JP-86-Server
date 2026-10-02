@@ -149,8 +149,18 @@ it('退出登录后迟到的预览响应不能恢复邮件界面', async () => {
 });
 
 it('附件与金币编辑进入预览，收件人查询使用邮件窄投影', async () => {
+  const original = mocked.getMockImplementation()!;
+  const material = { itemId: 3037, name: '无色小晶块', category: 'material', equipmentType: null, level: null, rarity: 0 };
+  mocked.mockImplementation(async (path, payload) => {
+    if (path.startsWith('mail/items?')) return { items: [material], page: 1, pageSize: 15, hasMore: false };
+    if (path === 'mail/items/3037') return { item: material, kind: 'stackable', defaultSealed: false, durability: 0, equipment: null };
+    return original(path, payload);
+  });
   open(); await ready(); fireEvent.click(screen.getByRole('button', { name: '添加物品附件' }));
-  fireEvent.change(screen.getByLabelText('物品 ID 1'), { target: { value: '3037' } }); fireEvent.change(screen.getByLabelText('数量 1'), { target: { value: '9' } });
+  fireEvent.click(await screen.findByRole('button', { name: '选择物品 3037' }));
+  fireEvent.change(await screen.findByLabelText('每人数量'), { target: { value: '9' } });
+  fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  await waitFor(() => expect(screen.queryByLabelText('每人数量')).toBeNull());
   fireEvent.change(screen.getByLabelText('每人金币'), { target: { value: '1000' } });
   fireEvent.change(screen.getByLabelText('邮件正文'), { target: { value: '领取测试' } }); fireEvent.click(await screen.findByLabelText('选择角色 1'));
   fireEvent.change(screen.getByLabelText('收件角色姓名搜索'), { target: { value: '中文%_' } }); fireEvent.click(screen.getByRole('button', { name: '查找收件人' }));

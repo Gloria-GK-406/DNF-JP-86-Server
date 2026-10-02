@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Checkbox, Descriptions, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import { api, ApiError, type PlayerPage } from './api';
 import { useGmRead } from './useGmRead';
-import { emptyMail, readPending, type MailDocument, type MailHistory, type MailInput, type MailPreview, type MailReceipt, type MailRecipient, type MailSendResult, type PendingMail } from './mail';
+import { amplifyTypes, emptyMail, readPending, type MailDocument, type MailHistory, type MailInput, type MailPreview, type MailReceipt, type MailRecipient, type MailSendResult, type PendingMail } from './mail';
+import { MailAttachments, MailAttachmentSummary } from './MailAttachments';
 
 export function OfficialMailView({ administratorId, onExpired, onDenied }: { administratorId: number; onExpired: () => void; onDenied: () => void }) {
   const storageKey = `dfo.gm.mail.pending.${administratorId}`;
@@ -90,6 +91,7 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
     {pending && <Card title="发送结果待确认"><Alert type="warning" title="保留原编号和内容，查询或重试不会重复发放。" showIcon />
       <Typography.Paragraph copyable>{pending.requestId}</Typography.Paragraph><Typography.Paragraph>收件角色 ID：{pending.input.recipientIds.join('、')}</Typography.Paragraph>
       <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{pending.input.body}</Typography.Paragraph>
+      <MailAttachmentSummary items={pending.input.items} onExpired={onExpired} onDenied={onDenied} />
       <Space><Button disabled={busy} onClick={queryPending}>查询原编号结果</Button><Button disabled={busy} onClick={() => void send(pending)}>按原内容安全重试</Button></Space></Card>}
     <Card title="邮件编辑" extra={<Tag>{dirty ? '尚未保存' : '已加载保存内容'}</Tag>}>
       <Alert type="info" title="支持永久普通装备、永久堆叠物与金币。附件由玩家在邮箱领取，邮件有效期 30 天。" showIcon />
@@ -98,14 +100,8 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
         <label htmlFor="mail-body">邮件正文</label><Input.TextArea id="mail-body" value={input.body} disabled={locked} rows={5} onChange={e => update({ ...input, body: e.target.value })} />
         <Typography.Text type="secondary">实际展示含标题和换行，最多 511 个 UTF-8 字节；以预览核对结果为准。</Typography.Text>
         <label htmlFor="mail-gold">每人金币</label><InputNumber id="mail-gold" min={0} max={2147483647} precision={0} value={input.gold} disabled={locked} onChange={value => update({ ...input, gold: value ?? 0 })} />
-        {input.items.map((item, index) => <Space key={index} wrap>
-          <label htmlFor={`item-id-${index}`}>物品 ID {index + 1}</label><InputNumber id={`item-id-${index}`} min={1} max={2147483647} precision={0} value={item.itemId || null} disabled={locked}
-            onChange={value => update({ ...input, items: input.items.map((x, i) => i === index ? { ...x, itemId: value ?? 0 } : x) })} />
-          <label htmlFor={`item-count-${index}`}>数量 {index + 1}</label><InputNumber id={`item-count-${index}`} min={1} max={2147483647} precision={0} value={item.count} disabled={locked}
-            onChange={value => update({ ...input, items: input.items.map((x, i) => i === index ? { ...x, count: value ?? 0 } : x) })} />
-          <Button disabled={locked} onClick={() => update({ ...input, items: input.items.filter((_, i) => i !== index) })}>移除附件 {index + 1}</Button>
-        </Space>)}
-        <Space wrap><Button disabled={locked || input.items.length >= 10} onClick={() => update({ ...input, items: [...input.items, { itemId: 0, count: 1 }] })}>添加物品附件</Button>
+        <MailAttachments items={input.items} locked={locked} onChange={items => update({ ...input, items })} onExpired={onExpired} onDenied={onDenied} />
+        <Space wrap>
           <Button disabled={locked} onClick={saveDraft}>保存草稿</Button><Button disabled={busy || !!preview || !!pending} onClick={loadDraft}>重新加载草稿（覆盖当前编辑）</Button>
           <Button type="primary" disabled={locked} onClick={() => { const version = edits.current; void run(() => api<MailPreview>('mail/preview', structuredClone(input)), value => { if (version === edits.current) { previewRequestId.current = crypto.randomUUID(); setPreview(value); } }); }}>预览并核对</Button></Space>
       </Space>
@@ -124,11 +120,11 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
         <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginTop: 16 }}>{preview.displayText}</Typography.Paragraph>
         <Typography.Paragraph>实际文字 {preview.utf8Bytes} / 511 字节；收件人 {preview.recipients.length}；每人金币 {preview.input.gold}；总金币 {preview.totalGold}；总物品数量 {preview.totalItems}</Typography.Paragraph>
         <Typography.Paragraph>收件角色：{preview.recipients.map(x => `${x.characterId} ${x.name}`).join('、')}</Typography.Paragraph>
-        {preview.items.map(x => <Typography.Paragraph key={x.itemId}>物品 {x.itemId} × {x.count} / 人 · {x.kind === 'equipment' ? '普通装备' : '堆叠物'}{x.kind === 'equipment' ? ` · 耐久 ${x.durability} · ${x.sealed ? '封装' : '未封装'}` : ''}</Typography.Paragraph>)}
+        <PreparedAttachments items={preview.items} />
         <Space><Button disabled={busy} onClick={() => setPreview(undefined)}>返回编辑</Button><Button type="primary" loading={busy} onClick={() => void send({ requestId: previewRequestId.current, input: structuredClone(preview.input) })}>确认整批发送</Button></Space>
       </>}
     </Modal>
-    {result && <ReceiptCard value={result.receipt} reminder={result.reminder} />}
+    {result && <ReceiptCard value={result.receipt} reminder={result.reminder} onExpired={onExpired} onDenied={onDenied} />}
     <Card title="我的发送记录" extra={<Button onClick={history.refresh}>刷新发送记录</Button>}>
       <Table rowKey="requestId" loading={history.busy} dataSource={history.data?.items ?? []} scroll={{ x: 850 }}
         pagination={{ current: historyPage, pageSize: 20, total: history.data?.total ?? 0, onChange: setHistoryPage, showSizeChanger: false }}
@@ -157,12 +153,18 @@ function RecipientSelection({ input, update, locked, onExpired, onDenied }: { in
         { title: '角色 ID', dataIndex: 'characterId' }, { title: '姓名', dataIndex: 'name' }, { title: '姓名诊断', dataIndex: 'nameDecodeStatus', render: value => value === 'valid' ? '正常' : value === 'missing' ? '字节缺失' : '编码异常' }, { title: '等级', dataIndex: 'level' }]} />
   </Card>;
 }
-function ReceiptCard({ value, reminder }: { value: MailReceipt; reminder: string }) {
+function ReceiptCard({ value, reminder, onExpired, onDenied }: { value: MailReceipt; reminder: string; onExpired: () => void; onDenied: () => void }) {
   return <Card title="持久化发送结果"><Alert type="success" title="邮件已提交，玩家可在邮箱领取附件。" description={reminder === 'unconfirmed' ? '在线提醒未确认；不会撤销或重复发放。' : '在线提醒已尝试，不代表客户端已读或附件已领取。'} showIcon />
     <Descriptions column={1} style={{ marginTop: 16 }} items={[{ key: 'id', label: '操作编号', children: <Typography.Text copyable>{value.requestId}</Typography.Text> },
       { key: 'time', label: '提交时间', children: new Date(value.committedAt).toLocaleString('zh-CN') }, { key: 'expiry', label: '到期时间', children: new Date(value.expiresAt).toLocaleString('zh-CN') },
       { key: 'body', label: '发送正文', children: <span style={{ whiteSpace: 'pre-wrap' }}>{value.input.body}</span> }]} />
+    {value.items ? <PreparedAttachments items={value.items} /> : <MailAttachmentSummary items={value.input.items} onExpired={onExpired} onDenied={onDenied} />}
     <Table rowKey={x => x.character.characterId} pagination={false} dataSource={value.recipients} columns={[{ title: '角色 ID', render: (_, x) => x.character.characterId },
       { title: '姓名', render: (_, x) => x.character.name }, { title: '邮件 ID', dataIndex: 'mailId' }, { title: '装备 UID', render: (_, x) => x.equipmentUids.join('、') || '无装备附件' }]} />
   </Card>;
+}
+
+function PreparedAttachments({ items }: { items: MailPreview['items'] }) {
+  return <>{items.map((x, index) => <Typography.Paragraph key={index}>{x.name ?? `物品 ${x.itemId}`}（ID {x.itemId}） × {x.count} / 人 · {x.kind === 'equipment' ? '普通装备' : '堆叠物'}
+    {x.kind === 'equipment' ? ` · 耐久 ${x.durability} · ${x.sealed ? '封装' : '未封装'}${x.amplifyType ? ` · 增幅 +${x.upgradeLevel ?? 0} · ${amplifyTypes[x.amplifyType]}（基础值 ${x.amplifyValue}）` : x.upgradeLevel ? ` · 强化 +${x.upgradeLevel}` : ' · 无强化 / 增幅'}` : ''}</Typography.Paragraph>)}</>;
 }

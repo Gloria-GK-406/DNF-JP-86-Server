@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
@@ -23,6 +24,10 @@ internal static class GmOfficialMailEndpoints
     {
         Get("/draft", GmMailQuery.Draft); Get("/templates", GmMailQuery.Templates);
         Get("/recipients", GmMailQuery.Recipients); Get("/operations", GmMailQuery.Operations);
+        group.MapGet(Prefix + "/items", (HttpContext context, IGmOfficialMailDomainService mail) => Safe(context,
+            async () => Results.Ok(await mail.SearchItemsAsync(Secret(context), ItemFilter(context), context.RequestAborted)))).WithMetadata(Permission);
+        group.MapGet(Prefix + "/items/{itemId:int}", (HttpContext context, IGmOfficialMailDomainService mail, int itemId) => Safe(context,
+            async () => Results.Ok(await mail.ItemDetailsAsync(Secret(context), itemId, context.RequestAborted)))).WithMetadata(Permission);
         group.MapGet(Prefix + "/operations/{id}", (HttpContext context, ICommandBus commands, string id) => Safe(context, () => Query(context, commands, GmMailQuery.Operation, Id(id)))).WithMetadata(Permission);
         group.MapPost(Prefix + "/preview", (HttpContext context, ICommandBus commands) => Safe(context, async () =>
         {
@@ -109,5 +114,18 @@ internal static class GmOfficialMailEndpoints
         int Parse(string name, int fallback) => !query.ContainsKey(name) ? fallback : int.TryParse(query[name], NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value > 0 ? value : throw new GmMailException(GmMailRefusal.Invalid, "查询参数无效。");
         var q = query["q"].ToString(); if (q.Length > 128) throw new GmMailException(GmMailRefusal.Invalid, "搜索最多 128 个字符。");
         return new(Parse("page", 1), Parse("pageSize", 20), CharacterId: query.ContainsKey("characterId") ? Parse("characterId", 0) : null, Q: string.IsNullOrWhiteSpace(q) ? null : q.Trim());
+    }
+    private static GmMailItemFilter ItemFilter(HttpContext context)
+    {
+        var query = context.Request.Query;
+        foreach (var name in new[] { "q", "itemId", "category", "equipmentType", "minimumLevel", "maximumLevel", "rarity", "page", "pageSize" })
+            if (query.TryGetValue(name, out var values) && values.Count != 1)
+                throw new GmMailException(GmMailRefusal.Invalid, "查询参数重复。");
+        int? Number(string name) => !query.ContainsKey(name) ? null
+            : int.TryParse(query[name], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number
+            : throw new GmMailException(GmMailRefusal.Invalid, "查询参数无效。");
+        string? Text(string name) => string.IsNullOrWhiteSpace(query[name]) ? null : query[name].ToString().Trim();
+        return new(Text("q"), Number("itemId"), Text("category"), Text("equipmentType"), Number("minimumLevel"),
+            Number("maximumLevel"), Number("rarity"), Number("page") ?? 1, Number("pageSize") ?? 20);
     }
 }
