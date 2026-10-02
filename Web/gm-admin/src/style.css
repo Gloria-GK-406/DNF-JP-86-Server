@@ -2,7 +2,7 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
 .shell { height: 100vh; height: 100dvh; overflow: hidden; }
 .sidebar { height: 100%; overflow: hidden; }
 .sidebar .ant-layout-sider-children { display: flex; flex-direction: column; }
-.sidebar .ant-menu { flex: 1; min-height: 0; overflow-y: auto; }
+.sidebar .ant-menu { min-height: 0; overflow-y: auto; }
 .sidebar-footer { flex-shrink: 0; padding: 16px; border-top: 1px solid #e8edf4; }
 .workspace { min-width: 0; min-height: 0; overflow: hidden; }
 .brand { height: 64px; display: flex; align-items: center; padding: 0 24px; font-size: 22px; font-weight: 700; color: #3157a4; gap: 12px; }
