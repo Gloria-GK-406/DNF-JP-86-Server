@@ -36,7 +36,7 @@ public sealed record DungeonPartyEntry(
     IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits,
     DungeonEntryChange? Change = null);
 
-public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue }
+public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon }
 
 public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null)
 {

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.FinishLoading;
@@ -101,7 +102,8 @@ internal sealed class LoadingCompleteEncoder : GameNotiMessageEncoder<LoadingCom
 public sealed class FinishLoadingHandler(
     IGameMessageSender sender,
     ILogger<FinishLoadingHandler> logger,
-    IDungeonLoadingProjectionDelivery entryProjection)
+    IDungeonLoadingProjectionDelivery entryProjection,
+    IllusionTowerProjectionDelivery? illusionTower = null)
     : ClientMessageHandler<FinishLoadingRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -109,6 +111,11 @@ public sealed class FinishLoadingHandler(
         FinishLoadingRequest message,
         CancellationToken cancellationToken)
     {
+        if (illusionTower is not null
+            && await illusionTower.CompleteLoadingAsync(
+                context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
+            return;
+
         if (!await entryProjection.CompleteLoadingAsync(
                 context.Connection.ConnectionId,
                 token => sender.SendExplicitAsync(

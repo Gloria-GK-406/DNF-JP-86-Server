@@ -1,0 +1,45 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.38]   Discovering: Dfo.Server.Infrastructure.Tests
+[xUnit.net 00:00:00.48]   Discovered:  Dfo.Server.Infrastructure.Tests
+[xUnit.net 00:00:00.51]   Starting:    Dfo.Server.Infrastructure.Tests
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorSourceTests.A_map_the_archive_does_not_declare_holds_nothing [572 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.ADungeonsWeightCanPayLessThanAMonsterIsWorth [576 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorRankTests.OneRanksWorthOfMonstersIsNotSplitByTheirLevelValues [577 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorSourceTests.A_block_declaring_several_monsters_yields_all_of_them [369 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorRankTests.RelativeAndAbsoluteMapLevelsRemainDistinctBeforeRoomCreation [366 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.ADungeonDeclaringNoExperienceGetsNone [380 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorSourceTests.The_tutorials_first_room_holds_one_monster_and_its_guide [465 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.The_tutorial_dungeon_reads_as_one_maze_on_a_three_by_two_grid [457 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorRankTests.TheBossRoomsMonstersAreOrdinaryToo [481 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.Repeated_reads_answer_from_one_parse [341 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonRoomActorRankTests.MonstersTheMapCallsNormalAreReportedAsOrdinary [348 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.AWeightWrittenAsAWholeNumberIsReadToo(dungeonId: 4103, weight: 35) [329 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.AWeightWrittenAsAWholeNumberIsReadToo(dungeonId: 4108, weight: 30) [333 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.AWeightWrittenAsAWholeNumberIsReadToo(dungeonId: 4109, weight: 9) [336 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.AWeightWrittenAsAWholeNumberIsReadToo(dungeonId: 4114, weight: 15) [332 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.The_tutorial_maze_declares_four_rooms_including_its_start_and_boss_cells [327 ms]
+[xUnit.net 00:00:05.59]   Finished:    Dfo.Server.Infrastructure.Tests
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.Dungeon144PreservesTheQuest1776MazeConnection [332 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.UnknownQuestConnectionShapesAreNotProjected(values: [0, 1776, -1, 9]) [< 1 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.UnknownQuestConnectionShapesAreNotProjected(values: [0]) [< 1 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.UnknownQuestConnectionShapesAreNotProjected(values: []) [< 1 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.A_dungeon_the_archive_does_not_declare_is_absent [314 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.AQuestConnectionWithoutDifficultyAppliesToEveryDifficulty [< 1 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.A_dungeon_with_no_maze_is_absent_rather_than_a_dungeon_with_no_rooms [328 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.The_swordman_tutorial_declares_its_boss_room_with_the_other_room_keyword [324 ms]
+  已通过 Dfo.Server.Infrastructure.Tests.Content.PvfDungeonDefinitionSourceTests.ADungeonDeclaresWhatItsKillsAreWorthAndWhatLevelItsMonstersAre [338 ms]
+
+测试运行成功。
+测试总数: 25
+     通过数: 25
+总时间: 6.0077 秒

@@ -4,6 +4,12 @@ namespace Dfo.Server.Protocol.Game;
 
 internal static class GameProtocol
 {
+    public const ushort IllusionTowerInfoType = 0x008E;
+    public const ushort IllusionTowerMapType = 0x008F;
+    public const ushort IllusionTowerRankingType = 0x0090;
+    public const ushort IllusionTowerRewardType = 0x0091;
+    public const ushort IllusionTowerContinueType = 0x0092;
+    public const ushort IllusionTowerStageType = 0x009F;
     /// <summary>
     /// The merchant a working A21 session puts on the result screen.
     /// </summary>

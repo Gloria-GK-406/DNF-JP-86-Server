@@ -20,6 +20,8 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.World.IllusionTower;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Channel;
@@ -148,6 +150,10 @@ public sealed class ApplicationModule : IServerModule
         // What a room declares, and what a run standing in it makes of that: the actor numbering,
         // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
         services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
+        services.TryAddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
+        services.TryAddSingleton<IIllusionTowerRewardRuleService, IllusionTowerRewardRuleService>();
+        services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();
+        services.TryAddSingleton<IIllusionTowerDomainService, IllusionTowerDomainService>();
         services.TryAddSingleton<IObjectDropRuleService, ObjectDropRuleService>();
         services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
@@ -400,7 +406,8 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ICharacterSkillPointDomainService>(),
                     provider.GetRequiredService<ICharacterStatRuleService>(),
                     provider.GetRequiredService<ICharacterSkillStateDomainService>(),
-                    provider.GetRequiredService<IDungeonRunDomainService>())));
+                    provider.GetRequiredService<IDungeonRunDomainService>(),
+                    () => provider.GetRequiredService<IIllusionTowerDomainService>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();

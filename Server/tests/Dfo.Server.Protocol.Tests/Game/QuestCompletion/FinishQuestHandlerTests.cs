@@ -18,6 +18,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.QuestCompletion;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestCompletion;
@@ -240,6 +241,47 @@ public sealed class FinishQuestHandlerTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Tower_career_publication_reaches_only_current_exact_run_members(bool sourceReplaced)
+    {
+        var actor = SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010);
+        var peer = SelectedSessionIdentity.Create(new(2), new(61), new("peer"), 1, 10010);
+        var stale = SelectedSessionIdentity.Create(new(3), new(62), new("stale-old"), 1, 10010);
+        var replacement = stale with { ConnectionGeneration = 2, ConnectionId = new("stale-new") };
+        var townPeer = SelectedSessionIdentity.Create(new(4), new(63), new("town-peer"), 1, 10010);
+        var identities = new List<SelectedSessionIdentity> { actor, peer, replacement, townPeer };
+        var sessions = new PeerSessions(identities);
+        var tower = new TowerDomainStub(actor, peer, stale);
+        ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
+        var area = new TownAreaKey(1, 0, 0);
+        var position = new CharacterPositionState(0, 0, 0, 0, 0);
+        areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, true));
+        areas.Enter(new(townPeer.CharacterId, townPeer.TownAreaLease(), area, position, true));
+        var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
+        entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
+        var ledger = new SkillPointLedger();
+        var sender = new RecordingSender();
+
+        await Finish(ledger, new FixedCompletion(ledger, 4),
+            views: new ChangedView(entry, entry, () =>
+            {
+                if (sourceReplaced)
+                    identities[0] = actor with { ConnectionGeneration = 2, ConnectionId = new("one-new") };
+            }),
+            sessions: sessions, areas: areas, recording: sender, towers: tower);
+
+        if (sourceReplaced)
+            Assert.Empty(sender.Targets);
+        else
+        {
+            var target = Assert.Single(sender.Targets);
+            Assert.Equal(peer.ConnectionId, target.ConnectionId);
+            Assert.IsType<CurrentUserStateMessage>(Assert.Single(target.OrderedMessages));
+        }
+    }
+
     private sealed class PeerSessions(IReadOnlyList<SelectedSessionIdentity> values) : ISelectedSessionDomainService
     {
         public SelectedSessionIdentity? FindByCharacter(CharacterId id) => values.SingleOrDefault(s => s.CharacterId == id);
@@ -286,7 +328,8 @@ public sealed class FinishQuestHandlerTests
         ITownAreaDomainService? areas = null,
         IDungeonRunDomainService? runs = null,
         DungeonRunDeliveryRegistry? generations = null,
-        RecordingSender? recording = null)
+        RecordingSender? recording = null,
+        TowerDomainStub? towers = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -310,7 +353,8 @@ public sealed class FinishQuestHandlerTests
             areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService(),
             runs ?? new Dfo.Server.Application.World.DungeonRunDomainService(),
             new WeaknessProjectionDelivery(new WeaknessState(), sessions, sender),
-            generations ?? new DungeonRunDeliveryRegistry());
+            generations ?? new DungeonRunDeliveryRegistry(),
+            towers);
 
         await handler.HandleAsync(
             new NetworkDispatchContext(

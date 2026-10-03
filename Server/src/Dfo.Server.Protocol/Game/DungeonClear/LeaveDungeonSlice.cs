@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
@@ -106,7 +107,8 @@ public sealed class EplpCommandHandler(
     ILogger<EplpCommandHandler> logger,
     SelectedSessionTransitionGate transitionGate,
     DungeonCardPresentationCoordinator? cardPresentation = null,
-    IPartyService? parties = null)
+    IPartyService? parties = null,
+    IllusionTowerProjectionDelivery? illusionTower = null)
     : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
@@ -118,6 +120,11 @@ public sealed class EplpCommandHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is not null && illusionTower is not null
+            && await illusionTower.SelectReturnAsync(
+                context.Connection.ConnectionId, message.Metadata,
+                message.State, message.Option, cancellationToken).ConfigureAwait(false))
+            return;
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
         // with the published session, so this conjunct admits exactly the connections the two
         // before it do.

@@ -126,6 +126,46 @@ public sealed class SelectDungeonHandlerTests
     }
 
     [Fact]
+    public async Task Stale_frame_is_ignored_before_the_entry_intent_is_consumed()
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var intents = new IntentStore(DungeonEntryIntent.Interactive);
+        var sessions = new OneSession(Identity);
+        var runtimes = new OneRuntimeSession(Entry());
+        var handler = new SelectDungeonHandler(
+            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new UnchangedState(),
+            sessions,
+            new RuntimeCurrentView(runtimes),
+            new NoPartyService(),
+            new NoopRuns(),
+            new DungeonRunDeliveryRegistry(),
+            intents,
+            visits,
+            new OneLog(new UnaskedLog()),
+            new RecordingFatigue(),
+            sender,
+            new NoopConnectionCloser(),
+            TownAreaProjectionTestFactory.Create(sessions, runtimes, sender),
+            NullLogger<SelectDungeonHandler>.Instance,
+            new SelectedSessionTransitionGate());
+        var stale = new GameMessageMetadata(1, 0x0010, 0, 9)
+        {
+            InboundOrdinal = 2,
+            SequenceIsFresh = false,
+        };
+
+        await handler.HandleAsync(
+            Dispatch(), new SelectDungeonRequest(stale, TutorialDungeonId, Difficulty, 0, 0),
+            CancellationToken.None);
+
+        Assert.True(intents.HasValue);
+        Assert.Empty(visits.Facts);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
     public async Task DirectedSelectionForAnotherDungeonIsRefused()
     {
         var visits = new RecordingVisits();
@@ -629,6 +669,7 @@ public sealed class SelectDungeonHandlerTests
     private sealed class IntentStore(DungeonEntryIntent? intent) : IDungeonEntryIntentDomainService
     {
         private DungeonEntryIntent? _intent = intent;
+        public bool HasValue => _intent is not null;
 
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent value) => _intent = value;
 

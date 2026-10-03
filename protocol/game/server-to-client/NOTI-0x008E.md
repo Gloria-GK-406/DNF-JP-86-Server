@@ -50,5 +50,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## 2026-10-03 静态补证与实现边界
+
+ClientStatic / Confirmed：当前镜像 handler VA `0114A8F0` 顺序读取 `u32 dungeonId + u16 totalLevels + u8 + u8`，body共8B。两个尾字节在 `0114ACF3/0114ADA0` 读取，完整业务语义尚未恢复。
+
+当前迷妄内容为11001、15层。入场前置与逐层运行的实现/验证入口见 [迷妄之塔任务](../../../Document/tasks/illusion-tower/spec.md)，输入身份及反汇编见 [研究报告](../../../Document/IllusionTowerResearch-20261003.md)。首层等待全员装载后才放行是当前实现选择，仍需A21验收。
+
+尚无本次 WireCaptured / ClientVerified；自动化编码与运行测试不能替代客户端验收。

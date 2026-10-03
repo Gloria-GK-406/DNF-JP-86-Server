@@ -1,0 +1,312 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Commands.Pipeline;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
+
+namespace Dfo.Server.Application.World.IllusionTower;
+
+internal sealed class IllusionTowerDomainService(
+    IIllusionTowerRuleService rules, ISelectedSessionDomainService sessions,
+    ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
+    IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
+    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
+    IIllusionTowerRewardDomainService? rewards = null)
+    : IIllusionTowerDomainService
+{
+    private readonly object sync = new();
+    private readonly Dictionary<Guid, IllusionTowerDgn> runs = [];
+    private readonly Dictionary<CharacterId, Guid> membership = [];
+    private bool ValidSession(SelectedSessionIdentity session) => sessions.Find(session.AccountId) == session;
+    private bool InOrdinary(CharacterId id) => ordinary.Find(id) is not null;
+
+    private Changes Pending => scope.Current!.Enlist(this, () => new Changes(this));
+    private IllusionTowerDgn? Lookup(CharacterId id)
+    {
+        if (scope.Current is not null) return Pending.Find(id);
+        lock (sync) return membership.TryGetValue(id, out var runId) ? runs[runId] : null;
+    }
+    public IllusionTowerSnapshot? Find(SelectedSessionIdentity session)
+    {
+        var run = Lookup(session.CharacterId);
+        return run is not null && run.Members.Any(x => x.Session == session) ? run.Snapshot() : null;
+    }
+    public bool IsInTower(CharacterId characterId) => Lookup(characterId) is not null;
+
+    private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
+    {
+        if (scope.Current is not null) return await action().ConfigureAwait(false);
+        await using var admission = await executionGate.AcquireAsync(token).ConfigureAwait(false);
+        await using var transaction = scope.Begin();
+        var result = await action().ConfigureAwait(false);
+        await transaction.CommitAsync(token).ConfigureAwait(false);
+        return result;
+    }
+
+    public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members)
+    {
+        if (members.Any(IsInTower)) return false;
+        if (scope.Current is not null) Pending.OrdinaryEntries.UnionWith(members);
+        return true;
+    }
+
+    public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
+        SelectedSessionIdentity leader, uint seed, CancellationToken token) => Execute(async () =>
+    {
+        TowerEntryResult Refuse(string reason) => new(reason, null, []);
+        if (members.Count is < 1 or > 4 || !members.Any(x => x.Session == leader)
+            || members.Select(x => x.Session.AccountId).Distinct().Count() != members.Count
+            || members.Select(x => x.Session.CharacterId).Distinct().Count() != members.Count
+            || members.Select(x => x.Session.WireUserId).Distinct().Count() != members.Count || members.Any(x => x.Slot > 3)
+            || members.Select(x => x.Slot).Distinct().Count() != members.Count) return Refuse("InvalidParty");
+        var definition = await rules.GetDefinitionAsync(token).ConfigureAwait(false);
+        var plans = new List<(SelectedSessionIdentity Session, List<MaterialCost> Costs)>();
+        foreach (var candidate in members)
+        {
+            var member = candidate.Session;
+            if (sessions.Find(member.AccountId) != member) return Refuse("NoSession");
+            if (IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
+            var progress = await characters.Get(member.CharacterId).ProgressAsync(token).ConfigureAwait(false);
+            if (progress is null || progress.Level < definition.MinimumLevel) return Refuse("LevelTooLow");
+            var costs = new List<MaterialCost>();
+            var store = inventory.GetStore(member.CharacterId, BusinessInventoryStoreKind.Item);
+            foreach (var requirement in definition.RequiredItems)
+            {
+                var remaining = requirement.Count;
+                foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable,
+                    BusinessInventorySpace.Material, BusinessInventorySpace.Quest, BusinessInventorySpace.ExpertMaterial })
+                {
+                    if (store.FindContainer(space) is not { } container) continue;
+                    foreach (var item in await container.GetAllAsync(token).ConfigureAwait(false))
+                    {
+                        if (!materialRules.IsConsumable(item, requirement.ItemId)) continue;
+                        var count = Math.Min(remaining, item.Count);
+                        if (count > 0 && requirement.Consume) costs.Add(new(new(space, item.SlotIndex), requirement.ItemId, count));
+                        remaining -= count;
+                        if (remaining == 0) break;
+                    }
+                    if (remaining == 0) break;
+                }
+                if (remaining != 0) return Refuse("InsufficientMaterial");
+            }
+            plans.Add((member, costs));
+        }
+        var first = await rules.CreateRoomAsync(1, seed, token).ConfigureAwait(false);
+        var run = new IllusionTowerDgn
+        {
+            RunId = Guid.NewGuid(), DungeonId = definition.DungeonId, LevelCount = definition.Rooms.Count,
+            Seed = seed, StartedAt = clock.GetUtcNow(),
+            Members = members.Select(x => new TowerMember(x.Session, x.Slot, x.Session == leader, false)).ToImmutableArray(),
+            Room = null!, ReservedUids = members.Select(x => x.Session.WireUserId).ToImmutableHashSet()
+        };
+        run.SetRoom(first, 1);
+        var debits = new List<TowerMemberDebit>();
+        foreach (var (session, costs) in plans)
+        {
+            if (costs.Count == 0) continue;
+            var consumed = await materials.ConsumeAsync(session, costs, token).ConfigureAwait(false);
+            // A refusal after another member's debit is an aborted use case, never a successful no-op.
+            if (!consumed.Success) throw new InvalidOperationException($"Tower material plan became invalid: {consumed.Rejection}.");
+            debits.Add(new(session, consumed.Debits));
+        }
+        foreach (var member in members) Pending.AuthenticatedSessions.Add(member.Session);
+        Pending.Add(run);
+        return new TowerEntryResult(null, run.Snapshot(), debits);
+    }, token);
+
+    private IllusionTowerDgn? Match(TowerActionContext context, bool leaving = false)
+    {
+        var run = Lookup(context.Session.CharacterId);
+        if (run is null || run.RunId != context.RunId || run.Room.State.Version != context.RoomVersion
+            || !run.Members.Any(x => x.Session == context.Session)
+            || (!leaving && sessions.Find(context.Session.AccountId) != context.Session)) return null;
+        if (!leaving) Pending.AuthenticatedSessions.Add(context.Session);
+        return run;
+    }
+    private ValueTask<TowerActionResult> Mutate(TowerActionContext context,
+        Func<IllusionTowerDgn, TowerActionResult> action, CancellationToken token, bool leaving = false) => Execute(() =>
+    {
+        var current = Match(context, leaving);
+        if (current is null) return ValueTask.FromResult(new TowerActionResult(false, null));
+        var next = current.Clone();
+        var result = action(next);
+        if (result.Changed) Pending.Put(current, next);
+        return ValueTask.FromResult(result);
+    }, token);
+    public ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken token) =>
+        Mutate(context, run => run.Load(context.Session), token);
+    public ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken token) =>
+        Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
+    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken token) =>
+        RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), token);
+    public ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken token) => Execute(async () =>
+    {
+        var current = Match(context);
+        if (current is null) return new TowerActionResult(false, null);
+        if (!current.CanAdvance(context.Session)) return current.Result(false);
+        var level = current.Room.State.Level + 1;
+        var prepared = await rules.CreateRoomAsync(level, unchecked(current.Seed + (uint)level - 1), token).ConfigureAwait(false);
+        var next = current.Clone();
+        var result = next.NextLevel(prepared);
+        Pending.Put(current, next);
+        return result;
+    }, token);
+    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken token) =>
+        RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), token);
+    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken token) =>
+        RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), token, leaving: true);
+    public ValueTask<TowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
+        SelectedSessionIdentity leader, CancellationToken token) =>
+        Mutate(context, run => run.SynchronizeLeader(leader), token);
+    public ValueTask<TowerActionResult> MarkSettledAsync(TowerActionContext context, TowerSettlementReceipt receipt, CancellationToken token) =>
+        Mutate(context, run => run.Settle(receipt, clock.GetUtcNow(), rules.DefaultReturnDelay), token);
+
+    public ValueTask<TowerActionResult> SelectReturnAsync(TowerActionContext context, byte option, CancellationToken token)
+    {
+        TimeSpan? delay;
+        try { delay = rules.ReturnDelay(option); }
+        catch (ArgumentOutOfRangeException) { return ValueTask.FromResult(new TowerActionResult(false, Find(context.Session))); }
+        return Mutate(context, run => run.SelectReturn(context.Session, option, clock.GetUtcNow(), delay), token);
+    }
+
+    public IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now)
+    {
+        lock (sync)
+        {
+            return runs.Values
+                .Where(run => run.ReturnDueAt is { } due && due <= now && run.Completion is { Settled: true })
+                .Select(run => run.Members.FirstOrDefault(member => member.IsLeader) is { } leader
+                    ? new TowerActionContext(leader.Session, run.RunId, run.Room.State.Version)
+                    : null)
+                .Where(context => context is not null)
+                .Cast<TowerActionContext>()
+                .ToArray();
+        }
+    }
+
+    public async ValueTask<bool> SupportsDungeonAsync(int dungeonId, CancellationToken token) =>
+        (await rules.GetDefinitionAsync(token).ConfigureAwait(false)).DungeonId == dungeonId;
+
+    public ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token) => Execute(async () =>
+    {
+        var run = Match(context);
+        if (run?.Completion is not { Settled: true }) return false;
+        var definition = await rules.GetDefinitionAsync(token).ConfigureAwait(false);
+        var members = run.Members.Where(x => ValidSession(x.Session)).ToArray();
+        if (members.Length == 0) return false;
+        foreach (var member in members)
+        {
+            Pending.AuthenticatedSessions.Add(member.Session);
+            var store = inventory.GetStore(member.Session.CharacterId, BusinessInventoryStoreKind.Item);
+            foreach (var requirement in definition.RequiredItems)
+            {
+                long held = 0;
+                foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable,
+                    BusinessInventorySpace.Material, BusinessInventorySpace.Quest, BusinessInventorySpace.ExpertMaterial })
+                    if (store.FindContainer(space) is { } container)
+                        foreach (var item in await container.GetAllAsync(token).ConfigureAwait(false))
+                            if (materialRules.IsConsumable(item, requirement.ItemId)) held += item.Count;
+                if (held < requirement.Count) return false;
+            }
+        }
+        return true;
+    }, token);
+
+    private ValueTask<TowerActionResult> RewardingMutation(TowerActionContext context,
+        Func<IllusionTowerDgn, TowerActionResult> action, CancellationToken token, bool leaving = false) => Execute(async () =>
+    {
+        var current = Match(context, leaving);
+        if (current is null) return new TowerActionResult(false, null);
+        var next = current.Clone();
+        var result = action(next);
+        if (!result.Changed) return result;
+        var wasSettled = current.Completion is { Settled: true };
+        var killRewards = ImmutableArray<TowerKillReward>.Empty;
+        if (rewards is not null)
+        {
+            // Stale identities must not block cleanup, nor receive another session's awards.
+            var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
+            foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
+            if (result.KilledActor is { } actor)
+                killRewards = await rewards.KillAsync(eligible, actor, token).ConfigureAwait(false);
+            if (next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
+                next.Settle(await rewards.SettleAsync(eligible, next.Seed, token).ConfigureAwait(false),
+                    clock.GetUtcNow(), rules.DefaultReturnDelay);
+        }
+        Pending.Put(current, next);
+        return next.Result(true, result.KilledActor) with
+        {
+            KillRewards = killRewards,
+            SettlementCreated = !wasSettled && next.Completion is { Settled: true },
+        };
+    }, token);
+
+    private sealed class Changes(IllusionTowerDomainService owner) : ITransactionParticipant
+    {
+        private readonly Dictionary<Guid, (IllusionTowerDgn? Before, IllusionTowerDgn After)> changes = [];
+        public HashSet<CharacterId> OrdinaryEntries { get; } = [];
+        public HashSet<SelectedSessionIdentity> AuthenticatedSessions { get; } = [];
+        public bool CommitCanFail => false;
+        public IllusionTowerDgn? Find(CharacterId id)
+        {
+            var staged = changes.Values.FirstOrDefault(x => x.After.Members.Any(m => m.Session.CharacterId == id)).After;
+            if (staged is not null) return staged;
+            lock (owner.sync)
+            {
+                if (!owner.membership.TryGetValue(id, out var runId)) return null;
+                return changes.ContainsKey(runId) ? null : owner.runs[runId];
+            }
+        }
+        public void Add(IllusionTowerDgn next) => changes.Add(next.RunId, (null, next));
+        public void Put(IllusionTowerDgn previous, IllusionTowerDgn next) => changes[next.RunId] =
+            (changes.TryGetValue(next.RunId, out var existing) ? existing.Before : previous, next);
+        public ValueTask PrepareAsync(CancellationToken token)
+        {
+            lock (owner.sync)
+            {
+                if (AuthenticatedSessions.Any(x => !owner.ValidSession(x)))
+                    throw new InvalidOperationException("Tower session changed before commit.");
+                foreach (var (runId, (before, after)) in changes)
+                {
+                    if (owner.runs.GetValueOrDefault(runId) != before) throw new InvalidOperationException("Tower changed before commit.");
+                    foreach (var member in after.Members)
+                    {
+                        if (owner.membership.TryGetValue(member.Session.CharacterId, out var owned) && owned != runId
+                            && (!changes.TryGetValue(owned, out var releasing) || releasing.After.Members.Any(x => x.Session.CharacterId == member.Session.CharacterId)))
+                            throw new InvalidOperationException("Tower member changed before commit.");
+                        if (before is null && owner.InOrdinary(member.Session.CharacterId))
+                            throw new InvalidOperationException("Tower admission/session changed before commit.");
+                    }
+                }
+            }
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask CommitAsync(CancellationToken token)
+        {
+            lock (owner.sync)
+            {
+                foreach (var (before, _) in changes.Values)
+                    if (before is not null)
+                        foreach (var member in before.Members) owner.membership.Remove(member.Session.CharacterId);
+                foreach (var (runId, (_, after)) in changes)
+                {
+                    if (after.Members.IsEmpty) owner.runs.Remove(runId);
+                    else
+                    {
+                        owner.runs[runId] = after;
+                        foreach (var member in after.Members) owner.membership[member.Session.CharacterId] = runId;
+                    }
+                }
+            }
+            return ValueTask.CompletedTask;
+        }
+        public ValueTask RollbackAsync(CancellationToken token) => ValueTask.CompletedTask;
+    }
+}

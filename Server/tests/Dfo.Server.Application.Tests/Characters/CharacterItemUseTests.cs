@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Transactions;
@@ -126,6 +127,16 @@ public sealed class CharacterItemUseTests
 
         Assert.Equal(
             ItemUsability.PlaceNotAllowed,
+            await usability.CanUseAsync(8474, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task A_tower_member_uses_the_existing_dungeon_item_rules()
+    {
+        var usability = BuildInTower(out _, level: 50, job: 0,
+            (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
+
+        Assert.Equal(ItemUsability.Allowed,
             await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
@@ -453,10 +464,27 @@ public sealed class CharacterItemUseTests
         byte level,
         byte job,
         params (int ItemId, ItemUseRule Rule)[] rules)
+        => Build(out fixture, level, job, false, rules);
+
+    private static ICharacter BuildInTower(
+        out Fixture fixture,
+        byte level,
+        byte job,
+        params (int ItemId, ItemUseRule Rule)[] rules)
+        => Build(out fixture, level, job, true, rules);
+
+    private static ICharacter Build(
+        out Fixture fixture,
+        byte level,
+        byte job,
+        bool inTower,
+        params (int ItemId, ItemUseRule Rule)[] rules)
     {
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         var cooldowns = new CharacterItemCooldownDomainService(clock);
         fixture = new Fixture(clock, cooldowns);
+        var tower = TowerPresenceProxy.Create(out var presence);
+        if (inTower) presence.Members.Add(Character);
         return new PlayingCharacter(
             Character,
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
@@ -465,7 +493,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.At(level, job),
-            new NoSkillPointLedger(), null!, null!);
+            new NoSkillPointLedger(), null!, null!, null, () => tower);
     }
 
     private static ICharacter Build(

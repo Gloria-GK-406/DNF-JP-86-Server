@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -30,42 +31,63 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
     IDungeonRunDomainService runs, ITownAreaDomainService towns, IGameMessageSender sender,
     ICreatureRuntimeDomainService creatures, INetworkConnectionCloser connections,
     ILogger<CreatureProjectionDelivery> logger, IInventorySlotMappingRuleService? slotMappings = null,
-    TimeProvider? clock = null)
+    TimeProvider? clock = null, IIllusionTowerDomainService? towers = null)
 {
     public async ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification,
         CancellationToken ct)
     {
         if (sessions.FindByCharacter(owner.CharacterId) != owner) return false;
-        var audience = runs.Find(owner.CharacterId)?.Participants.Select(x => x.CharacterId)
-            ?? (towns.Find(owner.CharacterId) is { } member
-                ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
+        IEnumerable<SelectedSessionIdentity> receivers;
+        Guid? towerRunId = null;
+        if (towers?.Find(owner) is { } tower)
+        {
+            towerRunId = tower.RunId;
+            receivers = new[] { owner }.Concat(tower.Members.Select(member => member.Session)).Distinct();
+        }
+        else
+        {
+            var audience = runs.Find(owner.CharacterId)?.Participants.Select(x => x.CharacterId)
+                ?? (towns.Find(owner.CharacterId) is { } member
+                    ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
+            receivers = new[] { owner.CharacterId }.Concat(audience).Distinct()
+                .Select(sessions.FindByCharacter).OfType<SelectedSessionIdentity>();
+        }
         var ownerDelivered = true;
-        foreach (var id in new[] { owner.CharacterId }.Concat(audience).Distinct())
-            if (sessions.FindByCharacter(id) is { } receiver)
+        foreach (var receiver in receivers)
+        {
+            if (towerRunId is { } expectedRun
+                && (sessions.FindByCharacter(owner.CharacterId) != owner
+                    || towers?.Find(owner)?.RunId != expectedRun))
+                break;
+            if (towerRunId is not null
+                && (sessions.FindByCharacter(receiver.CharacterId) != receiver
+                    || towers?.Find(receiver)?.RunId != towerRunId))
+                continue;
+            try
+            {
+                await sender.SendNotiAsync(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                if (receiver == owner) ownerDelivered = false;
+                logger.LogWarning(exception,
+                    "Creature notification failed for receiver={CharacterId}; closing that connection",
+                    receiver.CharacterId);
                 try
                 {
-                    await sender.SendNotiAsync(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
+                    if (sessions.FindByCharacter(receiver.CharacterId) == receiver)
+                        await connections.RequestCloseAsync(receiver.ConnectionId, CancellationToken.None)
+                            .ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                catch (Exception exception)
+                catch (Exception closeException)
                 {
-                    if (id == owner.CharacterId) ownerDelivered = false;
-                    logger.LogWarning(exception,
-                        "Creature notification failed for receiver={CharacterId}; closing that connection",
+                    logger.LogWarning(closeException,
+                        "Creature notification receiver close failed character={CharacterId}",
                         receiver.CharacterId);
-                    try
-                    {
-                        if (sessions.FindByCharacter(id) == receiver)
-                            await connections.RequestCloseAsync(receiver.ConnectionId, CancellationToken.None)
-                                .ConfigureAwait(false);
-                    }
-                    catch (Exception closeException)
-                    {
-                        logger.LogWarning(closeException,
-                            "Creature notification receiver close failed character={CharacterId}",
-                            receiver.CharacterId);
-                    }
                 }
+            }
+        }
         return ownerDelivered;
     }
 

@@ -9,6 +9,7 @@ using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
@@ -72,6 +73,12 @@ using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.IllusionTowerStage;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
@@ -597,6 +604,35 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.TryAddSingleton<IllusionTowerProjectionGate>();
+        services.TryAddSingleton<IllusionTowerEntryGate>();
+        services.TryAddSingleton<IllusionTowerProjectionDelivery>();
+        services.TryAddSingleton<IllusionTowerPartyCoordinator>();
+        services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IIllusionTowerDepartureSink,
+            IllusionTowerDepartureProjectionSink>());
+        services.TryAddSingleton<IllusionTowerReturnSweepService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
+            provider.GetRequiredService<IllusionTowerReturnSweepService>());
+        services.AddCommandHandler<EnterIllusionTowerCommand, TowerEntryResult,
+            EnterIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LoadIllusionTowerCommand, TowerActionResult,
+            LoadIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<StartIllusionTowerCommand, TowerActionResult,
+            StartIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<KillIllusionTowerActorCommand, TowerActionResult,
+            KillIllusionTowerActorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<AdvanceIllusionTowerCommand, TowerActionResult,
+            AdvanceIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<DieInIllusionTowerCommand, TowerActionResult,
+            DieInIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,
+            LeaveIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SynchronizeIllusionTowerLeaderCommand, TowerActionResult,
+            SynchronizeIllusionTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SelectIllusionTowerReturnCommand, TowerActionResult,
+            SelectIllusionTowerReturnCommandHandler>(CommandExecutionKind.Transactional);
+        services.RegisterMessageHandler<IllusionTowerStageHandler>(ClientMessageType.GameIllusionTowerStage);
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
@@ -735,6 +771,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerInfoNotification, IllusionTowerInfoEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerMapNotification, IllusionTowerMapEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerRankingNotification, IllusionTowerRankingEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerRewardNotification, IllusionTowerRewardEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerContinueNotification, IllusionTowerContinueEncoder>();
         services.AddGameCmdMessageDecoder<PremiumServiceUsageReportDecoder>(0x036F, ClientMessageType.GamePremiumServiceUsageReport);
         services.AddGameCmdMessageDecoder<RecoverStaminaDecoder>(0x0009, ClientMessageType.GameRecoverStamina);
         services.AddGameCmdMessageEncoder<RecoverStaminaResponse, RecoverStaminaEncoder>();
@@ -809,6 +850,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<CharacterDeathDecoder>(GameProtocol.CharacterDeathType, ClientMessageType.GameCharacterDeath);
         services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
             GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
+        services.AddGameCmdMessageDecoder<IllusionTowerStageDecoder>(
+            GameProtocol.IllusionTowerStageType, ClientMessageType.GameIllusionTowerStage);
         services.AddGameCmdMessageDecoder<GetItemDecoder>(
             GameProtocol.GetItemType, ClientMessageType.GameGetItem);
         services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(

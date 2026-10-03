@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameIllusionTowerStage = 0x0001_009F,
     GameCreateAccountCargo = 0x0001_0131,
     GameUpgradeAccountCargo = 0x0001_0132,
     GameDepositAccountCargo = 0x0001_0133,
@@ -191,6 +192,11 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameIllusionTowerInfo = 0x0000_008E,
+    GameIllusionTowerMap = 0x0000_008F,
+    GameIllusionTowerRanking = 0x0000_0090,
+    GameIllusionTowerReward = 0x0000_0091,
+    GameIllusionTowerContinue = 0x0000_0092,
     GameCreateAccountCargo = 0x0001_0131,
     GameUpgradeAccountCargo = 0x0001_0132,
     GameDepositAccountCargo = 0x0001_0133,

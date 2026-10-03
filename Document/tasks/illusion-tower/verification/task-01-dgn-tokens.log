@@ -1,0 +1,120 @@
+1	Identifier	string=True	value=20993504	[background pos]
+2	Int32	string=False	value=80	80
+3	Identifier	string=True	value=20993538	[cutscene image]
+4	QuotedString	string=True	value=21209984	Map/CutScene/towerofdeath.img
+5	Int32	string=False	value=0	0
+6	Identifier	string=True	value=20993702	[worldmap pattern info]
+7	Int32	string=False	value=1	1
+8	Int32	string=False	value=6	6
+9	QuotedString	string=True	value=21086350	WorldMap/SelectdungeonSlot/Tower.img
+10	Int32	string=False	value=1	1
+11	Identifier	string=True	value=16462514	[dungeon type]
+12	QuotedString	string=True	value=21384024	tower of death
+13	Identifier	string=True	value=20993834	[minimum required level]
+14	Int32	string=False	value=40	40
+15	Identifier	string=True	value=20993884	[basis level]
+16	Int32	string=False	value=40	40
+17	Identifier	string=True	value=21009618	[required item]
+18	Int32	string=False	value=4183	4183
+19	Int32	string=False	value=1	1
+20	Int32	string=False	value=1	1
+21	Identifier	string=True	value=21009650	[/required item]
+22	Identifier	string=True	value=21005096	[recommended level]
+23	Int32	string=False	value=40	40
+24	Int32	string=False	value=40	40
+25	Identifier	string=True	value=21383184	[ai character appear rate]
+26	Int32	string=False	value=100	100
+27	Identifier	string=True	value=14059926	[name]
+28	QuotedString	string=True	value=279241	迷妄之塔
+29	Identifier	string=True	value=14085306	[explain]
+30	QuotedString	string=True	value=1723427	    穷尽一生追逐浮华的名利幻影， 到人生的最后一刻才明白这一切不过是虚无， 这就是人生给予每个生命最珍贵的礼物！ 那些在尘世中感到彷徨无助的人啊， 我已将你们心里的诸般迷妄在此地重现， 你们再也不用忍受欲望的煎熬， 直接来这里吧， 来取走你们人生中最珍贵的礼物吧！
+31	Identifier	string=True	value=21383248	[tower max clear item num]
+32	Int32	string=False	value=4	4
+33	Identifier	string=True	value=21384054	[death tower map indexes]
+34	Int32	string=False	value=15	15
+35	Int32	string=False	value=1	1
+36	Int32	string=False	value=31001	31001
+37	Int32	string=False	value=2	2
+38	Int32	string=False	value=31002	31002
+39	Int32	string=False	value=3	3
+40	Int32	string=False	value=31003	31003
+41	Int32	string=False	value=4	4
+42	Int32	string=False	value=31004	31004
+43	Int32	string=False	value=5	5
+44	Int32	string=False	value=31005	31005
+45	Int32	string=False	value=6	6
+46	Int32	string=False	value=31007	31007
+47	Int32	string=False	value=7	7
+48	Int32	string=False	value=31008	31008
+49	Int32	string=False	value=8	8
+50	Int32	string=False	value=31010	31010
+51	Int32	string=False	value=9	9
+52	Int32	string=False	value=31011	31011
+53	Int32	string=False	value=10	10
+54	Int32	string=False	value=31006	31006
+55	Int32	string=False	value=11	11
+56	Int32	string=False	value=31019	31019
+57	Int32	string=False	value=12	12
+58	Int32	string=False	value=31015	31015
+59	Int32	string=False	value=13	13
+60	Int32	string=False	value=31020	31020
+61	Int32	string=False	value=14	14
+62	Int32	string=False	value=31024	31024
+63	Int32	string=False	value=15	15
+64	Int32	string=False	value=31025	31025
+65	Identifier	string=True	value=21384106	[/death tower map indexes]
+66	Identifier	string=True	value=21315726	[tower high skill initial cool time]
+67	Int32	string=False	value=0	0
+68	Int32	string=False	value=1	1
+69	Identifier	string=True	value=21315800	[tower high skill initial cool time rate]
+70	Single	string=False	value=0	0
+71	Single	string=False	value=1065353216	1
+72	Identifier	string=True	value=21383414	[tower fp cubepiece]
+73	Int32	string=False	value=0	0
+74	Identifier	string=True	value=21315884	[tower limit of stackable item]
+75	Int32	string=False	value=0	0
+76	Identifier	string=True	value=21384492	[tower recovery]
+77	Int32	string=False	value=0	0
+78	Int32	string=False	value=10	10
+79	Int32	string=False	value=100	100
+80	Identifier	string=True	value=21384526	[/tower recovery]
+81	Identifier	string=True	value=21384492	[tower recovery]
+82	Int32	string=False	value=11	11
+83	Int32	string=False	value=15	15
+84	Int32	string=False	value=50	50
+85	Identifier	string=True	value=21384526	[/tower recovery]
+86	Identifier	string=True	value=21384654	[tower item drop]
+87	Int32	string=False	value=0	0
+88	Identifier	string=True	value=21384160	[tower talk]
+89	Identifier	string=True	value=21384186	[floor]
+90	Int32	string=False	value=1	1
+91	Identifier	string=True	value=21384202	[on start floor]
+92	QuotedString	string=True	value=16422926	npc
+93	Int32	string=False	value=1001	1001
+94	Int32	string=False	value=0	0
+95	QuotedString	string=True	value=1723697	我是死神， 在绝望中寻求新生的人啊， 欢迎你来到迷妄之塔！
+96	Int32	string=False	value=5000	5000
+97	Identifier	string=True	value=21384236	[/on start floor]
+98	Identifier	string=True	value=21384272	[on end floor]
+99	QuotedString	string=True	value=16422926	npc
+100	Int32	string=False	value=1001	1001
+101	Int32	string=False	value=0	0
+102	QuotedString	string=True	value=1723757	时间就是生命， 不要浪费它。
+103	Int32	string=False	value=5000	5000
+104	Identifier	string=True	value=21384302	[/on end floor]
+105	Identifier	string=True	value=21384334	[/tower talk]
+106	Identifier	string=True	value=21384160	[tower talk]
+107	Identifier	string=True	value=21384186	[floor]
+108	Int32	string=False	value=2	2
+109	Identifier	string=True	value=21384202	[on start floor]
+110	QuotedString	string=True	value=16422926	npc
+111	Int32	string=False	value=1001	1001
+112	Int32	string=False	value=0	0
+113	QuotedString	string=True	value=1723787	怕了吗？ 死亡游戏才刚刚开始呢！
+114	Int32	string=False	value=5000	5000
+115	Identifier	string=True	value=21384236	[/on start floor]
+116	Identifier	string=True	value=21384272	[on end floor]
+117	QuotedString	string=True	value=16422926	npc
+118	Int32	string=False	value=1001	1001
+119	Int32	string=False	value=0	0
+120	QuotedString	string=True	value=1723821	我的欢迎仪式结束了， 你可以奔赴死亡的邀请了。

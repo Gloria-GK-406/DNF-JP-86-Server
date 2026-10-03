@@ -12,6 +12,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Creatures;
+using Dfo.Server.Protocol.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.Creatures;
@@ -97,10 +98,57 @@ public sealed class CreatureProjectionDeliveryTests
         Assert.Equal(["owner"], closer.Closed.Select(x => x.Value));
     }
 
+    [Fact]
+    public async Task Tower_visibility_reaches_only_current_exact_run_members()
+    {
+        var owner = Session(1, "owner");
+        var peer = Session(2, "peer");
+        var stale = Session(3, "stale-old");
+        var replacement = stale with { ConnectionGeneration = 2, ConnectionId = new("stale-new") };
+        var townPeer = Session(4, "town-peer");
+        var sessions = new Sessions(owner, peer, replacement, townPeer);
+        var tower = new TowerDomainStub(owner, peer, stale);
+        var sender = new Sender();
+        var delivery = Create(sessions,
+            new Towns(Member(owner, Area, true), Member(townPeer, Area, true)),
+            sender, new Closer(), tower);
+
+        var success = await delivery.SendVisibleAsync(owner,
+            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+
+        Assert.True(success);
+        Assert.Equal(["owner", "peer"], sender.Sent.Select(value => value.Value));
+    }
+
+    [Fact]
+    public async Task Tower_visibility_does_not_rebind_a_peer_replaced_after_owner_delivery()
+    {
+        var owner = Session(1, "owner");
+        var peer = Session(2, "peer-old");
+        var replacement = peer with { ConnectionGeneration = 2, ConnectionId = new("peer-new") };
+        var identities = new[] { owner, peer };
+        var sessions = new Sessions(identities);
+        var sender = new Sender
+        {
+            AfterSend = connection =>
+            {
+                if (connection == owner.ConnectionId) identities[1] = replacement;
+            },
+        };
+        var delivery = Create(sessions, new Towns(), sender, new Closer(),
+            new TowerDomainStub(owner, peer));
+
+        var success = await delivery.SendVisibleAsync(owner,
+            new CreatureRenameNotification(owner.WireUserId, [0x41]), default);
+
+        Assert.True(success);
+        Assert.Equal(["owner"], sender.Sent.Select(value => value.Value));
+    }
+
     private static CreatureProjectionDelivery Create(Sessions sessions, Towns towns, Sender sender,
-        Closer closer) => new(sessions, DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(),
+        Closer closer, TowerDomainStub? tower = null) => new(sessions, DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(),
             towns, sender, DispatchProxy.Create<ICreatureRuntimeDomainService, NullProxy>(), closer,
-            NullLogger<CreatureProjectionDelivery>.Instance);
+            NullLogger<CreatureProjectionDelivery>.Instance, towers: tower);
 
     private static SelectedSessionIdentity Session(int id, string connection) =>
         SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id),
@@ -153,6 +201,7 @@ public sealed class CreatureProjectionDeliveryTests
     private sealed class Sender : IGameMessageSender
     {
         public NetworkConnectionId? Failing { get; init; }
+        public Action<NetworkConnectionId>? AfterSend { get; init; }
         public List<NetworkConnectionId> Sent { get; } = [];
         public List<IGameNotiMessage> Notifications { get; } = [];
         public ValueTask SendNotiAsync(NetworkConnectionId connectionId,
@@ -160,6 +209,7 @@ public sealed class CreatureProjectionDeliveryTests
         {
             Sent.Add(connectionId);
             Notifications.Add(message);
+            AfterSend?.Invoke(connectionId);
             return connectionId == Failing
                 ? ValueTask.FromException(new IOException("send failed"))
                 : ValueTask.CompletedTask;

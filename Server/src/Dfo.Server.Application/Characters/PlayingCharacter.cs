@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -31,7 +32,8 @@ internal sealed class PlayingCharacter(
     ICharacterSkillPointDomainService skillPoints,
     ICharacterStatRuleService statRules,
     ICharacterSkillStateDomainService skillState,
-    IDungeonRunDomainService? dungeonRuns = null) : ICharacter
+    IDungeonRunDomainService? dungeonRuns = null,
+    Func<IIllusionTowerDomainService>? towers = null) : ICharacter
 {
     public CharacterId Id => characterId;
 
@@ -164,6 +166,7 @@ internal sealed class PlayingCharacter(
     public async ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken)
     {
         if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null
+            && towers?.Invoke().IsInTower(characterId) != true
             || await IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity
             || await ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
             return null;
@@ -190,7 +193,7 @@ internal sealed class PlayingCharacter(
     /// </para>
     /// </remarks>
     private ItemUsePlace Place() =>
-        dungeonRuns?.Find(characterId) is not null
+        dungeonRuns?.Find(characterId) is not null || towers?.Invoke().IsInTower(characterId) == true
             ? ItemUsePlace.Dungeon
             : ItemUsePlace.Village;
 }

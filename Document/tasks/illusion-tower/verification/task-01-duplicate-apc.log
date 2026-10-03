@@ -1,0 +1,55 @@
+=== aicharacter/demoniclancer/sandspoon/sandspoon.aic ===
+[appearance point]
+0
+[minimum info]
+土包子 13 1 1 1 85 0 0 0 0 0 0 no creature 0 0 0
+[additional character status]
+0 1000 0 0 0 0 0 0 0 0 20 0 0 0 600 0 100 100 100 100 20 20 20 20 20 20 20 20 20 20 1 20 1 0 20 20 1
+[/additional character status]
+[character status rate]
+600 1000 1 1 1 1 1 2 1 2 1 1 1 1.2 1 1 2 1 1 1 1 1 1 1 1 5 1 80 1 10 1 10 1 1 1 1 1 0.3 10 1 1
+[/character status rate]
+[attack damage rate]
+0.055
+[custom skill level]
+[/custom skill level]
+[far attack reaction rate]
+50
+[quick skill]
+13 10 18 5 14 3 16 1 10 1
+[/quick skill]
+[skill]
+197 1 3 1 2 1 4 1 25 15 22 1 9 1 11 10 8 24 24 9 179 8 174 86 21 1 186 10 178 1 190 1 169 1 230 5 229 5 228 5
+[/skill]
+[skill correction]
+13 0.35 18 0.3 14 0.28 16 0.5 10 0.1
+[/skill correction]
+[quick item]
+2600028 95
+[/quick item]
+[equipment]
+114000137 0 0 100070236 4 0 100170220 4 0 100120229 4 0 100270209 4 0 100220210 4 0 100310996 4 0 100310733 4 0 100320847 4 0 100341851 4 0 100350892 4 0
+[/equipment]
+[think term]
+200
+[destination change term]
+500
+[keep distance with target]
+50
+[warlike]
+0
+[vision]
+3000
+[appearance point]
+0
+[targeting bonus]
+0 50 0 0 0 0 50 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [down] 0 100 [lightning] 0
+[ai pattern]
+Event.ai DestinationSelect.ai Action.ai MoveMethod.ai
+[/ai pattern]
+[key stream]
+ a.key  s.key  d.key  f.key  g.key  h.key combo combo.key
+[/key stream]
+[key cooltime]
+combo 20000
+[/key cooltime]

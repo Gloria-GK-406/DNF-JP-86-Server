@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Data.World;
 using Dfo.Server.Application.Commands;
@@ -14,7 +15,6 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
@@ -386,7 +386,8 @@ public sealed class MonsterDeathHandler(
     ExperienceDiagnostics diagnostics,
     ILogger<MonsterDeathHandler> logger,
     DungeonPartyRecipients? partyRecipients = null,
-    ICreatureRuntimeDomainService? creatures = null, SelectedSessionSafety? safety = null) : ClientMessageHandler<MonsterDeathRequest>
+    ICreatureRuntimeDomainService? creatures = null, SelectedSessionSafety? safety = null,
+    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<MonsterDeathRequest>
 {
     private ValueTask<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException> PublicationFailureAsync(
         SelectedSessionRecipient recipient, Exception failure) => safety is not null
@@ -435,6 +436,12 @@ public sealed class MonsterDeathHandler(
                 message.ActorSequence);
             return;
         }
+
+        if (message.ObjectCode is null && illusionTower is not null
+            && await illusionTower.KillAsync(
+                context.Connection.ConnectionId, message.Metadata,
+                message.ActorSequence, message.WireUserId, cancellationToken).ConfigureAwait(false))
+            return;
 
         if (message.ObjectCode is { } objectCode)
         {

@@ -289,6 +289,21 @@ public sealed class LeaveDungeonTests
         Assert.Empty(commands.Commands);
     }
 
+    [Fact]
+    public async Task Stale_give_up_stops_before_any_current_run_or_party_capture()
+    {
+        var stale = new GameMessageMetadata(1, 0x002A, 0, 9)
+        {
+            InboundOrdinal = 2,
+            SequenceIsFresh = false,
+        };
+        var handler = new GiveUpGameHandler(
+            null!, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        await handler.HandleAsync(
+            Dispatch(), new GiveUpGameRequest(stale), CancellationToken.None);
+    }
+
     /// <summary>Nothing is answered on a connection with no published session.</summary>
     [Fact]
     public async Task A_command_without_a_published_session_is_ignored()

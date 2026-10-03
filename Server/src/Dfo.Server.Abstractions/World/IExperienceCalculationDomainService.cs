@@ -9,6 +9,11 @@ public sealed record ClearExperienceContext(ExperienceOccasion Occasion, ClearCi
 public sealed record QuestExperienceContext(ExperienceOccasion Occasion, uint Base)
     : ExperienceCalculationContext(Occasion);
 
+public sealed record TowerKillExperienceContext(ExperienceOccasion Occasion, byte ActorType)
+    : ExperienceCalculationContext(Occasion);
+public sealed record TowerClearExperienceContext(ExperienceOccasion Occasion, int RewardLevel)
+    : ExperienceCalculationContext(Occasion);
+
 public interface IExperienceCalculationDomainService
 {
     ValueTask<ExperienceBreakdown> CalculateAsync(ExperienceCalculationContext context,

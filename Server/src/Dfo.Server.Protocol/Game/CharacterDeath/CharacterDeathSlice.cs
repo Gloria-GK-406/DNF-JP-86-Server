@@ -7,6 +7,7 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.CharacterDeath;
@@ -87,7 +88,8 @@ public sealed class CharacterDeathHandler(
     DungeonProjectionGate projectionGate,
     ICommandBus commands,
     IGameMessageSender sender,
-    ILogger<CharacterDeathHandler> logger) : ClientMessageHandler<CharacterDeathRequest>
+    ILogger<CharacterDeathHandler> logger,
+    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<CharacterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context, CharacterDeathRequest message, CancellationToken cancellationToken)
@@ -95,6 +97,9 @@ public sealed class CharacterDeathHandler(
         var connectionId = context.Connection.ConnectionId;
         var session = selectedSessions.FindByConnection(connectionId);
         if (session is null) return;
+        if (illusionTower is not null
+            && await illusionTower.DieAsync(connectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
+            return;
         var expected = runs.Find(session.CharacterId);
         if (expected is null) return;
 

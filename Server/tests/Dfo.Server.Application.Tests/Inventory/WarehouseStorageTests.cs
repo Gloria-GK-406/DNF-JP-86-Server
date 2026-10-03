@@ -9,6 +9,8 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.InventorySort;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +18,21 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class WarehouseStorageTests
 {
+    [Fact]
+    public async Task Tower_members_cannot_move_sort_or_change_cargo_but_can_sort_carried_items()
+    {
+        var tower = TowerPresenceProxy.Create(out var presence);
+        using var host = Fixture(services => services.AddSingleton(tower));
+        presence.Members.Add(host.Session.CharacterId);
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key,value32) VALUES(1,1,0)");
+        await host.Seed(65, 2000, 2);
+
+        Assert.IsType<ItemMoveOutcome.Refused>(await Move(host,
+            new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.AccountCargo, 0)));
+        Assert.Equal(InventoryExpansionRejection.NoSession, (await Command(host, 0x0133, 1)).Rejection);
+        Assert.Null((await Sort(host, BusinessInventorySpace.AccountCargo)).Receipt);
+        Assert.NotNull((await Sort(host, BusinessInventorySpace.Consumable)).Receipt);
+    }
     [Theory]
     [InlineData("account:1:Main")]
     [InlineData("character:1:AccountCargo")]
@@ -251,12 +268,13 @@ public sealed class WarehouseStorageTests
     public void Capacities_respect_each_container_parameter(BusinessInventorySpace space, int parameter, int expected) =>
         Assert.Equal(expected, new InventoryCapacityRuleService().OpenSlotCount(space, parameter));
 
-    internal static ShopFixture Fixture()
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null)
     {
         var host = new ShopFixture(s => {
             s.AddSingleton<IInventoryExpansionDefinitionSource, ExpansionContent>();
             s.AddSingleton<ICargoItemDefinitionSource, CargoContent>();
             s.AddSingleton<ICarriedGoldRuleService, GoldRule>();
+            configure?.Invoke(s);
         });
         Bind(host); return host;
     }
@@ -286,6 +304,9 @@ public sealed class WarehouseStorageTests
         await InTransaction(host, async () => outcome = await host.Services.GetRequiredService<ICargoTransferDomainService>().MoveAsync(host.Session, from, into, count, default));
         return outcome;
     }
+    private static Task<SortItemResult> Sort(ShopFixture host, BusinessInventorySpace space) =>
+        host.Services.GetRequiredService<ICommandBus>().SendAsync(new SortItemCommand(
+            host.OnlineUser, host.Session, space, InventorySortOrder.Default)).AsTask();
     internal static async Task InTransaction(ShopFixture host, Func<Task> action)
     {
         await using var tx = ((DomainTransactionScope)host.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();

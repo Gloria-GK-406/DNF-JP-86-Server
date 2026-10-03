@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Application.World;
 
@@ -21,7 +22,8 @@ internal sealed class DungeonVisitDomainService(
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterDungeonDifficultyDomainService difficulties,
-    IDungeonDifficultyRuleService difficultyRules, ICharacterFatigueDomainService fatigue) : IDungeonVisitDomainService
+    IDungeonDifficultyRuleService difficultyRules, ICharacterFatigueDomainService fatigue,
+    IIllusionTowerDomainService? tower = null) : IDungeonVisitDomainService
 {
     public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) =>
         selection.DefersSelectionState(characterLevel, tutorialCompleted);
@@ -64,6 +66,9 @@ internal sealed class DungeonVisitDomainService(
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(facts);
 
+        if (participants.Any(x => tower?.IsInTower(x.CharacterId) == true))
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
+
         var difficulty = facts.Difficulty;
         if (!Enum.IsDefined(difficulty)) throw new ArgumentOutOfRangeException(nameof(facts));
         // Party-wide eligibility policy is intentionally unchanged in this task.
@@ -96,6 +101,8 @@ internal sealed class DungeonVisitDomainService(
                 startedAt,
                 participants),
             cancellationToken).ConfigureAwait(false);
+        if (tower is not null && !tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
         if (layout.ConsumesFatigue)
             foreach (var participant in participants)
                 await fatigue.SpendAsync(participant.CharacterId, 1, cancellationToken).ConfigureAwait(false);

@@ -7,18 +7,21 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CargoTransferDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterTable characters, IDungeonRunDomainService runs,
     IBusinessInventorySlotDomainService slots, ICargoItemRuleService rules,
-    IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time) : ICargoTransferDomainService
+    IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time,
+    IIllusionTowerDomainService? towers = null) : ICargoTransferDomainService
 {
     public async ValueTask<ItemMoveOutcome> MoveAsync(SelectedSessionIdentity session, BusinessSlot source,
         BusinessSlot destination, int count, CancellationToken cancellationToken)
     {
         if (sessions.Find(session.AccountId) != session || runs.Find(session.CharacterId) is not null
+            || towers?.IsInTower(session.CharacterId) == true
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
             || online is not { State: OnlineUserState.CharacterActive }
             || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId

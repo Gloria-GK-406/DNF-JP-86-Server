@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Parties;
@@ -41,7 +42,9 @@ internal sealed class SelectedSessionCleanupService(
     IPartyService parties,
     IDungeonRunDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
-    ICreatureRuntimeDomainService? creatures = null) : ISelectedSessionCleanupDomainService
+    ICreatureRuntimeDomainService? creatures = null,
+    IIllusionTowerDomainService? illusionTower = null,
+    IEnumerable<IIllusionTowerDepartureSink>? illusionTowerDepartures = null) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -129,7 +132,28 @@ internal sealed class SelectedSessionCleanupService(
                     }
                 }
             }
+        }
 
+        // Tower membership belongs to the exact selected-session generation. It must be released
+        // even after that generation has already lost the selected-session directory race.
+        if (illusionTower?.Find(session) is { } towerRun)
+        {
+            TowerActionResult? towerDeparture = null;
+            await RunAsync(async () =>
+            {
+                towerDeparture = await illusionTower.LeaveAsync(
+                    new TowerActionContext(session, towerRun.RunId, towerRun.Room.Version),
+                    disconnected: true, CancellationToken.None).ConfigureAwait(false);
+            });
+            if (towerDeparture is { Changed: true } departed)
+            {
+                foreach (var sink in illusionTowerDepartures ?? [])
+                    await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));
+            }
+        }
+
+        if (ownsSelectedCharacter)
+        {
             Run(() =>
             {
                 var partyCleanup = parties.CleanupCharacter(session.CharacterId);

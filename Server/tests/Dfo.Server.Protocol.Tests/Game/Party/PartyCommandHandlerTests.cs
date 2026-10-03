@@ -389,6 +389,58 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
+    public async Task A_stale_leave_frame_cannot_bind_to_the_current_party()
+    {
+        var commands = new RecordingCommandBus();
+        var stale = new GameMessageMetadata(1, 0x000F, 0, 9)
+        {
+            InboundOrdinal = 2,
+            SequenceIsFresh = false,
+        };
+
+        await new LeavePartyHandler(
+                new SessionDirectory(Invitee),
+                new SelectedSessionTransitionGate(),
+                commands,
+                Notifications,
+                NullLogger<LeavePartyHandler>.Instance)
+            .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(stale),
+                CancellationToken.None);
+
+        Assert.Empty(commands.Commands);
+    }
+
+    [Fact]
+    public async Task Stale_targeted_party_frames_stop_before_roster_or_session_capture()
+    {
+        var stale = new GameMessageMetadata(1, 0x000F, 0, 9)
+        {
+            InboundOrdinal = 2,
+            SequenceIsFresh = false,
+        };
+        var sessions = new SessionDirectory(Inviter, Invitee);
+        var parties = new RecordingParties();
+        var commands = new RecordingCommandBus();
+        var sender = new RecordingSender();
+        var gate = new SelectedSessionTransitionGate();
+
+        await new ChangePartyLeaderHandler(
+                sessions, parties, gate, commands, Notifications,
+                NullLogger<ChangePartyLeaderHandler>.Instance)
+            .HandleAsync(Dispatch(Inviter), new ChangePartyLeaderRequest(stale, 1),
+                CancellationToken.None);
+        await new RemovePartyMemberHandler(
+                sessions, parties, gate, commands, Notifications, sender,
+                NullLogger<RemovePartyMemberHandler>.Instance)
+            .HandleAsync(Dispatch(Inviter), new RemovePartyMemberRequest(stale, 1),
+                CancellationToken.None);
+
+        Assert.Empty(parties.Writes);
+        Assert.Empty(commands.Commands);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
     public async Task A_target_that_was_missing_on_the_first_lookup_cannot_appear_behind_the_gate()
     {
         var sessions = new SessionDirectory(Inviter);

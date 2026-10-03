@@ -37,7 +37,7 @@ internal static class QuestMonsterDropRules
         foreach (var definition in definitions)
         {
             var random = new DropRandom(DropRandom.SeedFor(kill.Seed, kill.MapId,
-                kill.Cell.X, kill.Cell.Y, kill.InstanceId)
+                kill.PositionX, kill.PositionY, kill.InstanceId)
                 ^ 0x5155_4553_5444_524FUL ^ (ulong)(uint)participant.CharacterId.Value
                 ^ ((ulong)(uint)definition.QuestId << 32));
             var candidates = definition.EnemyRewardItems.Where(source =>

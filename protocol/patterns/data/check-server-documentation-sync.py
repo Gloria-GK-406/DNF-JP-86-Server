@@ -69,36 +69,51 @@ def load_sources(source_root: pathlib.Path) -> dict[pathlib.Path, str]:
 
 
 def resolve_constants(sources: dict[pathlib.Path, str]) -> dict[str, int]:
-    pending: dict[str, str] = {}
+    pending: dict[str, tuple[str, str]] = {}
+    aliases: dict[str, set[str]] = {}
     values: dict[str, int] = {}
     for text in sources.values():
-        for match in CONST_RE.finditer(text):
-            pending[match.group("name")] = match.group("expr").strip()
+        for kind, owner in re.findall(r"\b(class|record)\s+([A-Za-z_]\w*)", text):
+            body = class_body(text, owner) if kind == "class" else record_body(text, owner)
+            if body is None:
+                continue
+            for match in CONST_RE.finditer(body):
+                name = match.group("name")
+                qualified = f"{owner}.{name}"
+                pending[qualified] = (owner, match.group("expr").strip())
+                aliases.setdefault(name, set()).add(qualified)
 
     for _ in range(len(pending) + 1):
         changed = False
-        for name, expr in list(pending.items()):
-            value = resolve_expr(expr, values)
+        for name, (owner, expr) in list(pending.items()):
+            value = values.get(f"{owner}.{expr}")
+            if value is None:
+                value = resolve_expr(expr, values)
             if value is None:
                 continue
             values[name] = value
             del pending[name]
             changed = True
+        # A short name is usable only when exactly one declaring type owns it.
+        for alias, declarations in aliases.items():
+            if len(declarations) == 1:
+                qualified = next(iter(declarations))
+                if qualified in values:
+                    values[alias] = values[qualified]
         if not changed:
             break
     return values
 
 
 def resolve_expr(expr: str, constants: dict[str, int]) -> int | None:
-    expr = expr.strip().rstrip("uUlL")
+    expr = expr.strip()
     expr = re.sub(r"^(?:checked\s*\()?\((?:byte|ushort|uint|int)\)\s*", "", expr)
     expr = expr.rstrip(") ")
-    if re.fullmatch(r"0[xX][0-9A-Fa-f]+", expr):
-        return int(expr, 16)
-    if re.fullmatch(r"\d+", expr):
-        return int(expr, 10)
-    name = expr.rsplit(".", 1)[-1]
-    return constants.get(name)
+    if re.fullmatch(r"0[xX][0-9A-Fa-f]+[uUlL]*", expr):
+        return int(expr.rstrip("uUlL"), 16)
+    if re.fullmatch(r"\d+[uUlL]*", expr):
+        return int(expr.rstrip("uUlL"), 10)
+    return constants.get(expr)
 
 
 def relative(path: pathlib.Path, root: pathlib.Path) -> str:
@@ -501,7 +516,7 @@ def self_test() -> int:
         source_root.mkdir(parents=True)
         source = source_root / "ProtocolModule.cs"
         source.write_text(
-            "public const ushort SampleType = 0x0084;\n"
+            "public static class GameProtocol { public const ushort SampleType = 0x0084; }\n"
             "services.AddGameCmdMessageDecoder<SampleDecoder>(GameProtocol.SampleType);\n"
             "services.AddGameCmdMessageEncoder<SampleCmd, SampleCmdEncoder>();\n"
             "services.AddGameNotiMessageEncoder<SampleNoti, SampleNotiEncoder>();\n",
@@ -532,13 +547,47 @@ def self_test() -> int:
         if not any("catalog missing encoder-backed outbound NOTI 0x0013" in item for item in missing):
             print("self-test failed: outbound registration missing from catalog was not detected")
             return 1
-        qualified = {source: sources[source].replace("GameProtocol.SampleType", "CreaturePayloadCodec.SampleType")}
+        qualified = {source: sources[source].replace("GameProtocol", "CreaturePayloadCodec")}
         qualified_inbound, qualified_errors = inbound_registrations(
             qualified, source_root, resolve_constants(qualified)
         )
         if qualified_errors or qualified_inbound != inbound:
             print("self-test failed: slice-qualified constant registration was not extracted")
             return 1
+        colliding = {
+            source_root / "GameProtocol.cs":
+                "public static class GameProtocol { public const ushort ExperienceNotificationType = 0x0025; }",
+            source_root / "CreaturePayloadCodec.cs":
+                "public static class CreaturePayloadCodec { public const ushort ExperienceNotificationType = 0x0066; }",
+            source_root / "InventoryMessage.cs":
+                "public sealed record InventoryMessage { public const ushort WireType = 0x000E; }",
+            source: (
+                "services.AddGameNotiMessageEncoder<PlayerExperience, PlayerExperienceEncoder>();\n"
+                "services.AddGameNotiMessageEncoder<CreatureExperience, CreatureExperienceEncoder>();\n"
+                "public class PlayerExperienceEncoder { object Encode() => OnePayload(GameProtocol.ExperienceNotificationType, null); }\n"
+                "public class CreatureExperienceEncoder { object Encode() => OnePayload(CreaturePayloadCodec.ExperienceNotificationType, null); }\n"
+            ),
+        }
+        for ordered in (colliding, dict(reversed(list(colliding.items())))):
+            constants = resolve_constants(ordered)
+            rows, errors = outbound_registrations(ordered, source_root, constants, {})
+            if errors or {row.symbol: row.identity.type_value for row in rows} != {
+                "PlayerExperience": 0x0025, "CreatureExperience": 0x0066,
+            }:
+                print("self-test failed: same-name constants in distinct types changed encoder identities")
+                return 1
+            if resolve_expr("ExperienceNotificationType", constants) is not None:
+                print("self-test failed: an ambiguous unqualified constant was silently accepted")
+                return 1
+            if resolve_expr("MissingType.ExperienceNotificationType", constants) is not None:
+                print("self-test failed: an unknown qualifier fell back to another type's constant")
+                return 1
+            if resolve_expr("InventoryMessage.WireType", constants) != 0x000E:
+                print("self-test failed: a record's qualified constant was not resolved")
+                return 1
+            if resolve_expr("message.WireType", constants) is not None:
+                print("self-test failed: a runtime property was mistaken for an unrelated constant")
+                return 1
         helper_source = source_root / "Extensions.cs"
         qualified[helper_source] = "public static void AddGameCmdMessageDecoder<TDecoder>(this IServiceCollection services) {}"
         helper_inbound, helper_errors = inbound_registrations(
@@ -585,6 +634,7 @@ def self_test() -> int:
     print("  outbound missing from catalog: NOTI 0x0013 (detected)")
     print("  unparsed registrations and missing source root: detected")
     print("  same-type family parsing     : passed")
+    print("  type-qualified constant collisions and runtime properties: passed")
     print("failures: 0")
     return 0
 

@@ -1,0 +1,52 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Pvf.Tests\bin\Release\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_10_54_net10.0.trx
+
+已通过! - 失败:     0，通过:    80，已跳过:     0，总计:    80，持续时间: 1 s - Dfo.Pvf.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_10_58_net10.0.trx
+
+已通过! - 失败:     0，通过:  2889，已跳过:     0，总计:  2889，持续时间: 1 m 9 s - Dfo.Server.Application.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_12_11_net10.0.trx
+
+已通过! - 失败:     0，通过:   118，已跳过:     0，总计:   118，持续时间: 1 m 31 s - Dfo.Server.Host.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.HttpApi.Tests\bin\Release\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_13_43_net10.0.trx
+
+已通过! - 失败:     0，通过:    50，已跳过:     0，总计:    50，持续时间: 386 ms - Dfo.Server.HttpApi.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Release\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:09.85]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [1 ms]
+[xUnit.net 00:00:09.96]     Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [1 ms]
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_13_46_net10.0.trx
+
+已通过! - 失败:     0，通过:   768，已跳过:     2，总计:   770，持续时间: 17 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_14_05_net10.0.trx
+
+已通过! - 失败:     0，通过:    87，已跳过:     0，总计:    87，持续时间: 4 s - Dfo.Server.Networking.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_14_12_net10.0.trx
+
+已通过! - 失败:     0，通过:   446，已跳过:     0，总计:   446，持续时间: 19 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\artifacts\test-results-illusion-tower-final-20261003\Gloria_家庭台式机_2026-10-03_23_14_32_net10.0.trx
+
+已通过! - 失败:     0，通过:  1273，已跳过:     0，总计:  1273，持续时间: 1 s - Dfo.Server.Protocol.Tests.dll (net10.0)

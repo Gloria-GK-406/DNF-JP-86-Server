@@ -88,7 +88,7 @@ internal sealed class DungeonCellFactory(
         {
             var request = new QuestEnemyDropRequest(QuestEnemyType.PassiveObject, declared.Code,
                 declared.Id.RandomIdentity, context.Layout.DungeonId, context.Difficulty,
-                context.Layout.Seed, context.Cell, context.MapId);
+                context.Layout.Seed, context.Cell.X, context.Cell.Y, context.MapId);
             var pending = new List<RolledDrop>();
             foreach (var participant in participants)
                 pending.AddRange(await questLoot.DrawAsync(request, participant, cancellationToken).ConfigureAwait(false));

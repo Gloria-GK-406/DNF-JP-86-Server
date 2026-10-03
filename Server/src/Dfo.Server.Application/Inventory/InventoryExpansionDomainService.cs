@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -20,7 +21,8 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
     IInventoryExpansionRuleService rules, IBusinessInventorySlotDomainService slots,
     ICharacterBusinessInventoryDomainService inventories, IItemPlacementRuleService placements,
     IDomainTransactionAccessor transactions, IItemDomainStore items,
-    ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory, IItemLifecycleDomainService lifecycle)
+    ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory,
+    IItemLifecycleDomainService lifecycle, IIllusionTowerDomainService? towers = null)
     : IInventoryExpansionDomainService
 {
     public async ValueTask<InventoryExpansionResult> UseItemAsync(SelectedSessionIdentity session, BusinessSlot slot,
@@ -149,6 +151,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
     }
     private async ValueTask<bool> CurrentAsync(SelectedSessionIdentity session, CancellationToken ct) =>
         sessions.Find(session.AccountId) == session && runs.Find(session.CharacterId) is null
+        && towers?.IsInTower(session.CharacterId) != true
         && users.TryGetByConnection(session.ConnectionId, out var user) && user is { State: OnlineUserState.CharacterActive }
         && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
         && await owners.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false);

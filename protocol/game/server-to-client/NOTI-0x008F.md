@@ -59,5 +59,17 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## 2026-10-03 静态补证与字段纠偏
+
+ClientStatic / Confirmed：handler VA `01159850` 的完整使用路径为：
+
+```text
+u16 level + u32 seed + u32 mapId + u8 actorCount
+actorCount × (u32 listIndex + u16 uid + u32 templateId + u8 level + u8 type + u8 box + u8 boxIndex)
+u8 itemCount
+itemCount × (u8 + u16 + u32 + u32 + u16 + u8 + u16 + u16)
+```
+
+演员行14B，物品行18B；无物品时body为 `12 + actorCount×14` B。mapId明确为u32。机器区部分表的字段命名来自对照源码，位置与含义不能直接作为完整布局：例如其offset15实际为UID，不是模板ID；模板ID从offset17开始。以本次镜像读取链为准，不能照抄对照源码中矛盾的WriteUInt16注释。
+
+APC也走演员列表，类型5与任务目标类型2须分开。当前迷妄塔物品掉落参数为0，编码器只走itemCount=0；未实现或验证非零物品行语义。地图/演员内容、固定镜像身份和VA证据见 [研究报告](../../../Document/IllusionTowerResearch-20261003.md)。尚无本次实帧或ClientVerified。

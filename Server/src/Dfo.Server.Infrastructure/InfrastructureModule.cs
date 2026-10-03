@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
@@ -75,6 +76,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInitialEquipmentDefinitionSource,
             PvfInitialEquipmentDefinitionSource>();
         services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
+        services.TryAddSingleton<IIllusionTowerContentSource, PvfIllusionTowerContentSource>();
         services.TryAddSingleton<PvfDungeonRoomDropSource>();
         services.TryAddSingleton<IDungeonRoomDropSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
         services.TryAddSingleton<IDungeonRoomObjectSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
