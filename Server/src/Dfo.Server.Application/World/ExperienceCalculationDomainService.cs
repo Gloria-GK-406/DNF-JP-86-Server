@@ -50,10 +50,10 @@ internal sealed class ExperienceCalculationDomainService(
                 return settlement;
             case TowerKillExperienceContext kill:
                 return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
-                    .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false));
+                    .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken, kill.Occasion.DungeonId).ConfigureAwait(false));
             case TowerClearExperienceContext clear:
                 return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
-                    .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken).ConfigureAwait(false));
+                    .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken, clear.Occasion.DungeonId).ConfigureAwait(false));
             case QuestExperienceContext quest:
                 return new(Base: quest.Base);
             default:

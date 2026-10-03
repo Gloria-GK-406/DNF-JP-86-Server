@@ -23,7 +23,7 @@ internal sealed class TowerDomainStub(params SelectedSessionIdentity[] members) 
 
     public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members) => false;
     public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-        SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken) => throw new NotSupportedException();
+        SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken cancellationToken) => throw new NotSupportedException();

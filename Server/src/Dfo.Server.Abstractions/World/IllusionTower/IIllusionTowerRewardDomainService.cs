@@ -3,10 +3,10 @@ namespace Dfo.Server.Abstractions.World.IllusionTower;
 
 public interface IIllusionTowerRewardRuleService
 {
-    ValueTask<uint> KillExperienceAsync(int characterLevel, byte actorType, CancellationToken cancellationToken);
-    ValueTask<uint> ClearExperienceAsync(int characterLevel, int rewardLevel, CancellationToken cancellationToken);
+    ValueTask<uint> KillExperienceAsync(int characterLevel, byte actorType, CancellationToken cancellationToken, int dungeonId = 11001);
+    ValueTask<uint> ClearExperienceAsync(int characterLevel, int rewardLevel, CancellationToken cancellationToken, int dungeonId = 11001);
     ValueTask<ImmutableArray<TowerRewardCandidate>> CandidatesAsync(int characterLevel, int rewardLevel,
-        ulong seed, CancellationToken cancellationToken);
+        ulong seed, CancellationToken cancellationToken, int dungeonId = 11001);
 }
 
 // The caller owns the challenge and its transaction. This capability owns no run state.

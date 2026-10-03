@@ -86,10 +86,38 @@ public sealed class IllusionTowerRuleServiceTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rules.CreateRoomAsync(2, 0, CancellationToken.None).AsTask());
     }
 
+    [PvfFact]
+    public async Task Death_tower_has_45_rooms_separate_rewards_and_current_actor_item_tables()
+    {
+        using var provider = new PvfArchiveProvider(new PvfContentOptions());
+        var rules = new IllusionTowerRuleService(new PvfIllusionTowerContentSource(provider));
+        var definition = await rules.GetDefinitionAsync(default, 11000);
+        Assert.Equal(11000, definition.DungeonId);
+        Assert.Equal(50, definition.MinimumLevel);
+        Assert.Equal(45, definition.Rooms.Count);
+        Assert.Equal(10, definition.Parameters.MaxClearItemCount);
+        Assert.Equal(1, definition.Parameters.ItemDrop);
+        Assert.Equal(1, definition.Parameters.FpCubepiece);
+        Assert.Equal(1.987, definition.Rewards.ExperienceWeights[0], 3);
+        var drops = new HashSet<int>();
+        for (var level = 1; level <= 45; level++)
+        {
+            var room = await rules.CreateRoomAsync(level, 1234, default, 11000);
+            Assert.Equal(30000 + level, room.MapId);
+            Assert.NotEmpty(room.Actors);
+            foreach (var actor in room.Actors) drops.UnionWith(actor.Items);
+        }
+        Assert.Contains(6515, drops);
+        Assert.Contains(6521, drops);
+        var illusion = await rules.GetDefinitionAsync(default);
+        Assert.Equal(15, illusion.Rooms.Count);
+        Assert.Equal(0, illusion.Parameters.ItemDrop);
+    }
+
     private static IllusionTowerDefinition Definition(TowerRoomDefinition room, IReadOnlyList<TowerApcCandidate> candidates) =>
         new(11001, 40, 40, [], [room], candidates, new([], [], [], 0, 0, 0), new(0, 0, 0, 0, [], [], []));
     private sealed class Source(IllusionTowerDefinition definition) : IIllusionTowerContentSource
     {
-        public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken) => ValueTask.FromResult(definition);
+        public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId = 11001) => ValueTask.FromResult(definition);
     }
 }

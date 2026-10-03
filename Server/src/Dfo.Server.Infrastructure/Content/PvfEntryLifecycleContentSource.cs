@@ -310,7 +310,7 @@ internal sealed class PvfEntryLifecycleContentSource(
         if (normalized == "avatar emblem") return 9;
         if (normalized == "material expert job") return 10;
         if (normalized == "quest") return 4;
-        if (normalized == "material")
+        if (normalized is "material" or "material instant item")
             return itemId is 3033 or 3034 or 3035 or 3036 or 3037 or 3262 ? (byte)11 : (byte)3;
         return 2;
     }

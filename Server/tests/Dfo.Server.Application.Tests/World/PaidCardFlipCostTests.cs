@@ -623,9 +623,9 @@ public sealed class PaidCardFlipCostTests
     private sealed class OneBag(IItemContainer bag) : ICharacterContainerDomainService
     {
         public IItemContainer? FindContainer(
-            CharacterId characterId, InventoryContainerType type) => bag;
+            CharacterId characterId, InventoryContainerType type, bool isDefault = false) => bag;
 
-        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type) =>
+        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false) =>
             bag;
 
         public IReadOnlyList<IItemContainer> GetContainers(

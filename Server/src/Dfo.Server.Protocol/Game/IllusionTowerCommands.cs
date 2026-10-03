@@ -5,7 +5,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game;
 
 public sealed record EnterIllusionTowerCommand(
-    IReadOnlyList<TowerEntryMember> Members, SelectedSessionIdentity Leader, uint Seed)
+    IReadOnlyList<TowerEntryMember> Members, SelectedSessionIdentity Leader, uint Seed, int DungeonId = 11001)
     : ICommand<TowerEntryResult>;
 
 public sealed class EnterIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
@@ -13,7 +13,7 @@ public sealed class EnterIllusionTowerCommandHandler(IIllusionTowerDomainService
 {
     public ValueTask<TowerEntryResult> HandleAsync(CommandExecutionContext context,
         EnterIllusionTowerCommand command, CancellationToken token) =>
-        towers.EnterAsync(command.Members, command.Leader, command.Seed, token);
+        towers.EnterAsync(command.Members, command.Leader, command.Seed, token, command.DungeonId);
 }
 
 public sealed record LoadIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
@@ -88,4 +88,12 @@ public sealed class SelectIllusionTowerReturnCommandHandler(IIllusionTowerDomain
     public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
         SelectIllusionTowerReturnCommand command, CancellationToken token) =>
         towers.SelectReturnAsync(command.Context, command.Option, token);
+}
+
+public sealed record PickupTowerItemCommand(TowerActionContext Context, ushort GroundUid) : ICommand<TowerPickupResult>;
+public sealed class PickupTowerItemCommandHandler(IIllusionTowerDomainService towers)
+    : ICommandHandler<PickupTowerItemCommand, TowerPickupResult>
+{
+    public ValueTask<TowerPickupResult> HandleAsync(CommandExecutionContext context, PickupTowerItemCommand command, CancellationToken token) =>
+        towers.PickupAsync(command.Context, command.GroundUid, token);
 }

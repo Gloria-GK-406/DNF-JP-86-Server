@@ -649,13 +649,15 @@ public sealed class GetItemHandler(
     DungeonPickupProjectionDelivery projection,
     ILogger<GetItemHandler> logger,
     DungeonPickupPostCommitCoordinator? postCommit = null,
-    DungeonPartyRecipients? partyRecipients = null) : ClientMessageHandler<GetItemRequest>
+    DungeonPartyRecipients? partyRecipients = null, IllusionTowerProjectionDelivery? tower = null) : ClientMessageHandler<GetItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         GetItemRequest message,
         CancellationToken cancellationToken)
     {
+        if (tower is not null && await tower.PickupAsync(context.Connection.ConnectionId,
+            message.Metadata, message.GroundDropNumber, cancellationToken).ConfigureAwait(false)) return;
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
         {

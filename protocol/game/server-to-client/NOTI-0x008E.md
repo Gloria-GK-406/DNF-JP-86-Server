@@ -61,3 +61,9 @@ ClientStatic / Confirmed：当前镜像 handler VA `0114A8F0` 顺序读取 `u32 
 ## 2026-10-03 首次入场崩溃补证
 
 ClientRuntime / Confirmed + ClientStatic / High：实机首次入塔在处理 CMD `0012` 扣券成功回执时进入塔属性更新路径，RVA `022D81B9` 读取空指针 `+8`。旧服务端先发 `008E/008F`，后发 `0012/000E`；当前修正将已提交的扣券回执与背包更新前移至塔模式切换之前。样本、调用栈、静态地址和回归结果见 [入场崩溃记录](../../../Document/illusion-tower-entry-crash-20261003.md)。此记录不是成功入塔验收，修正后仍待 ClientVerified。
+
+## 2026-10-04 死亡之塔接入
+
+CurrentImplementation / Confirmed：当前实现同时服务死亡之塔11000（当前PVF为45层）和迷妄之塔11001（15层），分别读取对应入场/奖励内容。死亡塔在008E之前发送已扣券回执和临时Main完整快照；退塔后发送默认Main完整快照。共享晶体随角色当前绑定切换，实际账号存储归属不变。
+
+实现、证据与待实机项目见 [死亡之塔记录](../../../Document/DeathTowerImplementation-20261004.md)。尚未将死亡塔标为ClientVerified。

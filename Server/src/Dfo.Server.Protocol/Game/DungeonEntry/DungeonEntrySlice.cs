@@ -537,7 +537,7 @@ public sealed class SelectDungeonHandler(
                     if (selectedSessions.FindByCharacter(session.CharacterId) == session)
                         entryIntents.RestoreIfAbsent(session, intent.Value);
                 },
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken, message.DungeonId).ConfigureAwait(false);
             return;
         }
 

@@ -174,6 +174,7 @@ public sealed class PersistenceModule : IServerModule
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.
         services.TryAddSingleton(_ => new SqliteItemDomainStore(databasePath));
+        services.TryAddSingleton<ITransientItemDomainStoreFactory, Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory>();
         // The character's own rows, kept in the same database and therefore settled by the same
         // participant as the items it owns.
         services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));

@@ -31,7 +31,7 @@ internal static class IllusionTowerMapPayloadCodec
             writer.Write((byte)0);
             writer.Write((byte)0);
         }
-        // Current Illusion Tower content declares no ground tower-item rows.
+        // Current tower maps declare no preplaced [item] rows. Actor drops are announced on death.
         writer.Write((byte)0);
         return stream.ToArray();
     }

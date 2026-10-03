@@ -18,7 +18,7 @@ internal sealed class IllusionTowerDomainService(
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
     IDungeonRunDomainService ordinary, DomainTransactionScope scope, TransactionalExecutionGate executionGate, TimeProvider clock,
-    IIllusionTowerRewardDomainService? rewards = null)
+    IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null)
     : IIllusionTowerDomainService
 {
     private readonly object sync = new();
@@ -58,7 +58,7 @@ internal sealed class IllusionTowerDomainService(
     }
 
     public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-        SelectedSessionIdentity leader, uint seed, CancellationToken token) => Execute(async () =>
+        SelectedSessionIdentity leader, uint seed, CancellationToken token, int dungeonId = 11001) => Execute(async () =>
     {
         TowerEntryResult Refuse(string reason) => new(reason, null, []);
         if (members.Count is < 1 or > 4 || !members.Any(x => x.Session == leader)
@@ -66,7 +66,7 @@ internal sealed class IllusionTowerDomainService(
             || members.Select(x => x.Session.CharacterId).Distinct().Count() != members.Count
             || members.Select(x => x.Session.WireUserId).Distinct().Count() != members.Count || members.Any(x => x.Slot > 3)
             || members.Select(x => x.Slot).Distinct().Count() != members.Count) return Refuse("InvalidParty");
-        var definition = await rules.GetDefinitionAsync(token).ConfigureAwait(false);
+        var definition = await rules.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false);
         var plans = new List<(SelectedSessionIdentity Session, List<MaterialCost> Costs)>();
         foreach (var candidate in members)
         {
@@ -98,7 +98,7 @@ internal sealed class IllusionTowerDomainService(
             }
             plans.Add((member, costs));
         }
-        var first = await rules.CreateRoomAsync(1, seed, token).ConfigureAwait(false);
+        var first = await rules.CreateRoomAsync(1, seed, token, dungeonId).ConfigureAwait(false);
         var run = new IllusionTowerDgn
         {
             RunId = Guid.NewGuid(), DungeonId = definition.DungeonId, LevelCount = definition.Rooms.Count,
@@ -116,7 +116,13 @@ internal sealed class IllusionTowerDomainService(
             if (!consumed.Success) throw new InvalidOperationException($"Tower material plan became invalid: {consumed.Rejection}.");
             debits.Add(new(session, consumed.Debits));
         }
-        foreach (var member in members) Pending.AuthenticatedSessions.Add(member.Session);
+        foreach (var member in members)
+        {
+            if (dungeonId == 11000)
+                (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
+                    .Enter(member.Session.CharacterId, run.RunId);
+            Pending.AuthenticatedSessions.Add(member.Session);
+        }
         Pending.Add(run);
         return new TowerEntryResult(null, run.Snapshot(), debits);
     }, token);
@@ -146,13 +152,29 @@ internal sealed class IllusionTowerDomainService(
         Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
     public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken token) =>
         RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), token);
+    public ValueTask<TowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token) => Execute(async () =>
+    {
+        var current = Match(context);
+        TowerPickupResult Refuse(bool noRoom = false) => new(new(false, current?.Snapshot()), groundUid, null, noRoom);
+        if (current is null || current.DungeonId != 11000 || current.Members.Any(x => x.Session == context.Session && x.Dead)
+            || current.Room.State.Phase is not (TowerRoomPhase.Fighting or TowerRoomPhase.Cleared)) return Refuse();
+        var ground = current.Room.State.Items.SingleOrDefault(x => x.Uid == groundUid && x.Available && !x.Claimed);
+        if (ground is null) return Refuse();
+        var update = await (towerInventory ?? throw new InvalidOperationException("Tower inventory unavailable."))
+            .AddAsync(context.Session, ground.ItemId, token).ConfigureAwait(false);
+        if (update is null) return Refuse(noRoom: true);
+        var next = current.Clone();
+        if (!next.Room.Claim(groundUid)) throw new InvalidOperationException("Tower ground claim changed during pickup.");
+        Pending.Put(current, next);
+        return new TowerPickupResult(next.Result(true), groundUid, update);
+    }, token);
     public ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken token) => Execute(async () =>
     {
         var current = Match(context);
         if (current is null) return new TowerActionResult(false, null);
         if (!current.CanAdvance(context.Session)) return current.Result(false);
         var level = current.Room.State.Level + 1;
-        var prepared = await rules.CreateRoomAsync(level, unchecked(current.Seed + (uint)level - 1), token).ConfigureAwait(false);
+        var prepared = await rules.CreateRoomAsync(level, unchecked(current.Seed + (uint)level - 1), token, current.DungeonId).ConfigureAwait(false);
         var next = current.Clone();
         var result = next.NextLevel(prepared);
         Pending.Put(current, next);
@@ -192,13 +214,13 @@ internal sealed class IllusionTowerDomainService(
     }
 
     public async ValueTask<bool> SupportsDungeonAsync(int dungeonId, CancellationToken token) =>
-        (await rules.GetDefinitionAsync(token).ConfigureAwait(false)).DungeonId == dungeonId;
+        dungeonId is 11000 or 11001 && (await rules.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false)).DungeonId == dungeonId;
 
     public ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token) => Execute(async () =>
     {
         var run = Match(context);
         if (run?.Completion is not { Settled: true }) return false;
-        var definition = await rules.GetDefinitionAsync(token).ConfigureAwait(false);
+        var definition = await rules.GetDefinitionAsync(token, run.DungeonId).ConfigureAwait(false);
         var members = run.Members.Where(x => ValidSession(x.Session)).ToArray();
         if (members.Length == 0) return false;
         foreach (var member in members)
@@ -210,7 +232,7 @@ internal sealed class IllusionTowerDomainService(
                 long held = 0;
                 foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable,
                     BusinessInventorySpace.Material, BusinessInventorySpace.Quest, BusinessInventorySpace.ExpertMaterial })
-                    if (store.FindContainer(space) is { } container)
+                    if (store.FindContainer(space, isDefault: true) is { } container)
                         foreach (var item in await container.GetAllAsync(token).ConfigureAwait(false))
                             if (materialRules.IsConsumable(item, requirement.ItemId)) held += item.Count;
                 if (held < requirement.Count) return false;
@@ -240,10 +262,15 @@ internal sealed class IllusionTowerDomainService(
                 next.Settle(await rewards.SettleAsync(eligible, next.Seed, token).ConfigureAwait(false),
                     clock.GetUtcNow(), rules.DefaultReturnDelay);
         }
+        if (current.DungeonId == 11000)
+            foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
+                (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
+                    .Leave(departed.Session.CharacterId, current.RunId);
         Pending.Put(current, next);
         return next.Result(true, result.KilledActor) with
         {
             KillRewards = killRewards,
+            Drops = result.Drops,
             SettlementCreated = !wasSettled && next.Completion is { Settled: true },
         };
     }, token);

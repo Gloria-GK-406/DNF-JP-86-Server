@@ -410,6 +410,11 @@ public sealed class MoveItemSpaceCommandHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+        var boundSource = inventory.Find(command.CharacterId, command.SourceSlot);
+        var boundDestination = inventory.Find(command.CharacterId, command.DestinationSlot);
+        if (boundSource is not null && boundDestination is not null
+            && boundSource.Container.IsDefault != boundDestination.Container.IsDefault)
+            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
 
         if (command.SourceSlot.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo
             || command.DestinationSlot.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo)

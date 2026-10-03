@@ -2,8 +2,8 @@ namespace Dfo.Server.Abstractions.World.IllusionTower;
 
 public interface IIllusionTowerRuleService
 {
-    ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken);
-    ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken);
+    ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001);
+    ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001);
 
     TimeSpan DefaultReturnDelay => TimeSpan.FromSeconds(60);
     TimeSpan? ReturnDelay(byte option) => option switch
@@ -17,15 +17,22 @@ public interface IIllusionTowerRuleService
 
 public interface IIllusionTowerContentSource
 {
-    ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken);
+    ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId = 11001);
 }
 
 public sealed record TowerPosition(int X, int Y, int Z);
 public sealed record TowerRequiredItem(int ItemId, int Count, bool Consume);
 public sealed record TowerActorDeclaration(
     int TemplateId, int LevelValue, bool RelativeLevel, byte ActorType,
-    bool BlocksClear, TowerPosition Position);
-public sealed record TowerApcCandidate(int TemplateId, byte Level, int AppearancePoint);
+    bool BlocksClear, TowerPosition Position)
+{
+    public IReadOnlyList<TowerItemChance> Items { get; init; } = [];
+}
+public sealed record TowerApcCandidate(int TemplateId, byte Level, int AppearancePoint)
+{
+    public IReadOnlyList<TowerItemChance> Items { get; init; } = [];
+}
+public sealed record TowerItemChance(int ItemId, int Rate);
 public sealed record TowerObjectDeclaration(int TemplateId, TowerPosition Position);
 public sealed record TowerRoomDefinition(
     int Level, int MapId, IReadOnlyList<TowerActorDeclaration> Actors,
@@ -51,7 +58,10 @@ public sealed record IllusionTowerDefinition(
 
 public sealed record TowerActorSeed(
     int ListIndex, int TemplateId, byte Level, byte ActorType, bool BlocksClear,
-    TowerPosition Position);
+    TowerPosition Position)
+{
+    public IReadOnlyList<int> Items { get; init; } = [];
+}
 public sealed record TowerRoomSeed(
     int Level, int MapId, uint Seed, IReadOnlyList<TowerActorSeed> Actors,
     IReadOnlyList<TowerObjectDeclaration> Objects);

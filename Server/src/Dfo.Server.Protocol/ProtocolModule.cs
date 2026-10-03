@@ -620,6 +620,8 @@ public sealed class ProtocolModule : IServerModule
             LoadIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<StartIllusionTowerCommand, TowerActionResult,
             StartIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<PickupTowerItemCommand, TowerPickupResult,
+            PickupTowerItemCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<KillIllusionTowerActorCommand, TowerActionResult,
             KillIllusionTowerActorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<AdvanceIllusionTowerCommand, TowerActionResult,

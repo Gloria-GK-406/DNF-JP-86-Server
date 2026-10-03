@@ -78,6 +78,7 @@ internal abstract class StoreBackedItemContainer(
     public ContainerShape Shape => shape;
 
     public abstract bool IsRemovable { get; }
+    public abstract bool IsDefault { get; }
 
     public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) =>
         ReadAsync(session => session.GetAsync(id, index, ct));
@@ -111,10 +112,10 @@ internal abstract class StoreBackedItemContainer(
         var before = current.Snapshot;
         var next = change(before.DeepCopy()).DeepCopy();
         var virtualSlot = Type == InventoryContainerType.Main && reference.StorageSlotIndex is >= 0 and <= 2;
-        if (capacities is not null && !virtualSlot)
+        if ((capacities is not null || !IsDefault) && !virtualSlot)
         {
             var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, reference.StorageSlotIndex), before.LegacyKind);
-            if (business.Index >= await capacities.OpenSlotCountAsync(id, business.Space, ct).ConfigureAwait(false)
+            if (business.Index >= await OpenSlotsAsync(business.Space, ct).ConfigureAwait(false)
                 && !(next.Count > 0 && next.Count < before.Count && before.CanStackWith(next)))
                 throw new InvalidOperationException($"Slot {business} is not open.");
         }
@@ -133,12 +134,16 @@ internal abstract class StoreBackedItemContainer(
         return await session.PutAsync(id, index, record, ct).ConfigureAwait(false);
     }
 
+    private ValueTask<int> OpenSlotsAsync(BusinessInventorySpace space, CancellationToken ct) =>
+        IsDefault ? capacities!.OpenSlotCountAsync(id, space, ct)
+            : ValueTask.FromResult(new InventoryCapacityRuleService().OpenSlotCount(space, Shape.Parameter));
+
     private async ValueTask ValidatePlacementAsync(int index, ItemSnapshot snapshot, long total, CancellationToken ct)
     {
         if (Type == InventoryContainerType.Main && index == 1
             && snapshot is { LegacyKind: 0, ItemId: 1, Type: ItemTraits.None, IsPile: true }) return;
         var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, index), snapshot.LegacyKind);
-        if (capacities is not null && business.Index >= await capacities.OpenSlotCountAsync(id, business.Space, ct).ConfigureAwait(false))
+        if ((capacities is not null || !IsDefault) && business.Index >= await OpenSlotsAsync(business.Space, ct).ConfigureAwait(false))
             throw new InvalidOperationException($"Slot {business} is not open.");
         var placement = await placementRules.PlacementForAsync(snapshot.ItemId, business.Space, ct).ConfigureAwait(false);
         var worn = business.Space is BusinessInventorySpace.WornEquipment or BusinessInventorySpace.WornEquipmentExtension
@@ -147,7 +152,7 @@ internal abstract class StoreBackedItemContainer(
             ? ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(business.Space), snapshot.Type)
                 && await placementRules.WornSlotForAsync(snapshot.ItemId, ct).ConfigureAwait(false) == business
             : slotRules.CanOccupySlot(business, placement));
-        if (Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
+        if (IsDefault && Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
             || placement is null || snapshot.LegacyKind != placement.ItemKind || snapshot.Type != placement.Traits
             || snapshot.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)
             || snapshot.IsPile && placement.StackLimit > 0 && total > placement.StackLimit
@@ -220,4 +225,15 @@ internal sealed class PersistentItemContainer(
         id, shape, store, transactions, placementRules, slotRules, capacities)
 {
     public override bool IsRemovable => false;
+    public override bool IsDefault => true;
+}
+
+/// <summary>Run-owned item storage with the same placement rules as the permanent container.</summary>
+internal sealed class TemporaryItemContainer(ContainerId id, ContainerShape shape,
+    IItemDomainStore store, IDomainTransactionAccessor transactions,
+    IItemPlacementRuleService placements, IItemSlotRuleService slots)
+    : StoreBackedItemContainer(id, shape, store, transactions, placements, slots)
+{
+    public override bool IsRemovable => true;
+    public override bool IsDefault => false;
 }

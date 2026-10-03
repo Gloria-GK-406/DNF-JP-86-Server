@@ -455,7 +455,7 @@ public sealed class GroundPickupTests
         IBusinessItemContainer bag) : IItemGrantDomainService
     {
         public async ValueTask<BusinessItemAdditionResult> GrantAsync(AccountId account, CharacterId character,
-            ICharacterContainerDomainService containers, int itemId, int count, CancellationToken ct)
+            ICharacterContainerDomainService containers, int itemId, int count, CancellationToken ct, bool isDefault = false)
         {
             var record = await fixture.Session.CreateAsync(new ItemSnapshot
             {
@@ -469,7 +469,7 @@ public sealed class GroundPickupTests
 
     private sealed class StubContainers(IItemContainer bag) : ICharacterContainerDomainService
     {
-        public IItemContainer? FindContainer(CharacterId characterId, InventoryContainerType type) =>
+        public IItemContainer? FindContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false) =>
             bag;
 
         public void Register(CharacterId characterId, IItemContainer container) =>
@@ -481,7 +481,7 @@ public sealed class GroundPickupTests
         public IReadOnlyList<IItemContainer> GetContainers(
             CharacterId characterId, InventoryContainerType type) => [bag];
 
-        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type) =>
+        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false) =>
             bag;
 
         public bool UseContainer(CharacterId characterId, ContainerId containerId) =>

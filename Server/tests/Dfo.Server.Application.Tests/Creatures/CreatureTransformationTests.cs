@@ -223,7 +223,7 @@ public sealed class CreatureTransformationTests
         public ICreatureStore GetStore(CharacterId characterId) => this;
         public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) => this;
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
-        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space) => space switch
+        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) => space switch
         {
             BusinessInventorySpace.CreatureInventory => new SqliteContainer(this, space,
                 InventoryContainerType.Pet, 0),
@@ -231,7 +231,7 @@ public sealed class CreatureTransformationTests
                 InventoryContainerType.Equipment, 25),
             _ => null
         };
-        public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
+        public IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false) =>
             FindContainer(space) ?? throw new InvalidOperationException();
         public ValueTask<CreatureState?> FindAsync(int itemUid, CancellationToken ct) =>
             CreatureSession().ReadAsync(Session.CharacterId, itemUid, ct);
@@ -353,9 +353,9 @@ public sealed class CreatureTransformationTests
         }
         public void Set(CreatureState value) => state = value;
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
-        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space) =>
+        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) =>
             space == occupied ? container : null;
-        public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
+        public IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false) =>
             FindContainer(space) ?? throw new InvalidOperationException();
         public ValueTask<CreatureState?> FindAsync(int itemUid, CancellationToken ct) =>
             ValueTask.FromResult<CreatureState?>(itemUid == state.ItemUid ? state : null);

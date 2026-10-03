@@ -73,3 +73,9 @@ itemCount × (u8 + u16 + u32 + u32 + u16 + u8 + u16 + u16)
 演员行14B，物品行18B；无物品时body为 `12 + actorCount×14` B。mapId明确为u32。机器区部分表的字段命名来自对照源码，位置与含义不能直接作为完整布局：例如其offset15实际为UID，不是模板ID；模板ID从offset17开始。以本次镜像读取链为准，不能照抄对照源码中矛盾的WriteUInt16注释。
 
 APC也走演员列表，类型5与任务目标类型2须分开。当前迷妄塔物品掉落参数为0，编码器只走itemCount=0；未实现或验证非零物品行语义。地图/演员内容、固定镜像身份和VA证据见 [研究报告](../../../Document/IllusionTowerResearch-20261003.md)。尚无本次实帧或ClientVerified。
+
+## 2026-10-04 死亡之塔接入
+
+CurrentImplementation / Confirmed：当前PVF死亡塔45张地图没有[item]预置行；怪物/APC的[death tower item]属于击杀掉落，通过NOTI0026发布，未向008F写入上游旧格式的APC物品表。008F的itemCount仍为0；非零物品行继续保留ClientStatic边界。
+
+实现、证据与待实机项目见 [死亡之塔记录](../../../Document/DeathTowerImplementation-20261004.md)。尚未将死亡塔标为ClientVerified。

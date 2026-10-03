@@ -133,6 +133,7 @@ public sealed class ContainerAdditionTests
             f.Services.GetRequiredService<IDomainTransactionAccessor>(),
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>());
+        service.Clear(new(1)); // A misbound initial default must still fail ownership validation.
         service.Register(new(1), wrong);
         service.UseContainer(new(1), wrong.Id);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.AddAsync(new(1), 9001, 1, default));

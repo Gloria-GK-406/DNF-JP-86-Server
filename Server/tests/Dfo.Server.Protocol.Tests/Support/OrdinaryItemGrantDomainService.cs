@@ -16,7 +16,7 @@ internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? 
         ICharacterContainerDomainService containers,
         int itemId,
         int count,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool isDefault = false)
     {
         var declared = placements is null ? null
             : await placements.PlacementForAsync(itemId, cancellationToken);

@@ -315,8 +315,8 @@ public sealed class IllusionTowerPublicFlowTests
         public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members) =>
             inner.TryReserveOrdinaryEntry(members);
         public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-            SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken) =>
-            inner.EnterAsync(members, leader, seed, cancellationToken);
+            SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) =>
+            inner.EnterAsync(members, leader, seed, cancellationToken, dungeonId);
         public ValueTask<TowerActionResult> LoadAsync(TowerActionContext context,
             CancellationToken cancellationToken) => inner.LoadAsync(context, cancellationToken);
         public ValueTask<TowerActionResult> StartAsync(TowerActionContext context,

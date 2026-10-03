@@ -37,14 +37,15 @@ public interface ICharacterBusinessInventoryDomainService
 public interface IBusinessInventoryStore
 {
     BusinessInventoryStoreKind Kind { get; }
-    IBusinessItemContainer? FindContainer(BusinessInventorySpace space);
-    IBusinessItemContainer GetContainer(BusinessInventorySpace space);
+    IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false);
+    IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false);
 }
 
 public interface IBusinessItemContainer
 {
     BusinessContainerId Id { get; }
     ContainerId StorageId { get; }
+    bool IsDefault => true;
     BusinessInventorySpace Space { get; }
     ItemTraits AcceptedTraits => ItemContainerAdmission.AcceptedBy(Space);
     ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>

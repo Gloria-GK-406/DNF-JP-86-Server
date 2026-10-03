@@ -12,24 +12,24 @@ internal sealed class IllusionTowerRewardRuleService(IIllusionTowerRuleService t
     : IIllusionTowerRewardRuleService
 {
     private static uint Truncate(double value) => checked((uint)Math.Max(0, Math.Truncate(value)));
-    public async ValueTask<uint> KillExperienceAsync(int characterLevel, byte actorType, CancellationToken token)
+    public async ValueTask<uint> KillExperienceAsync(int characterLevel, byte actorType, CancellationToken token, int dungeonId = 11001)
     {
-        var definition = await tower.GetDefinitionAsync(token).ConfigureAwait(false);
+        var definition = await tower.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false);
         var basic = Truncate(MonsterExperienceWorth.For(characterLevel, tuning.Curve) / 2d
             * tuning.RankRate(MonsterRank.Ordinary) * experience.Load().DifficultyRate(0));
-        var actor = actorType == 5 ? Truncate(basic * definition.Rewards.ApcExperienceWeight) : basic;
+        var actor = actorType is >= 5 and <= 8 ? Truncate(basic * definition.Rewards.ApcExperienceWeight) : basic;
         return Truncate(actor * definition.Rewards.MonsterExperienceWeight);
     }
-    public async ValueTask<uint> ClearExperienceAsync(int characterLevel, int rewardLevel, CancellationToken token)
+    public async ValueTask<uint> ClearExperienceAsync(int characterLevel, int rewardLevel, CancellationToken token, int dungeonId = 11001)
     {
-        var definition = await tower.GetDefinitionAsync(token).ConfigureAwait(false);
+        var definition = await tower.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false);
         var weight = definition.Rewards.ExperienceWeights[rewardLevel - 1];
         return Truncate(Math.Min(1_100_000, rewardLevel * (double)MonsterExperienceWorth.For(characterLevel, tuning.Curve) * weight));
     }
     public async ValueTask<ImmutableArray<TowerRewardCandidate>> CandidatesAsync(int characterLevel,
-        int rewardLevel, ulong seed, CancellationToken token)
+        int rewardLevel, ulong seed, CancellationToken token, int dungeonId = 11001)
     {
-        var definition = await tower.GetDefinitionAsync(token).ConfigureAwait(false);
+        var definition = await tower.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false);
         var count = Math.Min(10, Math.Min(definition.Parameters.MaxClearItemCount, definition.Rewards.CardCounts[rewardLevel - 1]));
         var table = clearRates.Load(DropRateTables.ClearReward);
         var random = new DropRandom(seed);

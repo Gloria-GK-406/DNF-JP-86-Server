@@ -8,17 +8,21 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider) : IIllusionTowerContentSource
 {
     private readonly Lock gate = new();
-    private IllusionTowerDefinition? cached;
+    private readonly Dictionary<int, IllusionTowerDefinition> cached = [];
 
-    public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken)
+    public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId = 11001)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        lock (gate) return ValueTask.FromResult(cached ??= Read(provider.Archive));
+        if (dungeonId is not (11000 or 11001)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
+        lock (gate)
+        {
+            if (!cached.TryGetValue(dungeonId, out var definition)) cached[dungeonId] = definition = Read(provider.Archive, dungeonId);
+            return ValueTask.FromResult(definition);
+        }
     }
 
-    private static IllusionTowerDefinition Read(PvfArchive archive)
+    private static IllusionTowerDefinition Read(PvfArchive archive, int dungeonId)
     {
-        const int dungeonId = 11001;
         var dungeonPath = Resolve(archive, "dungeon", dungeonId);
         var dungeon = PvfDocument.Open(archive, dungeonPath).AtRoot();
         Require(dungeon.Read(PvfField.String("[dungeon type]")) == "tower of death", dungeonPath, "unexpected dungeon type");
@@ -48,7 +52,7 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
                 && values[12].Kind == PvfTokenKind.QuotedString
                 && values.Skip(13).All(value => value.Kind == PvfTokenKind.Int32), path, "invalid APC minimum info");
             Require(values[5].Value is > 0 and <= 255, path, "invalid APC level");
-            return apcs[id] = new(id, (byte)values[5].Value, AppearancePoint(document, path));
+            return apcs[id] = new(id, (byte)values[5].Value, AppearancePoint(document, path)) { Items = ReadItems(document, path) };
         }
 
         var rooms = new List<TowerRoomDefinition>();
@@ -57,7 +61,7 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             var level = stages[1 + index * 2];
             var mapId = stages[2 + index * 2];
             Require(level == index + 1 && mapId > 0, dungeonPath, "stage numbers must be consecutive and ordered");
-            rooms.Add(ReadRoom(archive, level, mapId, ReadApc));
+            rooms.Add(ReadRoom(archive, dungeonId, level, mapId, ReadApc));
         }
         foreach (var (id, path) in apcPaths.OrderBy(pair => pair.Key))
         {
@@ -65,9 +69,9 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             if (AppearancePoint(document, path) > 0) ReadApc(id);
         }
         var rewards = PvfDocument.Open(archive, "etc/deathtower.etc");
-        var experienceWeights = rewards.Read(PvfField.Numbers("[illusion reward exp weight]"));
-        var cards = Ints(rewards, "[illusion reward card num]");
-        Require(experienceWeights.Count == rooms.Count && cards.Count == rooms.Count
+        var experienceWeights = rewards.Read(PvfField.Numbers(dungeonId == 11001 ? "[illusion reward exp weight]" : "[reward exp weight]"));
+        var cards = Ints(rewards, dungeonId == 11001 ? "[illusion reward card num]" : "[reward card num]");
+        Require(experienceWeights.Count >= rooms.Count && cards.Count >= rooms.Count
             && experienceWeights.All(value => value >= 0) && cards.All(value => value >= 0), dungeonPath, "reward table does not cover every stage");
         return new(dungeonId, minimumLevel, basisLevel, requiredItems.AsReadOnly(), rooms.AsReadOnly(),
             Array.AsReadOnly(apcs.Values.Where(apc => apc.AppearancePoint > 0).OrderBy(apc => apc.TemplateId).ToArray()),
@@ -78,17 +82,17 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             new(dungeon.Read(PvfField.Int32("[tower max clear item num]", minimum: 0)),
                 dungeon.Read(PvfField.Int32("[tower fp cubepiece]")),
                 dungeon.Read(PvfField.Int32("[tower limit of stackable item]")),
-                dungeon.Read(PvfField.Int32("[tower item drop]")),
+                dungeon.TryRead(PvfField.Int32("[tower item drop]", optional: true), out var itemDrop) ? itemDrop : 1,
                 Ints(dungeon, "[tower high skill initial cool time]"),
                 dungeon.Read(PvfField.Numbers("[tower high skill initial cool time rate]")),
                 dungeon.ReadAll(PvfField.Int32List("[tower recovery]"))));
     }
 
-    private static TowerRoomDefinition ReadRoom(PvfArchive archive, int level, int mapId, Func<int, TowerApcCandidate> readApc)
+    private static TowerRoomDefinition ReadRoom(PvfArchive archive, int dungeonId, int level, int mapId, Func<int, TowerApcCandidate> readApc)
     {
         var path = Resolve(archive, "map", mapId);
         var document = PvfDocument.Open(archive, path);
-        Require(document.Read(PvfField.Int32("[dungeon]")) == 11001, path, "map belongs to another dungeon");
+        Require(document.Read(PvfField.Int32("[dungeon]")) == dungeonId, path, "map belongs to another dungeon");
         var actors = new List<TowerActorDeclaration>();
         foreach (var row in Rows(document, "[monster]", 10, path))
         {
@@ -97,7 +101,8 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             Require(row[0].Value > 0 && row[1].Value is 0 or 1, path, "invalid monster id or level mode");
             actors.Add(new(row[0].Value, row[2].Value, row[1].Value == 1,
                 Rank(archive.ResolveString(row[9].Value), path), true,
-                new(row[3].Value, row[4].Value, row[5].Value)));
+                new(row[3].Value, row[4].Value, row[5].Value))
+            { Items = ReadItems(PvfDocument.Open(archive, Resolve(archive, "monster", row[0].Value)), path) });
         }
         foreach (var row in Rows(document, "[ai character]", 8, path))
         {
@@ -108,7 +113,7 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             var apc = readApc(row[0].Value);
             actors.Add(new(apc.TemplateId, apc.Level, false,
                 (byte)(5 + Rank(archive.ResolveString(row[5].Value), path)), true,
-                new(row[1].Value, row[2].Value, row[3].Value)));
+                new(row[1].Value, row[2].Value, row[3].Value)) { Items = apc.Items });
         }
         var budget = document.Read(PvfField.Int32("[apc random point]", optional: true, minimum: 0));
         var positions = new List<TowerPosition>();
@@ -124,6 +129,19 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             for (var i = 0; i < values.Count; i += 4) objects.Add(new(values[i], new(values[i + 1], values[i + 2], values[i + 3])));
         }
         return new(level, mapId, actors.AsReadOnly(), budget, positions.AsReadOnly(), objects.AsReadOnly());
+    }
+
+    private static IReadOnlyList<TowerItemChance> ReadItems(PvfDocument document, string path)
+    {
+        if (!document.TryRead(PvfField.Int32List("[death tower item]", optional: true), out var values)) return [];
+        Require(values.Count % 2 == 0, path, "invalid tower item pairs");
+        var items = new List<TowerItemChance>();
+        for (var index = 0; index < values.Count; index += 2)
+        {
+            Require(values[index] > 0 && values[index + 1] is >= 0 and <= 10000, path, "invalid tower item rate");
+            items.Add(new(values[index], values[index + 1]));
+        }
+        return items.AsReadOnly();
     }
 
     private static IEnumerable<PvfToken[]> Rows(PvfDocument document, string name, int width, string path)

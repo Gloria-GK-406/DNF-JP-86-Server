@@ -16,7 +16,12 @@ public sealed record TowerActor(ushort Uid, TowerActorSeed Seed, bool Dead);
 public sealed record TowerObject(ushort Uid, TowerObjectDeclaration Seed);
 public sealed record TowerRoomSnapshot(int Level, int MapId, uint Seed, long Version,
     TowerRoomPhase Phase, ImmutableArray<TowerActor> Actors, ImmutableArray<TowerObject> Objects,
-    ImmutableHashSet<CharacterId> LoadedMembers, DateTimeOffset? StartedAt = null, DateTimeOffset? ClearedAt = null);
+    ImmutableHashSet<CharacterId> LoadedMembers, DateTimeOffset? StartedAt = null, DateTimeOffset? ClearedAt = null)
+{
+    public ImmutableArray<TowerGroundItem> Items { get; init; } = [];
+}
+public sealed record TowerGroundItem(ushort Uid, ushort ActorUid, int ItemId, bool Available, bool Claimed);
+public sealed record TowerPickupResult(TowerActionResult Action, ushort GroundUid, TowerInventoryUpdate? Update, bool NoRoom = false);
 public sealed record TowerRewardItem(int ItemId, int Count);
 public sealed record TowerRewardCandidate(int ItemId, int DisplayValue, ushort Durability = 0)
 {
@@ -55,6 +60,7 @@ public sealed record TowerEntryResult(string? Rejection, IllusionTowerSnapshot? 
 public sealed record TowerActionResult(bool Changed, IllusionTowerSnapshot? Run, TowerActor? KilledActor = null)
 {
     public ImmutableArray<TowerKillReward> KillRewards { get; init; } = [];
+    public ImmutableArray<TowerGroundItem> Drops { get; init; } = [];
     public bool SettlementCreated { get; init; }
 }
 
@@ -64,10 +70,12 @@ public interface IIllusionTowerDomainService
     bool IsInTower(CharacterId characterId);
     bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members);
     ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-        SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken);
+        SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId = 11001);
     ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken cancellationToken);
+    ValueTask<TowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token) =>
+        ValueTask.FromResult(new TowerPickupResult(new(false, null), groundUid, null));
     ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken cancellationToken);

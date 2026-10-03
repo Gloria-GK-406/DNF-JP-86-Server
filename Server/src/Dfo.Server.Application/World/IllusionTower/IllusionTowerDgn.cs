@@ -27,10 +27,18 @@ internal sealed class TowerRoom(TowerRoomSnapshot state)
     {
         var actor = State.Actors.FirstOrDefault(x => x.Uid == uid);
         if (State.Phase != TowerRoomPhase.Fighting || actor is null || actor.Dead) return null;
-        State = State with { Actors = State.Actors.Replace(actor, actor with { Dead = true }) };
+        State = State with { Actors = State.Actors.Replace(actor, actor with { Dead = true }),
+            Items = State.Items.Select(item => item.ActorUid == uid ? item with { Available = true } : item).ToImmutableArray() };
         if (State.Actors.All(x => x.Dead || !x.Seed.BlocksClear))
             State = State with { Phase = TowerRoomPhase.Cleared, ClearedAt = now };
         return actor;
+    }
+    public bool Claim(ushort uid)
+    {
+        var item = State.Items.SingleOrDefault(x => x.Uid == uid && x.Available && !x.Claimed);
+        if (item is null) return false;
+        State = State with { Items = State.Items.Replace(item, item with { Claimed = true }) };
+        return true;
     }
     public void RemoveMember(CharacterId character, ImmutableArray<TowerMember> remaining)
     {
@@ -80,9 +88,10 @@ internal sealed class IllusionTowerDgn
         }
         if (seed.Actors.All(x => !x.BlocksClear)) throw new InvalidDataException("A tower room requires a blocking actor.");
         var actors = seed.Actors.Select(x => new TowerActor(Allocate(), x, false)).ToImmutableArray();
+        var items = actors.SelectMany(actor => actor.Seed.Items.Select(item => new TowerGroundItem(Allocate(), actor.Uid, item, false, false))).ToImmutableArray();
         var objects = seed.Objects.Select(x => new TowerObject(Allocate(), x)).ToImmutableArray();
         Room = new(new(seed.Level, seed.MapId, seed.Seed, version, TowerRoomPhase.Loading,
-            actors, objects, ImmutableHashSet<CharacterId>.Empty));
+            actors, objects, ImmutableHashSet<CharacterId>.Empty) { Items = items });
     }
     private void End(TowerEndReason reason, DateTimeOffset now) => Completion ??= new(reason, CompletedLevels.Length,
         reason == TowerEndReason.Completed ? LevelCount : Math.Max(1, Room.State.Level - 1), false, now);
@@ -99,7 +108,7 @@ internal sealed class IllusionTowerDgn
             CompletedLevels = CompletedLevels.Add(Room.State.Level);
             if (Room.State.Level == LevelCount) End(TowerEndReason.Completed, now);
         }
-        return Result(true, killed);
+        return Result(true, killed) with { Drops = Room.State.Items.Where(item => item.ActorUid == uid && item.Available && !item.Claimed).ToImmutableArray() };
     }
     public bool CanAdvance(SelectedSessionIdentity session) => Completion is null && Room.State.Phase == TowerRoomPhase.Cleared
         && Members.Any(x => x.Session == session && x.IsLeader);

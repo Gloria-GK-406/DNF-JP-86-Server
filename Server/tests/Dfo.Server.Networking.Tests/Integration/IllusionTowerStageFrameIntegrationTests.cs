@@ -13,6 +13,8 @@ using Dfo.Server.Application;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure.Configuration;
@@ -30,8 +32,10 @@ namespace Dfo.Server.Networking.Tests.Integration;
 
 public sealed class IllusionTowerStageFrameIntegrationTests
 {
-    [Fact]
-    public async Task Raw_009f_start_frame_reaches_registered_decoder_and_starts_the_real_tower_run()
+    [Theory]
+    [InlineData(11001)]
+    [InlineData(11000)]
+    public async Task Raw_tower_start_and_death_pickup_frames_reach_registered_decoders_and_real_run(int dungeonId)
     {
         var channelPort = AvailablePort();
         var gamePort = AvailablePort();
@@ -57,6 +61,8 @@ public sealed class IllusionTowerStageFrameIntegrationTests
         // seams so this test does not depend on a player's PVF or database.
         builder.Services.AddSingleton<IIllusionTowerRuleService>(new TowerRules());
         builder.Services.AddSingleton<ICharacterDomainService>(new Characters());
+        builder.Services.AddSingleton<IItemPlacementDefinitionSource>(new Placements());
+        builder.Services.RemoveAll<IIllusionTowerRewardDomainService>();
 
         using var host = TestInfrastructure.Build(builder);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -75,9 +81,15 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 new AccountId(7401), new CharacterId(7401), connectionId, 1, gamePort);
             host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
 
+            var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
+            if (dungeonId == 11000)
+            {
+                containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForCharacter(selected.CharacterId, InventoryContainerType.Main), InventoryContainerType.Main));
+                containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForAccount(selected.AccountId, InventoryContainerType.SharedMaterial), InventoryContainerType.SharedMaterial));
+            }
             var bus = host.Services.GetRequiredService<ICommandBus>();
             var entered = await bus.SendAsync(
-                new EnterIllusionTowerCommand([new TowerEntryMember(selected, 0)], selected, 0x12345678),
+                new EnterIllusionTowerCommand([new TowerEntryMember(selected, 0)], selected, 0x12345678, dungeonId),
                 timeout.Token);
             var run = Assert.IsType<IllusionTowerSnapshot>(entered.Run);
             var loaded = await bus.SendAsync(
@@ -92,7 +104,26 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 () => towers.Find(selected)?.Room.Phase == TowerRoomPhase.Fighting,
                 timeout.Token);
             Assert.Equal(run.RunId, towers.Find(selected)?.RunId);
-
+            if (dungeonId == 11000)
+            {
+                var killed = await bus.SendAsync(new KillIllusionTowerActorCommand(
+                    new(selected, run.RunId, run.Room.Version), run.Room.Actors[0].Uid), timeout.Token);
+                var drop = Assert.Single(killed.Drops);
+                var body = new byte[18];
+                BinaryPrimitives.WriteUInt16LittleEndian(body, drop.Uid);
+                await stream.WriteAsync(ClientFrame(0x002B, body, sequence: 2), timeout.Token);
+                await WaitUntilAsync(() => towers.Find(selected)!.Room.Items.Single().Claimed, timeout.Token);
+                var acknowledged = false;
+                for (var count = 0; count < 8 && !acknowledged; count++)
+                {
+                    var frame = await ReadFrameAsync(stream, timeout.Token);
+                    acknowledged = frame[0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x002B;
+                    if (acknowledged) Assert.Equal(1, frame[GameServerFrameEncoder.HeaderLength]);
+                }
+                Assert.True(acknowledged);
+                Assert.Equal(6521, Assert.Single(await containers.GetContainer(selected.CharacterId, InventoryContainerType.Main).GetAllAsync(timeout.Token)).ItemId);
+                Assert.Empty(await containers.GetContainer(selected.CharacterId, InventoryContainerType.Main, isDefault: true).GetAllAsync(timeout.Token));
+            }
             client.Dispose();
             await WaitUntilAsync(() => towers.Find(selected) is null, timeout.Token);
         }
@@ -149,18 +180,38 @@ public sealed class IllusionTowerStageFrameIntegrationTests
 
     private sealed class TowerRules : IIllusionTowerRuleService
     {
-        public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken) =>
+        public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001) =>
             ValueTask.FromResult(new IllusionTowerDefinition(
-                11001, 1, 40, [],
+                dungeonId, 1, 40, [],
                 [new TowerRoomDefinition(1, 60001, [], 0, [], [])], [],
                 new IllusionTowerRewardParameters([1], [0], [100], 0, 0, 0),
                 new IllusionTowerParameters(0, 0, 0, 0, [], [], [])));
 
         public ValueTask<TowerRoomSeed> CreateRoomAsync(
-            int level, uint seed, CancellationToken cancellationToken) =>
+            int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) =>
             ValueTask.FromResult(new TowerRoomSeed(
                 level, 60000 + level, seed,
-                [new TowerActorSeed(0, 608, 40, 4, true, new TowerPosition(1, 2, 0))], []));
+                [new TowerActorSeed(0, 608, 40, 4, true, new TowerPosition(1, 2, 0)) { Items = dungeonId == 11000 ? [6521] : [] }], []));
+    }
+
+    private sealed class Placements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<ItemPlacement?>(new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55)));
+    }
+    private sealed class EmptyDefault(ContainerId id, InventoryContainerType type) : IItemContainer
+    {
+        public ContainerId Id => id;
+        public InventoryContainerType Type => type;
+        public ContainerShape Shape => new(type, 0);
+        public bool IsDefault => true;
+        public bool IsRemovable => false;
+        public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) => ValueTask.FromResult<ItemReference?>(null);
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<ItemReference>>([]);
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
     }
 
     private sealed class Characters : ICharacterDomainService

@@ -1713,9 +1713,9 @@ public sealed class CardRewardTests
     private sealed class StubContainers(IItemContainer? bag) : ICharacterContainerDomainService
     {
         public IItemContainer? FindContainer(
-            CharacterId characterId, InventoryContainerType type) => bag;
+            CharacterId characterId, InventoryContainerType type, bool isDefault = false) => bag;
 
-        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type) =>
+        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false) =>
             bag ?? throw new InvalidOperationException("This character has no bag.");
 
         public IReadOnlyList<IItemContainer> GetContainers(

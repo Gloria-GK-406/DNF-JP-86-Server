@@ -4,16 +4,19 @@ namespace Dfo.Server.Application.World.IllusionTower;
 
 internal sealed class IllusionTowerRuleService(IIllusionTowerContentSource content) : IIllusionTowerRuleService
 {
-    public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken) =>
-        content.GetAsync(cancellationToken);
+    public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001) =>
+        content.GetAsync(cancellationToken, dungeonId);
 
     public async ValueTask<TowerRoomSeed> CreateRoomAsync(
-        int level, uint seed, CancellationToken cancellationToken)
+        int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001)
     {
-        var definition = await content.GetAsync(cancellationToken).ConfigureAwait(false);
+        var definition = await content.GetAsync(cancellationToken, dungeonId).ConfigureAwait(false);
         var room = definition.Rooms.SingleOrDefault(value => value.Level == level)
             ?? throw new ArgumentOutOfRangeException(nameof(level));
         var actors = new List<TowerActorSeed>();
+        var drops = new Dfo.Server.Abstractions.World.DropRandom(unchecked((ulong)seed) ^ 0x544f574552UL);
+        IReadOnlyList<int> Draw(IReadOnlyList<TowerItemChance> items) => definition.Parameters.ItemDrop == 0 ? []
+            : items.Where(item => item.Rate > 0 && drops.Next(10000) <= item.Rate).Select(item => item.ItemId).ToArray();
         var monsterIndex = 0;
         var apcIndex = 0;
         foreach (var actor in room.Actors)
@@ -22,7 +25,7 @@ internal sealed class IllusionTowerRuleService(IIllusionTowerContentSource conte
             if (actorLevel is < 1 or > byte.MaxValue)
                 throw new InvalidDataException($"Tower map {room.MapId}: invalid actor level {actorLevel}.");
             actors.Add(new(actor.ActorType >= 5 ? apcIndex++ : monsterIndex++, actor.TemplateId,
-                (byte)actorLevel, actor.ActorType, actor.BlocksClear, actor.Position));
+                (byte)actorLevel, actor.ActorType, actor.BlocksClear, actor.Position) { Items = Draw(actor.Items) });
         }
 
         // UpstreamImplementation: DeathTowerMapLoader uses appearance-point budgets, no
@@ -43,7 +46,7 @@ internal sealed class IllusionTowerRuleService(IIllusionTowerContentSource conte
                 var selected = eligible[random.Next(eligible.Length)];
                 available.Remove(selected);
                 budget -= selected.AppearancePoint;
-                actors.Add(new(64 + selectedCount++, selected.TemplateId, selected.Level, 5, true, position));
+                actors.Add(new(64 + selectedCount++, selected.TemplateId, selected.Level, 5, true, position) { Items = Draw(selected.Items) });
             }
             if (selectedCount == 0)
                 throw new InvalidDataException($"Tower map {room.MapId}: no APC fits its declared random budget.");

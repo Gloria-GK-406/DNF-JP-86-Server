@@ -36,7 +36,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 clock.GetUtcNow(), session, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
             var request = new QuestEnemyDropRequest(
-                actor.Seed.ActorType == 5 ? QuestEnemyType.APC : QuestEnemyType.Monster,
+                actor.Seed.ActorType is >= 5 and <= 8 ? QuestEnemyType.APC : QuestEnemyType.Monster,
                 actor.Seed.TemplateId, actor.Uid, run.DungeonId, DungeonDifficulty.Normal,
                 unchecked((int)run.Room.Seed), run.Room.Level, 0, run.Room.MapId);
             var pending = await questDrops.DrawAsync(request,
@@ -45,7 +45,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             var facts = new List<QuestProgressFact>
             {
                 new QuestEnemyDefeated(run.DungeonId, DungeonDifficulty.Normal, actor.Seed.TemplateId,
-                    actor.Seed.ActorType == 5 ? HuntEnemyTargetTypes.AiCharacter : HuntEnemyTargetTypes.Monster,
+                    actor.Seed.ActorType is >= 5 and <= 8 ? HuntEnemyTargetTypes.AiCharacter : HuntEnemyTargetTypes.Monster,
                     MonsterRank.Ordinary),
             };
             if (!updates.IsEmpty) facts.Add(new QuestHoldingsChanged());
@@ -69,9 +69,9 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
         {
             if (drop.QuestId <= 0 || !active.Contains(drop.QuestId) || drop.GrantLimit <= 0) continue;
             var source = AccountMaterialCatalog.ContainsItem(drop.ItemId)
-                ? containers.FindContainer(session.CharacterId, InventoryContainerType.SharedMaterial)
+                ? containers.FindContainer(session.CharacterId, InventoryContainerType.SharedMaterial, isDefault: true)
                     ?? throw new InvalidDataException("Shared material container is unavailable.")
-                : containers.FindContainer(session.CharacterId, InventoryContainerType.Main)
+                : containers.FindContainer(session.CharacterId, InventoryContainerType.Main, isDefault: true)
                     ?? throw new InvalidDataException("Character inventory is unavailable.");
             var held = (await source.GetAllAsync(token).ConfigureAwait(false))
                 .Where(item => item.ItemId == drop.ItemId).Sum(item => (long)item.Count);
@@ -79,7 +79,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             while (remaining > 0)
             {
                 var granted = await grants.GrantAsync(session.AccountId, session.CharacterId, containers,
-                    drop.ItemId, remaining, token).ConfigureAwait(false);
+                    drop.ItemId, remaining, token, isDefault: true).ConfigureAwait(false);
                 var placement = granted.Placement;
                 var localSlot = placement switch
                 {
@@ -119,7 +119,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             var progress = await character.ProgressAsync(token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
             var candidates = (await rules.CandidatesAsync(progress.Level, completion.RewardLevel,
-                DropRandom.SeedFor(unchecked((int)seed), run.DungeonId, completion.RewardLevel, member.Slot, 0), token)
+                DropRandom.SeedFor(unchecked((int)seed), run.DungeonId, completion.RewardLevel, member.Slot, 0), token, run.DungeonId)
                 .ConfigureAwait(false)).ToBuilder();
             var beforeGold = await character.GoldAsync(token).ConfigureAwait(false);
             var goldBalance = beforeGold;
@@ -137,7 +137,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 }
                 if (candidate.ItemId < 0) continue;
                 var grant = await grants.GrantAsync(session.AccountId, session.CharacterId, containers,
-                    candidate.ItemId, 1, token).ConfigureAwait(false);
+                    candidate.ItemId, 1, token, isDefault: true).ConfigureAwait(false);
                 if (grant.Placement is ItemPlacementOutcome.NoRoom) continue;
                 if (grant.Placement is not ItemPlacementOutcome.PutInEmptySlot { Count: 1 } placed)
                     throw new InvalidDataException($"Tower equipment grant failed: {grant.Placement}.");

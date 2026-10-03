@@ -156,13 +156,13 @@ public sealed class CreatureNamingDomainServiceTests
         private CreatureState Current { get; set; } = new(500, 63023, 100, 0, 1, [], 0, 0, 0, 0);
         public int Saves { get; private set; }
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
-        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space) => space switch
+        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) => space switch
         {
             BusinessInventorySpace.CreatureConsumable => Card,
             BusinessInventorySpace.WornCreature => Worn,
             _ => null,
         };
-        public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
+        public IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false) =>
             FindContainer(space) ?? throw new InvalidOperationException();
         public ValueTask<CreatureState?> FindAsync(int itemUid, CancellationToken ct) =>
             ValueTask.FromResult<CreatureState?>(itemUid == Current.ItemUid ? Current : null);

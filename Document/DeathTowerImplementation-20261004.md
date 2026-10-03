@@ -1,0 +1,75 @@
+# 死亡之塔实现与验收
+
+日期：2026-10-04。代码工作区：`task/warehouse-storage`，实施基线 `f2859ef4`。死亡之塔尚未实机验收；迷妄之塔此前的通关结果不能转记为死亡之塔通过。
+
+## 当前行为
+
+- 读取当前 PVF 的 `11000`：45 层、最低等级 50、入场消耗邀请函 `4183 × 1`。迷妄之塔 `11001` 继续按自己的 15 层与奖励配置运行。
+- 两塔共用已有的组队入场、装载、开战、清层、下一层、死亡、自动结算、再次挑战/选择其他地下城和离场状态机。保留现有 `IllusionTower*` 类型名，避免为第二座塔复制完整生命周期。
+- 死亡之塔每个参战角色获得本局独立的 Main 和 SharedMaterial 容器。快捷栏属于 Main，因此与普通背包一起切换；账号原有晶体余额不进入临时视图。每局内跨层保留，退塔/断线解除绑定并丢弃临时内容。
+- 怪物、固定和随机 APC 的 `[death tower item]` 决定塔用无色及药剂掉落。击杀后通过既有 `NOTI 0026` 描述地面物品，`CMD 002B` 拾取后更新当前容器并广播 `NOTI 0027`。每个地面编号只能成功领取一次，跨层不保留未拾取物品。
+- 普通物品发放、移动、使用、丢弃和技能材料扣除按当前容器操作。临时 Main 与永久穿戴栏之间的移动被拒绝；仓库沿用塔内禁止访问的现有规则。
+- 结算和任务击杀奖励显式发入默认容器，即使角色仍在塔内。它们不会作为物品增量污染临时背包画面；离场时完整同步已恢复的永久背包及共享晶体。再次挑战所需门票也从默认容器检查。
+- 容器注册/切换/移除、临时物品变化、地面领取状态、门票与结算共用领域事务；失败回滚不扣券、不丢物、不提前恢复绑定。
+
+## 容器接口
+
+```csharp
+containers.GetContainer(characterId, type);                  // 当前容器
+containers.GetContainer(characterId, type, isDefault: true); // 默认容器
+store.GetContainer(space, isDefault: true);                 // 业务容器同样支持
+await grants.GrantAsync(account, character, containers,
+    itemId, count, ct, isDefault: true);                     // 奖励入永久容器
+```
+
+`IItemContainer.IsDefault` 是容器自身属性；每种类型至多一个默认容器，默认容器不可移除。切换当前绑定不会改变该属性，调用者不再通过手工拼接永久 ContainerId 绕过绑定。SharedMaterial 的永久归属仍是账号，临时绑定只影响参战角色当前这局的访问入口。
+
+`TowerInventoryDomainService` 管理容器生命周期；`RunItemDomainStore` 是 Persistence 提供的易失后端，经 `ITransientItemDomainStoreFactory` 创建。Application 不依赖 Persistence 具体类型。临时容量继承默认容器的形状，并执行现有槽位、类型与堆叠限制。
+
+## 证据与差异
+
+| 来源 | 已确认内容 | 边界 |
+|---|---|---|
+| 当前 PVF | 45 张地图、入场规则、怪物/APC 掉落对、塔用物品类型、奖励表 | 数据内容已读取；客户端最终表现待验收 |
+| 70Reference | `CStage::consistMap` 的地图物品与普通怪物分支；拾取后移除地面记录并发通知 | 旧版本服务端语义，不等于 A21 线级布局 |
+| 上游 `ServerS4A21`，`c20dba5` | 双塔配置、APC 掉落、临时物品消耗/移动的行为对照 | 未照搬它的容器 overlay 或旧版封包格式 |
+| ClientStatic | A21 008F 物品行是18字节；与旧实现字段宽度不同 | 非零行未做本次实机验证 |
+| CurrentImplementation | 本文所述容器事务、默认奖励、击杀掉落及拾取 | 自动化测试与实机验收分开记录 |
+
+输入身份沿用并核对 [PVF/70/A21 镜像清单](outputs/illusion-tower-20261003/inputs.json)。本次新增 [45 层与物品表摘录](outputs/death-tower-20261004/pvf-stages.md) 和 [70 地图/拾取反汇编](outputs/death-tower-20261004/tw70-drops.md)。A21 008F 读取链见 [原始静态记录](outputs/illusion-tower-20261003/client.md)。
+
+具体纠偏：
+
+1. 当前死亡塔的经验/卡牌表有99行，地图只有45层；校验要求覆盖全部地图，不能要求行数相等。
+2. 死亡塔未声明 `[tower item drop]`，采用启用语义；迷妄显式为0。当前45张地图都没有 `[item]` 行，因此008F仍发送0条预置地图物品；击杀掉落独立走0026，不能把APC掉落表塞进008F。
+3. `6515` 是 `[material instant item]`，归普通材料栏；它不是账号永久晶体 `3033`。账号晶体栏仍必须切到独立临时容器，防止误读或误扣原余额。
+4. APC 的5～8类型均走APC经验与任务目标语义，包含有阶级标志的APC。
+5. 当前掉落使用本仓确定性随机源，不声称与原服随机序列相同；金币/经验估值的既有恢复边界仍见迷妄研究记录。
+6. 入场角色附件是切换前快照，现有属性刷新不刷新背包；死亡塔提交临时绑定后重新读取当前视图，再发000D。报文回归验证进塔只剩14个虚拟槽，退塔恢复门票、普通物品及原共享晶体。
+
+## 验证
+
+Release 全解决方案构建为零警告、零错误；全量测试 **5724通过、0失败、2跳过**（两个“缺失PVF”场景因本轮配置了真实PVF而跳过）。报告位于 [最终全量TRX目录](../artifacts/death-tower-20261004/tests-final/)。最后清理容器空注册记录并修正测试装饰器参数转发后，重新构建通过，死亡塔/容器/共享材料相关 **106项通过**，报告位于 [收尾回归目录](../artifacts/death-tower-20261004/tests-post-cleanup/)。
+
+已覆盖实际PVF全部45层推进及拾取、两个容器一起切换、默认容器查询、共享晶体隔离、门票/拾取/退塔回滚、重复拾取、结算先于退出时奖励落入永久背包、技能材料仅消耗当前晶体、穿戴栏隔离，以及真实TCP的009F开战/002B拾取链路。另有实际编码000D的入退塔快照检查，验证物品及共享晶体清空/恢复和入场发送顺序。
+
+验证使用 `PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf`，Release 构建与测试均串行运行：
+
+```powershell
+dotnet build Server/86JP.Server.slnx -c Release --no-restore -v:q -m:1 -nr:false -p:UseSharedCompilation=false -p:ContinuousIntegrationBuild=true
+dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore -m:1 -nr:false -v:minimal --logger trx --results-directory artifacts/death-tower-20261004/tests-final --blame-hang-timeout 3m --blame-hang-dump-type none
+```
+
+沙箱初跑因 Windows EventLog 权限失败，正常权限下对应 Host 用例通过。正常权限首轮另有一个既有装备测试在夹具初始化 SQL 中出现 `SQLitePCL.sqlite3` 已释放异常；该用例单独重跑通过，随后完整 Application 2901项也全部通过。未据此修改产品逻辑或既有测试夹具；异常根因未稳定复现，失败报告保留在 `artifacts/death-tower-20261004/tests-unrestricted/`。
+
+## 集中实机清单
+
+1. 在城镇记录快捷栏、背包、账号晶体和邀请函数量；进入死亡塔后快捷栏与普通物品清空、共享晶体显示临时余额，穿戴装备正常。
+2. 击杀带掉落的怪物/APC，拾取塔用无色与药剂；检查显示数量、拖入快捷栏、药剂使用和需要无色的技能。
+3. 跨层确认已拾取临时物品保留，上一层地面物品消失；确认层号、敌人、对话与恢复流程。
+4. 中途死亡结算、通关结算；尚未退出时不应把奖励装备画进临时背包。退出后原快捷栏、背包、晶体恢复，奖励已保留且不重复。
+5. 再次挑战、选择其他地下城、主动离场、断线后重登；确认临时物品不带出、不重复扣券。组队补查共同清场、拾取竞争与成员离开。
+
+客户端需配合此前 `0180_TowerInventory` 插件对11000/11001维持普通Main协议的处理；当前部署DLL SHA-256 为 `6DC17821B0FC11195CA1A213DA203A58663B13CC266282B5D7BB7368FC8DE692`。本次未修改客户端二进制。完整服务端回归不能替代上述实机项目。
+
+本次未重启或替换正在运行的服务端。收尾时确认旧进程 PID `42836` 仍来自 `artifacts/illusion-tower-20261003-2347/runtime/`；死亡塔实机验收前需部署本次服务端产物。

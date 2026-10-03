@@ -156,6 +156,21 @@ public sealed class CharacterContainerDomainServiceTests
         Assert.Equal(businessIndex, projected.Slot.Index);
     }
 
+    [Fact]
+    public void Default_lookup_does_not_follow_current_switch_and_duplicate_defaults_are_rejected()
+    {
+        var registry = new CharacterContainerDomainService();
+        var temporary = Container("temporary");
+        var permanent = Container("permanent", removable: false);
+        registry.Register(Character, temporary);
+        registry.Register(Character, permanent);
+        Assert.Same(temporary, registry.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Same(permanent, registry.GetContainer(Character, InventoryContainerType.Main, isDefault: true));
+        Assert.Throws<InvalidOperationException>(() => registry.Register(Character, Container("duplicate", removable: false)));
+        registry.Remove(Character, temporary.Id);
+        Assert.Same(permanent, registry.GetContainer(Character, InventoryContainerType.Main));
+    }
+
     private static IItemContainer Container(string id, bool removable = true) =>
         new StandInContainer(
             new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0), removable);

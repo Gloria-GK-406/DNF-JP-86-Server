@@ -917,6 +917,67 @@ public sealed class IllusionTowerDomainServiceTests
     }
 
     [Fact]
+    public async Task Death_tower_entry_and_return_project_current_then_default_inventory()
+    {
+        using var f = Fixture(configure: services =>
+        {
+            services.RemoveAll<ICharacterSkillPointDomainService>();
+            services.AddSingleton<ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
+            services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser());
+        });
+        await f.Seed(65, 4183, 2);
+        await f.Seed(66, 2000, 7);
+        await f.SeedShared(3033, 90);
+        f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0),(2,0); " +
+            "INSERT INTO character_pvp(character_id) VALUES(1),(2); " +
+            "INSERT INTO character_settings(character_id) VALUES(1),(2); " +
+            "INSERT INTO character_expert_job(character_id) VALUES(1),(2);");
+        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>()
+            .Publish(f.Session, shouldPersistPosition: false);
+        f.Services.GetRequiredService<ICharacterPositionDomainService>()
+            .Place(f.Session, new CharacterPositionState(1, 0, 0, 0, 0));
+        var party = f.Services.GetRequiredService<IPartyService>().FindParty(PartyCharacter(f.Session));
+        var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
+
+        Assert.True(await delivery.EnterAsync(f.Session.ConnectionId, f.Session, party,
+            DungeonEntryIntent.Interactive, () => Assert.Fail("Entry was refused."), default, dungeonId: 11000));
+
+        var entered = Snapshot();
+        Assert.Equal(14, entered.Items.Length); // Only the standard currency/material virtual slots remain.
+        Assert.All(entered.Items.Where(item => item.Slot >= 354), item => Assert.Equal(0, item.Count));
+        Assert.True(f.Sender.Messages.IndexOf(entered.Message) < f.Sender.Messages.FindIndex(
+            message => message.MessageType == ServerMessageType.GameIllusionTowerInfo));
+        f.Sender.Messages.Clear();
+
+        Assert.True(await delivery.LeaveAndReturnAsync(f.Session.ConnectionId,
+            GameMessageMetadata.Empty, response: null, default));
+
+        Assert.Null(Tower(f).Find(f.Session));
+        var returned = Snapshot();
+        Assert.Contains(returned.Items, item => item.Id == 4183 && item.Count == 1);
+        Assert.Contains(returned.Items, item => item.Id == 2000 && item.Count == 7);
+        Assert.Contains(returned.Items, item => item.Id == 3033 && item.Count == 90);
+
+        (IServerNetworkMessage Message, (int Slot, int Id, int Count)[] Items) Snapshot()
+        {
+            var registrations = f.Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
+            var encoded = f.Sender.Messages.SelectMany(message =>
+                ((IServerMessageEncoder)f.Services.GetRequiredService(registrations[message.GetType()].EncoderType))
+                    .Encode(message).Select(frame => (Message: message, Frame: frame.ToArray())));
+            var snapshot = Assert.Single(encoded, value => value.Frame[0] == 0 && BitConverter.ToUInt16(value.Frame, 1) == 0x000D);
+            var body = snapshot.Frame.AsSpan(15).ToArray();
+            Assert.Equal((byte)InventoryContainerType.Main, body[0]);
+            var count = BitConverter.ToUInt16(body, 3);
+            Assert.Equal(5 + count * 101, body.Length);
+            return (snapshot.Message, Enumerable.Range(0, count).Select(index =>
+            {
+                var offset = 5 + index * 101;
+                return ((int)BitConverter.ToUInt16(body, offset), BitConverter.ToInt32(body, offset + 2), BitConverter.ToInt32(body, offset + 6));
+            }).ToArray());
+        }
+    }
+
+    [Fact]
     public async Task Final_experience_cap_keeps_display_breakdown_equal_to_actual_award()
     {
         using var f = Fixture(new Rules { ExperienceWeight = 100000, Probabilities = [0, 0, 100] }, rewards: true,
@@ -1081,18 +1142,262 @@ public sealed class IllusionTowerDomainServiceTests
 
     internal sealed class Rules : IIllusionTowerRuleService
     {
+        public IReadOnlyList<int> Items { get; set; } = [];
         public int FailLevel { get; set; }
         public byte ActorType { get; set; } = 4;
         public int FloorCount { get; set; } = 15;
         public double ExperienceWeight { get; set; } = 1;
         public int[] Probabilities { get; set; } = [50, 49, 100];
         public int CardCount { get; set; } = 4;
-        public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken) => ValueTask.FromResult(
-            new IllusionTowerDefinition(11001, 40, 40, [new(4183, 1, true)],
+        public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001) => ValueTask.FromResult(
+            new IllusionTowerDefinition(dungeonId, 40, 40, [new(4183, 1, true)],
                 Enumerable.Range(1, FloorCount).Select(n => new TowerRoomDefinition(n, 60000 + n, [], 0, [], [])).ToArray(), [],
                 new(Enumerable.Repeat(ExperienceWeight, 15).ToArray(), Enumerable.Repeat(CardCount, 15).ToArray(), Probabilities, 11, 3, 1), new(4, 0, 0, 0, [], [], [])));
-        public ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken) => level == FailLevel ? throw new InvalidDataException("fixture room failure") : ValueTask.FromResult(
-            new TowerRoomSeed(level, 60000 + level, seed, [new(0, 608, 40, ActorType, true, new(1, 2, 0))], []));
+        public ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) => level == FailLevel ? throw new InvalidDataException("fixture room failure") : ValueTask.FromResult(
+            new TowerRoomSeed(level, 60000 + level, seed, [new(0, 608, 40, ActorType, true, new(1, 2, 0)) { Items = Items }], []));
+    }
+
+    [Fact]
+    public async Task Death_entry_switches_both_containers_and_leave_restores_default_without_transient_items()
+    {
+        using var f = Fixture(new Rules { Items = [3033, 2000] });
+        await f.Seed(65, 4183, 2);
+        await f.SeedShared(3033, 90);
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var main = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main, isDefault: true);
+        var crystal = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial, isDefault: true);
+        var run = (await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        Assert.Equal(11000, run.DungeonId);
+        Assert.False(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
+        Assert.False(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial).IsDefault);
+        Assert.Same(main, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main, isDefault: true));
+        Assert.Same(crystal, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial, isDefault: true));
+        Assert.Equal(1, (await main.GetAsync(65, default))!.Count);
+        Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial).GetAllAsync(default));
+        var context = Context(run, f.Session);
+        await Tower(f).LoadAsync(context, default);
+        await Tower(f).StartAsync(context, default);
+        var killed = await Tower(f).KillAsync(context, run.Room.Actors[0].Uid, default);
+        Assert.Equal(2, killed.Drops.Length);
+        var crystalDrop = killed.Drops.Single(x => x.ItemId == 3033);
+        var first = await Tower(f).PickupAsync(context, crystalDrop.Uid, default);
+        Assert.True(first.Action.Changed);
+        Assert.Equal(BusinessInventorySpace.SharedMaterial, first.Update!.Slot.Space);
+        Assert.False((await Tower(f).PickupAsync(context, crystalDrop.Uid, default)).Action.Changed);
+        Assert.Equal(90, f.SharedCount(3033));
+        var bagDrop = killed.Drops.Single(x => x.ItemId == 2000);
+        Assert.True((await Tower(f).PickupAsync(context, bagDrop.Uid, default)).Action.Changed);
+        Assert.DoesNotContain(await main.GetAllAsync(default), item => item.ItemId == 2000);
+        await Tower(f).LeaveAsync(context, false, default);
+        Assert.Same(main, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.Same(crystal, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial));
+        Assert.Single(containers.GetContainers(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.Equal(90, f.SharedCount(3033));
+        Assert.DoesNotContain(await main.GetAllAsync(default), item => item.ItemId == 2000);
+    }
+
+    [Fact]
+    public async Task Death_entry_prepare_failure_rolls_back_ticket_and_both_bindings()
+    {
+        using var f = Fixture();
+        await f.Seed(65, 4183, 2);
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        await using (var tx = Scope(f).Begin())
+        {
+            Assert.NotNull((await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run);
+            Assert.False(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
+            Scope(f).Current!.Enlist(new object(), () => new PrepareFailure());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
+        }
+        Assert.Null(Tower(f).Find(f.Session));
+        Assert.True(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
+        Assert.True(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial).IsDefault);
+        Assert.Equal(2, (await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAsync(65, default))!.Count);
+    }
+
+    [Fact]
+    public async Task Death_pickup_rollback_keeps_drop_claimable_and_leave_rollback_keeps_temporary_bindings()
+    {
+        using var f = Fixture(new Rules { Items = [2000] });
+        await f.Seed(65, 4183, 1);
+        var tower = Tower(f);
+        var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        var context = Context(run, f.Session);
+        await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
+        var killed = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
+        var item = Assert.Single(killed.Drops);
+        await using (var tx = Scope(f).Begin())
+        {
+            Assert.True((await tower.PickupAsync(context, item.Uid, default)).Action.Changed);
+            Scope(f).Current!.Enlist(new object(), () => new PrepareFailure());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
+        }
+        Assert.True((await tower.PickupAsync(context, item.Uid, default)).Action.Changed);
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var temporary = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main);
+        await using (var tx = Scope(f).Begin())
+        {
+            await tower.LeaveAsync(context, false, default);
+            Assert.True(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
+            Scope(f).Current!.Enlist(new object(), () => new PrepareFailure());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
+        }
+        Assert.Same(temporary, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.NotNull(tower.Find(f.Session));
+        Assert.Single(await temporary.GetAllAsync(default));
+        await tower.LeaveAsync(context, true, default);
+        Assert.True(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
+    }
+
+    [Fact]
+    public async Task Explicit_default_grants_reach_permanent_containers_while_ordinary_grants_remain_temporary()
+    {
+        using var f = Fixture();
+        await f.Seed(65, 4183, 2); await f.SeedShared(3033, 90);
+        var run = (await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var grants = f.Services.GetRequiredService<IItemGrantDomainService>();
+        await using (var tx = Scope(f).Begin())
+        {
+            var ordinary = await grants.GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 3033, 2, default);
+            Assert.False(ordinary.Container.IsDefault);
+            var permanent = await grants.GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 3033, 3, default, isDefault: true);
+            Assert.True(permanent.Container.IsDefault);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(93, f.SharedCount(3033));
+        var temp = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial);
+        Assert.Equal(2, Assert.Single(await temp.GetAllAsync(default)).Count);
+        await Tower(f).LeaveAsync(Context(run, f.Session), false, default);
+        Assert.Equal(93, f.SharedCount(3033));
+    }
+
+    [Fact]
+    public async Task Death_settlement_before_exit_awards_permanent_equipment_without_showing_it_in_temporary_bag()
+    {
+        var content = new TowerRewardTestContent();
+        content.Table = content.Table with { ItemTypeRates = [0, 10000, 0, 0] };
+        using var f = Fixture(new Rules { FloorCount = 1, Probabilities = [0, 1001, 100] }, rewards: true,
+            configure: s => { TowerRewardTestContent.Register(s, content); s.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()); });
+        await f.Seed(65, 4183, 2);
+        var tower = Tower(f);
+        var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        var context = Context(run, f.Session);
+        await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
+        await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>().KillAsync(f.Session.ConnectionId,
+            GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default);
+        var ended = tower.Find(f.Session)!;
+        Assert.True(ended.Completion!.Settled);
+        Assert.Equal(2, f.Count(3000));
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default));
+        Assert.DoesNotContain(f.Sender.Messages, message => message.GetType().Name == "InventoryDeltaMessage");
+        Assert.True(await tower.CanContinueAsync(context, default));
+        await tower.LeaveAsync(context, false, default);
+        Assert.Equal(2, (await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default)).Count(x => x.ItemId == 3000));
+        Assert.Equal(2, f.Count(3000));
+    }
+
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Death_current_pvf_all_45_floors_progress_and_every_drop_stays_in_run_inventory()
+    {
+        using var f = Fixture(configure: s =>
+        {
+            s.AddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
+            s.AddSingleton<IItemPlacementDefinitionSource, Dfo.Server.Infrastructure.Content.PvfItemPlacementDefinitionSource>();
+        });
+        await f.Seed(65, 4183, 2); await f.SeedShared(3033, 90);
+        var tower = Tower(f);
+        var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        var pickupCount = 0;
+        for (var floor = 1; floor <= 45; floor++)
+        {
+            Assert.Equal(floor, run.Room.Level);
+            Assert.Equal(30000 + floor, run.Room.MapId);
+            var context = Context(run, f.Session);
+            await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
+            foreach (var actor in run.Room.Actors)
+            {
+                var killed = await tower.KillAsync(context, actor.Uid, default);
+                Assert.True(killed.Changed);
+                foreach (var drop in killed.Drops)
+                {
+                    var picked = await tower.PickupAsync(context, drop.Uid, default);
+                    Assert.True(picked.Action.Changed);
+                    pickupCount++;
+                    if (drop.ItemId == 6515) Assert.Equal(BusinessInventorySpace.Material, picked.Update!.Slot.Space);
+                }
+            }
+            run = tower.Find(f.Session)!;
+            if (floor < 45) run = (await tower.NextLevelAsync(Context(run, f.Session), default)).Run!;
+        }
+        Assert.True(pickupCount > 20);
+        Assert.Equal(TowerEndReason.Completed, run.Completion!.Reason);
+        Assert.Equal(45, run.Completion.CompletedLevels);
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        Assert.NotEmpty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default));
+        Assert.All(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main, isDefault: true).GetAllAsync(default), item => Assert.Equal(4183, item.ItemId));
+        Assert.Equal(90, f.SharedCount(3033));
+        await tower.LeaveAsync(Context(run, f.Session), false, default);
+        Assert.True(containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).IsDefault);
+        Assert.Equal(1, f.Count(4183));
+        Assert.Equal(90, f.SharedCount(3033));
+    }
+
+    [Fact]
+    public async Task Death_skill_materials_consume_current_shared_container_and_cannot_draw_from_default_balance()
+    {
+        using var f = Fixture();
+        await f.Seed(65, 4183, 1); await f.SeedShared(3033, 90);
+        await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000);
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var costs = f.Services.GetRequiredService<IMaterialConsumptionDomainService>();
+        Assert.True(AccountMaterialCatalog.TryGetSlotIndex(3033, out var index));
+        await using (var tx = Scope(f).Begin())
+        {
+            var denied = await costs.ConsumeAsync(f.Session, [new(new(BusinessInventorySpace.SharedMaterial, index), 3033, 1)], default);
+            Assert.False(denied.Success);
+            await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAsync(f.Session.AccountId,
+                f.Session.CharacterId, containers, 3033, 2, default);
+            Assert.True((await costs.ConsumeAsync(f.Session, [new(new(BusinessInventorySpace.SharedMaterial, index), 3033, 2)], default)).Success);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(90, f.SharedCount(3033));
+        Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial).GetAllAsync(default));
+    }
+
+    [Fact]
+    public async Task Death_command_pickup_publishes_drop_removal_and_item_update_without_leaking_to_permanent_storage()
+    {
+        using var f = Fixture(new Rules { Items = [2000] }, configure: s => s.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
+        await f.Seed(65, 4183, 1);
+        var tower = Tower(f);
+        var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        var context = Context(run, f.Session);
+        await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
+        var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
+        await delivery.KillAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default);
+        var drop = Assert.Single(tower.Find(f.Session)!.Room.Items);
+        f.Sender.Messages.Clear();
+        await f.Services.GetRequiredService<Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler>().HandleAsync(new(f.Connection),
+            new Dfo.Server.Protocol.Game.GroundPickup.GetItemRequest(GameMessageMetadata.Empty, drop.Uid), default);
+        Assert.True(Assert.Single(f.Sender.Messages.OfType<Dfo.Server.Protocol.Game.GroundPickup.GetItemResponse>()).Accepted);
+        Assert.Equal(drop.Uid, Assert.Single(f.Sender.Messages.OfType<Dfo.Server.Protocol.Game.GroundPickup.GroundPickupNotification>()).GroundDropNumber);
+        Assert.Contains(f.Sender.Messages, message => message.GetType().Name == "InventoryDeltaMessage");
+        Assert.Equal(0, f.Count(2000));
+        Assert.True(tower.Find(f.Session)!.Room.Items.Single().Claimed);
+    }
+
+    [Fact]
+    public async Task Death_current_main_cannot_exchange_items_with_persistent_worn_equipment()
+    {
+        using var f = Fixture();
+        await f.Seed(65, 4183, 1);
+        await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000);
+        var bus = f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>();
+        var result = await bus.SendAsync(new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand(f.Session.CharacterId,
+            new(BusinessInventorySpace.WornEquipment, 0), 1, new(BusinessInventorySpace.CarriedEquipment, 0)) { Session = f.Session }, default);
+        Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.ItemCannotOccupySlot, result.Status);
     }
 
     private sealed class ManualTimeProvider(DateTimeOffset now) : TimeProvider

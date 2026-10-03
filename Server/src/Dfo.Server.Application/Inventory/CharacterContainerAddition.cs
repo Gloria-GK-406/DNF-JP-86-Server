@@ -37,8 +37,8 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
                 new(type, 0), store, transactions, placements, slotRules, capacities);
             if (bag is not StoreBackedItemContainer)
                 throw new NotSupportedException("Whole-quantity addition requires a transactional store-backed container.");
-            if (!bag.Id.TryGetOwner(out var actualOwner, out var actualType)
-                || actualOwner != expectedOwner || actualType != type || bag.Type != type)
+            if (bag.Type != type || bag.IsDefault && (!bag.Id.TryGetOwner(out var actualOwner, out var actualType)
+                || actualOwner != expectedOwner || actualType != type))
                 throw new InvalidOperationException("The selected container belongs to another owner or inventory type.");
             var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures, capacities, lifecycle);
             var changes = new List<ContainerItemAddition>();

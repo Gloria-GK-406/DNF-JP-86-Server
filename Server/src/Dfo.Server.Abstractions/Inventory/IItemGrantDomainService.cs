@@ -11,5 +11,5 @@ public interface IItemGrantDomainService
         ICharacterContainerDomainService containers,
         int itemId,
         int count,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, bool isDefault = false);
 }
