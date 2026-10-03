@@ -48,6 +48,8 @@ jobs:
       - name: Build GM frontend
         working-directory: Web/gm-admin
         run: npm run build
+      - name: Verify wire smoke tools
+        run: python -m unittest discover -s Tool/WireSmoke -p "test_*.py"
       - name: Verify release guard
         run: python -m unittest discover -s Tool/Release -p "test_*.py"
       - name: Restore

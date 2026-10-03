@@ -151,11 +151,9 @@ internal abstract class FakeMainInventory(int characterId = 60)
         var containers = new CharacterContainerDomainService();
         containers.Register(this.character, new PersistentItemContainer(
             this.Main,
-            this.character,
             new ContainerShape(InventoryContainerType.Main, 0),
             this.store,
             this.Scope,
-            null!,
             new ItemPlacementRuleService(
                 placements ?? new ConsumableBandPlacements(), new NoWearables()),
             new ItemSlotRuleService()));

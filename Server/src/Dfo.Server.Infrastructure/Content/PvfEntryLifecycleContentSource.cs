@@ -228,25 +228,6 @@ internal sealed class PvfEntryLifecycleContentSource(
         return new(1, kind, 9, 64, worldClass);
     }
 
-    /// <summary>
-    /// Which sort of individual piece a template is, out of its own <c>[equipment type]</c>.
-    /// </summary>
-    /// <remarks>
-    /// The same tag <see cref="PvfEquipmentSlotDefinitionSource"/> reads to find the slot a piece
-    /// is worn in, read here for the coarser question of what the piece is. One tag, one reading
-    /// of it: the eleven names ending in <c>avatar</c> are the avatar slots, <c>[creature]</c> is
-    /// the contract creature, and every other name -- weapon, coat, ring, title, artifact,
-    /// charm, flag, name tag -- is ordinary worn gear.
-    /// <para>
-    /// A file that does not resolve, or declares no equipment type, is still an individual piece:
-    /// it is in the equipment index, which is what says two of it can be told apart. Answering
-    /// <see cref="ItemWorldClass.Interchangeable"/> there would turn a piece of gear into a pile
-    /// on the strength of a tag being missing.
-    /// </para>
-    /// </remarks>
-    private static ItemWorldClass ResolveWorldClass(PvfArchive archive, string relativePath)
-        => ClassifyEquipmentType(ReadEquipmentType(archive, relativePath));
-
     private static string? ReadEquipmentType(PvfArchive archive, string relativePath)
     {
         var fileIndex = archive.FindFile(EquipmentDirectory + "/" + relativePath);

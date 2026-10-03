@@ -15,10 +15,17 @@ DNF 86JP 版本的服务端重实现及协议知识库。客户端补丁与登�
 
 ## Server
 
-分层由项目引用强制，不是靠自觉：
+项目引用形成多条边界，`Application` 不引用 `Infrastructure`、`Persistence` 或 `Networking`。
+下图箭头表示“引用”，省略各项目对 `Data` / `Abstractions` 的共同引用：
 
 ```text
-Data → Abstractions → Application → {Infrastructure, Persistence, Networking} → Protocol → Host
+Application → Abstractions → Data
+Infrastructure → Dfo.Pvf
+Protocol → Application, Networking
+HttpApi → Application
+GmWeb → HttpApi, Application
+GameServer → Protocol, Networking, Infrastructure
+Host → GameServer, HttpApi, GmWeb, Application, Infrastructure, Persistence
 ```
 
 | 项目 | 装什么 |
@@ -30,6 +37,9 @@ Data → Abstractions → Application → {Infrastructure, Persistence, Networki
 | `Dfo.Server.Persistence` | SQLite 落库 |
 | `Dfo.Server.Networking` | Socket 与 TouchSocket 边界 |
 | `Dfo.Server.Protocol` | 按 `<Endpoint>/<Protocol>/` 切片的协议实现 |
+| `Dfo.Server.HttpApi` | 启动器注册、认证与 HTTP 边界 |
+| `Dfo.Server.GmWeb` | GM 管理 HTTP 功能 |
+| `Dfo.Server.GameServer` | Game 服务组合与启动编排 |
 | `Dfo.Server.Host` | Generic Host 组合根 |
 | `Dfo.Server.Utilities` | 空项目占位 |
 | `Dfo.Pvf` | 档案读取库 |

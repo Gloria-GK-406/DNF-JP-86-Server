@@ -211,16 +211,11 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 不存在会话物品副本和 `ReplaceExact` 回写。入场时的物品租约缓存及退场保存链路已移除。
 会话与当前视图的边界见 [选角结果与运行期当前视图](Document/SelectedSessionCurrentView.md)。
 
-**疲劳总量已接入配置，消耗仍未记账。** `UnaccountedCharacterFatigueDomainService`
-读取 `Fatigue:BaseTotal`（默认156），加账号增值服务 `GetExtraFatigueAsync` 的结果；
-后者有黑钻资格返回 `Premium:BlackDiamondExtraFatigue`（默认32），无资格返回0。
-登录和队伍投影统一读取该服务，已用量仍为0。`SpendAsync`/`RefundAsync` 仍为空，
-没有跨日消耗记录，也未接入零疲劳入场拒绝。
-**报的那个 `1` 是占位值，且与档案已知冲突**：`SelectDungeonHandler.FatigueAnEntryCosts` 无条件
-报 1，而副本自带 `[no fatigue]` 标记（`DungeonDefinition.ConsumesFatigue`，全仓唯一读者是
-`PvfDungeonDefinitionSourceTests.cs:32` 那条钉解析的判据，它断言教程本 10000 为 `false`）——
-按写下的规则那本进本该扣 0。今天不记账所以无可观察后果，但**真开始记账时，调用点必须先问档案
-这本扣不扣**。规则与出处见 `Docs/DungeonEntryNotes.md` 第八节。
+**疲劳已按日记账。** `CharacterFatigueDomainService` 将配置总量与账号黑钻加成合并，
+按 `IDailyResetRuleService` 的当前周期读取已用量；`SpendAsync`/`RefundAsync` 在命令事务内
+通过条件写入更新，退款不降低当日累计消耗。`DungeonVisitDomainService` 先检查
+`ConsumesFatigue`，需要疲劳的副本拒绝零剩余角色，并在入场事务内扣除 1 点；
+不消耗疲劳的副本跳过这两步。当前实现和自动测试不等同于 A21 实机验收。
 
 **设置与连招今天刻意没有消费方，别当死代码删掉。** 两者都有真实的表、真实的 SQL，判据对着真库
 校验它们答得对；缺的是调用方，而调用方要等改键协议与连招编辑协议做进来。
@@ -468,27 +463,19 @@ if (result.Publication.Audience.Count > 0)
 - **通知类型必须在 `ProtocolModule` 里注册处理器**，且该程序集要 `AddNotificationCatalog`。
   漏注册会在**开始接受连接之前**让服务器起不来（宿主先实例化 hosted service 再启动）。
 
-**做到哪一步，以及没有什么：**
+**当前消费边界：**
 
-- 走人群抽象的扇出**只有两处**：PvP 大厅公示、会话清理的「尽力送旁人」段。第三个候选
-  （`SessionAdjacentEntryDomainService` 里的 `presence.InArea`）经检查**不是扇出**——
-  它给入场者本人算「我周围有谁」，收件人只有一个。
-- **没有周期触发。** 没有调度器、没有时刻表。唯一的循环是重试队列的排空
-  （`NotificationRetryDrainService`），它不驱动任何业务。
-- **没有发布订阅。** 业务用例直接调用通知服务；不存在「发布一件事、由订阅者各自决定反应」的间接层。
-- **其余「回给请求方」的发送都没有走人群抽象。** 实测 37 处 `SendExplicitAsync` 与 7 处
-  `SendNotiAsync`（命令：`grep -rn "SendExplicitAsync" Server/src --include=*.cs` 去掉
-  `INetworkServices.cs` / `GameMessageSemantics.cs` / `TouchSocketNetworkMessageSender.cs` 三个定义处）。
-  它们绝大多数没有旁人收件人，套上人群抽象等于给占绝对多数的情形加一层间接。
-  （数会变，看的是它旁边那句理由，不是这个数。）
-- **频道、全服、组队三种人群没有实现**，因为本仓今天没有它们的真实调用方（队伍这个概念还不存在）。
-  人群是封闭层级，但**它不是真正的联合类型**：C# 要求未密封 record 的复制构造函数至少 protected
-  （`CS8878`），所以外部 record 借它派生得出来。真正的保护是解析器最后一个分支会**指名**没教过的形态。
-- **被迁移的两处扇出，帧逐值不变，收件人集合在竞态窗口里与迁移前不同**——
-  会话被顶替或重连时，旧代码寻址的是「当时记下的会话」，新代码寻址的是「这个角色此刻在哪」。
+- 人群通知用于 PvP 大厅公示、会话清理以及队伍城镇投影等路径；
+  `PartyTownProjectionDelivery` 使用 `TheseSessions` 指定精确会话。
+- `SessionAdjacentEntryDomainService` 给入场者本人计算周围角色，不因此成为多人扇出。
+- 通知总线没有业务周期调度或发布订阅层；`NotificationRetryDrainService` 只排空重试队列。
+- 回给请求方的消息仍可直接投递，不必套上人群抽象。
+- 没有专用的频道、全服或组队 Audience 类型；队伍业务已存在，使用现有精确会话人群。
+  人群 record 层级不能完全阻止外部派生，解析器会明确拒绝未知形态。
 
-**投递失败会被说出来，但不是靠摘要。** 总线把每个收件人的结果放进一份摘要
-（成功 / 弃权 / 人不在了 / 失败），而**读摘要是可选的，今天没有一个调用方读它**。
+**投递结果既有摘要，也有日志。** 总线返回成功、弃权、离线与失败结果；
+`PartyTownProjectionDelivery` 已读取成功和失败集合，用于维护实际送达的受众与后续处理。
+读取摘要仍是可选的，不能依赖每个调用方都读取它来保证可观测性。
 所以总线自己记日志，在还拿得到原因的地方记：
 
 - 投递抛异常 → `Warning` + 异常本身；
@@ -721,21 +708,12 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
-- **协议 handler 层普遍没有判据守着。这是个模式，不是个例。** `Dfo.Server.Protocol` 里有 48 个
-  `ClientMessageHandler<>` 子类，其中 **19 个**的类名在 `Server/tests` 全域一次都不出现：
-  `AcceptQuestHandler`、`CheckCharacterNameHandler`、`ConnectionCheckHandler`、
-  `ContentsPlayInfoHandler`、`CreateCharacterHandler`、`DeleteCharacterHandler`、
-  `EnterSelectDungeonHandler`、`GetAccountCharacterRosterHandler`、`GetItemHandler`、
-  `GiveUpGameHandler`、`HiddenCharacterInfoHandler`、`MapEntryReportHandler`、
-  `MercenaryInfoHandler`、`MoveMapHandler`、`SaveGameOption1Handler`、`SecurityStatusHandler`、
-  `SetQuestTriggerHandler`、`StoryPauseHandler`、`UnansweredReportHandler`。
-  缺口长的样子是固定的：**把一个 handler 整段退回读陈值，全量判据仍然全绿**。
-  已经实测撞到过三处，每一处都是先发现缺口、补上一条会红的判据之后才有的红：
-  `MonsterDeathHandler`（`MonsterDeathHandlerTests.cs`）、`SetUserAreaHandler` 与
-  `SetUserPositionHandler`（`TownProjectionHandlerTests.cs`）、`SelectDungeonHandler`
-  （`SelectDungeonHandlerTests.cs`）——后三个 handler 在这些用例之前从未被任何用例构造过。
-  **所以动 handler 之前先查它有没有判据；多半没有，那就先补一条会红的再动它。**
-  「快速开发」那节写的「测试三件套」是规定，不是现状。
+- **修改协议 handler 前检查具体行为覆盖。** 历史的“48 个 handler、19 个无测试”清单已失效；
+  `GetItemHandler`、`MoveMapHandler`、`GiveUpGameHandler` 等已有测试。
+  类名搜索只能定位候选测试，不能证明覆盖充分。重点检查当前事实读取、事务结果、
+  精确会话和发帧行为；有实际回归风险且现有验证不足时，再补能观察该结果的测试。
+  `MonsterDeathHandlerTests`、`TownProjectionHandlerTests`、`SelectDungeonHandlerTests`
+  可作为相应行为的测试入口。
 - `Dfo.Server.Utilities` 是空项目占位。
 
 ## 构建与运行

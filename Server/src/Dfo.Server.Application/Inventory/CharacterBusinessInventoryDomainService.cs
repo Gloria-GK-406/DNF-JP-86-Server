@@ -48,8 +48,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
                 container = new PersistentItemContainer(owner.Scope == InventoryOwnerType.Account
                         ? ContainerId.ForAccount(new AccountId(owner.Value), address.List)
                         : ContainerId.ForCharacter(characterId, address.List),
-                    characterId, new ContainerShape(address.List, 0), items, transactions,
-                    null, placements, slotRules, capacities);
+                    new ContainerShape(address.List, 0), items, transactions, placements, slotRules, capacities);
             return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures, capacities, lifecycle);
         }
 

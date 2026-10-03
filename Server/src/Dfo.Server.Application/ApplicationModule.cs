@@ -159,7 +159,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<CreatureRuntimeDomainService>();
         services.TryAddSingleton<ICreatureRuntimeDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
         services.TryAddSingleton<ICreatureInstanceDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
-        services.TryAddSingleton<ICreatureTransformationDomainService, CreatureTransformationDomainService>();
         services.TryAddSingleton<LegacyWornItemNormalizer>();
         services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();

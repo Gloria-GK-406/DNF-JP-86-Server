@@ -87,11 +87,9 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 container.ContainerType is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial
                     ? ContainerId.ForAccount(accountId, container.ContainerType)
                     : ContainerId.ForCharacter(characterId, container.ContainerType),
-                characterId,
                 new ContainerShape(container.ContainerType, container.Parameter),
                 itemStore,
                 transactions,
-                mutations,
                 placementRules,
                 slotRules, capacities));
         }

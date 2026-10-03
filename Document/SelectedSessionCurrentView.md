@@ -14,8 +14,9 @@
 物品移动、修理及耐久消耗直接修改物品领域持久化状态。副本选择、进图、回城、
 查看角色和外观通知都重新取当前物品；不会把登录时的旧耐久再灌回客户端。
 入场物品租约的内存副本、脏标记、退场写回链路已从生产流程移除。
-旧的 `EntryInventoryLeaseSnapshot`/持久化接口仅为底层对账测试保留，
-不在服务组合根注册，也不由会话生命周期调用。
+旧的 `EntryInventoryLeaseSnapshot` 及配套持久化接口也已删除。
+当前库存投影由入场读取链路组装，物品修改通过引用、取出记录与生命周期服务完成；
+见 [物品生命周期规格](tasks/item-container-lifecycle/spec.md)。
 
 位置仍由 `ICharacterPositionDomainService` 持有，队伍血量百分比由
 `ICharacterVitalRuntimeDomainService` 按精确会话持有；旧连接清理不能移除新连接的记录。

@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
-using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
@@ -85,8 +84,6 @@ internal abstract class StoreBackedItemContainer(
 
     public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) =>
         ReadAsync(session => session.GetAllAsync(id, ct));
-
-    public abstract ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct);
 
     private IItemDomainStoreSession RequireSession() => AmbientSession()
         ?? throw new InvalidOperationException("Item lifecycle changes require an open domain transaction.");
@@ -214,24 +211,13 @@ internal abstract class StoreBackedItemContainer(
 /// </remarks>
 internal sealed class PersistentItemContainer(
     ContainerId id,
-    CharacterId characterId,
     ContainerShape shape,
     IItemDomainStore store,
     IDomainTransactionAccessor transactions,
-    IEntryInventoryMutationRepository? snapshots,
     IItemPlacementRuleService placementRules,
     IItemSlotRuleService slotRules, IInventoryCapacityDomainService? capacities = null)
     : StoreBackedItemContainer(
         id, shape, store, transactions, placementRules, slotRules, capacities)
 {
     public override bool IsRemovable => false;
-
-    /// <remarks>The entry repository supplies the main-list client projection. Other lists use their own entry projections.</remarks>
-    public override ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-        CancellationToken cancellationToken) =>
-        this.Type == InventoryContainerType.Main && snapshots is not null
-            ? snapshots.ReadMainItemsAsync(characterId, cancellationToken)
-            : throw new NotSupportedException(
-                $"Container '{this.Id.Value}' has no snapshot source; only the main list does.");
-
 }

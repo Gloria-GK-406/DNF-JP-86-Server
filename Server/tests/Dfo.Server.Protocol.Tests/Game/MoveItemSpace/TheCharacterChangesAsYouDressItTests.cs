@@ -501,7 +501,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
         {
             Loads++;
-            var items = await worn.SnapshotAsync(cancellationToken);
+            var items = await worn.ReadProjectionAsync(cancellationToken);
             var shape = SelectCharacterPayloadTestData.CreateComplete().CharacterInventory;
             return shape with
             {

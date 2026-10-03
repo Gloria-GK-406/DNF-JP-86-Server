@@ -8,14 +8,7 @@ using Dfo.Server.Persistence.Database;
 
 namespace Dfo.Server.Persistence.Tests.Support;
 
-/// <summary>
-/// The account side of one database, put together the way the server puts it together.
-/// </summary>
-/// <remarks>
-/// Assembling an account is a domain service over several single-table repositories now, so a test
-/// that wants one has to say so in the same terms. Its own transaction scope is here too, because
-/// a write has to belong to a use case and a test is the one deciding where that use case begins.
-/// </remarks>
+/// <summary>Account entry services and explicit database seeding for persistence tests.</summary>
 internal sealed class AccountSide
 {
     private readonly SqliteDatabase database;
@@ -28,8 +21,6 @@ internal sealed class AccountSide
 
     public DomainTransactionScope Scope { get; }
 
-    public IAccountRepository Provisioning => new AccountProvisioning(new SqliteAccountTable(this.database));
-
     public IAccountEntryStateRepository Entry => new AccountEntryAssembly(
         new SqliteAccountTable(this.database),
         new SqliteAccountSettingsTable(this.database),
@@ -40,12 +31,16 @@ internal sealed class AccountSide
         new SqliteCharacterBuyRestrictTable(this.database),
         new SqliteCharacterMercenarySupportTable(this.database));
 
-    /// <summary>Creates the account inside a use case, as logging in does.</summary>
+    /// <summary>Seeds a fixture account in a transaction; this is not the login path.</summary>
     public async Task<AccountRecord> GetOrCreateAsync(string loginId, string passwordHash)
     {
         await using var lease = this.Scope.Begin();
-        var account = await this.Provisioning
-            .GetOrCreateAsync(loginId, passwordHash, CancellationToken.None);
+        await this.database.ExecuteAsync(
+            "INSERT INTO accounts(m_id,password_hash) VALUES(@login,@hash) ON CONFLICT(m_id) DO NOTHING;",
+            parameters => { parameters.AddWithValue("@login", loginId); parameters.AddWithValue("@hash", passwordHash); },
+            CancellationToken.None);
+        var account = await new SqliteAccountTable(this.database).FindByLoginIdAsync(loginId, CancellationToken.None)
+            ?? throw new InvalidOperationException("Fixture account was not seeded.");
         await lease.CommitAsync(CancellationToken.None);
         return account;
     }

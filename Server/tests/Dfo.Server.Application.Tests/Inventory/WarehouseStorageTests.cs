@@ -269,9 +269,8 @@ public sealed class WarehouseStorageTests
         foreach (var type in new[] { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo, InventoryContainerType.Avatar })
         {
             registry.Register(host.Session.CharacterId, new PersistentItemContainer(type == InventoryContainerType.AccountCargo
-                    ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type),
-                host.Session.CharacterId, new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
-                host.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
+                    ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type), new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
+                host.Services.GetRequiredService<IDomainTransactionAccessor>(),
                 host.Services.GetRequiredService<IItemPlacementRuleService>(),
                 host.Services.GetRequiredService<IItemSlotRuleService>()));
         }

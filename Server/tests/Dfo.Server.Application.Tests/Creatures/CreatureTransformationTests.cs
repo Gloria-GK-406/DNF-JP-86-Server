@@ -19,7 +19,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Creatures;
 
-public sealed class CreatureTransformationDomainServiceTests
+public sealed class CreatureTransformationTests
 {
     private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
         new AccountId(1), new CharacterId(2), new NetworkConnectionId("transform"), 1, 10011);
@@ -76,7 +76,7 @@ public sealed class CreatureTransformationDomainServiceTests
         var pet = new CreatureState(500, 63000, 61, 2151, 20, [0x41], 0, 0, 0, 0);
         var fixture = new Fixture(pet, BusinessInventorySpace.WornCreature);
         await using var tx = fixture.Scope.Begin();
-        var result = await fixture.Service.EvolveAsync(Session, default);
+        var result = await (await fixture.Service.Of(Session.CharacterId).CurrentPetAsync(default))!.EvolveAsync(default);
 
         Assert.NotNull(result);
         Assert.Equal(pet with
@@ -89,7 +89,7 @@ public sealed class CreatureTransformationDomainServiceTests
 
         fixture.Rules.Rules[63001] = fixture.Rules.Rules[63001] with { CreatureId = 99 };
         fixture.Store.Set(pet);
-        Assert.Null(await fixture.Service.EvolveAsync(Session, default));
+        Assert.Null(await (await fixture.Service.Of(Session.CharacterId).CurrentPetAsync(default))!.EvolveAsync(default));
         Assert.Equal(1, fixture.Store.Saves);
     }
 
@@ -276,14 +276,29 @@ public sealed class CreatureTransformationDomainServiceTests
         public DomainTransactionScope Scope { get; } = new();
         public FakeCreatureStore Store { get; }
         public FakeRules Rules { get; } = new();
-        public CreatureTransformationDomainService Service { get; }
+        public CreatureRuntimeDomainService Service { get; }
 
         public Fixture(CreatureState state, BusinessInventorySpace space)
         {
             Store = new FakeCreatureStore(state, space);
-            Service = new CreatureTransformationDomainService(new FakeCreatureDomain(Store, Scope, Rules),
-                new FakeSessions(), Scope);
+            Service = new CreatureRuntimeDomainService(new RuntimeStore(Store),
+                new CreatureRuleService(Rules, new FakeLifetimes()), Scope,
+                new FakeSessions(), TimeProvider.System, new Inventories(Store));
         }
+    }
+
+    private sealed class RuntimeStore(FakeCreatureStore store) : ICreatureDomainStore
+    {
+        public object StoreIdentity { get; } = new();
+        public bool IsDurable => false;
+        public ICreatureDomainStoreSession SessionIn(IDomainTransaction transaction) =>
+            new TestCreatureCollection.Session(store,
+                state => store.SaveAsync(state, default).GetAwaiter().GetResult());
+    }
+
+    private sealed class Inventories(FakeCreatureStore store) : ICharacterBusinessInventoryDomainService
+    {
+        public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) => store;
     }
 
     private sealed class FakeRules : ICreatureRuleSource

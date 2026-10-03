@@ -203,11 +203,9 @@ public sealed class CreatureGoesBackOnTests
             {
                 containers.Register(this.character, new PersistentItemContainer(
                     ContainerId.ForCharacter(this.character, type),
-                    this.character,
                     new ContainerShape(type, 0),
                     store,
                     this.scope,
-                    null!,
                     rules,
                     new ItemSlotRuleService()));
             }

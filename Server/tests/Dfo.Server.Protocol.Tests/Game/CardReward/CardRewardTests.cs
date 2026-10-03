@@ -1685,11 +1685,6 @@ public sealed class CardRewardTests
             throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
 
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException(
-                "The delta is built from what was written, not from the entry projection.");
-
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
             CancellationToken cancellationToken) =>
             throw new NotSupportedException("This fixture is only added to and read back.");

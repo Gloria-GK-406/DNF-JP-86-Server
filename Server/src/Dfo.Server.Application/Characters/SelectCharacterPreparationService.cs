@@ -313,26 +313,6 @@ public sealed class SelectCharacterPreparationService(
             0, 0, 0, characters);
     }
 
-    internal static IReadOnlyList<CharacterRosterAppearanceState> DecodeAppearances(byte[] blob)
-    {
-        if (blob is null || blob.Length == 0) return [];
-        using var stream = new MemoryStream(blob, writable: false);
-        using var reader = new BinaryReader(stream);
-        var count = reader.ReadByte();
-        var appearances = new List<CharacterRosterAppearanceState>(count);
-        for (var index = 0; index < count; index++)
-        {
-            if (stream.Length - stream.Position < 23)
-                throw new InvalidDataException("Character appearance blob is truncated.");
-            appearances.Add(new CharacterRosterAppearanceState(
-                reader.ReadByte(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadBytes(4),
-                reader.ReadByte(), reader.ReadInt32(), reader.ReadUInt32(), reader.ReadByte()));
-        }
-        if (stream.Position != stream.Length)
-            throw new InvalidDataException("Character appearance blob contains trailing bytes.");
-        return appearances;
-    }
-
     private static CharacterEntryState CompleteCollectionBoxProjection(
         CharacterEntryState entry,
         WorldContentEntryState content,

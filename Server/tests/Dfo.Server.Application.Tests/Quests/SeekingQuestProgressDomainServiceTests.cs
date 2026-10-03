@@ -143,7 +143,6 @@ public sealed class SeekingQuestProgressDomainServiceTests
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult(this.items);
         public ValueTask<ItemReference?> GetAsync(int slotIndex, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
             throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
         public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();

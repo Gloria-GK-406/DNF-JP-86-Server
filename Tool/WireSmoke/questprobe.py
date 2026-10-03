@@ -6,15 +6,20 @@ and that the two frames the reference sends come back in its order.
 
 The bodies are the ones this server logged on 2026-08-27 while answering none of them.
 
-usage: questprobe.py [port] [rosterIndex]
+usage: questprobe.py --port <port> [--index 0]
+Set SMOKE_MID and SMOKE_TICKET from a fresh launcher login.
 """
+import argparse
 import struct
 import sys
 
-from entryprobe import Conn, dstr
+from entryprobe import Conn, login_payload, require_success
 
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 10011
-INDEX = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--port', type=int, required=True)
+parser.add_argument('--index', type=int, default=0)
+args = parser.parse_args()
+payload = login_payload()
 
 # What the reference server answered for quest 1016: accepted, trigger 1, no items.
 REFERENCE_ACK = bytes.fromhex("01F8030100000000")
@@ -35,13 +40,14 @@ def drain(conn, seconds=8):
         seconds = 2
 
 
-c = Conn("127.0.0.1", PORT)
+c = Conn("127.0.0.1", args.port)
 c.recv_frame()
-c.send(0x01, 0x0001, dstr("10038") + dstr("de509f65e9ccaae621cb7278fc2b8e6c"))
-drain(c, 4)
+c.send(0x01, 0x0001, payload)
+require_success(drain(c, 4), 0x0001)
 
-c.send(0x01, 0x0004, struct.pack("<H", INDEX))
+c.send(0x01, 0x0004, struct.pack("<H", args.index))
 entry = drain(c, 40)
+require_success(entry, 0x0004)
 print("entry batch: %d frames" % len(entry))
 
 failed = False
@@ -58,8 +64,8 @@ for body, questId in LIVE_BODIES:
         print("   *** no acknowledgement"); failed = True
     elif questId == 1016 and ack[2] != REFERENCE_ACK:
         print("   *** differs from the reference: %s" % REFERENCE_ACK.hex(" ")); failed = True
-    elif ack[2][0] != 0x01:
-        print("   *** refused, reason %d" % ack[2][1]); failed = True
+    elif not ack[2] or ack[2][0] != 0x01:
+        print("   *** refused, reason %d" % (ack[2][1] if len(ack[2]) > 1 else -1)); failed = True
 
     if not any(f[0] == 0x00 and f[1] == 0x0015 for f in answered):
         print("   *** the offer list did not follow"); failed = True

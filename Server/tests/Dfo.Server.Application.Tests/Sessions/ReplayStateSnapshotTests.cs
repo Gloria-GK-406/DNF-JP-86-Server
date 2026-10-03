@@ -109,8 +109,7 @@ public sealed class ReplayStateSnapshotTests
             INSERT INTO character_expert_job(character_id) VALUES(71);
             """);
         var store = fixture.Services.GetRequiredService<IItemDomainStore>();
-        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment),
-            fixture.Session.CharacterId, new(InventoryContainerType.Equipment, 0), store, fixture.Scope, null!,
+        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
             fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
@@ -287,8 +286,7 @@ public sealed class ReplayStateSnapshotTests
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is unavailable.");
         await using var fixture = new LearningFixture(useArchive: true); await fixture.SeedAsync();
         var store = fixture.Services.GetRequiredService<IItemDomainStore>();
-        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment),
-            fixture.Session.CharacterId, new(InventoryContainerType.Equipment, 0), store, fixture.Scope, null!,
+        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
             fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())

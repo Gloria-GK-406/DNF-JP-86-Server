@@ -1,82 +1,61 @@
 # WireSmoke
 
-Drives this server's entry and quest-acceptance path over a real socket and records what came
-back — the frames and the rows, not a pass/fail.
+通过真实 TCP 驱动注册后的建角、选角与任务接受流程，保存帧和数据库行。
+它验证当前服务端链路，不替代 A21 客户端验收。
 
-The unit suite never touches the wire. A change can keep 1300 tests green and still send the
-client different bytes, because what the tests assert is what the codecs produce in isolation,
-not what a running host puts on a socket after the pipeline, the stores and the transaction
-have all had their say. This is the cheap check for that: about ninety seconds, no GUI, no
-real client.
+## 运行
 
-## Running it
+先构建服务端，然后指定真实 PVF：
 
-```sh
-Tool/WireSmoke/capture.sh <label> [outdir]
+```powershell
+ dotnet build Server/86JP.Server.slnx
+ python Tool/WireSmoke/capture.py after-change artifacts/wire-after --pvf E:/Project/DNF/DNFClient-A21-protocol/Script.pvf
 ```
 
-Needs a built host (`dotnet build Server/86JP.Server.slnx`) and the A21 PVF archive; set
-`PVF_ARCHIVE_PATH` if it is not at `D:/project/DNF/DNFClient-A21-protocol/Script.pvf`. The
-account, character name and job can be overridden with `SMOKE_ACCOUNT`, `SMOKE_PWHASH`,
-`SMOKE_CHARACTER`, `SMOKE_JOB`.
+也可设置 `PVF_ARCHIVE_PATH`。Bash 入口 `capture.sh` 转发相同参数。
+`--host` 可指定其他构建的 `Dfo.Server.Host.dll`；`--name`、`--job` 指定测试角色。
+需要 Python 3 和可运行该构建的 .NET Runtime，不需要第三方 Python 包。
 
-It boots the host twice from a wiped database — once to record an entry batch on a character
-that has accepted nothing, once to accept two quests from a cold start — and writes five files
-into `outdir` (default `./capture-<label>`). Working files go to a temp directory and are
-removed; nothing is written next to the script.
+每次启动独立临时数据库，并选择四个空闲端口供 Channel、两个 Game listener 和启动器 HTTP 使用。
+工具不删除或修改构建目录里的数据库，不停止已有服务；端口若在启动前被抢占，本次运行失败。
+UDP discovery 与 GM Web 在测试宿主中关闭。宿主进程在正常结束或异常时退出，临时目录随后清理。
 
-**It wipes `Server/src/Dfo.Server.Host/bin/Debug/net10.0/Data/dfo-server.db`.** Do not run it
-against a database anyone cares about, and not while a real client is connected — it binds
-7001 and 10011.
+每轮通过 `/api/launcher/v1/register` 注册临时账号，每条 Game 连接前重新调用 `/api/launcher/v1/login`。
+Game 登录使用响应中的六位 `mId` 与 32 位大写十六进制票据；不再使用旧 MD5 登录。
+凭据通过子进程环境传递，登录请求体不写入帧归档。
 
-## Reading the result
+## 产物与失败
 
-Two ways, and they answer different questions.
+- `entry-batch-<label>.txt`：选角帧；`entry-probe-<label>.log`：探测摘要。
+- `quest-accept-<label>.txt`：任务 1016、101 的接受响应及重复接受拒绝。
+- `quest-rows-after-entry/accept-<label>.txt`：相应数据库任务行。
+- `host-entry/accept-<label>.log`、`create-entry/accept-<label>.txt`：启动与建角诊断。
 
-**Against the reference session.** `entry-compare-<label>.txt` lines our entry batch up beside
-the upstream A21 capture. The standing result is *66 frames against 66, same protocols in the
-same order, 60 byte for byte identical*; the six that differ are the six places a swordman is
-not the reference's 魔枪士, and they are itemised in
-[`a21-entry-batch-diff-20260825`](../../protocol/patterns/data/traces/a21-entry-batch-diff-20260825.md).
-A seventh differing frame is a finding.
+启动、注册、登录、建角、选角、任务探测、读库或已请求的比较失败，都返回非零退出码并保留诊断文件。
+不同 label 可用于改动前后捕获；`framediff.py` 可比较两份帧文件。身份、时间及角色内容可能变化，
+具体差异须结合当前实现判断，不再把旧版本的固定差异数量当成自动通过标准。
 
-`quest-accept-<label>.txt` ends in `matches the reference` or `FAILED`, and the script's exit
-code follows it.
+## 历史参考比较
 
-**Against your own before-run.** Capture once before a change and once after, then diff the two
-archives. This is the stronger check — it holds every character-dependent value fixed, so
-anything that moves is the change.
+默认只捕获当前服务端，不假定本机有外部参照仓库。比较历史 A21 日志时显式提供文件：
 
-### What moves anyway
+```powershell
+ python Tool/WireSmoke/cmpentry2.py artifacts/wire-after/entry-batch-after-change.txt comparison.txt --reference <packet_log.reference-20260823.txt>
+```
 
-Five places vary between two runs of the *same* build, so a diff is not clean even when nothing
-changed:
+`--enums <PacketTypesA21.cs>` 可选，仅补充协议名称。也可把这两个参数传给 `capture.py`。
+输入不存在或参考中不足 66 帧会失败；帧数、协议顺序、长度或正文不同均返回 1，报告仍会写出。
+这里的 66 帧窗口专门对应历史 SELECT_CHARACTER 响应批次，不声称当前版本必须仍有 66 帧。
+历史“66 对 66、60 帧相同”结论见
+[2026-08-25 入场比较](../../protocol/patterns/data/traces/a21-entry-batch-diff-20260825.md)，不作为当前验收结论。
 
-| Frame | Where | What it is |
-|---|---|---|
-| `#0 NOTI 0x0001` | body 21..22 | a per-session value, repeated in the select answer |
-| `#10 CMD 0x0004` | body 5..6 | the same value |
-| `#22 NOTI 0x0002` | body 123, 183, 243 | three item instance values, four bytes each |
+直接运行单个探测器时，先设置启动器刚签发的 `SMOKE_MID`、`SMOKE_TICKET`，然后使用：
 
-Everything else is stable run to run — the two archives that closed the quest-log refactor were
-identical outside these. A difference anywhere else is a real change, not noise.
+```text
+wireclient.py --port <port> [--name Probe] [--job 0]
+entryprobe.py --port <port> --out <capture.txt> [--index 0]
+questprobe.py --port <port> [--index 0]
+questrows.py <database.db>
+```
 
-The rows are stable in full: `character_active_quests` comes back as `(1, 0, 1016, 1)` and
-`(1, 1, 101, 1)`, and entry alone leaves none.
-
-## The pieces
-
-| File | What it does |
-|---|---|
-| `capture.sh` | the harness: boots, drives, archives, cleans up |
-| `wireclient.py` | creates the character the entry sequence needs, by asking the server to |
-| `entryprobe.py` | logs in, selects, and dumps every frame; also the `Conn` the others use |
-| `questprobe.py` | accepts two quests and checks the answers against the reference server's |
-| `cmpentry2.py` | lines an entry batch up against the reference capture |
-| `questrows.py` | prints a character's quest rows in a database-independent order |
-| `framediff.py` | byte-level diff of two frame dumps |
-
-`cmpentry2.py` names `packet_log.reference-20260823.txt` rather than the upstream output
-directory's `packet_log.txt`, deliberately: that default was overwritten on 2026-08-27 by a
-newer run, and every protocol page here cites the 08-23 session. Comparing against the wrong
-one reports six extra differing frames that are nothing but the other session's character.
+工具自身回归：`python -m unittest discover -s Tool/WireSmoke -p "test_*.py"`，已接入 CI。

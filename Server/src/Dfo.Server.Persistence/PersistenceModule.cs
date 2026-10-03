@@ -166,8 +166,6 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterPvpMissionTable>(
             provider => new SqliteCharacterPvpMissionTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxRepository, SqliteMailboxRepository>();
-        services.TryAddSingleton<IMailboxRecipientTable>(
-            provider => new SqliteMailboxRecipientTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxMessageTable>(
             provider => new SqliteMailboxMessageTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxAttachmentTable>(

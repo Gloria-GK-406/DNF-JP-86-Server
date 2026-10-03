@@ -86,11 +86,9 @@ public sealed class PersistentContainerBoundaryTests
         lifecycle = new ItemLifecycleDomainService(store, scope, rules);
         return new PersistentItemContainer(
             Main,
-            new CharacterId(60),
             new ContainerShape(InventoryContainerType.Main, 0),
             store,
             scope,
-            null!,
             // A write classifies what it is about to write, so this one is supplied rather than
             // left null. It answers what these piles are: an ordinary consumable of the main band.
             rules,

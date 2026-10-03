@@ -546,9 +546,8 @@ internal sealed class CeraShopFixture : IDisposable
         Host.Sql("UPDATE accounts SET cera=100000; UPDATE characters SET level=85;");
         foreach (var type in (InventoryContainerType[])[InventoryContainerType.Avatar, InventoryContainerType.Pet])
             Host.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Host.Session.CharacterId,
-                new PersistentItemContainer(ContainerId.ForCharacter(Host.Session.CharacterId, type), Host.Session.CharacterId, new(type, 0),
-                    Host.Services.GetRequiredService<IItemDomainStore>(), Host.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                    Host.Services.GetRequiredService<IEntryInventoryMutationRepository>(), Host.Services.GetRequiredService<IItemPlacementRuleService>(), Host.Services.GetRequiredService<IItemSlotRuleService>()));
+                new PersistentItemContainer(ContainerId.ForCharacter(Host.Session.CharacterId, type), new(type, 0),
+                    Host.Services.GetRequiredService<IItemDomainStore>(), Host.Services.GetRequiredService<IDomainTransactionAccessor>(), Host.Services.GetRequiredService<IItemPlacementRuleService>(), Host.Services.GetRequiredService<IItemSlotRuleService>()));
     }
     public Task<CeraShopPurchaseResult> Buy(params CeraShopPurchaseEntry[] entries) => Command(Host.Session, entries);
     public ValueTask Handle(CeraShopPurchaseInput input) => Host.Services.GetRequiredService<CeraShopPurchaseHandler>().HandleAsync(

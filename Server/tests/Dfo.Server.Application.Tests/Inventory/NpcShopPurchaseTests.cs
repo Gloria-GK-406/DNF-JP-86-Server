@@ -331,18 +331,15 @@ internal sealed class ShopFixture : IDisposable
             new TownAreaKey(1, 0, 0),
             new CharacterPositionState(0, 0, 0, 0, 0),
             true));
-        bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main),
-            session.CharacterId, new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
-            provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+        bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
+            provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, bag);
-        equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment),
-            session.CharacterId, new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
-            provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+        equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
+            provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
-            new PersistentItemContainer(ContainerId.ForAccount(session.AccountId, InventoryContainerType.SharedMaterial),
-                session.CharacterId, new(InventoryContainerType.SharedMaterial, 11), provider.GetRequiredService<IItemDomainStore>(),
-                provider.GetRequiredService<IDomainTransactionAccessor>(), null, provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>()));
+            new PersistentItemContainer(ContainerId.ForAccount(session.AccountId, InventoryContainerType.SharedMaterial), new(InventoryContainerType.SharedMaterial, 11), provider.GetRequiredService<IItemDomainStore>(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>()));
     }
 
     public async Task Seed(int slot, int item, int count, byte kind = 2)

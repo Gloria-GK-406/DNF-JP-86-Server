@@ -127,12 +127,6 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
     private static bool IsSection(string section, PvfField name) =>
         section.Equals(name.Name, StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsPenalty(string section) =>
-        IsSection(section, Fields.GreenLevelPenaltyField)
-        || IsSection(section, Fields.GreyLevelPenaltyField)
-        || IsSection(section, Fields.EpicGreenLevelPenaltyField)
-        || IsSection(section, Fields.EpicGreyLevelPenaltyField);
-
     /// <remarks>
     /// The fallbacks are the reference server's own defaults for a file that omits a band, kept so
     /// a partial file prices quests the way that server would rather than at zero.

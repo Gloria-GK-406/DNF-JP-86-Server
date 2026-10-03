@@ -187,7 +187,6 @@ public sealed class CharacterContainerDomainServiceTests
 
         public ValueTask<ItemReference?> GetAsync(int slot, CancellationToken ct) => ValueTask.FromResult<ItemReference?>(null);
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<ItemReference>>([]);
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<InventoryItemState>>([]);
         public ValueTask<ItemReference> PutAsync(int slot, ItemRecord item, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<ItemRecord> TakeAsync(ItemReference item, int? count, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<ItemReference> UpdateAsync(ItemReference item, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();

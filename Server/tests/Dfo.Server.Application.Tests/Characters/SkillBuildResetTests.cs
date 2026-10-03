@@ -163,7 +163,6 @@ public sealed class SkillBuildResetTests
         public bool IsRemovable=>false;
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<ItemReference>>([Water]);
         public ValueTask<ItemReference?> GetAsync(int slot,CancellationToken ct)=>ValueTask.FromResult<ItemReference?>(slot==69?Water:null);
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct)=>throw new NotSupportedException();
         public ValueTask<ItemReference> PutAsync(int slot,ItemRecord item,CancellationToken ct)=>throw new NotSupportedException();
         public ValueTask<ItemRecord> TakeAsync(ItemReference item,int? count,CancellationToken ct)=>throw new NotSupportedException();
         public ValueTask<ItemReference> UpdateAsync(ItemReference item,Func<ItemSnapshot,ItemSnapshot> change,CancellationToken ct)=>throw new NotSupportedException();

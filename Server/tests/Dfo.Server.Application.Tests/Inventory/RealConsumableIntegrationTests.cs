@@ -202,8 +202,8 @@ public sealed class RealConsumableIntegrationTests
 
     private static PersistentItemContainer Register(LearningFixture f, InventoryContainerType type)
     {
-        var container = new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, type), f.Session.CharacterId,
-            new(type, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope, null,
+        var container = new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, type),
+            new(type, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>());
         f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId, container);

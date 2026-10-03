@@ -165,11 +165,9 @@ public sealed class ItemPathLiveTests
             character,
             new PersistentItemContainer(
                 ContainerId.ForCharacter(character, InventoryContainerType.Main),
-                character,
                 new ContainerShape(InventoryContainerType.Main, 0),
                 services.GetRequiredService<IItemDomainStore>(),
                 services.GetRequiredService<IDomainTransactionAccessor>(),
-                null!,
                 services.GetRequiredService<IItemPlacementRuleService>(),
                 services.GetRequiredService<IItemSlotRuleService>()));
         services.GetRequiredService<ISelectedSessionDomainService>().Select(

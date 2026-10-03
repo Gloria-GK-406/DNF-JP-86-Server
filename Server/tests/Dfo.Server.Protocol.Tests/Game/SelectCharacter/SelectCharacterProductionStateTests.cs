@@ -418,10 +418,6 @@ public sealed class SelectCharacterProductionStateTests
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>([]);
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
             DateTimeOffset preparedAt, CancellationToken cancellationToken)

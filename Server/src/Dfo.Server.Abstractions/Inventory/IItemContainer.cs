@@ -127,7 +127,6 @@ public interface IItemContainer
     ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct);
     ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct);
     ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct);
-    ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct);
     ValueTask FlushAsync(CancellationToken ct);
 }
 

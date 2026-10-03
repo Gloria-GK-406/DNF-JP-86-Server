@@ -53,9 +53,6 @@ public sealed record AccountCargoItemRow(
     int SlotIndex,
     InventoryItemCoreState Core);
 
-/// <summary>One item of the main list.</summary>
-public sealed record MainItemRow(long ItemUid, int SlotIndex, InventoryItemCoreState Core);
-
 /// <summary>What an avatar carries beyond its core, from the columns of its own row.</summary>
 /// <remarks>
 /// The owner, the character and the template id used to be here as well, and each was checked
@@ -114,10 +111,6 @@ public interface ICharacterItemTable
 {
     /// <summary>Every one of them, in the order the load reads them.</summary>
     ValueTask<IReadOnlyList<CharacterItemRow>> ReadByCharacterAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
-    /// <summary>The main list, in the order the client draws it.</summary>
-    ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
     /// <summary>What every live character on this account is wearing.</summary>

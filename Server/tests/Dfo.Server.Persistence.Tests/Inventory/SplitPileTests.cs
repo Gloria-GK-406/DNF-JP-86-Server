@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
@@ -72,7 +73,7 @@ public sealed class SplitPileTests
             Assert.Equal(new Slot("template", PotionId, 2), await SlotAsync(path, 66));
 
             var projected = await side.InUseCaseAsync(token =>
-                side.Mutations.ReadMainItemsAsync(new CharacterId(Character), token));
+                side.ReadMainItemsAsync(new AccountId(Account), new CharacterId(Character), token));
 
             Assert.Equal(
                 [(65, 3, (ItemIdentity?)null), (66, 2, null)],

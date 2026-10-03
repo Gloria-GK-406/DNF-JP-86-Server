@@ -30,19 +30,6 @@ public sealed record DungeonRoomContents(
 }
 
 /// <summary>
-/// Which of a room's declared actors a running number names, and how many the room declares.
-/// </summary>
-/// <param name="Actor">
-/// Null when the number names none of them, which is the two sides disagreeing about what is in the
-/// room rather than an error.
-/// </param>
-/// <param name="DeclaredCount">
-/// Carried alongside because a caller that has to say why it refused needs to say how many there
-/// were.
-/// </param>
-public readonly record struct DeclaredActorLookup(DungeonRoomActor? Actor, int DeclaredCount);
-
-/// <summary>
 /// Resolves the static room inputs used while a dungeon Cell is being created.
 /// </summary>
 /// <remarks>

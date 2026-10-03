@@ -68,7 +68,7 @@ public sealed class SqliteCharacterLifecycleTests
             Assert.Equal(1, record.Profile.Level);
 
             var coins = Assert.Single(
-                await new CharacterSide(databasePath).Items.ReadMainAsync(id, CancellationToken.None),
+                await new InventorySide(databasePath).ReadMainItemsAsync(Account, id, CancellationToken.None),
                 item => item.SlotIndex == 1);
             Assert.Equal(1, coins.Core.ItemId);
             Assert.Equal(10, coins.Core.Value);
@@ -454,10 +454,6 @@ public sealed class SqliteCharacterLifecycleTests
         public ValueTask<IReadOnlyList<CharacterItemRow>> ReadByCharacterAsync(
             CharacterId characterId, CancellationToken cancellationToken) =>
             inner.ReadByCharacterAsync(characterId, cancellationToken);
-
-        public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            inner.ReadMainAsync(characterId, cancellationToken);
 
         public ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
             AccountId accountId, CancellationToken cancellationToken) =>

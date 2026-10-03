@@ -7,60 +7,28 @@ writes six tables and a hand-written characters row is rejected at select with
 
 Speaks the A21 framing: 14 bytes outbound, 15 inbound.
 """
-import socket, struct, sys, time
-
-OUT_HEADER = 14   # what this client sends
-IN_HEADER = 15    # what the server sends
-
-def frame(selector, type_, body=b''):
-    total = OUT_HEADER + len(body)
-    return (bytes([selector]) + struct.pack('<H', type_) + struct.pack('<I', total)
-            + b'\x00\x00\x00\x00' + b'\x00' + b'\x00\x00' + body)
-
-def dstr(s):
-    b = s.encode('ascii') if isinstance(s, str) else s
-    return struct.pack('<i', len(b)) + b
-
-class Conn:
-    def __init__(self, host, port):
-        self.s = socket.create_connection((host, port), timeout=15)
-        self.buf = b''
-    def send(self, selector, type_, body=b''):
-        self.s.sendall(frame(selector, type_, body))
-    def recv_frame(self, timeout=10):
-        self.s.settimeout(timeout)
-        while True:
-            if len(self.buf) >= 7:
-                total = struct.unpack_from('<I', self.buf, 3)[0]
-                if len(self.buf) >= total:
-                    f = self.buf[:total]; self.buf = self.buf[total:]
-                    return f[0], struct.unpack_from('<H', f, 1)[0], f[IN_HEADER:]
-            try:
-                chunk = self.s.recv(65536)
-            except socket.timeout:
-                return None
-            if not chunk:
-                return None
-            self.buf += chunk
-    def close(self):
-        try: self.s.close()
-        except Exception: pass
+import argparse, time
+from entryprobe import Conn, dstr, login_payload, require_success
 
 def main():
-    host, port = '127.0.0.1', int(sys.argv[1]) if len(sys.argv) > 1 else 10011
-    account = sys.argv[2] if len(sys.argv) > 2 else '10038'
-    pwhash  = sys.argv[3] if len(sys.argv) > 3 else 'de509f65e9ccaae621cb7278fc2b8e6c'
-    name    = sys.argv[4] if len(sys.argv) > 4 else 'Probe'
-    job     = int(sys.argv[5]) if len(sys.argv) > 5 else 0
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--port', type=int, required=True)
+    parser.add_argument('--name', default='Probe')
+    parser.add_argument('--job', type=int, default=0)
+    args = parser.parse_args()
+    payload = login_payload()
+    host, port, name, job = '127.0.0.1', args.port, args.name, args.job
 
     c = Conn(host, port)
     got = c.recv_frame()
     print('notice: cls=0x%02X type=0x%04X body=%d' % (got[0], got[1], len(got[2])) if got else 'notice: none')
 
-    c.send(0x01, 0x0001, dstr(account) + dstr(pwhash))
+    c.send(0x01, 0x0001, payload)
     r = c.recv_frame()
     print('login answer: cls=0x%02X type=0x%04X body=%d' % (r[0], r[1], len(r[2])) if r else 'login: no answer')
 
+    require_success([r] if r else [], 0x0001)
+    created = False
     body = bytes([job]) + dstr(name) + b'\x00\x00\x00\x00'
     c.send(0x01, 0x0005, body)
     print('create sent: job=%d name=%s body=%dB' % (job, name, len(body)))
@@ -71,9 +39,14 @@ def main():
         if not r: break
         cls, typ, b = r
         print('  <- cls=0x%02X type=0x%04X body=%d  %s' % (cls, typ, len(b), b[:24].hex(' ')))
-        if typ == 0x0005:
+        if cls == 0x01 and typ == 0x0005:
+            require_success([r], 0x0005)
+            created = True
             print('  CREATE_CHARACTER answered')
             break
     c.close()
+    if not created:
+        raise RuntimeError("CREATE_CHARACTER did not succeed")
 
-main()
+if __name__ == "__main__":
+    main()

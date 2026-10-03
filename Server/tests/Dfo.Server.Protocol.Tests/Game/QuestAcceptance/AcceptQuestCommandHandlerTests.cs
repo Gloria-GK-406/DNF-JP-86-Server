@@ -220,11 +220,9 @@ public sealed class AcceptQuestCommandHandlerTests
             var containers = new CharacterContainerDomainService();
             containers.Register(Character, new PersistentItemContainer(
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
-                Character,
                 new ContainerShape(InventoryContainerType.Main, 0),
                 new SqliteItemDomainStore(this.Path),
                 this.Scope,
-                null!,
                 new ItemPlacementRuleService(
                     new Placements(this.PlacementIsKnown), new NoWearables()),
                 new ItemSlotRuleService()));

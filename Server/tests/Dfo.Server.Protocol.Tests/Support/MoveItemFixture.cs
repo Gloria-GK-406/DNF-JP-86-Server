@@ -48,7 +48,7 @@ internal class LifecycleTestContainer(
     public ValueTask FlushAsync(CancellationToken ct) => fixture.Session.ApplyDecidedWritesAsync(ct);
     public ValueTask<ItemSnapshot?> ReadSnapshotAsync(int slot, CancellationToken ct) => fixture.RunAsync(async () =>
         (await GetAsync(slot, ct))?.Snapshot);
-    public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) => fixture.RunAsync<IReadOnlyList<InventoryItemState>>(async () =>
+    public ValueTask<IReadOnlyList<InventoryItemState>> ReadProjectionAsync(CancellationToken ct) => fixture.RunAsync<IReadOnlyList<InventoryItemState>>(async () =>
         [.. (await GetAllAsync(ct)).Select(item => new InventoryItemState(
             item.ItemUid ?? new ItemIdentity(0), item.SlotIndex, item.Snapshot.ToCore()))]);
 }

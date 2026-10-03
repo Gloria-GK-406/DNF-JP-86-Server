@@ -79,11 +79,9 @@ public sealed class QuestClearVerticalTests
                 var containers = new CharacterContainerDomainService();
                 containers.Register(Leader, new PersistentItemContainer(
                     Main,
-                    Leader,
                     new ContainerShape(InventoryContainerType.Main, 56),
                     itemStore,
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
-                    null!,
                     PlacementRules(),
                     new ItemSlotRuleService()));
                 return containers;

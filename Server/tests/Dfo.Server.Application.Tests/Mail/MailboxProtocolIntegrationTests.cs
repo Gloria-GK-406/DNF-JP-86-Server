@@ -44,7 +44,6 @@ public sealed class MailboxProtocolIntegrationTests
         public bool IsRemovable => true;
         public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) => backing.GetAsync(index, ct);
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => backing.GetAllAsync(ct);
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) => backing.SnapshotAsync(ct);
         public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => backing.TakeAsync(reference, count, ct);
         public ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct) => backing.PutAsync(index, record, ct);
         public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => backing.UpdateAsync(reference, change, ct);

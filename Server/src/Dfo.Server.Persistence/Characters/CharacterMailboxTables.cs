@@ -1,31 +1,8 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
-using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
 
 namespace Dfo.Server.Persistence.Characters;
-
-/// <summary>The <c>mailbox_recipients</c> table.</summary>
-/// <remarks>
-/// A character's inbox is folder zero, not saved away and not deleted. Those three are what the
-/// column means rather than a judgement about mail, so they stay in the statement; whether what
-/// comes back is still worth showing is decided elsewhere.
-/// </remarks>
-internal sealed class SqliteMailboxRecipientTable(SqliteDatabase database) : IMailboxRecipientTable
-{
-    public ValueTask<IReadOnlyList<MailboxRecipientRow>> ReadInboxAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            """
-            SELECT message_id, read_flag, saved_flag, received_gold_flag
-            FROM mailbox_recipients
-            WHERE character_id=@cid AND folder=0 AND saved_flag=0 AND deleted_flag=0
-            """,
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new MailboxRecipientRow(
-                reader.GetInt64(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
-            cancellationToken);
-}
 
 /// <summary>The <c>mailbox_messages</c> table.</summary>
 /// <remarks>
@@ -45,39 +22,6 @@ internal sealed class SqliteMailboxMessageTable(SqliteDatabase database) : IMail
     /// order they are in is decided afterwards.
     /// </remarks>
     private const int Batch = 500;
-
-    public async ValueTask<IReadOnlyList<MailboxHeaderRow>> ReadHeadersAsync(
-        IReadOnlyList<long> messageIds, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(messageIds);
-        var headers = new List<MailboxHeaderRow>(messageIds.Count);
-        foreach (var batch in messageIds.Chunk(Batch))
-        {
-            headers.AddRange(await database.ReadAllAsync(
-                """
-                SELECT message_id,
-                       CAST(strftime('%s',created_at) AS INTEGER),
-                       CASE WHEN unlimited_flag != 0 OR datetime(expire_at) > CURRENT_TIMESTAMP
-                            THEN 1 ELSE 0 END
-                FROM mailbox_messages
-                WHERE message_id IN (
-                """
-                + string.Join(',', batch.Select((_, index) => $"@m{index}"))
-                + ")",
-                parameters =>
-                {
-                    for (var index = 0; index < batch.Length; index++)
-                    {
-                        parameters.AddWithValue($"@m{index}", batch[index]);
-                    }
-                },
-                reader => new MailboxHeaderRow(
-                    reader.GetInt64(0), reader.GetInt32(1), reader.GetInt32(2) != 0),
-                cancellationToken).ConfigureAwait(false));
-        }
-
-        return headers;
-    }
 
     public async ValueTask<IReadOnlyList<MailboxMessageRow>> ReadAsync(
         IReadOnlyList<long> messageIds, CancellationToken cancellationToken)

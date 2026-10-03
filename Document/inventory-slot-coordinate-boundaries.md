@@ -46,5 +46,5 @@ BusinessSlot -> BusinessItemContainer -> LegacyInventoryStorageCoordinates -> �
 - 候选 A21 wire 偏移只存在于 `InventorySlotMappingRuleService`，旧 SQLite 偏移独立位于 `LegacyInventoryStorageCoordinates`。两表数字可能相同，但证据来源和职责不同。宠物 `25`、神器 `26..28` 仅有上游参考，尚待 A21 实机裁决。
 - Application 的放置、到达、商城、开包、补充和分解规则只消费业务空间及局部索引。
 - 角色先按 Item、Avatar、Creature、Medal 取得业务 store，再按业务空间取得局部 container；共享底层 `IItemDomainStore` 不改变归属。旧 `IItemContainer.MoveToAsync` 物理移动接口已移除。
-- `IBusinessInventorySlotDomainService` 只负责业务槽与已绑定容器之间的关系，不暴露协议坐标。实例整体移动把来源业务槽传给持久化适配，让它在事务内解析身份；堆叠操作不附带身份。
+- `IBusinessInventorySlotDomainService` 只负责业务槽与已绑定容器之间的关系，不暴露协议坐标。读取槽位得到当前 `ItemReference`，`Take` 校验该次占用并返回 `ItemRecord`，`Put` 消费该记录放入目标槽；实例与堆叠物统一使用这条链路。旧引用在占用变化后失效，不能用裸来源槽重新解析来替代身份校验。详见 [物品生命周期规格](tasks/item-container-lifecycle/spec.md)。
 - 通知阶段的反向转换通过独立只读投影服务完成，不能读取或修改库存。

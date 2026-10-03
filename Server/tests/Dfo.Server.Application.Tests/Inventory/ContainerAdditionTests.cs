@@ -55,9 +55,9 @@ public sealed class ContainerAdditionTests
         using var f = Fixture();
         var grants = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         grants.Register(new(1), new PersistentItemContainer(
-            ContainerId.ForCharacter(new(1), InventoryContainerType.Pet), new(1),
+            ContainerId.ForCharacter(new(1), InventoryContainerType.Pet),
             new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
-            f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(),
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>()));
         await grants.AddAsync(new(1), 9001, 1, default);
@@ -78,9 +78,9 @@ public sealed class ContainerAdditionTests
         using var f = Fixture();
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         containers.Register(new(1), new PersistentItemContainer(
-            ContainerId.ForCharacter(new(1), InventoryContainerType.Pet), new(1),
+            ContainerId.ForCharacter(new(1), InventoryContainerType.Pet),
             new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
-            f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(),
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>()));
         var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)
@@ -129,9 +129,8 @@ public sealed class ContainerAdditionTests
     {
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        var wrong = new PersistentItemContainer(ContainerId.ForCharacter(new(2), InventoryContainerType.Main),
-            new(2), new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(),
-            f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
+        var wrong = new PersistentItemContainer(ContainerId.ForCharacter(new(2), InventoryContainerType.Main), new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(),
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(),
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>());
         service.Register(new(1), wrong);

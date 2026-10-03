@@ -78,11 +78,9 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                 new CharacterId(Character), InventoryContainerType.Pet);
             var container = new PersistentItemContainer(
                 pet,
-                new CharacterId(Character),
                 new ContainerShape(InventoryContainerType.Pet, 0),
                 store,
                 scope,
-                null!,
                 rules,
                 new ItemSlotRuleService());
             var registered = new CharacterContainerDomainService();

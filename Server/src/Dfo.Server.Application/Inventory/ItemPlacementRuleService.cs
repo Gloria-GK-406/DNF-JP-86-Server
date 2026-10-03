@@ -14,8 +14,8 @@ namespace Dfo.Server.Application.Inventory;
 /// the shoulder that was lying there.
 /// <para>
 /// <see cref="ClassifyAsync"/> is the same ownership taken one step further: what sort of thing a
-/// template is has exactly one answer here, and every write of an item asks it rather than reading
-/// the kind byte off the row it is about to write.
+/// template is comes from content, not from the kind byte of a stored row. Lifecycle creation
+/// validates the supplied snapshot against PlacementForAsync before creating its record.
 /// </para>
 /// </remarks>
 internal sealed class ItemPlacementRuleService(
@@ -51,9 +51,9 @@ internal sealed class ItemPlacementRuleService(
     /// The single place a thing is classified.
     /// </summary>
     /// <remarks>
-    /// Every write path reaches this method before it writes: the containers, through
-    /// <c>StoreBackedItemContainer.PutAsync</c>; character creation, before it writes the pieces a
-    /// character is created wearing; and the entry lease save, before it writes a row back.
+    /// Wear checks and legacy worn-slot normalization use this classification. Lifecycle creation
+    /// validates the full snapshot through PlacementForAsync; Put consumes an existing record.
+    /// There is no entry-lease save path.
     /// <para>
     /// There is nothing here but the archive's answer. A stored kind byte is not an input and
     /// cannot become one without changing the signature, which is the whole guard: a write may be

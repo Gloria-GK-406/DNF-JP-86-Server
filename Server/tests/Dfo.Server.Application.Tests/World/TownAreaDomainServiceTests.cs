@@ -142,6 +142,30 @@ public sealed class TownAreaDomainServiceTests
         Assert.Null(party.Updates[^1].Scope);
     }
 
+    [Fact]
+    public void Replacement_moves_membership_between_areas_and_departure_is_exact()
+    {
+        var service = new TownAreaDomainService();
+        var oldKey = new TownAreaKey(7, 3, 4);
+        var newKey = new TownAreaKey(7, 3, 5);
+        service.Enter(Member(10, 1, oldKey, x: 100));
+        service.Enter(Member(10, 2, newKey, x: 200));
+
+        Assert.Null(service.Find(oldKey));
+        Assert.Equal(newKey, service.Find(new CharacterId(10))!.Area);
+        Assert.Single(service.Query(new TownAreaFilter(7, 3, 5)));
+        Assert.Null(service.TransferExact(new CharacterId(10), new TownAreaMembershipLease(1),
+            oldKey, Position(oldKey, 300), sharesTownPresence: true));
+        Assert.NotNull(service.TransferExact(new CharacterId(10), new TownAreaMembershipLease(2),
+            oldKey, Position(oldKey, 300), sharesTownPresence: true));
+        Assert.Null(service.Find(newKey));
+        Assert.NotNull(service.LeaveExact(new CharacterId(10), new TownAreaMembershipLease(2),
+            TownAreaDepartureReason.SessionEnded));
+        Assert.Null(service.LeaveExact(new CharacterId(10), new TownAreaMembershipLease(2),
+            TownAreaDepartureReason.SessionEnded));
+        Assert.Empty(service.Query(new TownAreaFilter(7, 3, 4)));
+    }
+
     private static TownAreaMember Member(
         int characterId,
         long lease,

@@ -224,7 +224,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                     new(BusinessInventorySpace.Consumable, 0),
                     new(BusinessInventorySpace.Consumable, 1), 0, token).ConfigureAwait(false);
                 Assert.IsType<ItemMoveOutcome.Moved>(outcome);
-                return await repository.ReadMainItemsAsync(new CharacterId(70), token)
+                return await side.ReadMainItemsAsync(new AccountId(7), new CharacterId(70), token)
                     .ConfigureAwait(false);
             });
 
@@ -280,7 +280,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 await repository.ApplyDailyRefillAsync(
                     new AccountId(7), new CharacterId(70), [rule], PreparedAt, token)
                     .ConfigureAwait(false);
-                return await repository.ReadMainItemsAsync(new CharacterId(70), token)
+                return await side.ReadMainItemsAsync(new AccountId(7), new CharacterId(70), token)
                     .ConfigureAwait(false);
             });
 
@@ -323,7 +323,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             await repository.ApplyDailyRefillAsync(
                 new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
 
-            var projected = await repository.ReadMainItemsAsync(
+            var projected = await side.ReadMainItemsAsync(new AccountId(7),
                 new CharacterId(70), CancellationToken.None);
             var item = Assert.Single(projected);
             Assert.Equal(65, item.SlotIndex);

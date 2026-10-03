@@ -87,9 +87,9 @@ public sealed class OpeningCapacityRegressionTests
         registry.Clear(host.Session.CharacterId);
         foreach (var container in other) registry.Register(host.Session.CharacterId, container);
         registry.Register(host.Session.CharacterId, new PersistentItemContainer(
-            ContainerId.ForCharacter(host.Session.CharacterId, InventoryContainerType.Main), host.Session.CharacterId,
+            ContainerId.ForCharacter(host.Session.CharacterId, InventoryContainerType.Main),
             new(InventoryContainerType.Main, 0), services.GetRequiredService<IItemDomainStore>(),
-            services.GetRequiredService<IDomainTransactionAccessor>(), null,
+            services.GetRequiredService<IDomainTransactionAccessor>(),
             services.GetRequiredService<IItemPlacementRuleService>(),
             services.GetRequiredService<IItemSlotRuleService>(), services.GetRequiredService<IInventoryCapacityDomainService>()));
     }

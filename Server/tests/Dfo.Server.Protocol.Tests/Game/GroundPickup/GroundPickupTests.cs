@@ -585,9 +585,6 @@ public sealed class GroundPickupTests
             throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
 
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
             CancellationToken cancellationToken) => throw new NotSupportedException();
 

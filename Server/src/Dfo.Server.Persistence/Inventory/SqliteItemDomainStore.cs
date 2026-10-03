@@ -33,8 +33,6 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     private bool changed;
     internal static SqliteItemDomainStoreSession In(SqliteDatabaseParticipant owner, ItemLifecycleScope scope) =>
         owner.Facet(typeof(SqliteItemDomainStoreSession), db => new SqliteItemDomainStoreSession(db, scope));
-    internal static SqliteItemDomainStoreSession? ExistingIn(SqliteDatabaseParticipant owner) =>
-        owner.ExistingFacet<SqliteItemDomainStoreSession>(typeof(SqliteItemDomainStoreSession));
     public bool HasStagedWork => changed;
     private void Active()
     {

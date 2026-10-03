@@ -63,9 +63,6 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
         return facet;
     }
 
-    internal TFacet? ExistingFacet<TFacet>(object key) where TFacet : class, ISqliteStoreFacet =>
-        this.facets.TryGetValue(key, out var existing) ? existing as TFacet : null;
-
     /// <summary>
     /// A command on this use case's connection, inside its database transaction, opening the
     /// connection and beginning the transaction on first use.

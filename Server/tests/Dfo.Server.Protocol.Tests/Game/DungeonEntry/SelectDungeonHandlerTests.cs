@@ -695,10 +695,6 @@ public sealed class SelectDungeonHandlerTests
             IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Entering a dungeon finishes no quest.");
 
-        public ValueTask<QuestFinishVerdict> FinishAsync(
-            int questId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Entering a dungeon hands no quest in.");
-
         public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Entering a dungeon gives no quest up.");
 

@@ -81,6 +81,14 @@ internal sealed class InventorySide
             new ItemArrivalRuleService(), lifecycle: Lifecycle),
         new ItemPlacementRuleService(placements, new NoWearables()));
 
+    public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+        AccountId account, CharacterId character, CancellationToken ct)
+    {
+        var source = Scope.Current is null ? (ICharacterInventoryEntryRepository)PerCall : CharacterEntries;
+        var inventory = await new CharacterInventoryEntryDomainService(source).ReadCurrentAsync(account, character, ct);
+        return inventory.Containers.Single(container => container.ContainerType == InventoryContainerType.Main).Items;
+    }
+
     public ICharacterInventoryEntryRepository CharacterEntries => this.Assembly;
 
     public IAccountInventoryEntryRepository AccountEntries => this.Assembly;
@@ -92,24 +100,18 @@ internal sealed class InventorySide
 
     public IEntryInventoryMutationRepository Mutations => new DailyRefillService(
         new SqliteCharacterTable(this.database),
-        new SqliteCharacterItemTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
         new DailyRefillRuleService(),
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
             new ItemArrivalRuleService(), lifecycle: Lifecycle),
-        new ItemArrivalRuleService(),
-        new ItemPlacementRuleService(this.placements, new NoWearables()), Lifecycle);
+        new ItemArrivalRuleService(), Lifecycle);
 
     /// <summary>
     /// Binds a character to its own main container, as entry does.
     /// </summary>
     /// <remarks>
-    /// The snapshot repository is left out: it answers only the projection the client is shown, and
-    /// nothing reached through here asks for one.
-    ///
-    /// A refill needs no archive -- its band and kind come from its own rule -- but a move does, so
-    /// one is supplied rather than left null. The default treats every item as an ordinary
+    /// Placement rules also validate lifecycle creation. The default treats every item as an ordinary
     /// consumable of the main band, which is what the tests that move things here are about; a test
     /// with something else in mind passes its own.
     /// </remarks>
@@ -134,11 +136,9 @@ internal sealed class InventorySide
         var character = new CharacterId(characterId);
         this.Containers.Register(character, new PersistentItemContainer(
             ContainerId.ForCharacter(character, containerType),
-            character,
             new ContainerShape(containerType, parameter),
             new SqliteItemDomainStore(this.databasePath),
             this.Scope,
-            null!,
             new ItemPlacementRuleService(
                 placements ?? this.placements, new NoWearables()),
             new ItemSlotRuleService()));
@@ -204,10 +204,6 @@ internal sealed class InventorySide
             Settled(scope, () => inner.ApplyDailyRefillAsync(
                 accountId, characterId, rules, preparedAt, cancellationToken), cancellationToken);
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            Settled(scope, () => inner.ReadMainItemsAsync(characterId, cancellationToken),
-                cancellationToken);
     }
 
     private static async ValueTask<TResult> Settled<TResult>(

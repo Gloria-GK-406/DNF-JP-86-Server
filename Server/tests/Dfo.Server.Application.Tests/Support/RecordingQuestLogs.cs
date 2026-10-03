@@ -116,11 +116,6 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
                 "Advancing a quest reads the archive's objective to decide who counts it; that is "
                 + "the rule the real log holds, and a double answering it would be a second copy.");
 
-        public ValueTask<QuestFinishVerdict> FinishAsync(
-            int questId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException(
-                "Handing a quest in writes two lists at once; no test has needed that in memory.");
-
         public ValueTask<bool> CompleteAsync(
             int questId, byte mark, CancellationToken cancellationToken) =>
             throw new NotSupportedException(

@@ -112,14 +112,8 @@ public sealed record DailyRefillCommittedGrant(
 public sealed record DailyRefillMutationResult(
     IReadOnlyList<DailyRefillCommittedGrant> Grants);
 
-
 public interface IEntryInventoryMutationRepository
 {
-    /// <summary>Every occupied slot of the character's main inventory, in the order it is drawn.</summary>
-    ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-        CharacterId characterId,
-        CancellationToken cancellationToken);
-
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
         AccountId accountId,
         CharacterId characterId,

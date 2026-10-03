@@ -5,9 +5,10 @@ the batch IS. This records our side of the entry sequence with no GUI at all, so
 byte-level comparison against the reference capture can proceed while the client is
 unavailable.
 
-usage: entryprobe.py [port] [account] [pwhash] [rosterIndex] [out.txt]
+usage: entryprobe.py --port <port> --out <capture.txt> [--index 0]
+Set SMOKE_MID and SMOKE_TICKET from the launcher login response.
 """
-import socket, struct, sys, time
+import argparse, os, re, socket, struct, sys, time
 
 OUT_HEADER = 14
 IN_HEADER = 15
@@ -37,6 +38,8 @@ class Conn:
         while True:
             if len(self.buf) >= 7:
                 total = struct.unpack_from('<I', self.buf, 3)[0]
+                if not IN_HEADER <= total <= 1024 * 1024:
+                    raise ValueError(f'invalid server frame length: {total}')
                 if len(self.buf) >= total:
                     f = self.buf[:total]
                     self.buf = self.buf[total:]
@@ -53,12 +56,27 @@ class Conn:
         self.s.close()
 
 
+def login_payload():
+    mid, ticket = os.environ.get('SMOKE_MID', ''), os.environ.get('SMOKE_TICKET', '')
+    if not re.fullmatch(r'[0-9]{6}', mid) or not re.fullmatch(r'[0-9A-F]{32}', ticket):
+        raise ValueError('Set SMOKE_MID (6 digits) and SMOKE_TICKET (32 uppercase hex) from a fresh launcher login.')
+    return dstr(mid) + dstr(ticket)
+
+
+def require_success(frames, opcode):
+    answer = next((f for f in frames if f[0] == 1 and f[1] == opcode), None)
+    if answer is None or not answer[2] or answer[2][0] != 1:
+        raise RuntimeError(f'CMD 0x{opcode:04X} did not succeed')
+
+
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 20011
-    account = sys.argv[2] if len(sys.argv) > 2 else '10038'
-    pwhash = sys.argv[3] if len(sys.argv) > 3 else 'de509f65e9ccaae621cb7278fc2b8e6c'
-    index = int(sys.argv[4]) if len(sys.argv) > 4 else 0
-    out = open(sys.argv[5] if len(sys.argv) > 5 else 'entryprobe.txt', 'w', encoding='utf-8')
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--port', type=int, required=True)
+    parser.add_argument('--index', type=int, default=0)
+    parser.add_argument('--out', required=True)
+    args = parser.parse_args()
+    payload = login_payload()
+    out = open(args.out, 'w', encoding='utf-8')
 
     n = [0]
 
@@ -68,21 +86,25 @@ def main():
                   % (n[0], d, fam, typ, len(body), body.hex(' ')))
         n[0] += 1
 
-    c = Conn('127.0.0.1', port)
+    c = Conn('127.0.0.1', args.port)
     g = c.recv_frame()
     if g:
         log('S->C', *g)
 
-    c.send(0x01, 0x0001, dstr(account) + dstr(pwhash))
-    log('C->S', 0x01, 0x0001, dstr(account) + dstr(pwhash))
+    c.send(0x01, 0x0001, payload)
+    # Ticket credentials must not enter the archived frame dump.
+    responses = []
     deadline = time.time() + 6
     while time.time() < deadline:
         r = c.recv_frame(timeout=2)
         if not r:
             break
+        responses.append(r)
         log('S->C', *r)
 
-    body = struct.pack('<H', index)
+    require_success(responses, 0x0001)
+    responses = []
+    body = struct.pack('<H', args.index)
     c.send(0x01, 0x0004, body)
     log('C->S', 0x01, 0x0004, body)
 
@@ -95,9 +117,11 @@ def main():
         r = c.recv_frame(timeout=30)
         if not r:
             break
+        responses.append(r)
         log('S->C', *r)
         quiet = time.time() + 8
 
+    require_success(responses, 0x0004)
     out.close()
     c.close()
     print('frames: %d' % n[0])

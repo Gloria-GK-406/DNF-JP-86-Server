@@ -658,8 +658,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             }
         }
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
         public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
             throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
         public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
@@ -706,8 +704,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             throw new NotSupportedException();
         public ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
             IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-        public ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
         public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

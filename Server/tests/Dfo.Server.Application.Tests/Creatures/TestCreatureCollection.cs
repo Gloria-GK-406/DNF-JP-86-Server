@@ -14,7 +14,7 @@ internal static class TestCreatureCollection
         new CreatureCollection(() => new CreatureInstanceContext(owner, tx,
             new Session(store, write), store, rules, clock ?? TimeProvider.System));
 
-    private sealed class Session(ICreatureStore store, Action<CreatureState> write) : ICreatureDomainStoreSession
+    internal sealed class Session(ICreatureStore store, Action<CreatureState> write) : ICreatureDomainStoreSession
     {
         public ValueTask<CreatureState?> ReadAsync(CharacterId owner, int uid, CancellationToken ct) => store.FindAsync(uid, ct);
         public ValueTask<IReadOnlyList<CreatureState>> ReadAllAsync(CharacterId owner, CancellationToken ct) => store.ReadAllAsync(ct);

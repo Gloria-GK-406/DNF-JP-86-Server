@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Authentication;
-using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
@@ -52,9 +51,13 @@ internal sealed class AuthenticationFixture : IDisposable
 
     public async Task Seed(string loginId, string record)
     {
-        await using var lease = Scope.Begin();
-        await Services.GetRequiredService<IAccountTable>().InsertIfAbsentAsync(loginId, record, CancellationToken.None);
-        await lease.CommitAsync(CancellationToken.None);
+        await using var connection = new SqliteConnection($"Data Source={DatabasePath};Pooling=False");
+        await connection.OpenAsync();
+        using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO accounts(m_id,password_hash) VALUES(@login,@record);";
+        command.Parameters.AddWithValue("@login", loginId);
+        command.Parameters.AddWithValue("@record", record);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<Dfo.Server.Data.Accounts.AccountId?> Consume(string mId, string ticket, Dfo.Server.Data.Networking.NetworkConnectionId? connectionId = null)

@@ -283,15 +283,6 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     private sealed class RefillMutation : IEntryInventoryMutationRepository
     {
 
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture does not read the main inventory.");
-
-
-
-
-
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
@@ -301,15 +292,6 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
 
     private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
     {
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture does not read the main inventory.");
-
-
-
-
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,

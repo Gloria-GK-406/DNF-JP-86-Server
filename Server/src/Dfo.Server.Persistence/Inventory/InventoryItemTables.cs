@@ -84,22 +84,6 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 InventoryItemCore.Decode(EntryCore(reader, 3, reader.GetInt64(1)))),
             cancellationToken);
 
-    public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            "SELECT held.item_uid,place.slot_index,held.item_core FROM item_slots place "
-            + "JOIN items held ON held.item_uid=place.core_uid "
-            + "WHERE place.owner_scope='character' AND place.owner_id=@cid "
-            + "AND place.list_type=0 "
-            + "ORDER BY place.slot_index,held.item_uid",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new MainItemRow(
-                reader.GetInt64(0),
-                reader.GetInt32(1),
-                InventoryItemCore.Decode(
-                    PackedCore(reader, 2, "Inventory item core is malformed."))),
-            cancellationToken);
-
     internal static AvatarDetailRow? Avatar(SqliteDataReader reader, int ordinal) =>
         reader.IsDBNull(ordinal)
             ? null
