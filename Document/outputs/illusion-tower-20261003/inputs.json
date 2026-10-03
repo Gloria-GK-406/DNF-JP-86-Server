@@ -1,0 +1,18 @@
+{
+  "pvf": {
+    "path": "E:\\Project\\DNF\\DNFClient-A21-protocol\\Script.pvf",
+    "sha256": "3b2fe3da115fee949282558a864a319fc9ca197e1d1f22e656e74316a0f04b06"
+  },
+  "probe": {
+    "path": "E:\\Project\\DNF\\DNF-JP-86-Server\\Tool\\PvfProbe\\bin\\Release\\net10.0\\PvfProbe.dll",
+    "sha256": "f9c16270454bd9ad7fd3b8f493d59b5cf1117519a8bf556bef13bf76ec2fc0d1"
+  },
+  "tw70": {
+    "path": "E:\\Project\\DNF\\Research\\1995chen-dnf\\other\\等级补丁\\70\\df_game_r",
+    "sha256": "cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7"
+  },
+  "client_dump": {
+    "path": "E:\\Project\\DNF\\DNFClient-A21-debug\\dumps\\dnf-dump-20260922-194214-883-23144\\DNF-memory-rva.bin",
+    "sha256": "aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d"
+  }
+}
