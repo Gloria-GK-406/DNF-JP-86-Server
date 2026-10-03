@@ -3,6 +3,23 @@ using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game;
 
+/// <summary>Refreshes the cargo window after either a direct or a cash-shop capacity upgrade.</summary>
+internal sealed record CargoCapacityUpgradeMessage(InventoryContainerType ContainerType) : IGameCmdMessage
+{
+    internal ushort WireType => ContainerType switch
+    {
+        InventoryContainerType.PersonalCargo => 0x0198,
+        InventoryContainerType.AccountCargo => 0x0132,
+        _ => throw new InvalidDataException("Only cargo has a capacity-upgrade acknowledgement."),
+    };
+    public ServerMessageType MessageType => (ServerMessageType)(0x00010000 | WireType);
+}
+internal sealed class CargoCapacityUpgradeEncoder : GameCmdMessageEncoder<CargoCapacityUpgradeMessage>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CargoCapacityUpgradeMessage message) =>
+        OnePayload(message.WireType, new byte[] { 1 });
+}
+
 internal sealed record InventoryFullSnapshotMessage(InventoryContainerState Container,
     CharacterInventoryEntryState Character, AccountInventoryEntryState Account, DateTimeOffset PreparedAt)
     : IGameNotiMessage

@@ -431,6 +431,7 @@ internal static class GameInventoryDelivery
     {
         services.AddGameNotiMessageEncoder<InventoryDeltaMessage, InventoryDeltaEncoder>();
         services.AddGameNotiMessageEncoder<InventoryFullSnapshotMessage, InventoryFullSnapshotEncoder>();
+        services.AddGameCmdMessageEncoder<CargoCapacityUpgradeMessage, CargoCapacityUpgradeEncoder>();
         services.AddGameNotiMessageEncoder<InventoryLocksMessage, InventoryLocksEncoder>();
     }
 }
