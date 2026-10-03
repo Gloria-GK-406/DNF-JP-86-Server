@@ -127,6 +127,11 @@ public sealed class IllusionTowerProjectionDelivery(
                 foreach (var receiver in ordered)
                 {
                     var frames = new List<IGameServerMessage>();
+                    // A21 recalculates player attributes on DELETE_ITEM. Deliver the committed
+                    // debit before 008E/008F switch it into tower mode, whose table can still be null.
+                    if (debits.TryGetValue(receiver.Session, out var debit))
+                        foreach (var item in debit.Debits)
+                            AppendDebit(frames, item, clock.GetUtcNow());
                     foreach (var source in ordered
                         .OrderBy(value => value.Session == receiver.Session ? 0 : 1)
                         .ThenBy(value => value.Slot))
@@ -145,9 +150,6 @@ public sealed class IllusionTowerProjectionDelivery(
                     frames.Add(new SupportTagNotification());
                     frames.Add(new IllusionTowerInfoNotification(run.DungeonId, run.TotalLevels));
                     frames.Add(new IllusionTowerMapNotification(run.Room));
-                    if (debits.TryGetValue(receiver.Session, out var debit))
-                        foreach (var item in debit.Debits)
-                            AppendDebit(frames, item, clock.GetUtcNow());
                     batches.Add((receiver.Session, frames));
                 }
 

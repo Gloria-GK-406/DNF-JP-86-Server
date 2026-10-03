@@ -57,3 +57,7 @@ ClientStatic / Confirmed：当前镜像 handler VA `0114A8F0` 顺序读取 `u32 
 当前迷妄内容为11001、15层。入场前置与逐层运行的实现/验证入口见 [迷妄之塔任务](../../../Document/tasks/illusion-tower/spec.md)，输入身份及反汇编见 [研究报告](../../../Document/IllusionTowerResearch-20261003.md)。首层等待全员装载后才放行是当前实现选择，仍需A21验收。
 
 尚无本次 WireCaptured / ClientVerified；自动化编码与运行测试不能替代客户端验收。
+
+## 2026-10-03 首次入场崩溃补证
+
+ClientRuntime / Confirmed + ClientStatic / High：实机首次入塔在处理 CMD `0012` 扣券成功回执时进入塔属性更新路径，RVA `022D81B9` 读取空指针 `+8`。旧服务端先发 `008E/008F`，后发 `0012/000E`；当前修正将已提交的扣券回执与背包更新前移至塔模式切换之前。样本、调用栈、静态地址和回归结果见 [入场崩溃记录](../../../Document/illusion-tower-entry-crash-20261003.md)。此记录不是成功入塔验收，修正后仍待 ClientVerified。

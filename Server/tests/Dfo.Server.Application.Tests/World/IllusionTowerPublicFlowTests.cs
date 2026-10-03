@@ -39,6 +39,8 @@ public sealed class IllusionTowerPublicFlowTests
 
         await EnterAsync(fixture);
 
+        AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
+
         var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
         var firstRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
         Assert.Equal(0, fixture.Count(4183));
@@ -135,6 +137,7 @@ public sealed class IllusionTowerPublicFlowTests
         await EnterAsync(fixture);
 
         var secondRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+        AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
         Assert.NotEqual(firstRun.RunId, secondRun.RunId);
         Assert.Equal(0, fixture.Count(4183));
         Assert.Equal(
@@ -199,6 +202,25 @@ public sealed class IllusionTowerPublicFlowTests
         Assert.Equal(experienceBeforeRelease, fixture.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Equal(goldBeforeRelease, fixture.Gold);
         Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
+    }
+
+    internal static void AssertEntryDebitPrecedesTowerMode(IEnumerable<IServerNetworkMessage> messages, int receivers = 1)
+    {
+        var types = messages.Select(message => message.MessageType).ToArray();
+        Assert.Equal(
+            Enumerable.Range(0, receivers).SelectMany(_ => new[]
+            {
+                ServerMessageType.GameDeleteItem,
+                ServerMessageType.GameIllusionTowerInfo, ServerMessageType.GameIllusionTowerMap
+            }),
+            types.Where(type => type is ServerMessageType.GameDeleteItem
+                or ServerMessageType.GameIllusionTowerInfo or ServerMessageType.GameIllusionTowerMap));
+        foreach (var index in Enumerable.Range(0, types.Length)
+            .Where(index => types[index] == ServerMessageType.GameDeleteItem))
+        {
+            Assert.True(index + 1 < types.Length);
+            Assert.Equal(ServerMessageType.GameStateSynchronization, types[index + 1]);
+        }
     }
 
     private static ShopFixture CreateFixture(bool gateSweepFind = false) => new(services =>

@@ -903,6 +903,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.False(restored);
         Assert.Null(intents.Consume(other));
         Assert.Equal(Tower(f).Find(f.Session)!.RunId, Tower(f).Find(other)!.RunId);
+        IllusionTowerPublicFlowTests.AssertEntryDebitPrecedesTowerMode(f.Sender.Messages, receivers: 2);
 
         var removed = await f.Services.GetRequiredService<IllusionTowerPartyCoordinator>()
             .TryRemoveAsync(f.Session, targetSlot: 1, default);

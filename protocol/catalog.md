@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-03 迷妄之塔入场崩溃修正（待实机复测）
+
+首次实机入场在 CMD0012 扣券回执的塔属性更新路径发生空指针异常。当前将扣券回执与背包更新前移到 [NOTI008E](game/server-to-client/NOTI-0x008E.md)/008F 之前；已有客户端异常日志、静态调用链和自动回归，尚未取得修正后成功入场的 ClientVerified。详见[故障记录](../Document/illusion-tower-entry-crash-20261003.md)。
+
 ## 2026-10-03 金库验收与四类扩容状态
 
 个人仓库、账号金库、装扮栏与主背包容量按A21阶段实现。静态证据、实现与自动验证的边界见[设计与验收表](../Document/WarehouseStorageDesign-20261002.md)；2026-10-03用户接受当前金库交付范围，并明确确认点券升级即时回显正确；该路径为ClientVerified。其他未逐项反馈的扩容和边界测试不扩大验收，见[实机记录](../Document/WarehouseStorageHumanTest-20261002.md#2026-10-03-金库验收结论)。
