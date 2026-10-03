@@ -95,7 +95,7 @@ public sealed class SelectCharacterProductionStateTests
         var inventoryEntry = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(refills), refills, sources,
             new CharacterContainerDomainService(), null!,
-            new DomainTransactionScope(), null!, null!, null!,
+            new DomainTransactionScope(), null!, null!,
             new CharacterEntryPreparationRuleService(sources, sources, sources));
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,

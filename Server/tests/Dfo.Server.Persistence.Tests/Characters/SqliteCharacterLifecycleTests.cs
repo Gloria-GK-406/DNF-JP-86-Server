@@ -503,10 +503,18 @@ public sealed class SqliteCharacterLifecycleTests
 
     /// <summary>Empties one worn position, leaving the thing that was in it.</summary>
     private static Task<int> TakeOff(CharacterSide side, CharacterId character, int slot) =>
-        side.InUseCaseAsync(token => side.Slots.ClearAsync(
-            new ItemPlace(
-                "character", character.Value, (int)InventoryContainerType.Equipment, slot),
-            token));
+        side.InUseCaseAsync(async token =>
+        {
+            var session = side.ItemStore.SessionIn(side.Scope.Current!);
+            var worn = await session.GetAsync(ContainerId.ForCharacter(character,
+                InventoryContainerType.Equipment), slot, token);
+            if (worn is null) return 0;
+            var bag = ContainerId.ForCharacter(character, InventoryContainerType.Main);
+            var occupied = (await session.GetAllAsync(bag, token)).Select(item => item.SlotIndex).ToHashSet();
+            var target = Enumerable.Range(9, 56).First(index => !occupied.Contains(index));
+            await session.PutAsync(bag, target, await session.TakeAsync(worn, null, token), token);
+            return 1;
+        });
 
     private static async Task RunAndCleanUpAsync(string directory, Func<Task> body)
     {

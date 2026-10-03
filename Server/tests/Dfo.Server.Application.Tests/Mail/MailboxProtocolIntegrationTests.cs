@@ -49,10 +49,6 @@ public sealed class MailboxProtocolIntegrationTests
         public ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct) => backing.PutAsync(index, record, ct);
         public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => backing.UpdateAsync(reference, change, ct);
         public ValueTask FlushAsync(CancellationToken ct) => backing.FlushAsync(ct);
-        public ValueTask<ItemPlacementOutcome> AddAsync(int item, int count, CancellationToken ct) =>
-            throw new NotSupportedException();
-        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct) =>
-            throw new NotSupportedException();
     }
 
     [Fact]

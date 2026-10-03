@@ -227,7 +227,6 @@ public sealed class AcceptQuestCommandHandlerTests
                 null!,
                 new ItemPlacementRuleService(
                     new Placements(this.PlacementIsKnown), new NoWearables()),
-                new ItemArrivalRuleService(),
                 new ItemSlotRuleService()));
             return new AcceptQuestCommandHandler(
                 new QuestDefinitionDomainService(
@@ -237,7 +236,10 @@ public sealed class AcceptQuestCommandHandlerTests
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers,
                 this.Progress,
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(
+                    new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()),
+                    new ItemLifecycleDomainService(new SqliteItemDomainStore(this.Path), this.Scope,
+                        new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()))));
         }
 
         public async Task<List<(int Slot, int QuestId, int TriggerValue)>> ReadQuestsAsync()

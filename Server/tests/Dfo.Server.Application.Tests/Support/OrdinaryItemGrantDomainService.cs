@@ -7,7 +7,8 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Tests.Support;
 
 /// <summary>Test adapter for scenarios that deliberately exercise only character inventory.</summary>
-internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? placements = null)
+internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? placements = null,
+    IItemLifecycleDomainService? lifecycle = null)
     : IItemGrantDomainService
 {
     public async ValueTask<BusinessItemAdditionResult> GrantAsync(
@@ -24,8 +25,13 @@ internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? 
             : LegacyInventoryStorageCoordinates.ToStorage(
                 new BusinessSlot(declared.Destination.Space, declared.Destination.FirstIndex)).List;
         var physical = containers.GetContainer(characterId, type);
-        var placement = await physical.AddAsync(itemId, count, cancellationToken)
-            .ConfigureAwait(false);
+        if (physical is not IItemGrantStub stub)
+        {
+            var container = new BusinessItemContainer(declared?.Destination.Space ?? BusinessInventorySpace.Consumable,
+                physical, placements, new ItemArrivalRuleService(), lifecycle: lifecycle);
+            return await container.AddAsync(itemId, count, cancellationToken);
+        }
+        var placement = await stub.GrantAsync(itemId, count, cancellationToken);
         var slot = placement switch
         {
             ItemPlacementOutcome.AddedToPile pile => pile.SlotIndex,
@@ -44,4 +50,10 @@ internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? 
         return new BusinessItemAdditionResult(
             new BusinessItemContainer(business.Space, physical), local);
     }
+}
+
+/// <summary>Deterministic grant outcomes and injected failures for command tests.</summary>
+internal interface IItemGrantStub
+{
+    ValueTask<ItemPlacementOutcome> GrantAsync(int itemId, int count, CancellationToken ct);
 }

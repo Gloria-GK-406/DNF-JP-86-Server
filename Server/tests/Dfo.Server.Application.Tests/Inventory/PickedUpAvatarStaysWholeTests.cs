@@ -375,7 +375,7 @@ public sealed class PickedUpAvatarStaysWholeTests
                 new NoQuestProgress(),
                 new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(
                     new ItemPlacementRuleService(placements,
-                        content.GetRequiredService<IEquipmentSlotDefinitionSource>())));
+                        content.GetRequiredService<IEquipmentSlotDefinitionSource>()), side.Lifecycle));
 
             await body(side, handler, runs);
         }

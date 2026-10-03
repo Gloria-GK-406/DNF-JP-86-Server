@@ -568,7 +568,7 @@ public sealed class PaidCardFlipCostTests
     }
 
     /// <summary>A bag that takes whatever it is offered and remembers the last of it.</summary>
-    private sealed class RecordingBag : IItemContainer
+    private sealed class RecordingBag : IItemContainer, Dfo.Server.Application.Tests.Support.IItemGrantStub
     {
         private const int Slot = 3;
 
@@ -582,13 +582,14 @@ public sealed class PaidCardFlipCostTests
 
         public bool IsRemovable => false;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
             this.Landed = StackableItemCore.Create(2, itemId, count);
             return ValueTask.FromResult<ItemPlacementOutcome>(
                 new ItemPlacementOutcome.PutInEmptySlot(Slot, count));
         }
+
 
         public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
@@ -598,7 +599,7 @@ public sealed class PaidCardFlipCostTests
                     : null);
 
         public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
-            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
 
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
@@ -619,13 +620,7 @@ public sealed class PaidCardFlipCostTests
         }
         public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
     }
 
     /// <summary>A character bound to that one bag.</summary>

@@ -169,8 +169,5 @@ public sealed class SkillBuildResetTests
         public ValueTask<ItemReference> UpdateAsync(ItemReference item,Func<ItemSnapshot,ItemSnapshot> change,CancellationToken ct)=>throw new NotSupportedException();
         public ValueTask FlushAsync(CancellationToken ct)=>ValueTask.CompletedTask;
         public ValueTask ClearAsync(int slot,CancellationToken ct)=>throw new NotSupportedException();
-        public ValueTask<ItemPlacementOutcome> AddAsync(int item,int count,CancellationToken ct)=>throw new NotSupportedException();
-        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill,CancellationToken ct)=>throw new NotSupportedException();
-        public ValueTask<ItemMoveOutcome> MoveToAsync(int from,int to,int count,CancellationToken ct)=>throw new NotSupportedException();
     }
 }

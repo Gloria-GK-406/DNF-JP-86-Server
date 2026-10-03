@@ -85,7 +85,6 @@ public sealed class QuestClearVerticalTests
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
                     null!,
                     PlacementRules(),
-                    new ItemArrivalRuleService(),
                     new ItemSlotRuleService()));
                 return containers;
             });
@@ -99,8 +98,10 @@ public sealed class QuestClearVerticalTests
                 new SeekingFactAdapter(
                     provider.GetRequiredService<ISeekingQuestProgressDomainService>()));
             services.AddSingleton<IGroundPickupDomainService>(new GroundPickupDomainService());
-            services.AddSingleton<IItemGrantDomainService>(
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+            services.AddSingleton<IItemGrantDomainService>(provider =>
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(PlacementRules(),
+                    new ItemLifecycleDomainService(itemStore,
+                        provider.GetRequiredService<IDomainTransactionAccessor>(), PlacementRules())));
             services.AddCommandHandler<
                 PickUpGroundDropCommand,
                 GroundPickupResult,

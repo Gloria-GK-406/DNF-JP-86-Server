@@ -75,6 +75,12 @@ internal sealed class InventorySide
                 cancellationToken);
     }
 
+    public IItemGrantDomainService Grants => new ItemGrantDomainService(
+        new CharacterBusinessInventoryDomainService(Containers,
+            new ItemPlacementRuleService(placements, new NoWearables()),
+            new ItemArrivalRuleService(), lifecycle: Lifecycle),
+        new ItemPlacementRuleService(placements, new NoWearables()));
+
     public ICharacterInventoryEntryRepository CharacterEntries => this.Assembly;
 
     public IAccountInventoryEntryRepository AccountEntries => this.Assembly;
@@ -135,7 +141,6 @@ internal sealed class InventorySide
             null!,
             new ItemPlacementRuleService(
                 placements ?? this.placements, new NoWearables()),
-            new ItemArrivalRuleService(),
             new ItemSlotRuleService()));
     }
 

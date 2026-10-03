@@ -10,27 +10,9 @@ namespace Dfo.Server.Application.Inventory;
 /// <summary>
 /// What an avatar has to be given at the moment the world first takes it.
 /// </summary>
-/// <remarks>
-/// An avatar is not an avatar until it carries two things beyond its kind: an identity of its own,
-/// and the six facts a row of that kind holds. Both are demanded of a standing avatar in three
-/// places -- the entry load will not serve one whose identity is not above zero or whose facts are
-/// missing or whose jewel socket is not exactly thirty bytes, the entry save refuses to write one
-/// back without them, and the two projections the client is served refuse to encode one. A delivery
-/// that opened a slot for an avatar and gave it neither would put down a row nothing in this server
-/// can pick up again, and it would do so silently, because the write itself has nothing to check.
-/// So the shape is made here, once, on the one path that opens a slot.
-/// </remarks>
+/// <remarks>New avatars receive a positive instance identity and all six detail fields before creation.</remarks>
 internal static class ArrivingAvatar
 {
-    /// <summary>The kind byte an avatar carries, which is what storage judges one by.</summary>
-    /// <remarks>
-    /// The same 8 the archive now gives an avatar template, and the same 8 the load, the save and
-    /// both projections look for. It is compared against here rather than the world class, because
-    /// the kind is what every one of those readers uses and a second question would be a second
-    /// answer to keep in step.
-    /// </remarks>
-    internal const byte ItemKind = 8;
-
     /// <summary>How many bytes an avatar's jewel socket is, exactly.</summary>
     private const int JewelSocketLength = 30;
 
@@ -45,20 +27,7 @@ internal static class ArrivingAvatar
     /// </remarks>
     private const int NeverExpires = 0;
 
-    /// <summary>
-    /// The identity a newly delivered avatar is known by, which is above zero and its own.
-    /// </summary>
-    /// <remarks>
-    /// Drawn rather than sequenced, which is the same reading
-    /// <c>CharacterRosterService.EquipmentCore</c> took for the instance value it gives a freshly
-    /// created piece: what the number must be is distinct, and a sequence would need a row of its
-    /// own to stay distinct across restarts.
-    /// <para>
-    /// Above zero because three separate places refuse an avatar whose identity is not, and
-    /// <see cref="Random.Shared"/> drawing from one rather than from zero is what keeps them
-    /// unreachable rather than merely unlikely.
-    /// </para>
-    /// </remarks>
+    /// <summary>A positive instance value for a newly granted independent item.</summary>
     internal static int NewIdentity() => Random.Shared.Next(1, int.MaxValue);
 
     /// <summary>
@@ -99,7 +68,6 @@ internal abstract class StoreBackedItemContainer(
     IItemDomainStore store,
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
-    IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules, IInventoryCapacityDomainService? capacities = null) : IItemContainer
 {
     public ValueTask FlushAsync(CancellationToken cancellationToken) =>
@@ -111,8 +79,6 @@ internal abstract class StoreBackedItemContainer(
     public ContainerShape Shape => shape;
 
     public abstract bool IsRemovable { get; }
-
-    protected IItemDomainStore Store => store;
 
     public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) =>
         ReadAsync(session => session.GetAsync(id, index, ct));
@@ -170,8 +136,7 @@ internal abstract class StoreBackedItemContainer(
         return await session.PutAsync(id, index, record, ct).ConfigureAwait(false);
     }
 
-    private async ValueTask ValidatePlacementAsync(int index, ItemSnapshot snapshot, long total, CancellationToken ct,
-        bool enforceStackLimit = true)
+    private async ValueTask ValidatePlacementAsync(int index, ItemSnapshot snapshot, long total, CancellationToken ct)
     {
         if (Type == InventoryContainerType.Main && index == 1
             && snapshot is { LegacyKind: 0, ItemId: 1, Type: ItemTraits.None, IsPile: true }) return;
@@ -188,179 +153,9 @@ internal abstract class StoreBackedItemContainer(
         if (Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
             || placement is null || snapshot.LegacyKind != placement.ItemKind || snapshot.Type != placement.Traits
             || snapshot.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)
-            || enforceStackLimit && snapshot.IsPile && placement.StackLimit > 0 && total > placement.StackLimit
+            || snapshot.IsPile && placement.StackLimit > 0 && total > placement.StackLimit
             || !admitsSlot)
             throw new InvalidOperationException($"Item {snapshot.ItemId} cannot occupy {id}/{index}.");
-    }
-
-    public async ValueTask<ItemPlacementOutcome> AddAsync(
-        int itemId, int count, CancellationToken cancellationToken)
-    {
-        var placement = await placementRules.PlacementForAsync(itemId, cancellationToken)
-            .ConfigureAwait(false);
-        if (placement is null)
-        {
-            return new ItemPlacementOutcome.UnknownItem();
-        }
-
-        if (capacities is not null)
-        {
-            placement = InventoryCapacityPlacement.Limit(placement,
-                await capacities.OpenSlotCountAsync(id, placement.Destination.Space, cancellationToken).ConfigureAwait(false));
-            if (placement is null) return new ItemPlacementOutcome.NoRoom();
-        }
-        var held = await this.GetAllAsync(cancellationToken).ConfigureAwait(false);
-        var arrival = arrivals.ForGrant(
-            this.PilesOf(held, itemId, Candidates(placement)), count, placement,
-            this.OccupiedSlots(held, Candidates(placement)));
-        if (arrival is ItemArrival.IntoEmptySlot opening
-            && !slotRules.CanOccupySlot(opening.Slot, placement))
-            throw new InvalidDataException($"Arrival chose a slot {opening.Slot} that rejects item {itemId}.");
-        return await this.LandAsync(
-            arrival, held, itemId, placement.ItemKind, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async ValueTask<ItemPlacementOutcome> RefillAsync(
-        ItemRefill refill, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(refill);
-        var held = await this.GetAllAsync(cancellationToken).ConfigureAwait(false);
-        if (capacities is not null)
-        {
-            var open = await capacities.OpenSlotCountAsync(id, refill.Destination.Space, cancellationToken).ConfigureAwait(false);
-            if (open <= refill.Destination.FirstIndex) return new ItemPlacementOutcome.NoRoom();
-            refill = refill with { Destination = new(refill.Destination.Space, refill.Destination.FirstIndex,
-                Math.Min(refill.Destination.LastIndex, open - 1)) };
-        }
-        var candidates = SlotsIn(refill.Destination);
-        var arrival = arrivals.ForDailyRefill(
-            this.PilesOf(held, refill.ItemId, candidates),
-            refill.Count,
-            refill.Destination,
-            this.OccupiedSlots(held, candidates));
-        return await this.LandAsync(
-            arrival, held, refill.ItemId, refill.ItemKind, cancellationToken, isRefill: true).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Turns a decided arrival into the write it calls for.
-    /// </summary>
-    /// <remarks>
-    /// The one place that does. Both verbs above reach it, and before they existed each of the two
-    /// callers had written this switch out for itself -- which is how the two came to disagree
-    /// about nothing in particular for as long as nobody compared them.
-    ///
-    /// Opening a slot needs a kind, because a kind is part of what is written; a refill whose rule
-    /// declares none is refused here rather than stored, since an item kind of zero is a row the
-    /// entry path cannot read back. Joining a pile needs no kind: the pile already carries one.
-    ///
-    /// Opening a slot for an avatar needs more than a kind, and this is where it is given: an
-    /// avatar row that carries no identity of its own and no facts is a row the load refuses and
-    /// the two projections refuse, so an avatar delivered without them would be a thing the server
-    /// could put down and then never pick up again. The shape is <see cref="ArrivingAvatar"/>'s;
-    /// what is here is only the one branch that asks for it. Joining a pile cannot reach it,
-    /// because an avatar is never a pile.
-    /// </remarks>
-    private async ValueTask<ItemPlacementOutcome> LandAsync(
-        ItemArrival arrival,
-        IReadOnlyList<ItemReference> held,
-        int itemId,
-        byte itemKind,
-        CancellationToken cancellationToken, bool isRefill = false)
-    {
-        switch (arrival)
-        {
-            case ItemArrival.OntoExistingPile topped:
-                var toppedIndex = this.StorageIndex(topped.Slot);
-                var pile = held.Single(item => item.SlotIndex == toppedIndex);
-                await this.UpdateAsync(pile, current => current with { Count = topped.Total },
-                    cancellationToken).ConfigureAwait(false);
-                await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
-                return new ItemPlacementOutcome.AddedToPile(
-                    toppedIndex, topped.Added, topped.Total);
-
-            case ItemArrival.IntoEmptySlot opened:
-                if (itemKind == 0)
-                {
-                    throw new InvalidDataException(
-                        $"Item {itemId} has no authoritative PVF item kind, so no slot can be "
-                            + "opened for it.");
-                }
-
-                var openedIndex = this.StorageIndex(opened.Slot);
-                var classification = await placementRules.ClassifyAsync(itemId, cancellationToken).ConfigureAwait(false);
-                var isPile = classification == ItemWorldClass.Interchangeable;
-                var snapshot = new ItemSnapshot
-                {
-                    ItemId = itemId, Count = isPile ? opened.Count : 1, IsPile = isPile,
-                    Type = ItemTraitClassification.For(itemKind, itemId), LegacyKind = itemKind,
-                    InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity(),
-                    AvatarDetail = classification == ItemWorldClass.Avatar ? ArrivingAvatar.Facts() : null,
-                };
-                var record = await RequireSession().CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
-                if (isRefill && Type != InventoryContainerType.SharedMaterial && !AccountMaterialCatalog.ContainsItem(itemId))
-                {
-                    // Refill quantities are bounded by the refill rule, independently of ordinary grants.
-                    await ValidatePlacementAsync(openedIndex, record.Snapshot, record.Count, cancellationToken,
-                        enforceStackLimit: false).ConfigureAwait(false);
-                    await RequireSession().PutAsync(id, openedIndex, record, cancellationToken).ConfigureAwait(false);
-                }
-                else await PutAsync(openedIndex, record, cancellationToken).ConfigureAwait(false);
-                await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
-                return new ItemPlacementOutcome.PutInEmptySlot(openedIndex, opened.Count);
-
-            case ItemArrival.NoRoom:
-                return new ItemPlacementOutcome.NoRoom();
-
-            default:
-                // Listed rather than defaulted: an arrival nobody landed would silently become
-                // "nothing happened", and the caller that reports what it placed would say
-                // truthfully that it placed nothing while the player was owed something.
-                throw new ArgumentOutOfRangeException(
-                    nameof(arrival), arrival, "No landing was decided for this arrival.");
-        }
-    }
-
-    private IReadOnlyList<ItemPile> PilesOf(
-        IReadOnlyList<ItemReference> held,
-        int itemId,
-        IEnumerable<BusinessSlot> candidates)
-    {
-        var byIndex = held.ToDictionary(item => item.SlotIndex);
-        return [.. candidates
-            .Select(slot => (Slot: slot, Index: this.StorageIndex(slot)))
-            .Where(candidate => byIndex.TryGetValue(candidate.Index, out var item)
-                && item.ItemId == itemId)
-            .Select(candidate => new ItemPile(candidate.Slot, byIndex[candidate.Index].Count))];
-    }
-
-    private IReadOnlySet<BusinessSlot> OccupiedSlots(
-        IReadOnlyList<ItemReference> held,
-        IEnumerable<BusinessSlot> candidates)
-    {
-        var occupied = held.Select(item => item.SlotIndex).ToHashSet();
-        return candidates.Where(slot => occupied.Contains(this.StorageIndex(slot))).ToHashSet();
-    }
-
-    private static IEnumerable<BusinessSlot> Candidates(ItemPlacement placement)
-    {
-        var own = SlotsIn(placement.Destination);
-        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement)
-            ? own.Concat(SlotsIn(new(BusinessInventorySpace.QuickSlot, 0, 5)))
-            : own;
-    }
-
-    private static IEnumerable<BusinessSlot> SlotsIn(BusinessSlotRange range) =>
-        Enumerable.Range(range.FirstIndex, range.LastIndex - range.FirstIndex + 1)
-            .Select(index => new BusinessSlot(range.Space, index));
-
-    private int StorageIndex(BusinessSlot slot)
-    {
-        var storage = LegacyInventoryStorageCoordinates.ToStorage(slot);
-        if (storage.List != this.Type)
-            throw new InvalidDataException(
-                $"Business slot {slot.Space}/{slot.Index} does not belong to container {this.Type}.");
-        return storage.Index;
     }
 
     /// <summary>
@@ -425,25 +220,13 @@ internal sealed class PersistentItemContainer(
     IDomainTransactionAccessor transactions,
     IEntryInventoryMutationRepository? snapshots,
     IItemPlacementRuleService placementRules,
-    IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules, IInventoryCapacityDomainService? capacities = null)
     : StoreBackedItemContainer(
-        id, shape, store, transactions, placementRules, arrivals, slotRules, capacities)
+        id, shape, store, transactions, placementRules, slotRules, capacities)
 {
     public override bool IsRemovable => false;
 
-    /// <remarks>
-    /// Taken from the loader rather than from the store, because the snapshot the client is shown
-    /// carries facts the store's vocabulary does not name -- an avatar's details among them. What
-    /// the entry snapshot is built from is not this refactor's subject.
-    /// <para>
-    /// Only the main list has such a loader. The equipment container is bound so that a piece can
-    /// be put on and taken off, and what the client is shown of it comes from the entry projection
-    /// rather than from here. Refused rather than answered out of the store, because a snapshot
-    /// assembled without those facts is one with an avatar quietly stripped of its colours -- and a
-    /// caller would have no way to tell that from a container that simply holds none.
-    /// </para>
-    /// </remarks>
+    /// <remarks>The entry repository supplies the main-list client projection. Other lists use their own entry projections.</remarks>
     public override ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
         CancellationToken cancellationToken) =>
         this.Type == InventoryContainerType.Main && snapshots is not null

@@ -21,11 +21,8 @@ namespace Dfo.Server.Application.Inventory;
 /// failure now takes back the whole entry instead of only the refill, which is the same outcome
 /// the caller reached anyway by refusing an entry whose refill failed.
 ///
-/// Where a grant lands is the bag's own business and is asked of it directly. This used to be
-/// carried out here, in a switch over the arrival that the tutorial reward had written out for
-/// itself as well; both now ask the same bag and read back what it did. Refill runs after the
-/// character is bound to its container -- entry binds before it dispatches this -- so an unbound
-/// character is a mistake rather than a case, and the bag repository says so by refusing.
+/// Arrival rules select a business slot; this service creates or updates its item through the
+/// lifecycle boundary. Entry binds the character's containers before dispatching the refill.
 /// </remarks>
 internal sealed class DailyRefillService(
     ICharacterTable characters,

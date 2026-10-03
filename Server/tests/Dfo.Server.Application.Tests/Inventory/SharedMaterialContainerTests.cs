@@ -69,7 +69,7 @@ public sealed class SharedMaterialContainerTests
             ContainerId.ForCharacter(new CharacterId(1), InventoryContainerType.SharedMaterial), new CharacterId(1),
             new(InventoryContainerType.SharedMaterial, 11), host.Services.GetRequiredService<IItemDomainStore>(),
             host.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
-            host.Services.GetRequiredService<IItemPlacementRuleService>(), host.Services.GetRequiredService<IItemArrivalRuleService>(),
+            host.Services.GetRequiredService<IItemPlacementRuleService>(),
             host.Services.GetRequiredService<IItemSlotRuleService>());
         Assert.Throws<InvalidOperationException>(() => new BusinessItemContainer(BusinessInventorySpace.SharedMaterial, physical));
     }
@@ -293,7 +293,7 @@ public sealed class SharedMaterialContainerTests
             new PersistentItemContainer(ContainerId.ForAccount(new AccountId(account), InventoryContainerType.SharedMaterial),
                 new CharacterId(character), new(InventoryContainerType.SharedMaterial, 11),
                 host.Services.GetRequiredService<IItemDomainStore>(), host.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                null, host.Services.GetRequiredService<IItemPlacementRuleService>(), host.Services.GetRequiredService<IItemArrivalRuleService>(),
+                null, host.Services.GetRequiredService<IItemPlacementRuleService>(),
                 host.Services.GetRequiredService<IItemSlotRuleService>(), host.Services.GetRequiredService<IInventoryCapacityDomainService>()));
     }
 

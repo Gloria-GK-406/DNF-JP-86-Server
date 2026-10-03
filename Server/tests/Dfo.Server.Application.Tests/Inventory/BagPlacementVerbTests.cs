@@ -1,18 +1,12 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
-/// <summary>
-/// What the bag itself answers when something is offered to it.
-/// </summary>
-/// <remarks>
-/// The callers each cover their own reading of these answers. What is here is the bag's side: the
-/// four things it can say, and the one comparison that shows why putting an item away and topping a
-/// character up are two verbs rather than one spelling of the same verb.
-/// </remarks>
+/// <summary>Business grants merge piles, prefer quick slots, and report refusals without writing.</summary>
 public sealed class BagPlacementVerbTests
 {
     private const int Potion = 8474;
@@ -26,8 +20,9 @@ public sealed class BagPlacementVerbTests
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
-        var joined = Assert.IsType<ItemPlacementOutcome.AddedToPile>(outcome);
-        Assert.Equal(65, joined.SlotIndex);
+        var joined = Assert.IsType<ItemPlacementOutcome.AddedToPile>(outcome.Placement);
+        Assert.Equal(0, joined.SlotIndex);
+        Assert.Equal(BusinessInventorySpace.Consumable, outcome.Container.Space);
         Assert.Equal(4, joined.Added);
         Assert.Equal(7, joined.Total);
     }
@@ -48,8 +43,9 @@ public sealed class BagPlacementVerbTests
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
-        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome);
-        Assert.Equal(3, opened.SlotIndex);
+        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome.Placement);
+        Assert.Equal(0, opened.SlotIndex);
+        Assert.Equal(BusinessInventorySpace.QuickSlot, outcome.Container.Space);
         Assert.Equal(4, opened.Count);
     }
 
@@ -65,8 +61,9 @@ public sealed class BagPlacementVerbTests
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
-        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome);
-        Assert.Equal(65, opened.SlotIndex);
+        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome.Placement);
+        Assert.Equal(0, opened.SlotIndex);
+        Assert.Equal(BusinessInventorySpace.Consumable, outcome.Container.Space);
         Assert.Equal(4, opened.Count);
     }
 
@@ -84,7 +81,7 @@ public sealed class BagPlacementVerbTests
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 1, default));
 
-        Assert.IsType<ItemPlacementOutcome.NoRoom>(outcome);
+        Assert.IsType<ItemPlacementOutcome.NoRoom>(outcome.Placement);
         Assert.Equal(
             [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
              (8, Unknown, 1), (65, Potion, 10), (66, Potion, 10)],
@@ -107,50 +104,8 @@ public sealed class BagPlacementVerbTests
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Unknown, 1, default));
 
-        Assert.IsType<ItemPlacementOutcome.UnknownItem>(outcome);
+        Assert.IsType<ItemPlacementOutcome.UnknownItem>(outcome.Placement);
         Assert.Empty(bag.Rows());
-    }
-
-    /// <summary>
-    /// The same held state, offered the same quantity, lands in two different places.
-    /// </summary>
-    /// <remarks>
-    /// This is why the two verbs exist. A grant will not push a pile past the item's stack limit
-    /// and opens a slot beside it instead; a refill joins the pile whatever its size, because the
-    /// quantity a refill carries was already bounded by the rule that produced it. Folding them
-    /// into one verb would have to pick one of these two answers and be wrong about the other.
-    /// </remarks>
-    [Fact]
-    public async Task Adding_and_refilling_disagree_about_a_pile_that_is_already_full()
-    {
-        var granted = new BagInventory { [65] = (Potion, 10) };
-        var refilled = new BagInventory { [65] = (Potion, 10) };
-
-        var grant = await granted.InUseCase(container => container.AddAsync(Potion, 5, default));
-        var refill = await refilled.InUseCase(container => container.RefillAsync(
-            new ItemRefill(Potion, ItemKind, 5,
-                new(BusinessInventorySpace.Consumable, 0, 55)), default));
-
-        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(grant);
-        Assert.Equal(3, opened.SlotIndex);
-        Assert.Equal([(3, Potion, 5), (65, Potion, 10)], granted.Rows());
-
-        var joined = Assert.IsType<ItemPlacementOutcome.AddedToPile>(refill);
-        Assert.Equal(65, joined.SlotIndex);
-        Assert.Equal(15, joined.Total);
-        Assert.Equal([(65, Potion, 15)], refilled.Rows());
-    }
-
-    [Fact]
-    public async Task ARefillKeepsItsAlreadyDecidedQuantityWhenOpeningAnEmptyPile()
-    {
-        var bag = new BagInventory();
-        var outcome = await bag.InUseCase(container => container.RefillAsync(
-            new ItemRefill(Potion, ItemKind, 15, new(BusinessInventorySpace.Consumable, 0, 55)), default));
-        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome);
-        Assert.Equal(65, opened.SlotIndex);
-        Assert.Equal(15, opened.Count);
-        Assert.Equal([(65, Potion, 15)], bag.Rows());
     }
 
     private const byte ItemKind = 2;
@@ -162,6 +117,12 @@ public sealed class BagPlacementVerbTests
             ValueTask.FromResult(
                 itemId == Potion ? new ItemPlacement(ItemKind, 10,
                     new(BusinessInventorySpace.Consumable, 0, 1)) : null);
+    }
+
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<BusinessSlot?>(null);
     }
 
     private sealed class BagInventory : FakeMainInventory
@@ -176,10 +137,13 @@ public sealed class BagPlacementVerbTests
         /// change.
         /// </summary>
         public async Task<TResult> InUseCase<TResult>(
-            Func<IItemContainer, ValueTask<TResult>> work)
+            Func<IBusinessItemContainer, ValueTask<TResult>> work)
         {
-            var container = this.Containers(new TenToAPile())
+            var physical = this.Containers(new TenToAPile())
                 .GetContainer(new CharacterId(60), InventoryContainerType.Main);
+            var container = new BusinessItemContainer(BusinessInventorySpace.Consumable, physical,
+                new ItemPlacementRuleService(new TenToAPile(), new NoWearables()),
+                new ItemArrivalRuleService(), lifecycle: this.LifecycleFor(new TenToAPile()));
             await using var boundary = this.Scope.Begin();
             var result = await work(container);
             await boundary.CommitAsync(CancellationToken.None);

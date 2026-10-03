@@ -35,7 +35,7 @@ public sealed class PersistentContainerBoundaryTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await lifecycle.CreateAsync(ItemSnapshot.FromCore(Core(1), true), CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await container.AddAsync(8474, 1, CancellationToken.None));
+            async () => await container.PutAsync(65, new ItemRecord(ItemSnapshot.FromCore(Core(1), true)), CancellationToken.None));
     }
 
     /// <remarks>
@@ -66,9 +66,7 @@ public sealed class PersistentContainerBoundaryTests
     }
 
     /// <remarks>
-    /// What the container hands back describes a place and its contents. There is no member on it
-    /// for an item's identity, so a caller could not carry one even if it wanted to -- which is the
-    /// form the requirement takes once the vocabulary is gone rather than merely unused.
+    /// References expose item identity and occupancy without leaking a persistence row or entry model.
     /// </remarks>
     [Fact]
     public void WhatAContainerHandsBackNamesASlotAndWhatIsInIt()
@@ -96,7 +94,6 @@ public sealed class PersistentContainerBoundaryTests
             // A write classifies what it is about to write, so this one is supplied rather than
             // left null. It answers what these piles are: an ordinary consumable of the main band.
             rules,
-            new ItemArrivalRuleService(),
             new ItemSlotRuleService());
     }
 

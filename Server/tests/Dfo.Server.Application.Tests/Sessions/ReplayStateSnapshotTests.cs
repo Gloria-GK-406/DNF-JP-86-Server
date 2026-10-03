@@ -111,7 +111,7 @@ public sealed class ReplayStateSnapshotTests
         var store = fixture.Services.GetRequiredService<IItemDomainStore>();
         var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment),
             fixture.Session.CharacterId, new(InventoryContainerType.Equipment, 0), store, fixture.Scope, null!,
-            fixture.Services.GetRequiredService<IItemPlacementRuleService>(), fixture.Services.GetRequiredService<IItemArrivalRuleService>(),
+            fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
         {
@@ -289,7 +289,7 @@ public sealed class ReplayStateSnapshotTests
         var store = fixture.Services.GetRequiredService<IItemDomainStore>();
         var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment),
             fixture.Session.CharacterId, new(InventoryContainerType.Equipment, 0), store, fixture.Scope, null!,
-            fixture.Services.GetRequiredService<IItemPlacementRuleService>(), fixture.Services.GetRequiredService<IItemArrivalRuleService>(),
+            fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
         {

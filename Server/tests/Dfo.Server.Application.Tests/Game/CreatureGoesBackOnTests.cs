@@ -209,7 +209,6 @@ public sealed class CreatureGoesBackOnTests
                     this.scope,
                     null!,
                     rules,
-                    new ItemArrivalRuleService(),
                     new ItemSlotRuleService()));
             }
 

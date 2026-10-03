@@ -147,7 +147,7 @@ public sealed class TutorialRewardPlacementTests
     {
         var handler = new GrantTutorialRewardCommandHandler(
             inventory.Containers(new RewardPlacements()),
-            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), null!);
+            inventory.Grants(new RewardPlacements()), null!);
         var bus = new DirectCommandBus(reward: handler, scope: inventory.Scope);
         return await bus.SendAsync(
             new GrantTutorialRewardCommand(

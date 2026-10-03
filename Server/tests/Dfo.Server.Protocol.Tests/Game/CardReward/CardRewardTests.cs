@@ -1603,7 +1603,7 @@ public sealed class CardRewardTests
     /// use one: the persistent container refuses a write with no transaction open, and what is under
     /// test here is what this slice hands it, not how a row reaches SQLite.
     /// </remarks>
-    private sealed class Bag(BagAnswer answer) : IItemContainer
+    private sealed class Bag(BagAnswer answer) : IItemContainer, Dfo.Server.Protocol.Tests.Support.IItemGrantStub
     {
         public bool FailNextAdd { get; set; }
         public int AddCalls { get; private set; }
@@ -1637,7 +1637,7 @@ public sealed class CardRewardTests
 
         public bool IsRemovable => false;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
             this.AddCalls++;
@@ -1673,6 +1673,7 @@ public sealed class CardRewardTests
             }
         }
 
+
         public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
@@ -1681,7 +1682,7 @@ public sealed class CardRewardTests
                     : null);
 
         public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
-            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
 
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
@@ -1710,13 +1711,7 @@ public sealed class CardRewardTests
         }
         public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
     }
 
     /// <summary>A character bound to one bag, or to none.</summary>

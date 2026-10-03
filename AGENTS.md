@@ -536,7 +536,7 @@ InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路
 
 边界限制：`core_uid` 没有数据库唯一约束，普通写入由记录接收机制限制；入场仍检查重复行身份。
 `items.item_uid` 的 wire 范围 CHECK 不能靠给既存表 ADD COLUMN 补上，编码仍使用 checked 转换。
-`SqliteWorldItemTable`/`SqliteItemSlotTable` 保留为测试用数据库边界，不作为生产物品写入口。
+物品写入统一通过生命周期接口；数据库结构约束由直接 SQL 测试覆盖。
 
 设计与回归证据见 `Document/tasks/item-container-lifecycle/`。以上是 CurrentImplementation，
 不代替 A21 实机验收。以下时装小节保留原逆向及历史修复记录，旧调用链以本节为准。

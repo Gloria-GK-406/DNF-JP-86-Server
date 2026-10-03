@@ -229,10 +229,9 @@ public sealed class GrantedAvatarIsWholeTests
     /// <summary>One avatar granted through the container verb every reward reaches.</summary>
     private static async Task<ItemPlacementOutcome.PutInEmptySlot> GrantAsync(InventorySide side)
     {
-        var granted = await side.InUseCaseAsync(token => side.Containers
-            .GetContainer(new CharacterId(Character), InventoryContainerType.Avatar)
-            .AddAsync(AvatarItemId, 1, token));
-        return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted);
+        var granted = await side.InUseCaseAsync(token => side.Grants.GrantAsync(new AccountId(Account), new CharacterId(Character),
+            side.Containers, AvatarItemId, 1, token));
+        return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
     }
 
     /// <summary>What the entry load serves at that position of the character's main bag.</summary>

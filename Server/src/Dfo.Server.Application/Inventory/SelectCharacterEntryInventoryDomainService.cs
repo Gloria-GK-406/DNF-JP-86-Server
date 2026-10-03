@@ -19,7 +19,6 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IItemDomainStore itemStore,
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
-    IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules,
     ICharacterEntryPreparationRuleService preparationRules,
     IInventorySlotMappingRuleService? slotMappings = null, IInventoryCapacityDomainService? capacities = null) : ISelectCharacterEntryInventoryDomainService
@@ -94,7 +93,6 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 transactions,
                 mutations,
                 placementRules,
-                arrivals,
                 slotRules, capacities));
         }
     }

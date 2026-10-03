@@ -34,7 +34,7 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
             // Offline delivery does not manufacture an online registration.
             var bag = containers.FindContainer(character, type) ?? new PersistentItemContainer(
                 accountOwned ? ContainerId.ForAccount(account, type) : ContainerId.ForCharacter(character, type),
-                character, new(type, 0), store, transactions, null, placements, arrivals, slotRules, capacities);
+                character, new(type, 0), store, transactions, null, placements, slotRules, capacities);
             if (bag is not StoreBackedItemContainer)
                 throw new NotSupportedException("Whole-quantity addition requires a transactional store-backed container.");
             if (!bag.Id.TryGetOwner(out var actualOwner, out var actualType)

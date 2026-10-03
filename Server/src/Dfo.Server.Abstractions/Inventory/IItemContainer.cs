@@ -129,21 +129,9 @@ public interface IItemContainer
     ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct);
     ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct);
     ValueTask FlushAsync(CancellationToken ct);
-    ValueTask<ItemPlacementOutcome> AddAsync(int itemId, int count, CancellationToken ct);
-    ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct);
 }
 
-/// <summary>What a daily rule owes, in the terms the container needs to place it.</summary>
-public sealed record ItemRefill(
-    int ItemId, byte ItemKind, int Count, BusinessSlotRange Destination);
-
-/// <summary>What became of an item offered to a container.</summary>
-/// <remarks>
-/// The two ways of succeeding are told apart rather than folded into one, because callers report
-/// them differently: a grant names how many it added, a refill names both that and what the slot
-/// holds afterwards, and one of them treats opening a slot as the moment a missing item kind
-/// becomes fatal.
-/// </remarks>
+/// <summary>A business grant either joins an existing pile, opens a slot, or reports a refusal.</summary>
 public abstract record ItemPlacementOutcome
 {
     private ItemPlacementOutcome()

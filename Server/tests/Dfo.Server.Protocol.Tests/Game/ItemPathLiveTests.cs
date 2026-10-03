@@ -171,7 +171,6 @@ public sealed class ItemPathLiveTests
                 services.GetRequiredService<IDomainTransactionAccessor>(),
                 null!,
                 services.GetRequiredService<IItemPlacementRuleService>(),
-                services.GetRequiredService<IItemArrivalRuleService>(),
                 services.GetRequiredService<IItemSlotRuleService>()));
         services.GetRequiredService<ISelectedSessionDomainService>().Select(
             new SelectedSessionIdentity(

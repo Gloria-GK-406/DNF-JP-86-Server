@@ -204,7 +204,7 @@ public sealed class RealConsumableIntegrationTests
     {
         var container = new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, type), f.Session.CharacterId,
             new(type, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope, null,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemArrivalRuleService>(),
+            f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>());
         f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId, container);
         return container;

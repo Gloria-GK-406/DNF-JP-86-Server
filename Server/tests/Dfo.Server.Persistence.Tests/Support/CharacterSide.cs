@@ -102,7 +102,6 @@ internal sealed class CharacterSide
     public ICharacterItemTable Items => new SqliteCharacterItemTable(this.database);
 
     /// <summary>The positions themselves, for emptying one.</summary>
-    public IItemSlotTable Slots => new SqliteItemSlotTable(this.database);
 
     /// <summary>
     /// The characters table itself, for the tests that are about what one statement reads.

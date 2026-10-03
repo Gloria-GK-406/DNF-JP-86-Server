@@ -84,7 +84,6 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                 scope,
                 null!,
                 rules,
-                new ItemArrivalRuleService(),
                 new ItemSlotRuleService());
             var registered = new CharacterContainerDomainService();
             registered.Register(new CharacterId(Character), container);

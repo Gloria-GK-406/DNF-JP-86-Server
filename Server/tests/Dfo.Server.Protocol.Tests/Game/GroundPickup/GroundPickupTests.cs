@@ -539,7 +539,7 @@ public sealed class GroundPickupTests
     }
 
     /// <summary>A bag that opens the next free slot and remembers what went in it.</summary>
-    internal sealed class FakeContainer : IItemContainer
+    internal sealed class FakeContainer : IItemContainer, Dfo.Server.Protocol.Tests.Support.IItemGrantStub
     {
         public bool FailNextAdd { get; set; }
 
@@ -558,7 +558,7 @@ public sealed class GroundPickupTests
 
         public bool IsRemovable => false;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
             if (this.FailNextAdd)
@@ -573,6 +573,7 @@ public sealed class GroundPickupTests
                 new ItemPlacementOutcome.PutInEmptySlot(slot, count));
         }
 
+
         public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
@@ -581,7 +582,7 @@ public sealed class GroundPickupTests
                     : null);
 
         public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
-            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
 
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
@@ -607,12 +608,6 @@ public sealed class GroundPickupTests
         }
         public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
 
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
     }
 }

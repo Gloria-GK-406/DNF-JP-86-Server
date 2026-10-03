@@ -51,6 +51,4 @@ internal class LifecycleTestContainer(
     public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) => fixture.RunAsync<IReadOnlyList<InventoryItemState>>(async () =>
         [.. (await GetAllAsync(ct)).Select(item => new InventoryItemState(
             item.ItemUid ?? new ItemIdentity(0), item.SlotIndex, item.Snapshot.ToCore()))]);
-    public ValueTask<ItemPlacementOutcome> AddAsync(int itemId, int count, CancellationToken ct) => throw new NotSupportedException();
-    public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct) => throw new NotSupportedException();
 }

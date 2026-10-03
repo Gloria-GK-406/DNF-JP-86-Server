@@ -131,7 +131,6 @@ public sealed class ContainerInventoryProjectionTests
                 // left null. Nothing here is declared, which is the answer an undeclared template
                 // gets anyway: an ordinary pile.
                 new ItemPlacementRuleService(new NothingDeclared(), new NoWearables()),
-                null!,
                 null!);
 
         private sealed class NothingDeclared : IItemPlacementDefinitionSource

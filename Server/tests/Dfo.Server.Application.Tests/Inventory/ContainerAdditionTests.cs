@@ -59,7 +59,6 @@ public sealed class ContainerAdditionTests
             new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
             f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
-            f.Services.GetRequiredService<IItemArrivalRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>()));
         await grants.AddAsync(new(1), 9001, 1, default);
         await grants.AddAsync(new(1), 9002, 1, default);
@@ -83,7 +82,6 @@ public sealed class ContainerAdditionTests
             new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
             f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
-            f.Services.GetRequiredService<IItemArrivalRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>()));
         var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)
             f.Services.GetRequiredService<IDomainTransactionAccessor>();
@@ -134,7 +132,7 @@ public sealed class ContainerAdditionTests
         var wrong = new PersistentItemContainer(ContainerId.ForCharacter(new(2), InventoryContainerType.Main),
             new(2), new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(),
             f.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemArrivalRuleService>(),
+            f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>());
         service.Register(new(1), wrong);
         service.UseContainer(new(1), wrong.Id);

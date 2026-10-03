@@ -148,16 +148,6 @@ public enum InventoryOwnerType : byte
 /// </remarks>
 public readonly record struct ItemIdentity(int Value);
 
-/// <summary>What kind of thing a slot's id names.</summary>
-public enum ItemSlotKind
-{
-    /// <summary>One thing in the world, of which there is exactly one.</summary>
-    World,
-
-    /// <summary>An archive template: a pile of interchangeable things, of which there are several.</summary>
-    Template,
-}
-
 public sealed record ChronicleOptionState(
     int Id,
     byte CharacterJob,

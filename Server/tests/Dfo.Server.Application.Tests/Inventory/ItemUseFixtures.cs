@@ -135,7 +135,9 @@ internal abstract class FakeMainInventory(int characterId = 60)
     private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
 
     public DomainTransactionScope Scope { get; init; } = new();
-    public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(store, Scope, null!);
+    public IItemLifecycleDomainService Lifecycle => LifecycleFor(new ConsumableBandPlacements());
+    public IItemLifecycleDomainService LifecycleFor(IItemPlacementDefinitionSource placements) =>
+        new ItemLifecycleDomainService(store, Scope, new ItemPlacementRuleService(placements, new NoWearables()));
 
     /// <remarks>
     /// The archive is a parameter because the bag now reads it: what an item's band is, and how
@@ -156,10 +158,13 @@ internal abstract class FakeMainInventory(int characterId = 60)
             null!,
             new ItemPlacementRuleService(
                 placements ?? new ConsumableBandPlacements(), new NoWearables()),
-            new ItemArrivalRuleService(),
             new ItemSlotRuleService()));
         return containers;
     }
+
+    public IItemGrantDomainService Grants(IItemPlacementDefinitionSource placements) =>
+        new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(
+            new ItemPlacementRuleService(placements, new NoWearables()), LifecycleFor(placements));
 
     /// <summary>Every item an ordinary consumable: kind 2, band 65 to 120, piles of a hundred.</summary>
     private sealed class ConsumableBandPlacements : IItemPlacementDefinitionSource

@@ -198,7 +198,6 @@ public sealed class ItemPathFrameTests
                 this.Scope,
                 null!,
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                new ItemArrivalRuleService(),
                 new ItemSlotRuleService()));
             return containers;
         }

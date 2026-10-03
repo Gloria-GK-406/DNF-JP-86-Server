@@ -90,7 +90,7 @@ public sealed class OpeningCapacityRegressionTests
             ContainerId.ForCharacter(host.Session.CharacterId, InventoryContainerType.Main), host.Session.CharacterId,
             new(InventoryContainerType.Main, 0), services.GetRequiredService<IItemDomainStore>(),
             services.GetRequiredService<IDomainTransactionAccessor>(), null,
-            services.GetRequiredService<IItemPlacementRuleService>(), services.GetRequiredService<IItemArrivalRuleService>(),
+            services.GetRequiredService<IItemPlacementRuleService>(),
             services.GetRequiredService<IItemSlotRuleService>(), services.GetRequiredService<IInventoryCapacityDomainService>()));
     }
 }

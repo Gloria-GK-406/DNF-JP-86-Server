@@ -611,7 +611,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     }
 
     private sealed class DirectGrantBag(int count,
-        Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null) : IItemContainer
+        Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null) : IItemContainer, Dfo.Server.Protocol.Tests.Support.IItemGrantStub
     {
         public bool FailAdd { get; set; }
         public int Count { get; private set; } = count;
@@ -619,6 +619,17 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public InventoryContainerType Type => InventoryContainerType.Main;
         public ContainerShape Shape => new(this.Type, 56);
         public bool IsRemovable => false;
+
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
+            int itemId, int incoming, CancellationToken cancellationToken)
+        {
+            Assert.Equal(10149163, itemId);
+            if (this.FailAdd) throw new InvalidOperationException("simulated inventory failure");
+            transactions?.Current?.Enlist(this, () => new BagChange(this, this.Count));
+            this.Count += incoming;
+            return ValueTask.FromResult<ItemPlacementOutcome>(
+                new ItemPlacementOutcome.AddedToPile(177, incoming, this.Count));
+        }
 
         private ItemReference? Slot => this.Count == 0
             ? null
@@ -633,16 +644,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             ValueTask.FromResult<IReadOnlyList<ItemReference>>(
                 this.Slot is { } item ? [item] : []);
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int incoming, CancellationToken cancellationToken)
-        {
-            Assert.Equal(10149163, itemId);
-            if (this.FailAdd) throw new InvalidOperationException("simulated inventory failure");
-            transactions?.Current?.Enlist(this, () => new BagChange(this, this.Count));
-            this.Count += incoming;
-            return ValueTask.FromResult<ItemPlacementOutcome>(
-                new ItemPlacementOutcome.AddedToPile(177, incoming, this.Count));
-        }
 
         private sealed class BagChange(DirectGrantBag bag, int before)
             : Dfo.Server.Abstractions.Transactions.ITransactionParticipant
@@ -660,14 +661,10 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
         public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
-            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
         public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<ItemMoveOutcome> MoveToAsync(int fromSlotIndex, int toSlotIndex, int count,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class OneLog(CarriedQuest carried) : IQuestLog

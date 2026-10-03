@@ -182,17 +182,8 @@ public sealed class CharacterContainerDomainServiceTests
 
         public bool IsRemovable => removable;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This container holds nothing.");
 
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This container holds nothing.");
 
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This container holds nothing.");
 
         public ValueTask<ItemReference?> GetAsync(int slot, CancellationToken ct) => ValueTask.FromResult<ItemReference?>(null);
         public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<ItemReference>>([]);
