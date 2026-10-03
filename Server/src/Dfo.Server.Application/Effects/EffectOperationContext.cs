@@ -130,7 +130,7 @@ internal sealed class EffectOperationContext
                 case (ConsumeFromContainerEffect, ContainerConsumptionChange change): Physical(change.Slot); break;
                 case (SetEquipmentUpgradeEffect or SetEquipmentEnchantmentEffect or SetEquipmentDimensionalEffect
                     or SetEquipmentMagicSealEffect or SetEquipmentForgingEffect or DestroyEquipmentEffect, EquipmentEffectChange change):
-                    Physical(change.Before.Slot); break;
+                    Physical(change.Slot); break;
                 case (GrantStackableEffect, StackableGrantEffectChange change):
                     frame.Needs |= ReplayProjectionNeeds.Inventory;
                     foreach (var addition in change.Additions) Physical(addition.Slot);

@@ -46,23 +46,23 @@ internal sealed class EquipmentReinforcementDomainService(
         var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null) return new(EquipmentReinforcementRejection.ItemUnavailable);
-        if (target.Core.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
-        if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
+        if (target.Snapshot.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
+        if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentReinforcementRejection.Locked);
         var sourceBound = materialSlot is { } requestedSource ? slots.Find(session.CharacterId, requestedSource) : null;
-        var source = sourceBound is null ? null : await sourceBound.Container.ReadSlotAsync(sourceBound.Slot.Index, ct).ConfigureAwait(false);
+        var source = sourceBound is null ? null : await sourceBound.Container.GetAsync(sourceBound.Slot.Index, ct).ConfigureAwait(false);
         var ticketQuote = source is { IsPile: true }
-            ? await rules.QuoteTicketAsync(target.Core, source.ItemId, ct, kind).ConfigureAwait(false)
+            ? await rules.QuoteTicketAsync(target.Snapshot, source.ItemId, ct, kind).ConfigureAwait(false)
             : new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None);
         var quote = ticketQuote.IsTicket ? ticketQuote
-            : await rules.QuoteReinforcementAsync(target.Core, ct, kind).ConfigureAwait(false);
+            : await rules.QuoteReinforcementAsync(target.Snapshot, ct, kind).ConfigureAwait(false);
         if (quote.Rejection != EquipmentReinforcementRejection.None) return new(quote.Rejection);
         var rule = quote.Rule ?? throw new InvalidOperationException("Reinforcement quote lacks its rule.");
-        var oldLevel = target.Core.ReinforcementLevel;
+        var oldLevel = target.Snapshot.ReinforcementLevel;
         var goldCost = rule.GoldCost;
-        if (quote.IsTicket && (source is null || source.Count < 1 || source.Core.SortLockFlag != 0
-            || source.Core.EquipmentLockId != 0 || protectionSlot is not null
-            || source.Core.ExpireTime > 0 && source.Core.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()
+        if (quote.IsTicket && (source is null || source.Count < 1 || source.Snapshot.SortLockFlag != 0
+            || source.Snapshot.EquipmentLockId != 0 || protectionSlot is not null
+            || source.Snapshot.ExpireTime > 0 && source.Snapshot.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()
             || await characters.Get(session.CharacterId).CanUseAsync(source.ItemId, ct).ConfigureAwait(false) != ItemUsability.Allowed))
             return new(EquipmentReinforcementRejection.InvalidRequest);
 
@@ -71,7 +71,7 @@ internal sealed class EquipmentReinforcementDomainService(
         {
             var materialBound = slots.Find(session.CharacterId, sourceSlot);
             var material = materialBound is null ? null
-                : await materialBound.Container.ReadSlotAsync(materialBound.Slot.Index, ct).ConfigureAwait(false);
+                : await materialBound.Container.GetAsync(materialBound.Slot.Index, ct).ConfigureAwait(false);
             if (material is not { IsPile: true } || material.ItemId != rule.MaterialItemId
                 || material.Count < rule.MaterialCount)
                 return new(EquipmentReinforcementRejection.InsufficientMaterial);
@@ -80,15 +80,15 @@ internal sealed class EquipmentReinforcementDomainService(
         else return new(EquipmentReinforcementRejection.InsufficientMaterial);
 
         EquipmentReinforcementProtectionDefinition? protectionDefinition = null;
-        ContainerSlotItem? protectionItem = null;
+        ItemReference? protectionItem = null;
         if (protectionSlot is { } ticketSlot)
         {
             var ticketBound = slots.Find(session.CharacterId, ticketSlot);
             protectionItem = ticketBound is null ? null
-                : await ticketBound.Container.ReadSlotAsync(ticketBound.Slot.Index, ct).ConfigureAwait(false);
+                : await ticketBound.Container.GetAsync(ticketBound.Slot.Index, ct).ConfigureAwait(false);
             if (protectionItem is not { IsPile: true, Count: > 0 }
-                || protectionItem.Core.ExpireTime > 0
-                    && protectionItem.Core.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds())
+                || protectionItem.Snapshot.ExpireTime > 0
+                    && protectionItem.Snapshot.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds())
                 return new(EquipmentReinforcementRejection.InvalidRequest);
             protectionDefinition = await rule.ProtectionAsync(protectionItem.ItemId, ct)
                 .ConfigureAwait(false);
@@ -140,7 +140,7 @@ internal sealed class EquipmentReinforcementDomainService(
             _ => Enumerable.Empty<EquipmentReinforcementReward>(),
         }).ToArray();
         var materialRemaining = final.First(change => change.Slot == materialLocation).Core is { } remaining
-            && remaining.ItemId == rule.MaterialItemId ? remaining.Value : 0;
+            && remaining.ItemId == rule.MaterialItemId ? remaining.Count : 0;
         var receipt = new EquipmentReinforcementReceipt(session, targetSlot, materialSlot,
             decision.ConsumeProtection ? protectionSlot : null, oldLevel, decision.NewLevel,
             decision.Outcome, materialRemaining, applied.Changes<GoldEffectChange>().LastOrDefault()?.Remaining
@@ -149,19 +149,19 @@ internal sealed class EquipmentReinforcementDomainService(
         return new(EquipmentReinforcementRejection.None, receipt);
     }
 
-    private async ValueTask<(BusinessSlot Slot, ContainerSlotItem Item,
+    private async ValueTask<(BusinessSlot Slot, ItemReference Item,
         EquipmentReinforcementProtectionDefinition Definition)?> FindAutomaticProtectionAsync(
         SelectedSessionIdentity session, IEquipmentReinforcementRule rule, CancellationToken ct)
     {
-        var available = new Dictionary<BusinessSlot, ContainerSlotItem>();
+        var available = new Dictionary<BusinessSlot, ItemReference>();
         foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Material })
         {
             var bound = slots.Find(session.CharacterId, new(space, 0));
             if (bound is null) continue;
-            foreach (var item in await bound.Container.ReadAllAsync(ct).ConfigureAwait(false))
+            foreach (var item in await bound.Container.GetAllAsync(ct).ConfigureAwait(false))
             {
-                if (!item.IsPile || item.Count <= 0 || item.Core.ExpireTime > 0
-                    && item.Core.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()) continue;
+                if (!item.IsPile || item.Count <= 0 || item.Snapshot.ExpireTime > 0
+                    && item.Snapshot.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()) continue;
                 available.Add(new(space, item.SlotIndex), item);
             }
         }

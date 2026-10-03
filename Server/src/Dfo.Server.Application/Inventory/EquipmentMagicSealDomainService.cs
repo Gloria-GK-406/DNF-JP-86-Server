@@ -50,10 +50,10 @@ internal sealed class EquipmentMagicSealDomainService(
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null)
             return new(EquipmentMagicSealRejection.ItemUnavailable);
-        if (target.Core.ExpireTime > 0
-            && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.ExpireTime > 0
+            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentMagicSealRejection.ItemUnavailable);
-        if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
+        if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentMagicSealRejection.Locked);
         var plan = await rules.MagicSealAsync(target, changeIndex, seeds.NextSeed(), ct).ConfigureAwait(false);
         var decision = plan.Decision;
@@ -73,7 +73,7 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.InsufficientGold);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         var gold = applied.Changes<GoldEffectChange>().Single().Remaining;
-        var changed = applied.Changes<EquipmentEffectChange>().Single().After!.Core;
+        var changed = applied.Changes<EquipmentEffectChange>().Single().After!;
         return new(EquipmentMagicSealRejection.None,
             new(session, targetSlot, changed, gold, decision.Seed, context.At));
     }

@@ -26,7 +26,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     ICharacterDomainService characterDomain, IApplyEffectsDomainService effects,
     ICreatureDomainService? creatureDomains = null) : IOpeningInventoryDomainService
 {
-    public async ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
+    public async ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Opening requires a transaction.");
         if (sessions.Find(session.AccountId) != session
@@ -38,9 +38,9 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         var bag = businessInventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(slot.Space))
             .FindContainer(slot.Space)
             ?? throw new OpeningRejectedException(OpeningRejection.NoSession, "No source container.");
-        var item = await bag.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
+        var item = await bag.GetAsync(slot.Index, ct).ConfigureAwait(false);
         if (item is null || !item.IsPile || item.Count <= 0
-            || item.Core.ExpireTime is > 0 and < int.MaxValue && item.Core.ExpireTime <= now.ToUnixTimeSeconds())
+            || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= now.ToUnixTimeSeconds())
             throw new OpeningRejectedException(OpeningRejection.WrongItem, "Missing, expired or nonstackable source.");
         var usability = await characterDomain.Get(session.CharacterId).CanUseAsync(item.ItemId, ct).ConfigureAwait(false);
         if (usability != ItemUsability.Allowed)
@@ -75,16 +75,18 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         var cleared = ImmutableArray.CreateBuilder<BusinessSlot>();
         foreach (var slot in touched)
         {
-            var item = slot.Space == BusinessInventorySpace.VirtualResource
-                ? snapshot.Containers.Single(b => b.ContainerType == InventoryContainerType.Main).Items
-                    .SingleOrDefault(i => i.SlotIndex == slot.Index)
-                : await ReadCurrentItemAsync(slot).ConfigureAwait(false);
-            if (item is null) cleared.Add(slot); else updates.Add(new(slot, item.Identity, item.Core));
-        }
-        async ValueTask<InventoryItemState?> ReadCurrentItemAsync(BusinessSlot slot)
-        {
-            var item = await slots.Get(session.CharacterId, slot).Container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
-            return item is null ? null : new(item.Identity, slot.Index, item.Core);
+            ItemSnapshot? item;
+            if (slot.Space == BusinessInventorySpace.VirtualResource)
+            {
+                var projected = snapshot.Containers.Single(b => b.ContainerType == InventoryContainerType.Main).Items
+                    .SingleOrDefault(i => i.SlotIndex == slot.Index);
+                item = projected is null ? null : ItemSnapshot.FromCore(projected.Core,
+                    projected.Identity is null, projected.Identity, projected.AvatarDetail);
+            }
+            else
+                item = (await slots.Get(session.CharacterId, slot).Container.GetAsync(slot.Index, ct)
+                    .ConfigureAwait(false))?.Snapshot;
+            if (item is null) cleared.Add(slot); else updates.Add(new(slot, item.ItemUid, item));
         }
         var displayed = applied.Applied.SelectMany(x => x.Change switch {
             PreparedItemGrantChange physical => physical.Rewards.AsEnumerable(),

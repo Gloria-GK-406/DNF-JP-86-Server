@@ -16,12 +16,12 @@ internal sealed class InventorySortDomainService(
         var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(slot.Space))
             .FindContainer(slot.Space);
         if (container is null || slot.Index >= await container.OpenSlotCountAsync(ct).ConfigureAwait(false)) return null;
-        var item = await container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
+        var item = await container.GetAsync(slot.Index, ct).ConfigureAwait(false);
         if (item is null) return null;
-        var locked = action == InventorySortLockAction.Toggle && item.Core.SortLockFlag != 1;
+        var locked = action == InventorySortLockAction.Toggle && item.Snapshot.SortLockFlag != 1;
         var flag = locked ? (byte)1 : (byte)0;
-        if (item.Core.SortLockFlag != flag)
-            await container.PutAsync(slot.Index, item.Core with { SortLockFlag = flag }, ct).ConfigureAwait(false);
+        if (item.Snapshot.SortLockFlag != flag)
+            await container.UpdateAsync(item, current => current with { SortLockFlag = flag }, ct).ConfigureAwait(false);
         return locked;
     }
 
@@ -39,8 +39,8 @@ internal sealed class InventorySortDomainService(
         var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
         var open = await container.OpenSlotCountAsync(ct).ConfigureAwait(false);
         if (open <= 0) return false;
-        var items = (await container.ReadAllAsync(ct).ConfigureAwait(false)).Where(i => i.SlotIndex < open).ToArray();
-        var locked = items.Where(item => item.Core.SortLockFlag == 1).Select(item => item.SlotIndex).ToHashSet();
+        var items = (await container.GetAllAsync(ct).ConfigureAwait(false)).Where(i => i.SlotIndex < open).ToArray();
+        var locked = items.Where(item => item.Snapshot.SortLockFlag == 1).Select(item => item.SlotIndex).ToHashSet();
         var movable = items.Where(item => !locked.Contains(item.SlotIndex)).OrderBy(item => item.SlotIndex).ToArray();
         var metadata = new Dictionary<int, InventorySortKeys>();
         if (order is InventorySortOrder.Rarity or InventorySortOrder.Level or InventorySortOrder.Type
@@ -49,27 +49,23 @@ internal sealed class InventorySortDomainService(
                 metadata[id] = await keys.GetAsync(id, ct).ConfigureAwait(false);
         Array.Sort(movable, (left, right) => Compare(left, right, space, order, metadata));
         var target = 0;
-        var plan = new List<(ContainerSlotItem Item, int Target)>();
+        var plan = new List<(ItemReference Item, int Target)>();
         foreach (var item in movable)
         {
             while (locked.Contains(target)) target++;
             plan.Add((item, target++));
         }
         if (plan.All(move => move.Item.SlotIndex == move.Target)) return true;
-        // Snapshot every source before staging any write. Explicit source positions preserve
-        // distinct instance identities even when multiple equipment cores have identical values.
-        foreach (var move in plan) await container.ClearAsync(move.Item.SlotIndex, ct).ConfigureAwait(false);
+        var records = new List<(ItemRecord Record, int Target)>();
         foreach (var move in plan)
-            if (move.Item.IsPile)
-                await container.PutAsync(move.Target, move.Item.Core, ct).ConfigureAwait(false);
-            else
-                await container.PutTransferredAsync(move.Target, move.Item.Core, container,
-                    move.Item.SlotIndex, ct).ConfigureAwait(false);
+            records.Add((await container.TakeAsync(move.Item, null, ct).ConfigureAwait(false), move.Target));
+        foreach (var move in records)
+            await container.PutAsync(move.Target, move.Record, ct).ConfigureAwait(false);
         await container.FlushAsync(ct).ConfigureAwait(false);
         return true;
     }
 
-    private static int Compare(ContainerSlotItem left, ContainerSlotItem right, BusinessInventorySpace space,
+    private static int Compare(ItemReference left, ItemReference right, BusinessInventorySpace space,
         InventorySortOrder order, IReadOnlyDictionary<int, InventorySortKeys> keys)
     {
         if (space == BusinessInventorySpace.Avatar && order == InventorySortOrder.Default)
@@ -85,11 +81,11 @@ internal sealed class InventorySortDomainService(
             _ => 0,
         };
         if (comparison != 0) return comparison;
-        comparison = left.ItemKind.CompareTo(right.ItemKind);
+        comparison = left.Snapshot.LegacyKind.CompareTo(right.Snapshot.LegacyKind);
         if (comparison != 0) return comparison;
         comparison = left.ItemId.CompareTo(right.ItemId);
         return comparison != 0 ? comparison : left.SlotIndex.CompareTo(right.SlotIndex);
     }
     private static int Rank(int rarity) => rarity switch { 4 => 6, 6 => 5, 3 => 4, 5 => 3, _ => rarity };
-    private static int Expiration(ContainerSlotItem item) => item.Core.ExpireTime > 0 ? item.Core.ExpireTime : int.MaxValue;
+    private static int Expiration(ItemReference item) => item.Snapshot.ExpireTime > 0 ? item.Snapshot.ExpireTime : int.MaxValue;
 }

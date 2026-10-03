@@ -8,17 +8,17 @@ using Dfo.Server.Application.Inventory;
 
 namespace Dfo.Server.Application.Effects;
 
-internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDomainService inventory)
+internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDomainService inventory, IItemLifecycleDomainService lifecycle)
     : EffectHandler<ConsumeFromContainerEffect>
 {
-    private async ValueTask<ContainerSlotItem> ReadAsync(EffectExecutionContext context,
+    private async ValueTask<ItemReference> ReadAsync(EffectExecutionContext context,
         ConsumeFromContainerEffect effect, CancellationToken ct)
     {
-        var item = await inventory.Get(context.CharacterId, effect.Slot).Container.ReadSlotAsync(effect.Slot.Index, ct)
+        var item = await inventory.Get(context.CharacterId, effect.Slot).Container.GetAsync(effect.Slot.Index, ct)
             .ConfigureAwait(false);
         if (effect.Count <= 0 || item is null || !item.IsPile || item.ItemId != effect.ExpectedItemId
-            || item.Core.EquipmentLockId != effect.ExpectedEquipmentLockId
-            || item.Count < effect.Count || item.Core.ExpireTime is > 0 and < int.MaxValue && item.Core.ExpireTime <= context.At.ToUnixTimeSeconds())
+            || item.Snapshot.EquipmentLockId != effect.ExpectedEquipmentLockId
+            || item.Count < effect.Count || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= context.At.ToUnixTimeSeconds())
             throw new InvalidOperationException($"Consumption target {effect.Slot} no longer satisfies its plan.");
         return item;
     }
@@ -28,7 +28,7 @@ internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDo
     {
         var item = await ReadAsync(context, effect, ct).ConfigureAwait(false);
         var remaining = await ItemContainerOperations.ConsumeAsync(inventory.Get(context.CharacterId, effect.Slot).Container,
-            item, effect.Count, ct).ConfigureAwait(false);
+            item, effect.Count, lifecycle, ct).ConfigureAwait(false);
         return new ContainerConsumptionChange(effect.Slot, item.ItemId, effect.Count, remaining);
     }
 }

@@ -67,8 +67,8 @@ public sealed class FatiguePotionTests
             var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Where(x => x is not ConsumeFromContainerEffect).ToArray(), ct);
             return new(new(session, [], [], [], at), applied);
         }
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken token) =>
-            ValueTask.FromResult(new ContainerSlotItem(slot.Index,
+        public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken token) =>
+            ValueTask.FromResult(TestItemReferences.FromCore(slot.Index,
                 StackableItemCore.Create(2, slot.Index switch { 0 => 2600026, 1 => 10000541, 2 => 7456, 3 => 416, _ => throw new InvalidOperationException() }, 5),
                 ItemWorldClass.Interchangeable));
 

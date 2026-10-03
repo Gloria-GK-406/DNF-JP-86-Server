@@ -174,7 +174,7 @@ public sealed class LotteryOpeningTests
         Assert.Equal(2, receipt.Rewards.Length);
         Assert.Equal(2, receipt.Rewards.Select(x => x.Slot).Distinct().Count());
         var cores = receipt.Updates.Where(x => x.Core.ItemId == 20002).ToArray();
-        Assert.Equal(2, cores.Select(x => x.Core.Value).Distinct().Count());
+        Assert.Equal(2, cores.Select(x => x.Core.ToCore().Value).Distinct().Count());
         Assert.Equal(1, selector.Calls); Assert.Equal(2, shop.Host.Count(7110));
         var native = shop.Encode(response);
         Assert.Equal(77, native.Length);

@@ -69,7 +69,7 @@ public sealed class ContainerInventoryProjectionTests
 
         var fromLoader = await storage.LoadContainerAsync(InventoryContainerType.Main);
         var container = storage.OpenContainer(fromLoader.Parameter);
-        var moved = await container.ReadSlotAsync(3, CancellationToken.None);
+        var moved = Assert.Single(await container.SnapshotAsync(CancellationToken.None), item => item.SlotIndex == 3);
 
         var fromContainer = new InventoryDeltaMessage(
             container.Type,

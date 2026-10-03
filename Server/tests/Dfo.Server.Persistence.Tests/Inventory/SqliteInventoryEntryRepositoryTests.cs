@@ -72,19 +72,16 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 CancellationToken.None);
 
             var characterItem = Assert.Single(characterResult.CharacterItems);
-            Assert.Equal(InventoryOwnerType.Character, characterItem.OwnerType);
-            Assert.Equal(21, characterItem.OwnerId);
-            Assert.Equal(new CharacterId(21), characterItem.CharacterId);
-            Assert.Equal(InventoryContainerType.Equipment, characterItem.ContainerType);
+            Assert.Equal(ContainerId.ForCharacter(new CharacterId(21), InventoryContainerType.Equipment),
+                characterItem.ContainerId);
             Assert.Equal(7, characterItem.SlotIndex);
-            AssertCore(characterItem.Core, 1001, 17);
+            AssertCore(characterItem.Snapshot.ToCore(), 1001, 17);
 
             var cargoItem = Assert.Single(accountResult.AccountCargoItems);
-            Assert.Equal(InventoryOwnerType.Account, cargoItem.OwnerType);
-            Assert.Equal(11, cargoItem.OwnerId);
-            Assert.Equal(InventoryContainerType.AccountCargo, cargoItem.ContainerType);
+            Assert.Equal(ContainerId.ForAccount(new AccountId(11), InventoryContainerType.AccountCargo),
+                cargoItem.ContainerId);
             Assert.Equal(4, cargoItem.SlotIndex);
-            AssertCore(cargoItem.Core, 2002, 23);
+            AssertCore(cargoItem.Snapshot.ToCore(), 2002, 23);
             Assert.Equal((ushort)48, Assert.Single(characterResult.CharacterContainerParameters).Value);
             Assert.Equal((ushort)16, accountResult.AccountCargoState.SelectionKey);
             Assert.Equal(3456, accountResult.AccountCargoState.Value32);
@@ -379,11 +376,9 @@ public sealed class SqliteInventoryEntryRepositoryTests
 
             var item = Assert.Single(loaded.CharacterItems);
 
-            // Row 301 is the one that came back, which its own core says. It no longer says so by
-            // its row key: the archive this side is given declares every item an ordinary
-            // consumable, and a pile is loaded with no name at all.
-            Assert.Null(item.Identity);
-            Assert.Equal(3003, item.Core.ItemId);
+            // Historical world slots retain their persisted identity, independent of fixture PVF rules.
+            Assert.Equal(new ItemIdentity(301), item.ItemUid);
+            Assert.Equal(3003, item.Snapshot.ToCore().ItemId);
         }
         finally
         {
@@ -545,7 +540,10 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 avatar_jewel_socket BLOB,
                 avatar_color1 INTEGER,
                 avatar_color2 INTEGER,
-                avatar_delete_date INTEGER);
+                avatar_delete_date INTEGER,
+                creature_field04 INTEGER, creature_mode_flag INTEGER, creature_progress_value INTEGER,
+                creature_mode1_field0a INTEGER, creature_mode1_field0b INTEGER,
+                creature_field_after_value INTEGER, creature_text BLOB, creature_tail_flag INTEGER);
             CREATE TABLE item_slots(
                 owner_scope TEXT NOT NULL,
                 owner_id INTEGER NOT NULL,

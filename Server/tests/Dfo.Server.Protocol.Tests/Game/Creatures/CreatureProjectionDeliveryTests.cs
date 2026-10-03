@@ -27,7 +27,8 @@ public sealed class CreatureProjectionDeliveryTests
         var before = new CreatureState(500, 63000, 90, 2150, 19, [], 0, 0, 0, 0);
         var after = before with { ItemTemplateId = 63001, Experience = 2151, Level = 20 };
         var transformation = new CreatureTransformationReceipt(before, after,
-            new BusinessSlot(BusinessInventorySpace.WornCreature, 0), StackableItemCore.Create(5, 63001, 500))
+            new BusinessSlot(BusinessInventorySpace.WornCreature, 0), ItemSnapshot.FromCore(StackableItemCore.Create(5, 63001, 500), false, new ItemIdentity(500),
+                creature: new InventoryCreatureDetailState(90, 0, 2151, 20, 0, 0, [], 0)))
             { CreatureId = 2 };
         await delivery.SendAsync(owner, [new(before, after, true) { Transformation = transformation }], default);
         Assert.Equal(500, Assert.Single(Assert.Single(sender.Notifications.OfType<CreatureListMessage>()).Pets).PetKey);

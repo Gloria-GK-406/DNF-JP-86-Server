@@ -247,21 +247,18 @@ public sealed class QuestClearVerticalTests
     private static async Task SeedItemsAsync(SqliteItemDomainStore store)
     {
         var transaction = new DomainTransaction();
-        store.SessionIn(transaction).Write(
-            Main,
-            new StoredItem(9, QuestItem(14))
-            {
-                WorldClass = ItemWorldClass.Interchangeable,
-            });
+        var session = store.SessionIn(transaction);
+        var item = await session.CreateAsync(ItemSnapshot.FromCore(QuestItem(14), true), default);
+        await session.PutAsync(Main, 9, item, default);
         await transaction.CommitAsync(CancellationToken.None);
     }
 
     private static async Task<int> StoredQuantityAsync(SqliteItemDomainStore store)
     {
         var transaction = new DomainTransaction();
-        var stored = await store.SessionIn(transaction).ReadAsync(Main, 9, default);
+        var stored = await store.SessionIn(transaction).GetAsync(Main, 9, default);
         await transaction.CommitAsync(CancellationToken.None);
-        return stored!.Core.Value;
+        return stored!.Snapshot.Count;
     }
 
     private static async Task<int> TriggerAsync(string path)

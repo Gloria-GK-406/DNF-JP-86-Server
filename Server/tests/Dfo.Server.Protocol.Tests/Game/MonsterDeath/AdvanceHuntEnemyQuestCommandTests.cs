@@ -620,19 +620,17 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public ContainerShape Shape => new(this.Type, 56);
         public bool IsRemovable => false;
 
-        private ContainerSlotItem? Slot => this.Count == 0
+        private ItemReference? Slot => this.Count == 0
             ? null
-            : new ContainerSlotItem(177,
-                StackableItemCore.Create(6, 10149163, this.Count),
-                ItemWorldClass.Interchangeable);
+            : new ItemReference(this, Id, 177, 0, ItemSnapshot.FromCore(StackableItemCore.Create(6, 10149163, this.Count), true));
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+        public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(slotIndex == 177 ? this.Slot : null);
 
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
             CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(
+            ValueTask.FromResult<IReadOnlyList<ItemReference>>(
                 this.Slot is { } item ? [item] : []);
 
         public ValueTask<ItemPlacementOutcome> AddAsync(
@@ -661,12 +659,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int firstSlotIndex, int secondSlotIndex,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask PutAsync(int slotIndex, InventoryItemCoreState core,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill,
             CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<ItemMoveOutcome> MoveToAsync(int fromSlotIndex, int toSlotIndex, int count,

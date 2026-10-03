@@ -8,7 +8,7 @@ using Dfo.Server.Persistence.Tests.Support;
 namespace Dfo.Server.Application.Tests.Inventory;
 
 /// <summary>
-/// The same five operations against the store whose items do not outlive the process.
+/// Lifecycle operations against the store whose items do not outlive the process.
 /// </summary>
 /// <remarks>
 /// These are deliberately the same five as the persistent store's, written the same way: the point
@@ -27,96 +27,95 @@ public sealed class VolatileItemDomainStoreTests
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.PersonalCargo);
 
     [Fact]
-    public async Task Relocate_IsExpressedAsAClearAndAWrite()
+    public async Task Relocate_TakesAndPutsTheSameRecord()
     {
         var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
 
-        var moving = await session.ReadAsync(Run, 65, CancellationToken.None);
-        session.Clear(Run, 65);
-        session.Write(Run, new StoredItem(3, moving!.Core));
+        var moving = await session.GetAsync(Run, 65, CancellationToken.None);
+        await session.PutAsync(Run, 3, await session.TakeAsync(moving!, null, default), default);
         await transaction.SettleAsync();
 
         Assert.Equal([(3, PotionId, 5)], await ReadAsync(store));
     }
 
     [Fact]
-    public async Task Split_IsExpressedAsTwoWrites()
+    public async Task Split_TakesAPartialPileAndPutsItElsewhere()
     {
         var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
 
-        var moving = await session.ReadAsync(Run, 65, CancellationToken.None);
-        session.Write(Run, new StoredItem(65, moving!.Core with { Value = 3 }));
-        session.Write(Run, new StoredItem(66, Potion(2)));
+        var moving = await session.GetAsync(Run, 65, CancellationToken.None);
+        await session.PutAsync(Run, 66, await session.TakeAsync(moving!, 2, default), default);
         await transaction.SettleAsync();
 
         Assert.Equal([(65, PotionId, 3), (66, PotionId, 2)], await ReadAsync(store));
     }
 
     [Fact]
-    public async Task Swap_IsExpressedAsTwoWrites()
+    public async Task Swap_TakesBothRecordsBeforePuttingEither()
     {
         var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)), (66, Stone(1)));
         var session = store.SessionIn(transaction);
 
-        var first = await session.ReadAsync(Run, 65, CancellationToken.None);
-        var second = await session.ReadAsync(Run, 66, CancellationToken.None);
-        session.Write(Run, new StoredItem(66, first!.Core));
-        session.Write(Run, new StoredItem(65, second!.Core));
+        var first = await session.GetAsync(Run, 65, CancellationToken.None);
+        var second = await session.GetAsync(Run, 66, CancellationToken.None);
+        var a = await session.TakeAsync(first!, null, default);
+        var b = await session.TakeAsync(second!, null, default);
+        await session.PutAsync(Run, 66, a, default);
+        await session.PutAsync(Run, 65, b, default);
         await transaction.SettleAsync();
 
         Assert.Equal([(65, StoneId, 1), (66, PotionId, 5)], await ReadAsync(store));
     }
 
     [Fact]
-    public async Task Merge_IsExpressedAsAWriteAndAClear()
+    public async Task Merge_PutsTakenPileIntoCompatibleOccupancy()
     {
         var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)), (66, Potion(2)));
         var session = store.SessionIn(transaction);
 
-        var moving = await session.ReadAsync(Run, 65, CancellationToken.None);
-        var target = await session.ReadAsync(Run, 66, CancellationToken.None);
-        session.Write(Run, new StoredItem(66, target!.Core with { Value = 7 }));
-        session.Clear(Run, moving!.SlotIndex);
+        var moving = await session.GetAsync(Run, 65, CancellationToken.None);
+        var target = await session.GetAsync(Run, 66, CancellationToken.None);
+        await session.PutAsync(Run, target!.SlotIndex, await session.TakeAsync(moving!, null, default), default);
         await transaction.SettleAsync();
 
         Assert.Equal([(66, PotionId, 7)], await ReadAsync(store));
     }
 
     [Fact]
-    public async Task PartialConsume_IsExpressedAsAWrite()
+    public async Task PartialConsume_TakesAndDeletesOnlyConsumedCount()
     {
         var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
 
-        var used = await session.ReadAsync(Run, 65, CancellationToken.None);
-        session.Write(Run, new StoredItem(65, used!.Core with { Value = 4 }));
+        var used = await session.GetAsync(Run, 65, CancellationToken.None);
+        await session.DeleteItemAsync(await session.TakeAsync(used!, 1, default), default);
         await transaction.SettleAsync();
 
         Assert.Equal([(65, PotionId, 4)], await ReadAsync(store));
     }
 
     [Fact]
-    public async Task ConsumingTheLastOfAPile_IsExpressedAsAClear()
+    public async Task ConsumingTheLastOfAPile_TakesAndDeletesTheRecord()
     {
         var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(1)));
         var session = store.SessionIn(transaction);
 
-        var used = await session.ReadAsync(Run, 65, CancellationToken.None);
-        session.Clear(Run, used!.SlotIndex);
+        var used = await session.GetAsync(Run, 65, CancellationToken.None);
+        await session.DeleteItemAsync(await session.TakeAsync(used!, null, default), default);
         await transaction.SettleAsync();
 
         Assert.Empty(await ReadAsync(store));
@@ -137,12 +136,10 @@ public sealed class VolatileItemDomainStoreTests
         var transaction = new StubTransaction();
         var session = store.SessionIn(transaction);
 
-        session.Write(Run, new StoredItem(0, Potion(3)));
-        session.Write(Run, new StoredItem(1, Stone(1)));
-        var moving = await session.ReadAsync(Run, 0, CancellationToken.None);
-        session.Clear(Run, 0);
-        session.Write(Run, new StoredItem(2, moving!.Core with { Value = 2 }));
-        session.Write(Run, new StoredItem(0, Potion(1)));
+        await session.PutAsync(Run, 0, await session.CreateAsync(ItemSnapshot.FromCore(Potion(3), true), default), default);
+        await session.PutAsync(Run, 1, await session.CreateAsync(ItemSnapshot.FromCore(Stone(1), true), default), default);
+        var moving = await session.GetAsync(Run, 0, CancellationToken.None);
+        await session.PutAsync(Run, 2, await session.TakeAsync(moving!, 2, default), default);
         await transaction.SettleAsync();
 
         Assert.Equal(
@@ -157,12 +154,12 @@ public sealed class VolatileItemDomainStoreTests
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
 
-        session.Write(Run, new StoredItem(66, Potion(2)));
-        session.Clear(Run, 65);
+        await session.PutAsync(Run, 66, await session.CreateAsync(ItemSnapshot.FromCore(Potion(2), true), default), default);
+        await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(Run, 65, default))!, null, default), default);
 
-        Assert.Equal(2, (await session.ReadAsync(Run, 66, CancellationToken.None))!.Core.Value);
-        Assert.Null(await session.ReadAsync(Run, 65, CancellationToken.None));
-        Assert.Equal([66], (await session.ReadAllAsync(Run, CancellationToken.None))
+        Assert.Equal(2, (await session.GetAsync(Run, 66, CancellationToken.None))!.Count);
+        Assert.Null(await session.GetAsync(Run, 65, CancellationToken.None));
+        Assert.Equal([66], (await session.GetAllAsync(Run, CancellationToken.None))
             .Select(item => item.SlotIndex));
         // Nothing has reached the store itself yet.
         Assert.Equal([(65, PotionId, 5)], await ReadAsync(store));
@@ -176,8 +173,8 @@ public sealed class VolatileItemDomainStoreTests
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
 
-        session.Clear(Run, 65);
-        session.Write(Run, new StoredItem(3, Potion(5)));
+        await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(Run, 65, default))!, null, default), default);
+        await session.PutAsync(Run, 3, await session.CreateAsync(ItemSnapshot.FromCore(Potion(5), true), default), default);
         await transaction.PrepareAsync();
         await transaction.RollbackAsync();
 
@@ -203,7 +200,7 @@ public sealed class VolatileItemDomainStoreTests
         var session = store.SessionIn(transaction);
         var participant = Assert.IsAssignableFrom<ITransactionParticipant>(session);
 
-        session.Write(Run, new StoredItem(3, Potion(1)));
+        await session.PutAsync(Run, 3, await session.CreateAsync(ItemSnapshot.FromCore(Potion(1), true), default), default);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await participant.CommitAsync(CancellationToken.None));
@@ -225,12 +222,12 @@ public sealed class VolatileItemDomainStoreTests
         var transaction = new StubTransaction();
         var session = store.SessionIn(transaction);
 
-        var fromRun = await session.ReadAsync(Run, 65, CancellationToken.None);
-        var fromReward = await session.ReadAsync(Reward, 1, CancellationToken.None);
-        session.Clear(Run, 65);
-        session.Clear(Reward, 1);
-        session.Write(Run, new StoredItem(65, fromReward!.Core));
-        session.Write(Reward, new StoredItem(1, fromRun!.Core));
+        var fromRun = await session.GetAsync(Run, 65, CancellationToken.None);
+        var fromReward = await session.GetAsync(Reward, 1, CancellationToken.None);
+        var runRecord = await session.TakeAsync(fromRun!, null, default);
+        var rewardRecord = await session.TakeAsync(fromReward!, null, default);
+        await session.PutAsync(Run, 65, rewardRecord, default);
+        await session.PutAsync(Reward, 1, runRecord, default);
         await transaction.SettleAsync();
 
         Assert.Equal([(65, StoneId, 1)], await ReadAsync(store));
@@ -245,22 +242,22 @@ public sealed class VolatileItemDomainStoreTests
         var transaction = new StubTransaction();
         var session = store.SessionIn(transaction);
 
-        session.Write(Run, new StoredItem(66, Potion(2)));
-        session.Clear(Run, 66);
+        await session.PutAsync(Run, 66, await session.CreateAsync(ItemSnapshot.FromCore(Potion(2), true), default), default);
+        await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(Run, 66, default))!, null, default), default);
 
-        Assert.Null(await session.ReadAsync(Run, 66, CancellationToken.None));
+        Assert.Null(await session.GetAsync(Run, 66, CancellationToken.None));
         await transaction.SettleAsync();
         Assert.Equal([(65, PotionId, 5)], await ReadAsync(store));
     }
 
     [Fact]
-    public void ANegativeSlotIsRefused()
+    public async Task ANegativeSlotIsRefused()
     {
         var session = new VolatileItemDomainStore().SessionIn(new StubTransaction());
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => session.Write(Run, new StoredItem(-1, Potion(1))));
-        Assert.Throws<ArgumentOutOfRangeException>(() => session.Clear(Run, -1));
+        var record = await session.CreateAsync(ItemSnapshot.FromCore(Potion(1), true), default);
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => session.PutAsync(Run, -1, record, default).AsTask());
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => session.GetAsync(Run, -1, default).AsTask());
+        await session.DeleteItemAsync(record, default);
     }
 
     [Fact]
@@ -279,7 +276,8 @@ public sealed class VolatileItemDomainStoreTests
         var second = store.SessionIn(transaction);
 
         Assert.Same(first, second);
-        Assert.Single(transaction.Participants);
+        Assert.Single(transaction.Participants.OfType<ItemLifecycleScope>());
+        Assert.Single(transaction.Participants, x => x is not ItemLifecycleScope);
     }
 
     private const int PotionId = 1000;
@@ -312,7 +310,7 @@ public sealed class VolatileItemDomainStoreTests
         var session = store.SessionIn(transaction);
         foreach (var (slot, core) in seeded)
         {
-            session.Write(containerId, new StoredItem(slot, core));
+            await session.PutAsync(containerId, slot, await session.CreateAsync(ItemSnapshot.FromCore(core, true), default), default);
         }
 
         await transaction.SettleAsync();
@@ -322,8 +320,8 @@ public sealed class VolatileItemDomainStoreTests
         VolatileItemDomainStore store, ContainerId? containerId = null)
     {
         var session = store.SessionIn(new StubTransaction());
-        var items = await session.ReadAllAsync(containerId ?? Run, CancellationToken.None);
-        return [.. items.Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value))];
+        var items = await session.GetAllAsync(containerId ?? Run, CancellationToken.None);
+        return [.. items.Select(item => (item.SlotIndex, item.ItemId, item.Count))];
     }
 
     /// <summary>

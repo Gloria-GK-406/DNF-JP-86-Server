@@ -141,6 +141,18 @@ public sealed class BagPlacementVerbTests
         Assert.Equal([(65, Potion, 15)], refilled.Rows());
     }
 
+    [Fact]
+    public async Task ARefillKeepsItsAlreadyDecidedQuantityWhenOpeningAnEmptyPile()
+    {
+        var bag = new BagInventory();
+        var outcome = await bag.InUseCase(container => container.RefillAsync(
+            new ItemRefill(Potion, ItemKind, 15, new(BusinessInventorySpace.Consumable, 0, 55)), default));
+        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome);
+        Assert.Equal(65, opened.SlotIndex);
+        Assert.Equal(15, opened.Count);
+        Assert.Equal([(65, Potion, 15)], bag.Rows());
+    }
+
     private const byte ItemKind = 2;
 
     /// <summary>A band of 65 to 120, piles of ten, so a full pile costs one seeded slot.</summary>

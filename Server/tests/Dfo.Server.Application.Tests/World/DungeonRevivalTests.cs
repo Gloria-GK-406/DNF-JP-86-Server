@@ -17,7 +17,7 @@ public sealed class DungeonRevivalTests
     private static async Task<int> Coins(ShopFixture shop) =>
         (await shop.Services.GetRequiredService<ICharacterContainerDomainService>()
             .FindContainer(shop.Session.CharacterId, InventoryContainerType.Main)!
-            .ReadSlotAsync(1, default))?.Core.Value ?? 0;
+            .GetAsync(1, default))?.Snapshot.ToCore().Value ?? 0;
 
     private static DungeonRunId EnterDead(ShopFixture shop)
     {
@@ -86,7 +86,7 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture();
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop);
-        shop.Sql("CREATE TRIGGER refuse_coin BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_coin BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(async () => await shop.Services.GetRequiredService<ICommandBus>()
             .SendAsync(new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run)));
         Assert.Equal(10, (await Coins(shop)));

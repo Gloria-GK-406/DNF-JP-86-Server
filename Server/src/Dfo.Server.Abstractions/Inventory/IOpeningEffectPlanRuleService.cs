@@ -7,7 +7,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public sealed record OpeningHeldItem(BusinessSlot Slot, ContainerSlotItem Item);
+public sealed record OpeningHeldItem(BusinessSlot Slot, ItemReference Item);
 public sealed record RecipeEffectCosts(ImmutableArray<OpeningSlotConsumption> Items);
 public interface IOpeningEffectPlanRuleService
 {

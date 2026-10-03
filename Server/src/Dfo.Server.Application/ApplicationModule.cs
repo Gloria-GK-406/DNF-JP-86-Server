@@ -174,6 +174,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemPlacementRuleService, ItemPlacementRuleService>();
         // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
+        services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
         services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
 
         // The rules a character's entry turns on, kept out of whatever reads or writes the rows
@@ -334,8 +335,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
         services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
         services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
-        services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
-        services.TryAddSingleton<MailStackTransfers>();
+        services.TryAddSingleton<MailItemTransfers>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
         services.TryAddSingleton<IMailboxQueryDomainService, MailboxQueryDomainService>();
         services.TryAddSingleton<IMailboxDomainService, MailboxDomainService>();

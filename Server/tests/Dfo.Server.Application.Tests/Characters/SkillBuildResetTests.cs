@@ -151,21 +151,23 @@ public sealed class SkillBuildResetTests
             var applied = await executor.ApplyAsync(new(session.AccountId, session.CharacterId,at,session), plan.Where(x=>x is not ConsumeFromContainerEffect).ToArray(),ct);
             return new(new(session,[],[],[],at),applied);
         }
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session,BusinessSlot slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);
+        public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session,BusinessSlot slot,DateTimeOffset now,CancellationToken ct) => ValueTask.FromResult(WaterBag.Water);
 
     }
     private sealed class WaterBag:IItemContainer
     {
-        public static ContainerSlotItem Water => new(69,StackableItemCore.Create(2,3,1),ItemWorldClass.Interchangeable);
+        public static ItemReference Water => TestItemReferences.FromCore(69,StackableItemCore.Create(2,3,1),ItemWorldClass.Interchangeable);
         public ContainerId Id=>ContainerId.ForCharacter(new(71),InventoryContainerType.Main);
         public InventoryContainerType Type=>InventoryContainerType.Main;
         public ContainerShape Shape=>new(Type,0);
         public bool IsRemovable=>false;
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>([Water]);
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int slot,CancellationToken ct)=>ValueTask.FromResult<ContainerSlotItem?>(slot==69?Water:null);
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int a,int b,CancellationToken ct)=>throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<ItemReference>>([Water]);
+        public ValueTask<ItemReference?> GetAsync(int slot,CancellationToken ct)=>ValueTask.FromResult<ItemReference?>(slot==69?Water:null);
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct)=>throw new NotSupportedException();
-        public ValueTask PutAsync(int slot,InventoryItemCoreState core,CancellationToken ct)=>throw new NotSupportedException();
+        public ValueTask<ItemReference> PutAsync(int slot,ItemRecord item,CancellationToken ct)=>throw new NotSupportedException();
+        public ValueTask<ItemRecord> TakeAsync(ItemReference item,int? count,CancellationToken ct)=>throw new NotSupportedException();
+        public ValueTask<ItemReference> UpdateAsync(ItemReference item,Func<ItemSnapshot,ItemSnapshot> change,CancellationToken ct)=>throw new NotSupportedException();
+        public ValueTask FlushAsync(CancellationToken ct)=>ValueTask.CompletedTask;
         public ValueTask ClearAsync(int slot,CancellationToken ct)=>throw new NotSupportedException();
         public ValueTask<ItemPlacementOutcome> AddAsync(int item,int count,CancellationToken ct)=>throw new NotSupportedException();
         public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill,CancellationToken ct)=>throw new NotSupportedException();

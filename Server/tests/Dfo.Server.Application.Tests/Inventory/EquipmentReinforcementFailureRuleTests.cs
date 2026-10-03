@@ -103,9 +103,8 @@ public sealed class EquipmentReinforcementFailureRuleTests
         Assert.Empty(rewards);
     }
 
-    private static EquipmentInstanceFacts Facts(byte level) =>
-        new(new(1), 123, new(BusinessInventorySpace.CarriedEquipment, 0),
-            StackableItemCore.Create(1, 3000, 123) with { Attribute = level });
+    private static ItemReference Facts(byte level) =>
+        TestItemReferences.FromCore(0, StackableItemCore.Create(1, 3000, 123) with { Attribute = level }, ItemWorldClass.Equipment).WithBusinessSlot(new(BusinessInventorySpace.CarriedEquipment, 0));
 
     private static EquipmentDisjointTable Table() => new(3037, 150, [1.12, 1.35],
         [[], [3033, 3034, 3035, 3036]], [new(2, 4, 50, 50), new(2, 4, 50, 50)],

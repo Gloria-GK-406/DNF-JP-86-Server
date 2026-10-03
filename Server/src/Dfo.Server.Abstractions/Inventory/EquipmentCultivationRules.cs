@@ -24,7 +24,7 @@ public sealed record EquipmentReinforcementFailureResult(EquipmentReinforcementR
 /// <summary>Plans failure consequences from immutable facts; it cannot mutate an instance.</summary>
 public interface IEquipmentReinforcementFailureRuleService
 {
-    ValueTask<EquipmentReinforcementFailureResult> GetResultAsync(EquipmentInstanceFacts equipment,
+    ValueTask<EquipmentReinforcementFailureResult> GetResultAsync(ItemReference equipment,
         EquipmentReinforcementFailureContext context, CancellationToken ct);
 }
 
@@ -54,18 +54,18 @@ public interface IEquipmentReinforcementRule
 
 public interface IEquipmentEnchantRuleService
 {
-    ValueTask<int?> CardAsync(InventoryItemCoreState bead, int equipmentItemId, CancellationToken ct);
+    ValueTask<int?> CardAsync(ItemSnapshot bead, int equipmentItemId, CancellationToken ct);
 }
 
 public sealed record EquipmentRepairQuote(int Cost, ushort Durability, bool Write);
 
 public interface IEquipmentRepairRule
 {
-    ValueTask<EquipmentRepairQuote?> QuoteAsync(InventoryItemCoreState core, CancellationToken ct);
+    ValueTask<EquipmentRepairQuote?> QuoteAsync(ItemSnapshot core, CancellationToken ct);
 }
 
 public interface IEquipmentRepairRuleService
 {
     ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct);
-    ValueTask<ushort?> AutoRepairDurabilityAsync(InventoryItemCoreState core, CancellationToken ct);
+    ValueTask<ushort?> AutoRepairDurabilityAsync(ItemSnapshot core, CancellationToken ct);
 }

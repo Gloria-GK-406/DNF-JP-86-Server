@@ -280,7 +280,7 @@ public sealed class EquipmentDisjointTests
         var second = shop.Shared();
 
         Assert.Equal(first.StorageId, second.StorageId);
-        Assert.Equal(12, (await second.ReadSlotAsync(4, default))!.Count);
+        Assert.Equal(12, (await second.GetAsync(4, default))!.Count);
     }
 
     [Fact]

@@ -25,7 +25,7 @@ public sealed class CreatureTransformationDomainServiceTests
         new AccountId(1), new CharacterId(2), new NetworkConnectionId("transform"), 1, 10011);
 
     [Fact]
-    public async Task Egg_handle_follows_uid_after_move_and_returns_pet_that_can_grow()
+    public async Task Egg_handle_expires_after_move_and_refound_egg_returns_pet_that_can_grow()
     {
         var fixture = new Fixture(new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4),
             BusinessInventorySpace.CreatureInventory);
@@ -33,8 +33,10 @@ public sealed class CreatureTransformationDomainServiceTests
         var pets = new FakeCreatureDomain(fixture.Store, fixture.Scope, fixture.Rules).Of(Session.CharacterId);
         var egg = (await pets.FindEggAsync(500, default))!;
         var container = fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory);
-        var core = (await container.ReadSlotAsync(0, default))!.Core;
-        await container.PutAsync(10, core, default);
+        var source = (await container.GetAsync(0, default))!;
+        await container.PutAsync(10, await container.TakeAsync(source, null, default), default);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => egg.BirthAsync(default).AsTask());
+        egg = (await pets.FindEggAsync(500, default))!;
         var pet = await egg.BirthAsync(default);
         Assert.NotNull(pet);
         Assert.Equal(500, pet.ItemUid);
@@ -63,7 +65,7 @@ public sealed class CreatureTransformationDomainServiceTests
         Assert.Equal(63023, result.After.ItemTemplateId);
         Assert.Equal((100, 0, 1), (result.After.Stomach, result.After.Experience, result.After.Level));
         Assert.Empty(result.After.NameBytes);
-        Assert.Equal(500, result.Core.Value);
+        Assert.Equal(500, result.Core.ToCore().Value);
         Assert.Equal(63023, result.Core.ItemId);
         Assert.Equal(1, fixture.Store.Saves);
     }
@@ -83,7 +85,7 @@ public sealed class CreatureTransformationDomainServiceTests
         }, result.After);
         Assert.Equal(pet.NameBytes, result.After.NameBytes);
         Assert.Equal(63001, result.Core.ItemId);
-        Assert.Equal(500, result.Core.Value);
+        Assert.Equal(500, result.Core.ToCore().Value);
 
         fixture.Rules.Rules[63001] = fixture.Rules.Rules[63001] with { CreatureId = 99 };
         fixture.Store.Set(pet);
@@ -103,8 +105,8 @@ public sealed class CreatureTransformationDomainServiceTests
             100, 0, 1, [], 0, 0, 0, 0), BusinessInventorySpace.CreatureInventory);
         await using var tx = fixture.Scope.Begin();
         if (cause == "expired")
-            await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).PutAsync(0,
-                StackableItemCore.Create(5, 63022, 500) with { ExpireTime = 1 }, default);
+            await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).UpdateAsync(
+                (await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).GetAsync(0, default))!, x => x with { ExpireTime = 1 }, default);
         if (cause == "wrong-target")
             fixture.Rules.Rules[63023] = fixture.Rules.Rules[63023] with { CreatureId = 99 };
         var session = cause == "stale-session" ? Session with { ConnectionGeneration = 2 } : Session;
@@ -239,7 +241,9 @@ public sealed class CreatureTransformationDomainServiceTests
             CreatureSession().ReadCurrentAsync(Session.CharacterId, ct);
         public ValueTask SaveAsync(CreatureState creature, CancellationToken ct)
         {
-            CreatureSession().Write(Session.CharacterId, creature);
+            var session = CreatureSession();
+            var reference = session.FindItemAsync(Session.CharacterId, creature.ItemUid, ct).GetAwaiter().GetResult()!;
+            session.WriteAsync(reference, creature, null, ct).GetAwaiter().GetResult();
             return ValueTask.CompletedTask;
         }
         public ValueTask ReviveIfEmptyAsync(int itemUid, CancellationToken ct) =>
@@ -255,29 +259,12 @@ public sealed class CreatureTransformationDomainServiceTests
             public BusinessContainerId Id => new(space, StorageId);
             public ContainerId StorageId => ContainerId.ForCharacter(Session.CharacterId, type);
             public BusinessInventorySpace Space => space;
-            public async ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct)
-            {
-                if (index != 0) return null;
-                var row = await owner.ItemSession().ReadAsync(StorageId, physical, ct);
-                return row is null ? null : new ContainerSlotItem(index, row.Core, ItemWorldClass.Creature);
-            }
-            public async ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
-                await ReadSlotAsync(0, ct) is { } item ? [item] : [];
-            public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct)
-            {
-                if (index != 0) throw new ArgumentOutOfRangeException(nameof(index));
-                owner.ItemSession().Write(StorageId, new StoredItem(physical, core)
-                {
-                    WorldClass = ItemWorldClass.Creature
-                });
-                return ValueTask.CompletedTask;
-            }
-            public ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
-                IBusinessItemContainer source, int sourceIndex, CancellationToken ct) =>
-                throw new NotSupportedException();
-            public ValueTask PutNewAsync(int index, InventoryItemCoreState core,
-                InventoryItemCreationFacts facts, CancellationToken ct) => throw new NotSupportedException();
-            public ValueTask ClearAsync(int index, CancellationToken ct) => throw new NotSupportedException();
+            public ValueTask<IEquipmentInstance?> GetEquipmentAsync(int index, CancellationToken ct) => ValueTask.FromResult<IEquipmentInstance?>(null);
+            public async ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) => index != 0 ? null : (await owner.ItemSession().GetAsync(StorageId, physical, ct))?.WithBusinessSlot(new(space, index));
+            public async ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => await GetAsync(0, ct) is { } item ? [item] : [];
+            public ValueTask<ItemRecord> TakeAsync(ItemReference item, int? count, CancellationToken ct) => owner.ItemSession().TakeAsync(item, count, ct);
+            public ValueTask<ItemReference> PutAsync(int index, ItemRecord item, CancellationToken ct) => owner.ItemSession().PutAsync(StorageId, physical, item, ct);
+            public ValueTask<ItemReference> UpdateAsync(ItemReference item, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => owner.ItemSession().UpdateAsync(item, change, ct);
             public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
             public ValueTask<BusinessItemAdditionResult> AddAsync(int itemId, int count,
                 CancellationToken ct) => throw new NotSupportedException();
@@ -340,15 +327,14 @@ public sealed class CreatureTransformationDomainServiceTests
     {
         private CreatureState state;
         private readonly BusinessInventorySpace occupied;
-        private readonly FakeContainer container;
+        private readonly TestCreatureContainer container;
         public int Saves { get; private set; }
         public FakeCreatureStore(CreatureState state, BusinessInventorySpace space)
         {
             this.state = state;
             occupied = space;
-            container = new FakeContainer(space,
-                new ContainerSlotItem(0, StackableItemCore.Create(5, state.ItemTemplateId, state.ItemUid),
-                    ItemWorldClass.Creature));
+            container = new TestCreatureContainer(space,
+                ItemSnapshot.FromCore(StackableItemCore.Create(5, state.ItemTemplateId, state.ItemUid), false, new(state.ItemUid), creature: state.ToDetail()));
         }
         public void Set(CreatureState value) => state = value;
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
@@ -369,32 +355,6 @@ public sealed class CreatureTransformationDomainServiceTests
             return ValueTask.CompletedTask;
         }
         public ValueTask ReviveIfEmptyAsync(int itemUid, CancellationToken ct) => ValueTask.CompletedTask;
-    }
-
-    private sealed class FakeContainer(BusinessInventorySpace space, ContainerSlotItem? item)
-        : IBusinessItemContainer
-    {
-        public ContainerSlotItem? Item { get; private set; } = item;
-        public BusinessContainerId Id => new(space, StorageId);
-        public ContainerId StorageId => new("transform");
-        public BusinessInventorySpace Space => space;
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct) =>
-            ValueTask.FromResult(Item?.SlotIndex == index ? Item : null);
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(Item is null ? [] : [Item]);
-        public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct)
-        {
-            Item = new ContainerSlotItem(index, core, ItemWorldClass.Creature);
-            return ValueTask.CompletedTask;
-        }
-        public ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
-            IBusinessItemContainer source, int sourceIndex, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask PutNewAsync(int index, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-            CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask ClearAsync(int index, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask<BusinessItemAdditionResult> AddAsync(int itemId, int count,
-            CancellationToken ct) => throw new NotSupportedException();
     }
 
     private sealed class FakeSessions : ISelectedSessionDomainService

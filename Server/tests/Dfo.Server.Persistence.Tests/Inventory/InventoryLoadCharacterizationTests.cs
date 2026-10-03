@@ -24,17 +24,11 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 /// insertion order all differ. A golden over a seed of zeroes would pass through any permutation
 /// of the columns it covers.
 ///
-/// The first line of every item was a storage entry id and is now a name, and every one of them
-/// reads null. Nothing was lost by that: the id was a surrogate this server never sends, which
-/// appears in no frame and only in the text of a refusal, and it changed once already when a
-/// character's items and an account's cargo became one table with one count. What stands in its
-/// place is the name of the thing on the row, which a thing keeps across every write of it. The
-/// archive this side is given declares every item an ordinary consumable, and two of a consumable
-/// are the same thing, so none of these rows has a name to carry -- a pile with one would be
-/// carrying exactly the mark somebody could go on to tell two identical piles apart by.
-///
-    /// Traits is now an additional derived projection of kind and template, not a stored column.
-    /// The persisted values in both goldens remain unchanged.
+/// StorageRecordDump uses a stable observation shape for ItemReference while retaining every core
+/// field, avatar/creature detail, slot, owner, actual UID, count and pile flag. The seed remains
+/// unchanged: its historical world slots now expose their persisted UID (7,8,6,9 and 11,10),
+/// because persisted slot.kind determines identity instead of the fixture archive's classification.
+/// No wire golden or seeded byte was changed.
 /// </remarks>
 public sealed class InventoryLoadCharacterizationTests
 {
@@ -109,9 +103,9 @@ public sealed class InventoryLoadCharacterizationTests
                 .LoadAccountAsync(new AccountId(Account), new CharacterId(Character), token));
 
             var avatar = Assert.Single(
-                loaded.AccountCargoItems, item => item.Core.ItemKind == 8);
-            Assert.Equal(5151, avatar.Core.Value);
-            Assert.Null(avatar.AvatarDetail);
+                loaded.AccountCargoItems, item => item.Snapshot.ToCore().ItemKind == 8);
+            Assert.Equal(5151, avatar.Snapshot.InstanceValue);
+            Assert.Null(avatar.Snapshot.AvatarDetail);
         }
         finally
         {
@@ -122,7 +116,7 @@ public sealed class InventoryLoadCharacterizationTests
     private const string ExpectedCharacter = """
         AccountId.Value = 41
         CharacterId.Value = 57
-        CharacterItems[0].Identity = null
+        CharacterItems[0].Identity.Value = 7
         CharacterItems[0].OwnerType = Character
         CharacterItems[0].OwnerId = 57
         CharacterItems[0].CharacterId.Value = 57
@@ -182,7 +176,10 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[0].Core.Traits = Equipment
         CharacterItems[0].Core.ReinforcementLevel = 11
         CharacterItems[0].AvatarDetail = null
-        CharacterItems[1].Identity = null
+        CharacterItems[0].CreatureDetail = null
+        CharacterItems[0].Count = 1
+        CharacterItems[0].IsPile = False
+        CharacterItems[1].Identity.Value = 8
         CharacterItems[1].OwnerType = Character
         CharacterItems[1].OwnerId = 57
         CharacterItems[1].CharacterId.Value = 57
@@ -242,7 +239,10 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[1].Core.Traits = Equipment
         CharacterItems[1].Core.ReinforcementLevel = 9
         CharacterItems[1].AvatarDetail = null
-        CharacterItems[2].Identity = null
+        CharacterItems[1].CreatureDetail = null
+        CharacterItems[1].Count = 1
+        CharacterItems[1].IsPile = False
+        CharacterItems[2].Identity.Value = 6
         CharacterItems[2].OwnerType = Character
         CharacterItems[2].OwnerId = 57
         CharacterItems[2].CharacterId.Value = 57
@@ -302,7 +302,10 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[2].Core.Traits = Equipment
         CharacterItems[2].Core.ReinforcementLevel = 13
         CharacterItems[2].AvatarDetail = null
-        CharacterItems[3].Identity = null
+        CharacterItems[2].CreatureDetail = null
+        CharacterItems[2].Count = 1
+        CharacterItems[2].IsPile = False
+        CharacterItems[3].Identity.Value = 9
         CharacterItems[3].OwnerType = Character
         CharacterItems[3].OwnerId = 57
         CharacterItems[3].CharacterId.Value = 57
@@ -367,6 +370,9 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[3].AvatarDetail.Color1 = 7003
         CharacterItems[3].AvatarDetail.Color2 = 7004
         CharacterItems[3].AvatarDetail.DeleteDate = 7005
+        CharacterItems[3].CreatureDetail = null
+        CharacterItems[3].Count = 1
+        CharacterItems[3].IsPile = False
         CharacterContainerParameters[0].CharacterId.Value = 57
         CharacterContainerParameters[0].ContainerType = Main
         CharacterContainerParameters[0].Value = 3333
@@ -418,7 +424,7 @@ public sealed class InventoryLoadCharacterizationTests
     private const string ExpectedAccount = """
         AccountId.Value = 41
         CharacterId.Value = 57
-        AccountCargoItems[0].Identity = null
+        AccountCargoItems[0].Identity.Value = 11
         AccountCargoItems[0].OwnerType = Account
         AccountCargoItems[0].OwnerId = 41
         AccountCargoItems[0].CharacterId.Value = 57
@@ -478,7 +484,10 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[0].Core.Traits = Equipment
         AccountCargoItems[0].Core.ReinforcementLevel = 25
         AccountCargoItems[0].AvatarDetail = null
-        AccountCargoItems[1].Identity = null
+        AccountCargoItems[0].CreatureDetail = null
+        AccountCargoItems[0].Count = 1
+        AccountCargoItems[0].IsPile = False
+        AccountCargoItems[1].Identity.Value = 10
         AccountCargoItems[1].OwnerType = Account
         AccountCargoItems[1].OwnerId = 41
         AccountCargoItems[1].CharacterId.Value = 57
@@ -538,6 +547,9 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[1].Core.Traits = Equipment
         AccountCargoItems[1].Core.ReinforcementLevel = 5
         AccountCargoItems[1].AvatarDetail = null
+        AccountCargoItems[1].CreatureDetail = null
+        AccountCargoItems[1].Count = 1
+        AccountCargoItems[1].IsPile = False
         AccountCargoState.AccountId.Value = 41
         AccountCargoState.SelectionKey = 6001
         AccountCargoState.Value32 = 6002

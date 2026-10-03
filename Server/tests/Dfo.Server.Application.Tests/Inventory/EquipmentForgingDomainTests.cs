@@ -193,7 +193,7 @@ public sealed class EquipmentForgingDomainTests
     {
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, Target);
-        return (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core;
+        return (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore();
     }
 
     private static async ValueTask<EquipmentForgingResult> Apply(

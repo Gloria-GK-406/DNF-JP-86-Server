@@ -93,16 +93,16 @@ public sealed class GrantedAvatarIsWholeTests
             var stored = await side.InUseCaseAsync(token =>
                 new SqliteItemDomainStore(path)
                     .SessionIn(side.Scope.Current!)
-                    .ReadAsync(
+                    .GetAsync(
                         ContainerId.ForCharacter(
                             new CharacterId(Character), InventoryContainerType.Avatar),
                         landed.SlotIndex,
                         token));
 
             Assert.NotNull(stored);
-            Assert.Equal(AvatarItemId, stored!.Core.ItemId);
-            Assert.Equal(fromTheArchive.ItemKind, stored.Core.ItemKind);
-            Assert.Equal(KindStorageJudgesAnAvatarBy, stored.Core.ItemKind);
+            Assert.Equal(AvatarItemId, stored!.Snapshot.ToCore().ItemId);
+            Assert.Equal(fromTheArchive.ItemKind, stored.Snapshot.ToCore().ItemKind);
+            Assert.Equal(KindStorageJudgesAnAvatarBy, stored.Snapshot.ToCore().ItemKind);
         });
     }
 
@@ -155,25 +155,7 @@ public sealed class GrantedAvatarIsWholeTests
             Assert.Equal(0, (int)facts.Color2);
             Assert.Equal(0, facts.DeleteDate);
 
-            // Written back, in full, as the end of a session does.
-            await side.InUseCaseAsync(token => side.Leases.SaveAsync(
-                new EntryInventoryLeaseSnapshot(
-                    SelectedSessionIdentity.Create(
-                        new AccountId(Account),
-                        new CharacterId(Character),
-                        new NetworkConnectionId("Game:granted-avatar"),
-                        1,
-                        10011),
-                    new CharacterItemLeaseState(
-                        new CharacterId(Character),
-                        [
-                            new InventoryContainerState(
-                                InventoryContainerType.Avatar, 0, [first]),
-                        ]),
-                    1,
-                    true),
-                token));
-
+            // Committed lifecycle state is read by a new transaction; no lease writeback exists.
             // And served again: still there, still the same thing, still carrying the same six.
             var second = await OneAvatarAsync(side, landed.SlotIndex);
             Assert.Equal(first.Identity, second.Identity);

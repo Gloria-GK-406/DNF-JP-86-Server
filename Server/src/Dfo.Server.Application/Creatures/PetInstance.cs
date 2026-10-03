@@ -1,19 +1,20 @@
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Creatures;
 
 /// <summary>Owns the transitions of one pet. Reads always include this transaction's latest writes.</summary>
-internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) : IPetInstance
+internal sealed class PetInstance(ItemReference reference, CreatureInstanceContext context) : IPetInstance
 {
     public CharacterId Owner => context.Owner;
-    public int ItemUid => itemUid;
+    public int ItemUid => reference.ItemUid!.Value.Value;
     internal CreatureTransformationReceipt? BirthReceipt { get; init; }
 
     public async ValueTask<CreatureState> ReadAsync(CancellationToken ct)
     {
-        var state = await context.ReadAsync(ItemUid, ct).ConfigureAwait(false);
+        var state = await context.ReadAsync(reference, ct).ConfigureAwait(false);
         if (state is null || await context.Rules.GetAsync(state.ItemTemplateId, ct).ConfigureAwait(false)
             is not { IsEgg: false })
             throw new InvalidOperationException("This identity is no longer a pet owned by this character.");
@@ -27,7 +28,7 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         var before = await ReadAsync(ct).ConfigureAwait(false);
         var value = CreatureRules.AddStomach(before.ExactStomach, amount);
         var after = before with { Stomach = (int)value, ExactStomach = value };
-        context.Stage(after);
+        await context.StageAsync(reference, after, ct).ConfigureAwait(false);
         var change = new CreatureRuntimeChange(before, after,
             await context.CurrentUidAsync(ct).ConfigureAwait(false) == ItemUid);
         context.Notify(change);
@@ -51,7 +52,7 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         if (equipment is not null)
         {
             var bonuses = new List<float>();
-            foreach (var item in await equipment.ReadAllAsync(ct).ConfigureAwait(false))
+            foreach (var item in await equipment.GetAllAsync(ct).ConfigureAwait(false))
                 if (await context.Rules.GetArtifactExperienceAsync(item.ItemId, ct).ConfigureAwait(false) is { } artifact
                     && before.Level >= artifact.RequiredCreatureLevel)
                     bonuses.Add(artifact.BonusPercent);
@@ -60,7 +61,7 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         var growth = CreatureRules.GainExperience(rule, before.Experience, amount);
         var after = before with { Experience = growth.Experience, Level = growth.Level };
         if (before.Experience == after.Experience && before.Level == after.Level) return null;
-        context.Stage(after);
+        await context.StageAsync(reference, after, ct).ConfigureAwait(false);
         var equipped = await context.CurrentUidAsync(ct).ConfigureAwait(false) == ItemUid;
         var transformation = equipped && growth.LevelChanged
             ? await EvolveAsync(ct).ConfigureAwait(false) : null;
@@ -78,17 +79,17 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         context.EnsureActive();
         if (nameBytes.Length > 12 || nameBytes.Any(value => value is 0 or < 0x20 or 0x7F)) return null;
         var before = await ReadAsync(ct).ConfigureAwait(false);
-        var location = await context.LocateAsync(ItemUid, ct).ConfigureAwait(false);
+        var location = await context.LocateAsync(reference, ct).ConfigureAwait(false);
         if (location is null || !context.IsLive(location, before)) return null;
         var after = before with { NameBytes = [.. nameBytes] };
-        context.Stage(after);
+        await context.StageAsync(reference, after, ct).ConfigureAwait(false);
         return after;
     }
 
     public async ValueTask<CreatureTransformationReceipt?> EvolveAsync(CancellationToken ct)
     {
         var before = await ReadAsync(ct).ConfigureAwait(false);
-        var location = await context.LocateAsync(ItemUid, ct).ConfigureAwait(false);
+        var location = await context.LocateAsync(reference, ct).ConfigureAwait(false);
         if (location is null || location.Slot.Space != BusinessInventorySpace.WornCreature
             || location.Slot.Index != 0 || !context.IsLive(location, before)) return null;
         var source = await context.Rules.GetAsync(before.ItemTemplateId, ct).ConfigureAwait(false);
@@ -98,10 +99,8 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         var target = await context.Rules.GetAsync(source.OutputTemplateId.Value, ct).ConfigureAwait(false);
         if (target is null || target.IsEgg || target.CreatureId != step.EvolvesIntoCreatureId) return null;
         var after = before with { ItemTemplateId = target.TemplateId };
-        var core = location.Core with { ItemId = target.TemplateId };
-        context.Stage(after);
-        await location.Container.PutAsync(location.Slot.Index, core, ct).ConfigureAwait(false);
-        return new(before, after, location.Slot, core) { CreatureId = target.CreatureId };
+        var updated = await context.StageAsync(reference, after, ct).ConfigureAwait(false);
+        return new(before, after, location.Slot, updated.Snapshot) { CreatureId = target.CreatureId };
     }
 
     internal async ValueTask<CreatureState> AdvanceStomachAsync(CreatureState state, double oldValue,
@@ -112,7 +111,7 @@ internal sealed class PetInstance(int itemUid, CreatureInstanceContext context) 
         if (revive && value <= 0) value = 1;
         var after = state with { Stomach = (int)value, ExactStomach = value };
         if (state.Stomach != after.Stomach || (oldValue > 0) != (value > 0) || forceWrite)
-            context.Stage(after);
+            await context.StageAsync(reference, after, ct).ConfigureAwait(false);
         return after;
     }
 

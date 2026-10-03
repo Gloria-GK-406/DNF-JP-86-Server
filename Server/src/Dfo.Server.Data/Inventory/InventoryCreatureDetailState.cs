@@ -1,10 +1,5 @@
 namespace Dfo.Server.Data.Inventory;
 
-/// <summary>Facts supplied when an item first enters the world, not when it moves.</summary>
-public sealed record InventoryItemCreationFacts(
-    InventoryAvatarDetailState? Avatar = null,
-    InventoryCreatureDetailState? Creature = null);
-
 public sealed record InventoryCreatureDetailState(
     int Field04,
     byte ModeFlag,

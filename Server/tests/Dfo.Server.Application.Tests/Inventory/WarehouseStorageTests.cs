@@ -118,16 +118,16 @@ public sealed class WarehouseStorageTests
         host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
         var core = StackableItemCore.Create(1, 3000, 777) with { EnchantCardId = 54321, Durability = 31, Attribute = 7 };
         await host.SeedCore(9, core);
-        var original = await Bag(host, BusinessInventorySpace.CarriedEquipment).ReadSlotAsync(0, default);
+        var original = await Bag(host, BusinessInventorySpace.CarriedEquipment).GetAsync(0, default);
         Assert.IsType<ItemMoveOutcome.Moved>(await Move(host, new(BusinessInventorySpace.CarriedEquipment, 0), new(BusinessInventorySpace.AccountCargo, 0)));
         host.Select(2); Bind(host);
         Assert.IsType<ItemMoveOutcome.Moved>(await Move(host, new(BusinessInventorySpace.AccountCargo, 0), new(BusinessInventorySpace.CarriedEquipment, 0)));
-        var received = await Bag(host, BusinessInventorySpace.CarriedEquipment).ReadSlotAsync(0, default);
-        Assert.Equal(original!.Identity, received!.Identity);
-        Assert.Equal(core, received.Core);
+        var received = await Bag(host, BusinessInventorySpace.CarriedEquipment).GetAsync(0, default);
+        Assert.Equal(original!.ItemUid, received!.ItemUid);
+        Assert.Equal(core, received.Snapshot.ToCore());
         Bind(host, new AccountId(99));
         Assert.IsType<ItemMoveOutcome.Refused>(await Move(host, new(BusinessInventorySpace.CarriedEquipment, 0), new(BusinessInventorySpace.AccountCargo, 0)));
-        Assert.NotNull(await Bag(host, BusinessInventorySpace.CarriedEquipment).ReadSlotAsync(0, default));
+        Assert.NotNull(await Bag(host, BusinessInventorySpace.CarriedEquipment).GetAsync(0, default));
     }
 
     [Fact]
@@ -138,14 +138,41 @@ public sealed class WarehouseStorageTests
         await host.SeedCore(65, core);
         Assert.IsType<ItemMoveOutcome.Refused>(await Move(host, new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.PersonalCargo, 8)));
         Assert.IsType<ItemMoveOutcome.Moved>(await Move(host, new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.PersonalCargo, 7), 3));
-        Assert.Equal(core with { Value = 3 }, (await Bag(host, BusinessInventorySpace.PersonalCargo).ReadSlotAsync(7, default))!.Core);
+        Assert.Equal(core with { Value = 3 }, (await Bag(host, BusinessInventorySpace.PersonalCargo).GetAsync(7, default))!.Snapshot.ToCore());
         host.Sql("UPDATE item_slots SET slot_index=20 WHERE list_type=2;");
         Assert.IsType<ItemMoveOutcome.Moved>(await Move(host, new(BusinessInventorySpace.PersonalCargo, 20), new(BusinessInventorySpace.Consumable, 1), 1));
-        Assert.Equal(2, (await Bag(host, BusinessInventorySpace.PersonalCargo).ReadSlotAsync(20, default))!.Count);
-        Assert.Equal(core with { Value = 1 }, (await Bag(host, BusinessInventorySpace.Consumable).ReadSlotAsync(1, default))!.Core);
+        Assert.Equal(2, (await Bag(host, BusinessInventorySpace.PersonalCargo).GetAsync(20, default))!.Count);
+        Assert.Equal(core with { Value = 1 }, (await Bag(host, BusinessInventorySpace.Consumable).GetAsync(1, default))!.Snapshot.ToCore());
         await InTransaction(host, async () => Assert.True(await host.Services.GetRequiredService<IInventorySortDomainService>()
             .SortAsync(host.Session.CharacterId, BusinessInventorySpace.PersonalCargo, InventorySortOrder.Default, default)));
-        Assert.Equal(2, (await Bag(host, BusinessInventorySpace.PersonalCargo).ReadSlotAsync(20, default))!.Count);
+        Assert.Equal(2, (await Bag(host, BusinessInventorySpace.PersonalCargo).GetAsync(20, default))!.Count);
+    }
+
+    [Fact]
+    public async Task ClosedLegacyPileCanDecreaseButCannotGrowOrChangeStateInPlace()
+    {
+        using var host = Fixture();
+        await host.SeedCore(65, StackableItemCore.Create(2, 2000, 8));
+        Assert.IsType<ItemMoveOutcome.Moved>(await Move(host,
+            new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.PersonalCargo, 7), 3));
+        host.Sql("UPDATE item_slots SET slot_index=20 WHERE list_type=2;");
+        var bag = Bag(host, BusinessInventorySpace.PersonalCargo);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => InTransaction(host, async () =>
+        {
+            var item = (await bag.GetAsync(20, default))!;
+            await bag.UpdateAsync(item, x => x with { Count = 4 }, default);
+        }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => InTransaction(host, async () =>
+        {
+            var item = (await bag.GetAsync(20, default))!;
+            await bag.UpdateAsync(item, x => x with { Attribute = 1 }, default);
+        }));
+        await InTransaction(host, async () =>
+        {
+            var item = (await bag.GetAsync(20, default))!;
+            await bag.UpdateAsync(item, x => x with { Count = 2 }, default);
+        });
+        Assert.Equal(2, (await bag.GetAsync(20, default))!.Count);
     }
 
     [Fact]
@@ -200,7 +227,7 @@ public sealed class WarehouseStorageTests
         string attach, byte sealedFlag, byte locked, byte restriction, bool allowed)
     {
         var source = new RestrictedCargoContent(new(attach, new HashSet<string>()));
-        var item = new ContainerSlotItem(0, StackableItemCore.Create(1, 3000, 1)
+        var item = TestItemReferences.FromCore(0, StackableItemCore.Create(1, 3000, 1)
             with { SealFlag = sealedFlag, EquipmentLockId = locked, TradeRestriction = restriction }, ItemWorldClass.Equipment);
         Assert.Equal(allowed, await new CargoItemRuleService(source).CanStoreAsync(
             BusinessInventorySpace.AccountCargo, item, DateTimeOffset.UnixEpoch, default));

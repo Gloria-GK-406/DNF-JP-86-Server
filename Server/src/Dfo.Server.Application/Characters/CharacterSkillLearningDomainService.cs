@@ -170,14 +170,14 @@ internal sealed class CharacterSkillLearningDomainService(
         if (decision.Rejection != CharacterSkillLearningRejection.None) return new(decision.Rejection);
         var at = clock.GetUtcNow();
         var itemStore = businessInventories.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item);
-        (BusinessSlot Slot, ContainerSlotItem Item)? water = null;
+        (BusinessSlot Slot, ItemReference Item)? water = null;
         foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable })
         {
             var bag = itemStore.FindContainer(space);
             if (bag is null) continue;
-            var found = (await bag.ReadAllAsync(cancellationToken))
+            var found = (await bag.GetAllAsync(cancellationToken))
                 .Where(item => item.IsPile && item.ItemId == resetRules.ConsumableItemId && item.Count > 0
-                    && (item.Core.ExpireTime is 0 or int.MaxValue || item.Core.ExpireTime > at.ToUnixTimeSeconds()))
+                    && (item.Snapshot.ExpireTime is 0 or int.MaxValue || item.Snapshot.ExpireTime > at.ToUnixTimeSeconds()))
                 .OrderBy(item => item.SlotIndex).FirstOrDefault();
             if (found is not null) { water = (new(space, found.SlotIndex), found); break; }
         }

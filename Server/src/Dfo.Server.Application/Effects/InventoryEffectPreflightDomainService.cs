@@ -33,14 +33,14 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                 switch (effect)
                 {
                     case ConsumeFromContainerEffect consume:
-                        var item = await state.ReadSlotAsync(consume.Slot, ct).ConfigureAwait(false);
+                        var item = await state.GetAsync(consume.Slot, ct).ConfigureAwait(false);
                         if (consume.Count <= 0 || item is not { IsPile: true } || item.ItemId != consume.ExpectedItemId
-                            || item.Core.EquipmentLockId != consume.ExpectedEquipmentLockId
-                            || item.Core.ExpireTime is > 0 and < int.MaxValue && item.Core.ExpireTime <= context.At.ToUnixTimeSeconds())
+                            || item.EquipmentLockId != consume.ExpectedEquipmentLockId
+                            || item.ExpireTime is > 0 and < int.MaxValue && item.ExpireTime <= context.At.ToUnixTimeSeconds())
                             Refuse(InventoryEffectRejection.InvalidTarget);
                         if (item!.Count < consume.Count) Refuse(InventoryEffectRejection.InsufficientAssets);
                         state.SetSlot(consume.Slot, item.Count == consume.Count ? null : item with
-                        { Core = item.Core with { Value = item.Count - consume.Count } });
+                        { Count = item.Count - consume.Count });
                         break;
                     case SpendGoldEffect spend:
                         if (spend.Amount < 0) Refuse(InventoryEffectRejection.InvalidTarget);
@@ -55,14 +55,14 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                         break;
                     case EquipmentEffect change when effect is SetEquipmentUpgradeEffect or SetEquipmentEnchantmentEffect
                         or SetEquipmentDimensionalEffect or SetEquipmentMagicSealEffect or SetEquipmentForgingEffect or DestroyEquipmentEffect:
-                        var instance = await equipment.Of(context.CharacterId).FindAsync(change.Equipment.Identity.Value, ct)
+                        var instance = await equipment.Of(context.CharacterId).FindAtAsync(change.Equipment.Reference.BusinessSlot!.Value, ct)
                             .ConfigureAwait(false);
-                        if (instance is null) Refuse(InventoryEffectRejection.InvalidTarget);
+                        if (instance is null || !instance.Reference.SameOccupancyAs(change.Equipment.Reference)) Refuse(InventoryEffectRejection.InvalidTarget);
                         var facts = await instance!.ReadAsync(ct).ConfigureAwait(false);
-                        var standing = await state.ReadSlotAsync(facts.Slot, ct).ConfigureAwait(false);
-                        if (standing?.Identity != change.Equipment.Identity || standing.ItemId != change.Equipment.ExpectedItemId)
+                        var standing = await state.GetAsync(facts.BusinessSlot!.Value, ct).ConfigureAwait(false);
+                        if (standing is null || standing.ItemUid != change.Equipment.Reference.ItemUid || standing.ItemId != change.Equipment.ExpectedItemId)
                             Refuse(InventoryEffectRejection.InvalidTarget);
-                        if (change is DestroyEquipmentEffect) state.SetSlot(facts.Slot, null);
+                        if (change is DestroyEquipmentEffect) state.SetSlot(facts.BusinessSlot!.Value, null);
                         break;
                     case GrantStackableEffect grant:
                         await GrantAsync(context, grant, state, ct).ConfigureAwait(false);
@@ -105,7 +105,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement))
             available = available.Concat(Enumerable.Range(0, 6).Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)));
         var candidates = available.ToArray();
-        foreach (var slot in candidates) _ = await state.ReadSlotAsync(slot, ct).ConfigureAwait(false);
+        foreach (var slot in candidates) _ = await state.GetAsync(slot, ct).ConfigureAwait(false);
         var remaining = count;
         while (remaining > 0)
         {
@@ -115,18 +115,18 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                 candidates.Where(slot => state.At(slot) is not null).ToHashSet());
             BusinessSlot target;
             int added;
-            InventoryItemCoreState core;
+            ItemSnapshot core;
             switch (arrival)
             {
                 case ItemArrival.OntoExistingPile pile:
-                    target = pile.Slot; added = pile.Added; core = state.At(target)!.Core with { Value = pile.Total }; break;
+                    target = pile.Slot; added = pile.Added; core = state.At(target)! with { Count = pile.Total }; break;
                 case ItemArrival.IntoEmptySlot empty:
-                    target = empty.Slot; added = empty.Count; core = StackableItemCore.Create(placement.ItemKind, itemId,
-                        placement.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature ? 1 : added); break;
+                    target = empty.Slot; added = empty.Count; core = new ItemSnapshot { ItemId = itemId, Count = placement.WorldClass == ItemWorldClass.Interchangeable ? added : 1,
+                        LegacyKind = placement.ItemKind, Type = placement.Traits, IsPile = placement.WorldClass == ItemWorldClass.Interchangeable }; break;
                 default: Refuse(InventoryEffectRejection.NoRoom); return;
             }
             if (added <= 0 || added > remaining) throw new InvalidDataException("Invalid effect arrival progress.");
-            state.SetSlot(target, new(target.Index, core, placement.WorldClass));
+            state.SetSlot(target, core);
             state.AddedRewardEntries(1);
             remaining -= added;
         }
@@ -139,42 +139,42 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         ICharacterContainerDomainService? containers, IPremiumServiceDomainService? premiums,
         IAccountTable? accountTable, IPremiumServiceUsageDomainService? usage) : IInventoryEffectPreviewState
     {
-        private readonly Dictionary<BusinessSlot, ContainerSlotItem?> items = [];
+        private readonly Dictionary<BusinessSlot, ItemSnapshot?> items = [];
         private readonly HashSet<BusinessInventorySpace> loaded = [];
-        private readonly Dictionary<int, ContainerSlotItem?> virtualItems = [];
+        private readonly Dictionary<int, ItemSnapshot?> virtualItems = [];
         private readonly Dictionary<PremiumServiceType, long> expiries = [];
         private int? luck;
         private DoublePotCounterState? doublePot;
         private int? gold;
         public int RewardEntries { get; private set; }
-        public ContainerSlotItem? At(BusinessSlot slot) => items.GetValueOrDefault(slot);
-        public async ValueTask<ContainerSlotItem?> ReadSlotAsync(BusinessSlot slot, CancellationToken ct)
+        public ItemSnapshot? At(BusinessSlot slot) => items.GetValueOrDefault(slot);
+        public async ValueTask<ItemSnapshot?> GetAsync(BusinessSlot slot, CancellationToken ct)
         {
             if (loaded.Add(slot.Space))
             {
                 var bound = slots.Find(context.CharacterId, slot)
                     ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
-                foreach (var item in await bound.Container.ReadAllAsync(ct).ConfigureAwait(false))
-                    items[new(slot.Space, item.SlotIndex)] = item;
+                foreach (var item in await bound.Container.GetAllAsync(ct).ConfigureAwait(false))
+                    items[new(slot.Space, item.SlotIndex)] = item.Snapshot;
             }
             return At(slot);
         }
-        public void SetSlot(BusinessSlot slot, ContainerSlotItem? item) => items[slot] = item;
+        public void SetSlot(BusinessSlot slot, ItemSnapshot? item) => items[slot] = item;
         public async ValueTask<int> GoldAsync(CancellationToken ct) =>
             gold ??= await characters.Get(context.CharacterId).GoldAsync(ct).ConfigureAwait(false);
         public void SetGold(int amount) => gold = amount;
-        public async ValueTask<ContainerSlotItem?> VirtualSlotAsync(int index, CancellationToken ct)
+        public async ValueTask<ItemSnapshot?> VirtualSlotAsync(int index, CancellationToken ct)
         {
             if (index is < 0 or > 2) Refuse(InventoryEffectRejection.InvalidTarget);
             if (!virtualItems.TryGetValue(index, out var item))
             {
                 var main = containers!.FindContainer(context.CharacterId, InventoryContainerType.Main)
                     ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
-                virtualItems[index] = item = await main.ReadSlotAsync(index, ct).ConfigureAwait(false);
+                virtualItems[index] = item = (await main.GetAsync(index, ct).ConfigureAwait(false))?.Snapshot;
             }
             return item;
         }
-        public void SetVirtualSlot(int index, ContainerSlotItem? item) => virtualItems[index] = item;
+        public void SetVirtualSlot(int index, ItemSnapshot? item) => virtualItems[index] = item;
         public async ValueTask<long> PremiumExpiryAsync(PremiumServiceType type, CancellationToken ct)
         {
             if (!expiries.TryGetValue(type, out var expiry))
@@ -197,17 +197,17 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         {
             var main = containers?.FindContainer(context.CharacterId, InventoryContainerType.Main)
                 ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
-            var result = (await main.ReadAllAsync(ct).ConfigureAwait(false)).ToDictionary(x => x.SlotIndex);
+            var result = (await main.GetAllAsync(ct).ConfigureAwait(false)).ToDictionary(x => x.SlotIndex, x => x.Snapshot);
             foreach (var (slot, item) in items)
             {
                 var physical = LegacyInventoryStorageCoordinates.ToStorage(slot);
                 if (physical.List != InventoryContainerType.Main) continue;
                 if (item is null) result.Remove(physical.Index);
-                else result[physical.Index] = item with { SlotIndex = physical.Index };
+                else result[physical.Index] = item;
             }
             foreach (var (index, item) in virtualItems)
                 if (item is null) result.Remove(index); else result[index] = item;
-            return new([.. result.Values.OrderBy(x => x.SlotIndex)], await GoldAsync(ct).ConfigureAwait(false));
+            return new(System.Collections.Immutable.ImmutableDictionary.ToImmutableDictionary(result), await GoldAsync(ct).ConfigureAwait(false));
         }
     }
 }

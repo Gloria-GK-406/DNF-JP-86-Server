@@ -42,17 +42,13 @@ public sealed class MailboxProtocolIntegrationTests
         public InventoryContainerType Type => InventoryContainerType.Main;
         public ContainerShape Shape => backing.Shape;
         public bool IsRemovable => true;
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct) =>
-            backing.ReadSlotAsync(index, ct);
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int first, int second, CancellationToken ct) =>
-            backing.ReadSlotsAsync(first, second, ct);
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
-            backing.ReadAllAsync(ct);
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) =>
-            backing.SnapshotAsync(ct);
-        public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct) =>
-            throw new NotSupportedException();
-        public ValueTask ClearAsync(int index, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) => backing.GetAsync(index, ct);
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => backing.GetAllAsync(ct);
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) => backing.SnapshotAsync(ct);
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => backing.TakeAsync(reference, count, ct);
+        public ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct) => backing.PutAsync(index, record, ct);
+        public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => backing.UpdateAsync(reference, change, ct);
+        public ValueTask FlushAsync(CancellationToken ct) => backing.FlushAsync(ct);
         public ValueTask<ItemPlacementOutcome> AddAsync(int item, int count, CancellationToken ct) =>
             throw new NotSupportedException();
         public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct) =>

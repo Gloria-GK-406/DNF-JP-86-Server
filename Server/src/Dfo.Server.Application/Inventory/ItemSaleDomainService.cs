@@ -13,7 +13,7 @@ internal sealed class ItemSaleDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas, ICharacterDomainService characters,
     IBusinessInventorySlotDomainService slots, IItemSaleRuleService rules,
-    IDungeonRunDomainService runs) : IItemSaleDomainService
+    IDungeonRunDomainService runs, IItemLifecycleDomainService lifecycle) : IItemSaleDomainService
 {
     public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, BusinessSlot slot,
         int count, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ internal sealed class ItemSaleDomainService(
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null
             ? null
-            : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         if (item is null)
             return new(ItemSaleRejection.ItemUnavailable);
         var quote = await rules.QuoteAsync(item, count, cancellationToken).ConfigureAwait(false);
@@ -55,11 +55,10 @@ internal sealed class ItemSaleDomainService(
             if (gold != targetGold)
                 throw new ItemSaleRejectedException(ItemSaleRejection.GoldLimit);
         }
-        var remaining = item.Count == quote.Count ? null : item.Core with { Value = item.Count - quote.Count };
-        if (remaining is null)
-            await bound!.Container.ClearAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
-        else
-            await bound!.Container.PutAsync(bound.Slot.Index, remaining, cancellationToken).ConfigureAwait(false);
+        var remaining = item.Count == quote.Count ? null : (item.Snapshot with { Count = item.Count - quote.Count }).ToCore();
+        var taken = await bound!.Container.TakeAsync(item, quote.Count, cancellationToken).ConfigureAwait(false);
+        await lifecycle.DeleteItemAsync(taken, cancellationToken).ConfigureAwait(false);
+
         return new(ItemSaleRejection.None,
             new(session, slot, item.ItemId, quote.Count, gold, remaining, now));
     }

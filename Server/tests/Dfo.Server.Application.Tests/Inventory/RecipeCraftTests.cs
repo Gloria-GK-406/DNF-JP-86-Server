@@ -129,7 +129,7 @@ public sealed class RecipeCraftTests
         f.Select(1);
         var bag = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(f.Session.CharacterId, BusinessInventoryStoreKind.Item)
             .GetContainer(Assert.Single(receipt.Inventory.Rewards).Slot!.Value.Space);
-        Assert.Equal(1, (await bag.ReadAllAsync(default)).Where(x => x.ItemId == 1286).Sum(x => x.Count));
+        Assert.Equal(1, (await bag.GetAllAsync(default)).Where(x => x.ItemId == 1286).Sum(x => x.Count));
     }
     [Theory]
     [InlineData(true)] [InlineData(false)]
@@ -210,7 +210,7 @@ public sealed class RecipeCraftTests
         var prior = Assert.IsType<CompoundItemResponse>(f.Sender.Messages[0]).Receipt!;
         var refreshed = await f.Services.GetRequiredService<IRecipeCraftDomainService>().RefreshAsync(prior, default);
         Assert.Contains(new BusinessSlot(BusinessInventorySpace.SharedMaterial, 5), refreshed.Inventory.Cleared);
-        Assert.Equal(2, Assert.Single(refreshed.Inventory.Updates.Where(x => x.Core.ItemId == 1286)).Core.Value);
+        Assert.Equal(2, Assert.Single(refreshed.Inventory.Updates.Where(x => x.Core.ItemId == 1286)).Core.ToCore().Value);
         await EffectRequestTransport.Send(f, new CompoundItemRequest(new GameMessageMetadata(1, 0x19, 0, 7)
             { InboundOrdinal = 3, SequenceIsFresh = false }, 101, 0, 1));
         Assert.Equal(2, f.Sender.Messages.OfType<CompoundItemResponse>().Count()); Assert.Equal(2, f.Count(1286));

@@ -42,8 +42,8 @@ public sealed class UseStackableHandlerTests
         await using (var tx = inventory.Scope.Begin())
         {
             var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 0));
-            var item = (await bound.Container.ReadSlotAsync(0, default))!;
-            await bound.Container.PutAsync(0, item.Core with { ExpireTime = 1 }, default);
+            var item = (await bound.Container.GetAsync(0, default))!;
+            await bound.Container.UpdateAsync(item, x => x with { ExpireTime = 1 }, default);
             await tx.CommitAsync(default);
         }
         var (handler, sender) = Build(inventory);
@@ -477,7 +477,7 @@ public sealed class UseStackableHandlerTests
             new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
             new NoSkillPointLedger(), null!, null!));
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
-            new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots),
+            new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots, inventory.Lifecycle),
             new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, sessions, inventory.Scope),
             new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, sessions, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));

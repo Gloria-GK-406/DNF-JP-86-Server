@@ -96,7 +96,7 @@ public sealed class OrdinaryQuestEffectTests
         await shop.SeedCore(3,StackableItemCore.Create(2,2000,9) with {Durability=7,Attribute=9,SealFlag=1,ExpireTime=12345}); Carry(shop);
         Assert.True((await Finish(shop)).Finished);
         var main=shop.Services.GetRequiredService<ICharacterContainerDomainService>().FindContainer(new(1),InventoryContainerType.Main)!;
-        var existing=(await main.ReadSlotAsync(3,default))!.Core; var created=(await main.ReadSlotAsync(4,default))!.Core;
+        var existing=(await main.GetAsync(3,default))!.Snapshot.ToCore(); var created=(await main.GetAsync(4,default))!.Snapshot.ToCore();
         Assert.Equal((7,9,1,12345),((int)existing.Durability,(int)existing.Attribute,(int)existing.SealFlag,existing.ExpireTime));
         Assert.Equal(StackableItemCore.Create(2,2000,2),created);
     }
@@ -328,11 +328,11 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(2,shop.Host.Scalar("SELECT COUNT(*) FROM items WHERE avatar_expire_date=0 AND avatar_delete_date=0 AND length(avatar_jewel_socket)=30"));
         Assert.Equal(1,shop.Host.Scalar("SELECT COUNT(*) FROM items WHERE creature_field04=100 AND creature_field_after_value=1 AND creature_progress_value=0"));
         var bags=shop.Host.Services.GetRequiredService<ICharacterContainerDomainService>();
-        var avatars=await bags.FindContainer(new(1),InventoryContainerType.Avatar)!.ReadAllAsync(default);
-        Assert.Equal(2,avatars.Select(x=>x.Core.Value).Distinct().Count());
+        var avatars=await bags.FindContainer(new(1),InventoryContainerType.Avatar)!.GetAllAsync(default);
+        Assert.Equal(2,avatars.Select(x=>x.Snapshot.ToCore().Value).Distinct().Count());
         foreach(var type in new[]{InventoryContainerType.Avatar,InventoryContainerType.Pet})
-            foreach(var item in await bags.FindContainer(new(1),type)!.ReadAllAsync(default))
-                Assert.Equal((0,0,0,0),((int)item.Core.Durability,(int)item.Core.Attribute,(int)item.Core.SealFlag,item.Core.ExpireTime));
+            foreach(var item in await bags.FindContainer(new(1),type)!.GetAllAsync(default))
+                Assert.Equal((0,0,0,0),((int)item.Snapshot.ToCore().Durability,(int)item.Snapshot.ToCore().Attribute,(int)item.Snapshot.ToCore().SealFlag,item.Snapshot.ToCore().ExpireTime));
     }
     [Theory]
     [InlineData(1,0,450,3,300)]

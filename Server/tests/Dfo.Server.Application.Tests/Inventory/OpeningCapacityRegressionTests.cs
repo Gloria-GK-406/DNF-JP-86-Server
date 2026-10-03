@@ -34,9 +34,9 @@ public sealed class OpeningCapacityRegressionTests
         Assert.Equal(0, f.Host.Count(42));
         Assert.Equal(2, f.Host.Count(3));
         Assert.Contains(result.Receipt.Updates, row => row.Slot == new BusinessSlot(BusinessInventorySpace.Consumable, 0)
-            && row.Core.ItemId == 3 && row.Core.Value == 2);
+            && row.Core.ItemId == 3 && row.Core.ToCore().Value == 2);
         Assert.Contains(result.Receipt.Updates, row => row.Slot == new BusinessSlot(BusinessInventorySpace.VirtualResource, 1)
-            && row.Core.ItemId == 1 && row.Core.Value == 3);
+            && row.Core.ItemId == 1 && row.Core.ToCore().Value == 3);
     }
 
     [Theory]

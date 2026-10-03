@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
@@ -344,10 +345,11 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
-        var bag = new RecordingContainer(InventoryContainerType.Main, character);
-        var avatars = new RecordingContainer(InventoryContainerType.Avatar, character);
-        var worn = new RecordingContainer(InventoryContainerType.Equipment, character);
-        var pet = new RecordingContainer(InventoryContainerType.Pet, character);
+        var fixture = new MoveItemFixture();
+        var bag = new RecordingContainer(InventoryContainerType.Main, character, fixture);
+        var avatars = new RecordingContainer(InventoryContainerType.Avatar, character, fixture);
+        var worn = new RecordingContainer(InventoryContainerType.Equipment, character, fixture);
+        var pet = new RecordingContainer(InventoryContainerType.Pet, character, fixture);
 
         if (avatarAt is { } inList)
             avatars.Seed(inList, CostumeTemplate);
@@ -374,13 +376,13 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                     new ItemSlotRuleService(), new TheAvatarBagIsServedTestsWearEligibility())),
-            character);
+            character, fixture);
     }
 
     private sealed record Side(
         CharacterContainerDomainService Containers,
         MoveItemSpaceCommandHandler Handler,
-        CharacterId Character)
+        CharacterId Character, MoveItemFixture Fixture)
     {
         public RecordingContainer Container(InventoryContainerType type) =>
             (RecordingContainer)this.Containers.GetContainer(this.Character, type);
@@ -390,7 +392,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             short sourceSlot,
             InventoryContainerType destination,
             short destinationSlot) =>
-            this.Handler.HandleAsync(
+            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(MoveItemSpaceCommand),
@@ -400,109 +402,35 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
                     this.Character,
                     ToBusinessSlot(source, sourceSlot), 1,
                     ToBusinessSlot(destination, destinationSlot)),
-                CancellationToken.None);
+                CancellationToken.None));
 
         public ValueTask<ItemMoveResult> MoveBusinessAsync(
             BusinessSlot source,
             BusinessSlot destination) =>
-            this.Handler.HandleAsync(
+            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(MoveItemSpaceCommand),
                     typeof(Side),
                     CommandExecutionKind.Transactional),
                 new MoveItemSpaceCommand(this.Character, source, 1, destination),
-                CancellationToken.None);
+                CancellationToken.None));
 
         private static BusinessSlot ToBusinessSlot(
             InventoryContainerType space, int index) =>
             new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(space, index));
 
-        public async ValueTask<ContainerSlotItem?> ReadAsync(
+        public async ValueTask<ItemSnapshot?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>
             await this.Container(type)
-                .ReadSlotAsync(slotIndex, CancellationToken.None);
+                .ReadSnapshotAsync(slotIndex, CancellationToken.None);
     }
 
-    /// <summary>
-    /// A container that keeps its slots in a dictionary and remembers being asked to move.
-    /// </summary>
-    /// <remarks>
-    /// The move inside one list belongs to the container and is asserted where a real one is; what
-    /// is being checked here is that the request arrives at the right container at all, so this
-    /// records the pair of slots and reports success. Everything the served paths do not touch
-    /// raises rather than answering emptily, so a path that started using one of them fails here
-    /// instead of being quietly told the container is empty.
-    /// </remarks>
-    private sealed class RecordingContainer(InventoryContainerType type, CharacterId character)
-        : IItemContainer
+    /// <summary>Container sharing the command transaction and item custody backend.</summary>
+    private sealed class RecordingContainer(InventoryContainerType type, CharacterId character, MoveItemFixture fixture)
+        : LifecycleTestContainer(type, character, fixture)
     {
-        private readonly Dictionary<int, ContainerSlotItem> bySlot = [];
-
-        public ContainerId Id { get; } = ContainerId.ForCharacter(character, type);
-
-        public InventoryContainerType Type => type;
-
-        public ContainerShape Shape { get; } = new(type, 0);
-
-        public bool IsRemovable => false;
-
-        public (int From, int To)? LastMove { get; private set; }
-
-        public void Seed(int slotIndex, int itemId) =>
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex,
-                StackableItemCore.Create(itemId is CostumeTemplate or 101500690 ? (byte)8 : (byte)1, itemId, 1),
-                itemId is CostumeTemplate or 101500690 ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
-
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(this.bySlot.GetValueOrDefault(slotIndex));
-
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ContainerSlotPair(
-                this.bySlot.GetValueOrDefault(firstSlotIndex),
-                this.bySlot.GetValueOrDefault(secondSlotIndex)));
-
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex, core, core.ItemId is CostumeTemplate or 101500690 ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken)
-        {
-            this.bySlot.Remove(slotIndex);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken)
-        {
-            this.LastMove = (fromSlotIndex, toSlotIndex);
-            var moving = this.bySlot.GetValueOrDefault(fromSlotIndex);
-            return ValueTask.FromResult<ItemMoveOutcome>(moving is null
-                ? new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty)
-                : new ItemMoveOutcome.Moved(count, moving.ItemId));
-        }
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int count, CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) => throw Unused();
-
-        private static NotSupportedException Unused() =>
-            new("This container answers slot reads, writes and moves and nothing else.");
+        public void Seed(int slotIndex, int itemId) => SeedItem(slotIndex, itemId, itemId is CostumeTemplate or 101500690 ? (byte)8 : (byte)1);
     }
 }
 

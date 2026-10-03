@@ -29,14 +29,18 @@ namespace Dfo.Server.Persistence.Tests.Support;
 internal sealed class CharacterSide
 {
     private readonly SqliteDatabase database;
+    private readonly SqliteItemDomainStore itemStore;
 
     public CharacterSide(string databasePath)
     {
         this.Scope = new DomainTransactionScope();
+        this.itemStore = new SqliteItemDomainStore(databasePath);
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
 
     public DomainTransactionScope Scope { get; }
+
+    public SqliteItemDomainStore ItemStore => this.itemStore;
 
     public ICharacterRepository Roster => this.RosterOver(new SqliteCharacterItemTable(this.database));
 
@@ -56,7 +60,9 @@ internal sealed class CharacterSide
         new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
         items,
-        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue());
+        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
+        this.itemStore, new ItemLifecycleDomainService(this.itemStore, this.Scope,
+            new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())), this.Scope);
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.

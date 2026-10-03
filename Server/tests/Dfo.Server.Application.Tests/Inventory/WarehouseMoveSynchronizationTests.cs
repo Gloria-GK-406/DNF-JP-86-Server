@@ -50,12 +50,12 @@ public sealed class WarehouseMoveSynchronizationTests
         Assert.NotNull(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
         Assert.Equal(4, host.SharedCount(itemId));
         var cargo = WarehouseStorageTests.Bag(host, list == 2 ? BusinessInventorySpace.PersonalCargo : BusinessInventorySpace.AccountCargo);
-        Assert.Equal(3, (await cargo.ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(3, (await cargo.GetAsync(0, default))!.Count);
         await host.SeedShared(itemId, int.MaxValue - 1);
         await Send(host, list, 0, 0, virtualSlot, 3);
         Assert.NotNull(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
         Assert.Equal(int.MaxValue - 1, host.SharedCount(itemId));
-        Assert.Equal(3, (await cargo.ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(3, (await cargo.GetAsync(0, default))!.Count);
     }
 
     [Theory]
@@ -78,9 +78,9 @@ public sealed class WarehouseMoveSynchronizationTests
         Assert.Null(acknowledgement.ErrorCode);
         Assert.Equal(new((InventoryContainerType)list, 1), acknowledgement.DestinationSlot);
         Assert.Null(await WarehouseStorageTests.Bag(host, BusinessInventorySpace.Consumable)
-            .ReadSlotAsync(0, default));
+            .GetAsync(0, default));
         Assert.Equal(first, (await WarehouseStorageTests.Bag(host, list == 2
-            ? BusinessInventorySpace.PersonalCargo : BusinessInventorySpace.AccountCargo).ReadSlotAsync(0, default))!.Core);
+            ? BusinessInventorySpace.PersonalCargo : BusinessInventorySpace.AccountCargo).GetAsync(0, default))!.Snapshot.ToCore());
         AssertSlot(host, 0, 65, -1, 0, 0);
         AssertSlot(host, list, 0, 4000, 1, first.ExpireTime);
         AssertSlot(host, list, 1, 4000, 1, second.ExpireTime);

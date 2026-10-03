@@ -25,7 +25,7 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
         var wire = new InventorySlotMappingRuleService().ToGameSlot(first.Slot);
         // BUY_ITEM's value is the added amount; the following inventory delta carries the final core.
         GameInventoryItemEntry.Write(writer,
-            new InventoryItemState(null, wire.Index, first.Core with { Value = first.AddedCount }),
+            new InventoryItemState(null, wire.Index, first.Core.ToCore() with { Value = first.AddedCount }),
             receipt.PreparedAt, wire.Space);
         writer.Write((byte)1);
         writer.Write(receipt.ItemId);

@@ -105,8 +105,14 @@ public sealed class AccountMaterialBagTests
     {
         using var shop = new ShopFixture();
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            shop.Seed(121, 3037, 1));
+        var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)shop.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
+        await using var tx = scope.Begin();
+        var items = shop.Services.GetRequiredService<IItemDomainStore>().SessionIn(scope.Current!);
+        var malformed = await items.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(2, 3037, 1), true), default);
+        var container = shop.Services.GetRequiredService<ICharacterContainerDomainService>().GetContainer(shop.Session.CharacterId, InventoryContainerType.Main);
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => container.PutAsync(121, malformed, default).AsTask());
+        await items.DeleteItemAsync(malformed, default);
+        await tx.CommitAsync(default);
 
         Assert.Contains("cannot occupy", failure.Message, StringComparison.Ordinal);
         Assert.Equal(0, shop.Count(3037));

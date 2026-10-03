@@ -11,6 +11,6 @@ public interface ICargoTransferDomainService
 
 public interface ICargoItemRuleService
 {
-    ValueTask<bool> CanStoreAsync(BusinessInventorySpace destination, ContainerSlotItem item,
+    ValueTask<bool> CanStoreAsync(BusinessInventorySpace destination, ItemReference item,
         DateTimeOffset now, CancellationToken cancellationToken);
 }

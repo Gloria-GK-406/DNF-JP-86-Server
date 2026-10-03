@@ -41,7 +41,7 @@ public sealed class EquipmentReinforcementCompletedHandler(
             var occupied = container.Where(change => change.Core is not null)
                 .OrderBy(change => change.Slot.Index)
                 .Select(change => new InventoryItemState(
-                    null, change.Slot.Index, change.Core!)).ToArray();
+                    null, change.Slot.Index, change.Core!.ToCore())).ToArray();
             if (occupied.Length > 0)
                 messages.Add(GameInventoryDelivery.Notification(
                     new CommittedInventoryUpdateState(container.Key, occupied,

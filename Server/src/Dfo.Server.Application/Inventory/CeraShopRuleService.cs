@@ -130,7 +130,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
     }
 
     public CeraShopPlanningResult Plan(CeraShopQuote quote,
-        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held,
         int gold, AccountCeraBalances balances, int identitySeed)
     {
         if (balances.Cera < 0 || balances.TokenCera < 0 || balances.HappyTokenCera < 0 || gold < 0)
@@ -146,7 +146,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 return new(CeraShopRejection.InsufficientFunds, null, $"Insufficient funds for product {charge.ProductId}.");
         }
 
-        var standing = held.ToDictionary(pair => pair.Key, pair => pair.Value.ToDictionary(item => item.SlotIndex));
+        var standing = held.ToDictionary(pair => pair.Key, pair => pair.Value.ToDictionary(item => item.SlotIndex, item => item.Snapshot));
         var writes = new Dictionary<BusinessSlot, CeraShopSlotWrite>();
         var serial = 0L;
         foreach (var grant in quote.Grants)
@@ -155,9 +155,10 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
             if (!standing.TryGetValue(placement.Destination.Space, out _))
                 return new(CeraShopRejection.NoSession, null,
                     $"Container {placement.Destination.Space} is not bound.");
-            var baseline = StackableItemCore.Create(placement.ItemKind, grant.Item.ItemId, 0) with
+            var baseline = new ItemSnapshot
             {
-                Attribute = grant.Ability,
+                ItemId = grant.Item.ItemId, Count = 0, Type = placement.Traits, LegacyKind = placement.ItemKind,
+                IsPile = placement.WorldClass == ItemWorldClass.Interchangeable, Attribute = grant.Ability,
                 Durability = grant.Item.Durability,
                 SealFlag = grant.Item.Kind == CeraShopItemKind.Creature ? (byte)0 : grant.Item.Sealed ? (byte)1 : (byte)0,
                 ExpireTime = grant.Item.Kind == CeraShopItemKind.Avatar ? 0 : grant.ExpireDate,
@@ -172,20 +173,19 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     .Where(slot => standing[slot.Space].TryGetValue(slot.Index, out var item)
                         && item.IsPile
                         && item.ItemId == grant.Item.ItemId
-                        && item.Core with { Value = 0 } == baseline)
+                        && item.CanStackWith(baseline))
                     .Select(slot => new ItemPile(slot, standing[slot.Space][slot.Index].Count)).ToArray();
                 var arrival = arrivals.ForGrant(businessPiles, outstanding, placement,
                     candidates.Where(slot => standing[slot.Space].ContainsKey(slot.Index))
                         .ToHashSet());
                 BusinessSlot slot;
                 int added;
-                InventoryItemCoreState core;
-                InventoryItemCreationFacts? facts = null;
+                ItemSnapshot core;
                 if (arrival is ItemArrival.OntoExistingPile pile)
                 {
                     slot = pile.Slot;
                     added = pile.Added;
-                    core = standing[slot.Space][slot.Index].Core with { Value = pile.Total };
+                    core = standing[slot.Space][slot.Index] with { Count = pile.Total };
                 }
                 else if (arrival is ItemArrival.IntoEmptySlot empty)
                 {
@@ -193,15 +193,15 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     added = empty.Count;
                     var value = placement.WorldClass == ItemWorldClass.Interchangeable ? added
                         : (int)(((long)(uint)identitySeed + serial++) % (int.MaxValue - 1)) + 1;
-                    core = baseline with { Value = value };
-                    facts = grant.Item.Kind switch
+                    core = baseline with { Count = baseline.IsPile ? added : 1, InstanceValue = baseline.IsPile ? 0 : value };
+                    core = grant.Item.Kind switch
                     {
-                        CeraShopItemKind.Avatar => new(new(grant.ExpireDate,
-                            0, new byte[30], 0, 0, 0)),
+                        CeraShopItemKind.Avatar => core with { AvatarDetail = new(grant.ExpireDate,
+                            0, new byte[30], 0, 0, 0) },
                         // Initial satiety and flags follow the reference creation policy; level is PVF data.
-                        CeraShopItemKind.Creature => new(Creature: new(100, 0, 0, 0, 0,
-                            grant.Item.Creature!.StartLevel, [], 0)),
-                        _ => null,
+                        CeraShopItemKind.Creature => core with { CreatureDetail = new(100, 0, 0, 0, 0,
+                            grant.Item.Creature!.StartLevel, [], 0) },
+                        _ => core,
                     };
                 }
                 else return new(CeraShopRejection.NoRoom, null,
@@ -209,8 +209,8 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 if (added <= 0 || added > outstanding)
                     throw new InvalidOperationException("A CERA grant did not consume a positive bounded quantity.");
                 outstanding -= added;
-                standing[slot.Space][slot.Index] = new(slot.Index, core, placement.WorldClass);
-                writes[slot] = new(slot, core, facts);
+                standing[slot.Space][slot.Index] = core;
+                writes[slot] = new(slot, core);
             }
         }
         return new(CeraShopRejection.None, new(after, checked((int)goldCost),

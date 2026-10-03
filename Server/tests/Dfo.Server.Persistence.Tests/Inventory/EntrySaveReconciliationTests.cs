@@ -14,24 +14,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
-/// <summary>
-/// What the entry save takes away, now that what it keeps is named rather than keyed.
-/// </summary>
-/// <remarks>
-/// The save reconciles: it removes every row of this character's inventory that the lease no longer
-/// holds, and it does so by naming what to keep. That scan used to keep by the storage row key,
-/// which every row had; it now keeps by the name of the thing, which only a thing with a name has.
-/// The difference is the whole risk of this change and it is a silent one -- keep too little and
-/// the player's items are gone, with nothing thrown and nothing logged, discovered at the next
-/// login.
-/// <para>
-/// So all three outcomes are pinned here rather than the happy one. A thing with a name keeps its
-/// row and therefore its name. A pile, which has none, is taken away and written again in the same
-/// save, so what the player holds is unchanged while its row is not. And something the lease has
-/// genuinely stopped holding is still removed, because a scan that kept everything would be just as
-/// wrong in the other direction and would look perfectly healthy.
-/// </para>
-/// </remarks>
+/// <summary>Explicit custody operations preserve kept items and remove only named items.</summary>
 public sealed class EntrySaveReconciliationTests
 {
     private const int Account = 7;
@@ -44,17 +27,8 @@ public sealed class EntrySaveReconciliationTests
 
     private const int PotionId = 1000;
 
-    /// <summary>
-    /// The named thing keeps its row, the pile is rewritten, and the dropped row goes.
-    /// </summary>
-    /// <remarks>
-    /// The sword's identity is read out of the database before and after and compared, so this is
-    /// not the lease being believed about what it did. The pile is checked by what the player holds
-    /// rather than by its row: its count and its slot are what matter, and its row key is the thing
-    /// that is allowed to change.
-    /// </remarks>
     [Fact]
-    public async Task ASaveKeepsWhatHasANameRewritesWhatHasNoneAndDropsWhatTheLeaseLetGo()
+    public async Task ExplicitMovesPreserveNamedAndPileItemsAndDeleteOnlyTheSelectedItem()
     {
         var path = NewDatabase();
         try
@@ -62,7 +36,7 @@ public sealed class EntrySaveReconciliationTests
             await SeedCharacterAsync(path);
             await SeedAsync(path, slot: 3, itemKind: 1, itemId: SwordId, value: 0);
             await SeedAsync(path, slot: 4, itemKind: 1, itemId: SecondSwordId, value: 0);
-            await SeedAsync(path, slot: 65, itemKind: 6, itemId: PotionId, value: 5);
+            await SeedAsync(path, slot: 65, itemKind: 2, itemId: PotionId, value: 5);
 
             var side = new InventorySide(path, new DeclaredArchive());
             var loaded = await side.InUseCaseAsync(token =>
@@ -75,40 +49,36 @@ public sealed class EntrySaveReconciliationTests
             var potion = main.Items.Single(item => item.Core.ItemId == PotionId);
             var dropped = main.Items.Single(item => item.Core.ItemId == SecondSwordId);
 
-            // The archive says which of the three is a thing and which is a pile, and the load
-            // hands out a name to exactly the things.
+            // Persisted world/template slots expose identities only for individual items.
             Assert.NotNull(sword.Identity);
             Assert.NotNull(dropped.Identity);
             Assert.Null(potion.Identity);
             Assert.Equal(sword.Identity!.Value.Value, await IdentityAtAsync(path, 3));
 
             var named = sword.Identity!.Value;
-            await side.InUseCaseAsync(token => side.Leases.SaveAsync(
-                new EntryInventoryLeaseSnapshot(
-                    Session(),
-                    new CharacterItemLeaseState(
-                        new CharacterId(Character),
-                        [
-                            new InventoryContainerState(
-                                InventoryContainerType.Main,
-                                0,
-                                [sword with { SlotIndex = 7 }, potion with { SlotIndex = 66 }]),
-                        ]),
-                    1,
-                    true),
-                token));
+            await side.InUseCaseAsync(async token =>
+            {
+                var items = side.Store.SessionIn(side.Scope.Current!);
+                var mainId = ContainerId.ForCharacter(new CharacterId(Character), InventoryContainerType.Main);
+                foreach (var (from, to) in new[] { (3, 7), (65, 66) })
+                {
+                    var moving = await items.TakeAsync((await items.GetAsync(mainId, from, token))!, null, token);
+                    await items.PutAsync(mainId, to, moving, token);
+                }
+                await items.DeleteItemAsync(await items.TakeAsync(
+                    (await items.GetAsync(mainId, 4, token))!, null, token), token);
+            });
 
             // The sword is the same sword: the row that stood in slot 3 is the row now standing in
             // slot 7, under the identity it already had.
             Assert.Equal(named.Value, await IdentityAtAsync(path, 7));
             Assert.Null(await IdentityAtAsync(path, 3));
 
-            // The pile is still five potions in slot 66. Which row carries them is not a question
-            // anyone may ask, and the scan is free to have answered it differently.
+            // The pile keeps its quantity and destination without acquiring a business UID.
             Assert.Equal((PotionId, 5), await HeldAtAsync(path, 66));
             Assert.Null(await IdentityAtAsync(path, 65));
 
-            // What the lease stopped holding is gone, which is what the scan is for.
+            // Only the explicitly deleted item disappears.
             Assert.Null(await IdentityAtAsync(path, 4));
             Assert.Equal(2, await RowCountAsync(path));
         }
@@ -118,35 +88,24 @@ public sealed class EntrySaveReconciliationTests
         }
     }
 
-    /// <summary>
-    /// A save that holds on to nothing empties the inventory, exactly as it did before.
-    /// </summary>
-    /// <remarks>
-    /// The edge the keep list has always had: with nothing to keep, the statement has no exclusion
-    /// at all. Worth pinning because the list is now built from a nullable, and a list that came
-    /// out empty for the wrong reason would take this same road with the player's things still in
-    /// the bag.
-    /// </remarks>
     [Fact]
-    public async Task ASaveThatHoldsNothingLeavesTheInventoryEmpty()
+    public async Task ExplicitDeletionOfEveryItemLeavesTheInventoryEmpty()
     {
         var path = NewDatabase();
         try
         {
             await SeedCharacterAsync(path);
             await SeedAsync(path, slot: 3, itemKind: 1, itemId: SwordId, value: 0);
-            await SeedAsync(path, slot: 65, itemKind: 6, itemId: PotionId, value: 5);
+            await SeedAsync(path, slot: 65, itemKind: 2, itemId: PotionId, value: 5);
 
             var side = new InventorySide(path, new DeclaredArchive());
-            await side.InUseCaseAsync(token => side.Leases.SaveAsync(
-                new EntryInventoryLeaseSnapshot(
-                    Session(),
-                    new CharacterItemLeaseState(
-                        new CharacterId(Character),
-                        [new InventoryContainerState(InventoryContainerType.Main, 0, [])]),
-                    1,
-                    true),
-                token));
+            await side.InUseCaseAsync(async token =>
+            {
+                var items = side.Store.SessionIn(side.Scope.Current!);
+                var mainId = ContainerId.ForCharacter(new CharacterId(Character), InventoryContainerType.Main);
+                foreach (var held in await items.GetAllAsync(mainId, token))
+                    await items.DeleteItemAsync(await items.TakeAsync(held, null, token), token);
+            });
 
             Assert.Equal(0, await RowCountAsync(path));
         }
@@ -156,22 +115,8 @@ public sealed class EntrySaveReconciliationTests
         }
     }
 
-    /// <summary>
-    /// A save naming one thing in two positions is refused, and changes nothing.
-    /// </summary>
-    /// <remarks>
-    /// A thing is in one place. A position names the row rather than holding it now, so a lease
-    /// saying the same thing is in two of them would leave two positions pointing at one row --
-    /// which the player is shown as two swords and can move away twice, out of one sword. The
-    /// older shape could not express that, because a row carried its position and could only carry
-    /// one; it lost the first position instead, which was wrong in a smaller and quieter way.
-    ///
-    /// The database is read afterwards rather than only the exception, because a refusal that had
-    /// already emptied the character's positions would leave the inventory gone and still be
-    /// reported as a refusal.
-    /// </remarks>
     [Fact]
-    public async Task ASaveNamingOneThingInTwoPositionsIsRefusedAndChangesNothing()
+    public async Task PuttingOneRecordInTwoPositionsIsRefusedAndRollsBackTheMove()
     {
         var path = NewDatabase();
         try
@@ -188,23 +133,16 @@ public sealed class EntrySaveReconciliationTests
                 .Items.Single(item => item.Core.ItemId == SwordId);
             var named = sword.Identity!.Value;
 
-            var refused = await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await side.InUseCaseAsync(token => side.Leases.SaveAsync(
-                    new EntryInventoryLeaseSnapshot(
-                        Session(),
-                        new CharacterItemLeaseState(
-                            new CharacterId(Character),
-                            [
-                                new InventoryContainerState(
-                                    InventoryContainerType.Main,
-                                    0,
-                                    [sword with { SlotIndex = 7 }, sword with { SlotIndex = 8 }]),
-                            ]),
-                        1,
-                        true),
-                    token)));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await side.InUseCaseAsync(async token =>
+                {
+                    var items = side.Store.SessionIn(side.Scope.Current!);
+                    var mainId = ContainerId.ForCharacter(new CharacterId(Character), InventoryContainerType.Main);
+                    var moving = await items.TakeAsync((await items.GetAsync(mainId, 3, token))!, null, token);
+                    await items.PutAsync(mainId, 7, moving, token);
+                    await items.PutAsync(mainId, 8, moving, token);
+                }));
 
-            Assert.Contains("more than one position", refused.Message, StringComparison.Ordinal);
             Assert.Equal(named.Value, await IdentityAtAsync(path, 3));
             Assert.Equal(1, await RowCountAsync(path));
         }
@@ -214,7 +152,6 @@ public sealed class EntrySaveReconciliationTests
         }
     }
 
-    /// <summary>An archive that declares one template a worn piece and the rest ordinary.</summary>
     private sealed class DeclaredArchive : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(
@@ -225,14 +162,6 @@ public sealed class EntrySaveReconciliationTests
                         { WorldClass = ItemWorldClass.Equipment }
                     : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
-
-    private static SelectedSessionIdentity Session() =>
-        SelectedSessionIdentity.Create(
-            new AccountId(Account),
-            new CharacterId(Character),
-            new NetworkConnectionId("Game:reconcile"),
-            1,
-            10011);
 
     private static async Task<long?> IdentityAtAsync(string path, int slotIndex)
     {
@@ -294,8 +223,10 @@ public sealed class EntrySaveReconciliationTests
         command.CommandText =
             "INSERT INTO items(item_core) VALUES(@core);"
             + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-            + "VALUES('character',@cid,0,@slot,'world',last_insert_rowid(),"
-            + "last_insert_rowid(),1)";
+            + "VALUES('character',@cid,0,@slot,@kind,CASE WHEN @kind='world' THEN last_insert_rowid() ELSE @id END,last_insert_rowid(),@count)";
+        command.Parameters.AddWithValue("@kind", itemKind == 2 ? "template" : "world");
+        command.Parameters.AddWithValue("@id", itemKind == 2 ? itemId : 0);
+        command.Parameters.AddWithValue("@count", itemKind == 2 ? value : 1);
         command.Parameters.AddWithValue("@cid", Character);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", core);

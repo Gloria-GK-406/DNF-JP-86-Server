@@ -62,45 +62,36 @@ public sealed class ClassificationRefusalTests
         Assert.Equal(1, await database.CountAsync("SELECT COUNT(*) FROM item_slots WHERE list_type=3"));
     }
 
-    /// <summary>
-    /// A lease row written as something else than the avatar the archive declares is refused.
-    /// </summary>
-    /// <remarks>
-    /// The kind byte and the archive disagreeing is the whole reason the classification exists, so
-    /// the disagreement is what is written here: kind 2, an ordinary consumable, on a template the
-    /// archive calls an avatar. Nothing downstream would have noticed -- a projection assembles the
-    /// bytes the client expects out of either -- which is why the refusal has to be here.
-    /// </remarks>
     [Fact]
-    public async Task AnEntrySaveRefusesARowTheArchiveReadsAsAnAvatarAndTheRowDoesNot()
+    public async Task CreationRefusesASnapshotWhoseKindDisagreesWithTheAvatarTemplate()
     {
         await using var database = NewDatabase();
         await database.SeedCharacterAsync();
-        var refusal = await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await database.InUseCaseAsync(async token =>
-            {
-                await Assembly(database, ItemWorldClass.Avatar)
-                    .SaveAsync(Lease(itemKind: 2), token);
-                return true;
-            }));
-
-        Assert.Contains(AvatarItemId.ToString(null, null), refusal.Message, StringComparison.Ordinal);
+        await Assert.ThrowsAsync<InvalidDataException>(() => database.InUseCaseAsync(async token =>
+        {
+            var lifecycle = Lifecycle(database, ItemWorldClass.Avatar);
+            await lifecycle.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(2, AvatarItemId, 1), true), token);
+            return true;
+        }));
         Assert.Equal(0, await database.CountAsync("SELECT COUNT(*) FROM items"));
     }
 
-    /// <summary>The same save, with the row saying what the archive says.</summary>
     [Fact]
-    public async Task AnEntrySaveKeepsARowThatSaysWhatTheArchiveSays()
+    public async Task CreationKeepsASnapshotThatAgreesWithTheAvatarTemplate()
     {
         await using var database = NewDatabase();
         await database.SeedCharacterAsync();
-        _ = await database.InUseCaseAsync(async token =>
+        await database.InUseCaseAsync(async token =>
         {
-            await Assembly(database, ItemWorldClass.Avatar).SaveAsync(Lease(itemKind: 8), token);
+            var item = await Lifecycle(database, ItemWorldClass.Avatar).CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(8, AvatarItemId, 1), false,
+                    avatar: new InventoryAvatarDetailState(1, 2, new byte[30], 3, 4, 5)), token);
+            await new SqliteItemDomainStore(database.Path).SessionIn(database.Scope.Current!).PutAsync(
+                ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Avatar), 0, item, token);
             return true;
         });
-
         Assert.Equal(1, await database.CountAsync("SELECT COUNT(*) FROM items"));
+        Assert.Equal(1, await database.CountAsync("SELECT COUNT(*) FROM item_slots"));
     }
 
     private const int WeaponId = 4001;
@@ -110,28 +101,6 @@ public sealed class ClassificationRefusalTests
     private static NewCharacterSpec SpecWearing(int itemId) => new(
         Account, "Nagisa"u8.ToArray(), Job: 3, SlotIndex: 0, CharacterBaseStats.Zero,
         InitialEquipment: [new NewCharacterEquipment(0, itemId, 100, ItemKind: 1)]);
-
-    private static EntryInventoryLeaseSnapshot Lease(byte itemKind) => new(
-        SelectedSessionIdentity.Create(
-            Account, new CharacterId(60), new NetworkConnectionId("Game:classify"), 1, 10011),
-        new CharacterItemLeaseState(
-            new CharacterId(60),
-            [
-                new InventoryContainerState(
-                    InventoryContainerType.Main,
-                    0,
-                    [
-                        new InventoryItemState(
-                            null,
-                            65,
-                            StackableItemCore.Create(itemKind, AvatarItemId, 1),
-                            itemKind == 8
-                                ? new InventoryAvatarDetailState(1, 2, new byte[30], 3, 4, 5)
-                                : null),
-                    ]),
-            ]),
-        1,
-        true);
 
     private static ICharacterRepository Roster(TestDatabase database, ItemWorldClass declared) =>
         new CharacterRosterService(
@@ -144,26 +113,11 @@ public sealed class ClassificationRefusalTests
             new SqliteCharacterExpertJobTable(database.Value),
             new SqliteCharacterContainerStateTable(database.Value),
             new SqliteCharacterItemTable(database.Value),
-            Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue());
+            Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue(),
+            new SqliteItemDomainStore(database.Path), Lifecycle(database, declared), database.Scope);
 
-    private static IEntryInventoryLeasePersistence Assembly(
-        TestDatabase database, ItemWorldClass declared) =>
-        new InventoryEntryAssembly(
-            new SqliteCharacterTable(database.Value),
-            new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(),
-                Rules(declared), new ItemArrivalRuleService(),
-                items: new SqliteItemDomainStore(database.Path), transactions: database.Scope, slotRules: new ItemSlotRuleService()),
-            new SqliteCharacterItemTable(database.Value),
-            new SqliteAccountCargoItemTable(database.Value),
-            new SqliteCharacterContainerStateTable(database.Value),
-            new SqliteAccountCargoStateTable(database.Value),
-            new SqliteCharacterGoldLimitTable(database.Value),
-            new SqliteCharacterCarriedGoldTable(database.Value),
-            new SqliteCharacterItemCooldownTable(database.Value),
-            new SqliteCharacterItemEffectTable(database.Value),
-            new SqliteCharacterItemLockTable(database.Value),
-            new SqliteCharacterRentalTable(database.Value),
-            Rules(declared));
+    private static IItemLifecycleDomainService Lifecycle(TestDatabase database, ItemWorldClass declared) =>
+        new ItemLifecycleDomainService(new SqliteItemDomainStore(database.Path), database.Scope, Rules(declared));
 
     private static ItemPlacementRuleService Rules(ItemWorldClass declared) =>
         new(new Declaring(declared), new NoWornSlots());
@@ -173,7 +127,10 @@ public sealed class ClassificationRefusalTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(
-                new ItemPlacement(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 120))
+                new ItemPlacement(declared == ItemWorldClass.Avatar ? (byte)8 : (byte)1, 1,
+                    declared == ItemWorldClass.Avatar
+                        ? new(BusinessInventorySpace.Avatar, 0, 255)
+                        : new(BusinessInventorySpace.CarriedEquipment, 0, 120))
                 { WorldClass = declared });
     }
 
@@ -203,7 +160,7 @@ public sealed class ClassificationRefusalTests
             return result;
         }
 
-        /// <summary>The character a lease save writes back for, which must already exist.</summary>
+        /// <summary>The owner of the new item's destination.</summary>
         public async Task SeedCharacterAsync()
         {
             await using var connection = this.Open();

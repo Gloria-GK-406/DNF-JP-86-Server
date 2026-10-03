@@ -166,12 +166,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         // number on purpose: that value is what the wire shows for a creature, it is not the key
         // its condition is kept under, and a revival that went looking by it would find the wrong
         // creature or none.
-        items.SessionIn(accessor.Current!).Write(
-            ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
-            new StoredItem(25, Core(itemKind: 5, itemId: 1, value: 999))
-            {
-                Identity = new ItemIdentity(77),
-            });
+        items.Seed(ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment), 25,
+            ItemSnapshot.FromCore(Core(itemKind: 5, itemId: 1, value: 999), false, new(77),
+                creature: new(0, 0, 0, 0, 0, 1, [], 0)));
         var service = new SelectCharacterPetEntryService(
             characters, items, new AmbientStoreAccess(accessor));
 

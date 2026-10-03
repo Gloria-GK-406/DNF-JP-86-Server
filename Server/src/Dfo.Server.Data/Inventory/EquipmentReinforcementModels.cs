@@ -37,7 +37,7 @@ public enum EquipmentReinforcementOutcome : byte
 /// <summary>A final slot state from the committed operation; null means empty.</summary>
 public sealed record EquipmentReinforcementSlotChange(
     BusinessSlot Slot,
-    InventoryItemCoreState? Core);
+    ItemSnapshot? Core);
 
 public sealed record EquipmentReinforcementReward(BusinessSlot Slot, int ItemId, int Count);
 

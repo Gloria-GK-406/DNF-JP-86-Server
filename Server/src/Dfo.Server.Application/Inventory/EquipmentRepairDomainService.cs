@@ -44,15 +44,15 @@ internal sealed class EquipmentRepairDomainService(
         {
             var bound = slots.Find(session.CharacterId, repairSlot);
             if (bound is null) continue;
-            var item = await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
-            if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
+            var item = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+            if (item is null || (item.IsPile || !item.Type.HasFlag(ItemTraits.Equipment))) continue;
             var instance = await equipments.Of(session.CharacterId).FindAtAsync(repairSlot, cancellationToken).ConfigureAwait(false);
             if (instance is null) continue;
             var facts = await instance.ReadAsync(cancellationToken).ConfigureAwait(false);
-            var durability = await rules.AutoRepairDurabilityAsync(facts.Core, cancellationToken).ConfigureAwait(false);
+            var durability = await rules.AutoRepairDurabilityAsync(facts.Snapshot, cancellationToken).ConfigureAwait(false);
             if (durability is null) return new(EquipmentRepairRejection.CannotRepair);
-            broken |= durability > 0 && facts.Core.Durability == 0;
-            if (facts.Core.Durability < durability)
+            broken |= durability > 0 && facts.Snapshot.Durability == 0;
+            if (facts.Snapshot.Durability < durability)
                 candidates.Add((instance, durability.Value));
         }
         // Do not trust the client's in-flight flag: stale/duplicate or forged requests must
@@ -97,9 +97,9 @@ internal sealed class EquipmentRepairDomainService(
             {
                 var bound = slots.Find(session.CharacterId, repairSlot);
                 if (bound is null) continue;
-                var item = await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken)
+                var item = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken)
                     .ConfigureAwait(false);
-                if (item is null || item.WorldClass != ItemWorldClass.Equipment) continue;
+                if (item is null || (item.IsPile || !item.Type.HasFlag(ItemTraits.Equipment))) continue;
                 var candidate = await QuoteAsync(session.CharacterId, repairSlot, rule, cancellationToken)
                     .ConfigureAwait(false);
                 if (candidate is not null) candidates.Add(candidate.Value);
@@ -114,9 +114,9 @@ internal sealed class EquipmentRepairDomainService(
             var bound = slots.Find(session.CharacterId, slot.Value);
             var item = bound is null
                 ? null
-                : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+                : await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
             if (item is null) return new(EquipmentRepairRejection.ItemUnavailable);
-            if (item.WorldClass != ItemWorldClass.Equipment)
+            if ((item.IsPile || !item.Type.HasFlag(ItemTraits.Equipment)))
                 return new(EquipmentRepairRejection.CannotRepair);
             var candidate = await QuoteAsync(session.CharacterId, slot.Value, rule, cancellationToken).ConfigureAwait(false);
             if (candidate is null) return new(EquipmentRepairRejection.CannotRepair);
@@ -154,7 +154,7 @@ internal sealed class EquipmentRepairDomainService(
         var equipment = await equipments.Of(owner).FindAtAsync(slot, cancellationToken).ConfigureAwait(false);
         if (equipment is null) return null;
         var facts = await equipment.ReadAsync(cancellationToken).ConfigureAwait(false);
-        var quote = await rule.QuoteAsync(facts.Core, cancellationToken).ConfigureAwait(false);
+        var quote = await rule.QuoteAsync(facts.Snapshot, cancellationToken).ConfigureAwait(false);
         return quote is null ? null : (equipment, quote);
     }
 }

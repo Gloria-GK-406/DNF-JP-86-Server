@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -13,7 +14,7 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Administration;
 
 internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence, IGmAccessDomainService access,
-    IGmMailRuleService rules, IMailboxDomainService mailbox, IWorldItemTable worldItems,
+    IGmMailRuleService rules, IMailboxDomainService mailbox, IItemLifecycleDomainService lifecycle,
     ICharacterTable characters, IGmAuditDomainService audit, IDomainTransactionAccessor transactions,
     TimeProvider clock) : IGmOfficialMailDomainService
 {
@@ -119,6 +120,7 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
         {
             var builder = MailBuilder.FromSystem(new CharacterId(target.CharacterId)).WithText(input.Title, input.Body).ExpiresAt(expires);
             var uids = new List<int>();
+            var records = new List<ItemRecord>();
             foreach (var grant in grants)
             {
                 if (grant.Preview.Kind == "equipment")
@@ -126,14 +128,21 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
                     {
                         int instanceValue;
                         do { instanceValue = Random.Shared.Next(1, int.MaxValue); } while (!instanceValues.Add(instanceValue));
-                        var core = grant.Core with { Value = instanceValue };
-                        var uid = await worldItems.InsertAsync(core, null, null, token);
-                        uids.Add(uid); builder.AddEquipment(new ItemIdentity(uid));
+                        var record = await lifecycle.CreateAsync(grant.Snapshot with { InstanceValue = instanceValue }, token);
+                        var uid = record.ItemUid!.Value.Value;
+                        records.Add(record); uids.Add(uid); builder.AddEquipment(new ItemIdentity(uid));
                     }
-                else builder.AddStackable(grant.Requested.ItemId, grant.Requested.Count);
+                else
+                {
+                    records.Add(await lifecycle.CreateAsync(grant.Snapshot, token));
+                    builder.AddStackable(grant.Requested.ItemId, grant.Requested.Count);
+                }
             }
             if (input.Gold > 0) builder.AddGold(input.Gold);
-            var mailed = await mailbox.SendAsync(builder.Build(), token);
+            var mail = builder.Build();
+            var prepared = mail.Attachments.Select((asset, index) => asset is MailAsset.Gold
+                ? new PreparedMailAttachment(asset) : new PreparedMailAttachment(asset, [records[index]])).ToArray();
+            var mailed = await mailbox.SendPreparedAsync(mail, prepared, token);
             await persistence.AssertMailWireRangeAsync(mailed.MailId, token);
             sent.Add(new(Recipient(target), target.AccountId, mailed.MailId, uids.ToArray()));
         }

@@ -28,18 +28,18 @@ public sealed class PvfMailItemDefinitionSourceTests
 
         var rule = new MailItemRuleService(source);
         Assert.True((await rule.CanSendAsync(
-            StackableItemCore.Create(1, 10018, 1), false, CancellationToken.None)).Allowed);
+            ItemSnapshot.FromCore(StackableItemCore.Create(1, 10018, 1), false), false, CancellationToken.None)).Allowed);
         Assert.Equal(MailItemSendRefusal.Unsealed,
-            (await rule.CanSendAsync(StackableItemCore.Create(1, 10020, 1), false,
+            (await rule.CanSendAsync(ItemSnapshot.FromCore(StackableItemCore.Create(1, 10020, 1), false), false,
                 CancellationToken.None)).Refusal);
         Assert.True((await rule.CanSendAsync(
-            StackableItemCore.Create(1, 10020, 1) with { SealFlag = 1 }, false,
+            ItemSnapshot.FromCore(StackableItemCore.Create(1, 10020, 1), false) with { SealFlag = 1 }, false,
             CancellationToken.None)).Allowed);
         Assert.Equal(MailItemSendRefusal.AccountBound,
-            (await rule.CanSendAsync(StackableItemCore.Create(1, 10194, 1), false,
+            (await rule.CanSendAsync(ItemSnapshot.FromCore(StackableItemCore.Create(1, 10194, 1), false), false,
                 CancellationToken.None)).Refusal);
         Assert.Equal(MailItemSendRefusal.TemplateTradeRestricted,
-            (await rule.CanSendAsync(StackableItemCore.Create(2, 9, 1), true,
+            (await rule.CanSendAsync(ItemSnapshot.FromCore(StackableItemCore.Create(2, 9, 1), true), true,
                 CancellationToken.None)).Refusal);
     }
 }

@@ -6,7 +6,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentEnchantRuleService(IEquipmentEnchantContentSource content) : IEquipmentEnchantRuleService
 {
-    public async ValueTask<int?> CardAsync(InventoryItemCoreState bead, int equipmentItemId, CancellationToken ct)
+    public async ValueTask<int?> CardAsync(ItemSnapshot bead, int equipmentItemId, CancellationToken ct)
     {
         // Independent upgraded-bead effects are outside the currently supported enchantment scope.
         if (bead.EnchantUpgradeCount != 0) return null;

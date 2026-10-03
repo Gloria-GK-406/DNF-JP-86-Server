@@ -194,27 +194,12 @@ public sealed class CharacterContainerDomainServiceTests
             int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This container holds nothing.");
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ContainerSlotItem?>(null);
-
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ContainerSlotPair(null, null));
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<InventoryItemState>>([]);
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>([]);
-
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
-            ValueTask.CompletedTask;
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.CompletedTask;
+        public ValueTask<ItemReference?> GetAsync(int slot, CancellationToken ct) => ValueTask.FromResult<ItemReference?>(null);
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<ItemReference>>([]);
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<InventoryItemState>>([]);
+        public ValueTask<ItemReference> PutAsync(int slot, ItemRecord item, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemRecord> TakeAsync(ItemReference item, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference> UpdateAsync(ItemReference item, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
     }
 }

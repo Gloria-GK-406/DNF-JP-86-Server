@@ -24,7 +24,7 @@ public sealed class SplitPileTests
     private const int PotionId = 1234;
 
     /// <summary>The kind byte the seeded pile carries, and the one a new pile must carry too.</summary>
-    private const byte PotionKind = 6;
+    private const byte PotionKind = 2;
 
     /// <summary>
     /// Splitting a pile leaves two usable slots, and the new one is marked with nothing.
@@ -50,8 +50,8 @@ public sealed class SplitPileTests
             Assert.Equal(new ItemMoveOutcome.Moved(2, PotionId), moved);
 
             var (left, opened) = await side.InUseCaseAsync(async token => (
-                await bag.ReadSlotAsync(65, token).ConfigureAwait(false),
-                await bag.ReadSlotAsync(66, token).ConfigureAwait(false)));
+                await bag.GetAsync(65, token).ConfigureAwait(false),
+                await bag.GetAsync(66, token).ConfigureAwait(false)));
 
             // Both slots hold a usable pile, said the same way: what sort of thing it is, what it
             // is, and how many. Nothing but the count differs between them.
@@ -59,12 +59,12 @@ public sealed class SplitPileTests
             Assert.NotNull(opened);
             Assert.True(left.IsPile);
             Assert.True(opened.IsPile);
-            Assert.Equal((PotionKind, PotionId, 3), (left.ItemKind, left.ItemId, left.Count));
-            Assert.Equal((PotionKind, PotionId, 2), (opened.ItemKind, opened.ItemId, opened.Count));
+            Assert.Equal((PotionKind, PotionId, 3), (left.Snapshot.LegacyKind, left.ItemId, left.Count));
+            Assert.Equal((PotionKind, PotionId, 2), (opened.Snapshot.LegacyKind, opened.ItemId, opened.Count));
 
             // Splitting must not remove restrictions or expiry from either half.
-            Assert.Equal(Marked(3), left.Core);
-            Assert.Equal(Marked(2), opened.Core);
+            Assert.Equal(Marked(3), left.Snapshot.ToCore());
+            Assert.Equal(Marked(2), opened.Snapshot.ToCore());
 
             // Neither position names a world row, so neither half has a name for anything to tell
             // it apart by -- which is the same thing the projection says a moment later.
@@ -82,7 +82,7 @@ public sealed class SplitPileTests
                     .ToArray());
             Assert.All(
                 projected,
-                item => Assert.Equal(ItemSlotKind.Template, item.Holds.Kind));
+                item => Assert.Null(item.Identity));
         }
         finally
         {
@@ -201,8 +201,9 @@ public sealed class SplitPileTests
         command.CommandText =
             "INSERT INTO items(item_core) VALUES(@core);"
             + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-            + "VALUES('character',@cid,0,@slot,'world',last_insert_rowid(),"
-            + "last_insert_rowid(),1)";
+            + "VALUES('character',@cid,0,@slot,'template',@id,last_insert_rowid(),@count)";
+        command.Parameters.AddWithValue("@id", core.ItemId);
+        command.Parameters.AddWithValue("@count", core.Value);
         command.Parameters.AddWithValue("@cid", Character);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", InventoryItemCore.Encode(core));

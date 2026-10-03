@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Transactions;
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
@@ -34,7 +35,8 @@ internal sealed class CharacterRosterService(
     ICharacterExpertJobTable expertJob,
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
-    IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue) : ICharacterRepository
+    IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue,
+    IItemDomainStore itemStore, IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -268,66 +270,23 @@ internal sealed class CharacterRosterService(
             }
         }
 
-        // Worn, not carried. The pieces the archive names are the ones the character fights with,
-        // and a character holding them in its bag reaches the world unarmed: the entry frame
-        // reports what is in the equipment container, so an empty one is a character that cannot
-        // attack and whose weapon-bound skills the client draws greyed.
+        var itemSession = itemStore.SessionIn(transactions.Current
+            ?? throw new InvalidOperationException("Character creation requires a transaction."));
         foreach (var piece in equipment)
         {
-            // Classified before it is written, out of the one place that classifies. A worn slot
-            // holds one thing rather than a pile, so a starting piece the archive declares
-            // interchangeable is a mistake in the creation table rather than a character who
-            // begins with a stack of potions welded to their shoulder.
-            var worldClass = await placementRules
-                .ClassifyAsync(piece.ItemId, cancellationToken).ConfigureAwait(false);
-            if (worldClass == ItemWorldClass.Interchangeable)
-            {
-                throw new InvalidDataException(
-                    $"Starting piece {piece.ItemId} is not an individual piece the archive "
-                    + "declares wearable, so it cannot be worn in slot "
-                    + $"{piece.SlotIndex}.");
-            }
-
-            // Two rows, because a thing and where it is are two facts. The piece goes into the
-            // world first and is given an identity there; the equipment slot then says it holds
-            // that identity. Writing only the first would leave a piece nothing anywhere points
-            // at -- a character created unarmed, and a row the orphan read would rightly report.
-            var identity = await items
-                .InsertOwnAsync(EquipmentCore(piece), null, cancellationToken)
-                .ConfigureAwait(false);
-            if (identity is not { } named)
-            {
-                throw new InvalidDataException(
-                    $"Starting piece {piece.ItemId} could not be put into the world.");
-            }
-
-            var worn = checked((int)named);
-            if (await items.HoldOwnAsync(
-                    characterId,
-                    (int)InventoryContainerType.Equipment,
-                    piece.SlotIndex,
-                    ItemSlotKind.World,
-                    worn,
-                    worn,
-                    1,
-                    cancellationToken).ConfigureAwait(false) != 1)
-            {
-                throw new InvalidDataException(
-                    $"Two starting pieces claim equipment slot {piece.SlotIndex}.");
-            }
+            if (await placementRules.ClassifyAsync(piece.ItemId, cancellationToken).ConfigureAwait(false) != ItemWorldClass.Equipment)
+                throw new InvalidDataException($"Starting piece {piece.ItemId} is not wearable equipment.");
+            var snapshot = new ItemSnapshot { ItemId = piece.ItemId, LegacyKind = piece.ItemKind,
+                Type = ItemTraitClassification.For(piece.ItemKind, piece.ItemId), IsPile = false,
+                InstanceValue = Random.Shared.Next(1, int.MaxValue), Durability = piece.Durability };
+            var record = await lifecycle.CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            await itemSession.PutAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Equipment),
+                piece.SlotIndex, record, cancellationToken).ConfigureAwait(false);
         }
-
-        // A creation gift, settled with the character so a failed creation grants nothing.
-        var coinIdentity = await items.InsertOwnAsync(
-            StackableItemCore.Create(0, ReviveCoinItemId, InitialReviveCoins),
-            null, cancellationToken).ConfigureAwait(false);
-        if (coinIdentity is not { } coinUid || await items.HoldOwnAsync(
-                characterId, (int)InventoryContainerType.Main, ReviveCoinSlot,
-                ItemSlotKind.Template, ReviveCoinItemId, checked((int)coinUid),
-                InitialReviveCoins, cancellationToken).ConfigureAwait(false) != 1)
-        {
-            throw new InvalidDataException("Starting revival coins could not be granted.");
-        }
+        var coins = await lifecycle.CreateAsync(new ItemSnapshot { ItemId = ReviveCoinItemId,
+            LegacyKind = 0, Type = ItemTraits.None, IsPile = true, Count = InitialReviveCoins }, cancellationToken).ConfigureAwait(false);
+        await itemSession.PutAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Main), ReviveCoinSlot,
+            coins, cancellationToken).ConfigureAwait(false);
 
         // The rows without which the character cannot be entered. Each of the six holds one
         // row per character for as long as the character exists, so this is where they begin.
@@ -355,34 +314,6 @@ internal sealed class CharacterRosterService(
                 nameof(accountId), "Account ID must be positive.");
         }
     }
-
-    /// <summary>A freshly made piece of equipment, as the item core records one.</summary>
-    /// <remarks>
-    /// Four fields carry something and the rest are zero, which is what a working A21 session's
-    /// newly created pieces hold: the kind the creation rules give every worn item, the
-    /// identifier, the durability its own definition declares, and an instance value that
-    /// distinguishes one piece from another. <c>Marker16</c> is -1 and
-    /// <c>RandomOptionChangedIndex</c> is 255 because that is what an untouched core reads as
-    /// there -- both are "nothing here" rather than zeroes that mean something.
-    ///
-    /// The instance value is drawn rather than sequenced. Nothing in this repository reads it yet;
-    /// what it must be is distinct, and a sequence would need a row of its own to stay distinct
-    /// across restarts.
-    /// </remarks>
-    private static InventoryItemCoreState EquipmentCore(NewCharacterEquipment piece) =>
-        new(piece.ItemKind, piece.ItemId, Random.Shared.Next(1, int.MaxValue), 0,
-            piece.Durability, 0, 0, 0, 0, 0, UntouchedMarker,
-            EmptyChronicle, EmptyChronicle, 0, 0, 0, 0, 0,
-            EmptyRandomOption, EmptyRandomOption, EmptyRandomOption, 0, UntouchedRandomOptionIndex,
-            0, EmptyRandomOption, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    private const int UntouchedMarker = -1;
-
-    private const byte UntouchedRandomOptionIndex = 255;
-
-    private static readonly ChronicleOptionState EmptyChronicle = new(0, 0, 0, 0, 0);
-
-    private static readonly RandomOptionState EmptyRandomOption = new(0, 0, 0);
 
     /// <summary>How many skill trees a character owns.</summary>
     private const int SkillPageCount = 2;

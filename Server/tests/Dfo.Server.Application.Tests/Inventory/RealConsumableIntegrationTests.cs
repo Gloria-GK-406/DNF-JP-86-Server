@@ -34,7 +34,7 @@ public sealed class RealConsumableIntegrationTests
         {
             await using var tx = f.Scope.Begin();
             var source = (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
-                .Get(f.Session.CharacterId, PetSource).Container.ReadSlotAsync(0, default))!;
+                .Get(f.Session.CharacterId, PetSource).Container.GetAsync(0, default))!;
             var applied = await f.Services.GetRequiredService<IItemUseEffectDomainService>().UseAsync(f.Session, PetSource, source, default);
             Assert.Equal(ItemUsability.Allowed, applied.Status);
             Assert.Equal(80, Assert.Single(applied.Applied!.Changes<PetStomachChange>()).Change.After.Stomach);
@@ -74,7 +74,7 @@ public sealed class RealConsumableIntegrationTests
             await using var tx = f.Scope.Begin();
             var receipt = await f.Services.GetRequiredService<ICreatureNamingDomainService>()
                 .RenameAsync(f.Session, PetSource, [0x82, 0xA0], default);
-            Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.Value);
+            Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.ToCore().Value);
             var database = f.Services.GetRequiredService<SqliteDatabase>();
             var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
             if (lateFailure) f.Scope.Current!.Enlist(new object(), () => new AfterFlush(async () => {
@@ -212,7 +212,8 @@ public sealed class RealConsumableIntegrationTests
     private static async Task SeedSource(LearningFixture f, int item, InventoryContainerType type, int wire)
     {
         var container = Register(f, type); await using var tx = f.Scope.Begin();
-        await container.PutAsync(wire, StackableItemCore.Create(type == InventoryContainerType.Pet ? (byte)7 : (byte)2, item, 2), default);
+        await container.PutAsync(wire, await f.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
+            ItemSnapshot.FromCore(StackableItemCore.Create(type == InventoryContainerType.Pet ? (byte)7 : (byte)2, item, 2), true), default), default);
         await tx.CommitAsync(default);
     }
     private static void SeedPet(LearningFixture f)

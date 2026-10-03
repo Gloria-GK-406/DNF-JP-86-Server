@@ -116,7 +116,7 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
                         foreach (var addition in basic.Additions.Where(x => x.Slot.Space == BusinessInventorySpace.SharedMaterial))
                         {
                             var bound = inventorySlots.Find(command.CharacterId, addition.Slot)!;
-                            var held = await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false)
+                            var held = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false)
                                 ?? throw new InvalidDataException("Shared reward disappeared before commit.");
                             account.Add(new(slots.ToGameSlot(addition.Slot).Index, held.ItemId, held.Count));
                         }

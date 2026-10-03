@@ -173,6 +173,7 @@ public sealed class CreatureGoesBackOnTests
     private sealed class Fixture
     {
         private readonly string path;
+        private readonly IItemDomainStore store;
 
         private readonly CharacterId character = new(Character);
 
@@ -190,7 +191,7 @@ public sealed class CreatureGoesBackOnTests
             var rules = new ItemPlacementRuleService(
                 content.GetRequiredService<IItemPlacementDefinitionSource>(),
                 content.GetRequiredService<IEquipmentSlotDefinitionSource>());
-            var store = new SqliteItemDomainStore(databasePath);
+            var store = this.store = new SqliteItemDomainStore(databasePath);
             this.normalizer = new LegacyWornItemNormalizer(store, rules,
                 new Dfo.Server.Application.Characters.AmbientStoreAccess(this.scope));
             var containers = new CharacterContainerDomainService();
@@ -228,10 +229,10 @@ public sealed class CreatureGoesBackOnTests
         {
             var equipment = this.Containers.FindContainer(this.character, InventoryContainerType.Equipment)!;
             await using var lease = this.scope.Begin();
-            await equipment.PutNewAsync(24,
-                StackableItemCore.Create(CreatureKind, ContractCreatureItemId, 1),
-                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(
-                    7, 1, 42, 2, 3, 9, [1, 2, 3], 4)), CancellationToken.None);
+            var session = store.SessionIn(scope.Current!);
+            await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(CreatureKind, ContractCreatureItemId, 1), false,
+                creature: new(7, 1, 42, 2, 3, 9, [1, 2, 3], 4)), default), default);
             await lease.CommitAsync(CancellationToken.None);
         }
 
@@ -247,12 +248,10 @@ public sealed class CreatureGoesBackOnTests
         {
             var bag = this.Containers.FindContainer(this.character, InventoryContainerType.Pet)!;
             await using var lease = this.scope.Begin();
-            await bag.PutNewAsync(
-                slotIndex,
-                StackableItemCore.Create(CreatureKind, ContractCreatureItemId, 1),
-                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(
-                    100, 0, 0, 0, 0, 1, [], 0)),
-                CancellationToken.None);
+            var session = store.SessionIn(scope.Current!);
+            await session.PutAsync(bag.Id, slotIndex, await session.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(CreatureKind, ContractCreatureItemId, 1), false,
+                creature: new(100, 0, 0, 0, 0, 1, [], 0)), default), default);
             await lease.CommitAsync(CancellationToken.None);
         }
 

@@ -590,34 +590,34 @@ public sealed class PaidCardFlipCostTests
                 new ItemPlacementOutcome.PutInEmptySlot(Slot, count));
         }
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+        public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Landed is { } core
-                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
+                    ? new ItemReference(this, Id, slotIndex, 0, ItemSnapshot.FromCore(core, true))
                     : null);
 
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.Landed = core;
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
 
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
             CancellationToken cancellationToken) =>
             throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
             CancellationToken cancellationToken) =>
             throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
+        {
+            var current = await GetAsync(reference.StorageSlotIndex, ct) ?? throw new InvalidOperationException();
+            if (!current.SameOccupancyAs(reference)) throw new InvalidOperationException();
+            Landed = change(current.Snapshot).ToCore();
+            return (await GetAsync(reference.StorageSlotIndex, ct))!;
+        }
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
         public ValueTask<ItemPlacementOutcome> RefillAsync(
             ItemRefill refill, CancellationToken cancellationToken) =>

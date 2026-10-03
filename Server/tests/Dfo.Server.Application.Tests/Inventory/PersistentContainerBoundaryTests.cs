@@ -30,12 +30,12 @@ public sealed class PersistentContainerBoundaryTests
     [Fact]
     public async Task ChangingItOutsideAUseCaseIsRefused()
     {
-        var container = Persistent(new DomainTransactionScope());
+        var container = Persistent(new DomainTransactionScope(), out var lifecycle);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await container.PutAsync(3, Core(1), CancellationToken.None));
+            async () => await lifecycle.CreateAsync(ItemSnapshot.FromCore(Core(1), true), CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await container.ClearAsync(3, CancellationToken.None));
+            async () => await container.AddAsync(8474, 1, CancellationToken.None));
     }
 
     /// <remarks>
@@ -45,24 +45,24 @@ public sealed class PersistentContainerBoundaryTests
     [Fact]
     public async Task ReadingItOutsideAUseCaseIsAllowed()
     {
-        var container = Persistent(new DomainTransactionScope());
+        var container = Persistent(new DomainTransactionScope(), out var lifecycle);
 
-        Assert.Null(await container.ReadSlotAsync(3, CancellationToken.None));
+        Assert.Null(await container.GetAsync(3, CancellationToken.None));
     }
 
     [Fact]
     public async Task InsideAUseCaseItAccepts()
     {
         var scope = new DomainTransactionScope();
-        var container = Persistent(scope);
+        var container = Persistent(scope, out var lifecycle);
 
         await using (var transaction = scope.Begin())
         {
-            await container.PutAsync(3, Core(2), CancellationToken.None);
+            await container.PutAsync(65, await lifecycle.CreateAsync(ItemSnapshot.FromCore(Core(2), true), default), default);
             await transaction.CommitAsync(CancellationToken.None);
         }
 
-        Assert.Equal(2, (await container.ReadSlotAsync(3, CancellationToken.None))!.Count);
+        Assert.Equal(2, (await container.GetAsync(65, CancellationToken.None))!.Count);
     }
 
     /// <remarks>
@@ -74,28 +74,30 @@ public sealed class PersistentContainerBoundaryTests
     public void WhatAContainerHandsBackNamesASlotAndWhatIsInIt()
     {
         Assert.DoesNotContain(
-            typeof(ContainerSlotItem).GetProperties(),
+            typeof(ItemReference).GetProperties(),
             property => property.Name.Contains("Entry", StringComparison.Ordinal)
-                || property.Name.Contains("Uid", StringComparison.Ordinal)
                 || property.Name.Contains("RowId", StringComparison.Ordinal));
     }
 
-    private static IItemContainer Persistent(DomainTransactionScope scope)
+    private static IItemContainer Persistent(DomainTransactionScope scope, out IItemLifecycleDomainService lifecycle)
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-boundary-{Guid.NewGuid():N}.db");
         _ = new SqliteDatabase(path, new DomainTransactionScope());
+        var store = new SqliteItemDomainStore(path);
+        var rules = new ItemPlacementRuleService(new MainBandPlacements(), new NoWearables());
+        lifecycle = new ItemLifecycleDomainService(store, scope, rules);
         return new PersistentItemContainer(
             Main,
             new CharacterId(60),
             new ContainerShape(InventoryContainerType.Main, 0),
-            new SqliteItemDomainStore(path),
+            store,
             scope,
             null!,
             // A write classifies what it is about to write, so this one is supplied rather than
             // left null. It answers what these piles are: an ordinary consumable of the main band.
-            new ItemPlacementRuleService(new MainBandPlacements(), new NoWearables()),
-            null!,
-            null!);
+            rules,
+            new ItemArrivalRuleService(),
+            new ItemSlotRuleService());
     }
 
     private sealed class MainBandPlacements : IItemPlacementDefinitionSource

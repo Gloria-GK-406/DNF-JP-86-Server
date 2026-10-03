@@ -29,8 +29,8 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
         var into = slots.Find(session.CharacterId, destination);
         if (from is null || into is null || !Owned(from) || !Owned(into))
             return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
-        var first = await from.Container.ReadSlotAsync(source.Index, cancellationToken).ConfigureAwait(false);
-        var second = await into.Container.ReadSlotAsync(destination.Index, cancellationToken).ConfigureAwait(false);
+        var first = await from.Container.GetAsync(source.Index, cancellationToken).ConfigureAwait(false);
+        var second = await into.Container.GetAsync(destination.Index, cancellationToken).ConfigureAwait(false);
         if (first is null && second is null) return new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty);
         if (first is null) (from, into, first, second) = (into, from, second, first);
         if (from.Container.StorageId != into.Container.StorageId)
@@ -51,7 +51,7 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
             var openSlots = await into.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
             if (into.Slot.Index < 0 || into.Slot.Index >= openSlots)
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
-            var occupied = (await into.Container.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            var occupied = (await into.Container.GetAllAsync(cancellationToken).ConfigureAwait(false))
                 .Select(item => item.SlotIndex).ToHashSet();
             var empty = Enumerable.Range(0, openSlots).FirstOrDefault(index => !occupied.Contains(index), -1);
             if (empty < 0) return new ItemMoveOutcome.Refused(ItemMoveRefusal.ContainerFull);
@@ -74,19 +74,19 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
 
 internal sealed class CargoItemRuleService(ICargoItemDefinitionSource content) : ICargoItemRuleService
 {
-    public async ValueTask<bool> CanStoreAsync(BusinessInventorySpace destination, ContainerSlotItem item,
+    public async ValueTask<bool> CanStoreAsync(BusinessInventorySpace destination, ItemReference item,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (!ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(destination), item.Core.Traits)
-            || item.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
-            || item.Core.ExpireTime > 0 && item.Core.ExpireTime <= now.ToUnixTimeSeconds()) return false;
+        if (!ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(destination), item.Type)
+            || !item.IsPile && item.Type is ItemTraits.Avatar or ItemTraits.Creature
+            || item.Snapshot.ExpireTime > 0 && item.Snapshot.ExpireTime <= now.ToUnixTimeSeconds()) return false;
         var definition = await content.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is null) return false;
         if (destination == BusinessInventorySpace.PersonalCargo)
             return definition.AttachType != "trade delete" && !definition.ImpossibleContents.Contains("charac cargo");
         if (destination != BusinessInventorySpace.AccountCargo || definition.ImpossibleContents.Contains("account cargo")
-            || item.Core.EquipmentLockId != 0 || item.Core.TradeRestriction != 0) return false;
+            || item.Snapshot.EquipmentLockId != 0 || item.Snapshot.TradeRestriction != 0) return false;
         return definition.AttachType is "free" or "account"
-            || definition.AttachType == "sealing" && item.Core.SealFlag != 0;
+            || definition.AttachType == "sealing" && item.Snapshot.SealFlag != 0;
     }
 }

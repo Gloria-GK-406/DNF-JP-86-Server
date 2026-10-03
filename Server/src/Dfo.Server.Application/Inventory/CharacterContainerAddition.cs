@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Inventory;
 // The registry exposes this operation; this collaborator owns routing and full-quantity delivery.
 internal sealed class CharacterContainerAddition(IItemPlacementRuleService placements, ICharacterTable owners,
     DomainTransactionScope transactions, IItemDomainStore store,
-    IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules,
+    IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules, IItemLifecycleDomainService lifecycle,
     ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)
 {
     public async ValueTask<ContainerAddition> AddAsync(ICharacterContainerDomainService containers,
@@ -40,7 +40,7 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
             if (!bag.Id.TryGetOwner(out var actualOwner, out var actualType)
                 || actualOwner != expectedOwner || actualType != type || bag.Type != type)
                 throw new InvalidOperationException("The selected container belongs to another owner or inventory type.");
-            var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures, capacities);
+            var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures, capacities, lifecycle);
             var changes = new List<ContainerItemAddition>();
             var remaining = count;
             while (remaining > 0)

@@ -27,7 +27,7 @@ internal sealed class SeekingQuestProgressDomainService(
         var bag = containers.FindContainer(characterId, InventoryContainerType.Main);
         if (bag is null)
             return null;
-        var items = await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var items = await bag.GetAllAsync(cancellationToken).ConfigureAwait(false);
         var counts = items
             .Where(item => item.ItemId > 0)
             .GroupBy(item => item.ItemId)

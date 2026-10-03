@@ -60,7 +60,7 @@ public sealed class ItemIdentityArchitectureTests
     private static readonly Assembly[] Production =
     [
         typeof(InventoryItemState).Assembly,
-        typeof(InventoryStorageItem).Assembly,
+        typeof(ItemReference).Assembly,
         typeof(ItemContainerOperations).Assembly,
         typeof(InventoryItemCore).Assembly,
         typeof(ChannelConnectHandler).Assembly,
@@ -101,8 +101,6 @@ public sealed class ItemIdentityArchitectureTests
             .Where(member => member.Type == typeof(ItemIdentity))
             // Equipment-only custody references cannot describe a pile; their identity is required.
             .Where(member => member.Owner != typeof(Dfo.Server.Data.Mail.MailAsset.Equipment)
-                && member.Owner != typeof(Dfo.Server.Abstractions.Inventory.EquipmentTransferItem)
-                && member.Owner != typeof(Dfo.Server.Abstractions.Inventory.EquipmentTransferOwnedItem)
                 && member.Owner != typeof(Dfo.Server.Abstractions.Effects.EquipmentEffectTarget))
             .Select(member => $"{member.Owner.FullName}.{member.Name}")
             .OrderBy(value => value, StringComparer.Ordinal)
@@ -125,6 +123,8 @@ public sealed class ItemIdentityArchitectureTests
     {
         var violations = Members()
             .Where(member => RowKeyNames.Contains(member.Name, StringComparer.Ordinal))
+            // A typed optional world identity is not a storage row key.
+            .Where(member => member.Type != typeof(ItemIdentity?))
             .Where(member => !IsGateway(member.Owner))
             // A creature is always one world instance; its item UID is its domain identity.
             .Where(member => !IsWorldInstanceIdentity(member.Owner))
@@ -140,7 +140,6 @@ public sealed class ItemIdentityArchitectureTests
         type == typeof(CreatureState)
         || type == typeof(AddPetStomachEffect)
         || type == typeof(RenamePetEffect)
-        || type == typeof(EquipmentInstanceFacts)
         || type == typeof(IEggInstance) || type == typeof(IPetInstance) || type == typeof(IEquipmentInstance)
         || typeof(IEggInstance).IsAssignableFrom(type)
         || typeof(IPetInstance).IsAssignableFrom(type)
@@ -150,7 +149,7 @@ public sealed class ItemIdentityArchitectureTests
     public void WorldInstanceIdentityPermissionDoesNotAdmitGenericInventoryOrPiles()
     {
         Assert.True(IsWorldInstanceIdentity(typeof(RenamePetEffect)));
-        Assert.False(IsWorldInstanceIdentity(typeof(ContainerSlotItem)));
+        Assert.False(IsWorldInstanceIdentity(typeof(ItemReference)));
         Assert.False(IsWorldInstanceIdentity(typeof(InventoryItemState)));
         Assert.False(IsWorldInstanceIdentity(typeof(ItemPile)));
     }

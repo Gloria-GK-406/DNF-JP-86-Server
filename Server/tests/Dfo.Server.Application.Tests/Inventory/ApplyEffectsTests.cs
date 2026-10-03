@@ -101,8 +101,8 @@ public sealed class ApplyEffectsTests
         {
             await using var seed = f.Scope.Begin();
             var target = f.Slots.Get(Offline.CharacterId, new(BusinessInventorySpace.Consumable, 0));
-            var item = (await target.Container.ReadSlotAsync(0, default))!;
-            await target.Container.PutAsync(0, item.Core with { ExpireTime = (int)Offline.At.ToUnixTimeSeconds() }, default);
+            var item = (await target.Container.GetAsync(0, default))!;
+            await target.Container.UpdateAsync(item, x => x with { ExpireTime = (int)Offline.At.ToUnixTimeSeconds() }, default);
             await seed.CommitAsync(default);
         }
         await using (var tx = f.Scope.Begin())
@@ -191,7 +191,7 @@ public sealed class ApplyEffectsTests
         public IBusinessInventorySlotDomainService Slots { get; }
         public Inventory() => Slots = new BusinessInventorySlotDomainService(Containers(), new InventorySlotMappingRuleService());
         public ApplyEffectsDomainService Executor(params IEffectHandler[] additional) =>
-            new([new ConsumeFromContainerEffectHandler(Slots), .. additional], Scope,
+            new([new ConsumeFromContainerEffectHandler(Slots, Lifecycle), .. additional], Scope,
                 new EffectCharacterStore(new(Offline.AccountId, Offline.CharacterId)), new Sessions(), ConsumptionEffectPreflight.For(Slots));
     }
     private sealed record Unknown : DomainEffect;

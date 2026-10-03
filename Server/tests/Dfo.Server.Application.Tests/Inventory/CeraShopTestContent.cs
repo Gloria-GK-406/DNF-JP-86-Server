@@ -64,7 +64,7 @@ internal sealed class CeraShopTestContent : ICeraShopDefinitionSource, IItemPlac
     public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Placements.GetValueOrDefault(id));
     public static CeraShopPurchaseEntry Entry(int product = 110000, byte ability = 255) => new(0, ability, 255, product, [], []);
     public static CeraShopPurchaseInput Input(params CeraShopPurchaseEntry[] entries) => new(0, 0, 0, entries.ToImmutableArray());
-    public static Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> EmptyStock() => new()
+    public static Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> EmptyStock() => new()
     {
         [BusinessInventorySpace.QuickSlot] = [], [BusinessInventorySpace.Consumable] = [],
         [BusinessInventorySpace.CarriedEquipment] = [], [BusinessInventorySpace.Avatar] = [],

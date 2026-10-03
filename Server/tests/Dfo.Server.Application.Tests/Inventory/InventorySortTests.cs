@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using System.Buffers.Binary;
 using Dfo.Server.Application.Commands;
@@ -20,6 +21,7 @@ public sealed class InventorySortTests
         using var shop = new ShopFixture(s => {
             s.AddSingleton<IInventorySortDomainService, InventorySortDomainService>();
             s.AddSingleton<IInventorySortKeySource, Keys>();
+            s.AddSingleton<IItemPlacementDefinitionSource, SortPlacements>();
         });
         await shop.SeedCore(12, StackableItemCore.Create(1, 3000, 101) with { Durability = 4 });
         await shop.SeedCore(14, StackableItemCore.Create(1, 3000, 202) with { Durability = 8 });
@@ -37,11 +39,11 @@ public sealed class InventorySortTests
         var container = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
             .GetStore(shop.Session.CharacterId, BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.CarriedEquipment);
-        Assert.Equal((ushort)4, (await container.ReadSlotAsync(0, default))!.Core.Durability);
-        Assert.Equal(303, (await container.ReadSlotAsync(1, default))!.Core.Value);
-        Assert.Equal(202, (await container.ReadSlotAsync(2, default))!.Core.Value);
-        Assert.Null(await container.ReadSlotAsync(3, default));
-        Assert.Null(await container.ReadSlotAsync(5, default));
+        Assert.Equal((ushort)4, (await container.GetAsync(0, default))!.Snapshot.ToCore().Durability);
+        Assert.Equal(303, (await container.GetAsync(1, default))!.Snapshot.ToCore().Value);
+        Assert.Equal(202, (await container.GetAsync(2, default))!.Snapshot.ToCore().Value);
+        Assert.Null(await container.GetAsync(3, default));
+        Assert.Null(await container.GetAsync(5, default));
     }
 
     [Fact]
@@ -74,8 +76,8 @@ public sealed class InventorySortTests
         await Sort(shop, BusinessInventorySpace.Material);
         var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
             .GetStore(shop.Session.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.Material);
-        Assert.Equal(6, (await bag.ReadSlotAsync(0, default))!.Count);
-        Assert.Equal(7, (await bag.ReadSlotAsync(1, default))!.Count);
+        Assert.Equal(6, (await bag.GetAsync(0, default))!.Count);
+        Assert.Equal(7, (await bag.GetAsync(1, default))!.Count);
         Assert.Equal(1, shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE slot_index=14"));
         Assert.Equal(13, shop.Count(1000));
     }
@@ -156,7 +158,7 @@ public sealed class InventorySortTests
         shop.Select(1); // Recreate the character's container view from persistent state.
         var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
             .GetStore(shop.Session.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.CarriedEquipment);
-        Assert.Equal(core with { SortLockFlag = 1 }, (await bag.ReadSlotAsync(3, default))!.Core);
+        Assert.Equal(core with { SortLockFlag = 1 }, (await bag.GetAsync(3, default))!.Snapshot.ToCore());
         await Sort(shop, BusinessInventorySpace.CarriedEquipment);
         Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE slot_index=12"));
         await using (var tx = scope.Begin())
@@ -167,7 +169,7 @@ public sealed class InventorySortTests
         }
         await Sort(shop, BusinessInventorySpace.CarriedEquipment);
         Assert.Equal(uid, shop.Scalar("SELECT core_uid FROM item_slots WHERE slot_index=9"));
-        Assert.Equal(core, (await bag.ReadSlotAsync(0, default))!.Core);
+        Assert.Equal(core, (await bag.GetAsync(0, default))!.Snapshot.ToCore());
     }
 
     [Fact]
@@ -219,7 +221,7 @@ public sealed class InventorySortTests
         Assert.Null(result.Receipt);
         var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
             .GetStore(old.CharacterId, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.CarriedEquipment);
-        Assert.Equal((byte)0, (await bag.ReadSlotAsync(3, default))!.Core.SortLockFlag);
+        Assert.Equal((byte)0, (await bag.GetAsync(3, default))!.Snapshot.ToCore().SortLockFlag);
     }
 
     private static byte[] Encode(ShopFixture shop, IServerNetworkMessage message)
@@ -229,7 +231,7 @@ public sealed class InventorySortTests
         return Assert.Single(((IServerMessageEncoder)shop.Services.GetRequiredService(registration.EncoderType)).Encode(message));
     }
 
-    private static ShopFixture Fixture() => new(s => s.AddSingleton<IInventorySortKeySource, Keys>());
+    private static ShopFixture Fixture() => new(s => { s.AddSingleton<IInventorySortKeySource, Keys>(); s.AddSingleton<IItemPlacementDefinitionSource, SortPlacements>(); });
     private static async Task Sort(ShopFixture shop, BusinessInventorySpace space,
         InventorySortOrder order = InventorySortOrder.Default)
     {
@@ -244,4 +246,11 @@ public sealed class InventorySortTests
         public ValueTask<InventorySortKeys> GetAsync(int itemId, CancellationToken ct) =>
             ValueTask.FromResult(new InventorySortKeys(0, itemId == 100310669 ? 80 : 1, 0, ""));
     }
+    private sealed class SortPlacements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => id == 3000
+            ? ValueTask.FromResult<ItemPlacement?>(new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 47)) { WorldClass = ItemWorldClass.Equipment })
+            : new NpcShopTestContent().GetAsync(id, ct);
+    }
+
 }

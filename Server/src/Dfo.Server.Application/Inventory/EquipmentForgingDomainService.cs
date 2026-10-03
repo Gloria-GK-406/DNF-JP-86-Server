@@ -54,20 +54,20 @@ internal sealed class EquipmentForgingDomainService(
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null)
             return new(EquipmentForgingRejection.ItemUnavailable);
-        if (target.Core.ItemId != expectedTargetItemId)
+        if (target.Snapshot.ItemId != expectedTargetItemId)
             return new(EquipmentForgingRejection.WrongItem);
-        if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
+        if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentForgingRejection.Locked);
-        if (target.Core.ExpireTime > 0
-            && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.ExpireTime > 0
+            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentForgingRejection.Expired);
 
-        var material = await materialBound.Container.ReadSlotAsync(materialBound.Slot.Index, ct)
+        var material = await materialBound.Container.GetAsync(materialBound.Slot.Index, ct)
             .ConfigureAwait(false);
-        if (material is not { IsPile: true, WorldClass: ItemWorldClass.Interchangeable, Count: > 0 }
-            || material.Core.EquipmentLockId != 0 || material.Core.SortLockFlag != 0
-            || material.Core.ExpireTime > 0
-                && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (material is not { IsPile: true, Count: > 0 }
+            || material.Snapshot.EquipmentLockId != 0 || material.Snapshot.SortLockFlag != 0
+            || material.Snapshot.ExpireTime > 0
+                && material.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentForgingRejection.MaterialUnavailable);
         var plan = await rules.ForgingAsync(target, materialSlot, material.ItemId, rolls.Next(), ct).ConfigureAwait(false);
         var decision = plan.Decision;
@@ -80,12 +80,12 @@ internal sealed class EquipmentForgingDomainService(
             return new(EquipmentForgingRejection.MaterialUnavailable);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         var changed = decision.Succeeded
-            ? applied.Changes<EquipmentEffectChange>().Single().After!.Core
-            : target.Core;
-        var remaining = await materialBound.Container.ReadSlotAsync(materialSlot.Index, ct).ConfigureAwait(false);
-        return new(EquipmentForgingRejection.None, new(session, targetSlot, target.Core.ItemId,
+            ? applied.Changes<EquipmentEffectChange>().Single().After!
+            : target.Snapshot;
+        var remaining = await materialBound.Container.GetAsync(materialSlot.Index, ct).ConfigureAwait(false);
+        return new(EquipmentForgingRejection.None, new(session, targetSlot, target.Snapshot.ItemId,
             materialSlot, material.ItemId, remaining?.Count ?? 0,
-            changed, target.Core.GenuineUpgrade, decision.NewLevel, decision.Succeeded,
+            changed, target.Snapshot.GenuineUpgrade, decision.NewLevel, decision.Succeeded,
             decision.SuccessWeight, decision.Roll, context.At));
     }
 }

@@ -20,7 +20,7 @@ internal sealed class NpcShopDomainService(
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases) : INpcShopDomainService
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -52,14 +52,14 @@ internal sealed class NpcShopDomainService(
                 spaces.Add(BusinessInventorySpace.QuickSlot);
         }
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
-        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>();
         foreach (var space in spaces)
         {
             var bag = inventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space))
                 .FindContainer(space);
             if (bag is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.NoRoom);
             bags.Add(space, bag);
-            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+            held.Add(space, await bag.GetAllAsync(cancellationToken).ConfigureAwait(false));
         }
 
         var boundedPlacement = InventoryCapacityPlacement.Limit(quote.Placement,
@@ -93,13 +93,20 @@ internal sealed class NpcShopDomainService(
                 ?? throw new NpcShopPurchaseRejectedException(NpcShopRejection.InsufficientGold);
         foreach (var change in plan.MaterialChanges)
         {
-            if (change.Core is null)
-                await bags[change.Slot.Space].ClearAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false);
-            else
-                await bags[change.Slot.Space].PutAsync(change.Slot.Index, change.Core, cancellationToken).ConfigureAwait(false);
+            var bag = bags[change.Slot.Space];
+            var existing = await bag.GetAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Shop material disappeared after planning.");
+            await ItemContainerOperations.ConsumeAsync(bag, existing, existing.Count - (change.Core?.Count ?? 0), lifecycle, cancellationToken).ConfigureAwait(false);
         }
         foreach (var grant in plan.GrantedSlots)
-            await bags[grant.Slot.Space].PutAsync(grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
+        {
+            var bag = bags[grant.Slot.Space];
+            var existing = await bag.GetAsync(grant.Slot.Index, cancellationToken).ConfigureAwait(false);
+            if (existing is null)
+                await bag.PutAsync(grant.Slot.Index, await lifecycle.CreateAsync(grant.Core, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            else
+                await bag.UpdateAsync(existing, current => current with { Count = checked(current.Count + grant.AddedCount) }, cancellationToken).ConfigureAwait(false);
+        }
         if (purchaseKey is not null
             && !await purchases.TryAddAsync(purchaseKey, quote.Count, quote.Definition.Limit!.Count, cancellationToken)
                 .ConfigureAwait(false))

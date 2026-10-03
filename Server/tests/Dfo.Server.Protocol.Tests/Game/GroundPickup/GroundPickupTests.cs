@@ -423,6 +423,50 @@ public sealed class GroundPickupTests
     }
 
 
+    [Fact]
+    public async Task PickingUpACreaturePreservesItsAllocatedIdentityAndCompleteDetail()
+    {
+        var fixture = new Dfo.Server.Protocol.Tests.Support.MoveItemFixture();
+        var physical = new Dfo.Server.Protocol.Tests.Support.LifecycleTestContainer(InventoryContainerType.Pet, Character, fixture);
+        var bag = new BusinessItemContainer(BusinessInventorySpace.CreatureInventory, physical);
+        var runs = new DungeonRunDomainService();
+        var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(),
+            new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
+            new QuestProgressFromSeeking(new NoSeekingProgress()), new CreatureDropGrant(fixture, bag));
+        const ushort actor = 30001;
+        var run = BeginWithItems(runs, [MonsterItem(1, actor, new RolledDrop(600, 1,
+            DropRarity.Common, DropItemKind.Equipment, 17))]);
+        var item = await fixture.RunAsync(async () =>
+        {
+            Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, 1)).Status);
+            return (await bag.GetAsync(0, default))!.Snapshot;
+        });
+        Assert.NotNull(item.ItemUid);
+        Assert.Equal(item.ItemUid.Value.Value, item.InstanceValue);
+        Assert.NotEqual(checked((int)GameDropIdentity.ForKill(run, actor)), item.InstanceValue);
+        Assert.Equal(17, item.Durability);
+        Assert.Equal(27, item.CreatureDetail!.ProgressValue);
+        Assert.Equal(3, item.CreatureDetail.FieldAfterValue);
+        Assert.Equal(new byte[] { 65, 66 }, item.CreatureDetail.CreatureText);
+        Assert.Equal(9, item.CreatureDetail.TailFlag);
+    }
+
+    private sealed class CreatureDropGrant(Dfo.Server.Protocol.Tests.Support.MoveItemFixture fixture,
+        IBusinessItemContainer bag) : IItemGrantDomainService
+    {
+        public async ValueTask<BusinessItemAdditionResult> GrantAsync(AccountId account, CharacterId character,
+            ICharacterContainerDomainService containers, int itemId, int count, CancellationToken ct)
+        {
+            var record = await fixture.Session.CreateAsync(new ItemSnapshot
+            {
+                ItemId = itemId, LegacyKind = 5, Type = ItemTraits.Creature,
+                CreatureDetail = new(100, 0, 27, 0, 0, 3, [65, 66], 9),
+            }, ct);
+            await bag.PutAsync(0, record, ct);
+            return new(bag, new ItemPlacementOutcome.PutInEmptySlot(0, 1));
+        }
+    }
+
     private sealed class StubContainers(IItemContainer bag) : ICharacterContainerDomainService
     {
         public IItemContainer? FindContainer(CharacterId characterId, InventoryContainerType type) =>
@@ -499,6 +543,8 @@ public sealed class GroundPickupTests
     {
         public bool FailNextAdd { get; set; }
 
+        private readonly Dictionary<int, long> generations = [];
+
         public Dictionary<int, InventoryItemCoreState> Slots { get; } = [];
 
         /// <summary>How many of each slot's item was handed over.</summary>
@@ -527,32 +573,39 @@ public sealed class GroundPickupTests
                 new ItemPlacementOutcome.PutInEmptySlot(slot, count));
         }
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+        public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Slots.TryGetValue(slotIndex, out var core)
-                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
+                    ? new ItemReference(this, Id, slotIndex, generations.GetValueOrDefault(slotIndex), ItemSnapshot.FromCore(core, false, new ItemIdentity(slotIndex + 1)))
                     : null);
 
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.Slots[slotIndex] = core;
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
 
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!reference.BelongsTo(this) || reference.ContainerId != Id
+                || reference.Generation != generations.GetValueOrDefault(reference.StorageSlotIndex)
+                || !Slots.ContainsKey(reference.StorageSlotIndex))
+                throw new InvalidOperationException("The fixture reference is stale or foreign.");
+            var next = change((await GetAsync(reference.StorageSlotIndex, ct))!.Snapshot);
+            if (next.ItemId != reference.ItemId || next.ItemUid != reference.ItemUid
+                || next.IsPile != reference.IsPile || next.Type != reference.Type)
+                throw new InvalidOperationException("The fixture update cannot replace item identity.");
+            Slots[reference.StorageSlotIndex] = next.ToCore();
+            return (await GetAsync(reference.StorageSlotIndex, ct))!;
+        }
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
         public ValueTask<ItemPlacementOutcome> RefillAsync(
             ItemRefill refill, CancellationToken cancellationToken) =>

@@ -38,17 +38,17 @@ public sealed class SharedMaterialPvfTests
             await Move(materialSlot, cargoSlot, 7);
             await Move(materialSlot, cargoSlot, 3);
             Assert.Equal(27, host.SharedCount(definition.ItemId));
-            var stored = await cargo.ReadSlotAsync(0, default);
+            var stored = await cargo.GetAsync(0, default);
             Assert.NotNull(stored);
             Assert.Equal(definition.ItemId, stored.ItemId);
-            Assert.Equal(definition.ItemKind, stored.ItemKind);
+            Assert.Equal(definition.ItemKind, stored.Snapshot.LegacyKind);
             Assert.Equal(10, stored.Count);
-            Assert.Equal(placement.Traits, stored.Core.Traits);
+            Assert.Equal(placement.Traits, stored.Snapshot.ToCore().Traits);
             await Move(cargoSlot, materialSlot, 10);
             Assert.Equal(37, host.SharedCount(definition.ItemId));
-            Assert.Null(await cargo.ReadSlotAsync(0, default));
+            Assert.Null(await cargo.GetAsync(0, default));
         }
-        Assert.Equal(11, (await host.Shared().ReadAllAsync(default)).Count);
+        Assert.Equal(11, (await host.Shared().GetAllAsync(default)).Count);
 
         Task Move(BusinessSlot from, BusinessSlot into, int count) =>
             WarehouseStorageTests.InTransaction(host, async () =>

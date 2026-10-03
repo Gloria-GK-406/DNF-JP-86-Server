@@ -50,7 +50,7 @@ public sealed class EquipmentDurabilityTests
             InventoryContainerType.Equipment);
         await Wear(shop, 12);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
-        shop.Sql("CREATE TRIGGER refuse_wear BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'unexpected item write'); END;");
+        shop.Sql("CREATE TRIGGER refuse_wear BEFORE UPDATE OF item_core ON items BEGIN SELECT RAISE(ABORT,'unexpected item write'); END;");
         await Wear(shop, 12);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.Equal(2, shop.Sender.Messages.Count);
@@ -97,7 +97,7 @@ public sealed class EquipmentDurabilityTests
         using var shop = new ShopFixture();
         await shop.SeedCore(12, StackableItemCore.Create(1, 3000, 1234) with { Durability = 2 },
             InventoryContainerType.Equipment);
-        shop.Sql("CREATE TRIGGER refuse_wear BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'test wear failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_wear BEFORE UPDATE OF item_core ON items BEGIN SELECT RAISE(ABORT,'test wear failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Wear(shop, 12).AsTask());
         Assert.Equal((ushort)2, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.Empty(shop.Sender.Messages);

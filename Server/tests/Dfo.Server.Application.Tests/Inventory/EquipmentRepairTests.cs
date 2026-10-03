@@ -79,7 +79,7 @@ public sealed class EquipmentRepairTests
     {
         using var shop = Fixture();
         await shop.SeedCore(20, StackableItemCore.Create(1, 100310669, 4321), InventoryContainerType.Equipment);
-        shop.Sql("CREATE TRIGGER refuse_item_write BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'unexpected item write'); END;");
+        shop.Sql("CREATE TRIGGER refuse_item_write BEFORE UPDATE OF item_core ON items BEGIN SELECT RAISE(ABORT,'unexpected item write'); END;");
         await Repair(shop, InventoryContainerType.Equipment, 20);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 20));
@@ -106,7 +106,7 @@ public sealed class EquipmentRepairTests
     {
         using var shop = Fixture();
         await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
-        shop.Sql("CREATE TRIGGER refuse_repair BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'test repair failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_repair BEFORE UPDATE OF item_core ON items BEGIN SELECT RAISE(ABORT,'test repair failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Repair(shop, InventoryContainerType.Equipment, 12).AsTask());
         Assert.Equal(100000, shop.Gold);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
@@ -262,7 +262,7 @@ public sealed class EquipmentRepairTests
         using var shop = Fixture();
         shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,586,4000000000)");
         await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
-        shop.Sql("CREATE TRIGGER refuse_repair BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'auto repair failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_repair BEFORE UPDATE OF item_core ON items BEGIN SELECT RAISE(ABORT,'auto repair failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => AutoRepair(shop).AsTask());
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters"));
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));

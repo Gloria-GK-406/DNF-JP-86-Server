@@ -126,6 +126,8 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
     /// </remarks>
     public async ValueTask PrepareAsync(CancellationToken cancellationToken)
     {
+        // Custody validation must also run after immediate writes or a mid-use-case flush.
+        foreach (var facet in this.order) facet.ValidateForCommit();
         if (!this.order.Any(facet => facet.HasStagedWork))
         {
             this.prepared = true;
@@ -242,6 +244,9 @@ internal interface ISqliteStoreFacet
 {
     /// <summary>Whether this facet has anything to write.</summary>
     bool HasStagedWork { get; }
+
+    /// <summary>Final invariants, separate from materializing writes during a use case.</summary>
+    void ValidateForCommit() { }
 
     /// <summary>Turns the staged writes into statements, inside the open transaction.</summary>
     ValueTask FlushAsync(CancellationToken cancellationToken);

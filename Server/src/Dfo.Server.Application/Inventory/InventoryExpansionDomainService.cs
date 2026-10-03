@@ -20,7 +20,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
     IInventoryExpansionRuleService rules, IBusinessInventorySlotDomainService slots,
     ICharacterBusinessInventoryDomainService inventories, IItemPlacementRuleService placements,
     IDomainTransactionAccessor transactions, IItemDomainStore items,
-    ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory)
+    ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory, IItemLifecycleDomainService lifecycle)
     : IInventoryExpansionDomainService
 {
     public async ValueTask<InventoryExpansionResult> UseItemAsync(SelectedSessionIdentity session, BusinessSlot slot,
@@ -30,17 +30,16 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
         if (!await CurrentAsync(session, ct).ConfigureAwait(false)) return new(InventoryExpansionRejection.NoSession);
         if (!slot.Space.IsCarriedItemSpace()) return new(InventoryExpansionRejection.InvalidRequest);
         var bound = slots.Find(session.CharacterId, slot);
-        var item = bound is null ? null : await bound.Container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
-        if (item is not { IsPile: true, Count: > 0 } || item.Core.EquipmentLockId != 0
-            || item.Core.ExpireTime > 0 && item.Core.ExpireTime <= at.ToUnixTimeSeconds())
+        var item = bound is null ? null : await bound.Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
+        if (item is not { IsPile: true, Count: > 0 } || item.Snapshot.EquipmentLockId != 0
+            || item.Snapshot.ExpireTime > 0 && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds())
             return new(InventoryExpansionRejection.InvalidRequest);
         var grant = await rules.ItemAsync(item.ItemId, ct).ConfigureAwait(false);
         if (grant is null || grant.Kind != kind) return new(InventoryExpansionRejection.InvalidRequest);
         var current = await ParameterAsync(session, kind, ct).ConfigureAwait(false);
         if (!rules.CanUpgrade(grant, current, await rules.AccountCargoAsync(ct).ConfigureAwait(false), false))
             return new(InventoryExpansionRejection.InvalidStage);
-        if (item.Count == 1) await bound!.Container.ClearAsync(slot.Index, ct).ConfigureAwait(false);
-        else await bound!.Container.PutAsync(slot.Index, item.Core with { Value = item.Count - 1 }, ct).ConfigureAwait(false);
+        await lifecycle.DeleteItemAsync(await bound!.Container.TakeAsync(item, 1, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         await ChangeAsync(session, new(kind, current, grant.Parameter), ct).ConfigureAwait(false);
         return new(InventoryExpansionRejection.None, await SnapshotAsync(session, at, ct).ConfigureAwait(false));
     }
@@ -59,7 +58,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
             return new(InventoryExpansionRejection.InvalidStage);
         var gold = await characters.Get(session.CharacterId).GoldAsync(ct).ConfigureAwait(false);
         if (gold < next.GoldCost) return new(InventoryExpansionRejection.InsufficientAssets);
-        var costs = new List<(IBusinessItemContainer Bag, ContainerSlotItem Item, int Count)>();
+        var costs = new List<(IBusinessItemContainer Bag, ItemReference Item, int Count)>();
         var remaining = next.MaterialCount;
         if (remaining > 0)
         {
@@ -70,10 +69,10 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
             {
                 var bag = inventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
                 if (bag is null) continue;
-                foreach (var item in (await bag.ReadAllAsync(ct).ConfigureAwait(false)).OrderBy(i => i.SlotIndex))
+                foreach (var item in (await bag.GetAllAsync(ct).ConfigureAwait(false)).OrderBy(i => i.SlotIndex))
                 {
-                    if (item.ItemId != next.MaterialId || !item.IsPile || item.Count <= 0 || item.Core.EquipmentLockId != 0
-                        || item.Core.ExpireTime > 0 && item.Core.ExpireTime <= at.ToUnixTimeSeconds()) continue;
+                    if (item.ItemId != next.MaterialId || !item.IsPile || item.Count <= 0 || item.Snapshot.EquipmentLockId != 0
+                        || item.Snapshot.ExpireTime > 0 && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds()) continue;
                     var take = Math.Min(remaining, item.Count);
                     if (take > 0) costs.Add((bag, item, take));
                     remaining -= take;
@@ -84,8 +83,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
         if (next.GoldCost > 0 && await characters.Get(session.CharacterId).TrySpendGoldAsync(next.GoldCost, ct).ConfigureAwait(false) is null)
             throw new InventoryExpansionException(InventoryExpansionRejection.StateChanged);
         foreach (var cost in costs)
-            if (cost.Count == cost.Item.Count) await cost.Bag.ClearAsync(cost.Item.SlotIndex, ct).ConfigureAwait(false);
-            else await cost.Bag.PutAsync(cost.Item.SlotIndex, cost.Item.Core with { Value = cost.Item.Count - cost.Count }, ct).ConfigureAwait(false);
+            await lifecycle.DeleteItemAsync(await cost.Bag.TakeAsync(cost.Item, cost.Count, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         await ChangeAsync(session, new(InventoryExpansionKind.AccountCargo, current, next.Capacity), ct).ConfigureAwait(false);
         return new(InventoryExpansionRejection.None, await SnapshotAsync(session, at, ct).ConfigureAwait(false));
     }

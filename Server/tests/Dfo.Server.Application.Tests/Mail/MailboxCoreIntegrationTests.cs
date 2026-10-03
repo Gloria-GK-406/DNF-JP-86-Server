@@ -352,8 +352,12 @@ public sealed partial class MailboxCoreIntegrationTests
     public async Task PutShared(int item, int count, int account = 1)
     {
         Assert.True(AccountMaterialCatalog.TryGetSlotIndex(item, out var slot));
-        if (count == 0) await Shared(account).ClearAsync(slot, default);
-        else await Shared(account).PutAsync(slot, StackableItemCore.Create(AccountMaterialCatalog.Definitions[slot].ItemKind, item, count), default);
+        var target = Shared(account);
+        var lifecycle = provider.GetRequiredService<IItemLifecycleDomainService>();
+        if (await target.GetAsync(slot, default) is { } old)
+            await lifecycle.DeleteItemAsync(await target.TakeAsync(old, null, default), default);
+        if (count > 0) await target.PutAsync(slot, await lifecycle.CreateAsync(
+            ItemSnapshot.FromCore(StackableItemCore.Create(AccountMaterialCatalog.Definitions[slot].ItemKind, item, count), true), default), default);
     }
     public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
@@ -365,9 +369,11 @@ public sealed partial class MailboxCoreIntegrationTests
             var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
             await using var transaction = scope.Begin();
             var store = provider.GetRequiredService<IItemDomainStore>();
-            store.SessionIn(scope.Current!).Write(ContainerId.ForCharacter(owner, container),
-                new StoredItem(slot, StackableItemCore.Create(kind, itemId, count))
-                    { WorldClass = ItemWorldClass.Interchangeable });
+            var session = store.SessionIn(scope.Current!);
+            var id = ContainerId.ForCharacter(owner, container);
+            if (await session.GetAsync(id, slot, default) is { } old)
+                await session.DeleteItemAsync(await session.TakeAsync(old, null, default), default);
+            await session.PutAsync(id, slot, await session.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(kind, itemId, count), true), default), default);
             await transaction.CommitAsync(default);
         }
 
@@ -412,8 +418,8 @@ public sealed partial class MailboxCoreIntegrationTests
             var tx = new DomainTransaction();
             try
             {
-                var rows = await store.SessionIn(tx).ReadAllAsync(ContainerId.ForCharacter(owner, InventoryContainerType.Main), default);
-                return rows.Where(x => x.Core.ItemId == itemId).Sum(x => x.Core.Value);
+                var rows = await store.SessionIn(tx).GetAllAsync(ContainerId.ForCharacter(owner, InventoryContainerType.Main), default);
+                return rows.Where(x => x.ItemId == itemId).Sum(x => x.Count);
             }
             finally { await tx.RollbackAsync(); }
         }

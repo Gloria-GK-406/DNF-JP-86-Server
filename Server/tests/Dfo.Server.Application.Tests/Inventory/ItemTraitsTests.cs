@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
 
@@ -71,8 +72,9 @@ public sealed class ItemTraitsTests
         using var host = WarehouseStorageTests.Fixture();
         var bag = WarehouseStorageTests.Bag(host, BusinessInventorySpace.Consumable);
         Assert.Equal(ItemTraits.Consumable, bag.AcceptedTraits);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => WarehouseStorageTests.InTransaction(host,
-            () => bag.PutAsync(0, StackableItemCore.Create(2, 3000, 1), default).AsTask()));
-        Assert.Null(await bag.ReadSlotAsync(0, default));
+        await Assert.ThrowsAsync<InvalidDataException>(() => WarehouseStorageTests.InTransaction(host,
+            async () => await bag.PutAsync(0, await host.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(2, 3000, 1), true), default), default)));
+        Assert.Null(await bag.GetAsync(0, default));
     }
 }

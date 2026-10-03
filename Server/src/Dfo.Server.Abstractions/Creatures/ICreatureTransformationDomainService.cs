@@ -8,7 +8,7 @@ public sealed record CreatureTransformationReceipt(
     CreatureState Before,
     CreatureState After,
     BusinessSlot Slot,
-    InventoryItemCoreState Core)
+    ItemSnapshot Core)
 {
     public int CreatureId { get; init; }
 }

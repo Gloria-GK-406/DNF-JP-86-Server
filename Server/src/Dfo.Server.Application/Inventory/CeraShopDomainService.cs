@@ -21,7 +21,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
     ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
-    ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
+    ICeraShopRuleService rules, IItemLifecycleDomainService lifecycle, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
     ICreatureDomainService? creatureDomains = null, IInventoryExpansionDomainService? expansion = null,
@@ -65,7 +65,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             capacityChanges = changes;
         }
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
-        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>();
         var spaces = quote.Grants.Select(grant => grant.Placement.Destination.Space)
             .Concat(quote.Grants.Where(grant => grant.Placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(grant.Placement))
                 .Select(_ => BusinessInventorySpace.QuickSlot)).Distinct();
@@ -75,7 +75,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                 .FindContainer(space);
             if (bag is null) continue;
             bags.Add(space, bag);
-            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+            held.Add(space, await bag.GetAllAsync(cancellationToken).ConfigureAwait(false));
         }
         var boundedGrants = ImmutableArray.CreateBuilder<CeraShopGrant>();
         foreach (var grant in quote.Grants)
@@ -119,9 +119,16 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             await premiumUsage.RenewDoublePotAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         foreach (var write in plan.Writes)
         {
-            if (write.CreationFacts is { } facts)
-                await bags[write.Slot.Space].PutNewAsync(write.Slot.Index, write.Core, facts, cancellationToken).ConfigureAwait(false);
-            else await bags[write.Slot.Space].PutAsync(write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
+            var bag = bags[write.Slot.Space];
+            var existing = await bag.GetAsync(write.Slot.Index, cancellationToken).ConfigureAwait(false);
+            if (existing is null)
+                await bag.PutAsync(write.Slot.Index, await lifecycle.CreateAsync(write.Core, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            else
+            {
+                if (!existing.Snapshot.CanStackWith(write.Core) || write.Core.Count < existing.Count)
+                    throw new InvalidOperationException("CERA grant target changed after planning.");
+                await bag.UpdateAsync(existing, current => current with { Count = write.Core.Count }, cancellationToken).ConfigureAwait(false);
+            }
         }
         await itemStore.SessionIn(transaction).ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -140,7 +147,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                 throw new InvalidDataException("A committed CERA grant is absent from its inventory projection.");
             updates.Add(new(group.Key, items, now));
         }
-        var hasCreatures = plan.Writes.Any(write => write.CreationFacts?.Creature is not null);
+        var hasCreatures = plan.Writes.Any(write => write.Core.CreatureDetail is not null);
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (hasCreatures)
         {

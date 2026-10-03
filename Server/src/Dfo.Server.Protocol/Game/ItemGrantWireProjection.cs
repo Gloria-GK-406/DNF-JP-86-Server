@@ -22,7 +22,7 @@ internal static class ItemGrantWireProjection
             _ => -1,
         };
         if (index < 0) return null;
-        var item = await grant.Container.ReadSlotAsync(index, ct).ConfigureAwait(false)
+        var item = await grant.Container.GetAsync(index, ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Granted shared-material slot disappeared before commit.");
         return new(Index(grant, index), item.ItemId, item.Count);
     }

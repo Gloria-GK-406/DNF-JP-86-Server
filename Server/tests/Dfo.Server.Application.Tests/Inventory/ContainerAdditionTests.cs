@@ -11,6 +11,30 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ContainerAdditionTests
 {
     [Fact]
+    public async Task First_reward_in_an_empty_ordinary_slot_creates_and_commits_one_pile()
+    {
+        using var f = Fixture();
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var scope = (Dfo.Server.Application.Transactions.DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
+        Assert.Equal(0, f.Count(9001));
+        await using (var tx = scope.Begin())
+        {
+            var reward = await f.Services.GetRequiredService<IItemGrantDomainService>()
+                .GrantAsync(new(1), new(1), containers, 9001, 2, default);
+            var added = Assert.IsType<BusinessItemAdditionResult>(reward);
+            Assert.Equal(new ItemPlacementOutcome.PutInEmptySlot(0, 2), added.Placement);
+            Assert.Equal(BusinessInventorySpace.Material, added.Container.Space);
+            var reference = (await added.Container.GetAsync(0, default))!;
+            Assert.True(reference.IsPile);
+            Assert.Null(reference.ItemUid);
+            Assert.Equal(2, reference.Count);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(2, f.Count(9001));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND list_type=0 AND slot_index=121"));
+    }
+
+    [Fact]
     public async Task Routes_material_and_pet_consumable_without_a_caller_selected_bag()
     {
         using var f = Fixture();
@@ -45,8 +69,8 @@ public sealed class ContainerAdditionTests
             .GetContainer(BusinessInventorySpace.Material);
         var pet = stores.GetStore(new CharacterId(1), BusinessInventoryStoreKind.Creature)
             .GetContainer(BusinessInventorySpace.CreatureConsumable);
-        Assert.Equal(9001, (await item.ReadSlotAsync(0, default))!.ItemId);
-        Assert.Equal(9002, (await pet.ReadSlotAsync(0, default))!.ItemId);
+        Assert.Equal(9001, (await item.GetAsync(0, default))!.ItemId);
+        Assert.Equal(9002, (await pet.GetAsync(0, default))!.ItemId);
     }
 
     [Fact]
@@ -71,7 +95,7 @@ public sealed class ContainerAdditionTests
         var item = Assert.IsType<BusinessItemAdditionResult>(outcome);
         Assert.Equal(BusinessInventorySpace.CreatureConsumable, item.Container.Space);
         Assert.Equal(0, Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(item.Placement).SlotIndex);
-        Assert.Equal(9002, (await item.Container.ReadSlotAsync(0, default))!.ItemId);
+        Assert.Equal(9002, (await item.Container.GetAsync(0, default))!.ItemId);
         Assert.Equal(0, f.Count(9001));
     }
 

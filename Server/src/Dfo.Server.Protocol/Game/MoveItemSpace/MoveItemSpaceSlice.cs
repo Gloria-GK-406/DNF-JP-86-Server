@@ -383,8 +383,8 @@ public sealed class MoveItemSpaceCommandHandler(
     /// </remarks>
     private static bool AlreadyCarriedOut(
         int namedInstanceValue,
-        ContainerSlotItem? atTheEndItNames,
-        ContainerSlotItem? atTheOtherEnd) =>
+        ItemReference? atTheEndItNames,
+        ItemReference? atTheOtherEnd) =>
         namedInstanceValue > 0
         && atTheEndItNames is null
         && atTheOtherEnd is not null
@@ -419,8 +419,8 @@ public sealed class MoveItemSpaceCommandHandler(
             var cargoFrom = inventory.Find(command.CharacterId, command.SourceSlot);
             var cargoInto = inventory.Find(command.CharacterId, command.DestinationSlot);
             if (cargoFrom is null || cargoInto is null) return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
-            var cargoFirst = await cargoFrom.Container.ReadSlotAsync(command.SourceSlot.Index, cancellationToken).ConfigureAwait(false);
-            var cargoSecond = await cargoInto.Container.ReadSlotAsync(command.DestinationSlot.Index, cancellationToken).ConfigureAwait(false);
+            var cargoFirst = await cargoFrom.Container.GetAsync(command.SourceSlot.Index, cancellationToken).ConfigureAwait(false);
+            var cargoSecond = await cargoInto.Container.GetAsync(command.DestinationSlot.Index, cancellationToken).ConfigureAwait(false);
             if (AlreadyCarriedOut(command.SourceInstanceValue, cargoFirst, cargoSecond)
                 || AlreadyCarriedOut(command.DestinationInstanceValue, cargoSecond, cargoFirst))
                 return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade);
@@ -483,10 +483,10 @@ public sealed class MoveItemSpaceCommandHandler(
         // and it decides by the same reading -- whichever end holds something is the end that moves
         // -- so a restatement undoes itself here exactly as it did across lists. The container is
         // never told what the client named, so the judgement is made before handing over.
-        var atSource = await source.Container.ReadSlotAsync(source.Slot.Index, cancellationToken)
+        var atSource = await source.Container.GetAsync(source.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
         var atDestination = await destination.Container
-            .ReadSlotAsync(destination.Slot.Index, cancellationToken)
+            .GetAsync(destination.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
         if (AlreadyCarriedOut(command.SourceInstanceValue, atSource, atDestination))
             return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, atDestination!.ItemId);
@@ -563,9 +563,9 @@ public sealed class MoveItemSpaceCommandHandler(
         BoundInventorySlot worn,
         CancellationToken cancellationToken)
     {
-        var piece = await bag.Container.ReadSlotAsync(bag.Slot.Index, cancellationToken)
+        var piece = await bag.Container.GetAsync(bag.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
-        var displaced = await worn.Container.ReadSlotAsync(worn.Slot.Index, cancellationToken)
+        var displaced = await worn.Container.GetAsync(worn.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
 
         if (AlreadyCarriedOut(command.SourceInstanceValue, piece, displaced))
@@ -599,19 +599,12 @@ public sealed class MoveItemSpaceCommandHandler(
             != SlotAdmission.Allowed)
             return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot, displaced.ItemId);
 
-        await worn.Container.PutTransferredAsync(worn.Slot.Index, piece.Core,
-                bag.Container, bag.Slot.Index, cancellationToken)
-            .ConfigureAwait(false);
-        if (displaced is null)
-        {
-            await bag.Container.ClearAsync(bag.Slot.Index, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            await bag.Container.PutTransferredAsync(bag.Slot.Index, displaced.Core,
-                    worn.Container, worn.Slot.Index, cancellationToken)
-                .ConfigureAwait(false);
-        }
+        var movedRecord = await bag.Container.TakeAsync(piece, null, cancellationToken).ConfigureAwait(false);
+        var displacedRecord = displaced is null ? null
+            : await worn.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
+        await worn.Container.PutAsync(worn.Slot.Index, movedRecord, cancellationToken).ConfigureAwait(false);
+        if (displacedRecord is not null)
+            await bag.Container.PutAsync(bag.Slot.Index, displacedRecord, cancellationToken).ConfigureAwait(false);
 
         await bag.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
 
@@ -643,9 +636,9 @@ public sealed class MoveItemSpaceCommandHandler(
         BoundInventorySlot into,
         CancellationToken cancellationToken)
     {
-        var moving = await from.Container.ReadSlotAsync(from.Slot.Index, cancellationToken)
+        var moving = await from.Container.GetAsync(from.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
-        var displaced = await into.Container.ReadSlotAsync(into.Slot.Index, cancellationToken)
+        var displaced = await into.Container.GetAsync(into.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
 
         if (AlreadyCarriedOut(command.SourceInstanceValue, moving, displaced))
@@ -690,20 +683,12 @@ public sealed class MoveItemSpaceCommandHandler(
                     ItemMoveStatus.DisplacedCannotOccupySlot, moving.ItemId);
         }
 
-        await into.Container.PutTransferredAsync(into.Slot.Index, moving.Core,
-                from.Container, from.Slot.Index, cancellationToken)
-            .ConfigureAwait(false);
-        if (displaced is null)
-        {
-            await from.Container.ClearAsync(from.Slot.Index, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            await from.Container.PutTransferredAsync(from.Slot.Index, displaced.Core,
-                    into.Container, into.Slot.Index, cancellationToken)
-                .ConfigureAwait(false);
-        }
+        var movedRecord = await from.Container.TakeAsync(moving, null, cancellationToken).ConfigureAwait(false);
+        var displacedRecord = displaced is null ? null
+            : await into.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
+        await into.Container.PutAsync(into.Slot.Index, movedRecord, cancellationToken).ConfigureAwait(false);
+        if (displacedRecord is not null)
+            await from.Container.PutAsync(from.Slot.Index, displacedRecord, cancellationToken).ConfigureAwait(false);
 
         await from.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
 
@@ -729,9 +714,9 @@ public sealed class MoveItemSpaceCommandHandler(
         BoundInventorySlot bag,
         CancellationToken cancellationToken)
     {
-        var piece = await worn.Container.ReadSlotAsync(worn.Slot.Index, cancellationToken)
+        var piece = await worn.Container.GetAsync(worn.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
-        var displaced = await bag.Container.ReadSlotAsync(bag.Slot.Index, cancellationToken)
+        var displaced = await bag.Container.GetAsync(bag.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
 
         if (AlreadyCarriedOut(command.SourceInstanceValue, piece, displaced))
@@ -775,20 +760,12 @@ public sealed class MoveItemSpaceCommandHandler(
                     ItemMoveStatus.DisplacedCannotOccupySlot, piece.ItemId);
         }
 
-        await bag.Container.PutTransferredAsync(bag.Slot.Index, piece.Core,
-                worn.Container, worn.Slot.Index, cancellationToken)
-            .ConfigureAwait(false);
-        if (displaced is null)
-        {
-            await worn.Container.ClearAsync(worn.Slot.Index, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            await worn.Container.PutTransferredAsync(worn.Slot.Index, displaced.Core,
-                    bag.Container, bag.Slot.Index, cancellationToken)
-                .ConfigureAwait(false);
-        }
+        var movedRecord = await worn.Container.TakeAsync(piece, null, cancellationToken).ConfigureAwait(false);
+        var displacedRecord = displaced is null ? null
+            : await bag.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
+        await bag.Container.PutAsync(bag.Slot.Index, movedRecord, cancellationToken).ConfigureAwait(false);
+        if (displacedRecord is not null)
+            await worn.Container.PutAsync(worn.Slot.Index, displacedRecord, cancellationToken).ConfigureAwait(false);
 
         await worn.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
 

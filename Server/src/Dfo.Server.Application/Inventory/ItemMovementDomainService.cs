@@ -22,8 +22,8 @@ internal sealed class ItemMovementDomainService(
         if (source.Container.StorageId == destination.Container.StorageId && source.Slot == destination.Slot)
             return new ItemMoveOutcome.Unchanged();
 
-        var first = await source.Container.ReadSlotAsync(source.Slot.Index, cancellationToken).ConfigureAwait(false);
-        var second = await destination.Container.ReadSlotAsync(destination.Slot.Index, cancellationToken).ConfigureAwait(false);
+        var first = await source.Container.GetAsync(source.Slot.Index, cancellationToken).ConfigureAwait(false);
+        var second = await destination.Container.GetAsync(destination.Slot.Index, cancellationToken).ConfigureAwait(false);
         var from = first is null ? destination : source;
         var into = first is null ? source : destination;
         var moving = first ?? second;
@@ -48,34 +48,16 @@ internal sealed class ItemMovementDomainService(
 
         if (displaced is null)
         {
-            if (moveCount == moving.Count)
-            {
-                await PutWholeAsync(into, from, moving, cancellationToken).ConfigureAwait(false);
-                await from.Container.ClearAsync(from.Slot.Index, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await from.Container.PutAsync(from.Slot.Index,
-                    moving.Core with { Value = moving.Count - moveCount }, cancellationToken).ConfigureAwait(false);
-                await into.Container.PutAsync(into.Slot.Index,
-                    moving.Core with { Value = moveCount }, cancellationToken)
-                    .ConfigureAwait(false);
-            }
+            var record = await from.Container.TakeAsync(moving, moveCount, cancellationToken).ConfigureAwait(false);
+            await into.Container.PutAsync(into.Slot.Index, record, cancellationToken).ConfigureAwait(false);
         }
-        else if (moving.IsPile && displaced.IsPile && displaced.ItemId == moving.ItemId
-            && moving.Core with { Value = 0 } == displaced.Core with { Value = 0 })
+        else if (moving.Snapshot.CanStackWith(displaced.Snapshot))
         {
             var limit = placement.StackLimit > 0 ? placement.StackLimit : int.MaxValue;
             if (limit <= 1 || (long)displaced.Count + moveCount > limit)
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.MergeExceedsStackLimit);
-            await into.Container.PutAsync(into.Slot.Index,
-                displaced.Core with { Value = checked(displaced.Count + moveCount) }, cancellationToken)
-                .ConfigureAwait(false);
-            if (moveCount == moving.Count)
-                await from.Container.ClearAsync(from.Slot.Index, cancellationToken).ConfigureAwait(false);
-            else
-                await from.Container.PutAsync(from.Slot.Index,
-                    moving.Core with { Value = moving.Count - moveCount }, cancellationToken).ConfigureAwait(false);
+            var record = await from.Container.TakeAsync(moving, moveCount, cancellationToken).ConfigureAwait(false);
+            await into.Container.PutAsync(into.Slot.Index, record, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -87,20 +69,15 @@ internal sealed class ItemMovementDomainService(
                 || displaced.IsPile && back.StackLimit > 0 && displaced.Count > back.StackLimit
                 || from.Slot.Index >= await from.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.DisplacedCannotOccupySlot);
-            await PutWholeAsync(into, from, moving, cancellationToken).ConfigureAwait(false);
-            await PutWholeAsync(from, into, displaced, cancellationToken).ConfigureAwait(false);
+            var movingRecord = await from.Container.TakeAsync(moving, null, cancellationToken).ConfigureAwait(false);
+            var displacedRecord = await into.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
+            await into.Container.PutAsync(into.Slot.Index, movingRecord, cancellationToken).ConfigureAwait(false);
+            await from.Container.PutAsync(from.Slot.Index, displacedRecord, cancellationToken).ConfigureAwait(false);
         }
 
         await from.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
         return new ItemMoveOutcome.Moved(moveCount, moving.ItemId);
     }
-
-    private static ValueTask PutWholeAsync(BoundInventorySlot destination,
-        BoundInventorySlot source, ContainerSlotItem item, CancellationToken cancellationToken) =>
-        item.IsPile
-            ? destination.Container.PutAsync(destination.Slot.Index, item.Core, cancellationToken)
-            : destination.Container.PutTransferredAsync(destination.Slot.Index, item.Core,
-                source.Container, source.Slot.Index, cancellationToken);
 
     public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) =>
         wearing.CanWearAsync(characterId, itemId, cancellationToken);

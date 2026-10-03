@@ -62,13 +62,13 @@ internal sealed class NpcShopRuleService(
 
     public NpcShopPlanningResult Plan(
         NpcShopQuote quote,
-        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held,
         int gold, int itemIdentitySeed)
     {
         if (gold < quote.GoldCost)
             return new(NpcShopRejection.InsufficientGold, null);
         var standing = held.SelectMany(group => group.Value.Select(item =>
-                (Slot: new BusinessSlot(group.Key, item.SlotIndex), Item: item)))
+                (Slot: new BusinessSlot(group.Key, item.SlotIndex), Item: item.Snapshot)))
             .ToDictionary(entry => entry.Slot, entry => entry.Item);
         var materialChanges = new List<NpcShopSlotChange>();
         foreach (var cost in quote.Materials)
@@ -84,12 +84,12 @@ internal sealed class NpcShopRuleService(
                     break;
                 var take = Math.Min(remaining, pile.Count);
                 remaining -= take;
-                var after = pile.Count == take ? null : pile.Core with { Value = pile.Count - take };
+                var after = pile.Count == take ? null : pile with { Count = pile.Count - take };
                 materialChanges.Add(new(slot, after));
                 if (after is null)
                     standing.Remove(slot);
                 else
-                    standing[slot] = pile with { Core = after };
+                    standing[slot] = after;
             }
         }
 
@@ -108,22 +108,23 @@ internal sealed class NpcShopRuleService(
                 candidates.Where(standing.ContainsKey).ToHashSet());
             BusinessSlot slot;
             int added;
-            InventoryItemCoreState core;
+            ItemSnapshot core;
             switch (arrival)
             {
                 case ItemArrival.OntoExistingPile pile:
                     slot = pile.Slot;
                     added = pile.Added;
-                    core = standing[slot].Core with { Value = pile.Total };
+                    core = standing[slot] with { Count = pile.Total };
                     break;
                 case ItemArrival.IntoEmptySlot empty:
                     slot = empty.Slot;
                     added = empty.Count;
-                    core = StackableItemCore.Create(placement.ItemKind, quote.Definition.ItemId, added);
+                    core = new ItemSnapshot { ItemId = quote.Definition.ItemId, Count = placement.WorldClass == ItemWorldClass.Interchangeable ? added : 1,
+                        Type = placement.Traits, LegacyKind = placement.ItemKind, IsPile = placement.WorldClass == ItemWorldClass.Interchangeable };
                     if (placement.WorldClass == ItemWorldClass.Equipment)
                         core = core with
                         {
-                            Value = itemIdentitySeed,
+                            InstanceValue = itemIdentitySeed,
                             Durability = quote.Definition.Durability,
                             SealFlag = quote.Definition.Sealed ? (byte)1 : (byte)0,
                         };
@@ -135,7 +136,7 @@ internal sealed class NpcShopRuleService(
             }
             if (added <= 0 || added > outstanding)
                 throw new InvalidOperationException("A shop arrival did not consume a positive bounded quantity.");
-            standing[slot] = new(slot.Index, core, placement.WorldClass);
+            standing[slot] = core;
             grants.Add(new(slot, core, added));
             outstanding -= added;
         }

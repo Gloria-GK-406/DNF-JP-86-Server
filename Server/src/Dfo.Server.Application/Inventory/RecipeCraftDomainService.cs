@@ -25,8 +25,8 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
         var cleared = ImmutableArray.CreateBuilder<BusinessSlot>();
         foreach (var slot in receipt.Inventory.Updates.Select(x => x.Slot).Concat(receipt.Inventory.Cleared).Distinct())
         {
-            var item = await slots.Get(session.CharacterId, slot).Container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
-            if (item is null) cleared.Add(slot); else updated.Add(new(slot, item.Identity, item.Core));
+            var item = await slots.Get(session.CharacterId, slot).Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
+            if (item is null) cleared.Add(slot); else updated.Add(new(slot, item.ItemUid, item.Snapshot));
         }
         return receipt with { Inventory = receipt.Inventory with { Updates = updated.ToImmutable(), Cleared = cleared.ToImmutable() } };
     }
@@ -43,7 +43,7 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
         if (plan.Required.IsDefaultOrEmpty || plan.Produced.IsDefaultOrEmpty
             || plan.Required.Length > 64 || plan.Produced.Length > 64
             || plan.Required.Concat(plan.Produced).Any(x => x.ItemId <= 0 || x.Count <= 0)
-            || source.Core.EquipmentLockId != 0)
+            || source.Snapshot.EquipmentLockId != 0)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Invalid or locked recipe.");
         // Prefer the selected drawing; otherwise consuming another pile could leave the selected drawing untouched.
         var standing = new List<OpeningHeldItem> { new(drawing, source) };
@@ -52,7 +52,7 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
         {
             var bag = bags.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item).FindContainer(space);
             if (bag is null) continue;
-            standing.AddRange((await bag.ReadAllAsync(ct).ConfigureAwait(false))
+            standing.AddRange((await bag.GetAllAsync(ct).ConfigureAwait(false))
                 .Where(x => new BusinessSlot(space, x.SlotIndex) != drawing)
                 .Select(x => new OpeningHeldItem(new BusinessSlot(space, x.SlotIndex), x)));
         }

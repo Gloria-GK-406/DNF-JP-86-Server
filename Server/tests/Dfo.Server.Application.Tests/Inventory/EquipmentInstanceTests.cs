@@ -20,17 +20,17 @@ public sealed class EquipmentInstanceTests
         await using var transaction = scope.Begin();
         var session = shop.Services.GetRequiredService<IItemDomainStore>().SessionIn(scope.Current!);
         var address = ContainerId.ForCharacter(shop.Session.CharacterId, InventoryContainerType.Main);
-        var original = (await session.ReadAsync(address, 9, default))!;
+        var original = (await session.GetAsync(address, 9, default))!;
         var bag = shop.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
             .GetStore(shop.Session.CharacterId, BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.CarriedEquipment);
 
-        await bag.PutAsync(0, original.Core with { EnchantUpgradeCount = 1 }, default);
+        await bag.UpdateAsync((await bag.GetAsync(0, default))!, current => current with { EnchantUpgradeCount = 1 }, default);
 
-        var current = (await session.ReadAsync(address, 9, default))!;
-        Assert.Equal(original.Identity, current.Identity);
-        Assert.Equal((byte)1, current.Core.EnchantUpgradeCount);
-        Assert.Equal(original.Identity, Assert.Single(await session.ReadAllAsync(address, default)).Identity);
+        var current = (await session.GetAsync(address, 9, default))!;
+        Assert.Equal(original.ItemUid, current.ItemUid);
+        Assert.Equal((byte)1, current.Snapshot.EnchantUpgradeCount);
+        Assert.Equal(original.ItemUid, Assert.Single(await session.GetAllAsync(address, default)).ItemUid);
     }
 
     [Fact]
@@ -51,30 +51,30 @@ public sealed class EquipmentInstanceTests
         {
             _ = first.SetReinforcementLevelAsync(32, default);
         });
-        Assert.Equal((byte)0xA0, (await first.ReadAsync(default)).Core.Attribute);
+        Assert.Equal((byte)0xA0, (await first.ReadAsync(default)).Snapshot.Attribute);
         await first.SetReinforcementLevelAsync(3, default);
         await second.SetEnchantmentAsync(7654, default);
         await first.DecreaseDurabilityAsync(2, default);
 
         var current = await second.ReadAsync(default);
-        Assert.Equal(first.ItemUid, current.ItemUid);
-        Assert.Equal((byte)3, current.Core.ReinforcementLevel);
-        Assert.Equal((byte)0xA3, current.Core.Attribute);
-        Assert.Equal((byte)7, current.Core.EnchantUpgradeCount);
-        Assert.Equal(7654, current.Core.EnchantCardId);
-        Assert.Equal((ushort)18, current.Core.Durability);
+        Assert.Equal(first.ItemUid, current.ItemUid!.Value.Value);
+        Assert.Equal((byte)3, current.Snapshot.ReinforcementLevel);
+        Assert.Equal((byte)0xA3, current.Snapshot.Attribute);
+        Assert.Equal((byte)7, current.Snapshot.EnchantUpgradeCount);
+        Assert.Equal(7654, current.Snapshot.EnchantCardId);
+        Assert.Equal((ushort)18, current.Snapshot.Durability);
         var untouched = await other.ReadAsync(default);
-        Assert.Equal((byte)0, untouched.Core.ReinforcementLevel);
-        Assert.Equal((byte)7, untouched.Core.EnchantUpgradeCount);
-        Assert.Equal(0, untouched.Core.EnchantCardId);
+        Assert.Equal((byte)0, untouched.Snapshot.ReinforcementLevel);
+        Assert.Equal((byte)7, untouched.Snapshot.EnchantUpgradeCount);
+        Assert.Equal(0, untouched.Snapshot.EnchantCardId);
         Assert.NotEqual(current.ItemUid, untouched.ItemUid);
         await transaction.CommitAsync(default);
     }
 
     [Fact]
-    public async Task Updated_identity_follows_consecutive_transfers_and_ignores_same_template_replacement()
+    public async Task Moving_invalidates_old_handles_even_when_the_same_uid_returns_to_the_same_slot()
     {
-        using var shop = new ShopFixture();
+        using var shop = new ShopFixture(services => services.AddSingleton<Dfo.Server.Abstractions.Content.IItemPlacementDefinitionSource, WideEquipmentPlacements>());
         var core = StackableItemCore.Create(1, 3000, 1234) with { Durability = 20 };
         await shop.SeedCore(9, core);
         await shop.SeedCore(10, core);
@@ -89,21 +89,27 @@ public sealed class EquipmentInstanceTests
             await instance.SetEnchantmentAsync(5432, default);
             var bag = Bag(shop);
             await Move(bag, 0, 2);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => instance.ReadAsync(default).AsTask());
+            await Move(bag, 2, 0);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => instance.SetReinforcementLevelAsync(2, default).AsTask());
+            await Move(bag, 0, 2);
             await Move(bag, 1, 0);
             await Move(bag, 2, 3);
-            await instance.SetReinforcementLevelAsync(2, default);
-            var current = await instance.ReadAsync(default);
-            Assert.Equal(First with { Index = 3 }, current.Slot);
-            Assert.Equal(5432, current.Core.EnchantCardId);
-            Assert.Equal((byte)2, current.Core.ReinforcementLevel);
+            var relocated = (await collection.FindAtAsync(First with { Index = 3 }, default))!;
+            Assert.Equal(uid, relocated.ItemUid);
+            await relocated.SetReinforcementLevelAsync(2, default);
+            var current = await relocated.ReadAsync(default);
+            Assert.Equal(First with { Index = 3 }, current.BusinessSlot);
+            Assert.Equal(5432, current.Snapshot.EnchantCardId);
+            Assert.Equal((byte)2, current.Snapshot.ReinforcementLevel);
             var replacement = (await collection.FindAtAsync(First, default))!;
             Assert.Equal(replacementUid, replacement.ItemUid);
-            Assert.Equal(core, (await replacement.ReadAsync(default)).Core);
+            Assert.Equal(core, (await replacement.ReadAsync(default)).Snapshot.ToCore());
             await transaction.CommitAsync(default);
         }
         await using var read = Scope(shop).Begin();
         var persisted = (await Collection(shop).FindAsync(uid, default))!;
-        Assert.Equal(First with { Index = 3 }, (await persisted.ReadAsync(default)).Slot);
+        Assert.Equal(First with { Index = 3 }, (await persisted.ReadAsync(default)).BusinessSlot);
         Assert.Equal(replacementUid, (await Collection(shop).FindAtAsync(First, default))!.ItemUid);
     }
 
@@ -117,7 +123,8 @@ public sealed class EquipmentInstanceTests
         var other = shop.Services.GetRequiredService<IEquipmentDomainService>().Of(new(2));
         Assert.Null(await other.FindAsync(instance.ItemUid, default));
         Assert.Null(await other.FindAtAsync(First, default));
-        Assert.Equal(shop.Session.CharacterId, (await instance.ReadAsync(default)).Owner);
+        Assert.True((await instance.ReadAsync(default)).ContainerId.TryGetCharacterOwner(out var owner, out _));
+        Assert.Equal(shop.Session.CharacterId, owner);
     }
 
     [Fact]
@@ -131,7 +138,7 @@ public sealed class EquipmentInstanceTests
         var first = (await collection.FindAtAsync(First, default))!;
         var second = (await collection.FindAsync(first.ItemUid, default))!;
         var removed = await first.DestroyAsync(default);
-        Assert.Equal(first.ItemUid, removed.ItemUid);
+        Assert.Equal(first.ItemUid, removed.ItemUid!.Value.Value);
         Assert.Null(await collection.FindAsync(first.ItemUid, default));
         Assert.Null(await collection.FindAtAsync(First, default));
         await Assert.ThrowsAsync<InvalidOperationException>(() => second.ReadAsync(default).AsTask());
@@ -150,10 +157,12 @@ public sealed class EquipmentInstanceTests
         var old = (await Collection(shop).FindAtAsync(First, default))!;
         var another = (await Collection(shop).FindAsync(old.ItemUid, default))!;
         await old.DestroyAsync(default);
-        await Bag(shop).PutAsync(0, core, default);
+        await Bag(shop).PutAsync(0, await shop.Services.GetRequiredService<IItemLifecycleDomainService>()
+            .CreateAsync(ItemSnapshot.FromCore(core, false), default), default);
 
         Assert.Null(await Collection(shop).FindAsync(old.ItemUid, default));
-        Assert.Null(await Collection(shop).FindAtAsync(First, default));
+        var replacement = (await Collection(shop).FindAtAsync(First, default))!;
+        Assert.NotEqual(old.ItemUid, replacement.ItemUid);
         await Assert.ThrowsAsync<InvalidOperationException>(() => another.SetReinforcementLevelAsync(1, default).AsTask());
         await Assert.ThrowsAsync<InvalidOperationException>(() => old.ReadAsync(default).AsTask());
     }
@@ -178,7 +187,7 @@ public sealed class EquipmentInstanceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => collection.FindAsync(old.ItemUid, default).AsTask());
         await Assert.ThrowsAsync<InvalidOperationException>(() => old.SetReinforcementLevelAsync(1, default).AsTask());
         var current = (await Collection(shop).FindAsync(old.ItemUid, default))!;
-        Assert.Equal(core, (await current.ReadAsync(default)).Core);
+        Assert.Equal(core, (await current.ReadAsync(default)).Snapshot.ToCore());
     }
 
     [Fact]
@@ -199,13 +208,17 @@ public sealed class EquipmentInstanceTests
     }
 
     [Fact]
-    public async Task Newly_staged_equipment_has_no_instance_until_its_uid_is_allocated()
+    public async Task Created_equipment_has_a_uid_and_becomes_an_instance_when_placed()
     {
         using var shop = new ShopFixture();
         await using (var transaction = Scope(shop).Begin())
         {
-            await Bag(shop).PutAsync(0, StackableItemCore.Create(1, 3000, 1234), default);
+            var record = await shop.Services.GetRequiredService<IItemLifecycleDomainService>()
+                .CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(1, 3000, 1234), false), default);
+            Assert.True(record.ItemUid!.Value.Value > 0);
             Assert.Null(await Collection(shop).FindAtAsync(First, default));
+            await Bag(shop).PutAsync(0, record, default);
+            Assert.Equal(record.ItemUid.Value.Value, (await Collection(shop).FindAtAsync(First, default))!.ItemUid);
             await transaction.CommitAsync(default);
         }
         await using var next = Scope(shop).Begin();
@@ -222,9 +235,17 @@ public sealed class EquipmentInstanceTests
             .GetContainer(BusinessInventorySpace.CarriedEquipment);
     private static async ValueTask Move(IBusinessItemContainer bag, int from, int to)
     {
-        var core = (await bag.ReadSlotAsync(from, default))!.Core;
-        await bag.PutTransferredAsync(to, core, bag, from, default);
-        await bag.ClearAsync(from, default);
+        var reference = (await bag.GetAsync(from, default))!;
+        var record = await bag.TakeAsync(reference, null, default);
+        await bag.PutAsync(to, record, default);
         await bag.FlushAsync(default);
     }
+    private sealed class WideEquipmentPlacements : Dfo.Server.Abstractions.Content.IItemPlacementDefinitionSource
+    {
+        public ValueTask<Dfo.Server.Abstractions.Content.ItemPlacement?> GetAsync(int id, CancellationToken ct) =>
+            id == 3000 ? ValueTask.FromResult<Dfo.Server.Abstractions.Content.ItemPlacement?>(new(1, 1,
+                new(BusinessInventorySpace.CarriedEquipment, 0, 47)) { WorldClass = Dfo.Server.Abstractions.Content.ItemWorldClass.Equipment })
+                : new NpcShopTestContent().GetAsync(id, ct);
+    }
+
 }

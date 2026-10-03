@@ -93,7 +93,7 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
                     .ToGameSlot(transformation.Slot);
                 await sender.SendExplicitAsync(owner.ConnectionId, new GameExplicitMessageDelivery([GameInventoryDelivery.Notification(
                     new CommittedInventoryUpdateState(slot.Space,
-                        [new InventoryItemState(null, slot.Index, transformation.Core)],
+                        [new InventoryItemState(null, slot.Index, transformation.Core.ToCore())],
                         (clock ?? TimeProvider.System).GetUtcNow()))], []), ct).ConfigureAwait(false);
                 await SendVisibleAsync(owner, new CreatureEvolutionNotification(
                     checked((ushort)transformation.CreatureId), owner.WireUserId), ct).ConfigureAwait(false);

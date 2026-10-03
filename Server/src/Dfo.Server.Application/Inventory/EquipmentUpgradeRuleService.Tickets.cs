@@ -6,7 +6,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed partial class EquipmentUpgradeRuleService
 {
-    public async ValueTask<EquipmentReinforcementQuote> QuoteTicketAsync(InventoryItemCoreState core, int materialItemId,
+    public async ValueTask<EquipmentReinforcementQuote> QuoteTicketAsync(ItemSnapshot core, int materialItemId,
         CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
         var ticket = await definitions.GetTicketAsync(materialItemId, ct).ConfigureAwait(false);

@@ -115,8 +115,9 @@ public sealed class ReplayStateSnapshotTests
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
         {
-            await equipment.PutNewAsync(25, StackableItemCore.Create(5, 63000, 1),
-                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(50, 1, 0, 0, 0, 1, [65], 0)), default);
+            var session = store.SessionIn(fixture.Scope.Current!);
+            await session.PutAsync(equipment.Id, 25, await session.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
             await tx.CommitAsync(default);
         }
         var before = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25");
@@ -292,8 +293,9 @@ public sealed class ReplayStateSnapshotTests
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
         {
-            await equipment.PutNewAsync(24, StackableItemCore.Create(5, 63000, 1),
-                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(50, 1, 0, 0, 0, 1, [65], 0)), default);
+            var session = store.SessionIn(fixture.Scope.Current!);
+            await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
             await tx.CommitAsync(default);
         }
         var identity = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24");

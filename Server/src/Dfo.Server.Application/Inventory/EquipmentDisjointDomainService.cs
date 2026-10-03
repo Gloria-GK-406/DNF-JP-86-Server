@@ -53,13 +53,13 @@ internal sealed class EquipmentDisjointDomainService(
             return new(EquipmentDisjointRejection.InvalidRequest);
 
         BoundInventorySlot? toolBound = null;
-        ContainerSlotItem? tool = null;
+        ItemReference? tool = null;
         if (portableMachine is { Slot: var portableSlot })
         {
             toolBound = slots.Find(session.CharacterId, portableSlot);
             tool = toolBound is null
                 ? null
-                : await toolBound.Container.ReadSlotAsync(
+                : await toolBound.Container.GetAsync(
                     toolBound.Slot.Index, cancellationToken).ConfigureAwait(false);
             if (tool is not { IsPile: true, Count: > 0 })
                 return new(EquipmentDisjointRejection.ItemUnavailable);
@@ -77,7 +77,7 @@ internal sealed class EquipmentDisjointDomainService(
         var bound = slots.Find(session.CharacterId, targetSlot);
         var equipment = bound is null
             ? null
-            : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         if (equipment is null)
             return new(EquipmentDisjointRejection.ItemUnavailable);
         var placement = await placements.PlacementForAsync(equipment.ItemId, cancellationToken)

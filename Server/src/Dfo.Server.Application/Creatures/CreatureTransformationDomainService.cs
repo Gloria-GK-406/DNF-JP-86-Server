@@ -18,9 +18,9 @@ internal sealed class CreatureTransformationDomainService(ICreatureDomainService
         if (transactions.Current is null || sessions.FindByCharacter(session.CharacterId) != session
             || eggSlot.Space != BusinessInventorySpace.CreatureInventory || eggSlot.Index is < 0 or > 139) return null;
         var container = creatures.GetStore(session.CharacterId).FindContainer(eggSlot.Space);
-        var item = container is null ? null : await container.ReadSlotAsync(eggSlot.Index, ct).ConfigureAwait(false);
-        if (item is null || item.ItemKind != 5 || item.Core.Value <= 0) return null;
-        var egg = await creatures.Of(session.CharacterId).FindEggAsync(item.Core.Value, ct).ConfigureAwait(false);
+        var item = container is null ? null : await container.GetAsync(eggSlot.Index, ct).ConfigureAwait(false);
+        if (item is null || item.Snapshot.LegacyKind != 5 || item.ItemUid is null) return null;
+        var egg = await creatures.Of(session.CharacterId).FindEggAsync(item.ItemUid!.Value.Value, ct).ConfigureAwait(false);
         var pet = egg is null ? null : await egg.BirthAsync(ct).ConfigureAwait(false);
         return (pet as PetInstance)?.BirthReceipt;
     }

@@ -40,7 +40,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
             .Add(new SetItemUsageStateEffect(f.Item.ItemId, f.Usage, new(checked(count + 1), f.At)));
     }
 
-    public async ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ContainerSlotItem item, QuestStateFacts state,
+    public async ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,
         IReadOnlyList<int> selected, DateTimeOffset at, CancellationToken ct)
     {
         var ids = selected.ToHashSet();
@@ -64,7 +64,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         return new(completed, result.ToImmutable());
     }
 
-    public async ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ContainerSlotItem water, int page,
+    public async ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, int page,
         IReadOnlyList<CharacterSkillState> before, IReadOnlyList<CharacterSkillState> changed, CancellationToken ct)
     {
         var result = (await ConsumptionAsync(source, water, ct).ConfigureAwait(false)).ToBuilder();
@@ -124,16 +124,16 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
     public ImmutableArray<DomainEffect> Rename(PetNameFacts f)
     {
         if (f.Source.Space != BusinessInventorySpace.CreatureConsumable || f.Source.Index is < 0 or > 50
-            || f.Card is not { ItemKind: 7, ItemId: 25, IsPile: true, Count: > 0 }
-            || f.Worn is not { ItemKind: 5 } || f.Current is null
-            || f.Worn.Core.Value != f.Current.ItemUid || f.Worn.ItemId != f.Current.ItemTemplateId
-            || Expired(f.Card.Core.ExpireTime, f.At) || Expired(f.Worn.Core.ExpireTime, f.At)
+            || f.Card is not { Snapshot: { LegacyKind: 7 }, ItemId: 25, IsPile: true, Count: > 0 }
+            || f.Worn is not { Snapshot: { LegacyKind: 5 } } || f.Current is null
+            || f.Worn.ItemUid?.Value != f.Current.ItemUid || f.Worn.ItemId != f.Current.ItemTemplateId
+            || Expired(f.Card.Snapshot.ExpireTime, f.At) || Expired(f.Worn.Snapshot.ExpireTime, f.At)
             || f.Name.IsDefault || f.Name.Length > 12 || f.Name.Any(x => x is 0 or < 0x20 or 0x7F)) return [];
-        return [new ConsumeFromContainerEffect(f.Source, 25, 1, f.Card.Core.EquipmentLockId),
+        return [new ConsumeFromContainerEffect(f.Source, 25, 1, f.Card.Snapshot.EquipmentLockId),
             new RenamePetEffect(f.Current.ItemUid, f.Current.ItemTemplateId, f.Name)];
     }
 
-    private async ValueTask<ImmutableArray<DomainEffect>> ConsumptionAsync(BusinessSlot source, ContainerSlotItem item, CancellationToken ct)
+    private async ValueTask<ImmutableArray<DomainEffect>> ConsumptionAsync(BusinessSlot source, ItemReference item, CancellationToken ct)
     {
         var rule = await uses.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         if (rule is not { IsReadable: true }) throw Reject("Unusable source declaration.");

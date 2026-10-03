@@ -46,7 +46,7 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
         w.Write(checked((byte)receipt.Inventory.Rewards.Length));
         foreach (var reward in receipt.Inventory.Rewards)
         {
-            var core = receipt.Inventory.Updates.Single(x => x.Slot == reward.Slot).Core;
+            var core = receipt.Inventory.Updates.Single(x => x.Slot == reward.Slot).Core.ToCore();
             w.Write(core.ItemKind == 1 ? (byte)1 : (byte)0);
             w.Write(checked((ushort)OpeningWireSlots.RewardIndex(reward.Slot))); w.Write(reward.ItemId);
             w.Write(core.ItemKind == 1 ? core.Value : reward.Count);

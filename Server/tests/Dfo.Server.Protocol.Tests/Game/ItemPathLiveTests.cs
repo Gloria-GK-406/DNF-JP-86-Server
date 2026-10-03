@@ -230,8 +230,9 @@ public sealed class ItemPathLiveTests
             // row carries no position of its own for a fixture to fill in.
             "INSERT INTO items(item_core) VALUES(@core);"
             + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-            + "VALUES('character',60,0,65,'world',last_insert_rowid(),"
+            + "VALUES('character',60,0,65,'template',@template,"
             + "last_insert_rowid(),1)";
+        item.Parameters.AddWithValue("@template", PotionId);
         item.Parameters.AddWithValue(
             "@core", InventoryItemCore.Encode(Core()));
         await item.ExecuteNonQueryAsync();

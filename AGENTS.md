@@ -105,7 +105,7 @@ TCP 字节
 ### 1) 领域服务编排业务（Application）
 
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
-`Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
+`Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场读取、物品生命周期、每日补货）、
 `Quests/`（按角色取得的任务日志：在做的、已通关的、追踪选择）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场、选中会话、PvP 大厅、专家商店
 四个领域服务，各自把运行态留在私有容器里）、`World/`（出生点策略、世界内容）、`Users/`
@@ -499,127 +499,47 @@ if (result.Publication.Audience.Count > 0)
 
 **弃权与「人不在了」不记**——它们不是出了问题。
 
-### 物品：有身份的东西，和它在哪，是两张表
+### 物品：统一属性、容器内引用与取出记录
 
-**`items` 是世界表，`item_slots` 是位置表。** 世界表说「这件东西是什么、它自己带着哪些可变状态」；
-位置表说「哪个容器的哪一格放着什么、几个、那 82 字节住在世界表的哪一行」。
-移动一件东西不再销毁重建它的世界行——`item_uid` 跨越任何位置变动与任何写入都不变。
+**业务属性只定义在 `ItemSnapshot`。** 模板号、数量、`ItemTraits Type`、PVF 身份分类形成的
+`IsPile`、独立物品 `ItemUid`、全部兼容字段及 Avatar/Creature 细节都在这份数据中。
+`Count` 是数量；`InstanceValue` 是旧编码里的实例值，不能用它代替独立物品 UID。
+`InventoryItemCoreState` 和 `InventoryItemState` 只用于既有数据库、报文和入场投影边界。
 
-`items` 今天 **19 列**（`Schema/CharacterDatabaseSchema.cs` 的 `CREATE TABLE items`，逐列数过）：
+容器的读取、移动、修改与销毁有不同入口：
 
-| 组 | 列数 | 内容 |
-|---|---|---|
-| 身份与 core | 2 | `item_uid`（`INTEGER PRIMARY KEY AUTOINCREMENT`，带一条 CHECK，见下）、`item_core`（`CHECK (length(item_core) = 82)`） |
-| 归属与时间 | 3 | `cargo_character_id`、`created_at`、`updated_at` |
-| 时装 | 6 | `avatar_expire_date`、`_clear_id`、`_jewel_socket`、`_color1`、`_color2`、`_delete_date` |
-| 契约兽 | 8 | `creature_field04`、`_mode_flag`、`_progress_value`、`_mode1_field0a`、`_mode1_field0b`、`_field_after_value`、`_text`、`_tail_flag` |
+- `Get/GetAll` 返回 `ItemReference`，绑定事务、真实槽位和占用代次；它不能直接被 `Put`。
+- `Take(reference, count?)` 返回 detached `ItemRecord`；整件取出腾空槽位，部分取出减少原堆。
+  记录携带完整属性，但没有容器位置。
+- `Put(slot, record)` 接收一次记录；兼容材料可合堆。新物品通过生命周期服务 `Create` 创建。
+- `Update(reference, change)` 对当前占用的最新属性应用变更，不移动物品，不替换 UID。
+  属性修改不使同一占用的其他引用失效；整件 Take 后即使同 UID 放回，旧引用仍失效。
+- 销毁先 `Take`，再 `IItemLifecycleDomainService.DeleteItem(record)`；取出本身不销毁。
+  装备与宠物实例绑定这类引用，移位后须重新取得行为接口，不再按 UID 跟随旧句柄。
 
-**「这一行有没有时装细节」由细节列自己回答，读侧只有一处。** 判定处是
-`InventoryItemTables.cs` 的 `SqliteCharacterItemTable.Avatar(SqliteDataReader, int)`：
-六列的**第一列** `avatar_expire_date` 是不是 NULL，就是这一行是不是时装的全部依据
-（`SqliteWorldItemTable.Read` 也调它，不另判一次）。契约兽那八列同理，第一列是
-`creature_field04`。`items` 上**没有** `avatar_uid`，也**没有** `idx_items_avatar_uid`。
+所有写入处于同一领域事务。`ItemLifecycleScope` 保证 detached 记录只被接收或删除一次，
+未安置记录不能提交；中途读取/Flush 不结束其生命周期。回滚恢复物品、数量、状态和位置。
+邮件附件由同一 item session 接收/取出记录，作为持久托管；同事务材料可在 SQLite 与易失后端间
+转移，独立物品不跨后端。装备交换先取出双方，再分别放入。
 
-「同一个时装 UID 全库至多一行带着它的细节」这条规则**还在**，但它不再是表的键，而是**三条写入
-语句自己的条件，分别是**：`SqliteCharacterItemTable.UpdateOwnAsync` 的 `NOT EXISTS(…)`、
-`SqliteCharacterItemTable.InsertOwnAsync` 的 `INSERT … SELECT … WHERE NOT EXISTS(…)`
-（后者取代了原先的 `ON CONFLICT(avatar_uid) … DO NOTHING`）、以及
-`SqliteItemDomainStore.FillAsync` 的 `INSERT … SELECT … WHERE @expire IS NULL OR NOT EXISTS(…)`。
-前两条共用同一段条件文本 `SqliteCharacterItemTable.CarriesTheAvatar`；第三条**没有**复用它，
-因为它比对的是**待插入的 core** 而不是一个 `@avatarKey` 参数，所以那段文本在它里面是内联的。
-三条都从 **core 里**读 UID（`substr(item_core, 6, 4)`，即 core 偏移 5 起的 4 字节小端），
-不再读一份列副本。**该谓词文本在 `Server/src` 今天出现在 4 处 SQL 里，按成员名分别是**
-`SqliteCharacterItemTable.UpdateOwnAsync` 与 `SqliteCharacterItemTable.InsertOwnAsync`
-（同文件 `InventoryItemTables.cs`，这两处是常量 `SqliteCharacterItemTable.CarriesTheAvatar` 的两个使用点）、
-`SqliteItemDomainStoreSession.CarriedAvatarsAsync` 的检索键（写作 `AND substr(item_core, 6, 4) = @uid`）、
-`SqliteItemDomainStoreSession.FillAsync` 的守卫
-（写作 `AND substr(standing.item_core, 6, 4) = substr(@core, 6, 4)`），后两处在 `SqliteItemDomainStore.cs`。
-计数口径：在 `Server/src` 下按字符串 `item_core, 6, 4` 检索，命中 3 行；其中
-`InventoryItemTables.cs` 那一行是常量声明，被上面点名的两个成员各引用一次，故算 4 处 SQL。
-**按成员名索引，不按行号。** 这一句原先写的是行号，而行号会漂——本仓最便宜的一次自证。
+`items` 继续保存 82 字节兼容 core 及时装六项、宠物八项扩展状态，`item_slots` 保存归属和位置。
+整件 Take 只删位置，Put 保留原 UID，Update 更新原行，显式 Delete 才结束物品行。
+材料的内部 backing 行键不充当业务 UID。`InventoryEntryAssembly` 读取完整引用并投影入场状态，
+已移除旧 EntryLease/整份 Save、StoredItem、ContainerSlotItem、InventoryStorageItem、
+InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路。
 
-`item_slots` **8 列**：`owner_scope`（`character`/`account`）、`owner_id`、`list_type`、`slot_index`、
-`kind`（`world`/`template`）、`id`、`core_uid`、`count`。
-`UNIQUE(owner_scope, owner_id, list_type, slot_index)` 是「一格只放一样东西」；
-三条具名 CHECK 分别是 `count > 0`、世界槽 `count = 1`、世界槽 `core_uid = id`。
-**`core_uid` 上没有唯一性**，所以「一件东西只在一个位置」这条由代码说，两侧各一处：
-`InventoryEntryAssembly` 的 `SaveAsync` 落位前比世界行身份集合的大小，
-`RequireOneNameEach` 在两条入场读取到行之后比同一样东西。
-两处都数世界行而不数 `ItemIdentity`——堆叠物没有身份，按身份数会把它漏掉。
-**两处都够不到称号书。** `ReadByCharacterAsync` 与保存侧的 `DeleteOwnExceptAsync`、
-`ClearOwnPositionsAsync` 都带 `list_type NOT BETWEEN 19 AND 23`，那五个容器由
-`SqliteCharacterTitleBookTable.ReadAsync` 单独读，整个租借往返都不经过这五个容器的位置行。
-于是一条称号书位置行与一条别处的位置行指名同一个世界行时，两侧都看不见。
+新建和落位根据 PVF 校验类型、是否堆叠和目标规则；既存行的身份形态以实际 `item_slots.kind`
+为准。容量、固定槽、堆叠上限及同账号归属仍由对应业务边界检查。容量缩小后的旧堆可取出或减量，
+不能借 Update 增长或改写其他状态。普通补货沿用补货规则决定的数量，与普通发放的堆叠规划不同。
+账号仓库无时装细节的历史行仅保留读取兼容，不放宽新建/重新落位的完整性要求。
+角色 Main/1 的零复活币逻辑数量为 0，位置表的物理 count 保持正数。
 
-**`core_uid` 是这个形状的关键，一个列解掉了两笔债。** 任何一种槽行都指名它那 82 字节住在哪一行
-——堆叠物也有世界行，因为它的 core **不可约到「模板号 + 数量」**
-（`StackableItemCore.Create` 写死 `Marker16 = -1` 与 `RandomOptionChangedIndex = 255`，
-而 `GameInventoryDelivery` 对 `ItemKind == 2` 把 `-1` **原样上线不钳**；
-见 `Docs/ItemWorldModel.md` 的「更正 C-1」）。于是两件事同时成立：孤儿查询收成单条
-`NOT EXISTS (… holder.core_uid = items.item_uid)`，不再需要靠位置列把堆叠物挑出去；
-上一版为躲唯一键冲突而设的「抬起到哨兵槽再落下」整套机制**摘掉**
-（全仓 `LiftAsync` / `NoContainer` **零命中**）。
+边界限制：`core_uid` 没有数据库唯一约束，普通写入由记录接收机制限制；入场仍检查重复行身份。
+`items.item_uid` 的 wire 范围 CHECK 不能靠给既存表 ADD COLUMN 补上，编码仍使用 checked 转换。
+`SqliteWorldItemTable`/`SqliteItemSlotTable` 保留为测试用数据库边界，不作为生产物品写入口。
 
-**分类由档案回答，不由存储里那个种类字节回答。** 唯一实现是
-`ItemPlacementRuleService.ClassifyAsync`，签名**只收模板号**（`int itemId`），
-答 `ItemWorldClass` 四值之一（`Interchangeable` / `Equipment` / `Avatar` / `Creature`）。
-生产侧 6 个调用点（`InventoryEntryAssembly` 两处、`ItemContainers` 两处、
-`CharacterRosterService`、`DailyRefillService`），覆盖每一条写入路径。
-存储里的行说自己是别的种类时，**以档案为准并拒绝**，而不是照存。
-
-#### 今天没有的东西（逐条，不是「大概没有」）
-
-- **无人引用的世界行只要求可查询**（`ReadUnreferencedAsync`），**没有任何东西清扫它们**。
-- **「存在但不在任何槽里」这个能力没有用起来**：地上掉落、交易托管、拍卖挂单、邮件附件，一条都没接。
-- **没有契约兽领域**：实例动词、喂食、经验、等级、饱食度记账，一个都没有。
-- **契约兽槽位是 24 还是 25 没有裁定**，沿用今天在用的 24；悬案原样留在
-  `Docs/ProtocolScaffoldDissonances.md` 第九节。
-- **`character_condition` 有五个含义未查清的列。**
-- **没有迁移机制**，也没有为旧形状保留的兼容读路径——旧库作废重建。
-- ~~**时装取得下、穿不上。**~~ **2026-09-08 已修**：11 个时装槽名已进 `PvfEquipmentSlots.ByName`，时装能穿上。见下面「时装」一节。
-
-#### 三处「结论对，但撑着它的不是代码」
-
-**不要把它们读成「有代码守着」。**
-
-- **`items` 上那条 `world_identity_fits_the_wire` CHECK（`item_uid BETWEEN 1 AND 2147483647`）
-  只对新建库无条件成立。** 发布版的 `items` 表没有它，而 schema 调和只会
-  `ALTER TABLE … ADD COLUMN`（`CharacterDatabaseSchema.cs` 一处），**补不了 CHECK**。
-  既存库上溢出会落到编码时的 `checked((int))`，抛 `OverflowException`。
-  这与「旧库作废重建」不冲突，**但说法不得省略这个限定**。
-- **「今天不存在能销毁一件有身份物品的生产通路」成立，但其中一条依据不是代码给的。**
-  `ItemContainers.ConsumeAsync` 只有一个生产调用方（`ItemUseEffectDomainService`），
-  而它是否被调用只看 `rule.IsConsumedOnUse`——那是**档案数据**
-  （`PvfItemUseRuleDefinitionSource`）保证的；`ConsumeAsync` 自己**没有任何守卫**
-  拦住一件有身份的东西。
-- **「清空先于填入」这条不变量已经不再承重，且没有任何判据钉住它。**
-  `SqliteItemDomainStore` 的注释**四处**说它（类型级 `<remarks>` 一处，加 `ApplyDecidedWritesAsync`、
-  `FlushAsync`、`EmptyAsync` 各一处 `<remarks>`），但变异实测：逐槽交替 empty/fill、
-  字面违反该注释，**`Dfo.Server.Persistence.Tests` 仍然全绿**。真正扛住换位的是 `spared`——
-  幸存者按名字免删，落点是 `EmptyAsync` 里 `DELETE FROM items` 上追加的
-  `AND item_uid NOT IN (<幸存者>)`。这是一条**只写在注释里的口头不变量**。
-
-#### 已知缺陷与覆盖缺口
-
-- **契约兽的「从槽 24 取下、目标背包格里已有另一只 → 互换」没有判据。**
-- **「同一个时装 UID 全库至多一行」这条规则覆盖三条写入语句，还剩一个写入方不被覆盖。**
-  三处落点见上面的世界表小节，各有判据钉住
-  （`SqliteEntryInventoryMutationRepositoryTests` 两条 ＋
-  `SqliteItemDomainStoreTests.TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding`）。
-  **被拒时的表现**：`FillAsync` 的 `INSERT … SELECT` 落空、`RETURNING` 无行、
-  `ExecuteScalarAsync` 返回 `null`，紧随其后的 `allocated is null` 抛
-  `InvalidOperationException`（消息含 `named no identity`），**回滚，不会静默通过**。
-  **不被覆盖的写入方是 `SqliteWorldItemTable`**（`InsertAsync`／`UpdateAsync`）：它写 `items`
-  的时装列却没有自己的条件，而 `BindAvatarColumns` 在 `avatar is null` 时把六列绑成 NULL，
-  **所以它写得出「kind 8 但六列为空」那个坏形状**。它今天**生产里零调用方、零 DI 注册**
-  （`PersistenceModule` 注册的是 `ICharacterItemTable`、`IAccountCargoItemTable`、
-  `SqliteItemDomainStore`／`IItemDomainStore`，**没有** `IWorldItemTable`），
-  全仓只有 `WorldAndSlotTableTests` 与 `CreatureIdentityFitsTheWireTests` 把它 new 出来。
-  **这个缺口今天到不了生产，是有意留下的**——去补它等于在一个生产无人调用的类上引入新行为。
-  **谁第一次给它接上生产调用方，谁就得同时补守卫与判据。**
-- **一条判据的名字不再描述它证明的东西**：
-  `EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt`
-  的正向断言现在指向新增的 `ON item_slots(core_uid)`。
+设计与回归证据见 `Document/tasks/item-container-lifecycle/`。以上是 CurrentImplementation，
+不代替 A21 实机验收。以下时装小节保留原逆向及历史修复记录，旧调用链以本节为准。
 
 #### 时装：种类已经对齐，穿不上的那一半已于 2026-09-08 修好
 
@@ -759,21 +679,12 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
    **约 68 年对应的是 `int.MaxValue` 本身**（`2147483647 ÷ 31556952 = 68.05`），
    看到它、或一个日期、或客户端拒绝渲染，才是要追的。
 
-#### 一处影响面超出时装的行为变化：普通装备的拖动
+#### 普通装备数量与实例值
 
-**证据类型：代码级读出，未实测也未实机。**
-
-`CharacterRosterService.EquipmentCore` 给起始装备的 `Value` 写的是
-`Random.Shared.Next(1, int.MaxValue)`，`GroundPickupSlice.CarryOverAsync` 给捡来的装备写的是
-`checked((int)found.Instance)`——**两句写进 `Value` 位的都是身份，不是「有几个」**。
-而 `ContainerSlotItem.Count` 曾经是 `=> Core.Value`，无条件读同一位。于是这样一件装备在背包内
-被拖动时，请求里的 `MoveCount`（实机样本是 1）与那个身份不等：目标格空 → 走 `Split`
-把一件装备拆开；目标格有东西 → `PartialSwapNotAllowed` 对调被拒。
-
-`Count => this.IsPile ? Core.Value : 1` 把这条毛病一起消掉了，现在整件移动、整件对调。
-**这是变好，但它不在原本列出的行为变化里**，是修时装那一处强制带出的——要保留旧行为反而
-得给时装开特例，那会让普通装备继续坏着。
-**实机测普通装备时若看到与线上老服不同的拖动行为，那不是新引入的缺陷。**
+独立装备的 `ItemSnapshot.Count` 恒为 1；旧 core.Value 由 `InstanceValue` 保留。
+起始装备和地面掉落的这个兼容值不再参与数量判断，也不等同于 `ItemUid`。
+移动和对调通过 Take/Put 保留原 UID，耐久等属性通过 Update 修改。
+这段描述是实现与自动化回归证据，不宣称新增 ClientVerified。
 
 ### 判据偶发失败：先取身份，再谈别的
 

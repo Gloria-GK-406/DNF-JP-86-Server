@@ -13,15 +13,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
-/// <summary>
-/// Whether "container and slot" is enough to say everything this server does to an item.
-/// </summary>
-/// <remarks>
-/// Each of the five operations is written out here as the reads, clears and writes a caller would
-/// use, with no identifier for the item anywhere. These were written before the store existed:
-/// if one of the five could not be said this way, that was the point at which to stop rather than
-/// to invent an identity for items to be addressed by.
-/// </remarks>
+/// <summary>Storage, identity, quantity conservation and atomicity through explicit item lifecycle operations.</summary>
 public sealed class SqliteItemDomainStoreTests
 {
     private static readonly ContainerId Main =
@@ -36,19 +28,18 @@ public sealed class SqliteItemDomainStoreTests
         await using var store = await NewStoreAsync();
         var cargo = new ContainerId("account:6:AccountCargo");
         var other = new ContainerId("account:6:Main");
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-        session.Write(cargo, Pile(0, Potion(5)));
-        session.Write(other, Pile(0, Stone(7)));
-        await transaction.SettleAsync();
-
-        var inspect = new StubTransaction();
-        var read = store.Value.SessionIn(inspect);
-        Assert.Equal(Potion(5), (await read.ReadAsync(cargo, 0, CancellationToken.None))!.Core);
-        Assert.Equal(Stone(7), (await read.ReadAsync(other, 0, CancellationToken.None))!.Core);
-        Assert.Empty(await read.ReadAllAsync(new ContainerId("account:7:Main"), CancellationToken.None));
-        Assert.Empty(await read.ReadAllAsync(Main, CancellationToken.None));
-        await inspect.RollbackAsync();
+        await InTransactionAsync(store.Value, async session =>
+        {
+            await session.PutAsync(cargo, 0, await session.CreateAsync(Pile(Potion(5)), default), default);
+            await session.PutAsync(other, 0, await session.CreateAsync(Pile(Stone(7)), default), default);
+        });
+        await InTransactionAsync(store.Value, async session =>
+        {
+            Assert.Equal(Potion(5), (await session.GetAsync(cargo, 0, default))!.Snapshot.ToCore());
+            Assert.Equal(Stone(7), (await session.GetAsync(other, 0, default))!.Snapshot.ToCore());
+            Assert.Empty(await session.GetAllAsync(new ContainerId("account:7:Main"), default));
+            Assert.Empty(await session.GetAllAsync(Main, default));
+        });
     }
 
     [Fact]
@@ -110,252 +101,151 @@ public sealed class SqliteItemDomainStoreTests
         var cargo = new ContainerId("account:6:AccountCargo");
         var otherAccount = new ContainerId("account:7:AccountCargo");
         var otherCharacter = ContainerId.ForCharacter(new CharacterId(61), InventoryContainerType.Main);
-        var deposit = new StubTransaction();
-        var first = store.Value.SessionIn(deposit);
-        var original = (await first.ReadAsync(Main, 9, CancellationToken.None))!;
-        first.Write(cargo, original with { SlotIndex = 0, WorldClass = ItemWorldClass.Equipment,
-            TransferFrom = new(Main, 9) });
-        first.Clear(Main, 9);
-        await deposit.SettleAsync();
-
-        var withdraw = new StubTransaction();
-        var second = store.Value.SessionIn(withdraw);
-        Assert.Null(await second.ReadAsync(Main, 9, CancellationToken.None));
-        Assert.Empty(await second.ReadAllAsync(otherAccount, CancellationToken.None));
-        var stored = (await second.ReadAsync(cargo, 0, CancellationToken.None))!;
-        Assert.Equal(original.Identity, stored.Identity);
-        Assert.Equal(original.Core, stored.Core);
-        second.Write(otherCharacter, stored with { SlotIndex = 9, WorldClass = ItemWorldClass.Equipment,
-            TransferFrom = new(cargo, 0) });
-        second.Clear(cargo, 0);
-        await withdraw.SettleAsync();
-
-        var inspect = new StubTransaction();
-        var third = store.Value.SessionIn(inspect);
-        Assert.Empty(await third.ReadAllAsync(cargo, CancellationToken.None));
-        var received = (await third.ReadAsync(otherCharacter, 9, CancellationToken.None))!;
-        Assert.Equal(original.Identity, received.Identity);
-        Assert.Equal(original.Core, received.Core);
-        await inspect.RollbackAsync();
+        ItemSnapshot? original = null;
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 9, default))!;
+            original = source.Snapshot;
+            await session.PutAsync(cargo, 0, await session.TakeAsync(source, null, default), default);
+        });
+        await InTransactionAsync(store.Value, async session =>
+        {
+            Assert.Null(await session.GetAsync(Main, 9, default));
+            Assert.Empty(await session.GetAllAsync(otherAccount, default));
+            var stored = (await session.GetAsync(cargo, 0, default))!;
+            Assert.Equal(original, stored.Snapshot);
+            await session.PutAsync(otherCharacter, 9, await session.TakeAsync(stored, null, default), default);
+        });
+        await InTransactionAsync(store.Value, async session =>
+        {
+            Assert.Empty(await session.GetAllAsync(cargo, default));
+            Assert.Equal(original, (await session.GetAsync(otherCharacter, 9, default))!.Snapshot);
+        });
     }
 
     [Fact]
-    public async Task Relocate_IsExpressedAsAClearAndAWrite()
+    public async Task Relocate_TakesAndPutsTheSameRecord()
     {
-        await using var store = await NewStoreAsync(
-            (65, Potion(5)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var moving = await session.ReadAsync(Main, 65, CancellationToken.None);
-        session.Clear(Main, 65);
-        session.Write(Main, Pile(3, moving!.Core));
-        await transaction.SettleAsync();
-
+        await using var store = await NewStoreAsync((65, Potion(5)));
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 65, default))!;
+            await session.PutAsync(Main, 3, await session.TakeAsync(source, null, default), default);
+        });
         Assert.Equal([(3, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
 
     [Fact]
-    public async Task Split_IsExpressedAsTwoWrites()
+    public async Task Split_TakesOnlyTheRequestedQuantity()
     {
-        await using var store = await NewStoreAsync(
-            (65, Potion(5)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var moving = await session.ReadAsync(Main, 65, CancellationToken.None);
-        session.Write(Main, Pile(65, moving!.Core with { Value = 3 }));
-        session.Write(Main, Pile(66, Potion(2)));
-        await transaction.SettleAsync();
-
+        await using var store = await NewStoreAsync((65, Potion(5)));
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 65, default))!;
+            await session.PutAsync(Main, 66, await session.TakeAsync(source, 2, default), default);
+        });
         Assert.Equal([(65, PotionId, 3), (66, PotionId, 2)], await ReadSlotsAsync(store.Path));
     }
 
-    /// <summary>
-    /// The swap is the operation that decides the question.
-    /// </summary>
-    /// <remarks>
-    /// Storage addressed by row could not write both ends straight across -- the slot is part of a
-    /// unique key, so the first update collided with the row it was about to displace, and the
-    /// implementation this replaces parked one row on slot -1 for the length of its transaction to
-    /// get around it. Addressed by slot there is nothing to get around: each slot is simply told
-    /// what it now holds.
-    /// </remarks>
     [Fact]
-    public async Task Swap_IsExpressedAsTwoWritesWithNoParkedSlot()
+    public async Task Swap_TakesBothRecordsBeforePuttingEitherWithNoParkedSlot()
     {
-        await using var store = await NewStoreAsync(
-            (65, Potion(5)),
-            (66, Stone(1)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var first = await session.ReadAsync(Main, 65, CancellationToken.None);
-        var second = await session.ReadAsync(Main, 66, CancellationToken.None);
-        session.Write(Main, Pile(66, first!.Core));
-        session.Write(Main, Pile(65, second!.Core));
-        await transaction.SettleAsync();
-
+        await using var store = await NewStoreAsync((65, Potion(5)), (66, Stone(1)));
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var first = await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default);
+            var second = await session.TakeAsync((await session.GetAsync(Main, 66, default))!, null, default);
+            await session.PutAsync(Main, 66, first, default);
+            await session.PutAsync(Main, 65, second, default);
+        });
         Assert.Equal([(65, StoneId, 1), (66, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
 
     [Fact]
-    public async Task Merge_IsExpressedAsAWriteAndAClear()
+    public async Task Merge_AcceptsTheTakenRecordIntoTheExistingPile()
     {
-        await using var store = await NewStoreAsync(
-            (65, Potion(5)),
-            (66, Potion(2)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var moving = await session.ReadAsync(Main, 65, CancellationToken.None);
-        var target = await session.ReadAsync(Main, 66, CancellationToken.None);
-        session.Write(Main, Pile(66, target!.Core with { Value = 7 }));
-        session.Clear(Main, moving!.SlotIndex);
-        await transaction.SettleAsync();
-
+        await using var store = await NewStoreAsync((65, Potion(5)), (66, Potion(2)));
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 65, default))!;
+            await session.PutAsync(Main, 66, await session.TakeAsync(source, null, default), default);
+        });
         Assert.Equal([(66, PotionId, 7)], await ReadSlotsAsync(store.Path));
     }
 
     [Fact]
-    public async Task PartialConsume_IsExpressedAsAWrite()
+    public async Task PartialConsume_TakesAndDeletesOnlyTheConsumedQuantity()
     {
-        await using var store = await NewStoreAsync(
-            (65, Potion(5)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var used = await session.ReadAsync(Main, 65, CancellationToken.None);
-        session.Write(Main, Pile(65, used!.Core with { Value = 4 }));
-        await transaction.SettleAsync();
-
+        await using var store = await NewStoreAsync((65, Potion(5)));
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 65, default))!;
+            await session.DeleteItemAsync(await session.TakeAsync(source, 1, default), default);
+        });
         Assert.Equal([(65, PotionId, 4)], await ReadSlotsAsync(store.Path));
     }
 
     [Fact]
-    public async Task ConsumingTheLastOfAPile_IsExpressedAsAClear()
+    public async Task ConsumingTheLastOfAPile_DeletesItsTakenRecord()
     {
-        await using var store = await NewStoreAsync(
-            (65, Potion(1)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var used = await session.ReadAsync(Main, 65, CancellationToken.None);
-        session.Clear(Main, used!.SlotIndex);
-        await transaction.SettleAsync();
-
+        await using var store = await NewStoreAsync((65, Potion(1)));
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 65, default))!;
+            await session.DeleteItemAsync(await session.TakeAsync(source, null, default), default);
+        });
         Assert.Empty(await ReadSlotsAsync(store.Path));
     }
 
-    /// <summary>
-    /// That the world refuses to stand two rows on one avatar's facts.
-    /// </summary>
-    /// <remarks>
-    /// A partial unique index on the old avatar key used to carry this. Retiring that key took the
-    /// index with it, and the guard has to be said in the statement instead: an insert that would
-    /// put a second row on an avatar UID some row already carries selects nothing, so the insert
-    /// returns no identity and the write fails loudly rather than leaving the pair behind.
-    /// <para>
-    /// Nothing reaches this today -- the settle empties a position before it fills one, so the row
-    /// a move rewrites is gone by the time its replacement is written. It is a last line, and a
-    /// last line with no test is the shape this outcome kept finding: present, believed, and not
-    /// actually holding anything.
-    /// </para>
-    /// </remarks>
     [Fact]
-    public async Task TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding()
+    public async Task TheWorldRefusesToPlaceAnAvatarRecordTwice()
     {
-        var detail = new InventoryAvatarDetailState(
-            11, 12, Enumerable.Repeat((byte)13, 30).ToArray(), 14, 15, 16);
+        var detail = new InventoryAvatarDetailState(11, 12, Enumerable.Repeat((byte)13, 30).ToArray(), 14, 15, 16);
         await using var store = await NewStoreAsync((9, Avatar()));
         await SeedAvatarDetailAsync(store.Path, AvatarUid, detail);
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        // Both writes carry the same avatar's facts, because both are fed by the row being
-        // displaced. One of them may stand; the second is the pair the retired index forbade.
-        session.Clear(Main, 9);
-        session.Write(Main, Worn(10, Avatar()));
-        session.Write(Main, Worn(11, Avatar()));
-
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await transaction.SettleAsync());
-        Assert.Contains("named no identity", refused.Message, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// An avatar put down again unchanged keeps its row, and so keeps its facts by not moving them.
-    /// </summary>
-    /// <remarks>
-    /// Nothing is carried anywhere here, and that is what this holds. The write puts down the same
-    /// core the read took up, so the second of the three passes in <c>Survivors</c> claims the
-    /// displaced row by content; the row is spared from the delete and landed on, and its six
-    /// columns are never touched. <c>CarriedAvatarsAsync</c> is not even asked about it, because a
-    /// survivor is excluded from that retrieval.
-    /// <para>
-    /// The case where the six facts really are carried -- the row deleted and another built in its
-    /// place -- is the one below.
-    /// </para>
-    /// </remarks>
-    [Fact]
-    public async Task Relocate_LeavesASparedAvatarsRowStandingWithItsFactsUntouched()
-    {
-        var detail = new InventoryAvatarDetailState(
-            11, 12, Enumerable.Repeat((byte)13, 30).ToArray(), 14, 15, 16);
-        await using var store = await NewStoreAsync((9, Avatar()));
-        await SeedAvatarDetailAsync(store.Path, AvatarUid, detail);
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var moving = await session.ReadAsync(Main, 9, CancellationToken.None);
-        session.Clear(Main, 9);
-        session.Write(Main, Worn(10, moving!.Core));
-        await transaction.SettleAsync();
-
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var item = await session.TakeAsync((await session.GetAsync(Main, 9, default))!, null, default);
+            await session.PutAsync(Main, 10, item, default);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => session.PutAsync(Main, 11, item, default).AsTask());
+        });
         Assert.Equal([(10, AvatarItemId, AvatarUid)], await ReadSlotsAsync(store.Path));
         Assert.Equivalent(detail, await ReadAvatarDetailAsync(store.Path, AvatarUid));
     }
 
-    /// <summary>
-    /// An avatar whose row is rebuilt is handed its six facts onto the row that replaces it.
-    /// </summary>
-    /// <remarks>
-    /// The write above keeps its row; this one does not, which is the whole difference. The core
-    /// put down differs from the one taken up -- in a field outside the four bytes at offset five
-    /// that carry the avatar UID -- so none of the three passes in <c>Survivors</c> claims the
-    /// displaced row: the first and third want the same position and this is a different one, and
-    /// the second wants identical bytes. The row is therefore deleted and a new one inserted, and
-    /// the only way the facts reach it is the retrieval.
-    /// <para>
-    /// The identity is asserted to have changed, and that assertion is what makes the rest mean
-    /// anything: without it a relocate that quietly took the sparing path would satisfy every other
-    /// line here while proving nothing, which is exactly what the test above turned out to be.
-    /// </para>
-    /// <para>
-    /// All six are asserted one by one for the reason given on
-    /// <see cref="AWriteThatCarriesAnAvatarsFactsPutsThemOnTheRowTheWorldCreates"/>.
-    /// </para>
-    /// </remarks>
     [Fact]
-    public async Task AnAvatarWhoseRowIsRebuiltIsHandedItsSixFactsAgain()
+    public async Task Relocate_LeavesAnAvatarsRowStandingWithItsFactsUntouched()
     {
-        var detail = new InventoryAvatarDetailState(
-            41, 42, Enumerable.Repeat((byte)43, 30).ToArray(), 44, 45, 46);
+        var detail = new InventoryAvatarDetailState(11, 12, Enumerable.Repeat((byte)13, 30).ToArray(), 14, 15, 16);
+        await using var store = await NewStoreAsync((9, Avatar()));
+        await SeedAvatarDetailAsync(store.Path, AvatarUid, detail);
+        var identity = await ReadWorldRowIdAsync(store.Path, 9);
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var item = await session.TakeAsync((await session.GetAsync(Main, 9, default))!, null, default);
+            await session.PutAsync(Main, 10, item, default);
+        });
+        Assert.Equal(identity, await ReadWorldRowIdAsync(store.Path, 10));
+        Assert.Equal([(10, AvatarItemId, AvatarUid)], await ReadSlotsAsync(store.Path));
+        Assert.Equivalent(detail, await ReadAvatarDetailAsync(store.Path, AvatarUid));
+    }
+
+    [Fact]
+    public async Task UpdatingThenMovingAnAvatarKeepsItsIdentityAndAllSixFacts()
+    {
+        var detail = new InventoryAvatarDetailState(41, 42, Enumerable.Repeat((byte)43, 30).ToArray(), 44, 45, 46);
         await using var store = await NewStoreAsync((9, Avatar()));
         await SeedAvatarDetailAsync(store.Path, AvatarUid, detail);
         var standing = await ReadWorldRowIdAsync(store.Path, 9);
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var moving = await session.ReadAsync(Main, 9, CancellationToken.None);
-        session.Clear(Main, 9);
-        session.Write(Main, Worn(10, moving!.Core with { Durability = 77 }));
-        await transaction.SettleAsync();
-
-        var rebuilt = await ReadWorldRowIdAsync(store.Path, 10);
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var source = (await session.GetAsync(Main, 9, default))!;
+            var updated = await session.UpdateAsync(source, item => item with { Durability = 77 }, default);
+            var moved = await session.PutAsync(Main, 10, await session.TakeAsync(updated, null, default), default);
+            Assert.Equal((ushort)77, moved.Snapshot.Durability);
+        });
         Assert.NotNull(standing);
-        Assert.NotNull(rebuilt);
-        Assert.NotEqual(standing, rebuilt);
+        Assert.Equal(standing, await ReadWorldRowIdAsync(store.Path, 10));
         var stored = await ReadAvatarDetailAsync(store.Path, AvatarUid);
         Assert.NotNull(stored);
         Assert.Equal(41, stored.ExpireDate);
@@ -366,32 +256,17 @@ public sealed class SqliteItemDomainStoreTests
         Assert.Equal(46, stored.DeleteDate);
     }
 
-    /// <summary>
-    /// A write that carries an avatar's six facts is what puts them on the row the world creates.
-    /// </summary>
-    /// <remarks>
-    /// The avatar here has never been in this database, so there is no row standing under its UID
-    /// and the retrieval that hands a rebuilt row its facts back finds nothing. What lands on the
-    /// six columns therefore came from the write and from nowhere else, which is the whole of what
-    /// this holds: settlement prefers the facts the write carried.
-    /// <para>
-    /// All six are asserted one by one rather than compared as a whole, because "five bound and one
-    /// left null" is exactly the shape a half-finished binding leaves and a looser comparison would
-    /// let through.
-    /// </para>
-    /// </remarks>
     [Fact]
-    public async Task AWriteThatCarriesAnAvatarsFactsPutsThemOnTheRowTheWorldCreates()
+    public async Task CreationCarriesAllSixAvatarFactsOntoItsNewRow()
     {
-        var detail = new InventoryAvatarDetailState(
-            21, 22, Enumerable.Repeat((byte)23, 30).ToArray(), 24, 25, 26);
+        var detail = new InventoryAvatarDetailState(21, 22, Enumerable.Repeat((byte)23, 30).ToArray(), 24, 25, 26);
         await using var store = await NewStoreAsync();
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        session.Write(Main, Worn(9, Avatar()) with { AvatarDetail = detail });
-        await transaction.SettleAsync();
-
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var created = await session.CreateAsync(ItemSnapshot.FromCore(Avatar(), false, avatar: detail), default);
+            Assert.NotNull(created.ItemUid);
+            await session.PutAsync(Main, 9, created, default);
+        });
         Assert.Equal([(9, AvatarItemId, AvatarUid)], await ReadSlotsAsync(store.Path));
         var stored = await ReadAvatarDetailAsync(store.Path, AvatarUid);
         Assert.NotNull(stored);
@@ -407,17 +282,15 @@ public sealed class SqliteItemDomainStoreTests
     public async Task Read_SeesThisSessionsOwnUncommittedWrites()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        session.Write(Main, Pile(66, Potion(2)));
-        session.Clear(Main, 65);
-
-        Assert.Equal(2, (await session.ReadAsync(Main, 66, CancellationToken.None))!.Core.Value);
-        Assert.Null(await session.ReadAsync(Main, 65, CancellationToken.None));
-        Assert.Equal([66], (await session.ReadAllAsync(Main, CancellationToken.None))
-            .Select(item => item.SlotIndex));
-        // Nothing has reached the database yet.
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        var session = store.Value.SessionIn(scope.Current!);
+        await session.PutAsync(Main, 66, await session.CreateAsync(Pile(Potion(2)), default), default);
+        await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default), default);
+        Assert.Equal(2, (await session.GetAsync(Main, 66, default))!.Count);
+        Assert.Null(await session.GetAsync(Main, 65, default));
+        Assert.Equal([66], (await session.GetAllAsync(Main, default)).Select(item => item.SlotIndex));
+        // SQL writes are immediate within the transaction, but remain invisible to another connection.
         Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
 
@@ -425,14 +298,14 @@ public sealed class SqliteItemDomainStoreTests
     public async Task Rollback_LeavesTheStoredItemsUntouched()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        session.Clear(Main, 65);
-        session.Write(Main, Pile(3, Potion(5)));
-        await transaction.PrepareAsync();
-        await transaction.RollbackAsync();
-
+        await using (var transaction = new ObservedTransaction())
+        {
+            var session = store.Value.SessionIn(transaction);
+            var moving = await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default);
+            await session.PutAsync(Main, 3, moving, default);
+            // Exercise rollback after the durable participant has prepared its immediate writes.
+            await Assert.Single(transaction.Participants, participant => participant.CommitCanFail).PrepareAsync(default);
+        }
         Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
 
@@ -440,170 +313,124 @@ public sealed class SqliteItemDomainStoreTests
     public async Task Session_TakesPartOnceHoweverOftenItsStoreIsAsked()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
-        var transaction = new StubTransaction();
-
+        await using var transaction = new ObservedTransaction();
         var first = store.Value.SessionIn(transaction);
         var second = store.Value.SessionIn(transaction);
-
         Assert.Same(first, second);
-        Assert.Single(transaction.Participants);
+        Assert.Single(transaction.Participants, participant => participant.CommitCanFail);
+        Assert.Single(transaction.Participants, participant => !participant.CommitCanFail);
     }
 
-    /// <summary>
-    /// The store adds no table of its own; it writes the rows the inventory repositories already
-    /// create. Asserted by comparing the schema before and after a full read-write-commit cycle.
-    /// </summary>
     [Fact]
     public async Task Store_DefinesNoTableOfItsOwn()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
         var before = await ReadTableNamesAsync(store.Path);
-
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-        _ = await session.ReadAllAsync(Main, CancellationToken.None);
-        session.Write(Main, Pile(66, Potion(1)));
-        await transaction.SettleAsync();
-
+        await InTransactionAsync(store.Value, async session =>
+        {
+            _ = await session.GetAllAsync(Main, default);
+            await session.PutAsync(Main, 66, await session.CreateAsync(Pile(Potion(1)), default), default);
+        });
         Assert.Equal(before, await ReadTableNamesAsync(store.Path));
     }
 
-    /// <summary>
-    /// This is the store whose commit can still fail, and it is the only one a use case may hold.
-    /// </summary>
-    /// <remarks>
-    /// The two flags below are what the coordinator reads to enforce that. Nothing else in this
-    /// file would fail if they were wrong, and a use case would then be quietly non-atomic.
-    ///
-    /// The participant is read off the transaction rather than by casting the session, because
-    /// what joins is the database this store writes to; the session is one facet of it.
-    /// </remarks>
     [Fact]
-    public async Task Store_IsTheDurableParticipantWhoseCommitCanFail()
+    public async Task Store_IsTheOnlyDurableParticipantWhoseCommitCanFail()
     {
         await using var store = await NewStoreAsync();
-        var transaction = new StubTransaction();
+        await using var transaction = new ObservedTransaction();
         _ = store.Value.SessionIn(transaction);
-
         Assert.True(store.Value.IsDurable);
-        Assert.True(Assert.Single(transaction.Participants).CommitCanFail);
+        Assert.IsType<SqliteDatabaseParticipant>(Assert.Single(transaction.Participants, participant => participant.CommitCanFail));
+        Assert.IsType<ItemLifecycleScope>(Assert.Single(transaction.Participants, participant => !participant.CommitCanFail));
     }
 
-    /// <remarks>
-    /// One session reaching more than one of a character's containers settles as a single batch.
-    /// The five operations above all live in one container, so nothing there would notice a store
-    /// that quietly kept a container's writes to itself.
-    /// </remarks>
     [Fact]
     public async Task TwoContainersExchangeTheirContentsInOneSettlement()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
         await SeedAsync(store.Path, Equipment, 1, Stone(1));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        var fromMain = await session.ReadAsync(Main, 65, CancellationToken.None);
-        var fromEquipment = await session.ReadAsync(Equipment, 1, CancellationToken.None);
-        session.Clear(Main, 65);
-        session.Clear(Equipment, 1);
-        session.Write(Main, Pile(65, fromEquipment!.Core));
-        session.Write(Equipment, Pile(1, fromMain!.Core));
-        await transaction.SettleAsync();
-
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var fromMain = await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default);
+            var fromEquipment = await session.TakeAsync((await session.GetAsync(Equipment, 1, default))!, null, default);
+            await session.PutAsync(Main, 65, fromEquipment, default);
+            await session.PutAsync(Equipment, 1, fromMain, default);
+        });
         Assert.Equal([(65, StoneId, 1)], await ReadSlotsAsync(store.Path));
         Assert.Equal([(1, PotionId, 5)], await ReadSlotsAsync(store.Path, Equipment));
     }
 
     [Fact]
-    public async Task ClearingASlotThisSessionJustWroteLeavesItEmpty()
+    public async Task TakingAndDeletingANewlyPlacedItemLeavesItsSlotEmpty()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
-        var transaction = new StubTransaction();
-        var session = store.Value.SessionIn(transaction);
-
-        session.Write(Main, Pile(66, Potion(2)));
-        session.Clear(Main, 66);
-
-        Assert.Null(await session.ReadAsync(Main, 66, CancellationToken.None));
-        await transaction.SettleAsync();
+        await InTransactionAsync(store.Value, async session =>
+        {
+            var added = await session.PutAsync(Main, 66, await session.CreateAsync(Pile(Potion(2)), default), default);
+            await session.DeleteItemAsync(await session.TakeAsync(added, null, default), default);
+            Assert.Null(await session.GetAsync(Main, 66, default));
+        });
         Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
 
-    /// <remarks>
-    /// A container this store keeps no rows for is refused, rather than read as an empty one. The
-    /// caller would otherwise be told a container it cannot reach simply has nothing in it.
-    ///
-    /// Account cargo is the trap worth naming: it is a container type a character has, but its rows
-    /// live in another table keyed by account, so a write placed here would be a row the server
-    /// rejects the next time that character enters.
-    /// </remarks>
-    [Fact]
-    public async Task AContainerThisStoreKeepsNoRowsForIsRefused()
+    [Theory]
+    [InlineData("character:60:AccountCargo")]
+    [InlineData("run:1:Main")]
+    [InlineData("account:6:QuickSlot")]
+    [InlineData("account:6:99")]
+    public async Task AContainerThisStoreKeepsNoRowsForIsRefused(string containerName)
     {
         await using var store = await NewStoreAsync();
-        var session = store.Value.SessionIn(new StubTransaction());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await session.ReadAllAsync(
-                ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.AccountCargo),
-                CancellationToken.None));
-        Assert.Throws<InvalidOperationException>(() =>
-            session.Clear(new ContainerId("run:1:Main"), 0));
-        Assert.Throws<InvalidOperationException>(() =>
-            session.Write(ContainerId.ForAccount(new AccountId(6), InventoryContainerType.QuickSlot), Pile(0, Potion(1))));
-        Assert.Throws<InvalidOperationException>(() =>
-            session.Write(new ContainerId("account:6:99"), Pile(0, Potion(1))));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => InTransactionAsync(store.Value, async session =>
+        {
+            await session.GetAllAsync(new ContainerId(containerName), default);
+        }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => InTransactionAsync(store.Value, async session =>
+        {
+            var created = await session.CreateAsync(Pile(Potion(1)), default);
+            await session.PutAsync(new ContainerId(containerName), 0, created, default);
+        }));
+        Assert.Empty(await ReadSlotsAsync(store.Path));
     }
 
-    /// <remarks>
-    /// Slot -1 is what the implementation this replaces parked a row on to get a swap through. It is
-    /// refused outright now, so that value cannot reach a row and be found at the character's next
-    /// entry instead.
-    /// </remarks>
     [Fact]
     public async Task ANegativeSlotIsRefused()
     {
         await using var store = await NewStoreAsync();
-        var session = store.Value.SessionIn(new StubTransaction());
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => session.Write(Main, Pile(-1, Potion(1))));
-        Assert.Throws<ArgumentOutOfRangeException>(() => session.Clear(Main, -1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => InTransactionAsync(store.Value, async session =>
+        {
+            await session.GetAsync(Main, -1, default);
+        }));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => InTransactionAsync(store.Value, async session =>
+        {
+            var created = await session.CreateAsync(Pile(Potion(1)), default);
+            await session.PutAsync(Main, -1, created, default);
+        }));
+        Assert.Empty(await ReadSlotsAsync(store.Path));
     }
 
-    /// <remarks>
-    /// Carrying the writes out here instead would make the commit a second act of the use case that
-    /// can fail; carrying out nothing and saying so would lose items silently. It does neither.
-    /// </remarks>
     [Fact]
     public async Task Commit_RefusesToStandInForAPrepareThatNeverRan()
     {
         await using var store = await NewStoreAsync((65, Potion(5)));
-        var transaction = new StubTransaction();
+        await using var transaction = new ObservedTransaction();
         var session = store.Value.SessionIn(transaction);
-        var participant = Assert.Single(transaction.Participants);
-
-        session.Write(Main, Pile(3, Potion(1)));
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await participant.CommitAsync(CancellationToken.None));
+        await session.PutAsync(Main, 3, await session.CreateAsync(Pile(Potion(1)), default), default);
+        var participant = Assert.Single(transaction.Participants, participant => participant.CommitCanFail);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => participant.CommitAsync(default).AsTask());
         Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
 
-    /// <summary>
-    /// A pile on its way into a slot: what it is, plus what the archive makes of it.
-    /// </summary>
-    /// <remarks>
-    /// Settlement reads the class off the write, so every write says one. The container is what
-    /// asks the archive in the server; here the test says which of the two answers it means, and
-    /// the five operations above all move piles.
-    /// </remarks>
-    private static StoredItem Pile(int slotIndex, InventoryItemCoreState core) =>
-        new(slotIndex, core) { WorldClass = ItemWorldClass.Interchangeable };
+    private static ItemSnapshot Pile(InventoryItemCoreState core) => ItemSnapshot.FromCore(core, true);
 
-    /// <summary>The same, for the one thing here the archive would call an avatar.</summary>
-    private static StoredItem Worn(int slotIndex, InventoryItemCoreState core) =>
-        new(slotIndex, core) { WorldClass = ItemWorldClass.Avatar };
+    private static async Task InTransactionAsync(SqliteItemDomainStore store, Func<IItemDomainStoreSession, ValueTask> action)
+    {
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        await action(store.SessionIn(scope.Current!));
+        await transaction.CommitAsync(default);
+    }
 
     private const int PotionId = 1000;
 
@@ -681,8 +508,11 @@ public sealed class SqliteItemDomainStoreTests
         command.CommandText =
             "INSERT INTO items(item_core) VALUES(@core);"
             + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-            + "VALUES('character',60,@list,@slot,'world',last_insert_rowid(),"
-            + "last_insert_rowid(),1)";
+            + "VALUES('character',60,@list,@slot,@kind,CASE WHEN @kind='template' THEN @id ELSE last_insert_rowid() END,"
+            + "last_insert_rowid(),@count)";
+        command.Parameters.AddWithValue("@kind", core.ItemKind == 6 ? "template" : "world");
+        command.Parameters.AddWithValue("@id", core.ItemId);
+        command.Parameters.AddWithValue("@count", core.ItemKind == 6 ? core.Value : 1);
         command.Parameters.AddWithValue("@list", listType);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", bytes);
@@ -816,43 +646,18 @@ public sealed class SqliteItemDomainStoreTests
         }
     }
 
-    /// <summary>
-    /// Stands in for the coordinator, so what these tests prove is the store's own behaviour
-    /// rather than the coordinator's.
-    /// </summary>
-    private sealed class StubTransaction : IDomainTransaction
+    /// <summary>Observes registrations while the real coordinator retains ordering and rollback responsibility.</summary>
+    private sealed class ObservedTransaction : IDomainTransaction, IAsyncDisposable
     {
-        private readonly Dictionary<object, ITransactionParticipant> enlisted = [];
-
-        public IReadOnlyCollection<ITransactionParticipant> Participants => this.enlisted.Values;
-
+        private readonly DomainTransaction transaction = new();
+        public List<ITransactionParticipant> Participants { get; } = [];
         public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
-            where TParticipant : ITransactionParticipant
-        {
-            if (this.enlisted.TryGetValue(identity, out var existing))
-                return (TParticipant)existing;
-            var participant = create();
-            this.enlisted.Add(identity, participant);
-            return participant;
-        }
-
-        public async Task PrepareAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-                await participant.PrepareAsync(CancellationToken.None);
-        }
-
-        public async Task RollbackAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-                await participant.RollbackAsync(CancellationToken.None);
-        }
-
-        public async Task SettleAsync()
-        {
-            await this.PrepareAsync();
-            foreach (var participant in this.enlisted.Values)
-                await participant.CommitAsync(CancellationToken.None);
-        }
+            where TParticipant : ITransactionParticipant => transaction.Enlist(identity, () =>
+            {
+                var participant = create();
+                Participants.Add(participant);
+                return participant;
+            });
+        public ValueTask DisposeAsync() => transaction.RollbackAsync();
     }
 }

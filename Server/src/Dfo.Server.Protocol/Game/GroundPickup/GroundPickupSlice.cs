@@ -455,43 +455,10 @@ public sealed class PickUpGroundDropCommandHandler(
                 : GameDropIdentity.ForDeclaredObject(run, found.ObjectIndex!.Value),
             found.IsEquipment);
 
-    /// <summary>
-    /// Gives the banked piece what it was lying on the floor carrying.
-    /// </summary>
+    /// <summary>Copies the floor durability and compatible legacy instance value to the received item.</summary>
     /// <remarks>
-    /// Only equipment, and only into a slot that was empty. What the bag opens a slot with is what
-    /// a stackable needs -- a kind, an identifier and a count -- and a piece of equipment needs two
-    /// things more, both of which were already announced when the room was described: how worn it
-    /// is, and the value that tells one piece of it from another. A working A21 session's dropped
-    /// shoulder and the one the player ends up wearing carry the same value, so this is the
-    /// announcement being honoured rather than a second one being invented.
-    ///
-    /// A durability of zero would be a broken piece rather than an unspecified one, which is why
-    /// this cannot be left to the bag's own defaults.
-    ///
-    /// <b>An avatar must not be written the announced value.</b> It is one of the pieces the
-    /// archive calls equipment -- <c>IsEquipmentAsync</c> answers "not interchangeable" -- but the
-    /// value inside its core is not the kind the paragraph above is about: it is the identity the
-    /// bag drew when it opened the slot, and the key <c>SqliteItemDomainStore.FillAsync</c> looks
-    /// the six avatar facts up by. Replacing it leaves the row and its facts unable to find each
-    /// other -- the second write is no longer any of the three things <c>Survivors</c> recognises,
-    /// so the row is rebuilt, and the facts are searched for under the value that has just replaced
-    /// the one they were filed under. Six columns come back NULL and the next entry load refuses
-    /// the row: <c>InvalidDataException: Avatar detail N is unavailable.</c>
-    /// <para>
-    /// So an avatar takes the wear and not the value. The wear is a plain field of the core and
-    /// changing it alone leaves the row the same thing standing in the same place, which is what
-    /// keeps its facts on it. The class is the archive's answer carried on the slot rather than
-    /// the kind byte in the core, for the reason <c>ContainerSlotItem.WorldClass</c> gives.
-    /// </para>
-    /// <para>
-    /// This is the narrow repair, and it is narrow deliberately: what is wrong is one path writing
-    /// one field, not the write itself. <c>IItemContainer.PutAsync</c> passes no avatar facts on
-    /// any call -- see its own summary -- so any other caller that came to replace a standing
-    /// avatar's value would go the same way. None does today; that reading is recorded with this
-    /// outcome rather than guarded against here, because a guard in the write would be a rule
-    /// about avatars living somewhere no reader of this path would look for it.
-    /// </para>
+    /// Avatar and creature instance values identify their existing details and remain unchanged.
+    /// Ordinary equipment retains the value announced for the floor drop; its item UID is separate.
     /// </remarks>
     private async ValueTask CarryOverAsync(
         IBusinessItemContainer container,
@@ -502,20 +469,16 @@ public sealed class PickUpGroundDropCommandHandler(
         if (!found.IsEquipment)
             return;
 
-        var landed = await container.ReadSlotAsync(slotIndex, cancellationToken)
+        var landed = await container.GetAsync(slotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (landed is null)
             return;
 
-        var carried = landed.WorldClass is ItemWorldClass.Avatar
-            ? landed.Core with { Durability = found.Durability }
-            : landed.Core with
-            {
-                Value = checked((int)found.Instance),
-                Durability = found.Durability,
-            };
-
-        await container.PutAsync(slotIndex, carried, cancellationToken).ConfigureAwait(false);
+        await container.UpdateAsync(landed, current => current with
+        {
+            InstanceValue = current.Type is ItemTraits.Avatar or ItemTraits.Creature ? current.InstanceValue : checked((int)found.Instance),
+            Durability = found.Durability,
+        }, cancellationToken).ConfigureAwait(false);
     }
 }
 

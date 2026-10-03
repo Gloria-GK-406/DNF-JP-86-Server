@@ -25,7 +25,7 @@ public interface IAvatarPackageOpeningDomainService
 /// <summary>Shared ownership checks and inventory settlement, with no package-family decisions.</summary>
 public interface IOpeningInventoryDomainService
 {
-    ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken cancellationToken);
+    ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
     ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> effects,
         DateTimeOffset now, CancellationToken cancellationToken);

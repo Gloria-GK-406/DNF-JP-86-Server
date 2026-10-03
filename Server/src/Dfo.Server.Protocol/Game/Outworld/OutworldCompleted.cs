@@ -28,12 +28,12 @@ public sealed class OutworldCompletedHandler(
         var targetBound = inventory.Find(receipt.Session.CharacterId, receipt.TargetSlot);
         var materialBound = inventory.Find(receipt.Session.CharacterId, receipt.MaterialSlot);
         if (targetBound is null || materialBound is null) return [];
-        var target = await targetBound.Container.ReadSlotAsync(targetBound.Slot.Index, ct)
+        var target = await targetBound.Container.GetAsync(targetBound.Slot.Index, ct)
             .ConfigureAwait(false);
-        var material = await materialBound.Container.ReadSlotAsync(materialBound.Slot.Index, ct)
+        var material = await materialBound.Container.GetAsync(materialBound.Slot.Index, ct)
             .ConfigureAwait(false);
         var targetCore = target?.ItemId == receipt.TargetItemId
-            ? target.Core : receipt.UpdatedCore;
+            ? target.Snapshot.ToCore() : receipt.UpdatedCore.ToCore();
         var materialRemaining = material?.ItemId == receipt.MaterialItemId
             ? material.Count : 0;
         var messages = new List<IServerNetworkMessage>();
@@ -48,8 +48,8 @@ public sealed class OutworldCompletedHandler(
                 checked((short)materialGame.Index), materialRemaining,
                 checked((short)targetGame.Index), targetCore.AmplifyType,
                 targetCore.AmplifyValue));
-        AddSlot(messages, receipt.TargetSlot, target?.Core, receipt.CommittedAt);
-        AddSlot(messages, receipt.MaterialSlot, material?.Core, receipt.CommittedAt);
+        AddSlot(messages, receipt.TargetSlot, target?.Snapshot.ToCore(), receipt.CommittedAt);
+        AddSlot(messages, receipt.MaterialSlot, material?.Snapshot.ToCore(), receipt.CommittedAt);
         return messages;
     }
 

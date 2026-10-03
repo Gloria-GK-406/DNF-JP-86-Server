@@ -29,8 +29,8 @@ public interface IGmMailRuleService
 
 public interface IGmMailEquipmentRuleService
 {
-    ValueTask<GmMailEquipmentCapabilities> CapabilitiesAsync(Dfo.Server.Data.Inventory.InventoryItemCoreState core, CancellationToken token);
-    ValueTask<Dfo.Server.Data.Inventory.InventoryItemCoreState> ConfigureAsync(Dfo.Server.Data.Inventory.InventoryItemCoreState core,
+    ValueTask<GmMailEquipmentCapabilities> CapabilitiesAsync(Dfo.Server.Data.Inventory.ItemSnapshot core, CancellationToken token);
+    ValueTask<Dfo.Server.Data.Inventory.ItemSnapshot> ConfigureAsync(Dfo.Server.Data.Inventory.ItemSnapshot core,
         GmMailEquipmentOptions options, CancellationToken token);
 }
 

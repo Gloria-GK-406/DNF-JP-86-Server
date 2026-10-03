@@ -33,7 +33,7 @@ internal sealed partial class GmMailRuleService
         var entry = await catalog.FindAsync(itemId, token)
             ?? throw new GmMailException(GmMailRefusal.NotFound, "未找到该物品。");
         var prepared = (await PrepareItemsAsync(new("", "", [], [new(itemId, 1)], 0), clock.GetUtcNow(), token)).Single();
-        var options = prepared.Preview.Kind == "equipment" ? await equipmentRules.CapabilitiesAsync(prepared.Core, token) : null;
+        var options = prepared.Preview.Kind == "equipment" ? await equipmentRules.CapabilitiesAsync(prepared.Snapshot, token) : null;
         return new(entry, prepared.Preview.Kind, prepared.Preview.Sealed, prepared.Preview.Durability, options);
     }
 }

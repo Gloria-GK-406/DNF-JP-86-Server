@@ -1618,6 +1618,8 @@ public sealed class CardRewardTests
         /// <summary>A consumable slot, matching this fixture's kind 2 items and distinct from the pile's.</summary>
         public const int OpenedSlot = 65;
 
+        private readonly Dictionary<int, long> generations = [];
+
         public Dictionary<int, InventoryItemCoreState> Slots { get; } =
             answer == BagAnswer.JoinsAPile
                 ? new Dictionary<int, InventoryItemCoreState>
@@ -1671,35 +1673,42 @@ public sealed class CardRewardTests
             }
         }
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+        public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Slots.TryGetValue(slotIndex, out var core)
-                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
+                    ? new ItemReference(this, Id, slotIndex, generations.GetValueOrDefault(slotIndex), ItemSnapshot.FromCore(core, true))
                     : null);
 
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.Slots[slotIndex] = core;
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture only adds through AddAsync and projects its result.");
 
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
 
         public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
             CancellationToken cancellationToken) =>
             throw new NotSupportedException(
                 "The delta is built from what was written, not from the entry projection.");
 
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
             CancellationToken cancellationToken) =>
             throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!reference.BelongsTo(this) || reference.ContainerId != Id
+                || reference.Generation != generations.GetValueOrDefault(reference.StorageSlotIndex)
+                || !Slots.ContainsKey(reference.StorageSlotIndex))
+                throw new InvalidOperationException("The fixture reference is stale or foreign.");
+            var next = change((await GetAsync(reference.StorageSlotIndex, ct))!.Snapshot);
+            if (next.ItemId != reference.ItemId || next.ItemUid != reference.ItemUid
+                || next.IsPile != reference.IsPile || next.Type != reference.Type)
+                throw new InvalidOperationException("The fixture update cannot replace item identity.");
+            Slots[reference.StorageSlotIndex] = next.ToCore();
+            return (await GetAsync(reference.StorageSlotIndex, ct))!;
+        }
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
         public ValueTask<ItemPlacementOutcome> RefillAsync(
             ItemRefill refill, CancellationToken cancellationToken) =>

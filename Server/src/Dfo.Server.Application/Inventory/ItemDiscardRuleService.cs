@@ -20,15 +20,15 @@ internal sealed class ItemDiscardRuleService : IItemDiscardRuleService
             ? ItemDiscardRejection.None
             : ItemDiscardRejection.InvalidRequest;
 
-    public ItemDiscardRejection ValidateItem(ContainerSlotItem item, int itemId, int count)
+    public ItemDiscardRejection ValidateItem(ItemReference item, int itemId, int count)
     {
         if (item.ItemId != itemId)
             return ItemDiscardRejection.ItemUnavailable;
         if (count > item.Count || !item.IsPile && count != 1)
             return ItemDiscardRejection.InvalidRequest;
-        if (item.Core.EquipmentLockId != 0)
+        if (item.Snapshot.EquipmentLockId != 0)
             return ItemDiscardRejection.Locked;
-        return item.WorldClass is ItemWorldClass.Equipment or ItemWorldClass.Interchangeable
+        return (item.IsPile || item.Type.HasFlag(ItemTraits.Equipment))
             ? ItemDiscardRejection.None
             : ItemDiscardRejection.CannotDiscard;
     }

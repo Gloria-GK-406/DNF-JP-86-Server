@@ -860,7 +860,7 @@ public sealed class EquipmentReinforcementDomainTests
         var result = await shop.Services.GetRequiredService<IEquipmentReinforcementFailureRuleService>()
             .GetResultAsync(instance!, new(null, 0, 0), default);
         Assert.Equal(1, Assert.Single(result.Rewards, reward => reward.ItemId == 3243).Count);
-        Assert.Equal((byte)11, (await instance!.ReadAsync(default)).Core.ReinforcementLevel);
+        Assert.Equal((byte)11, (await instance!.ReadAsync(default)).Snapshot.ToCore().ReinforcementLevel);
         Assert.Equal(before, shop.StoredCore(9));
         Assert.Equal(20, shop.Count(1000));
         Assert.Equal(100_000, shop.Gold);
@@ -880,7 +880,7 @@ public sealed class EquipmentReinforcementDomainTests
         var instance = (await shop.Services.GetRequiredService<IEquipmentDomainService>().Of(shop.Session.CharacterId)
             .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default))!;
         var target = await instance.ReadAsync(default);
-        var rule = (await shop.Services.GetRequiredService<IEquipmentUpgradeRuleService>().QuoteReinforcementAsync(target.Core, default)).Rule!;
+        var rule = (await shop.Services.GetRequiredService<IEquipmentUpgradeRuleService>().QuoteReinforcementAsync(target.Snapshot, default)).Rule!;
         var protection = await rule.ProtectionAsync(10007840, default);
         var plan = await shop.Services.GetRequiredService<IEquipmentEffectPlanRuleService>().ReinforcementAsync(target, rule,
             new(new(BusinessInventorySpace.Material, 0), 1000, 10),
@@ -918,8 +918,8 @@ public sealed class EquipmentReinforcementDomainTests
         public async ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct)
         {
             if (itemId == 3243 && transactions.Current is { } transaction
-                && (await store.SessionIn(transaction).ReadAllAsync(ContainerId.ForCharacter(new(1), InventoryContainerType.Main), ct))
-                    .Any(item => item.Core.ItemId == 3166)) return null;
+                && (await store.SessionIn(transaction).GetAllAsync(ContainerId.ForCharacter(new(1), InventoryContainerType.Main), ct))
+                    .Any(item => item.Snapshot.ToCore().ItemId == 3166)) return null;
             return await inner.GetAsync(itemId, ct);
         }
     }
@@ -952,7 +952,7 @@ public sealed class EquipmentReinforcementDomainTests
     {
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
-        return (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core;
+        return (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore();
     }
 
     private static async ValueTask<EquipmentReinforcementResult> Reinforce(

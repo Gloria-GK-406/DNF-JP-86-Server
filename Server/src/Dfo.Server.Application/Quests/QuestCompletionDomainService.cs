@@ -29,9 +29,9 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         var heldGold = await gold.FindAsync(id, ct).ConfigureAwait(false);
         if (identity is null || progress is null || bag is null || heldGold is null) return Refuse();
         var quests = await state.QuestsAsync(account, id, ct).ConfigureAwait(false);
-        var main = await bag.ReadAllAsync(ct).ConfigureAwait(false);
+        var main = await bag.GetAllAsync(ct).ConfigureAwait(false);
         var facts = new QuestCompletionFacts(identity, progress, quests, main, heldGold, null, null);
-        var effective = await rules.EffectiveAsync(quests, main, heldGold.Carried, ct).ConfigureAwait(false);
+        var effective = await rules.EffectiveAsync(quests, main.Select(item => item.Snapshot), heldGold.Carried, ct).ConfigureAwait(false);
         var projected = effective.Any(x => quests.Carried.Single(y => y.Slot == x.Slot).TriggerValue != x.TriggerValue)
             ? new QuestProgressSnapshot(effective) : null;
         if (effective.FirstOrDefault(x => x.QuestId == quest) is not { TriggerValue: 0 }) return Refuse(projected);

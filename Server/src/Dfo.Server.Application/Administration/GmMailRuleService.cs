@@ -55,8 +55,13 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             var equipment = placement.WorldClass == ItemWorldClass.Equipment;
             expanded = checked(expanded + (equipment ? Math.Min(requested.Count, 11) : 1));
             if (equipment && requested.Count > 10 || expanded > 10) throw Invalid("每人最多 10 个展开物品附件。");
-            var core = StackableItemCore.Create(placement.ItemKind, requested.ItemId, equipment ? 0 : requested.Count) with
-            { Durability = declaration.Durability, SealFlag = declaration.Sealed ? (byte)1 : (byte)0 };
+            var core = new ItemSnapshot
+            {
+                ItemId = requested.ItemId, Count = equipment ? 1 : requested.Count, IsPile = !equipment,
+                Type = placement.Traits, LegacyKind = placement.ItemKind, Marker16 = -1,
+                RandomOptionChangedIndex = byte.MaxValue,
+                Durability = declaration.Durability, SealFlag = declaration.Sealed ? (byte)1 : (byte)0
+            };
             if (requested.Equipment is { } options)
             {
                 if (!equipment) throw Invalid($"物品 {requested.ItemId} 是堆叠物，不能配置装备属性。");

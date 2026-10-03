@@ -279,27 +279,7 @@ public interface IItemSlotTable
     ValueTask<int> ClearAsync(ItemPlace place, CancellationToken cancellationToken);
 }
 
-/// <summary>A character's things, and the positions of its own that hold them.</summary>
-/// <remarks>
-/// <b>Writing one is two steps, and they are apart on purpose.</b> What a thing is and where it is
-/// are two rows now, and a save that reshuffles an inventory would otherwise have to put a thing
-/// down in a place the thing it is swapping with has not left yet. So every one of this
-/// character's positions is emptied once, in the middle: <see cref="UpdateOwnAsync"/> and
-/// <see cref="InsertOwnAsync"/> settle what the things are while the old positions still stand --
-/// which is also what lets an update prove the thing is this character's -- and
-/// <see cref="HoldOwnAsync"/> then says where each one ended up.
-/// <para>
-/// This is what replaces parking a row on a position nobody has for the length of a batch. There
-/// is no uniqueness over positions on <c>items</c> left to dodge, because <c>items</c> holds no
-/// position.
-/// </para>
-/// <para>
-/// <b>One read here is not about a single character.</b>
-/// <see cref="ReadWornByAccountAsync"/> answers what every character on an account is wearing,
-/// because the character-selection screen draws them all at once. It is still a question about
-/// characters' own things; the account is how they are gathered, not whose the things are.
-/// </para>
-/// </remarks>
+/// <summary>Read projections for character inventories and the character roster.</summary>
 public interface ICharacterItemTable
 {
     /// <summary>Every one of them, in the order the load reads them.</summary>
@@ -329,74 +309,7 @@ public interface ICharacterItemTable
     ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Removes this character's own things apart from the ones named, with their positions.
-    /// </summary>
-    /// <remarks>
-    /// The positions of the things that are kept are left standing, because they are what says
-    /// those things are this character's until <see cref="ClearOwnPositionsAsync"/> takes them
-    /// away.
-    /// </remarks>
-    ValueTask<int> DeleteOwnExceptAsync(
-        CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken);
 
-    /// <summary>Removes only the named items and positions currently owned by this character.</summary>
-    ValueTask<int> DeleteOwnByUidsAsync(
-        CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken);
-
-    /// <summary>Changes what one of this character's own things carries, wherever it is.</summary>
-    /// <remarks>
-    /// One when the thing is this character's, and nothing at all when it is not -- which is how a
-    /// lease naming something stale, or something belonging to somebody else, is refused rather
-    /// than acted on. Being this character's is read off the position that still holds it.
-    /// </remarks>
-    /// <param name="avatarDetail">
-    /// What this item carries as an avatar, or null when it is not one. Null clears the avatar
-    /// columns rather than leaving them: an item updated out of being an avatar that kept them
-    /// would be refused by the encoder the next time it was sent.
-    /// </param>
-    ValueTask<int> UpdateOwnAsync(
-        long itemUid,
-        CharacterId characterId,
-        InventoryItemCoreState core,
-        InventoryAvatarDetailState? avatarDetail,
-        CancellationToken cancellationToken);
-
-    /// <summary>Puts a new thing into the world and answers its identity.</summary>
-    /// <remarks>
-    /// No character is named, because a new thing belongs to nobody until a position holds it.
-    /// Null when the write landed on nothing, which here means an avatar UID another row holds.
-    /// </remarks>
-    /// <param name="avatarDetail">As above; null for everything that is not an avatar.</param>
-    ValueTask<long?> InsertOwnAsync(
-        InventoryItemCoreState core,
-        InventoryAvatarDetailState? avatarDetail,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Empties every position of this character's inventory, leaving the things themselves.
-    /// </summary>
-    /// <remarks>
-    /// The title-book containers are left alone, exactly as the reads and the scan leave them.
-    /// </remarks>
-    ValueTask<int> ClearOwnPositionsAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
-    /// <summary>Says that one of this character's positions now holds that.</summary>
-    /// <param name="id">
-    /// What the position holds: the thing's identity when it has one, the archive's template
-    /// number when it is a pile.
-    /// </param>
-    /// <param name="coreUid">The row of <c>items</c> this position's bytes are kept on.</param>
-    ValueTask<int> HoldOwnAsync(
-        CharacterId characterId,
-        int listType,
-        int slotIndex,
-        ItemSlotKind kind,
-        int id,
-        int coreUid,
-        int count,
-        CancellationToken cancellationToken);
 }
 
 /// <summary>The rows of <c>items</c> an account keeps in its cargo.</summary>

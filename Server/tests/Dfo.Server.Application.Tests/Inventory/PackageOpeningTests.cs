@@ -31,8 +31,8 @@ public sealed class PackageOpeningTests
         await opening.Package();
         Assert.Equal(0, opening.Host.Count(3037));
         Assert.Equal(2, opening.Host.SharedCount(3037));
-        var item = (await opening.Host.Shared().ReadSlotAsync(4, default))!;
-        Assert.Equal((int)opening.Host.Clock.GetUtcNow().AddDays(2).ToUnixTimeSeconds(), item.Core.ExpireTime);
+        var item = (await opening.Host.Shared().GetAsync(4, default))!;
+        Assert.Equal((int)opening.Host.Clock.GetUtcNow().AddDays(2).ToUnixTimeSeconds(), item.Snapshot.ToCore().ExpireTime);
         Assert.Equal(0, opening.Host.Count(1001));
     }
 
@@ -219,7 +219,7 @@ public sealed class PackageOpeningTests
         Assert.NotNull(result.Receipt); Assert.True(result.Receipt.CreaturesChanged); Assert.Equal(0, shop.Host.Count(160));
         var pet = Assert.Single(result.Receipt.Pets);
         var item = Assert.Single(result.Receipt.Updates);
-        Assert.Equal(pet.PetKey, item.Identity!.Value.Value); Assert.Equal(5, item.Core.ItemKind);
+        Assert.Equal(pet.PetKey, item.Identity!.Value.Value); Assert.Equal(5, item.Core.LegacyKind);
     }
 
     [SkippableFact]
@@ -302,7 +302,7 @@ public sealed class PackageOpeningTests
         var result = await opening.Package();
         Assert.NotNull(result.Receipt);
         Assert.Equal(3, opening.Host.Count(1)); Assert.Equal(0, opening.Host.Count(42));
-        Assert.Contains(result.Receipt.Updates, item => item.Slot == new BusinessSlot(BusinessInventorySpace.VirtualResource, 1) && item.Core.ItemId == 1 && item.Core.Value == 3);
+        Assert.Contains(result.Receipt.Updates, item => item.Slot == new BusinessSlot(BusinessInventorySpace.VirtualResource, 1) && item.Core.ItemId == 1 && item.Core.ToCore().Value == 3);
     }
 
     [Fact]

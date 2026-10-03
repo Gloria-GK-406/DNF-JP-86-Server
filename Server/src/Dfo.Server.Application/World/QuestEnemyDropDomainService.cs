@@ -27,7 +27,7 @@ internal sealed class QuestEnemyDropDomainService(
         var bag = containers.FindContainer(participant.CharacterId, InventoryContainerType.Main);
         if (bag is null)
             return result;
-        var held = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        var held = (await bag.GetAllAsync(cancellationToken).ConfigureAwait(false))
             .Where(item => item.ItemId > 0)
             .GroupBy(item => item.ItemId)
             .ToDictionary(group => group.Key, group => group.Sum(item => (long)item.Count));

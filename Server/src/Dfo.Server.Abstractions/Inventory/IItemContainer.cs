@@ -115,122 +115,22 @@ public readonly record struct ContainerId(string Value)
 /// </remarks>
 public sealed record ContainerShape(InventoryContainerType ContainerType, ushort Parameter);
 
-/// <summary>
-/// A set of items addressed by slot, which can be replaced by another implementation.
-/// </summary>
-/// <remarks>
-/// The container is bound to one character. Its methods therefore do not take a character: an
-/// instance that served several characters would have to be trusted to keep them apart, and every
-/// caller would have to keep passing the one fact the container already knows.
-///
-/// Reads and writes here address the legacy backing positions. Arrival and refill remain backend
-/// compatibility verbs; ordinary business movement uses local slots through the business store.
-///
-/// Movement was removed from this physical interface so there is one admission and identity rule
-/// in the business movement service. The backend accepts a source position for an entire-instance
-/// write; settlement resolves its identity within the transaction. A multi-write operation still
-/// settles under one use case boundary.
-///
-/// A verb answers with what happened rather than throwing, because "there was no room" and "the
-/// archive declares no such item" are ordinary answers that different callers treat differently --
-/// one leaves the item out of an acknowledgement, another fails the whole entry.
-/// </remarks>
+/// <summary>A physical container, with transaction-bound item occupancy references.</summary>
 public interface IItemContainer
 {
-    ValueTask FlushAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     ContainerId Id { get; }
-
     InventoryContainerType Type { get; }
-
     ContainerShape Shape { get; }
-
-    /// <summary>
-    /// Whether this container may be removed from the character.
-    /// </summary>
-    /// <remarks>
-    /// False for the container a character falls back to. Removing that one would leave the
-    /// character with nothing bound -- a state with no recovery, in a game with no reconnect --
-    /// so it is refused rather than left to discipline.
-    /// </remarks>
     bool IsRemovable { get; }
-
-    /// <summary>What one slot holds, or null when it is empty.</summary>
-    ValueTask<ContainerSlotItem?> ReadSlotAsync(int slotIndex, CancellationToken cancellationToken);
-
-    /// <summary>What two slots hold, read together.</summary>
-    ValueTask<ContainerSlotPair> ReadSlotsAsync(
-        int firstSlotIndex,
-        int secondSlotIndex,
-        CancellationToken cancellationToken);
-
-    /// <summary>Every occupied slot, for projection to the client.</summary>
-    ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Everything this container holds, in slot order.
-    /// </summary>
-    /// <remarks>
-    /// Deciding where an arriving item goes needs to know which slots are taken and what piles of
-    /// it are already there, and neither is a question about one slot. Inside a use case it sees
-    /// what that use case has already written -- as does <see cref="SnapshotAsync"/>, which reads
-    /// the same rows by another route and is only kept honest by every verb applying what it
-    /// decided before it answers. What still separates the two is what they carry: a snapshot
-    /// names facts the store's vocabulary does not, an avatar's details among them.
-    /// </remarks>
-    ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Puts this exact item in the slot, replacing whatever was there.
-    /// </summary>
-    /// <remarks>
-    /// A container whose contents outlive the process refuses this outside a use case boundary,
-    /// because a change with no boundary is a change nothing can take back. One whose contents do
-    /// not outlive the process has nothing to take back and so accepts it either way.
-    /// </remarks>
-    ValueTask PutAsync(int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken);
-
-    /// <summary>Places an entire existing instance, naming its source position for settlement.</summary>
-    ValueTask PutTransferredAsync(int slotIndex, InventoryItemCoreState core,
-        ContainerId sourceContainer, int sourceSlotIndex, CancellationToken cancellationToken) =>
-        PutAsync(slotIndex, core, cancellationToken);
-
-    /// <summary>Puts a newly created item with the instance facts it brings into the world.</summary>
-    ValueTask PutNewAsync(int slotIndex, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(facts);
-        return facts.Avatar is null && facts.Creature is null
-            ? PutAsync(slotIndex, core, cancellationToken)
-            : throw new NotSupportedException("This container cannot create items with instance facts.");
-    }
-
-    /// <summary>Leaves the slot empty, under the same rule as <see cref="PutAsync"/>.</summary>
-    ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Puts an item the game is handing over wherever this container's rules send it.
-    /// </summary>
-    /// <remarks>
-    /// The container looks the item up for itself. A pile of it that has room takes as much as it
-    /// can hold and the rest is not placed; with no such pile, the first free slot of the item's
-    /// own band opens.
-    /// </remarks>
-    ValueTask<ItemPlacementOutcome> AddAsync(
-        int itemId, int count, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Tops the character up by what a daily rule owes them.
-    /// </summary>
-    /// <remarks>
-    /// Not the same as <see cref="AddAsync"/>, and neither can stand in for the other: a refill
-    /// joins whatever pile is there however large, because its quantity was already bounded by the
-    /// rule that produced it, while an ordinary grant fills piles only to the item's stack limit.
-    /// The band and the kind come from that rule rather than from the item's placement, which is
-    /// why they arrive as data instead of being looked up here.
-    /// </remarks>
-    ValueTask<ItemPlacementOutcome> RefillAsync(
-        ItemRefill refill, CancellationToken cancellationToken);
-
+    ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct);
+    ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct);
+    ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct);
+    ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct);
+    ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct);
+    ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct);
+    ValueTask FlushAsync(CancellationToken ct);
+    ValueTask<ItemPlacementOutcome> AddAsync(int itemId, int count, CancellationToken ct);
+    ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct);
 }
 
 /// <summary>What a daily rule owes, in the terms the container needs to place it.</summary>
@@ -312,63 +212,3 @@ public abstract record ItemMoveOutcome
 
     public sealed record Refused(ItemMoveRefusal Reason) : ItemMoveOutcome;
 }
-
-/// <summary>What one slot of a container holds.</summary>
-/// <remarks>
-/// The whole of it, because that is what a write takes: an item read out of one slot and written
-/// into another has to arrive with its enchantments, its rolled options and its avatar link intact,
-/// and the only thing that carries all of those is the core itself.
-///
-/// <b>One shape for both kinds of content.</b> A slot holding a sword and a slot holding a stack
-/// of potions are read as the same three facts -- which sort of thing it is, what it is, and how
-/// many -- and differ only in what those three say. <see cref="WorldClass"/> is the first of them,
-/// and it is the archive's answer rather than the kind byte inside the core, which is the reading
-/// the classification exists to replace.
-///
-/// <b>No identity is among them, deliberately.</b> A slot is addressed by where it is, and the
-/// name of the thing standing there is settlement's to keep. Handing one out here would create
-/// exactly the token a verb could carry from a read to a write -- take the token, go elsewhere for
-/// something to operate on, operate, put a new token back -- which is the round trip this whole
-/// shape exists to make unsayable. What a caller who needs the name asks for instead is the
-/// container's snapshot, which is a projection of what is stored and not something a write takes.
-/// </remarks>
-public sealed record ContainerSlotItem(
-    int SlotIndex, InventoryItemCoreState Core, ItemWorldClass WorldClass)
-{
-    public ItemIdentity? Identity { get; init; }
-
-    public byte ItemKind => Core.ItemKind;
-
-    public int ItemId => Core.ItemId;
-
-    /// <summary>How many the slot holds. For anything that does not stack, one.</summary>
-    /// <remarks>
-    /// <b>Do not answer <c>Core.Value</c> for both sorts of content.</b> The value inside an
-    /// individual piece.s core is not a quantity: an avatar.s is the identity the store.s fill
-    /// looks its six facts up by, and a starting equipment piece.s is drawn the same way in
-    /// <c>CharacterRosterService.EquipmentCore</c>. A container asked to move one of something
-    /// compares the request against this number, so reading an identity here turns a plain drag of
-    /// a delivered avatar into a request to divide it -- which puts down a row carrying no facts,
-    /// and the entry load refuses one of those.
-    /// <para>
-    /// The branch is <see cref="IsPile"/> rather than a second reading of its own, so the two
-    /// answers cannot come apart: what makes a thing countable is the same archive answer that
-    /// makes two of it the same thing. A pile is unaffected -- the value it counts itself in is
-    /// still what it is answered with -- which is what keeps splitting, merging and moving part of
-    /// a pile exactly as they were.
-    /// </para>
-    /// <para>
-    /// One rather than the value is what the sentence above already promised, so this is the read
-    /// catching up with what callers were told. It is not a ruling about where an identity lives:
-    /// the identity stays in the core's value, which is where the load, the save, both projections
-    /// and the store's fill each look for it.
-    /// </para>
-    /// </remarks>
-    public int Count => this.IsPile ? Core.Value : 1;
-
-    /// <summary>Whether two of what is here would be the same thing.</summary>
-    public bool IsPile => this.WorldClass is ItemWorldClass.Interchangeable;
-}
-
-/// <summary>What the two slots named by a move request hold right now.</summary>
-public sealed record ContainerSlotPair(ContainerSlotItem? First, ContainerSlotItem? Second);

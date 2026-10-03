@@ -11,7 +11,7 @@ internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equi
     IEquipmentOutworldContentSource outworld, IEquipmentUpgradeRuleService upgrades,
     ILogger<GmMailEquipmentRuleService> logger) : IGmMailEquipmentRuleService
 {
-    public async ValueTask<GmMailEquipmentCapabilities> CapabilitiesAsync(InventoryItemCoreState core, CancellationToken token)
+    public async ValueTask<GmMailEquipmentCapabilities> CapabilitiesAsync(ItemSnapshot core, CancellationToken token)
     {
         try { return await ReadCapabilitiesAsync(core, token); }
         catch (InvalidDataException error)
@@ -21,7 +21,7 @@ internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equi
         }
     }
 
-    private async ValueTask<GmMailEquipmentCapabilities> ReadCapabilitiesAsync(InventoryItemCoreState core, CancellationToken token)
+    private async ValueTask<GmMailEquipmentCapabilities> ReadCapabilitiesAsync(ItemSnapshot core, CancellationToken token)
     {
         // Admission uses an unsealed, full-durability template. GM creates the requested final state;
         // it does not execute a player's random upgrade, charge resources, or mutate an owned item.
@@ -48,7 +48,7 @@ internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equi
             canAmplify ? null : "该装备的等级、稀有度或模板规则不支持增幅。", values);
     }
 
-    public async ValueTask<InventoryItemCoreState> ConfigureAsync(InventoryItemCoreState core, GmMailEquipmentOptions options, CancellationToken token)
+    public async ValueTask<ItemSnapshot> ConfigureAsync(ItemSnapshot core, GmMailEquipmentOptions options, CancellationToken token)
     {
         var configured = options.Seal == "unsealed" ? core with { SealFlag = 0 } : core;
         if (options.Growth == "none") return configured;
@@ -68,7 +68,7 @@ internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equi
         return configured with { Attribute = (byte)((core.Attribute & 0xE0) | options.Level) };
     }
 
-    private async ValueTask<int> MaximumAsync(InventoryItemCoreState core, EquipmentUpgradeKind kind, CancellationToken token)
+    private async ValueTask<int> MaximumAsync(ItemSnapshot core, EquipmentUpgradeKind kind, CancellationToken token)
     {
         for (byte level = 0; level < 31; level++)
         {

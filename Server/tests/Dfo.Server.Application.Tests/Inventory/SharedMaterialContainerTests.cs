@@ -30,7 +30,7 @@ public sealed class SharedMaterialContainerTests
             else await host.Services.GetRequiredService<IItemGrantDomainService>()
                 .GrantAsync(new AccountId(1), new CharacterId(1), containers, 3033, 3, default);
         });
-        Assert.Equal(10, (await shared.ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(10, (await shared.GetAsync(0, default))!.Count);
         Assert.Equal(0, host.Scalar("SELECT cube_black FROM accounts WHERE account_id=1"));
     }
 
@@ -40,7 +40,7 @@ public sealed class SharedMaterialContainerTests
         using var host = Fixture();
         await host.SeedShared(3033, 7);
         host.Sql("UPDATE accounts SET cube_black=999 WHERE account_id=1");
-        Assert.Equal(7, (await host.Shared().ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(7, (await host.Shared().GetAsync(0, default))!.Count);
         var entry = await host.Services.GetRequiredService<IAccountInventoryEntryRepository>()
             .LoadAccountAsync(new AccountId(1), new CharacterId(1), default);
         Assert.Equal(7, Assert.Single(entry.AccountVirtualResources, x => x.ItemId == 3033).Value);
@@ -80,7 +80,14 @@ public sealed class SharedMaterialContainerTests
     public async Task DirectMaterialWritesStillRespectTheActualOrdinarySlotAndStackLimit(int slot, int count)
     {
         using var host = Fixture();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => host.Seed(slot, 3033, count, 11));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Change(host, async () =>
+        {
+            var container = host.Services.GetRequiredService<ICharacterContainerDomainService>()
+                .GetContainer(host.Session.CharacterId, InventoryContainerType.Main);
+            var record = await host.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(11, 3033, count), true), default);
+            await container.PutAsync(slot, record, default);
+        }));
         Assert.Equal(0, host.Count(3033));
     }
 
@@ -100,10 +107,14 @@ public sealed class SharedMaterialContainerTests
             (0, StackableItemCore.Create(11, 3033, 0)),
             (0, StackableItemCore.Create(11, 3033, -1)),
         })
-            await Assert.ThrowsAsync<InvalidOperationException>(() => Change(host, async () =>
-                await shared.PutAsync(index, core, default)));
-        Assert.Equal(7, (await shared.ReadSlotAsync(0, default))!.Count);
-        Assert.Single(await shared.ReadAllAsync(default));
+            await Assert.ThrowsAsync(core.Value <= 0 ? typeof(InvalidDataException) : typeof(InvalidOperationException), () => Change(host, async () =>
+            {
+                var session = host.Services.GetRequiredService<IItemDomainStore>().SessionIn(
+                    host.Services.GetRequiredService<IDomainTransactionAccessor>().Current!);
+                await shared.PutAsync(index, await session.CreateAsync(ItemSnapshot.FromCore(core, true), default), default);
+            }));
+        Assert.Equal(7, (await shared.GetAsync(0, default))!.Count);
+        Assert.Single(await shared.GetAllAsync(default));
     }
 
     [Fact]
@@ -117,15 +128,17 @@ public sealed class SharedMaterialContainerTests
         var cargo = store.GetContainer(BusinessInventorySpace.AccountCargo);
         await Change(host, async () =>
         {
-            await shared.PutAsync(0, StackableItemCore.Create(11, 3033, 150) with { Attribute = 1 }, default);
-            await cargo.PutAsync(0, StackableItemCore.Create(11, 3033, 50), default);
+            await shared.PutAsync(0, await host.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(11, 3033, 150) with { Attribute = 1 }, true), default), default);
+            await cargo.PutAsync(0, await host.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(11, 3033, 50), true), default), default);
         });
         await Change(host, async () =>
             Assert.IsType<ItemMoveOutcome.Refused>(await host.Services.GetRequiredService<IItemMovementDomainService>()
                 .MoveBetweenContainersAsync(new(new(BusinessInventorySpace.AccountCargo, 0), cargo),
                     new(new(BusinessInventorySpace.SharedMaterial, 0), shared), 50, default)));
-        Assert.Equal(150, (await shared.ReadSlotAsync(0, default))!.Count);
-        Assert.Equal(50, (await cargo.ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(150, (await shared.GetAsync(0, default))!.Count);
+        Assert.Equal(50, (await cargo.GetAsync(0, default))!.Count);
     }
 
     [Fact]
@@ -140,9 +153,9 @@ public sealed class SharedMaterialContainerTests
             .GetContainer(BusinessInventorySpace.SharedMaterial);
         var cargo = inventories.GetStore(owner, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.AccountCargo);
         await Change(host, async () => Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>((await first.AddAsync(3033, 7, default)).Placement));
-        Assert.Equal(7, (await first.ReadSlotAsync(0, default))!.Count);
-        Assert.Empty(await second.ReadAllAsync(default));
-        Assert.Empty(await cargo.ReadAllAsync(default));
+        Assert.Equal(7, (await first.GetAsync(0, default))!.Count);
+        Assert.Empty(await second.GetAllAsync(default));
+        Assert.Empty(await cargo.GetAllAsync(default));
         Assert.Equal(11, await first.OpenSlotCountAsync(default));
         Assert.Null(inventories.GetStore(new CharacterId(77), BusinessInventoryStoreKind.Item).FindContainer(BusinessInventorySpace.SharedMaterial));
     }
@@ -163,14 +176,14 @@ public sealed class SharedMaterialContainerTests
             Assert.IsType<ItemMoveOutcome.Refused>(await host.Services.GetRequiredService<IItemMovementDomainService>()
                 .MoveBetweenContainersAsync(new(new(BusinessInventorySpace.SharedMaterial, 0), source),
                     new(new(BusinessInventorySpace.Material, 0), destination), 101, default)));
-        Assert.Equal(150, (await source.ReadSlotAsync(0, default))!.Count);
-        Assert.Equal(destinationCount, (await destination.ReadSlotAsync(0, default))?.Count ?? 0);
+        Assert.Equal(150, (await source.GetAsync(0, default))!.Count);
+        Assert.Equal(destinationCount, (await destination.GetAsync(0, default))?.Count ?? 0);
         await Change(host, async () =>
             Assert.IsType<ItemMoveOutcome.Moved>(await host.Services.GetRequiredService<IItemMovementDomainService>()
                 .MoveBetweenContainersAsync(new(new(BusinessInventorySpace.SharedMaterial, 0), source),
                     new(new(BusinessInventorySpace.Material, 0), destination), 40, default)));
-        Assert.Equal(110, (await source.ReadSlotAsync(0, default))!.Count);
-        Assert.Equal(destinationCount + 40, (await destination.ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(110, (await source.GetAsync(0, default))!.Count);
+        Assert.Equal(destinationCount + 40, (await destination.GetAsync(0, default))!.Count);
     }
 
     [Fact]
@@ -217,11 +230,11 @@ public sealed class SharedMaterialContainerTests
             Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(result.Placement);
         });
         Assert.Equal(first.StorageId, second.StorageId);
-        Assert.Equal(int.MaxValue - 1, (await second.ReadSlotAsync(0, default))!.Count);
+        Assert.Equal(int.MaxValue - 1, (await second.GetAsync(0, default))!.Count);
         await Change(host, async () =>
             Assert.IsType<ItemPlacementOutcome.NoRoom>((await second.AddAsync(3033, 2, default)).Placement));
-        Assert.Equal(int.MaxValue - 1, (await first.ReadSlotAsync(0, default))!.Count);
-        Assert.Single(await first.ReadAllAsync(default));
+        Assert.Equal(int.MaxValue - 1, (await first.GetAsync(0, default))!.Count);
+        Assert.Single(await first.GetAllAsync(default));
     }
 
     [Fact]
@@ -239,6 +252,27 @@ public sealed class SharedMaterialContainerTests
         using var host = Fixture();
         await host.Seed(121, 3033, 7, 11);
         Assert.Equal(7, host.Count(3033));
+    }
+
+    [Fact]
+    public async Task InPlaceQuantityGrowthStillRespectsTheOrdinaryStackLimit()
+    {
+        using var host = Fixture();
+        await host.Seed(121, 3033, 90, 11);
+        var bag = host.Services.GetRequiredService<ICharacterContainerDomainService>()
+            .GetContainer(new CharacterId(1), InventoryContainerType.Main);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Change(host, async () =>
+        {
+            var item = (await bag.GetAsync(121, default))!;
+            await bag.UpdateAsync(item, x => x with { Count = 101 }, default);
+        }));
+        Assert.Equal(90, host.Count(3033));
+        await Change(host, async () =>
+        {
+            var item = (await bag.GetAsync(121, default))!;
+            await bag.UpdateAsync(item, x => x with { Count = 100 }, default);
+        });
+        Assert.Equal(100, host.Count(3033));
     }
 
     private static ShopFixture Fixture() => new(services =>

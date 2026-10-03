@@ -6,7 +6,7 @@ namespace Dfo.Server.Abstractions.Creatures;
 public sealed record CreatureRenameReceipt(
     CreatureState Creature,
     BusinessSlot SourceSlot,
-    InventoryItemCoreState? RemainingSourceCore);
+    ItemSnapshot? RemainingSourceCore);
 
 public interface ICreatureNamingDomainService
 {

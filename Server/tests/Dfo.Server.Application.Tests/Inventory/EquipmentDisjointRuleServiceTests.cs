@@ -47,7 +47,7 @@ public sealed class EquipmentDisjointRuleServiceTests
     }
 
     private static EquipmentDisjointCandidate Piece() =>
-        new(3000, StackableItemCore.Create(1, 3000, 1234));
+        new(3000, ItemSnapshot.FromCore(StackableItemCore.Create(1, 3000, 1234), false));
 
     private sealed class Content : IEquipmentDisjointDefinitionSource
     {

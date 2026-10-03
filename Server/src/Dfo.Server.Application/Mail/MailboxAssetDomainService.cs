@@ -27,10 +27,10 @@ internal sealed class MailboxAssetDomainService(IItemDomainStore store, IDomainT
                 : new ContainerOwner(InventoryOwnerType.Character, character.Value);
             var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(slot.Space))
                 .GetContainer(slot.Space);
-            var item = await session.ReadAsync(container.StorageId,
+            var item = await session.GetAsync(container.StorageId,
                 physical.Index, token).ConfigureAwait(false);
             if (item is null) cleared.Add(slot);
-            else updates.Add(new(slot, item.Identity, item.Core));
+            else updates.Add(new(slot, item.ItemUid, item.Snapshot.ToCore()));
         }
         return new(updates, cleared, changes.LastOrDefault(x => x.GoldBalance is not null)?.GoldBalance, at);
     }

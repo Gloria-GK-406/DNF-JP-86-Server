@@ -53,7 +53,7 @@ internal static class PendingQuestItemGrants
             var sourceBag = AccountMaterialCatalog.ContainsItem(drop.ItemId)
                 ? containers.FindContainer(characterId, InventoryContainerType.SharedMaterial) ?? throw new InvalidDataException("Shared material container is unavailable.")
                 : bag;
-            var held = (await sourceBag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            var held = (await sourceBag.GetAllAsync(cancellationToken).ConfigureAwait(false))
                 .Where(item => item.ItemId == drop.ItemId)
                 .Sum(item => (long)item.Count);
             var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
@@ -96,10 +96,10 @@ internal static class PendingQuestItemGrants
         var items = new List<InventoryItemState>(changed.Count);
         foreach (var (slot, source) in changed.OrderBy(x => x.Key))
         {
-            var item = await source.Container.ReadSlotAsync(source.Index, cancellationToken).ConfigureAwait(false)
+            var item = await source.Container.GetAsync(source.Index, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException($"Quest item slot {slot} disappeared before commit.");
             if (source.Container.Space == BusinessInventorySpace.SharedMaterial) accountChanges.Add(new(slot, item.ItemId, item.Count));
-            else items.Add(new InventoryItemState(null, slot, item.Core));
+            else items.Add(new InventoryItemState(null, slot, item.Snapshot.ToCore()));
         }
         return new QuestItemGrant(
             new CommittedInventoryUpdateState(

@@ -107,7 +107,7 @@ public sealed class TwoCarriersInOneTransactionTests
                 // row carries no position of its own for a fixture to fill in.
                 "INSERT INTO items(item_core) VALUES(@core);"
                 + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-                + "VALUES('character',60,0,65,'world',last_insert_rowid(),"
+                + "VALUES('character',60,0,65,'template',8474,"
                 + "last_insert_rowid(),1)";
             item.Parameters.AddWithValue("@core", Core(1));
             await item.ExecuteNonQueryAsync();
@@ -123,9 +123,8 @@ public sealed class TwoCarriersInOneTransactionTests
             var kept = this.Durable.SessionIn(transaction);
             var run = this.Volatile.SessionIn(transaction);
 
-            var moving = await kept.ReadAsync(Kept, 65, CancellationToken.None);
-            kept.Clear(Kept, 65);
-            run.Write(Run, new StoredItem(0, moving!.Core));
+            var moving = await kept.TakeAsync((await kept.GetAsync(Kept, 65, default))!, null, default);
+            await run.PutAsync(Run, 0, moving, default);
 
             if (settle)
             {
@@ -162,9 +161,11 @@ public sealed class TwoCarriersInOneTransactionTests
 
         public async Task<List<(int Slot, int ItemId, int Count)>> ReadMemoryAsync()
         {
-            var items = await this.Volatile.SessionIn(new DomainTransaction())
-                .ReadAllAsync(Run, CancellationToken.None);
-            return [.. items.Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value))];
+            var transaction = new DomainTransaction();
+            var items = await this.Volatile.SessionIn(transaction).GetAllAsync(Run, default);
+            var result = items.Select(item => (item.SlotIndex, item.ItemId, item.Count)).ToList();
+            await transaction.RollbackAsync();
+            return result;
         }
 
         private static string NewDatabase()

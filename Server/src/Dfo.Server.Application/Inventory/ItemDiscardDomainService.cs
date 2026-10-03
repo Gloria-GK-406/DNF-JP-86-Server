@@ -12,7 +12,7 @@ internal sealed class ItemDiscardDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
-    IItemDiscardRuleService rules) : IItemDiscardDomainService
+    IItemDiscardRuleService rules, IItemLifecycleDomainService lifecycle) : IItemDiscardDomainService
 {
     public async ValueTask<ItemDiscardResult> DiscardAsync(
         SelectedSessionIdentity session,
@@ -39,7 +39,7 @@ internal sealed class ItemDiscardDomainService(
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null
             ? null
-            : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         if (item is null)
             return new(ItemDiscardRejection.ItemUnavailable);
 
@@ -47,13 +47,9 @@ internal sealed class ItemDiscardDomainService(
         if (itemRejection != ItemDiscardRejection.None)
             return new(itemRejection);
 
-        InventoryItemCoreState? remaining = item.Count == count
-            ? null
-            : item.Core with { Value = item.Count - count };
-        if (remaining is null)
-            await bound!.Container.ClearAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
-        else
-            await bound!.Container.PutAsync(bound.Slot.Index, remaining, cancellationToken).ConfigureAwait(false);
+        var remaining = item.Count == count ? null : (item.Snapshot with { Count = item.Count - count }).ToCore();
+        var taken = await bound!.Container.TakeAsync(item, count, cancellationToken).ConfigureAwait(false);
+        await lifecycle.DeleteItemAsync(taken, cancellationToken).ConfigureAwait(false);
 
         return new(ItemDiscardRejection.None,
             new(session, slot, item.ItemId, count, remaining, now));

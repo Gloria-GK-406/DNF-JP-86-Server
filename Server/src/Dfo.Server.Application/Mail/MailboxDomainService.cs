@@ -11,14 +11,27 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Mail;
 
 internal sealed class MailboxDomainService(IMailboxRepository repository, ICharacterDomainService characters,
-    IEquipmentTransferDomainService equipment, IMailItemRuleService sendRules, ICharacterTable owners,
-    MailStackTransfers stacks, DomainTransactionScope transactions,
+    ICharacterTable owners, MailItemTransfers items, DomainTransactionScope transactions,
     TimeProvider time) : IMailboxDomainService
 {
     public ValueTask<MailSendReceipt> SendAsync(Dfo.Server.Data.Mail.Mail mail, CancellationToken cancellationToken = default) =>
+        SendCoreAsync(mail, null, cancellationToken);
+
+    public ValueTask<MailSendReceipt> SendPreparedAsync(Dfo.Server.Data.Mail.Mail mail,
+        IReadOnlyList<PreparedMailAttachment> attachments, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(attachments);
+        return SendCoreAsync(mail, attachments, cancellationToken);
+    }
+
+    private ValueTask<MailSendReceipt> SendCoreAsync(Dfo.Server.Data.Mail.Mail mail,
+        IReadOnlyList<PreparedMailAttachment>? supplied, CancellationToken cancellationToken) =>
         RunAsync(true, async () =>
         {
             ArgumentNullException.ThrowIfNull(mail);
+            if (supplied is not null && (mail.Source.Character is not null || supplied.Count != mail.Attachments.Length
+                || mail.Attachments.Where((asset, index) => asset != supplied[index].Asset).Any()))
+                throw Error(MailFailure.InvalidMail);
             var now = time.GetUtcNow();
             if (mail.ExpiresAt <= now) throw Error(MailFailure.Expired);
             _ = await CharacterAsync(mail.Recipient, cancellationToken);
@@ -32,34 +45,37 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
             }
             var prepared = new List<PreparedMailAttachment>();
             var changes = ImmutableArray.CreateBuilder<MailAssetChange>();
-            foreach (var asset in mail.Attachments)
+            for (var index = 0; index < mail.Attachments.Length; index++)
             {
+                var asset = mail.Attachments[index];
                 switch (asset)
                 {
                     case MailAsset.Equipment equip:
                         if (await repository.HoldsEquipmentAsync(equip.Identity, cancellationToken)) throw Error(MailFailure.NotOwned);
                         if (mail.Source.Character is { } owner)
                         {
-                            var candidate = await equipment.ReadOwnedAsync(owner, equip.Identity, cancellationToken) ?? throw Error(MailFailure.NotOwned);
-                            if (!(await sendRules.CanSendAsync(candidate.Core, sameAccount, cancellationToken)).Allowed)
-                                throw Error(MailFailure.NotSendable);
-                            var taken = await equipment.TakeAsync(owner, equip.Identity, cancellationToken);
-                            prepared.Add(new(asset, taken.Core));
-                            changes.Add(new(owner, taken.Slot, taken.Core.ItemId, -1, null));
+                            var taken = await items.TakeEquipmentAsync(owner, equip.Identity, sameAccount, cancellationToken);
+                            prepared.Add(new(asset, taken.Items)); changes.AddRange(taken.Changes);
                         }
                         else
                         {
-                            var core = await equipment.ReadDetachedAsync(equip.Identity, cancellationToken) ?? throw Error(MailFailure.NotOwned);
-                            prepared.Add(new(asset, core));
+                            // A UID naming an unpositioned row is not proof of ownership.
+                            if (supplied is null) throw Error(MailFailure.NotOwned);
+                            prepared.Add(supplied[index]);
                         }
                         break;
                     case MailAsset.Stackable stack:
-                        var stackPlacement = await stacks.ValidateAsync(stack.ItemId, cancellationToken);
-                        if (mail.Source.Character is { } stackOwner)
-                            changes.AddRange(await stacks.TakeAsync(stackOwner, stack.ItemId, stack.Count, sameAccount, cancellationToken, stack.SourceSlot));
-                        prepared.Add(new(asset, Dfo.Server.Data.Inventory.StackableItemCore.Create(stackPlacement.ItemKind, stack.ItemId, stack.Count)));
+                        if (supplied is not null) prepared.Add(supplied[index]);
+                        else if (mail.Source.Character is { } stackOwner)
+                        {
+                            var taken = await items.TakeStackAsync(stackOwner, stack.ItemId, stack.Count,
+                                sameAccount, cancellationToken, stack.SourceSlot);
+                            prepared.Add(new(asset, taken.Items)); changes.AddRange(taken.Changes);
+                        }
+                        else prepared.Add(new(asset, [await items.CreateStackAsync(stack.ItemId, stack.Count, cancellationToken)]));
                         break;
                     case MailAsset.Gold gold:
+                        if (supplied is not null && supplied[index].Items.Count != 0) throw Error(MailFailure.InvalidMail);
                         if (mail.Source.Character is { } goldOwner)
                         {
                             var balance = await characters.Get(goldOwner).TrySpendGoldAsync(gold.Amount, cancellationToken) ?? throw Error(MailFailure.InsufficientAssets);
@@ -97,19 +113,16 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
             var attachment = mail.Attachments.Single(x => x.Id == attachmentId);
             if (attachment.Claimed) throw Error(MailFailure.AlreadyClaimed);
             if (attachment.LegacyUnsupported) throw Error(MailFailure.LegacyAttachment);
-            if (!await repository.MarkClaimedAsync(attachmentId, cancellationToken)) throw Error(MailFailure.ConcurrentChange);
             var changes = ImmutableArray.CreateBuilder<MailAssetChange>();
             switch (attachment.Asset)
             {
-                case MailAsset.Equipment equip:
-                    var core = await equipment.ReadDetachedAsync(equip.Identity, cancellationToken) ?? throw Error(MailFailure.NotOwned);
-                    var slot = await equipment.GrantAsync(recipient, equip.Identity, cancellationToken);
-                    changes.Add(new(recipient, slot, core.ItemId, 1, null));
-                    break;
-                case MailAsset.Stackable stack:
-                    changes.AddRange(await stacks.GrantAsync(recipient, stack.ItemId, stack.Count, cancellationToken));
+                case MailAsset.Equipment:
+                case MailAsset.Stackable:
+                    var taken = await repository.TakeItemAsync(recipient, attachmentId, time.GetUtcNow(), cancellationToken);
+                    changes.AddRange(await items.GrantAsync(recipient, taken, cancellationToken));
                     break;
                 case MailAsset.Gold gold:
+                    if (!await repository.MarkClaimedAsync(attachmentId, cancellationToken)) throw Error(MailFailure.ConcurrentChange);
                     var character = characters.Get(recipient);
                     var before = await character.GoldAsync(cancellationToken);
                     var after = await character.AddGoldAsync(gold.Amount, cancellationToken);
@@ -153,16 +166,6 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
             var result = await action();
             if (lease is not null) await lease.CommitAsync(ct);
             return result;
-        }
-        catch (EquipmentTransferException exception)
-        {
-            await AbortAsync();
-            throw Error(exception.Reason switch
-            {
-                EquipmentTransferFailure.NoRoom => MailFailure.NoCapacity,
-                EquipmentTransferFailure.NotSendable => MailFailure.NotSendable,
-                _ => MailFailure.NotOwned,
-            });
         }
         catch
         {

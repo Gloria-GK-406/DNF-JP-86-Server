@@ -32,8 +32,8 @@ public sealed class CreatureNamingDomainServiceTests
 
         Assert.NotNull(receipt);
         Assert.Equal(new byte[] { 0x82, 0xA0 }, receipt.Creature.NameBytes);
-        Assert.Equal(1, receipt.RemainingSourceCore!.Value);
-        Assert.Equal(1, store.Card.Item!.Core.Value);
+        Assert.Equal(1, receipt.RemainingSourceCore!.Count);
+        Assert.Equal(1, store.Card.Item!.Count);
         Assert.Equal(1, store.Saves);
     }
 
@@ -49,7 +49,7 @@ public sealed class CreatureNamingDomainServiceTests
 
         Assert.Null(receipt);
         Assert.Equal(0, store.Saves);
-        Assert.Equal(2, store.Card.Item!.Core.Value);
+        Assert.Equal(2, store.Card.Item!.Count);
     }
 
     [Theory]
@@ -66,14 +66,14 @@ public sealed class CreatureNamingDomainServiceTests
 
         Assert.Null(receipt);
         Assert.Equal(0, store.Saves);
-        Assert.Equal(2, store.Card.Item!.Core.Value);
+        Assert.Equal(2, store.Card.Item!.Count);
     }
 
     [Fact]
     public async Task Permanent_locked_card_and_pet_can_rename_after_2038_without_changing_growth()
     {
         var store=new FakeCreatureStore(cardExpiry:int.MaxValue,wornExpiry:int.MaxValue);
-        await store.Card.PutAsync(0,store.Card.Item!.Core with { EquipmentLockId=3 },default);
+        await store.Card.UpdateAsync(store.Card.Item!, x => x with { EquipmentLockId=3 },default);
         var before=(await store.CurrentAsync(default))!;
         var clock=new AdvanceableTimeProvider(new DateTimeOffset(2050,1,1,0,0,0,TimeSpan.Zero));
         var (service,scope)=Service(store,clock);await using var tx=scope.Begin();
@@ -101,7 +101,7 @@ public sealed class CreatureNamingDomainServiceTests
     {
         var store=new FakeCreatureStore();var name=Enumerable.Repeat((byte)0x41,12).ToArray();
         var plan=new SpecialConsumableEffectPlanRuleService(null!,null!,null!,null!,null!).Rename(new(CardSlot,store.Card.Item,
-            await store.GetContainer(BusinessInventorySpace.WornCreature).ReadSlotAsync(0,default),await store.CurrentAsync(default),
+            await store.GetContainer(BusinessInventorySpace.WornCreature).GetAsync(0,default),await store.CurrentAsync(default),
             System.Collections.Immutable.ImmutableArray.CreateRange(name),DateTimeOffset.UtcNow));
         name[0]=0;
         var effect=Assert.Single(plan.OfType<RenamePetEffect>());
@@ -115,7 +115,7 @@ public sealed class CreatureNamingDomainServiceTests
         var creatures = new FakeCreatureDomain(store,clock);
         var slots = new Slots(store);
         var sessions = new FakeSessions();
-        var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots), new RenamePetEffectHandler(creatures)],
+        var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots, store.Card.Lifecycle), new RenamePetEffectHandler(creatures)],
             scope, new EffectCharacterStore(new(Session.AccountId, Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
         return (new CreatureNamingDomainService(creatures, sessions, clock ?? TimeProvider.System,
             new SpecialConsumableEffectPlanRuleService(null!, null!, null!, null!, null!), executor), scope);
@@ -147,12 +147,12 @@ public sealed class CreatureNamingDomainServiceTests
     private sealed class FakeCreatureStore(int cardId = 25, int wornUid = 500,
         int cardExpiry = 0, int wornExpiry = 0) : ICreatureStore
     {
-        public FakeContainer Card { get; } = new(BusinessInventorySpace.CreatureConsumable,
-            new ContainerSlotItem(0, StackableItemCore.Create(7, cardId, 2) with
-                { ExpireTime = cardExpiry }, ItemWorldClass.Interchangeable));
-        private FakeContainer Worn { get; } = new(BusinessInventorySpace.WornCreature,
-            new ContainerSlotItem(0, StackableItemCore.Create(5, 63023, wornUid) with
-                { ExpireTime = wornExpiry }, ItemWorldClass.Creature));
+        public TestCreatureContainer Card { get; } = new(BusinessInventorySpace.CreatureConsumable,
+            ItemSnapshot.FromCore(StackableItemCore.Create(7, cardId, 2) with
+                { ExpireTime = cardExpiry }, true));
+        private TestCreatureContainer Worn { get; } = new(BusinessInventorySpace.WornCreature,
+            ItemSnapshot.FromCore(StackableItemCore.Create(5, 63023, wornUid) with
+                { ExpireTime = wornExpiry }, false, new(wornUid), creature: new CreatureState(wornUid, 63023, 100, 0, 1, [], 0, 0, 0, 0).ToDetail()));
         private CreatureState Current { get; set; } = new(500, 63023, 100, 0, 1, [], 0, 0, 0, 0);
         public int Saves { get; private set; }
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
@@ -177,36 +177,6 @@ public sealed class CreatureNamingDomainServiceTests
             return ValueTask.CompletedTask;
         }
         public ValueTask ReviveIfEmptyAsync(int itemUid, CancellationToken ct) => ValueTask.CompletedTask;
-    }
-
-    private sealed class FakeContainer(BusinessInventorySpace space, ContainerSlotItem? item)
-        : IBusinessItemContainer
-    {
-        public ContainerSlotItem? Item { get; private set; } = item;
-        public BusinessContainerId Id => new(space, StorageId);
-        public ContainerId StorageId => new("rename-card");
-        public BusinessInventorySpace Space => space;
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct) =>
-            ValueTask.FromResult(index == 0 ? Item : null);
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(Item is null ? [] : [Item]);
-        public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct)
-        {
-            Item = new ContainerSlotItem(index, core, ItemWorldClass.Interchangeable);
-            return ValueTask.CompletedTask;
-        }
-        public ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
-            IBusinessItemContainer source, int sourceIndex, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask PutNewAsync(int index, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-            CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask ClearAsync(int index, CancellationToken ct)
-        {
-            Item = null;
-            return ValueTask.CompletedTask;
-        }
-        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask<BusinessItemAdditionResult> AddAsync(int itemId, int count,
-            CancellationToken ct) => throw new NotSupportedException();
     }
 
     private sealed class FakeSessions : ISelectedSessionDomainService

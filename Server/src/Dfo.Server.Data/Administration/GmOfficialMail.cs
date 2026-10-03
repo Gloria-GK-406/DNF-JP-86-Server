@@ -28,7 +28,7 @@ public sealed record GmMailReceipt(Guid RequestId, long AdministratorId, string 
 public sealed record GmMailOperation(string PayloadHash, GmMailReceipt Receipt);
 public sealed record GmMailSendResult(GmMailReceipt Receipt, bool Replayed);
 public sealed record GmMailPreparation(Guid RequestId, GmMailInput Input, IReadOnlyList<AccountId> Accounts);
-public sealed record GmMailPreparedItem(GmMailItem Requested, GmMailItemPreview Preview, InventoryItemCoreState Core);
+public sealed record GmMailPreparedItem(GmMailItem Requested, GmMailItemPreview Preview, ItemSnapshot Snapshot);
 public sealed record GmMailQueryResult(object Value);
 public enum GmMailQuery { Draft, Templates, Recipients, Preview, Prepare, Operations, Operation }
 public enum GmMailEdit { Draft, CreateTemplate, UpdateTemplate, DeleteTemplate }

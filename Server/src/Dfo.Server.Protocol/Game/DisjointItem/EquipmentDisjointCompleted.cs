@@ -61,7 +61,7 @@ public sealed class EquipmentDisjointCompletedHandler(
                 .Where(change => change.Core is not null)
                 .OrderBy(change => change.Slot.Index)
                 .Select(change => new InventoryItemState(
-                    null, change.Slot.Index, change.Core!))
+                    null, change.Slot.Index, change.Core!.ToCore()))
                 .ToArray();
             if (occupied.Length > 0)
             {

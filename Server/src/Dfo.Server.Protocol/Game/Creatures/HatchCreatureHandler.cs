@@ -57,7 +57,7 @@ internal sealed class HatchCreatureHandler(ISelectedSessionDomainService session
 
         var pet = receipt.After;
         var itemUpdate = GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(
-            InventoryContainerType.Pet, [new InventoryItemState(null, request.Slot, receipt.Core)], clock.GetUtcNow()));
+            InventoryContainerType.Pet, [new InventoryItemState(null, request.Slot, receipt.Core.ToCore())], clock.GetUtcNow()));
         var detail = new CreatureListMessage([new CharacterPetRuntimeState(pet.ItemUid, pet.Stomach,
             checked((byte)pet.ModeFlag), pet.Experience, pet.Mode1Field0A, pet.Mode1Field0B,
             pet.Level, pet.NameBytes, checked((byte)pet.TailFlag))]);

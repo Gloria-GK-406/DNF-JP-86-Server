@@ -78,8 +78,9 @@ public sealed class WarehousePurchaseTests
         var registry=shop.Host.Services.GetRequiredService<ICharacterContainerDomainService>();
         var backing=registry.GetContainer(shop.Host.Session.CharacterId,InventoryContainerType.Avatar);
         await WarehouseStorageTests.InTransaction(shop.Host,async()=>{
-            for(var i=0;i<105;i++) await backing.PutNewAsync(i,StackableItemCore.Create(8,12345,i+1),
-                new(Avatar:new(0,0,new byte[30],0,0,0)),default);
+            var lifecycle = shop.Host.Services.GetRequiredService<IItemLifecycleDomainService>();
+            for(var i=0;i<105;i++) await backing.PutAsync(i, await lifecycle.CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(8,12345,i+1), false, avatar: new(0,0,new byte[30],0,0,0)), default), default);
         });
         Assert.Equal(CeraShopRejection.NoRoom,(await shop.Buy(CeraShopTestContent.Entry(900002,0))).Rejection);
         Assert.Equal(100000,shop.Cera);
@@ -87,7 +88,7 @@ public sealed class WarehousePurchaseTests
         Assert.NotNull((await shop.Buy(CeraShopTestContent.Entry(900003))).Receipt);
         Assert.Equal(112,await bag.OpenSlotCountAsync(default));
         Assert.NotNull((await shop.Buy(CeraShopTestContent.Entry(900002,0))).Receipt);
-        Assert.NotNull(await bag.ReadSlotAsync(105,default));
+        Assert.NotNull(await bag.GetAsync(105,default));
         Assert.Equal(99890,shop.Cera);
     }
 }

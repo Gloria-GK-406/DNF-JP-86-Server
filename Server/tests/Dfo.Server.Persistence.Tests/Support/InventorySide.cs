@@ -79,7 +79,10 @@ internal sealed class InventorySide
 
     public IAccountInventoryEntryRepository AccountEntries => this.Assembly;
 
-    public IEntryInventoryLeasePersistence Leases => this.Assembly;
+    public IItemDomainStore Store => new SqliteItemDomainStore(this.databasePath);
+
+    public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(
+        Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()));
 
     public IEntryInventoryMutationRepository Mutations => new DailyRefillService(
         new SqliteCharacterTable(this.database),
@@ -88,9 +91,9 @@ internal sealed class InventorySide
         new DailyRefillRuleService(),
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
-            new ItemArrivalRuleService()),
+            new ItemArrivalRuleService(), lifecycle: Lifecycle),
         new ItemArrivalRuleService(),
-        new ItemPlacementRuleService(this.placements, new NoWearables()));
+        new ItemPlacementRuleService(this.placements, new NoWearables()), Lifecycle);
 
     /// <summary>
     /// Binds a character to its own main container, as entry does.
@@ -169,8 +172,7 @@ internal sealed class InventorySide
         new PerCallMutations(this.Scope, this.Mutations);
 
     internal sealed class PerCallUseCase(DomainTransactionScope scope, InventoryEntryAssembly inner)
-        : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository,
-            IEntryInventoryLeasePersistence
+        : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
     {
         public ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
@@ -182,13 +184,6 @@ internal sealed class InventorySide
             Settled(scope, () => inner.LoadAccountAsync(accountId, characterId, cancellationToken),
                 cancellationToken);
 
-        public async ValueTask SaveAsync(
-            EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken) =>
-            await Settled(scope, async () =>
-            {
-                await inner.SaveAsync(lease, cancellationToken).ConfigureAwait(false);
-                return true;
-            }, cancellationToken).ConfigureAwait(false);
     }
 
     private sealed class PerCallMutations(
@@ -254,5 +249,5 @@ internal sealed class InventorySide
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
         new SqliteCharacterRentalTable(this.database),
-        new ItemPlacementRuleService(this.placements, new NoWearables()));
+        Store, Scope);
 }

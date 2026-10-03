@@ -14,12 +14,12 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
     {
         if (sessions.FindByCharacter(payer.CharacterId) != payer) return new(false);
         var bag = containers.FindContainer(payer.CharacterId, InventoryContainerType.Main);
-        var coin = bag is null ? null : await bag.ReadSlotAsync(1, cancellationToken).ConfigureAwait(false);
-        if (coin is null || coin.Core.ItemId != 1 || coin.Core.Value <= 0) return new(false);
+        var coin = bag is null ? null : await bag.GetAsync(1, cancellationToken).ConfigureAwait(false);
+        if (coin is null || coin.Snapshot.ItemId != 1 || coin.Count <= 0) return new(false);
         if (!runs.StageRevival(payer.CharacterId, target, runId)) return new(false);
-        var remaining = coin.Core with { Value = coin.Core.Value - 1 };
+        var remaining = (coin.Snapshot with { Count = coin.Count - 1 }).ToCore();
         // Keep the virtual counter at zero; the transactional item store commits before life state.
-        await bag!.PutAsync(1, remaining, cancellationToken).ConfigureAwait(false);
+        await bag!.UpdateAsync(coin, current => current with { Count = current.Count - 1 }, cancellationToken).ConfigureAwait(false);
         return new(true, remaining);
     }
 }

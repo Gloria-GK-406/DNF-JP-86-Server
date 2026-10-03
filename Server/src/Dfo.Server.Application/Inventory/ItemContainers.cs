@@ -80,57 +80,19 @@ internal static class ArrivingAvatar
         DeleteDate: 0);
 }
 
-/// <summary>Composes consumption from local container reads and writes.</summary>
+/// <summary>Consumption ends the custody of an explicitly detached item.</summary>
 public static class ItemContainerOperations
 {
-    /// <summary>Takes some off the pile and answers what is left of it.</summary>
-    /// <remarks>
-    /// An emptied slot is cleared rather than left holding a pile of nothing, which the client
-    /// would draw as occupied and the server would answer as empty.
-    /// </remarks>
-    public static async ValueTask<int> ConsumeAsync(
-        IBusinessItemContainer container,
-        ContainerSlotItem item,
-        int count,
-        CancellationToken cancellationToken)
+    public static async ValueTask<int> ConsumeAsync(IBusinessItemContainer container,
+        ItemReference item, int count, IItemLifecycleDomainService lifecycle, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(container);
-        ArgumentNullException.ThrowIfNull(item);
-        if (count <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(count), "A consumed count must be positive.");
-        }
-
-        var remaining = item.Count - count;
-        if (remaining < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(count), count, "A pile cannot give up more than it holds.");
-        }
-
-        if (remaining == 0)
-        {
-            await container.ClearAsync(item.SlotIndex, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            await container.PutAsync(
-                item.SlotIndex, item.Core with { Value = remaining }, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        return remaining;
+        if (count <= 0 || count > item.Count) throw new ArgumentOutOfRangeException(nameof(count));
+        var record = await container.TakeAsync(item, count, ct).ConfigureAwait(false);
+        await lifecycle.DeleteItemAsync(record, ct).ConfigureAwait(false);
+        return (await container.GetAsync(item.SlotIndex, ct).ConfigureAwait(false))?.Count ?? 0;
     }
 }
 
-/// <summary>
-/// A container whose items are whatever one store holds under its identifier.
-/// </summary>
-/// <remarks>
-/// The container knows nothing about where its items are kept. Both of the ones below are this
-/// class with a different store behind them and a different answer to what happens when there is no
-/// use case boundary open -- which is the only place persistence is still visible from here.
-/// </remarks>
 internal abstract class StoreBackedItemContainer(
     ContainerId id,
     ContainerShape shape,
@@ -152,137 +114,84 @@ internal abstract class StoreBackedItemContainer(
 
     protected IItemDomainStore Store => store;
 
-    public async ValueTask<ContainerSlotItem?> ReadSlotAsync(
-        int slotIndex, CancellationToken cancellationToken)
+    public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) =>
+        ReadAsync(session => session.GetAsync(id, index, ct));
+
+    public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) =>
+        ReadAsync(session => session.GetAllAsync(id, ct));
+
+    public abstract ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct);
+
+    private IItemDomainStoreSession RequireSession() => AmbientSession()
+        ?? throw new InvalidOperationException("Item lifecycle changes require an open domain transaction.");
+
+    private void CheckReference(ItemReference reference)
     {
-        var stored = await this.ReadAsync(
-            session => session.ReadAsync(id, slotIndex, cancellationToken)).ConfigureAwait(false);
-        return await this.ToSlotItemAsync(stored, cancellationToken).ConfigureAwait(false);
+        if (reference.ContainerId != id) throw new InvalidOperationException("Reference belongs to another container.");
     }
 
-    public async ValueTask<ContainerSlotPair> ReadSlotsAsync(
-        int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken)
+    public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct)
     {
-        var pair = await this.ReadAsync(async session => (
-            First: await session.ReadAsync(id, firstSlotIndex, cancellationToken)
-                .ConfigureAwait(false),
-            Second: await session.ReadAsync(id, secondSlotIndex, cancellationToken)
-                .ConfigureAwait(false))).ConfigureAwait(false);
-        return new ContainerSlotPair(
-            await this.ToSlotItemAsync(pair.First, cancellationToken).ConfigureAwait(false),
-            await this.ToSlotItemAsync(pair.Second, cancellationToken).ConfigureAwait(false));
+        CheckReference(reference);
+        return RequireSession().TakeAsync(reference, count, ct);
     }
 
-    public abstract ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-        CancellationToken cancellationToken);
-
-    public async ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-        CancellationToken cancellationToken)
+    public async ValueTask<ItemReference> UpdateAsync(ItemReference reference,
+        Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
     {
-        var stored = await this.ReadAsync(
-            session => session.ReadAllAsync(id, cancellationToken)).ConfigureAwait(false);
-        var read = new List<ContainerSlotItem>(stored.Count);
-        foreach (var item in stored)
+        ArgumentNullException.ThrowIfNull(change);
+        CheckReference(reference);
+        var session = RequireSession();
+        var current = await session.GetAsync(id, reference.StorageSlotIndex, ct).ConfigureAwait(false);
+        if (current is null || !reference.SameOccupancyAs(current))
+            throw new InvalidOperationException("The item reference no longer identifies this occupancy.");
+        var before = current.Snapshot;
+        var next = change(before.DeepCopy()).DeepCopy();
+        var virtualSlot = Type == InventoryContainerType.Main && reference.StorageSlotIndex is >= 0 and <= 2;
+        if (capacities is not null && !virtualSlot)
         {
-            read.Add((await this.ToSlotItemAsync(item, cancellationToken).ConfigureAwait(false))!);
+            var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, reference.StorageSlotIndex), before.LegacyKind);
+            if (business.Index >= await capacities.OpenSlotCountAsync(id, business.Space, ct).ConfigureAwait(false)
+                && !(next.Count > 0 && next.Count < before.Count && before.CanStackWith(next)))
+                throw new InvalidOperationException($"Slot {business} is not open.");
         }
-
-        return read;
+        if (next.ItemId != before.ItemId || next.Count > before.Count
+            && (Type == InventoryContainerType.SharedMaterial || AccountMaterialCatalog.ContainsItem(next.ItemId)))
+            await ValidatePlacementAsync(reference.StorageSlotIndex, next, next.Count, ct).ConfigureAwait(false);
+        return await session.UpdateAsync(reference, _ => next, ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// The one write every container verb is made of, and therefore where a thing is classified.
-    /// </summary>
-    /// <remarks>
-    /// Relocating, splitting, swapping, merging, consuming, landing an arrival and the card
-    /// reward's direct put are all said as calls to this, so asking the archive here is asking it
-    /// on every one of them. The class is asked of the template rather than read off the core,
-    /// because a caller is free to hand over a core whose kind byte says something the archive
-    /// does not, and the point of the classification is that the archive wins.
-    /// <para>
-    /// Nothing is written twice: the avatar-carrying write below is this same call with the six
-    /// facts filled in, so there is one place a container writes an item and one place a container
-    /// classifies one.
-    /// </para>
-    /// </remarks>
-    public ValueTask PutAsync(
-        int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
-        this.WriteOneAsync(slotIndex, core, null, cancellationToken);
-
-    public ValueTask PutTransferredAsync(int slotIndex, InventoryItemCoreState core,
-        ContainerId sourceContainer, int sourceSlotIndex, CancellationToken cancellationToken) =>
-        this.WriteOneAsync(slotIndex, core, null, cancellationToken,
-            transferFrom: new ItemTransferSource(sourceContainer, sourceSlotIndex));
-
-    public ValueTask PutNewAsync(int slotIndex, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-        CancellationToken cancellationToken)
+    public async ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(facts);
-        return this.WriteOneAsync(slotIndex, core, facts.Avatar, cancellationToken, facts.Creature);
-    }
-
-    /// <summary>The write itself, with whatever an avatar carries into the world on it.</summary>
-    /// <remarks>
-    /// The facts are null for everything that is not an avatar entering the world, which is every
-    /// caller of <see cref="PutAsync"/>: a move, a split, a merge and a consume are all an item
-    /// the world already holds, and settlement hands such an item its own six back rather than
-    /// taking them from the write.
-    /// </remarks>
-    private async ValueTask WriteOneAsync(
-        int slotIndex,
-        InventoryItemCoreState core,
-        InventoryAvatarDetailState? avatarDetail,
-        CancellationToken cancellationToken,
-        InventoryCreatureDetailState? creatureDetail = null,
-        ItemTransferSource? transferFrom = null)
-    {
-        ArgumentNullException.ThrowIfNull(core);
-        if (Type == InventoryContainerType.SharedMaterial || AccountMaterialCatalog.ContainsItem(core.ItemId))
-        {
-            var destination = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, slotIndex), core.ItemKind);
-            var placement = await placementRules.PlacementForAsync(core.ItemId, destination.Space,
-                cancellationToken).ConfigureAwait(false);
-            if (Type == InventoryContainerType.SharedMaterial
-                    && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
-                || core.Value <= 0
-                || placement is null || core.ItemKind != placement.ItemKind
-                || placement.StackLimit > 0 && core.Value > placement.StackLimit
-                || !slotRules.CanOccupySlot(destination, placement))
-                throw new InvalidOperationException($"Item {core.ItemId} cannot occupy container {id}/{slotIndex}.");
-        }
-        // Main 0..2 are virtual currency counters, not expandable item slots.
-        // Their grant effects validate balances and overflow before this write.
-        if (capacities is not null && !(Type == InventoryContainerType.Main && slotIndex is >= 0 and <= 2))
-        {
-            var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, slotIndex), core.ItemKind);
-            var open = await capacities.OpenSlotCountAsync(id, business.Space, cancellationToken).ConfigureAwait(false);
-            if (business.Index >= open)
-            {
-                var existing = await ReadSlotAsync(slotIndex, cancellationToken).ConfigureAwait(false);
-                if (!(existing is { IsPile: true } && core.Value > 0 && core.Value < existing.Count
-                    && core with { Value = 0 } == existing.Core with { Value = 0 }))
-                    throw new InvalidOperationException($"Slot {business} is not open.");
-            }
-        }
-        var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
+        var session = RequireSession();
+        var occupied = await session.GetAsync(id, index, ct).ConfigureAwait(false);
+        await ValidatePlacementAsync(index, record.Snapshot, (long)record.Count + (occupied?.Count ?? 0), ct)
             .ConfigureAwait(false);
-        if (avatarDetail is not null && (worldClass != ItemWorldClass.Avatar || core.ItemKind != 8)
-            || creatureDetail is not null && (worldClass != ItemWorldClass.Creature || core.ItemKind != 5))
-            throw new InvalidDataException("Creation facts do not match the item's declared kind.");
-        await this.WriteAsync(session => session.Write(
-                id,
-                new StoredItem(slotIndex, core)
-                {
-                    WorldClass = worldClass,
-                    AvatarDetail = avatarDetail,
-                    CreatureDetail = creatureDetail,
-                    TransferFrom = transferFrom,
-                }))
-            .ConfigureAwait(false);
+        return await session.PutAsync(id, index, record, ct).ConfigureAwait(false);
     }
 
-    public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-        this.WriteAsync(session => session.Clear(id, slotIndex));
+    private async ValueTask ValidatePlacementAsync(int index, ItemSnapshot snapshot, long total, CancellationToken ct,
+        bool enforceStackLimit = true)
+    {
+        if (Type == InventoryContainerType.Main && index == 1
+            && snapshot is { LegacyKind: 0, ItemId: 1, Type: ItemTraits.None, IsPile: true }) return;
+        var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, index), snapshot.LegacyKind);
+        if (capacities is not null && business.Index >= await capacities.OpenSlotCountAsync(id, business.Space, ct).ConfigureAwait(false))
+            throw new InvalidOperationException($"Slot {business} is not open.");
+        var placement = await placementRules.PlacementForAsync(snapshot.ItemId, business.Space, ct).ConfigureAwait(false);
+        var worn = business.Space is BusinessInventorySpace.WornEquipment or BusinessInventorySpace.WornEquipmentExtension
+            or BusinessInventorySpace.WornAvatar or BusinessInventorySpace.WornCreature or BusinessInventorySpace.WornCreatureEquipment;
+        var admitsSlot = placement is not null && (worn
+            ? ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(business.Space), snapshot.Type)
+                && await placementRules.WornSlotForAsync(snapshot.ItemId, ct).ConfigureAwait(false) == business
+            : slotRules.CanOccupySlot(business, placement));
+        if (Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
+            || placement is null || snapshot.LegacyKind != placement.ItemKind || snapshot.Type != placement.Traits
+            || snapshot.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)
+            || enforceStackLimit && snapshot.IsPile && placement.StackLimit > 0 && total > placement.StackLimit
+            || !admitsSlot)
+            throw new InvalidOperationException($"Item {snapshot.ItemId} cannot occupy {id}/{index}.");
+    }
 
     public async ValueTask<ItemPlacementOutcome> AddAsync(
         int itemId, int count, CancellationToken cancellationToken)
@@ -300,7 +209,7 @@ internal abstract class StoreBackedItemContainer(
                 await capacities.OpenSlotCountAsync(id, placement.Destination.Space, cancellationToken).ConfigureAwait(false));
             if (placement is null) return new ItemPlacementOutcome.NoRoom();
         }
-        var held = await this.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var held = await this.GetAllAsync(cancellationToken).ConfigureAwait(false);
         var arrival = arrivals.ForGrant(
             this.PilesOf(held, itemId, Candidates(placement)), count, placement,
             this.OccupiedSlots(held, Candidates(placement)));
@@ -315,7 +224,7 @@ internal abstract class StoreBackedItemContainer(
         ItemRefill refill, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(refill);
-        var held = await this.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var held = await this.GetAllAsync(cancellationToken).ConfigureAwait(false);
         if (capacities is not null)
         {
             var open = await capacities.OpenSlotCountAsync(id, refill.Destination.Space, cancellationToken).ConfigureAwait(false);
@@ -330,7 +239,7 @@ internal abstract class StoreBackedItemContainer(
             refill.Destination,
             this.OccupiedSlots(held, candidates));
         return await this.LandAsync(
-            arrival, held, refill.ItemId, refill.ItemKind, cancellationToken).ConfigureAwait(false);
+            arrival, held, refill.ItemId, refill.ItemKind, cancellationToken, isRefill: true).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -354,19 +263,17 @@ internal abstract class StoreBackedItemContainer(
     /// </remarks>
     private async ValueTask<ItemPlacementOutcome> LandAsync(
         ItemArrival arrival,
-        IReadOnlyList<ContainerSlotItem> held,
+        IReadOnlyList<ItemReference> held,
         int itemId,
         byte itemKind,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool isRefill = false)
     {
         switch (arrival)
         {
             case ItemArrival.OntoExistingPile topped:
                 var toppedIndex = this.StorageIndex(topped.Slot);
                 var pile = held.Single(item => item.SlotIndex == toppedIndex);
-                await this.PutAsync(
-                    toppedIndex,
-                    pile.Core with { Value = topped.Total },
+                await this.UpdateAsync(pile, current => current with { Count = topped.Total },
                     cancellationToken).ConfigureAwait(false);
                 await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
                 return new ItemPlacementOutcome.AddedToPile(
@@ -381,13 +288,24 @@ internal abstract class StoreBackedItemContainer(
                 }
 
                 var openedIndex = this.StorageIndex(opened.Slot);
-                var landing = StackableItemCore.Create(itemKind, itemId, opened.Count);
-                var isAvatar = itemKind == ArrivingAvatar.ItemKind;
-                await this.WriteOneAsync(
-                    openedIndex,
-                    isAvatar ? landing with { Value = ArrivingAvatar.NewIdentity() } : landing,
-                    isAvatar ? ArrivingAvatar.Facts() : null,
-                    cancellationToken).ConfigureAwait(false);
+                var classification = await placementRules.ClassifyAsync(itemId, cancellationToken).ConfigureAwait(false);
+                var isPile = classification == ItemWorldClass.Interchangeable;
+                var snapshot = new ItemSnapshot
+                {
+                    ItemId = itemId, Count = isPile ? opened.Count : 1, IsPile = isPile,
+                    Type = ItemTraitClassification.For(itemKind, itemId), LegacyKind = itemKind,
+                    InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity(),
+                    AvatarDetail = classification == ItemWorldClass.Avatar ? ArrivingAvatar.Facts() : null,
+                };
+                var record = await RequireSession().CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
+                if (isRefill && Type != InventoryContainerType.SharedMaterial && !AccountMaterialCatalog.ContainsItem(itemId))
+                {
+                    // Refill quantities are bounded by the refill rule, independently of ordinary grants.
+                    await ValidatePlacementAsync(openedIndex, record.Snapshot, record.Count, cancellationToken,
+                        enforceStackLimit: false).ConfigureAwait(false);
+                    await RequireSession().PutAsync(id, openedIndex, record, cancellationToken).ConfigureAwait(false);
+                }
+                else await PutAsync(openedIndex, record, cancellationToken).ConfigureAwait(false);
                 await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
                 return new ItemPlacementOutcome.PutInEmptySlot(openedIndex, opened.Count);
 
@@ -404,7 +322,7 @@ internal abstract class StoreBackedItemContainer(
     }
 
     private IReadOnlyList<ItemPile> PilesOf(
-        IReadOnlyList<ContainerSlotItem> held,
+        IReadOnlyList<ItemReference> held,
         int itemId,
         IEnumerable<BusinessSlot> candidates)
     {
@@ -417,7 +335,7 @@ internal abstract class StoreBackedItemContainer(
     }
 
     private IReadOnlySet<BusinessSlot> OccupiedSlots(
-        IReadOnlyList<ContainerSlotItem> held,
+        IReadOnlyList<ItemReference> held,
         IEnumerable<BusinessSlot> candidates)
     {
         var occupied = held.Select(item => item.SlotIndex).ToHashSet();
@@ -473,25 +391,6 @@ internal abstract class StoreBackedItemContainer(
         }
     }
 
-    /// <summary>What this container does with a change when no use case boundary is open.</summary>
-    private protected abstract ValueTask WriteAsync(Action<IItemDomainStoreSession> write);
-
-    /// <summary>
-    /// Makes what a verb has just decided readable by everyone inside this use case, not only by
-    /// this container.
-    /// </summary>
-    /// <remarks>
-    /// A store holds its writes until the use case settles. That is right for a caller who reads
-    /// back through the container, and wrong for everything else in the same use case -- the entry
-    /// loader that reads the same rows through the tables, and this container's own snapshot, which
-    /// is taken from that loader because the client is shown facts the store's vocabulary does not
-    /// name. Before the verbs existed, the one caller that wrote and then read this way wrote
-    /// through the tables and so never met the difference; the verbs would have handed it the
-    /// inventory as it stood before.
-    ///
-    /// Done once per verb rather than once per write, so a move is still one batch. Nothing outside
-    /// the use case sees anything sooner, and a rollback still takes it all back.
-    /// </remarks>
     private async ValueTask ApplyDecidedWritesAsync(CancellationToken cancellationToken)
     {
         if (this.AmbientSession() is { } session)
@@ -503,28 +402,7 @@ internal abstract class StoreBackedItemContainer(
     private protected IItemDomainStoreSession? AmbientSession() =>
         transactions.Current is { } ambient ? store.SessionIn(ambient) : null;
 
-    /// <summary>
-    /// What a slot holds, said the same way whichever of the two kinds it is.
-    /// </summary>
-    /// <remarks>
-    /// The sort of thing it is comes from the archive, out of the one place that classifies -- the
-    /// same question and the same answer a write of this slot would get. Reading it off the kind
-    /// byte the core carries would be the reading the classification exists to replace, and a
-    /// caller would then be told one thing on the way out and another on the way in.
-    ///
-    /// Identity is a read-only address; writing still lets the store preserve its own row.
-    /// </remarks>
-    private protected async ValueTask<ContainerSlotItem?> ToSlotItemAsync(
-        StoredItem? stored, CancellationToken cancellationToken)
-    {
-        if (stored is null) return null;
-        var worldClass = await placementRules.ClassifyAsync(stored.Core.ItemId, cancellationToken)
-            .ConfigureAwait(false);
-        return new(stored.SlotIndex, stored.Core, worldClass)
-        {
-            Identity = worldClass == ItemWorldClass.Interchangeable ? null : stored.Identity,
-        };
-    }
+
 }
 
 /// <summary>
@@ -573,14 +451,4 @@ internal sealed class PersistentItemContainer(
             : throw new NotSupportedException(
                 $"Container '{this.Id.Value}' has no snapshot source; only the main list does.");
 
-    private protected override ValueTask WriteAsync(Action<IItemDomainStoreSession> write)
-    {
-        var session = this.AmbientSession()
-            ?? throw new InvalidOperationException(
-                $"Container '{this.Id.Value}' keeps its items past this process, so it is only "
-                + "changed inside a use case. There is no transaction open on this flow to settle "
-                + "the change, and one applied without a boundary could not be taken back.");
-        write(session);
-        return ValueTask.CompletedTask;
-    }
 }

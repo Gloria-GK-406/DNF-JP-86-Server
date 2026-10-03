@@ -58,8 +58,8 @@ public sealed class EquipmentAmplificationTests
         var reloaded = await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)
             .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default);
         Assert.NotNull(reloaded);
-        Assert.Equal((byte)1, (await reloaded.ReadAsync(default)).Core.ReinforcementLevel);
-        Assert.Equal((ushort)5, (await reloaded.ReadAsync(default)).Core.AmplifyValue);
+        Assert.Equal((byte)1, (await reloaded.ReadAsync(default)).Snapshot.ToCore().ReinforcementLevel);
+        Assert.Equal((ushort)5, (await reloaded.ReadAsync(default)).Snapshot.ToCore().AmplifyValue);
     }
 
     [Theory]

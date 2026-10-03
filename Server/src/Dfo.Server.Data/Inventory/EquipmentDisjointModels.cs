@@ -29,7 +29,7 @@ public sealed record EquipmentDisjointReward(int ItemId, int Count);
 /// leaves reinforcement/amplification available to future expert-machine rules without giving a
 /// rule the inventory slot or any ability to mutate it.
 /// </summary>
-public sealed record EquipmentDisjointCandidate(int ItemId, InventoryItemCoreState Core);
+public sealed record EquipmentDisjointCandidate(int ItemId, ItemSnapshot Core);
 
 public enum EquipmentDisjointRejection
 {
@@ -56,7 +56,7 @@ public sealed record EquipmentDisjointMaterialReceipt(BusinessSlot Slot, int Ite
 /// </remarks>
 public sealed record EquipmentDisjointSlotChange(
     BusinessSlot Slot,
-    InventoryItemCoreState? Core);
+    ItemSnapshot? Core);
 
 public sealed record EquipmentDisjointReceipt(
     SelectedSessionIdentity Session,

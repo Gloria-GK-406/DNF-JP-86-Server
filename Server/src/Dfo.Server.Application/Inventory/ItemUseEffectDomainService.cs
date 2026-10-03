@@ -12,7 +12,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
     ICreatureInstanceDomainService creatures, TimeProvider clock) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        ContainerSlotItem item, CancellationToken ct)
+        ItemReference item, CancellationToken ct)
     {
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         var facts = rule is null || !rule.IsReadable ? null : await characters.Get(session.CharacterId)

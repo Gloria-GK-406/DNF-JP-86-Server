@@ -49,14 +49,12 @@ public interface IBusinessItemContainer
     ItemTraits AcceptedTraits => ItemContainerAdmission.AcceptedBy(Space);
     ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
         ValueTask.FromResult(int.MaxValue);
-    ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken cancellationToken);
-    ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken);
-    ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken cancellationToken);
-    ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
-        IBusinessItemContainer source, int sourceIndex, CancellationToken cancellationToken);
-    ValueTask PutNewAsync(int index, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-        CancellationToken cancellationToken);
-    ValueTask ClearAsync(int index, CancellationToken cancellationToken);
+    ValueTask<IEquipmentInstance?> GetEquipmentAsync(int index, CancellationToken ct);
+    ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct);
+    ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct);
+    ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct);
+    ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct);
+    ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct);
     ValueTask FlushAsync(CancellationToken cancellationToken);
     ValueTask<BusinessItemAdditionResult> AddAsync(int itemId, int count, CancellationToken cancellationToken);
 }

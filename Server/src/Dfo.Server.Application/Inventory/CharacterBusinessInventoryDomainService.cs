@@ -11,7 +11,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
     IItemPlacementRuleService? placements = null, IItemArrivalRuleService? arrivals = null,
     ICreatureDefinitionSource? creatures = null, IItemDomainStore? items = null,
     IDomainTransactionAccessor? transactions = null, IItemSlotRuleService? slotRules = null,
-    IInventoryCapacityDomainService? capacities = null)
+    IInventoryCapacityDomainService? capacities = null, IItemLifecycleDomainService? lifecycle = null)
     : ICharacterBusinessInventoryDomainService
 {
     public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) =>
@@ -21,14 +21,14 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
     {
         if (owner.Value <= 0 || !Enum.IsDefined(owner.Scope)) throw new ArgumentOutOfRangeException(nameof(owner));
         return new BusinessInventoryStore(owner, kind, backing, placements, arrivals, creatures,
-            items, transactions, slotRules, capacities);
+            items, transactions, slotRules, capacities, lifecycle);
     }
 
     private sealed class BusinessInventoryStore(ContainerOwner owner, BusinessInventoryStoreKind kind,
         ICharacterContainerDomainService backing, IItemPlacementRuleService? placements,
         IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
         IItemDomainStore? items, IDomainTransactionAccessor? transactions,
-        IItemSlotRuleService? slotRules, IInventoryCapacityDomainService? capacities) : IBusinessInventoryStore
+        IItemSlotRuleService? slotRules, IInventoryCapacityDomainService? capacities, IItemLifecycleDomainService? lifecycle) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
 
@@ -50,7 +50,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
                         : ContainerId.ForCharacter(characterId, address.List),
                     characterId, new ContainerShape(address.List, 0), items, transactions,
                     null, placements, arrivals, slotRules, capacities);
-            return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures, capacities);
+            return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures, capacities, lifecycle);
         }
 
         public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
@@ -61,7 +61,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
 internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemContainer backing,
     IItemPlacementRuleService? placements = null, IItemArrivalRuleService? arrivals = null,
-    ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)
+    ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null, IItemLifecycleDomainService? lifecycle = null)
     : IBusinessItemContainer
 {
     public BusinessContainerId Id => new(space, backing.Id);
@@ -73,28 +73,36 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         capacities is null ? ValueTask.FromResult(int.MaxValue)
             : capacities.OpenSlotCountAsync(backing.Id, space, cancellationToken);
 
-    public async ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken cancellationToken)
+    public async ValueTask<IEquipmentInstance?> GetEquipmentAsync(int index, CancellationToken ct)
     {
-        var storageIndex = this.StorageIndex(new(space, index));
-        var item = await backing.ReadSlotAsync(storageIndex, cancellationToken)
-            .ConfigureAwait(false);
-        if (item is not null && LegacyInventoryStorageCoordinates.ToBusiness(
-                new(backing.Type, item.SlotIndex), item.Core.ItemKind).Space != space)
-            return null;
-        return item is null ? null : item with { SlotIndex = index };
+        var reference = await GetAsync(index, ct).ConfigureAwait(false);
+        if (reference is null || reference.IsPile || !reference.Type.HasFlag(ItemTraits.Equipment)) return null;
+        return new EquipmentInstance(this, reference, lifecycle
+            ?? throw new InvalidOperationException("Equipment behavior requires item lifecycle services."));
     }
 
-    public async ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken)
+    public async ValueTask<ItemReference?> GetAsync(int index, CancellationToken cancellationToken)
     {
-        var items = await backing.ReadAllAsync(cancellationToken).ConfigureAwait(false);
-        var local = new List<ContainerSlotItem>();
+        var storageIndex = this.StorageIndex(new(space, index));
+        var item = await backing.GetAsync(storageIndex, cancellationToken)
+            .ConfigureAwait(false);
+        if (item is not null && LegacyInventoryStorageCoordinates.ToBusiness(
+                new(backing.Type, item.SlotIndex), item.Snapshot.LegacyKind).Space != space)
+            return null;
+        return item is null ? null : item.WithBusinessSlot(new(space, index));
+    }
+
+    public async ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        var items = await backing.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        var local = new List<ItemReference>();
         foreach (var item in items)
         {
             try
             {
                 var slot = LegacyInventoryStorageCoordinates.ToBusiness(
-                    new(backing.Type, item.SlotIndex), item.Core.ItemKind);
-                if (slot.Space == space) local.Add(item with { SlotIndex = slot.Index });
+                    new(backing.Type, item.SlotIndex), item.Snapshot.LegacyKind);
+                if (slot.Space == space) local.Add(item.WithBusinessSlot(slot));
             }
             catch (InventorySlotMappingException) when (
                 backing.Type == InventoryContainerType.Main
@@ -106,67 +114,61 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         return local;
     }
 
-    public async ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken cancellationToken)
+    private void CheckReference(ItemReference reference)
     {
-        var physical = await WritableIndexAsync(index, cancellationToken, core).ConfigureAwait(false);
-        await backing.PutAsync(physical, core, cancellationToken).ConfigureAwait(false);
+        var physical = StorageIndex(new(space, reference.SlotIndex));
+        if (reference.ContainerId != StorageId || reference.StorageSlotIndex != physical
+            || reference.BusinessSlot != new BusinessSlot(space, reference.SlotIndex))
+            throw new InvalidOperationException("Reference belongs to another business container.");
     }
 
-    public async ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
-        IBusinessItemContainer source, int sourceIndex, CancellationToken cancellationToken)
+    public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct)
     {
-        var physical = await WritableIndexAsync(index, cancellationToken, core).ConfigureAwait(false);
-        var from = LegacyInventoryStorageCoordinates.ToStorage(new(source.Space, sourceIndex));
-        await backing.PutTransferredAsync(physical, core, source.StorageId, from.Index,
-            cancellationToken).ConfigureAwait(false);
+        CheckReference(reference);
+        return backing.TakeAsync(reference, count, ct);
     }
 
-    public async ValueTask PutNewAsync(int index, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-        CancellationToken cancellationToken)
+    public async ValueTask<ItemReference> UpdateAsync(ItemReference reference,
+        Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
     {
-        var physical = await WritableIndexAsync(index, cancellationToken, core).ConfigureAwait(false);
-        await backing.PutNewAsync(physical, core, facts, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async ValueTask ClearAsync(int index, CancellationToken cancellationToken)
-    {
-        var physical = this.StorageIndex(new(space, index));
-        var current = await backing.ReadSlotAsync(physical, cancellationToken).ConfigureAwait(false);
-        if (current is null) return;
-        var owner = LegacyInventoryStorageCoordinates.ToBusiness(
-            new(backing.Type, physical), current.Core.ItemKind);
-        if (owner != new BusinessSlot(space, index))
-            throw new InvalidDataException($"Physical slot {backing.Type}/{physical} contains {owner}, not {space}/{index}.");
-        await backing.ClearAsync(physical, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async ValueTask<int> WritableIndexAsync(int index, CancellationToken ct, InventoryItemCoreState? replacement = null)
-    {
-        var physical = this.StorageIndex(new(space, index));
-        var existing = await backing.ReadSlotAsync(physical, ct).ConfigureAwait(false);
-        var reducesExistingPile = existing is { IsPile: true } && replacement is { Value: > 0 }
-            && replacement.Value < existing.Count
-            && replacement with { Value = 0 } == existing.Core with { Value = 0 };
-        // Taking from an existing pile is not admitting an item. It must remain possible when
-        // capacity or template placement has changed since the pile arrived.
-        if (replacement is not null && !reducesExistingPile)
+        ArgumentNullException.ThrowIfNull(change);
+        CheckReference(reference);
+        var open = await OpenSlotCountAsync(ct).ConfigureAwait(false);
+        var result = await backing.UpdateAsync(reference, current =>
         {
-            var placement = placements is null ? null
-                : await placements.PlacementForAsync(replacement.ItemId, space, ct).ConfigureAwait(false);
-            if (!ItemContainerAdmission.Accepts(AcceptedTraits, placement?.Traits ?? replacement.Traits))
-                throw new InvalidOperationException($"Item {replacement.ItemId} cannot enter {space}.");
-        }
-        if (index >= await OpenSlotCountAsync(ct).ConfigureAwait(false)
-            && !reducesExistingPile)
+            var next = change(current);
+            if (reference.SlotIndex >= open
+                && !(next.Count > 0 && next.Count < current.Count && current.CanStackWith(next)))
+                throw new InvalidOperationException($"Inventory slot {space}/{reference.SlotIndex} is not open.");
+            return next;
+        }, ct).ConfigureAwait(false);
+        return result.WithBusinessSlot(new(space, reference.SlotIndex));
+    }
+
+    public async ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct)
+    {
+        var physical = StorageIndex(new(space, index));
+        var snapshot = record.Snapshot;
+        var placement = placements is null ? null
+            : await placements.PlacementForAsync(record.ItemId, space, ct).ConfigureAwait(false);
+        if (!ItemContainerAdmission.Accepts(AcceptedTraits, record.Type)
+            || placement is not null && (record.Type != placement.Traits || snapshot.LegacyKind != placement.ItemKind
+                || record.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)))
+            throw new InvalidOperationException($"Item {record.ItemId} cannot enter {space}.");
+        if (index >= await OpenSlotCountAsync(ct).ConfigureAwait(false))
             throw new InvalidOperationException($"Inventory slot {space}/{index} is not open.");
+        var existing = await backing.GetAsync(physical, ct).ConfigureAwait(false);
         if (existing is not null)
         {
-            var owner = LegacyInventoryStorageCoordinates.ToBusiness(
-                new(backing.Type, physical), existing.Core.ItemKind);
+            var owner = LegacyInventoryStorageCoordinates.ToBusiness(new(backing.Type, physical), existing.Snapshot.LegacyKind);
             if (owner != new BusinessSlot(space, index))
-                throw new InvalidDataException($"Physical slot {backing.Type}/{physical} contains {owner}; refusing to overwrite it with {space}/{index}.");
+                throw new InvalidDataException($"Physical slot {backing.Type}/{physical} belongs to {owner}.");
         }
-        return physical;
+        if (record.IsPile && placement is { StackLimit: > 0 }
+            && (long)record.Count + (existing?.Count ?? 0) > placement.StackLimit)
+            throw new InvalidOperationException("Placement exceeds the template stack limit.");
+        var placed = await backing.PutAsync(physical, record, ct).ConfigureAwait(false);
+        return placed.WithBusinessSlot(new(space, index));
     }
 
     public ValueTask FlushAsync(CancellationToken cancellationToken) =>
@@ -183,11 +185,11 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
             throw new InvalidOperationException($"Item {itemId} belongs to {placement.Destination.Space}, not {space}.");
         var quick = backing.Type == InventoryContainerType.Main
             && ItemSlotRuleService.AllowsQuickSlot(placement)
-            ? new BusinessItemContainer(BusinessInventorySpace.QuickSlot, backing, placements, arrivals, creatures, capacities)
+            ? new BusinessItemContainer(BusinessInventorySpace.QuickSlot, backing, placements, arrivals, creatures, capacities, lifecycle)
             : null;
-        var own = await ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var own = await GetAllAsync(cancellationToken).ConfigureAwait(false);
         var held = own.Select(item => (Slot: new BusinessSlot(space, item.SlotIndex), Item: item))
-            .Concat(quick is null ? [] : (await quick.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            .Concat(quick is null ? [] : (await quick.GetAllAsync(cancellationToken).ConfigureAwait(false))
                 .Select(item => (Slot: new BusinessSlot(BusinessInventorySpace.QuickSlot, item.SlotIndex), Item: item)))
             .ToArray();
         var occupied = held.Select(entry => entry.Slot).ToHashSet();
@@ -204,7 +206,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
                 var target = pile.Slot.Space == space ? this : quick
                     ?? throw new InvalidDataException("Arrival selected a quick slot without a quick container.");
                 var existing = held.Single(entry => entry.Slot == pile.Slot).Item;
-                await target.PutAsync(pile.Slot.Index, existing.Core with { Value = pile.Total }, cancellationToken)
+                await target.UpdateAsync(existing, current => current with { Count = pile.Total }, cancellationToken)
                     .ConfigureAwait(false);
                 await target.FlushAsync(cancellationToken).ConfigureAwait(false);
                 return new(target, new ItemPlacementOutcome.AddedToPile(pile.Slot.Index, pile.Added, pile.Total));
@@ -213,25 +215,25 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
                     ?? throw new InvalidDataException("Arrival selected a quick slot without a quick container.");
                 if (placement.ItemKind == 0)
                     throw new InvalidDataException($"Item {itemId} has no item kind.");
-                var core = StackableItemCore.Create(placement.ItemKind, itemId, empty.Count);
+                var isPile = placement.WorldClass == ItemWorldClass.Interchangeable;
+                var snapshot = new ItemSnapshot
+                {
+                    ItemId = itemId, Count = isPile ? empty.Count : 1, Type = placement.Traits,
+                    IsPile = isPile, LegacyKind = placement.ItemKind,
+                    InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity(),
+                };
                 if (placement.WorldClass == ItemWorldClass.Creature)
                 {
                     var creature = creatures is null ? null
                         : await creatures.FindByEquipmentAsync(itemId, cancellationToken).ConfigureAwait(false);
-                    if (creature is null)
-                        throw new InvalidDataException($"Creature template {itemId} has no creature definition.");
-                    await destination.PutNewAsync(empty.Slot.Index,
-                        core with { Value = ArrivingAvatar.NewIdentity() },
-                        new InventoryItemCreationFacts(Creature: new(100, 0, 0, 0, 0,
-                            creature.StartLevel, [], 0)), cancellationToken).ConfigureAwait(false);
+                    if (creature is null) throw new InvalidDataException($"Creature template {itemId} has no definition.");
+                    snapshot = snapshot with { CreatureDetail = new(100, 0, 0, 0, 0, creature.StartLevel, [], 0) };
                 }
-                else if (placement.ItemKind == ArrivingAvatar.ItemKind)
-                    await destination.PutNewAsync(empty.Slot.Index,
-                        core with { Value = ArrivingAvatar.NewIdentity() },
-                        new InventoryItemCreationFacts(Avatar: ArrivingAvatar.Facts()),
-                        cancellationToken).ConfigureAwait(false);
-                else
-                    await destination.PutAsync(empty.Slot.Index, core, cancellationToken).ConfigureAwait(false);
+                else if (placement.WorldClass == ItemWorldClass.Avatar)
+                    snapshot = snapshot with { AvatarDetail = ArrivingAvatar.Facts() };
+                var record = await (lifecycle ?? throw new InvalidOperationException("Item lifecycle service is missing."))
+                    .CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
+                await destination.PutAsync(empty.Slot.Index, record, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
                 return new(destination, new ItemPlacementOutcome.PutInEmptySlot(empty.Slot.Index, empty.Count));
             case ItemArrival.NoRoom:

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -713,11 +714,12 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
+        var fixture = new MoveItemFixture();
         foreach (var type in (InventoryContainerType[])
             [InventoryContainerType.Main, InventoryContainerType.Avatar,
              InventoryContainerType.Equipment, InventoryContainerType.Pet])
         {
-            containers.Register(character, new SlotBook(type, character));
+            containers.Register(character, new SlotBook(type, character, fixture));
         }
 
         var mappings = new InventorySlotMappingRuleService();
@@ -728,7 +730,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                     new ItemSlotRuleService(), new EitherEndMayBeHoldingItTestsWearEligibility())),
-            character);
+            character, fixture);
     }
 
     private (MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingLogger Logger, Side Side)
@@ -741,7 +743,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             new MoveItemSpaceHandler(
                 new OneSession(), new NoPublishedRuntime(),
                 new InventorySlotMappingRuleService(),
-                new DirectMoveBus(side.Handler), sender, logger, null!, null!, TimeProvider.System),
+                new DirectMoveBus(side.Handler, side.Fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger,
             side);
@@ -750,7 +752,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     private sealed record Side(
         CharacterContainerDomainService Containers,
         MoveItemSpaceCommandHandler Handler,
-        CharacterId Character)
+        CharacterId Character, MoveItemFixture Fixture)
     {
         public void Seed(InventoryContainerType type, short slotIndex, int itemId) =>
             ((SlotBook)this.Containers.GetContainer(this.Character, type)).Seed(slotIndex, itemId);
@@ -762,7 +764,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             short destinationSlot,
             int sourceInstanceValue = 0,
             int destinationInstanceValue = 0) =>
-            this.Handler.HandleAsync(
+            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
                 new CommandExecutionContext(
                     Guid.Empty,
                     typeof(MoveItemSpaceCommand),
@@ -775,98 +777,28 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                     ToBusinessSlot(destination, destinationSlot),
                     sourceInstanceValue,
                     destinationInstanceValue),
-                CancellationToken.None);
+                CancellationToken.None));
 
         private static BusinessSlot ToBusinessSlot(
             InventoryContainerType space, int index) =>
             new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(space, index));
 
-        public async ValueTask<ContainerSlotItem?> ReadAsync(
+        public async ValueTask<ItemSnapshot?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>
             await ((SlotBook)this.Containers.GetContainer(this.Character, type))
-                .ReadSlotAsync(slotIndex, CancellationToken.None);
+                .ReadSnapshotAsync(slotIndex, CancellationToken.None);
     }
 
-    /// <summary>
-    /// A container that is a book of slots and refuses everything the served paths do not use.
-    /// </summary>
-    /// <remarks>
-    /// What is under test is which end a move reads and what it does with the answer, so nothing
-    /// here has to settle or persist. The unused members raise rather than answering emptily: a
-    /// path that started using one of them fails here instead of being quietly told the container
-    /// is empty, which is the shape of the defect these cases exist for.
-    /// </remarks>
-    private sealed class SlotBook(InventoryContainerType type, CharacterId character) : IItemContainer
+    /// <summary>Container sharing the command transaction and item custody backend.</summary>
+    private sealed class SlotBook(InventoryContainerType type, CharacterId character, MoveItemFixture fixture)
+        : LifecycleTestContainer(type, character, fixture)
     {
-        private readonly Dictionary<int, ContainerSlotItem> bySlot = [];
-
-        public ContainerId Id { get; } = ContainerId.ForCharacter(character, type);
-
-        public InventoryContainerType Type => type;
-
-        public ContainerShape Shape { get; } = new(type, 0);
-
-        public bool IsRemovable => false;
-
-        public void Seed(int slotIndex, int itemId) =>
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex,
-                StackableItemCore.Create(itemId == Costume ? (byte)8 : (byte)1, itemId, 1),
-                itemId == Costume ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
-
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(this.bySlot.GetValueOrDefault(slotIndex));
-
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ContainerSlotPair(
-                this.bySlot.GetValueOrDefault(firstSlotIndex),
-                this.bySlot.GetValueOrDefault(secondSlotIndex)));
-
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex, core, core.ItemId == Costume ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken)
-        {
-            this.bySlot.Remove(slotIndex);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken)
-        {
-            var moving = this.bySlot.GetValueOrDefault(fromSlotIndex)
-                ?? this.bySlot.GetValueOrDefault(toSlotIndex);
-            return ValueTask.FromResult<ItemMoveOutcome>(moving is null
-                ? new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty)
-                : new ItemMoveOutcome.Moved(count, moving.ItemId));
-        }
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int count, CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) => throw Unused();
-
-        private static NotSupportedException Unused() =>
-            new("This container answers slot reads, writes and moves and nothing else.");
+        public void Seed(int slotIndex, int itemId) => SeedItem(slotIndex, itemId, itemId == Costume ? (byte)8 : (byte)1);
     }
 
     /// <summary>A bus that runs the move command on the handler that owns it.</summary>
     private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move) : ICommandBus
+        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
     {
         public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
@@ -875,8 +807,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             var context = new CommandExecutionContext(
                 Guid.Empty, command.GetType(), typeof(DirectMoveBus),
                 CommandExecutionKind.Transactional);
-            var result = await move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken);
+            var result = await fixture.RunAsync(() => move.HandleAsync(
+                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
             return (TResult)(object)result;
         }
     }

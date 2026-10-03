@@ -23,7 +23,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
             || positions.Find(session.CharacterId) is not { } standing)
             return new(ItemUsability.CharacterStateUnavailable);
         var bound = slots.Find(session.CharacterId, source);
-        var item = bound is null ? null : await bound.Container.ReadSlotAsync(bound.Slot.Index, ct).ConfigureAwait(false);
+        var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);
         if (item is null || item.ItemId != expectedItemId) return new(ItemUsability.NotAUsableItem);
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         if (rule is null) return new(ItemUsability.NotAUsableItem);
@@ -37,6 +37,6 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
         var remaining = applied.Changes<ContainerConsumptionChange>().Single().RemainingCount;
         return new(ItemUsability.Allowed, new(session, source, item.ItemId, remaining,
             applied.Changes<TownPositionChange>().Single().After, TimeSpan.FromMilliseconds(rule.Use.CooldownMilliseconds), at,
-            remaining == 0 ? null : item.Core with { Value = remaining }, item.Identity));
+            remaining == 0 ? null : item.Snapshot with { Count = remaining }, item.ItemUid));
     }
 }

@@ -48,11 +48,12 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             && entry.Session == session && entry.Worn == itemUid;
     }
     private sealed record Entry(SelectedSessionIdentity Session, DateTimeOffset At,
-        DateTimeOffset Due, bool Combat, int? Worn, IReadOnlyDictionary<int, double> Stomachs)
+        DateTimeOffset Due, bool Combat, int? Worn, IReadOnlyDictionary<int, Balance> Stomachs)
     {
         public IReadOnlySet<(DungeonRunId Run, MazeCell Cell)> AwardedRooms { get; init; } = new HashSet<(DungeonRunId, MazeCell)>();
         public IReadOnlySet<int> TownRevivals { get; init; } = new HashSet<int>();
     }
+    private sealed record Balance(double Value, int Baseline, DateTimeOffset At);
     private sealed record RoomReward(DungeonRunId Run, MazeCell Cell, int Amount, int? CreatureKey, bool ResolveInitialPet);
 
     public void QueueRoomExperience(SelectedSessionIdentity session, DungeonRunId runId, MazeCell cell, int amount)
@@ -73,7 +74,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             foreach (var old in roomRewards.Keys.Where(x => x.CharacterId == session.CharacterId).ToArray())
                 roomRewards.Remove(old);
             entries[session.CharacterId] = new(session, clock.GetUtcNow(), clock.GetUtcNow(), false, null,
-                new Dictionary<int, double>());
+                new Dictionary<int, Balance>());
         }
     }
 
@@ -96,12 +97,12 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             if (!entries.TryGetValue(characterId, out var entry) || entry.Combat == combat) return;
             var now = clock.GetUtcNow();
             var balances = entry.Stomachs.ToDictionary(x => x.Key,
-                x => PetInstance.AdvanceBalance(x.Value, now - entry.At,
-                    entry.Combat && entry.Worn == x.Key));
+                x => x.Value with { Value = PetInstance.AdvanceBalance(x.Value.Value, now - x.Value.At,
+                    entry.Combat && entry.Worn == x.Key), At = now });
             var revivals = entry.TownRevivals.ToHashSet();
-            if (!combat && entry.Worn is { } worn && balances.GetValueOrDefault(worn) <= 0)
+            if (!combat && entry.Worn is { } worn && balances.TryGetValue(worn, out var balance) && balance.Value <= 0)
             {
-                balances[worn] = 1;
+                balances[worn] = balance with { Value = 1 };
                 revivals.Add(worn);
             }
             entries[characterId] = entry with
@@ -145,20 +146,24 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         var current = await pets.ReadCurrentAsync(session.CharacterId, ct).ConfigureAwait(false);
         var fighting = combat ?? previous.Combat;
         var context = CreateContext(tx, session.CharacterId);
-        var next = new Dictionary<int, double>();
+        var next = new Dictionary<int, Balance>();
         var changed = new List<CreatureRuntimeChange>();
         var nextDelay = TimeSpan.FromMinutes(6);
         foreach (var state in all)
         {
             var definition = await rules.GetAsync(state.ItemTemplateId, ct).ConfigureAwait(false);
-            var oldValue = previous.Stomachs.GetValueOrDefault(state.ItemUid, state.Stomach);
-            var elapsed = previous.Stomachs.ContainsKey(state.ItemUid) ? now - previous.At : TimeSpan.Zero;
+            var cached = previous.Stomachs.GetValueOrDefault(state.ItemUid);
+            var matches = cached?.Baseline == state.Stomach;
+            var oldValue = matches ? cached!.Value : state.Stomach;
+            var elapsed = matches ? now - cached!.At : TimeSpan.Zero;
             var equipped = current?.ItemUid == state.ItemUid;
-            var updated = await new PetInstance(state.ItemUid, context).AdvanceStomachAsync(state,
+            var reference = await context.FindAsync(state.ItemUid, ct).ConfigureAwait(false);
+            if (reference is null) continue;
+            var updated = await new PetInstance(reference, context).AdvanceStomachAsync(state,
                 oldValue, elapsed, previous.Combat && previous.Worn == state.ItemUid,
                 equipped && !fighting, previous.TownRevivals.Contains(state.ItemUid), ct).ConfigureAwait(false);
             var value = updated.ExactStomach;
-            next[state.ItemUid] = value;
+            next[state.ItemUid] = new(value, updated.Stomach, now);
             if (definition?.HungerEnabled != false)
             {
                 var consuming = fighting && equipped;
@@ -201,9 +206,9 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         var tx = transactions.Current ?? throw new InvalidOperationException("Hatching requires a use case.");
         var context = CreateContext(tx, session.CharacterId);
         var container = context.Inventory?.FindContainer(eggSlot.Space);
-        var item = container is null ? null : await container.ReadSlotAsync(eggSlot.Index, ct).ConfigureAwait(false);
-        if (item is null || item.ItemKind != 5 || item.Core.Value <= 0) return null;
-        var egg = await Of(session.CharacterId).FindEggAsync(item.Core.Value, ct).ConfigureAwait(false);
+        var item = container is null ? null : await container.GetAsync(eggSlot.Index, ct).ConfigureAwait(false);
+        if (item is null || item.Snapshot.LegacyKind != 5 || item.ItemUid is null) return null;
+        var egg = await Of(session.CharacterId).FindEggAsync(item.ItemUid!.Value.Value, ct).ConfigureAwait(false);
         var born = egg is null ? null : await egg.BirthAsync(ct).ConfigureAwait(false);
         return (born as PetInstance)?.BirthReceipt;
     }
@@ -221,7 +226,9 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     {
         var rule = await rules.GetAsync(pet.ItemTemplateId, ct).ConfigureAwait(false);
         if (rule is null || rule.IsEgg) return null;
-        return await new PetInstance(pet.ItemUid, CreateContext(tx, session.CharacterId))
+        var context = CreateContext(tx, session.CharacterId);
+        var reference = await context.FindAsync(pet.ItemUid, ct).ConfigureAwait(false);
+        return reference is null ? null : await new PetInstance(reference, context)
             .AddExpCoreAsync(amount, ct).ConfigureAwait(false);
     }
 
@@ -284,14 +291,24 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         }
         public async ValueTask SynchronizeAsync(CancellationToken ct) =>
             _ = await owner.AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
-        public double Stomach(int uid, double fallback) =>
-            Pending.Read(session.CharacterId)?.Stomachs.GetValueOrDefault(uid, fallback) ?? fallback;
+        public double Stomach(int uid, int baseline)
+        {
+            var pending = Pending;
+            if (pending.Read(session.CharacterId) is not { } entry || entry.Session != session) return baseline;
+            if (entry.Stomachs.TryGetValue(uid, out var balance) && balance.Baseline == baseline) return balance.Value;
+            var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
+            balances[uid] = new(baseline, baseline, owner.Now);
+            pending.Write(session.CharacterId, entry with { Stomachs = balances, Due = owner.Now,
+                TownRevivals = entry.TownRevivals.Where(value => value != uid).ToHashSet() });
+            return baseline;
+        }
         public void SetStomach(int uid, double value)
         {
             var pending = Pending;
             if (pending.Read(session.CharacterId) is not { } entry || entry.Session != session) return;
             var balances = entry.Stomachs.ToDictionary(x => x.Key, x => x.Value);
-            balances[uid] = value;
+            if (!balances.TryGetValue(uid, out var previous) || previous.Value != value || previous.Baseline != (int)value)
+                balances[uid] = new(value, (int)value, owner.Now);
             pending.Write(session.CharacterId, entry with { Stomachs = balances, Due = owner.Now });
         }
         public void Notify(CreatureRuntimeChange change) => Pending.Notify(session, [change]);

@@ -52,7 +52,7 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
             && update.Core.ItemId == result.Reward.ItemId)
             .Select(update => (Wire: OpeningWireSlots.Project(update.Slot, new InventorySlotMappingRuleService()),
                 Item: new InventoryItemState(update.Identity,
-                    OpeningWireSlots.RewardIndex(update.Slot), update.Core))).ToArray();
+                    OpeningWireSlots.RewardIndex(update.Slot), update.Core.ToCore()))).ToArray();
         if (entries.Length != slots.Count || entries.Any(e => e.Wire.Space != InventoryContainerType.Main))
             throw new InvalidDataException("Vending receipt does not match the native reward list.");
         writer.Write(checked((ushort)entries.Length));

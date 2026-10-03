@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -197,8 +198,8 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
 
         Assert.Equal(MoveItemSpaceResponse.NotMovable,
             Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent)).ErrorCode);
-        Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSlotAsync(BagSlot, default))!.ItemId);
-        Assert.Equal(CoatAvatarTemplate, (await worn.ReadSlotAsync(14, default))!.ItemId);
+        Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSnapshotAsync(BagSlot, default))!.ItemId);
+        Assert.Equal(CoatAvatarTemplate, (await worn.ReadSnapshotAsync(14, default))!.ItemId);
     }
 
     /// <summary>The drag: out of the bag, onto the worn list, at the slot the client named.</summary>
@@ -219,10 +220,11 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     {
         var character = new CharacterId(60);
         var containers = new CharacterContainerDomainService();
-        bag = new SlotDictionaryContainer(InventoryContainerType.Main);
+        var fixture = new MoveItemFixture();
+        bag = new SlotDictionaryContainer(InventoryContainerType.Main, character, fixture);
         bag.Seed(BagSlot, itemIdInTheBag);
         containers.Register(character, bag);
-        worn = new SlotDictionaryContainer(InventoryContainerType.Equipment);
+        worn = new SlotDictionaryContainer(InventoryContainerType.Equipment, character, fixture);
         if (displacedItemId is { } item) worn.Seed(14, item);
         containers.Register(character, worn);
 
@@ -239,97 +241,21 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             new MoveItemSpaceHandler(
                 new OneSession(), new NoPublishedRuntime(),
                 mappings,
-                new DirectMoveBus(commandHandler), sender, logger, null!, null!, TimeProvider.System),
+                new DirectMoveBus(commandHandler, fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger);
     }
 
-    /// <summary>
-    /// A container that is a dictionary of slots and refuses everything else.
-    /// </summary>
-    /// <remarks>
-    /// The refusals under test are decided from one read of one slot, so what stands behind that
-    /// read does not have to keep items or settle anything. The unused members raise rather than
-    /// answering emptily, so a path that started using one of them fails here instead of quietly
-    /// being told the container is empty.
-    /// </remarks>
-    private sealed class SlotDictionaryContainer(InventoryContainerType type) : IItemContainer
+    /// <summary>Container sharing the command transaction and item custody backend.</summary>
+    private sealed class SlotDictionaryContainer(InventoryContainerType type, CharacterId character, MoveItemFixture fixture)
+        : LifecycleTestContainer(type, character, fixture)
     {
-        private readonly Dictionary<int, ContainerSlotItem> bySlot = [];
-
-        public ContainerId Id { get; } = ContainerId.ForCharacter(new CharacterId(60), type);
-
-        public InventoryContainerType Type => type;
-
-        public ContainerShape Shape { get; } = new(type, 0);
-
-        public bool IsRemovable => false;
-
-        /// <summary>Puts one of a template in a slot.</summary>
-        /// <remarks>
-        /// The kind byte and the world class written here are not read on the path under test:
-        /// <c>PutOnAsync</c> takes the identifier off the slot and asks the archive, which is the
-        /// reading the classification exists to be. They are filled in because
-        /// <see cref="ContainerSlotItem"/> carries them, not because either is being described.
-        /// </remarks>
-        public void Seed(int slotIndex, int itemId) =>
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex,
-                StackableItemCore.Create(1, itemId, 1),
-                ItemWorldClass.Equipment);
-
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(this.bySlot.GetValueOrDefault(slotIndex));
-
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ContainerSlotPair(
-                this.bySlot.GetValueOrDefault(firstSlotIndex),
-                this.bySlot.GetValueOrDefault(secondSlotIndex)));
-
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex, core, ItemWorldClass.Equipment);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken)
-        {
-            this.bySlot.Remove(slotIndex);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int count, CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw Unused();
-
-        private static NotSupportedException Unused() =>
-            new("This container answers slot reads and writes and nothing else.");
+        public void Seed(int slotIndex, int itemId) => SeedItem(slotIndex, itemId, itemId == CoatAvatarTemplate ? (byte)8 : (byte)1);
     }
 
     /// <summary>A bus that runs the move command on the handler that owns it.</summary>
-    /// <remarks>
-    /// No use case boundary is opened, because the container behind this one keeps nothing past
-    /// the test and so has none to refuse a write outside of. What the boundary is for is checked
-    /// where a persistent container is.
-    /// </remarks>
     private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move) : ICommandBus
+        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
     {
         public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
@@ -338,8 +264,8 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             var context = new CommandExecutionContext(
                 Guid.Empty, command.GetType(), typeof(DirectMoveBus),
                 CommandExecutionKind.Transactional);
-            var result = await move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken);
+            var result = await fixture.RunAsync(() => move.HandleAsync(
+                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
             return (TResult)(object)result;
         }
     }

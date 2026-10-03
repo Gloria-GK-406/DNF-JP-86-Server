@@ -260,7 +260,7 @@ public sealed class UseStackableCommandHandler(
         if (slot is null)
             return ItemUseResult.Refused(ItemUseStatus.NoBoundContainer);
 
-        var item = await slot.Container.ReadSlotAsync(slot.Slot.Index, cancellationToken)
+        var item = await slot.Container.GetAsync(slot.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
 
         // The client names what it believes it is using. A slot that holds something else means the

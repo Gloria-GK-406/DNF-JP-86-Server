@@ -345,21 +345,21 @@ public sealed class SelectCardCommandHandler(
                     nameof(piece), granted, "No reading was decided for this outcome.");
         }
 
-        var landed = await delivered!.Container.ReadSlotAsync(slotIndex, cancellationToken)
+        var landed = await delivered!.Container.GetAsync(slotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (landed is null)
             return null;
 
         if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared)
             return new CardItemDelivery(null, shared);
-        var core = landed.Core;
+        var core = landed.Snapshot.ToCore();
         if (opensASlot)
         {
             // A slot the bag opens carries no durability, and a piece created at zero durability is
             // a broken one. What it should carry was decided when the face was fixed and travels on
             // the card for exactly this moment; a pile it joined already carries one of its own.
             core = core with { Durability = piece.Durability };
-            await delivered.Container.PutAsync(slotIndex, core, cancellationToken).ConfigureAwait(false);
+            await delivered.Container.UpdateAsync(landed, current => current with { Durability = piece.Durability }, cancellationToken).ConfigureAwait(false);
         }
 
         // Built from what was just written rather than re-read through the entry projection: that

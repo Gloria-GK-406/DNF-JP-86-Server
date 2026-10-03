@@ -1,4 +1,5 @@
 using System.Text;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Characters;
@@ -462,33 +463,7 @@ public sealed class SqliteCharacterLifecycleTests
             AccountId accountId, CancellationToken cancellationToken) =>
             throw new InvalidDataException("What this account wears cannot be read.");
 
-        public ValueTask<int> DeleteOwnExceptAsync(
-            CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken) =>
-            inner.DeleteOwnExceptAsync(characterId, keep, cancellationToken);
 
-        public ValueTask<int> DeleteOwnByUidsAsync(
-            CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken) =>
-            inner.DeleteOwnByUidsAsync(characterId, itemUids, cancellationToken);
-
-        public ValueTask<int> UpdateOwnAsync(
-            long itemUid, CharacterId characterId, InventoryItemCoreState core,
-            InventoryAvatarDetailState? avatarDetail, CancellationToken cancellationToken) =>
-            inner.UpdateOwnAsync(itemUid, characterId, core, avatarDetail, cancellationToken);
-
-        public ValueTask<long?> InsertOwnAsync(
-            InventoryItemCoreState core, InventoryAvatarDetailState? avatarDetail,
-            CancellationToken cancellationToken) =>
-            inner.InsertOwnAsync(core, avatarDetail, cancellationToken);
-
-        public ValueTask<int> ClearOwnPositionsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            inner.ClearOwnPositionsAsync(characterId, cancellationToken);
-
-        public ValueTask<int> HoldOwnAsync(
-            CharacterId characterId, int listType, int slotIndex, ItemSlotKind kind,
-            int id, int coreUid, int count, CancellationToken cancellationToken) =>
-            inner.HoldOwnAsync(
-                characterId, listType, slotIndex, kind, id, coreUid, count, cancellationToken);
     }
 
     /// <summary>The parts one character is drawn as, refusing a listing that worked none out.</summary>
@@ -514,20 +489,15 @@ public sealed class SqliteCharacterLifecycleTests
     private static Task<int> Wear(CharacterSide side, CharacterId character, int slot, int itemId) =>
         side.InUseCaseAsync(async token =>
         {
-            var identity = await side.Items.InsertOwnAsync(
-                StackableItemCore.Create(EquipmentKind, itemId, 1) with
-                {
-                    Durability = 50,
-                    Attribute = 5,
-                    AmplifyType = 2,
-                    EnchantUpgradeCount = 9,
-                },
-                null,
-                token);
-            var worn = checked((int)identity!.Value);
-            Assert.Equal(1, await side.Items.HoldOwnAsync(
-                character, (int)InventoryContainerType.Equipment, slot,
-                ItemSlotKind.World, worn, worn, 1, token));
+            var session = side.ItemStore.SessionIn(side.Scope.Current!);
+            var core = StackableItemCore.Create(EquipmentKind, itemId, 1) with
+            {
+                Durability = 50, Attribute = 5, AmplifyType = 2, EnchantUpgradeCount = 9,
+            };
+            var record = await session.CreateAsync(ItemSnapshot.FromCore(core, false), token);
+            var placed = await session.PutAsync(ContainerId.ForCharacter(character,
+                InventoryContainerType.Equipment), slot, record, token);
+            var worn = placed.ItemUid!.Value.Value;
             return worn;
         });
 

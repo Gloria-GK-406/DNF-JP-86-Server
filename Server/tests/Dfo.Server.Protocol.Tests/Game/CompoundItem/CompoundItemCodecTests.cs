@@ -30,7 +30,7 @@ public sealed class CompoundItemCodecTests
         // All unused core fields are zero; the lock sentinel verifies the final byte is after the opaque pair.
         var core = new InventoryItemCoreState(2, 1286, 1, 0, 0, 0, 0, 0, 0, 0, -1, new(0, 0, 0, 0, 0), new(0, 0, 0, 0, 0), 0, 0, 0, 0, 0,
             new(0, 0, 0), new(0, 0, 0), new(0, 0, 0), 0, 0, 0, new(0, 0, 0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 9);
-        var inventory = new OpeningInventoryReceipt(session, [new(a, null, core), new(b, null, core with { ItemId = 1285 })], [],
+        var inventory = new OpeningInventoryReceipt(session, [new(a, null, ItemSnapshot.FromCore(core, true)), new(b, null, ItemSnapshot.FromCore(core with { ItemId = 1285 }, true))], [],
             [new(a, 1286, 1, 0, 0, 0), new(b, 1285, 2, 0, 0, 0)], DateTimeOffset.UnixEpoch);
         var receipt = new RecipeCraftReceipt(inventory, [new(new(BusinessInventorySpace.Consumable, 36), 1287, 1),
             new(new(BusinessInventorySpace.Material, 19), 3244, 25), new(new(BusinessInventorySpace.SharedMaterial, 5), 3262, 100)]);

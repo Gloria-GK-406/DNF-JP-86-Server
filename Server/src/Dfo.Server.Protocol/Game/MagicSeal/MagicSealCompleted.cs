@@ -48,8 +48,8 @@ public sealed class MagicSealCompletedHandler(
     {
         var bound = inventory.Find(characterId, slot);
         if (bound is null) return;
-        var core = (await bound.Container.ReadSlotAsync(bound.Slot.Index, ct)
-            .ConfigureAwait(false))?.Core;
+        var core = (await bound.Container.GetAsync(bound.Slot.Index, ct)
+            .ConfigureAwait(false) )?.Snapshot.ToCore();
         var game = slots.Project(slot);
         messages.Add(core is null
             ? GameInventoryDelivery.ClearedSlotNotification(game.Space, game.Index, at)

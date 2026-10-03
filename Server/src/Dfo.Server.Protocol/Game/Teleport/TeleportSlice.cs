@@ -120,7 +120,7 @@ public sealed class TeleportHandler(ISelectedSessionDomainService sessions, IOnl
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.At));
         else
             messages.AddRange(GameInventoryDelivery.Notifications([new(wire.Space,
-                [new InventoryItemState(receipt.Identity, wire.Index, receipt.RemainingCore)], receipt.At)]));
+                [new InventoryItemState(receipt.Identity, wire.Index, receipt.RemainingCore.ToCore())], receipt.At)]));
         await sender.SendBatchAsync(context.Connection, messages, ct).ConfigureAwait(false);
         if (!await townProjection.ProjectTransferAsync(context.Connection.ConnectionId, session, view, previous, ct).ConfigureAwait(false))
             logger.LogWarning("TELEPORT committed but town projection lost its membership character={Character}", session.CharacterId);

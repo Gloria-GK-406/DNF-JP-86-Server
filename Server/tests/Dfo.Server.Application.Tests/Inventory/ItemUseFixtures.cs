@@ -135,6 +135,7 @@ internal abstract class FakeMainInventory(int characterId = 60)
     private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
 
     public DomainTransactionScope Scope { get; init; } = new();
+    public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(store, Scope, null!);
 
     /// <remarks>
     /// The archive is a parameter because the bag now reads it: what an item's band is, and how
@@ -180,17 +181,26 @@ internal abstract class FakeMainInventory(int characterId = 60)
         [.. this.Rows().Where(row => row.ItemId == itemId)];
 
     public void Seed(int slotIndex, int itemId, int count, byte itemKind = 2) =>
-        this.Settle(session => session.Write(
-            this.Main, new StoredItem(slotIndex, StackableItemCore.Create(itemKind, itemId, count))));
+        this.Settle(async session =>
+        {
+            if (await session.GetAsync(this.Main, slotIndex, default) is { } old)
+                await session.DeleteItemAsync(await session.TakeAsync(old, null, default), default);
+            var snapshot = ItemSnapshot.FromCore(StackableItemCore.Create(itemKind, itemId, count),
+                isPile: itemKind is not (1 or 5 or 6 or 8));
+            await session.PutAsync(this.Main, slotIndex, await session.CreateAsync(snapshot, default), default);
+        });
 
     public List<(int Slot, int ItemId, int Count)> Rows()
     {
         var alone = new DomainTransaction();
-        var read = this.store.SessionIn(alone).ReadAllAsync(this.Main, CancellationToken.None);
-        var items = read.IsCompleted ? read.Result : read.AsTask().GetAwaiter().GetResult();
-        return [.. items
-            .OrderBy(item => item.SlotIndex)
-            .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value))];
+        try
+        {
+            var items = this.store.SessionIn(alone).GetAllAsync(this.Main, CancellationToken.None)
+                .AsTask().GetAwaiter().GetResult();
+            return [.. items.OrderBy(item => item.SlotIndex)
+                .Select(item => (item.SlotIndex, item.ItemId, item.Count))];
+        }
+        finally { alone.RollbackAsync().AsTask().GetAwaiter().GetResult(); }
     }
 
     public int CountIn(int slotIndex) =>
@@ -200,10 +210,10 @@ internal abstract class FakeMainInventory(int characterId = 60)
     /// The memory store settles without waiting for anything, so nothing here can block; this is
     /// what lets a fixture seed itself from a property initialiser.
     /// </remarks>
-    private void Settle(Action<IItemDomainStoreSession> write)
+    private void Settle(Func<IItemDomainStoreSession, ValueTask> write)
     {
         var alone = new DomainTransaction();
-        write(this.store.SessionIn(alone));
+        write(this.store.SessionIn(alone)).AsTask().GetAwaiter().GetResult();
         var settling = alone.CommitAsync(CancellationToken.None);
         if (!settling.IsCompleted)
             settling.AsTask().GetAwaiter().GetResult();

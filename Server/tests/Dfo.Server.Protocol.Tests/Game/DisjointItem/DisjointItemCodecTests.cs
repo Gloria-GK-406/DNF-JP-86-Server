@@ -62,9 +62,9 @@ public sealed class DisjointItemCodecTests
             [
                 new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
                 new(new BusinessSlot(BusinessInventorySpace.Consumable, 0),
-                    StackableItemCore.Create(2, 2600469, 1)),
+                    ItemSnapshot.FromCore(StackableItemCore.Create(2, 2600469, 1), true)),
                 new(new BusinessSlot(BusinessInventorySpace.Material, 0),
-                    StackableItemCore.Create(3, 3037, 112)),
+                    ItemSnapshot.FromCore(StackableItemCore.Create(3, 3037, 112), true)),
             ],
             DateTimeOffset.UnixEpoch,
             new BusinessSlot(BusinessInventorySpace.Consumable, 0));
@@ -98,7 +98,7 @@ public sealed class DisjointItemCodecTests
             new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
             [new(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 12)],
             [new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
-                new(new(BusinessInventorySpace.SharedMaterial, 4), StackableItemCore.Create(11, 3037, 112))],
+                new(new(BusinessInventorySpace.SharedMaterial, 4), ItemSnapshot.FromCore(StackableItemCore.Create(11, 3037, 112), true))],
             DateTimeOffset.UnixEpoch);
 
         var messages = await new EquipmentDisjointCompletedHandler(
