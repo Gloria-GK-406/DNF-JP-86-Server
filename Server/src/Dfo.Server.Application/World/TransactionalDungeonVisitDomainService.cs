@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class TransactionalDungeonVisitDomainService(DungeonVisitDomainService inner,
     DomainTransactionScope scope, TransactionalExecutionGate gate) : IDungeonVisitDomainService
 {
-    public bool DefersSelectionState(byte level) => inner.DefersSelectionState(level);
+    public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => inner.DefersSelectionState(level, tutorialCompleted);
     private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
     {
         if (scope.Current is not null) return await action().ConfigureAwait(false);

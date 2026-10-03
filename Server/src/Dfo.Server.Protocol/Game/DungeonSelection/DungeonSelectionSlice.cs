@@ -665,7 +665,7 @@ public sealed class EnterSelectDungeonHandler(
                 new UserStateNotification(member.Session.WireUserId, 0x01),
                 new UdpHostNotification(),
             ];
-            if (!visits.DefersSelectionState(refreshed.Character.Progression.Level))
+            if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
                 notifications.Add(new EnterSelectDungeonNotification(wireUserIds));

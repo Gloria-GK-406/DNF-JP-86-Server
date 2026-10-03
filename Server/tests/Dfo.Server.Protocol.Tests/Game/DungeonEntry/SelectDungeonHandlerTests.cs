@@ -544,7 +544,7 @@ public sealed class SelectDungeonHandlerTests
 
         public List<int> Dungeons { get; } = [];
 
-        public bool DefersSelectionState(byte characterLevel) => false;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => false;
 
         public ValueTask<EnteredDungeon?> EnterAsync(
             CharacterId characterId,
@@ -577,7 +577,7 @@ public sealed class SelectDungeonHandlerTests
     /// </remarks>
     private sealed class RefusingVisits : IDungeonVisitDomainService
     {
-        public bool DefersSelectionState(byte characterLevel) => false;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => false;
 
         public ValueTask<EnteredDungeon?> EnterAsync(
             CharacterId characterId,

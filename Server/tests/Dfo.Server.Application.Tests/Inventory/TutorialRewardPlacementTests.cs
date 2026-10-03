@@ -131,7 +131,7 @@ public sealed class TutorialRewardPlacementTests
     {
         var handler = new GrantTutorialRewardCommandHandler(
             new CharacterContainerDomainService(),
-            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
+            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), null!);
 
         var result = await handler.HandleAsync(
             Context,
@@ -147,7 +147,7 @@ public sealed class TutorialRewardPlacementTests
     {
         var handler = new GrantTutorialRewardCommandHandler(
             inventory.Containers(new RewardPlacements()),
-            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService());
+            new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), null!);
         var bus = new DirectCommandBus(reward: handler, scope: inventory.Scope);
         return await bus.SendAsync(
             new GrantTutorialRewardCommand(

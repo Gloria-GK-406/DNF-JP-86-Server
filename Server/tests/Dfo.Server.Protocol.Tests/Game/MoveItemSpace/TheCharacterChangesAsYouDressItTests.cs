@@ -694,7 +694,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
     private sealed class SelectionVisits : IDungeonVisitDomainService
     {
-        public bool DefersSelectionState(byte characterLevel) => characterLevel <= 1;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => characterLevel <= 1 && !tutorialCompleted;
         public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
             DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

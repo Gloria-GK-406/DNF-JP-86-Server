@@ -42,7 +42,9 @@ public sealed class TaggedIdReportHandler(
         var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
             && onlineUser is not null;
 
-        var declared = await rewards.DeclaredForAsync(message.FlagIndex, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<TutorialRewardItem> declared = message.RewardFlag == 0
+            ? []
+            : await rewards.DeclaredForAsync(message.FlagIndex, cancellationToken).ConfigureAwait(false);
 
         // The acknowledgement reports what reached the inventory, not what the archive declares.
         // An item that was refused -- unknown to the archive, or its band already full -- is left
@@ -69,7 +71,7 @@ public sealed class TaggedIdReportHandler(
                 new GrantTutorialRewardCommand(
                     session.CharacterId,
                     [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
-                    session.AccountId),
+                    session.AccountId, message.FlagIndex == 31),
                 cancellationToken).ConfigureAwait(false);
 
             granted.AddRange(rewardResult.Placed.Select(item => new GrantedTutorialItem(

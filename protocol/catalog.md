@@ -1,18 +1,22 @@
 # 协议清单
 
-## 2026-10-02 仓库与四类扩容（待实机）
+## 2026-10-03 金库验收与四类扩容状态
 
-个人仓库、账号金库、装扮栏与主背包容量按A21阶段实现。静态证据、实现与自动验证的边界见[设计与验收表](../Document/WarehouseStorageDesign-20261002.md)；本轮没有新增ClientVerified。
+个人仓库、账号金库、装扮栏与主背包容量按A21阶段实现。静态证据、实现与自动验证的边界见[设计与验收表](../Document/WarehouseStorageDesign-20261002.md)；2026-10-03用户接受当前金库交付范围，并明确确认点券升级即时回显正确；该路径为ClientVerified。其他未逐项反馈的扩容和边界测试不扩大验收，见[实机记录](../Document/WarehouseStorageHumanTest-20261002.md#2026-10-03-金库验收结论)。
 
 | Command | Type | 当前入口/输出 | 证据与范围 |
 |---|---|---|---|
 | `0x01` | [0x0131](game/client-to-server/0x0131.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
-| `0x01` | [0x0132](game/client-to-server/0x0132.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
+| `0x01` | [0x0132](game/client-to-server/0x0132.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientVerified：点券升级即时回显；其他边界见验收记录 |
 | `0x01` | [0x0133](game/client-to-server/0x0133.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
 | `0x01` | [0x0134](game/client-to-server/0x0134.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
 | `0x01` | [0x0198](game/client-to-server/0x0198.md) | WarehouseDecoder / WarehouseHandler / WarehouseResponse | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
 | `0x01` | [0x01AF](game/client-to-server/0x01AF.md) | WarehouseDecoder / WarehouseHandler；NOTI000D | ClientStatic + ContentStatic + CurrentImplementation；HumanPending |
-| 原有入口扩展 | [0012](game/client-to-server/0x0012.md) / [0014](game/client-to-server/0x0014.md) / [0040](game/client-to-server/0x0040.md) | 仓库存取/整理/付费扩容 | 新增范围CurrentImplementation；HumanPending |
+| 原有入口扩展 | [0012](game/client-to-server/0x0012.md) / [0014](game/client-to-server/0x0014.md) / [0040](game/client-to-server/0x0040.md) | 仓库存取/整理/付费扩容 | 0040账号金库点券升级即时刷新ClientVerified；其余按验收记录限定 |
+
+## 2026-10-03 教程完成持久化
+
+[008F](game/client-to-server/0x008F.md)的31在事务中记录角色完成状态；[0004](game/client-to-server/0x0004.md)据此使已完成的1级角色跳过教程，选图投递同步处理。上游源码参考与CurrentImplementation，新增自动回归；实机待验，见[验收表](../Document/TutorialCompletionHumanTest-20261003.md)。
 
 ## 2026-10-01 0.2.0验收收口与新增接入
 

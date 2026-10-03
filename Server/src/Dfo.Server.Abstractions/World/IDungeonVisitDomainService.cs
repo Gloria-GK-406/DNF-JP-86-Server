@@ -67,7 +67,7 @@ public interface IDungeonVisitDomainService
     /// Asked by two frames built in two slices -- the screen's own burst and the answer to
     /// entering -- which is why it is here rather than in either of them.
     /// </remarks>
-    bool DefersSelectionState(byte characterLevel);
+    bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false);
 
     /// <summary>
     /// Begins a run and describes its first room, or null when the archive declares no enterable

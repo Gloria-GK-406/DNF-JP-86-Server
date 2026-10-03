@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
@@ -29,7 +30,7 @@ internal static class CharacterIdList
 }
 
 /// <summary>The <c>characters</c> table.</summary>
-internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacterTable
+internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacterTable, ICharacterTutorialRepository
 {
     /// <summary>
     /// A character's name, however it was stored.
@@ -95,7 +96,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         database.ReadFirstAsync(
             $"""
             SELECT character_id, slot_index, {Name}, job, grow_type, level, created_at,
-                   town_id, area_id, pos_x, pos_y, direction
+                   town_id, area_id, pos_x, pos_y, direction, tutorial_completed
             FROM characters
             WHERE account_id = @aid AND slot_index = @slot AND delete_flag = 0
             LIMIT 1;
@@ -113,12 +114,26 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0, [],
                 reader.GetInt32(6))
             {
+                TutorialCompleted = reader.GetInt32(12) != 0,
                 Position = new CharacterPositionState(
                     checked((byte)reader.GetInt32(7)), checked((byte)reader.GetInt32(8)),
                     checked((short)reader.GetInt32(9)), checked((short)reader.GetInt32(10)),
                     checked((byte)reader.GetInt32(11))),
             },
             cancellationToken);
+
+    public async ValueTask<bool> TrySetCompletedAsync(OwnedCharacterId character, CancellationToken cancellationToken)
+    {
+        var changed = false;
+        await database.WriteAsync(async (command, token) =>
+        {
+            command.CommandText = "UPDATE characters SET tutorial_completed=1 WHERE character_id=@cid AND account_id=@aid AND delete_flag=0 AND tutorial_completed=0";
+            command.Parameters.AddWithValue("@cid", character.Character.Value);
+            command.Parameters.AddWithValue("@aid", character.Account.Value);
+            changed = await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) == 1;
+        }, cancellationToken).ConfigureAwait(false);
+        return changed;
+    }
 
     public async ValueTask<bool> NameIsTakenAsync(
         byte[] name, CancellationToken cancellationToken) =>

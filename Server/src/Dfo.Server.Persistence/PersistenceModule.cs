@@ -72,6 +72,7 @@ public sealed class PersistenceModule : IServerModule
                 provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterTable>(
             provider => new SqliteCharacterTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterTutorialRepository>(provider => (ICharacterTutorialRepository)provider.GetRequiredService<ICharacterTable>());
         services.TryAddSingleton<ICharacterSkillBuildTable, SqliteCharacterSkillBuildTable>();
         services.TryAddSingleton<ICharacterSkillTable>(
             provider => new SqliteCharacterSkillTable(

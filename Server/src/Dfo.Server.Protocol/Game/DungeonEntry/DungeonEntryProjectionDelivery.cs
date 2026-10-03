@@ -214,7 +214,7 @@ public sealed class DungeonEntryProjectionDelivery(
                     RollbackEntry(runId, preparedRevision, participants);
                     return;
                 }
-                if (lackedSelectionPrelude || visits.DefersSelectionState(currentProgress.Level))
+                if (lackedSelectionPrelude || visits.DefersSelectionState(currentProgress.Level, refreshed[receiver.Session.CharacterId].Character.TutorialCompleted))
                 {
                     frames.Add(new EnterSelectDungeonNotification(allWireUserIds));
                 }

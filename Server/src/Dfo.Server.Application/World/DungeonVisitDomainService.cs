@@ -23,8 +23,8 @@ internal sealed class DungeonVisitDomainService(
     ICharacterDungeonDifficultyDomainService difficulties,
     IDungeonDifficultyRuleService difficultyRules, ICharacterFatigueDomainService fatigue) : IDungeonVisitDomainService
 {
-    public bool DefersSelectionState(byte characterLevel) =>
-        selection.DefersSelectionState(characterLevel);
+    public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) =>
+        selection.DefersSelectionState(characterLevel, tutorialCompleted);
 
     public async ValueTask<DungeonEntry?> EnterAsync(
         CharacterId characterId,

@@ -8,5 +8,5 @@ internal sealed class DungeonSelectionRuleService : IDungeonSelectionRuleService
     /// <summary>The level a character is at until the tutorial's own step raises it.</summary>
     private const byte TutorialLevel = 1;
 
-    public bool DefersSelectionState(byte characterLevel) => characterLevel <= TutorialLevel;
+    public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => characterLevel <= TutorialLevel && !tutorialCompleted;
 }

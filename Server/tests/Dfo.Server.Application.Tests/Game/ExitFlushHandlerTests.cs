@@ -235,7 +235,7 @@ public sealed class ExitFlushHandlerTests
             scope: inventory.Scope,
             reward: new GrantTutorialRewardCommandHandler(
                 inventory.Containers(placements),
-                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService()));
+                new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), null!));
 
     /// <summary>The character's main container, and what reached it.</summary>
     private sealed class RecordingInventory() : FakeMainInventory(characterId: 1)

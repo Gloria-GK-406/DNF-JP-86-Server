@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
@@ -22,7 +23,8 @@ public sealed record TutorialRewardResult(
 public sealed record GrantTutorialRewardCommand(
     CharacterId CharacterId,
     IReadOnlyList<DeclaredRewardItem> Declared,
-    AccountId AccountId) : ICommand<TutorialRewardResult>;
+    AccountId AccountId,
+    bool CompleteTutorial = false) : ICommand<TutorialRewardResult>;
 
 /// <summary>
 /// Puts a tutorial step's items into the character's inventory.
@@ -41,7 +43,8 @@ public sealed record GrantTutorialRewardCommand(
 /// </remarks>
 public sealed class GrantTutorialRewardCommandHandler(
     ICharacterContainerDomainService containers,
-    IItemGrantDomainService itemGrants)
+    IItemGrantDomainService itemGrants,
+    ITutorialCompletionDomainService tutorial)
     : ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>
 {
     public async ValueTask<TutorialRewardResult> HandleAsync(
@@ -50,6 +53,11 @@ public sealed class GrantTutorialRewardCommandHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        // Completion and any reward commit together; a repeated completion grants nothing.
+        if (command.CompleteTutorial && !await tutorial.CompleteOnceAsync(
+                new(command.AccountId, command.CharacterId), cancellationToken).ConfigureAwait(false))
+            return new TutorialRewardResult([], []);
 
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
