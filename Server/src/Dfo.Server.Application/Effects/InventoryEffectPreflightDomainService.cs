@@ -102,7 +102,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         var available = Enumerable.Range(placement.Destination.FirstIndex,
             placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
-        if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+        if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement))
             available = available.Concat(Enumerable.Range(0, 6).Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)));
         var candidates = available.ToArray();
         foreach (var slot in candidates) _ = await state.ReadSlotAsync(slot, ct).ConfigureAwait(false);

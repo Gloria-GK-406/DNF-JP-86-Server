@@ -1615,8 +1615,8 @@ public sealed class CardRewardTests
         /// <summary>What that pile carries before anything joins it.</summary>
         public const ushort PileDurability = 11;
 
-        /// <summary>The slot an opened one takes, chosen so it cannot be confused with the pile's.</summary>
-        public const int OpenedSlot = 12;
+        /// <summary>A consumable slot, matching this fixture's kind 2 items and distinct from the pile's.</summary>
+        public const int OpenedSlot = 65;
 
         public Dictionary<int, InventoryItemCoreState> Slots { get; } =
             answer == BagAnswer.JoinsAPile

@@ -29,6 +29,9 @@ public sealed class SharedMaterialPvfTests
             Assert.Equal(definition.ItemKind, placement.ItemKind);
             Assert.Equal(new(BusinessInventorySpace.SharedMaterial, index, index), placement.Destination);
             Assert.Equal(int.MaxValue, placement.StackLimit);
+            Assert.Equal(ItemTraits.Material | ItemTraits.AccountShared, placement.Traits);
+            var cargoPlacement = await rules.PlacementForAsync(definition.ItemId, cargoSpace, default);
+            Assert.Equal(placement.Traits, cargoPlacement!.Traits);
             await host.SeedShared(definition.ItemId, 37);
             var materialSlot = new BusinessSlot(BusinessInventorySpace.SharedMaterial, index);
             var cargoSlot = new BusinessSlot(cargoSpace, 0);
@@ -40,6 +43,7 @@ public sealed class SharedMaterialPvfTests
             Assert.Equal(definition.ItemId, stored.ItemId);
             Assert.Equal(definition.ItemKind, stored.ItemKind);
             Assert.Equal(10, stored.Count);
+            Assert.Equal(placement.Traits, stored.Core.Traits);
             await Move(cargoSlot, materialSlot, 10);
             Assert.Equal(37, host.SharedCount(definition.ItemId));
             Assert.Null(await cargo.ReadSlotAsync(0, default));

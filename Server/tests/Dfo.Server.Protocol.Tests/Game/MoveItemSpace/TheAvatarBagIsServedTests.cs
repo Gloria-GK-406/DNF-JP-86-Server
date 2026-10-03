@@ -36,7 +36,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
 {
     private const int Character = 60;
 
-    /// <summary>A costume the archive declares: kind 8, band 9..64, world class avatar.</summary>
+    /// <summary>A costume the archive declares: kind 8, avatar range, world class avatar.</summary>
     private const int CostumeTemplate = 413500000;
 
     /// <summary>An ordinary coat, so that "not a costume" is a real template rather than a hole.</summary>
@@ -452,8 +452,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         public void Seed(int slotIndex, int itemId) =>
             this.bySlot[slotIndex] = new ContainerSlotItem(
                 slotIndex,
-                StackableItemCore.Create(1, itemId, 1),
-                ItemWorldClass.Equipment);
+                StackableItemCore.Create(itemId is CostumeTemplate or 101500690 ? (byte)8 : (byte)1, itemId, 1),
+                itemId is CostumeTemplate or 101500690 ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
 
         public ValueTask<ContainerSlotItem?> ReadSlotAsync(
             int slotIndex, CancellationToken cancellationToken) =>
@@ -469,7 +469,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
         {
             this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex, core, ItemWorldClass.Equipment);
+                slotIndex, core, core.ItemId is CostumeTemplate or 101500690 ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
             return ValueTask.CompletedTask;
         }
 

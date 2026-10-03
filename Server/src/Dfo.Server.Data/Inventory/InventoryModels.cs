@@ -221,6 +221,9 @@ public sealed record InventoryItemCoreState(
     byte SortLockFlag,
     byte EquipmentLockId)
 {
+    /// <summary>Derived display of template features; writes still use authoritative placement.</summary>
+    public ItemTraits Traits => ItemTraitClassification.For(ItemKind, ItemId);
+
     public byte ReinforcementLevel => (byte)(Attribute & 0x1F);
 }
 

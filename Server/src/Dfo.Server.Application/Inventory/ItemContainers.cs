@@ -427,7 +427,7 @@ internal abstract class StoreBackedItemContainer(
     private static IEnumerable<BusinessSlot> Candidates(ItemPlacement placement)
     {
         var own = SlotsIn(placement.Destination);
-        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement)
             ? own.Concat(SlotsIn(new(BusinessInventorySpace.QuickSlot, 0, 5)))
             : own;
     }

@@ -154,7 +154,7 @@ internal sealed class NpcShopRuleService(
                 placement.Destination.FirstIndex,
                 placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
-        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement)
             ? own.Concat(Enumerable.Range(0, 6)
                 .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)))
             : own;

@@ -54,6 +54,7 @@ internal sealed class PvfItemPlacementDefinitionSource(
                     DestinationFor(metadata))
                 {
                     WorldClass = metadata.WorldClass,
+                    ItemId = itemId,
                 };
             _cache[itemId] = placement;
             return ValueTask.FromResult(placement);

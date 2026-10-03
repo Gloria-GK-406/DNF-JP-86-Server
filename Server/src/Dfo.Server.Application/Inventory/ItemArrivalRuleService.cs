@@ -125,7 +125,7 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
     {
         var own = placement.Destination;
         if (own.Space == BusinessInventorySpace.SharedMaterial || placement.ItemKind == EquipmentKind
-            || !ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+            || !ItemSlotRuleService.AllowsQuickSlot(placement))
         {
             yield return own;
             yield break;

@@ -41,7 +41,7 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     {
         var result = Enumerable.Range(placement.Destination.FirstIndex, placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(i => new BusinessSlot(placement.Destination.Space, i));
-        if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+        if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement))
             result = result.Concat(Enumerable.Range(0, 6).Select(i => new BusinessSlot(BusinessInventorySpace.QuickSlot, i)));
         return result.ToArray();
     }

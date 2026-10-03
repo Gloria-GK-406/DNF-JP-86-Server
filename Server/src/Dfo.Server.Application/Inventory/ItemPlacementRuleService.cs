@@ -25,13 +25,14 @@ internal sealed class ItemPlacementRuleService(
     public async ValueTask<ItemPlacement?> PlacementForAsync(int itemId, CancellationToken cancellationToken)
     {
         var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
-        return SharedPlacement(itemId, placement);
+        return SharedPlacement(itemId, placement is null ? null : placement with { ItemId = itemId });
     }
 
     public async ValueTask<ItemPlacement?> PlacementForAsync(int itemId, BusinessInventorySpace destination,
         CancellationToken cancellationToken)
     {
         var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        if (placement is not null) placement = placement with { ItemId = itemId };
         return destination == BusinessInventorySpace.SharedMaterial ? SharedPlacement(itemId, placement) : placement;
     }
 

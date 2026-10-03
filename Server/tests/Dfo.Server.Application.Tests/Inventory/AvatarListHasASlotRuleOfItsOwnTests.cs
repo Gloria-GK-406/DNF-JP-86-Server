@@ -25,15 +25,14 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
 {
     private static readonly ItemSlotRuleService Rules = new();
 
-    /// <summary>A costume: the equipment band in the bag, and its own list beside it.</summary>
+    /// <summary>A costume: the separate avatar range returned by current PVF placement.</summary>
     /// <remarks>
-    /// The band is the one the live archive answers for every costume asked of it -- kind 8,
-    /// stack 1, <c>9..64</c> -- so this stands for a real template rather than a shape invented to
-    /// suit the case. What makes it a costume here is <see cref="ItemWorldClass.Avatar"/>, which is
+    /// Kind 8, stack 1, avatar local slots 0..209. What makes it a costume here is
+    /// <see cref="ItemWorldClass.Avatar"/>, which is
     /// what the archive's own <c>[equipment type]</c> makes it, not the kind byte beside it.
     /// </remarks>
     private static readonly ItemPlacement Costume =
-        new(8, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+        new(8, 1, new(BusinessInventorySpace.Avatar, 0, 209))
         { WorldClass = ItemWorldClass.Avatar };
 
     private static readonly ItemPlacement Shoulder =
@@ -45,7 +44,7 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
         { WorldClass = ItemWorldClass.Interchangeable };
 
     private static readonly ItemPlacement Creature =
-        new(5, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+        new(5, 1, new(BusinessInventorySpace.CreatureInventory, 0, 139))
         { WorldClass = ItemWorldClass.Creature };
 
     [Theory]
@@ -77,9 +76,7 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     /// The avatar list takes costumes, and the band a thing has in the bag does not get it in.
     /// </summary>
     /// <remarks>
-    /// The shoulder and the creature share the costume's bag band exactly -- all three are
-    /// <c>9..64</c> -- so a rule that judged by band would let both in. What tells them apart is
-    /// what the archive says each one is.
+    /// Their own destination ranges do not grant access to a different business container.
     /// </remarks>
     public static TheoryData<ItemPlacement> ThingsThatAreNotCostumes() =>
         [Shoulder, Potion, Creature];
@@ -122,8 +119,8 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     [Theory]
     [InlineData(3, false, true, true, false)]
     [InlineData(8, false, true, true, false)]
-    [InlineData(9, true, true, false, true)]
-    [InlineData(64, true, true, false, true)]
+    [InlineData(9, false, true, false, false)]
+    [InlineData(64, false, true, false, false)]
     [InlineData(65, false, false, true, false)]
     [InlineData(120, false, false, true, false)]
     [InlineData(351, false, false, false, false)]

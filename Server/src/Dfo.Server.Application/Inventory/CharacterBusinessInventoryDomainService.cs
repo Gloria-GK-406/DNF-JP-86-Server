@@ -67,6 +67,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
     public BusinessContainerId Id => new(space, backing.Id);
     public ContainerId StorageId { get; } = ValidateStorage(space, backing);
     public BusinessInventorySpace Space => space;
+    public ItemTraits AcceptedTraits => ItemContainerAdmission.AcceptedBy(space);
 
     public ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
         capacities is null ? ValueTask.FromResult(int.MaxValue)
@@ -143,10 +144,20 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
     {
         var physical = this.StorageIndex(new(space, index));
         var existing = await backing.ReadSlotAsync(physical, ct).ConfigureAwait(false);
+        var reducesExistingPile = existing is { IsPile: true } && replacement is { Value: > 0 }
+            && replacement.Value < existing.Count
+            && replacement with { Value = 0 } == existing.Core with { Value = 0 };
+        // Taking from an existing pile is not admitting an item. It must remain possible when
+        // capacity or template placement has changed since the pile arrived.
+        if (replacement is not null && !reducesExistingPile)
+        {
+            var placement = placements is null ? null
+                : await placements.PlacementForAsync(replacement.ItemId, space, ct).ConfigureAwait(false);
+            if (!ItemContainerAdmission.Accepts(AcceptedTraits, placement?.Traits ?? replacement.Traits))
+                throw new InvalidOperationException($"Item {replacement.ItemId} cannot enter {space}.");
+        }
         if (index >= await OpenSlotCountAsync(ct).ConfigureAwait(false)
-            && !(existing is { IsPile: true } && replacement is { Value: > 0 }
-                && replacement.Value < existing.Count
-                && replacement with { Value = 0 } == existing.Core with { Value = 0 }))
+            && !reducesExistingPile)
             throw new InvalidOperationException($"Inventory slot {space}/{index} is not open.");
         if (existing is not null)
         {
@@ -171,7 +182,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         if (placement.Destination.Space != space)
             throw new InvalidOperationException($"Item {itemId} belongs to {placement.Destination.Space}, not {space}.");
         var quick = backing.Type == InventoryContainerType.Main
-            && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+            && ItemSlotRuleService.AllowsQuickSlot(placement)
             ? new BusinessItemContainer(BusinessInventorySpace.QuickSlot, backing, placements, arrivals, creatures, capacities)
             : null;
         var own = await ReadAllAsync(cancellationToken).ConfigureAwait(false);

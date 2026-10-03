@@ -81,7 +81,7 @@ internal sealed class EquipmentTransferDomainService(
         var target = inventories.GetStore(characterId,
             BusinessInventoryOwnership.StoreOf(placement.Destination.Space));
         var occupied = new HashSet<BusinessSlot>();
-        var spaces = ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        var spaces = ItemSlotRuleService.AllowsQuickSlot(placement)
             ? new[] { placement.Destination.Space, BusinessInventorySpace.QuickSlot }
             : [placement.Destination.Space];
         foreach (var space in spaces.Distinct())

@@ -30,7 +30,7 @@ internal sealed class MailStackTransfers(IItemPlacementRuleService placements, I
         var account = await owners.FindOwnerAsync(character, ct)
             ?? throw new MailException(MailFailure.CharacterNotFound, "Character was deleted.");
         var held = new List<(IBusinessItemContainer Container, BusinessSlot Slot, ContainerSlotItem Item)>();
-        var spaces = placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        var spaces = placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement)
             ? new[] { placement.Destination.Space, BusinessInventorySpace.QuickSlot }
             : [placement.Destination.Space];
         foreach (var space in spaces.Distinct())

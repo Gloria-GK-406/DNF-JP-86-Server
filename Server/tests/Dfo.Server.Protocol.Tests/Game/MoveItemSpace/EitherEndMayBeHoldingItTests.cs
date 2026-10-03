@@ -811,8 +811,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         public void Seed(int slotIndex, int itemId) =>
             this.bySlot[slotIndex] = new ContainerSlotItem(
                 slotIndex,
-                StackableItemCore.Create(1, itemId, 1),
-                ItemWorldClass.Equipment);
+                StackableItemCore.Create(itemId == Costume ? (byte)8 : (byte)1, itemId, 1),
+                itemId == Costume ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
 
         public ValueTask<ContainerSlotItem?> ReadSlotAsync(
             int slotIndex, CancellationToken cancellationToken) =>
@@ -828,7 +828,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
         {
             this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex, core, ItemWorldClass.Equipment);
+                slotIndex, core, core.ItemId == Costume ? ItemWorldClass.Avatar : ItemWorldClass.Equipment);
             return ValueTask.CompletedTask;
         }
 

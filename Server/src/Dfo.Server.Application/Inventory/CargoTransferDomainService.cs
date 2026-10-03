@@ -77,7 +77,8 @@ internal sealed class CargoItemRuleService(ICargoItemDefinitionSource content) :
     public async ValueTask<bool> CanStoreAsync(BusinessInventorySpace destination, ContainerSlotItem item,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (item.ItemKind is not (1 or 2 or 3 or 10 or 11) || item.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
+        if (!ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(destination), item.Core.Traits)
+            || item.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
             || item.Core.ExpireTime > 0 && item.Core.ExpireTime <= now.ToUnixTimeSeconds()) return false;
         var definition = await content.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is null) return false;

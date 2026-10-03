@@ -64,12 +64,12 @@ internal sealed class InventorySide
     public ValueTask<ItemMoveOutcome> MoveAsync(CharacterId characterId,
         BusinessSlot from, BusinessSlot into, int count, CancellationToken cancellationToken)
     {
-        var inventory = new CharacterBusinessInventoryDomainService(this.Containers);
+        var rules = new ItemPlacementRuleService(this.placements, new NoWearables());
+        var inventory = new CharacterBusinessInventoryDomainService(this.Containers, rules);
         var source = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(from.Space))
             .GetContainer(from.Space);
         var destination = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(into.Space))
             .GetContainer(into.Space);
-        var rules = new ItemPlacementRuleService(this.placements, new NoWearables());
         return new ItemMovementDomainService(rules, new ItemSlotRuleService(), new NoWearables())
             .MoveWithinBackingAsync(new(from, source), new(into, destination), count,
                 cancellationToken);
