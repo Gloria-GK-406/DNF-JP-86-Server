@@ -80,10 +80,7 @@ public sealed record MailAttachment(long Id, MailAsset Asset, bool Claimed, bool
 public sealed record MailView(long Id, CharacterId Recipient, int SenderCharacterId, string SenderName,
     string Title, string Body, DateTimeOffset CreatedAt, DateTimeOffset? ExpiresAt, bool Read,
     ImmutableArray<MailAttachment> Attachments);
-public sealed record MailAssetChange(CharacterId Character, BusinessSlot? Slot, int ItemId, int Count, int? GoldBalance)
-{
-    public AccountMaterialChange? AccountMaterial { get; init; }
-}
+public sealed record MailAssetChange(CharacterId Character, BusinessSlot? Slot, int ItemId, int Count, int? GoldBalance);
 public sealed record MailSendReceipt(long MailId, ImmutableArray<MailAssetChange> Changes);
 public sealed record MailClaimReceipt(long MailId, long AttachmentId, ImmutableArray<MailAssetChange> Changes);
 

@@ -50,7 +50,7 @@ internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItem
     {
         27312 or 100310498 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55)) { WorldClass = ItemWorldClass.Equipment },
         3 => new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 47)),
-        3033 or 3034 or 3035 or 3037 => new(10, 1000, new(BusinessInventorySpace.Material, 0, 55)),
+        3033 or 3034 or 3035 or 3037 => new(11, 1000, new(BusinessInventorySpace.Material, 0, 55)),
         1 => new(2, 1000, new(BusinessInventorySpace.VirtualResource, 0, 0)),
         33 or 42 => new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 47)),
         39032 => new(8, 1, new(BusinessInventorySpace.Avatar, 0, 55)) { WorldClass = ItemWorldClass.Avatar },

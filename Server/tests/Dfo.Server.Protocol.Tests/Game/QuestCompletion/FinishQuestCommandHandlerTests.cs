@@ -55,7 +55,7 @@ public sealed class FinishQuestCommandHandlerTests
         var result = await Assert.ThrowsAsync<AggregateException>(async () => await Run(new Completion(null,wrapped)));
         Assert.Same(wrapped,result);
     }
-    private static ValueTask<QuestFinishOutcome> Run(Completion completion) => new FinishQuestCommandHandler(completion).HandleAsync(
+    private static ValueTask<QuestFinishOutcome> Run(Completion completion) => new FinishQuestCommandHandler(completion, null!).HandleAsync(
         new(Guid.Empty,typeof(FinishQuestCommand),typeof(FinishQuestCommandHandler),CommandExecutionKind.Transactional),
         new(new(1),new(1),2001,ushort.MaxValue,1,0),default);
     private sealed class Completion(QuestCompletionReceipt? receipt,Exception? error=null):IQuestCompletionDomainService

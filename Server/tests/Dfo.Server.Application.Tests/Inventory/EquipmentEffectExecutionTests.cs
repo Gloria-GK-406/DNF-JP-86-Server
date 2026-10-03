@@ -52,27 +52,27 @@ public sealed class EquipmentEffectExecutionTests
     public async Task Account_material_preview_uses_cumulative_debits_and_rewards()
     {
         using var f = new ShopFixture();
-        f.Sql("UPDATE accounts SET cube_clear=2147483647 WHERE account_id=1");
+        await f.SeedShared(3037, 2147483647, 1);
         await using var tx = Scope(f).Begin();
-        var result = await Apply(f, [new ConsumeAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 20),
-            new GrantAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 10),
-            new GrantAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 10)]);
-        Assert.Equal(int.MaxValue, result.Changes<AccountMaterialEffectChange>().Last().Change.FinalCount);
+        var result = await Apply(f, [new ConsumeFromContainerEffect(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 20),
+            new GrantStackableEffect(3037, 10),
+            new GrantStackableEffect(3037, 10)]);
+        Assert.Equal(int.MaxValue, (await f.Shared().ReadSlotAsync(4, default))!.Count);
         await tx.CommitAsync(default);
-        Assert.Equal(int.MaxValue, f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(int.MaxValue, f.SharedCount(3037, 1));
     }
 
     [Fact]
     public async Task Combined_account_consumption_is_rejected_before_any_write_even_when_caller_commits()
     {
         using var f = new ShopFixture();
-        f.Sql("UPDATE accounts SET cube_clear=5 WHERE account_id=1");
+        await f.SeedShared(3037, 5, 1);
         await using var tx = Scope(f).Begin();
         await Assert.ThrowsAsync<InventoryEffectException>(() => Apply(f, [
-            new ConsumeAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 3),
-            new ConsumeAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 3)]).AsTask());
+            new ConsumeFromContainerEffect(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 3),
+            new ConsumeFromContainerEffect(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 3)]).AsTask());
         await tx.CommitAsync(default);
-        Assert.Equal(5, f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(5, f.SharedCount(3037, 1));
     }
 
     [Fact]

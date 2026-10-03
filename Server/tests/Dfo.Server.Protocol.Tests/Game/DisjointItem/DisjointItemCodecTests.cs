@@ -59,7 +59,6 @@ public sealed class DisjointItemCodecTests
             session,
             new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
             [new(new BusinessSlot(BusinessInventorySpace.Material, 0), 3037, 12)],
-            [],
             [
                 new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
                 new(new BusinessSlot(BusinessInventorySpace.Consumable, 0),
@@ -97,9 +96,9 @@ public sealed class DisjointItemCodecTests
         var receipt = new EquipmentDisjointReceipt(
             session,
             new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
-            [],
-            [new(AccountMaterialKind.ClearCube, 3037, 358, 12, 112)],
-            [new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null)],
+            [new(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 12)],
+            [new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
+                new(new(BusinessInventorySpace.SharedMaterial, 4), StackableItemCore.Create(11, 3037, 112))],
             DateTimeOffset.UnixEpoch);
 
         var messages = await new EquipmentDisjointCompletedHandler(

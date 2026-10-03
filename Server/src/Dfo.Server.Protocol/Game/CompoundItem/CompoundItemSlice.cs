@@ -38,13 +38,11 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
     {
         if (message.Receipt is not { } receipt) return OnePayload(0x0019, new byte[] { 0, message.Error });
         using var stream = new MemoryStream(); using var w = new BinaryWriter(stream);
-        w.Write((byte)1); w.Write(checked((byte)(receipt.Consumed.Length + receipt.AccountMaterials.Length)));
+        w.Write((byte)1); w.Write(checked((byte)(receipt.Consumed.Length)));
         foreach (var cost in receipt.Consumed)
         {
             w.Write((byte)0); w.Write(checked((ushort)OpeningWireSlots.RewardIndex(cost.Slot))); w.Write(cost.Count);
         }
-        foreach (var cost in receipt.AccountMaterials)
-        { w.Write((byte)0); w.Write(checked((ushort)cost.VirtualSlotIndex)); w.Write(-cost.AddedCount); }
         w.Write(checked((byte)receipt.Inventory.Rewards.Length));
         foreach (var reward in receipt.Inventory.Rewards)
         {
@@ -106,10 +104,9 @@ public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, 
         ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new CompoundItemResponse(null, error), ct);
         async ValueTask Publish(RecipeCraftReceipt result, bool acknowledge)
         {
-            var resources = result.AccountMaterials.Select(x => new InventoryRuntimeValueState(x.VirtualSlotIndex, x.ItemId, x.FinalCount)).ToArray();
             // First delivery preserves the existing acknowledgement and committed inventory notifications.
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-                new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : [], AccountMaterials: resources), ct).ConfigureAwait(false);
+                new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : []), ct).ConfigureAwait(false);
         }
     }
 }

@@ -8,34 +8,6 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 /// <summary>
-/// The stack shape a container writes when it has to produce an item row of its own.
-/// </summary>
-/// <remarks>New grants start with this shape. Splits preserve their source core so expiry and
-/// trade restrictions cannot be removed by moving part of a pile.</remarks>
-public static class StackableItemCore
-{
-    private static readonly ChronicleOptionState NoChronicle = new(0, 0, 0, 0, 0);
-
-    private static readonly RandomOptionState NoRandom = new(0, 0, 0);
-
-    private static readonly InventoryItemCoreState Empty = new(
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        NoChronicle, NoChronicle, 0, 0, 0, 0, 0,
-        NoRandom, NoRandom, NoRandom, 0, 0, 0, NoRandom,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    public static InventoryItemCoreState Create(byte itemKind, int itemId, int count) =>
-        Empty with
-        {
-            ItemKind = itemKind,
-            ItemId = itemId,
-            Value = count,
-            Marker16 = -1,
-            RandomOptionChangedIndex = byte.MaxValue,
-        };
-}
-
-/// <summary>
 /// What an avatar has to be given at the moment the world first takes it.
 /// </summary>
 /// <remarks>
@@ -265,11 +237,18 @@ internal abstract class StoreBackedItemContainer(
         ItemTransferSource? transferFrom = null)
     {
         ArgumentNullException.ThrowIfNull(core);
-        if (AccountMaterialCatalog.ContainsItem(core.ItemId))
+        if (Type == InventoryContainerType.SharedMaterial || AccountMaterialCatalog.ContainsItem(core.ItemId))
         {
-            throw new InvalidOperationException(
-                $"Account material {core.ItemId} cannot be written into character container "
-                    + $"'{this.Id.Value}'; route the grant through IItemGrantDomainService.");
+            var destination = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, slotIndex), core.ItemKind);
+            var placement = await placementRules.PlacementForAsync(core.ItemId, destination.Space,
+                cancellationToken).ConfigureAwait(false);
+            if (Type == InventoryContainerType.SharedMaterial
+                    && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
+                || core.Value <= 0
+                || placement is null || core.ItemKind != placement.ItemKind
+                || placement.StackLimit > 0 && core.Value > placement.StackLimit
+                || !slotRules.CanOccupySlot(destination, placement))
+                throw new InvalidOperationException($"Item {core.ItemId} cannot occupy container {id}/{slotIndex}.");
         }
         // Main 0..2 are virtual currency counters, not expandable item slots.
         // Their grant effects validate balances and overflow before this write.
@@ -448,7 +427,7 @@ internal abstract class StoreBackedItemContainer(
     private static IEnumerable<BusinessSlot> Candidates(ItemPlacement placement)
     {
         var own = SlotsIn(placement.Destination);
-        return ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
             ? own.Concat(SlotsIn(new(BusinessInventorySpace.QuickSlot, 0, 5)))
             : own;
     }

@@ -44,9 +44,9 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
         BusinessSlot? actualDestination = null;
         // A21 click-deposit may nominate an existing copy even when the item stacks only to one.
         // Redirect only incoming cargo deposits; an ordinary same-container drag stays explicit.
-        if (from.Slot.Space.IsCarriedItemSpace() && Cargo(into.Slot.Space)
+        if ((from.Slot.Space.IsCarriedItemSpace() || from.Slot.Space == BusinessInventorySpace.SharedMaterial) && Cargo(into.Slot.Space)
             && first is { IsPile: true } && second is { IsPile: true } && first.ItemId == second.ItemId
-            && (await placements.PlacementForAsync(first.ItemId, cancellationToken).ConfigureAwait(false))?.StackLimit == 1)
+            && (await placements.PlacementForAsync(first.ItemId, into.Slot.Space, cancellationToken).ConfigureAwait(false))?.StackLimit == 1)
         {
             var openSlots = await into.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
             if (into.Slot.Index < 0 || into.Slot.Index >= openSlots)
@@ -62,13 +62,14 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
         return result is ItemMoveOutcome.Moved moved && actualDestination is not null
             ? moved with { ActualDestinationSlot = actualDestination } : result;
 
-        bool Owned(BoundInventorySlot slot) => slot.Slot.Space == BusinessInventorySpace.AccountCargo
-            ? slot.Container.StorageId.TryGetAccountCargoOwner(out var owner) && owner == session.AccountId
+        bool Owned(BoundInventorySlot slot) => slot.Slot.Space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial
+            ? slot.Container.StorageId.TryGetAccountOwner(out var owner, out var type)
+                && owner == session.AccountId && type == LegacyInventoryStorageCoordinates.ToStorage(slot.Slot).List
             : slot.Container.StorageId.TryGetCharacterOwner(out var character, out _) && character == session.CharacterId;
     }
 
     private static bool Cargo(BusinessInventorySpace space) => space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo;
-    private static bool Served(BusinessInventorySpace space) => Cargo(space) || space.IsCarriedItemSpace();
+    private static bool Served(BusinessInventorySpace space) => Cargo(space) || space.IsCarriedItemSpace() || space == BusinessInventorySpace.SharedMaterial;
 }
 
 internal sealed class CargoItemRuleService(ICargoItemDefinitionSource content) : ICargoItemRuleService
@@ -76,7 +77,7 @@ internal sealed class CargoItemRuleService(ICargoItemDefinitionSource content) :
     public async ValueTask<bool> CanStoreAsync(BusinessInventorySpace destination, ContainerSlotItem item,
         DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (item.ItemKind is not (1 or 2 or 3 or 10) || item.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
+        if (item.ItemKind is not (1 or 2 or 3 or 10 or 11) || item.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
             || item.Core.ExpireTime > 0 && item.Core.ExpireTime <= now.ToUnixTimeSeconds()) return false;
         var definition = await content.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is null) return false;

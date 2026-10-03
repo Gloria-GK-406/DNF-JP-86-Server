@@ -27,6 +27,10 @@ public interface IItemPlacementRuleService
     /// </summary>
     ValueTask<ItemPlacement?> PlacementForAsync(int itemId, CancellationToken cancellationToken);
 
+    /// <summary>Placement and stack limit at a particular destination, independently of default routing.</summary>
+    ValueTask<ItemPlacement?> PlacementForAsync(int itemId, BusinessInventorySpace destination,
+        CancellationToken cancellationToken) => PlacementForAsync(itemId, cancellationToken);
+
     /// <summary>
     /// The equipment slot this item is worn in, or null when the archive declares nothing wearable
     /// under that identifier.

@@ -11,8 +11,7 @@ namespace Dfo.Server.Protocol.Game;
 
 public sealed record OpeningCompleted(OpeningInventoryReceipt Receipt,
     IReadOnlyList<IGameCmdMessage> Responses, int? GoldAfter = null,
-    IReadOnlyList<IServerNetworkMessage>? FollowingMessages = null,
-    IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null) : INotification<OpeningCompleted>;
+    IReadOnlyList<IServerNetworkMessage>? FollowingMessages = null) : INotification<OpeningCompleted>;
 
 public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<OpeningCompleted>
 {
@@ -30,7 +29,7 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
                 group.Select(update => new InventoryItemState(update.Identity,
                     OpeningWireSlots.Project(update.Slot, SlotMappings).Index, update.Core)).ToArray(), receipt.PreparedAt)).ToArray();
         messages.AddRange(GameInventoryDelivery.Notifications(updates));
-        foreach (var slot in receipt.Cleared)
+        foreach (var slot in receipt.Cleared.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
         {
             var wire = OpeningWireSlots.Project(slot, SlotMappings);
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
@@ -40,8 +39,6 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
                 messages.Add(GameInstanceDelivery.Premium(premium, receipt.PreparedAt));
         if (receipt.CreaturesChanged) messages.Add(GameInstanceDelivery.Creatures(receipt.Pets));
         if (notification.GoldAfter is { } gold) messages.Add(GameInventoryDelivery.CarriedGoldNotification(gold, receipt.PreparedAt));
-        if (notification.AccountMaterials is { } resources)
-            messages.AddRange(AccountMaterialNotifications.Compose(resources, receipt.PreparedAt));
         if (notification.FollowingMessages is { } following) messages.AddRange(following);
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }

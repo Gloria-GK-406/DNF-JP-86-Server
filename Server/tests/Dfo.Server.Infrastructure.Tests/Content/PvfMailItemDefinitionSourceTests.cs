@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Infrastructure.Content;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;

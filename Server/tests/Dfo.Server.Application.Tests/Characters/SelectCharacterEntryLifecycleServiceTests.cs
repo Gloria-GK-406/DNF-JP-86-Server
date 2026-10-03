@@ -29,15 +29,20 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var previous = Session(result);
         var next = previous with { ConnectionGeneration = previous.ConnectionGeneration + 1 };
         var loader = new InventoryLoader(result.CharacterInventory);
+        var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader,
-            new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
+            containers, new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!, null!);
 
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
 
         Assert.Equal(result.CharacterInventory, updated.CharacterInventory);
         Assert.Equal(1, loader.LoadCount);
+        Assert.Equal(ContainerId.ForAccount(next.AccountId, InventoryContainerType.SharedMaterial),
+            containers.GetContainer(next.CharacterId, InventoryContainerType.SharedMaterial).Id);
+        Assert.DoesNotContain(updated.CharacterInventory.Containers,
+            container => container.ContainerType == InventoryContainerType.SharedMaterial);
     }
 
     [Fact]

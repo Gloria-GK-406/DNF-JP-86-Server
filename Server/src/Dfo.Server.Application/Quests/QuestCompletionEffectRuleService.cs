@@ -47,9 +47,6 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         var effects = ImmutableArray.CreateBuilder<DomainEffect>();
         foreach (var item in reward.Items)
         {
-            if (accounts.TryGetByItemId(item.ItemId, out var account))
-                effects.Add(new GrantAccountMaterialEffect(account.Kind, item.ItemId, item.Count));
-            else
             {
                 var placement = await placements.PlacementForAsync(item.ItemId, ct).ConfigureAwait(false)
                     ?? throw new InventoryEffectException(InventoryEffectRejection.UnsupportedItem);

@@ -255,3 +255,9 @@ default                                       → CommonEntrySize  = 101
 ## 2026-09-26 账号晶体耗尽的投影边界（ClientVerified）
 
 技能/特效消费后，账号晶体余额为0时仅回CMD0012成功ACK，不再发送原itemId/count=0的000E；非零余额仍发绝对数量。用户确认金色最后一枚消费后不再产生获取0个/头顶图标。此修复不修改通用000E编码，也不取消普通携带物的itemId=-1清槽。精确客户端内部原因仍是推断。
+
+## 2026-10-03 统一容器后的材料增量（CurrentImplementation）
+
+发放/消费回执只保留真实 BusinessSlot、物品 core 与普通容器结果；本帧投影由实际容器读取最终数量，删除 AccountMaterialChange 等余额分支。材料 Main/354..364 的既有 wire 形状与私有投递顺序保留。消费 ACK 已扣除且余额为0时省略正 itemId/count=0 更新；无扣除 ACK 的绝对清除沿用空槽通知，非零材料仍校正绝对值。
+
+本次覆盖分解、强化、合成、丢弃、拾取、任务、邮件及 replay 自动测试；2026-09-20/26 客户端观察仅支持当时行为。新模型效果见 [共享材料实机清单](../../../Document/SharedMaterialHumanTest-20261003.md)，未新增 WireCaptured 或 ClientVerified。

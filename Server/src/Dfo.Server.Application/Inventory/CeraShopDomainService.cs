@@ -67,7 +67,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
         var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
         var spaces = quote.Grants.Select(grant => grant.Placement.Destination.Space)
-            .Concat(quote.Grants.Where(grant => ItemSlotRuleService.AllowsQuickSlot(grant.Placement.ItemKind))
+            .Concat(quote.Grants.Where(grant => grant.Placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(grant.Placement.ItemKind))
                 .Select(_ => BusinessInventorySpace.QuickSlot)).Distinct();
         foreach (var space in spaces)
         {

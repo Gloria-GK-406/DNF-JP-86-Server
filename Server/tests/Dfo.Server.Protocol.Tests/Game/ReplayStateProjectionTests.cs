@@ -46,6 +46,40 @@ public sealed class ReplayStateProjectionTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    public void Touched_shared_material_uses_the_current_account_count_to_decide_whether_to_clear(int count)
+    {
+        var state = State(ReplayProjectionNeeds.Inventory);
+        var account = state.Inventory!.Account() with { VirtualResources = [new(359, 3262, count)] };
+        state = state with
+        {
+            Inventory = new(state.Inventory.Character(), account),
+            Request = new(ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.SharedMaterial, 5)]),
+        };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        Assert.Equal(count > 0 ? 6 : 7, messages.Length);
+        var deltas = messages.OfType<InventoryDeltaMessage>().ToArray();
+        if (count > 0) Assert.Empty(deltas);
+        else
+        {
+            var clear = Assert.Single(Assert.Single(deltas).Items);
+            Assert.Equal(359, clear.SlotIndex);
+            Assert.Equal(-1, clear.Core.ItemId);
+        }
+        var body = Encode(messages[0]).AsSpan(15);
+        var rows = BinaryPrimitives.ReadUInt16LittleEndian(body[3..]);
+        var matches = new List<int>();
+        for (var i = 0; i < rows; i++)
+        {
+            var offset = 5 + i * 101;
+            if (BinaryPrimitives.ReadInt16LittleEndian(body[offset..]) == 359)
+                matches.Add(BinaryPrimitives.ReadInt32LittleEndian(body[(offset + 6)..]));
+        }
+        Assert.Equal(count, Assert.Single(matches));
+    }
+
+    [Theory]
     [InlineData(-1, uint.MaxValue)]
     [InlineData(int.MinValue, 0x80000000u)]
     public void Quest_refresh_preserves_unsigned_trigger_bits(int trigger, uint expected)

@@ -1,5 +1,3 @@
-using Dfo.Server.Data.Accounts;
-
 namespace Dfo.Server.Data.Inventory;
 
 public enum AccountMaterialKind
@@ -20,7 +18,10 @@ public enum AccountMaterialKind
 public sealed record AccountMaterialDefinition(
     AccountMaterialKind Kind,
     int ItemId,
-    int VirtualSlotIndex);
+    int VirtualSlotIndex)
+{
+    public byte ItemKind => Kind <= AccountMaterialKind.GoldCube ? (byte)11 : (byte)3;
+}
 
 public static class AccountMaterialCatalog
 {
@@ -44,42 +45,10 @@ public static class AccountMaterialCatalog
 
     public static bool ContainsItem(int itemId) =>
         Definitions.Any(definition => definition.ItemId == itemId);
-}
 
-public sealed record AccountMaterialBagState(
-    AccountId AccountId,
-    int BlackCube,
-    int WhiteCube,
-    int RedCube,
-    int BlueCube,
-    int ClearCube,
-    int GoldCube,
-    int CommonSoul,
-    int AdvancedSoul,
-    int RareSoul,
-    int UniqueSoul,
-    int LegendarySoul)
-{
-    public int Count(AccountMaterialKind kind) => kind switch
+    public static bool TryGetSlotIndex(int itemId, out int slotIndex)
     {
-        AccountMaterialKind.BlackCube => BlackCube,
-        AccountMaterialKind.WhiteCube => WhiteCube,
-        AccountMaterialKind.RedCube => RedCube,
-        AccountMaterialKind.BlueCube => BlueCube,
-        AccountMaterialKind.ClearCube => ClearCube,
-        AccountMaterialKind.GoldCube => GoldCube,
-        AccountMaterialKind.CommonSoul => CommonSoul,
-        AccountMaterialKind.AdvancedSoul => AdvancedSoul,
-        AccountMaterialKind.RareSoul => RareSoul,
-        AccountMaterialKind.UniqueSoul => UniqueSoul,
-        AccountMaterialKind.LegendarySoul => LegendarySoul,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown account material kind."),
-    };
+        slotIndex = Array.FindIndex(Mappings, definition => definition.ItemId == itemId);
+        return slotIndex >= 0;
+    }
 }
-
-public sealed record AccountMaterialChange(
-    AccountMaterialKind Kind,
-    int ItemId,
-    int VirtualSlotIndex,
-    int AddedCount,
-    int FinalCount);

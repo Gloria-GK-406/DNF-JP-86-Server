@@ -33,10 +33,12 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
 
         return slot.Space switch
         {
+            BusinessInventorySpace.SharedMaterial => placement.ItemKind is 3 or 11
+                && placement.WorldClass == ItemWorldClass.Interchangeable && placement.Destination.Contains(slot),
             BusinessInventorySpace.QuickSlot => AllowsQuickSlot(placement.ItemKind),
             BusinessInventorySpace.Avatar => placement.WorldClass == ItemWorldClass.Avatar,
             BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo =>
-                placement.ItemKind is 1 or 2 or 3 or 10,
+                placement.ItemKind is 1 or 2 or 3 or 10 or 11,
             BusinessInventorySpace.CreatureInventory =>
                 placement.WorldClass == ItemWorldClass.Creature && placement.Destination.Contains(slot),
             BusinessInventorySpace.CreatureEquipment =>

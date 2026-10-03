@@ -18,7 +18,7 @@ namespace Dfo.Server.Persistence.Tests.Schema;
 /// </remarks>
 public sealed class CharacterBodyShapeTests
 {
-    /// <summary>characters -- 28 columns.</summary>
+    /// <summary>The character's persisted fields, including tutorial completion.</summary>
     private static readonly string[] Characters =
     [
         "account_id", "appearance_blob", "area_id", "area_state", "bonus_sp", "bonus_tp",
@@ -26,7 +26,7 @@ public sealed class CharacterBodyShapeTests
         "ex_equip_slot_stat", "exp", "grow_type", "guild_level", "guild_power_war", "job",
         "level", "manage_level", "name", "name_bytes", "name_tag_expire_time",
         "name_tag_item_id", "pos_x", "pos_y", "skill_tree_index", "active_skill_build", "slot_index", "town_id",
-        "user_state",
+        "tutorial_completed", "user_state",
     ];
 
     /// <summary>character_stats -- 31 columns.</summary>

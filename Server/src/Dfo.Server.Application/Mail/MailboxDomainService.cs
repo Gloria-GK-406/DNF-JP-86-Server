@@ -57,7 +57,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                         var stackPlacement = await stacks.ValidateAsync(stack.ItemId, cancellationToken);
                         if (mail.Source.Character is { } stackOwner)
                             changes.AddRange(await stacks.TakeAsync(stackOwner, stack.ItemId, stack.Count, sameAccount, cancellationToken, stack.SourceSlot));
-                        prepared.Add(new(asset, Dfo.Server.Application.Inventory.StackableItemCore.Create(stackPlacement.ItemKind, stack.ItemId, stack.Count)));
+                        prepared.Add(new(asset, Dfo.Server.Data.Inventory.StackableItemCore.Create(stackPlacement.ItemKind, stack.ItemId, stack.Count)));
                         break;
                     case MailAsset.Gold gold:
                         if (mail.Source.Character is { } goldOwner)

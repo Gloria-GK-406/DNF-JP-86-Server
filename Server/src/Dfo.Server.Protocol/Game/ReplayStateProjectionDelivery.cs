@@ -89,7 +89,9 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
                 var physical = mapping.ToGameSlot(slot);
                 var container = physical.Space == InventoryContainerType.AccountCargo ? account.Cargo.Container
                     : inventory.Containers.Single(x => x.ContainerType == physical.Space);
-                if (container.Items.All(x => x.SlotIndex != physical.Index))
+                if (slot.Space == BusinessInventorySpace.SharedMaterial
+                    ? account.VirtualResources.All(x => x.SlotIndex != physical.Index || x.Value <= 0)
+                    : container.Items.All(x => x.SlotIndex != physical.Index))
                     messages.Add(GameInventoryDelivery.ClearedSlotNotification(physical.Space, physical.Index, state.At));
             }
         }

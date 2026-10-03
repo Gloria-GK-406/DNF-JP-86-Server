@@ -6,7 +6,9 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-/// <summary>Identifies one container among the several a character may hold of the same type.</summary>
+public readonly record struct ContainerOwner(InventoryOwnerType Scope, int Value);
+
+/// <summary>Identifies a container independently of the character currently accessing it.</summary>
 /// <remarks>
 /// A string rather than a number because the identifiers come from unrelated places -- the
 /// character's own storage, a dungeon run, a trade -- and a shared numeric space would make two of
@@ -15,23 +17,35 @@ namespace Dfo.Server.Abstractions.Inventory;
 public readonly record struct ContainerId(string Value)
 {
     private const string CharacterScope = "character";
+    private const string AccountScope = "account";
 
     /// <summary>The identifier of a character's own container of one type.</summary>
     public static ContainerId ForCharacter(CharacterId characterId, InventoryContainerType type) =>
-        new($"{CharacterScope}:{characterId.Value}:{type}");
+        new(FormattableString.Invariant($"{CharacterScope}:{characterId.Value}:{type}"));
+
+    public static ContainerId ForAccount(AccountId accountId, InventoryContainerType type) =>
+        new(FormattableString.Invariant($"{AccountScope}:{accountId.Value}:{type}"));
 
     public static ContainerId ForAccountCargo(AccountId accountId) =>
-        new($"account:{accountId.Value}:AccountCargo");
+        ForAccount(accountId, InventoryContainerType.AccountCargo);
 
     public bool TryGetAccountCargoOwner(out AccountId accountId)
     {
         accountId = default;
-        var parts = Value?.Split(':');
-        if (parts is not { Length: 3 } || parts[0] != "account" || parts[2] != "AccountCargo"
-            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var owner)
-            || owner <= 0 || owner.ToString(CultureInfo.InvariantCulture) != parts[1])
+        if (!TryGetAccountOwner(out var owner, out var type) || type != InventoryContainerType.AccountCargo)
             return false;
-        accountId = new AccountId(owner);
+        accountId = owner;
+        return true;
+    }
+
+    public bool TryGetAccountOwner(out AccountId accountId, out InventoryContainerType type)
+    {
+        accountId = default;
+        type = default;
+        if (!TryGetOwner(out var owner, out var parsedType) || owner.Scope != InventoryOwnerType.Account)
+            return false;
+        accountId = new AccountId(owner.Value);
+        type = parsedType;
         return true;
     }
 
@@ -56,24 +70,33 @@ public readonly record struct ContainerId(string Value)
     {
         characterId = default;
         type = default;
-        if (Value is null)
-        {
+        if (!TryGetOwner(out var owner, out var parsedType) || owner.Scope != InventoryOwnerType.Character)
             return false;
-        }
+        characterId = new CharacterId(owner.Value);
+        type = parsedType;
+        return true;
+    }
 
-        var parts = Value.Split(':');
-        if (parts.Length != 3
-            || parts[0] != CharacterScope
+    /// <summary>Parses canonical persistent identity only; this does not grant business access.</summary>
+    public bool TryGetOwner(out ContainerOwner containerOwner, out InventoryContainerType type)
+    {
+        containerOwner = default;
+        type = default;
+        var parts = Value?.Split(':');
+        if (parts is not { Length: 3 }
+            || parts[0] is not (CharacterScope or AccountScope)
             || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var owner)
+            || owner <= 0
             || owner.ToString(CultureInfo.InvariantCulture) != parts[1]
-            || !Enum.TryParse(parts[2], out type)
-            || !Enum.IsDefined(type)
-            || Enum.GetName(type) != parts[2])
+            || !Enum.TryParse<InventoryContainerType>(parts[2], out var parsedType)
+            || !Enum.IsDefined(parsedType)
+            || Enum.GetName(parsedType) != parts[2])
         {
             return false;
         }
 
-        characterId = new CharacterId(owner);
+        containerOwner = new(parts[0] == AccountScope ? InventoryOwnerType.Account : InventoryOwnerType.Character, owner);
+        type = parsedType;
         return true;
     }
 

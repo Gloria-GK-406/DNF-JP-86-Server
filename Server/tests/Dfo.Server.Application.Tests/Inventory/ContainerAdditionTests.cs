@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Inventory;
@@ -40,9 +41,9 @@ public sealed class ContainerAdditionTests
         await grants.AddAsync(new(1), 9002, 1, default);
 
         var stores = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>();
-        var item = stores.GetStore(new(1), BusinessInventoryStoreKind.Item)
+        var item = stores.GetStore(new CharacterId(1), BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.Material);
-        var pet = stores.GetStore(new(1), BusinessInventoryStoreKind.Creature)
+        var pet = stores.GetStore(new CharacterId(1), BusinessInventoryStoreKind.Creature)
             .GetContainer(BusinessInventorySpace.CreatureConsumable);
         Assert.Equal(9001, (await item.ReadSlotAsync(0, default))!.ItemId);
         Assert.Equal(9002, (await pet.ReadSlotAsync(0, default))!.ItemId);
@@ -67,7 +68,7 @@ public sealed class ContainerAdditionTests
             .GrantAsync(new(1), new(1), containers, 9002, 1, default);
         await lease.CommitAsync(default);
 
-        var item = Assert.IsType<ItemGrantOutcome.CharacterItem>(outcome);
+        var item = Assert.IsType<BusinessItemAdditionResult>(outcome);
         Assert.Equal(BusinessInventorySpace.CreatureConsumable, item.Container.Space);
         Assert.Equal(0, Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(item.Placement).SlotIndex);
         Assert.Equal(9002, (await item.Container.ReadSlotAsync(0, default))!.ItemId);
@@ -94,11 +95,11 @@ public sealed class ContainerAdditionTests
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         var addition = await service.AddAsync(new(1), 3037, 3, default);
-        Assert.Empty(addition.Items);
-        Assert.Equal(3037, addition.AccountMaterial!.ItemId);
-        Assert.Equal(3, addition.AccountMaterial.AddedCount);
+        var item = Assert.Single(addition.Items);
+        Assert.Equal(new BusinessSlot(BusinessInventorySpace.SharedMaterial, 4), item.Slot);
+        Assert.Equal(3, item.Count);
         Assert.Equal(0, f.Count(3037));
-        Assert.Equal(3, f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(3, f.SharedCount(3037, 1));
     }
 
     [Fact]
@@ -152,6 +153,7 @@ public sealed class ContainerAdditionTests
     {
         public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<ItemPlacement?>(id switch
         {
+            3037 => new(11, 1000, new(BusinessInventorySpace.Material, 0, 55)),
             9001 => new(3, 2, new(BusinessInventorySpace.Material, 0, 2)),
             9002 => new(7, 10, new(BusinessInventorySpace.CreatureConsumable, 0, 1)),
             _ => null

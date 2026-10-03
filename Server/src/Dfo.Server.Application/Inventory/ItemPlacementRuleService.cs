@@ -22,9 +22,26 @@ internal sealed class ItemPlacementRuleService(
     IItemPlacementDefinitionSource placements,
     IEquipmentSlotDefinitionSource equipmentSlots) : IItemPlacementRuleService
 {
-    public ValueTask<ItemPlacement?> PlacementForAsync(
-        int itemId, CancellationToken cancellationToken) =>
-        placements.GetAsync(itemId, cancellationToken);
+    public async ValueTask<ItemPlacement?> PlacementForAsync(int itemId, CancellationToken cancellationToken)
+    {
+        var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        return SharedPlacement(itemId, placement);
+    }
+
+    public async ValueTask<ItemPlacement?> PlacementForAsync(int itemId, BusinessInventorySpace destination,
+        CancellationToken cancellationToken)
+    {
+        var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        return destination == BusinessInventorySpace.SharedMaterial ? SharedPlacement(itemId, placement) : placement;
+    }
+
+    private static ItemPlacement? SharedPlacement(int itemId, ItemPlacement? placement)
+    {
+        if (placement is null || !AccountMaterialCatalog.TryGetSlotIndex(itemId, out var slot)) return placement;
+        if (placement.ItemKind != AccountMaterialCatalog.Definitions[slot].ItemKind || placement.WorldClass != ItemWorldClass.Interchangeable)
+            throw new InvalidDataException($"Shared material {itemId} must be an ordinary material pile.");
+        return placement with { Destination = new(BusinessInventorySpace.SharedMaterial, slot, slot), StackLimit = int.MaxValue };
+    }
 
     public ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken) =>
         equipmentSlots.GetAsync(itemId, cancellationToken);

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
@@ -7,7 +8,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Mail;
 internal sealed class MailboxAssetDomainService(IItemDomainStore store, IDomainTransactionAccessor transactions,
-    ICharacterBusinessInventoryDomainService inventories, TimeProvider clock) : IMailboxAssetDomainService
+    ICharacterBusinessInventoryDomainService inventories, ICharacterTable owners, TimeProvider clock) : IMailboxAssetDomainService
 {
     public async ValueTask<MailboxAssetProjection> PrepareAsync(CharacterId character, IReadOnlyList<MailAssetChange> changes, CancellationToken token)
     {
@@ -20,15 +21,17 @@ internal sealed class MailboxAssetDomainService(IItemDomainStore store, IDomainT
             .Select(x => x.Slot!.Value).Distinct())
         {
             var physical = LegacyInventoryStorageCoordinates.ToStorage(slot);
-            var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(slot.Space))
+            var owner = slot.Space == BusinessInventorySpace.SharedMaterial
+                ? new ContainerOwner(InventoryOwnerType.Account, (await owners.FindOwnerAsync(character, token)
+                    ?? throw new InvalidDataException("Mail recipient no longer exists.")).Value)
+                : new ContainerOwner(InventoryOwnerType.Character, character.Value);
+            var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(slot.Space))
                 .GetContainer(slot.Space);
             var item = await session.ReadAsync(container.StorageId,
                 physical.Index, token).ConfigureAwait(false);
             if (item is null) cleared.Add(slot);
             else updates.Add(new(slot, item.Identity, item.Core));
         }
-        var materials = changes.Where(x => x.AccountMaterial is not null).Select(x => x.AccountMaterial!).GroupBy(x => x.VirtualSlotIndex)
-            .Select(g => g.Last()).Select(x => new InventoryRuntimeValueState(x.VirtualSlotIndex, x.ItemId, x.FinalCount)).ToArray();
-        return new(updates, cleared, materials, changes.LastOrDefault(x => x.GoldBalance is not null)?.GoldBalance, at);
+        return new(updates, cleared, changes.LastOrDefault(x => x.GoldBalance is not null)?.GoldBalance, at);
     }
 }

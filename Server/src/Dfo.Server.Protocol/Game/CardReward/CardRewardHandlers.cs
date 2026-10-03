@@ -184,9 +184,9 @@ public sealed class SelectCardHandler(
         {
             frames.Add(GameInventoryDelivery.VirtualResourceNotification(
                 [new InventoryRuntimeValueState(
-                    accountMaterial.VirtualSlotIndex,
+                    accountMaterial.SlotIndex,
                     accountMaterial.ItemId,
-                    accountMaterial.FinalCount)],
+                    accountMaterial.Value)],
                 preparedAt));
         }
 
@@ -194,8 +194,8 @@ public sealed class SelectCardHandler(
             frames.Add(GameInventoryDelivery.Notification(bonusDelivery));
         if (result.BlackDiamondAccountMaterial is { } bonusMaterial)
             frames.Add(GameInventoryDelivery.VirtualResourceNotification(
-                [new InventoryRuntimeValueState(bonusMaterial.VirtualSlotIndex, bonusMaterial.ItemId,
-                    bonusMaterial.FinalCount)], preparedAt));
+                [new InventoryRuntimeValueState(bonusMaterial.SlotIndex, bonusMaterial.ItemId,
+                    bonusMaterial.Value)], preparedAt));
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
             frames.Add(GameInventoryDelivery.CarriedGoldNotification(result.GoldCarried, preparedAt));
 

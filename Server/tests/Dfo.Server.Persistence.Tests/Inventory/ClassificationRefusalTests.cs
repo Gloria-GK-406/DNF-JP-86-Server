@@ -150,11 +150,9 @@ public sealed class ClassificationRefusalTests
         TestDatabase database, ItemWorldClass declared) =>
         new InventoryEntryAssembly(
             new SqliteCharacterTable(database.Value),
-            new AccountMaterialBagDomainService(
-                new SqliteAccountMaterialBagStore(database.Path),
-                new AccountMaterialRuleService(),
-                new AmbientStoreAccess(database.Scope)),
-            new AccountMaterialRuleService(),
+            new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(),
+                Rules(declared), new ItemArrivalRuleService(),
+                items: new SqliteItemDomainStore(database.Path), transactions: database.Scope, slotRules: new ItemSlotRuleService()),
             new SqliteCharacterItemTable(database.Value),
             new SqliteAccountCargoItemTable(database.Value),
             new SqliteCharacterContainerStateTable(database.Value),

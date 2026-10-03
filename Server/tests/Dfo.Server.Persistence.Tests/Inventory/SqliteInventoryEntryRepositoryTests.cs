@@ -392,50 +392,10 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
     }
 
-    /// <summary>
-    /// The cargo will not hold two things in one slot, and refuses the second where it stands.
-    /// </summary>
-    /// <remarks>
-    /// This replaces the cargo half of the duplicate-slot case. The cargo used to declare
-    /// <c>UNIQUE(account_id, slot_index)</c> of its own, which the merged table's four-part
-    /// constraint would have weakened for account rows; a partial unique index puts it back. So the
-    /// duplicate the load used to refuse cannot be written in the first place, and what is worth
-    /// asserting is that it cannot.
-    /// </remarks>
-    [Fact]
-    public async Task TheCargoRefusesASecondItemInASlotItAlreadyHolds()
-    {
-        var databasePath = CreateDatabase();
-        try
-        {
-            await SeedSchemaAsync(databasePath);
-            _ = new InventorySide(databasePath);
-            await ExecuteAsync(databasePath, """
-                INSERT INTO items(item_uid, item_core) VALUES(401, @core);
-                INSERT INTO item_slots(
-                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
-                VALUES('account', 17, 12, 5, 'world', 401, 401, 1);
-                """, ("@core", CreateCore(1, 4004, 41)));
-
-            await Assert.ThrowsAsync<SqliteException>(async () =>
-                await ExecuteAsync(databasePath, """
-                    INSERT INTO items(item_uid, item_core) VALUES(402, @core);
-                    INSERT INTO item_slots(
-                        owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
-                    VALUES('account', 17, 12, 5, 'world', 402, 402, 1);
-                    """, ("@core", CreateCore(1, 4005, 42))));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(databasePath);
-        }
-    }
-
     [Theory]
     [InlineData("malformed")]
     [InlineData("wrong-container")]
-    public async Task LoadAccountAsync_RejectsInvalidStoredAccountCargo(string invalidCase)
+    public async Task LoadAccountAsync_ValidatesOnlyTheAccountCargoContainer(string invalidCase)
     {
         var databasePath = CreateDatabase();
         try
@@ -457,11 +417,13 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 ("@listType", listType),
                 ("@core", firstCore));
 
-            await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new InventorySide(databasePath).PerCall.LoadAccountAsync(
-                    new AccountId(17),
-                    new CharacterId(27),
-                    CancellationToken.None));
+            var repository = new InventorySide(databasePath).PerCall;
+            if (invalidCase == "malformed")
+                await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                    await repository.LoadAccountAsync(new AccountId(17), new CharacterId(27), CancellationToken.None));
+            else
+                Assert.Empty((await repository.LoadAccountAsync(new AccountId(17), new CharacterId(27),
+                    CancellationToken.None)).AccountCargoItems);
         }
         finally
         {

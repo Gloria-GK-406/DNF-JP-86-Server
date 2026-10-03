@@ -63,7 +63,7 @@ public interface ICharacterContainerDomainService
 }
 
 public sealed record ContainerItemAddition(BusinessContainerId Container, BusinessSlot Slot, int Count);
-public sealed record ContainerAddition(IReadOnlyList<ContainerItemAddition> Items, AccountMaterialChange? AccountMaterial = null);
+public sealed record ContainerAddition(IReadOnlyList<ContainerItemAddition> Items);
 public enum ContainerAdditionFailure { UnknownItem, NoRoom, CharacterNotFound }
 public sealed class ContainerAdditionException(ContainerAdditionFailure reason)
     : InvalidOperationException($"Container addition refused: {reason}.")

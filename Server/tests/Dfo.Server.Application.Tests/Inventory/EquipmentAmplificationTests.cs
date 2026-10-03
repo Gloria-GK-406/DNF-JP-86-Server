@@ -94,7 +94,7 @@ public sealed class EquipmentAmplificationTests
         if (outcome == EquipmentReinforcementOutcome.Destroyed)
         {
             Assert.Equal(0, f.Count(3000)); Assert.NotEmpty(ack.DestroyRewards!);
-            Assert.True(f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1") > 0);
+            Assert.True(f.SharedCount(3037, 1) > 0);
             if (oldLevel == 11) Assert.Contains(ack.DestroyRewards!, reward => reward.ItemId == 3244 && reward.Count > 0);
         }
         else Assert.Equal(newLevel, f.StoredCore(9)[9]);

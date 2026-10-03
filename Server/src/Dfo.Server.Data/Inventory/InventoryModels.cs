@@ -20,6 +20,8 @@ public enum InventoryContainerType : byte
     KnightShieldEquipped = 33,
     KnightShieldCatalog = 34,
     GuildMedal = 38,
+    // Server storage only; A21 represents these as Main slots 354..364.
+    SharedMaterial = 240,
 }
 
 /// <summary>An indivisible slot address as the A21 game protocol expresses it.</summary>
@@ -56,6 +58,7 @@ public enum BusinessInventorySpace
     AccountCargo,
     GuildMedal,
     GuardianGem,
+    SharedMaterial,
 }
 
 public static class BusinessInventorySpaceRules

@@ -84,9 +84,9 @@ public sealed class AcceptQuestHandler(
                 new GameExplicitMessageDelivery(
                     [GameInventoryDelivery.VirtualResourceNotification(
                         [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
-                            material.VirtualSlotIndex,
+                            material.SlotIndex,
                             material.ItemId,
-                            material.FinalCount))],
+                            material.Value))],
                         DateTimeOffset.UtcNow)],
                     []),
                 cancellationToken).ConfigureAwait(false);

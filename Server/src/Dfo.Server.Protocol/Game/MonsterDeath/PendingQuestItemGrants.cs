@@ -42,15 +42,18 @@ internal static class PendingQuestItemGrants
         var carried = await questLogs.LogOf(accountId, characterId)
             .CarriedAsync(cancellationToken).ConfigureAwait(false);
         var active = carried.Select(quest => quest.QuestId).ToHashSet();
-        var changed = new HashSet<int>();
-        var accountChanges = new List<AccountMaterialChange>();
+        var changed = new Dictionary<int, (IBusinessItemContainer Container, int Index)>();
+        var accountChanges = new List<InventoryRuntimeValueState>();
         foreach (var drop in candidates)
         {
             if (drop.QuestId <= 0 || !active.Contains(drop.QuestId)
                 || drop.ItemId <= 0 || drop.Count <= 0 || drop.GrantLimit <= 0)
                 continue;
 
-            var held = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            var sourceBag = AccountMaterialCatalog.ContainsItem(drop.ItemId)
+                ? containers.FindContainer(characterId, InventoryContainerType.SharedMaterial) ?? throw new InvalidDataException("Shared material container is unavailable.")
+                : bag;
+            var held = (await sourceBag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
                 .Where(item => item.ItemId == drop.ItemId)
                 .Sum(item => (long)item.Count);
             var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
@@ -65,25 +68,21 @@ internal static class PendingQuestItemGrants
                     .ConfigureAwait(false);
                 switch (granted)
                 {
-                    case ItemGrantOutcome.CharacterItem
+                    case BusinessItemAdditionResult
                         { Placement: ItemPlacementOutcome.AddedToPile topped } character when topped.Added > 0:
-                        changed.Add(MainQuestSlot(character, topped.SlotIndex));
+                        changed[MainQuestSlot(character, topped.SlotIndex)] = (character.Container, topped.SlotIndex);
                         remaining -= topped.Added;
                         break;
-                    case ItemGrantOutcome.CharacterItem
+                    case BusinessItemAdditionResult
                         { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character when opened.Count > 0:
-                        changed.Add(MainQuestSlot(character, opened.SlotIndex));
+                        changed[MainQuestSlot(character, opened.SlotIndex)] = (character.Container, opened.SlotIndex);
                         remaining -= opened.Count;
                         break;
-                    case ItemGrantOutcome.AccountMaterial account:
-                        accountChanges.Add(account.Change);
-                        remaining -= account.Change.AddedCount;
-                        break;
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
+                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
                         if (failIfFull) throw new InvalidOperationException("The quest inventory is full; object reward was not consumed.");
                         remaining = 0;
                         break;
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
+                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
                         throw new InvalidDataException($"Quest item {drop.ItemId} has no inventory definition.");
                     default:
                         throw new InvalidDataException(
@@ -95,11 +94,12 @@ internal static class PendingQuestItemGrants
         if (changed.Count == 0)
             return new QuestItemGrant(null, accountChanges);
         var items = new List<InventoryItemState>(changed.Count);
-        foreach (var slot in changed.Order())
+        foreach (var (slot, source) in changed.OrderBy(x => x.Key))
         {
-            var item = await bag.ReadSlotAsync(slot, cancellationToken).ConfigureAwait(false)
+            var item = await source.Container.ReadSlotAsync(source.Index, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException($"Quest item slot {slot} disappeared before commit.");
-            items.Add(new InventoryItemState(null, slot, item.Core));
+            if (source.Container.Space == BusinessInventorySpace.SharedMaterial) accountChanges.Add(new(slot, item.ItemId, item.Count));
+            else items.Add(new InventoryItemState(null, slot, item.Core));
         }
         return new QuestItemGrant(
             new CommittedInventoryUpdateState(
@@ -107,7 +107,7 @@ internal static class PendingQuestItemGrants
             accountChanges);
     }
 
-    private static int MainQuestSlot(ItemGrantOutcome.CharacterItem grant, int localIndex)
+    private static int MainQuestSlot(BusinessItemAdditionResult grant, int localIndex)
     {
         var wire = ItemGrantWireProjection.Slot(grant, localIndex);
         if (wire.Space != InventoryContainerType.Main)
@@ -117,7 +117,7 @@ internal static class PendingQuestItemGrants
 
     internal sealed record QuestItemGrant(
         CommittedInventoryUpdateState? CharacterItems,
-        IReadOnlyList<AccountMaterialChange> AccountMaterials)
+        IReadOnlyList<InventoryRuntimeValueState> AccountMaterials)
     {
         public static QuestItemGrant Empty { get; } = new(null, []);
 

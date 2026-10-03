@@ -11,8 +11,12 @@ internal sealed class InventoryCapacityDomainService(ICharacterContainerStateTab
     public async ValueTask<int> OpenSlotCountAsync(ContainerId container, BusinessInventorySpace space,
         CancellationToken cancellationToken)
     {
+        if (space == BusinessInventorySpace.SharedMaterial)
+            return container.TryGetAccountOwner(out _, out var sharedType) && sharedType == InventoryContainerType.SharedMaterial
+                ? rules.OpenSlotCount(space, 0) : throw new InvalidOperationException($"Container {container} is not an account's shared material container.");
         int parameter;
-        if (container.TryGetAccountCargoOwner(out var account))
+        if (container.TryGetAccountOwner(out var account, out var accountType)
+            && accountType == InventoryContainerType.AccountCargo)
             parameter = (await accountStates.ReadByAccountAsync(account, cancellationToken)
                 .ConfigureAwait(false)).SingleOrDefault()?.SelectionKey ?? 0;
         else if (container.TryGetCharacterOwner(out var character, out var type))
@@ -30,6 +34,7 @@ internal sealed class InventoryCapacityRuleService : IInventoryCapacityRuleServi
     // A21 avatar parameter is extra slots, not total capacity; see the NOTI-0x000D record.
     public int OpenSlotCount(BusinessInventorySpace space, int parameter) => space switch
     {
+        BusinessInventorySpace.SharedMaterial => AccountMaterialCatalog.Definitions.Count,
         BusinessInventorySpace.Avatar => parameter is >= 0 and <= 105 && parameter % 7 == 0
             ? 105 + parameter : 0,
         BusinessInventorySpace.PersonalCargo => parameter == 0 ? 8

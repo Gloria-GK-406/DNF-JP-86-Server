@@ -16,7 +16,7 @@ public interface IRecipeCraftRuleService
     ValueTask<RecipePlan> GetResultAsync(int drawingId, CancellationToken cancellationToken);
 }
 public sealed record RecipeCraftReceipt(OpeningInventoryReceipt Inventory,
-    ImmutableArray<OpeningSlotConsumption> Consumed, ImmutableArray<AccountMaterialChange> AccountMaterials);
+    ImmutableArray<OpeningSlotConsumption> Consumed);
 public interface IRecipeCraftDomainService
 {
     ValueTask<RecipeCraftReceipt> RefreshAsync(RecipeCraftReceipt receipt, CancellationToken cancellationToken);

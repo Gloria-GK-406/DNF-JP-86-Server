@@ -119,7 +119,7 @@ public sealed class OrdinaryQuestEffectTests
         shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,5),(1,2,2003,1)");
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(0,result.QuestProgress!.Quests.Single(x=>x.QuestId==2002).TriggerValue);
         Assert.Equal(1,result.QuestProgress.Quests.Single(x=>x.QuestId==2003).TriggerValue);
-        Assert.Equal(2,Assert.Single(result.AccountMaterials!).AddedCount);
+        Assert.Equal(2,Assert.Single(result.AccountMaterials!).Value);
     }
     [Fact]
     public async Task Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows()
@@ -268,7 +268,7 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(2,shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1")); Assert.Equal(3,shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=1 AND quest_id=2002"));
         Assert.Equal(0,shop.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1"));
         Assert.Equal(9,shop.Count(2000)); Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
-        Assert.Equal(0,(await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>().Get(new(1)).SnapshotAsync(default)).BlackCube);
+        Assert.Equal(0, shop.SharedCount(3033));
         Assert.Equal(100000,shop.Gold); Assert.Equal(90,shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); Assert.Equal(1,shop.Scalar("SELECT level FROM characters WHERE character_id=1")); Assert.Equal(0,shop.Scalar("SELECT grow_type FROM characters WHERE character_id=1"));
         Assert.Equal(3,shop.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=1")); Assert.Equal(2,shop.Scalar("SELECT length(extra_values) FROM character_skills WHERE character_id=1 AND page_index=0"));
         Assert.Equal(0,shop.Scalar("SELECT unlocked FROM character_skill_builds WHERE character_id=1 AND build_id=256")); Assert.Equal(5,shop.Scalar("SELECT bonus_sp FROM characters WHERE character_id=1"));

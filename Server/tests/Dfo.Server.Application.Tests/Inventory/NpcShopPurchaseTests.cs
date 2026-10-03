@@ -341,6 +341,11 @@ internal sealed class ShopFixture : IDisposable
             provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(),
             provider.GetRequiredService<IItemArrivalRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
+        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
+            new PersistentItemContainer(ContainerId.ForAccount(session.AccountId, InventoryContainerType.SharedMaterial),
+                session.CharacterId, new(InventoryContainerType.SharedMaterial, 11), provider.GetRequiredService<IItemDomainStore>(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), null, provider.GetRequiredService<IItemPlacementRuleService>(),
+                provider.GetRequiredService<IItemArrivalRuleService>(), provider.GetRequiredService<IItemSlotRuleService>()));
     }
 
     public async Task Seed(int slot, int item, int count, byte kind = 2)
@@ -353,6 +358,24 @@ internal sealed class ShopFixture : IDisposable
         await (container == InventoryContainerType.Equipment ? equipment : bag).PutAsync(slot, core, default);
         await tx.CommitAsync(default);
     }
+
+    public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+        .GetStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
+        .GetContainer(BusinessInventorySpace.SharedMaterial);
+
+    public async Task SeedShared(int item, int count, int account = 1)
+    {
+        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+        await PutShared(item, count, account);
+        await tx.CommitAsync(default);
+    }
+    public async Task PutShared(int item, int count, int account = 1)
+    {
+        Assert.True(AccountMaterialCatalog.TryGetSlotIndex(item, out var slot));
+        if (count == 0) await Shared(account).ClearAsync(slot, default);
+        else await Shared(account).PutAsync(slot, StackableItemCore.Create(AccountMaterialCatalog.Definitions[slot].ItemKind, item, count), default);
+    }
+    public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
     public ValueTask Buy(int item, int count) => provider.GetRequiredService<BuyItemHandler>().HandleAsync(new(connection),
         new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default);

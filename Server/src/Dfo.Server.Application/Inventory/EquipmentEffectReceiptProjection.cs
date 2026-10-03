@@ -20,8 +20,6 @@ internal static class EquipmentEffectReceiptProjection
         return result.AsReadOnly();
     }
 
-    public static IReadOnlyList<AccountMaterialChange> AccountChanges(ApplyEffectsResult applied) =>
-        applied.Changes<AccountMaterialEffectChange>().Select(change => change.Change).ToArray();
-    public static IReadOnlyList<StackableGrantAddition> PhysicalRewards(ApplyEffectsResult applied) =>
+    public static IReadOnlyList<StackableGrantAddition> Rewards(ApplyEffectsResult applied) =>
         applied.Changes<StackableGrantEffectChange>().SelectMany(change => change.Additions).ToArray();
 }

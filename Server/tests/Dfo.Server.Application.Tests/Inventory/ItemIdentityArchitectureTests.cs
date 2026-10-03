@@ -61,7 +61,7 @@ public sealed class ItemIdentityArchitectureTests
     [
         typeof(InventoryItemState).Assembly,
         typeof(InventoryStorageItem).Assembly,
-        typeof(StackableItemCore).Assembly,
+        typeof(ItemContainerOperations).Assembly,
         typeof(InventoryItemCore).Assembly,
         typeof(ChannelConnectHandler).Assembly,
     ];

@@ -9,7 +9,7 @@ namespace Dfo.Server.Protocol.Tests.Support;
 /// <summary>Test adapter for scenarios that deliberately exercise only character inventory.</summary>
 internal sealed class OrdinaryItemGrantDomainService : IItemGrantDomainService
 {
-    public async ValueTask<ItemGrantOutcome> GrantAsync(
+    public async ValueTask<BusinessItemAdditionResult> GrantAsync(
         AccountId accountId,
         CharacterId characterId,
         ICharacterContainerDomainService containers,
@@ -36,7 +36,7 @@ internal sealed class OrdinaryItemGrantDomainService : IItemGrantDomainService
                 new ItemPlacementOutcome.PutInEmptySlot(business.Index, opened.Count),
             _ => placement,
         };
-        return new ItemGrantOutcome.CharacterItem(
+        return new BusinessItemAdditionResult(
             new BusinessItemContainer(business.Space, physical), local);
     }
 }

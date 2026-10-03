@@ -12,7 +12,7 @@ internal sealed class ItemDiscardRuleService : IItemDiscardRuleService
         ushort operationType,
         int itemId,
         int count) =>
-        slot.Space.IsCarriedItemSpace()
+        (slot.Space.IsCarriedItemSpace() || slot.Space == BusinessInventorySpace.SharedMaterial)
         && entryCount == 1
         && operationType == 1
         && itemId > 0

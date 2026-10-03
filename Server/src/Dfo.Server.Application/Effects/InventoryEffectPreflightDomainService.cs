@@ -11,7 +11,6 @@ namespace Dfo.Server.Application.Effects;
 
 internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipment, ICharacterDomainService characters,
-    IAccountMaterialBagDomainService accounts, IAccountMaterialRuleService accountRules,
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
     IEnumerable<IInventoryEffectPreviewHandler> extensions, ICharacterContainerDomainService? containers = null,
     IPremiumServiceDomainService? premiums = null, IAccountTable? accountTable = null,
@@ -26,7 +25,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
     private async ValueTask<InventoryEffectPreviewResult> PreviewAsync(EffectExecutionContext context,
         IReadOnlyList<DomainEffect> effects, bool includeHoldings, CancellationToken ct)
     {
-        var state = new Standing(context, slots, accounts, characters, containers, premiums, accountTable, usage);
+        var state = new Standing(context, slots, characters, containers, premiums, accountTable, usage);
         try
         {
             foreach (var effect in effects)
@@ -42,19 +41,6 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                         if (item!.Count < consume.Count) Refuse(InventoryEffectRejection.InsufficientAssets);
                         state.SetSlot(consume.Slot, item.Count == consume.Count ? null : item with
                         { Core = item.Core with { Value = item.Count - consume.Count } });
-                        break;
-                    case ConsumeAccountMaterialEffect consume:
-                        CheckAccount(consume.Kind, consume.ExpectedItemId, consume.Count);
-                        var current = await state.AccountCountAsync(consume.Kind, ct).ConfigureAwait(false);
-                        if (current < consume.Count) Refuse(InventoryEffectRejection.InsufficientAssets);
-                        state.SetAccountCount(consume.Kind, current - consume.Count);
-                        break;
-                    case GrantAccountMaterialEffect grant:
-                        CheckAccount(grant.Kind, grant.ExpectedItemId, grant.Count);
-                        var count = (long)await state.AccountCountAsync(grant.Kind, ct).ConfigureAwait(false) + grant.Count;
-                        if (count > int.MaxValue) Refuse(InventoryEffectRejection.NoRoom);
-                        state.SetAccountCount(grant.Kind, (int)count);
-                        state.AddedAccountReward(grant.Kind);
                         break;
                     case SpendGoldEffect spend:
                         if (spend.Amount < 0) Refuse(InventoryEffectRejection.InvalidTarget);
@@ -92,29 +78,23 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                         break;
                 }
             }
-            return new(InventoryEffectRejection.None, state.PhysicalRewardEntries, state.AccountRewardKinds,
+            return new(InventoryEffectRejection.None, state.RewardEntries,
                 includeHoldings ? await state.HoldingsAsync(ct).ConfigureAwait(false) : null);
         }
         catch (InventoryEffectException exception) { return new(exception.Rejection); }
     }
 
-    private void CheckAccount(AccountMaterialKind kind, int itemId, int count)
-    {
-        if (count <= 0 || !accountRules.TryGetByItemId(itemId, out var definition) || definition.Kind != kind)
-            Refuse(InventoryEffectRejection.InvalidTarget);
-    }
-
     private async ValueTask GrantAsync(EffectExecutionContext context, GrantStackableEffect grant, Standing state, CancellationToken ct)
     {
         var placement = await placements.PlacementForAsync(grant.ItemId, ct).ConfigureAwait(false);
-        if (grant.Count <= 0 || accountRules.TryGetByItemId(grant.ItemId, out _)
+        if (grant.Count <= 0
             || placement is not { WorldClass: ItemWorldClass.Interchangeable, ItemKind: > 0 })
             Refuse(InventoryEffectRejection.UnsupportedItem);
         await GrantBasicAsync(grant.ItemId, grant.Count, placement!, state, ct).ConfigureAwait(false);
     }
     private async ValueTask GrantBasicAsync(int itemId, int count, ItemPlacement placement, Standing state, CancellationToken ct)
     {
-        if (count <= 0 || itemId <= 0 || placement.ItemKind == 0 || accountRules.TryGetByItemId(itemId, out _))
+        if (count <= 0 || itemId <= 0 || placement.ItemKind == 0)
             Refuse(InventoryEffectRejection.UnsupportedItem);
         placement = InventoryCapacityPlacement.Limit(placement,
             await state.OpenSlotCountAsync(placement.Destination.Space, ct).ConfigureAwait(false))
@@ -122,7 +102,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         var available = Enumerable.Range(placement.Destination.FirstIndex,
             placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
-        if (ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+        if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
             available = available.Concat(Enumerable.Range(0, 6).Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)));
         var candidates = available.ToArray();
         foreach (var slot in candidates) _ = await state.ReadSlotAsync(slot, ct).ConfigureAwait(false);
@@ -147,7 +127,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
             }
             if (added <= 0 || added > remaining) throw new InvalidDataException("Invalid effect arrival progress.");
             state.SetSlot(target, new(target.Index, core, placement.WorldClass));
-            state.AddedPhysicalRewardEntries(1);
+            state.AddedRewardEntries(1);
             remaining -= added;
         }
     }
@@ -155,21 +135,18 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
     private static void Refuse(InventoryEffectRejection reason) => throw new InventoryEffectException(reason);
 
     private sealed class Standing(EffectExecutionContext context, IBusinessInventorySlotDomainService slots,
-        IAccountMaterialBagDomainService accounts, ICharacterDomainService characters,
+        ICharacterDomainService characters,
         ICharacterContainerDomainService? containers, IPremiumServiceDomainService? premiums,
         IAccountTable? accountTable, IPremiumServiceUsageDomainService? usage) : IInventoryEffectPreviewState
     {
         private readonly Dictionary<BusinessSlot, ContainerSlotItem?> items = [];
         private readonly HashSet<BusinessInventorySpace> loaded = [];
-        private readonly Dictionary<AccountMaterialKind, int> balances = [];
-        private readonly HashSet<AccountMaterialKind> rewardKinds = [];
         private readonly Dictionary<int, ContainerSlotItem?> virtualItems = [];
         private readonly Dictionary<PremiumServiceType, long> expiries = [];
         private int? luck;
         private DoublePotCounterState? doublePot;
         private int? gold;
-        public int PhysicalRewardEntries { get; private set; }
-        public int AccountRewardKinds => rewardKinds.Count;
+        public int RewardEntries { get; private set; }
         public ContainerSlotItem? At(BusinessSlot slot) => items.GetValueOrDefault(slot);
         public async ValueTask<ContainerSlotItem?> ReadSlotAsync(BusinessSlot slot, CancellationToken ct)
         {
@@ -183,13 +160,6 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
             return At(slot);
         }
         public void SetSlot(BusinessSlot slot, ContainerSlotItem? item) => items[slot] = item;
-        public async ValueTask<int> AccountCountAsync(AccountMaterialKind kind, CancellationToken ct)
-        {
-            if (!balances.TryGetValue(kind, out var current))
-                balances[kind] = current = (await accounts.Get(context.AccountId).SnapshotAsync(ct).ConfigureAwait(false)).Count(kind);
-            return current;
-        }
-        public void SetAccountCount(AccountMaterialKind kind, int count) => balances[kind] = count;
         public async ValueTask<int> GoldAsync(CancellationToken ct) =>
             gold ??= await characters.Get(context.CharacterId).GoldAsync(ct).ConfigureAwait(false);
         public void SetGold(int amount) => gold = amount;
@@ -222,8 +192,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         public void SetDoublePotCounters(DoublePotCounterState counters) => doublePot = counters;
         public ValueTask<int> OpenSlotCountAsync(BusinessInventorySpace space, CancellationToken ct) =>
             slots.Get(context.CharacterId, new(space, 0)).Container.OpenSlotCountAsync(ct);
-        public void AddedPhysicalRewardEntries(int count) => PhysicalRewardEntries += count;
-        public void AddedAccountReward(AccountMaterialKind kind) => rewardKinds.Add(kind);
+        public void AddedRewardEntries(int count) => RewardEntries += count;
         public async ValueTask<InventoryEffectHoldingsSnapshot> HoldingsAsync(CancellationToken ct)
         {
             var main = containers?.FindContainer(context.CharacterId, InventoryContainerType.Main)

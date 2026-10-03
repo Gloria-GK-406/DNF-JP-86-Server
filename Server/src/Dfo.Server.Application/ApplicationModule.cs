@@ -180,7 +180,6 @@ public sealed class ApplicationModule : IServerModule
         // they apply to, so each can be checked without a database in reach.
         services.TryAddSingleton<AmbientStoreAccess>();
         services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
-        services.TryAddSingleton<IAccountMaterialBagDomainService, AccountMaterialBagDomainService>();
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
         // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
@@ -447,8 +446,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetDoublePotUsageEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, SetDoublePotUsageEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SpendGoldEffectHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, ConsumeAccountMaterialEffectHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantAccountMaterialEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantStackableEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantBasicCharacterItemEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetQuestRewardGoldEffectHandler>());

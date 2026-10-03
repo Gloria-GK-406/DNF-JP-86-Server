@@ -18,41 +18,12 @@ internal sealed class SpendGoldEffectHandler(ICharacterDomainService characters)
             ?? throw new InventoryEffectException(InventoryEffectRejection.InsufficientAssets));
 }
 
-internal sealed class ConsumeAccountMaterialEffectHandler(IAccountMaterialBagDomainService accounts,
-    IAccountMaterialRuleService rules) : EffectHandler<ConsumeAccountMaterialEffect>
-{
-    public override ValueTask ValidateAsync(EffectExecutionContext context, ConsumeAccountMaterialEffect effect, CancellationToken ct)
-    {
-        if (effect.Count <= 0 || !rules.TryGetByItemId(effect.ExpectedItemId, out var definition) || definition.Kind != effect.Kind)
-            throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
-        return ValueTask.CompletedTask;
-    }
-    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, ConsumeAccountMaterialEffect effect, CancellationToken ct) =>
-        new AccountMaterialEffectChange(await accounts.Get(context.AccountId).ConsumeAsync(effect.Kind, effect.Count, ct)
-            .ConfigureAwait(false) ?? throw new InventoryEffectException(InventoryEffectRejection.InsufficientAssets));
-}
-
-internal sealed class GrantAccountMaterialEffectHandler(IAccountMaterialBagDomainService accounts,
-    IAccountMaterialRuleService rules) : EffectHandler<GrantAccountMaterialEffect>
-{
-    public override ValueTask ValidateAsync(EffectExecutionContext context, GrantAccountMaterialEffect effect, CancellationToken ct)
-    {
-        if (effect.Count <= 0 || !rules.TryGetByItemId(effect.ExpectedItemId, out var definition) || definition.Kind != effect.Kind)
-            throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
-        return ValueTask.CompletedTask;
-    }
-    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantAccountMaterialEffect effect, CancellationToken ct) =>
-        new AccountMaterialEffectChange((await accounts.Get(context.AccountId).AddAsync(
-            new Dictionary<AccountMaterialKind, int> { [effect.Kind] = effect.Count }, ct).ConfigureAwait(false)).Single());
-}
-
 internal sealed class GrantStackableEffectHandler(ICharacterContainerDomainService containers,
-    IBusinessInventorySlotDomainService slots, IItemPlacementRuleService placements,
-    IAccountMaterialRuleService accounts) : EffectHandler<GrantStackableEffect>
+    IBusinessInventorySlotDomainService slots, IItemPlacementRuleService placements) : EffectHandler<GrantStackableEffect>
 {
     public override async ValueTask ValidateAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
     {
-        if (effect.Count <= 0 || accounts.TryGetByItemId(effect.ItemId, out _)
+        if (effect.Count <= 0
             || await placements.PlacementForAsync(effect.ItemId, ct).ConfigureAwait(false) is not
                 { WorldClass: ItemWorldClass.Interchangeable, ItemKind: > 0 })
             throw new InventoryEffectException(InventoryEffectRejection.UnsupportedItem);
@@ -60,7 +31,6 @@ internal sealed class GrantStackableEffectHandler(ICharacterContainerDomainServi
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
     {
         var added = await containers.AddAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
-        if (added.AccountMaterial is not null) throw new InvalidOperationException("Physical grant unexpectedly changed account materials.");
         var changes = new List<InventorySlotEffectChange>();
         foreach (var slot in added.Items.Select(x => x.Slot).Distinct())
             changes.Add(new(slot, (await slots.Get(context.CharacterId, slot).Container.ReadSlotAsync(slot.Index, ct)

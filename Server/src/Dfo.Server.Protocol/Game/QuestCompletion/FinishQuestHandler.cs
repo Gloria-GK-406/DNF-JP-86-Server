@@ -180,9 +180,9 @@ public sealed class FinishQuestHandler(
         {
             frames.Add(GameInventoryDelivery.VirtualResourceNotification(
                 [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
-                    material.VirtualSlotIndex,
+                    material.SlotIndex,
                     material.ItemId,
-                    material.FinalCount))],
+                    material.Value))],
                 clock.GetUtcNow()));
         }
         if (mirror is not null)

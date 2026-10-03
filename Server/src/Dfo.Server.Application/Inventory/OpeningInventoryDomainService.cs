@@ -20,6 +20,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterTable characters,
     ICharacterBusinessInventoryDomainService businessInventories, IItemDomainStore store,
+    IBusinessInventorySlotDomainService slots,
     IDomainTransactionAccessor transactions, ICharacterInventoryEntryDomainService inventory,
     IPremiumServiceDomainService premiums, ICharacterCreatureTable creatures,
     ICharacterDomainService characterDomain, IApplyEffectsDomainService effects,
@@ -74,11 +75,16 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         var cleared = ImmutableArray.CreateBuilder<BusinessSlot>();
         foreach (var slot in touched)
         {
-            var storage = slot.Space == BusinessInventorySpace.VirtualResource
-                ? new LegacyInventoryStorageCoordinate(InventoryContainerType.Main, slot.Index)
-                : LegacyInventoryStorageCoordinates.ToStorage(slot);
-            var item = snapshot.Containers.Single(b => b.ContainerType == storage.List).Items.SingleOrDefault(i => i.SlotIndex == storage.Index);
+            var item = slot.Space == BusinessInventorySpace.VirtualResource
+                ? snapshot.Containers.Single(b => b.ContainerType == InventoryContainerType.Main).Items
+                    .SingleOrDefault(i => i.SlotIndex == slot.Index)
+                : await ReadCurrentItemAsync(slot).ConfigureAwait(false);
             if (item is null) cleared.Add(slot); else updates.Add(new(slot, item.Identity, item.Core));
+        }
+        async ValueTask<InventoryItemState?> ReadCurrentItemAsync(BusinessSlot slot)
+        {
+            var item = await slots.Get(session.CharacterId, slot).Container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
+            return item is null ? null : new(item.Identity, slot.Index, item.Core);
         }
         var displayed = applied.Applied.SelectMany(x => x.Change switch {
             PreparedItemGrantChange physical => physical.Rewards.AsEnumerable(),

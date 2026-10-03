@@ -10,7 +10,6 @@ public interface IEquipmentReinforcementDomainService
         BusinessSlot targetSlot,
         int expectedItemId,
         BusinessSlot? materialSlot,
-        int? accountMaterialItemId,
         BusinessSlot? protectionSlot,
         CancellationToken cancellationToken,
         EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);

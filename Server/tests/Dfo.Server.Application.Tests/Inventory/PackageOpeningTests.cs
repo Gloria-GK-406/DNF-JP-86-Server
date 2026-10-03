@@ -21,6 +21,22 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class PackageOpeningTests
 {
     [Fact]
+    public async Task Prepared_shared_rewards_use_the_fixed_slot_and_preserve_declared_expiry()
+    {
+        using var opening = new OpeningFixture();
+        opening.Content.Definitions[1001] = OpeningContent.Package(1001, [new(3037, 2)]);
+        opening.Content.Items[3037] = new(3037, new(11, 1000, new(BusinessInventorySpace.Material, 0, 55)),
+            0, false, [], null, true, DefaultPeriodDays: 2);
+        await opening.Host.Seed(80, 1001, 1);
+        await opening.Package();
+        Assert.Equal(0, opening.Host.Count(3037));
+        Assert.Equal(2, opening.Host.SharedCount(3037));
+        var item = (await opening.Host.Shared().ReadSlotAsync(4, default))!;
+        Assert.Equal((int)opening.Host.Clock.GetUtcNow().AddDays(2).ToUnixTimeSeconds(), item.Core.ExpireTime);
+        Assert.Equal(0, opening.Host.Count(1001));
+    }
+
+    [Fact]
     public async Task Permanent_source_remains_usable_after_2038()
     {
         using var opening = new OpeningFixture();
@@ -88,7 +104,7 @@ public sealed class PackageOpeningTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var shop = new CeraShopFixture(useArchive: true, configure: services => services.AddSingleton<IPackageOpeningRuleService>(
-            provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>()))));
+            provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>(), provider.GetRequiredService<IItemPlacementRuleService>()))));
         await shop.Host.Seed(66, 2682272, 60);
         var result = await shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
             new MagicBoxBatchOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(4, 66, 2682272, -1, -1, 60)));
@@ -490,7 +506,9 @@ internal sealed class OpeningContent : IPackageOpeningDefinitionSource, IItemPla
     public ValueTask<OpeningPackageDefinition?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Definitions.GetValueOrDefault(id));
     public ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int id, CancellationToken ct) => ValueTask.FromResult(Items.GetValueOrDefault(id));
     ValueTask<ItemPlacement?> IItemPlacementDefinitionSource.GetAsync(int id, CancellationToken ct) =>
-        ValueTask.FromResult<ItemPlacement?>(Items.TryGetValue(id, out var item)
+        ValueTask.FromResult<ItemPlacement?>(AccountMaterialCatalog.TryGetSlotIndex(id, out var material)
+            ? new(AccountMaterialCatalog.Definitions[material].ItemKind, 1000, new(BusinessInventorySpace.Material, 0, 55))
+            : Items.TryGetValue(id, out var item)
             ? item.Placement
             : new(2, 10000, new(BusinessInventorySpace.Consumable, 0, 55)));
     ValueTask<ItemUseRule?> IItemUseRuleDefinitionSource.GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<ItemUseRule?>(UseRule);

@@ -146,7 +146,6 @@ internal sealed class EffectOperationContext
                     foreach (var addition in change.Additions) Physical(addition.Slot);
                     if (grant.Placement.ItemKind == 5) frame.Needs |= ReplayProjectionNeeds.Pets;
                     break;
-                case (ConsumeAccountMaterialEffect or GrantAccountMaterialEffect, AccountMaterialEffectChange):
                 case (SpendGoldEffect, GoldEffectChange):
                 case (SetQuestRewardGoldEffect, QuestRewardGoldChange):
                 case (GrantOpeningVirtualEffect, OpeningVirtualChange): frame.Needs |= ReplayProjectionNeeds.Inventory; break;

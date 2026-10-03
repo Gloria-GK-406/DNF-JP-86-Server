@@ -1,5 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
@@ -572,8 +574,8 @@ public sealed class InventoryLoadCharacterizationTests
     private static async Task SeedAsync(string path)
     {
         await ExecuteAsync(path, $"""
-            INSERT INTO accounts(account_id,m_id,cube_black,cube_white,cube_red,cube_blue,cube_clear,cube_gold)
-            VALUES({Account},'pin',11,12,0,14,15,16);
+            INSERT INTO accounts(account_id,m_id)
+            VALUES({Account},'pin');
             INSERT INTO characters(character_id,account_id,name,job,level)
             VALUES({Character},{Account},'pin',3,60);
 
@@ -600,6 +602,17 @@ public sealed class InventoryLoadCharacterizationTests
             INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
             VALUES({Account},6001,6002,6003);
             """);
+
+        foreach (var (slot, count) in new[] { (0, 11), (1, 12), (3, 14), (4, 15), (5, 16) })
+        {
+            var material = AccountMaterialCatalog.Definitions[slot];
+            var core = Convert.ToHexString(InventoryItemCore.Encode(StackableItemCore.Create(material.ItemKind, material.ItemId, count)));
+            await ExecuteAsync(path, $"""
+                INSERT INTO items(item_core) VALUES(X'{core}');
+                INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+                VALUES('account',{Account},240,{slot},'template',{material.ItemId},last_insert_rowid(),{count});
+                """);
+        }
 
         // Slots 0 to 2 of the main container become the runtime values; their ids run downward so
         // their order cannot have come from the order the rows went in.

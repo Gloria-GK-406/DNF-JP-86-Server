@@ -105,10 +105,10 @@ public sealed record SelectCardResult(
     int GoldCarried = 0,
     DungeonCardSelectionChange? StaticChange = null,
     DungeonCardSelectionCommit? SelectionCommit = null,
-    AccountMaterialChange? AccountMaterial = null)
+    InventoryRuntimeValueState? AccountMaterial = null)
 {
     public CommittedInventoryUpdateState? BlackDiamondDelivered { get; init; }
-    public AccountMaterialChange? BlackDiamondAccountMaterial { get; init; }
+    public InventoryRuntimeValueState? BlackDiamondAccountMaterial { get; init; }
     public AccountEntitlementEntryState Entitlements { get; init; } = new([]);
     public IReadOnlyList<CharacterPremiumUsageSlotState> Usage { get; init; } = [];
     public DungeonCardSelectionChange? Change => this.SelectionCommit?.Change ?? this.StaticChange;
@@ -319,26 +319,23 @@ public sealed class SelectCardCommandHandler(
                 accountId, characterId, containers, piece.ItemId, piece.Quantity, cancellationToken)
             .ConfigureAwait(false);
         int slotIndex;
-        ItemGrantOutcome.CharacterItem? delivered = null;
+        BusinessItemAdditionResult? delivered = null;
         var opensASlot = false;
         switch (granted)
         {
-            case ItemGrantOutcome.AccountMaterial account:
-                return new CardItemDelivery(null, account.Change);
-
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                 slotIndex = topped.SlotIndex;
                 delivered = character;
                 break;
 
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                 slotIndex = opened.SlotIndex;
                 delivered = character;
                 opensASlot = true;
                 break;
 
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
                 return null;
 
             default:
@@ -353,6 +350,8 @@ public sealed class SelectCardCommandHandler(
         if (landed is null)
             return null;
 
+        if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared)
+            return new CardItemDelivery(null, shared);
         var core = landed.Core;
         if (opensASlot)
         {
@@ -378,5 +377,5 @@ public sealed class SelectCardCommandHandler(
 
     private sealed record CardItemDelivery(
         CommittedInventoryUpdateState? CharacterItem,
-        AccountMaterialChange? AccountMaterial);
+        InventoryRuntimeValueState? AccountMaterial);
 }

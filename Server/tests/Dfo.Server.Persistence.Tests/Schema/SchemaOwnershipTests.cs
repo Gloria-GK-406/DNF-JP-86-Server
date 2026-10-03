@@ -55,7 +55,8 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(55, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(56, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Contains("schema_migrations(applied_at:TEXT,name:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_administrators(enabled:INTEGER,id:INTEGER,login_name:TEXT,password_record:TEXT,permissions:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_sessions(administrator_id:INTEGER,expires_at:INTEGER,token_hash:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_audit(action:TEXT,administrator_id:INTEGER,administrator_name:TEXT,occurred_at:INTEGER,operation_id:TEXT,outcome:TEXT,reason:TEXT,target:TEXT)", shape, StringComparison.Ordinal);

@@ -289,7 +289,8 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.Equal(new[] { "2" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
         Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM gm_audit WHERE action='SendOfficialMail' AND outcome='Succeeded';"));
         Assert.Equal(new[] { "4" }, await host.ReadAsync("SELECT COUNT(*) FROM item_slots WHERE kind='world';"));
-        Assert.Equal(new[] { "4", "4" }, await host.ReadAsync("SELECT cube_clear FROM accounts WHERE account_id IN(1,2) ORDER BY account_id;"));
+        Assert.Equal(new[] { "4", "4" }, await host.ReadAsync("SELECT count FROM item_slots WHERE owner_scope='account' AND owner_id IN(1,2) AND list_type=240 AND slot_index=4 AND kind='template' AND id=3037 ORDER BY owner_id;"));
+        Assert.Equal(new[] { "0", "0" }, await host.ReadAsync("SELECT cube_clear FROM accounts WHERE account_id IN(1,2) ORDER BY account_id;"));
         Assert.Equal(new[] { "100", "100" }, await host.ReadAsync("SELECT carried_gold FROM character_stats WHERE character_id IN(1,2) ORDER BY character_id;"));
     }
 

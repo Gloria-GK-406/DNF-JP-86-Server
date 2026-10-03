@@ -227,22 +227,22 @@ public sealed partial class MailboxCoreIntegrationTests
     public async Task AccountMaterialAttachmentsUseAccountBalanceAndRollbackWithMail()
     {
         using var fixture = new MailFixture();
-        fixture.Sql("UPDATE accounts SET cube_clear=10 WHERE account_id=1");
+        await fixture.SeedShared(3037, 10, 1);
         var sent = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
             .AddStackable(3037, 3).Build());
-        Assert.Equal(7, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
-        Assert.NotNull(Assert.Single(sent.Changes).AccountMaterial);
+        Assert.Equal(7, fixture.SharedCount(3037, 1));
+        Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(sent.Changes).Slot!.Value.Space);
         var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, sent.MailId)).Attachments);
         var claimed = await fixture.Mail.ClaimAsync(Recipient, attachment.Id);
-        Assert.NotNull(Assert.Single(claimed.Changes).AccountMaterial);
-        Assert.Equal(10, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(claimed.Changes).Slot!.Value.Space);
+        Assert.Equal(10, fixture.SharedCount(3037, 1));
         Assert.Equal(0, await fixture.TotalStackAsync(3037));
         await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
             new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(3037, 2).AddGold(1001).Build()).AsTask());
-        Assert.Equal(10, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(10, fixture.SharedCount(3037, 1));
         var reward = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient).AddStackable(3037, 4).Build());
         await fixture.Mail.ClaimAsync(Recipient, Assert.Single((await fixture.Mail.ReadAsync(Recipient, reward.MailId)).Attachments).Id);
-        Assert.Equal(14, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(14, fixture.SharedCount(3037, 1));
         Assert.Equal(0, await fixture.TotalStackAsync(3037));
     }
 
@@ -338,6 +338,24 @@ public sealed partial class MailboxCoreIntegrationTests
                 MailSource.FromCharacter(Sender), Recipient).AddGold(10).AddStackable(1000, 1000).Build()).AsTask());
             await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
         }
+
+    public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+        .GetStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
+        .GetContainer(BusinessInventorySpace.SharedMaterial);
+
+    public async Task SeedShared(int item, int count, int account = 1)
+    {
+        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+        await PutShared(item, count, account);
+        await tx.CommitAsync(default);
+    }
+    public async Task PutShared(int item, int count, int account = 1)
+    {
+        Assert.True(AccountMaterialCatalog.TryGetSlotIndex(item, out var slot));
+        if (count == 0) await Shared(account).ClearAsync(slot, default);
+        else await Shared(account).PutAsync(slot, StackableItemCore.Create(AccountMaterialCatalog.Definitions[slot].ItemKind, item, count), default);
+    }
+    public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
         public MailFixture Reopen() => new(directory, Clock, false, configure);
 
@@ -440,7 +458,7 @@ public sealed partial class MailboxCoreIntegrationTests
                 ? ValueTask.FromResult<ItemPlacement?>(null) : itemId == 1001
                 ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 55)))
                 : itemId == 3037
-                ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 1)))
+                ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(11, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 1)))
                 : new NpcShopTestContent().GetAsync(itemId, ct);
         }
 

@@ -212,7 +212,8 @@ public sealed class ReplayStateSnapshotTests
         await barriers.Read.Task.WaitAsync(TimeSpan.FromSeconds(5));
         try
         {
-            fixture.Sql("UPDATE character_stats SET carried_gold=200000 WHERE character_id=1; UPDATE accounts SET cube_gold=7 WHERE account_id=1");
+            fixture.Sql("UPDATE character_stats SET carried_gold=200000 WHERE character_id=1");
+            await fixture.SeedShared(3262, 7);
             barriers.Release.TrySetResult();
             var snapshot = await read.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(100000, snapshot.Inventory!.Character().VirtualResources.Single(x => x.SlotIndex == 0).Value);

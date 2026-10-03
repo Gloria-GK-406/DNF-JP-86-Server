@@ -63,6 +63,12 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         // in the archive does. Equipment is unaffected -- its limit is one, and one still piles
         // onto nothing.
         var stackLimit = placement.StackLimit > 0 ? placement.StackLimit : int.MaxValue;
+        if (placement.Destination.Space == BusinessInventorySpace.SharedMaterial)
+        {
+            if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
+            var current = present.Where(pile => placement.Destination.Contains(pile.Slot)).Sum(pile => (long)pile.Count);
+            if (current + count > stackLimit) return new ItemArrival.NoRoom();
+        }
         if (stackLimit > 1)
         {
             foreach (var pile in present.OrderBy(value => value.Slot.Space).ThenBy(value => value.Slot.Index))
@@ -118,7 +124,7 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
     private static IEnumerable<BusinessSlotRange> BandsFor(ItemPlacement placement)
     {
         var own = placement.Destination;
-        if (placement.ItemKind == EquipmentKind
+        if (own.Space == BusinessInventorySpace.SharedMaterial || placement.ItemKind == EquipmentKind
             || !ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
         {
             yield return own;

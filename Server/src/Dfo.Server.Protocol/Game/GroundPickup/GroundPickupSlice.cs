@@ -256,7 +256,7 @@ public sealed record GroundPickupResult(
     DungeonPickupChange? Change = null,
     QuestProgressSnapshot? QuestProgress = null,
     DungeonPickupCommit? PendingCommit = null,
-    AccountMaterialChange? AccountMaterial = null)
+    InventoryRuntimeValueState? AccountMaterial = null)
 {
     public DungeonPickupChange? CommittedChange => this.PendingCommit?.Change ?? this.Change;
 
@@ -373,39 +373,35 @@ public sealed class PickUpGroundDropCommandHandler(
                     cancellationToken)
                 .ConfigureAwait(false);
             int slotIndex;
-            AccountMaterialChange? accountMaterial = null;
+            InventoryRuntimeValueState? accountMaterial = null;
             switch (granted)
             {
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                     slotIndex = ItemGrantWireProjection.Index(character, topped.SlotIndex);
                     break;
 
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                     slotIndex = ItemGrantWireProjection.Index(character, opened.SlotIndex);
-                    await CarryOverAsync(character.Container, piece, opened.SlotIndex, cancellationToken)
-                        .ConfigureAwait(false);
+                    if (character.Container.Space != BusinessInventorySpace.SharedMaterial)
+                        await CarryOverAsync(character.Container, piece, opened.SlotIndex, cancellationToken).ConfigureAwait(false);
                     break;
 
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
                     runs.ReleaseGroundDrop(itemClaim);
                     return GroundPickupResult.Refused(
                         GroundPickupStatus.InventoryFull, piece.ItemId);
 
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
                     runs.ReleaseGroundDrop(itemClaim);
                     return GroundPickupResult.Refused(
                         GroundPickupStatus.UnknownItem, piece.ItemId);
-
-                case ItemGrantOutcome.AccountMaterial account:
-                    accountMaterial = account.Change;
-                    slotIndex = account.Change.VirtualSlotIndex;
-                    break;
 
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(command), granted, "No reading was decided for this outcome.");
             }
 
+            accountMaterial = await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false);
             var reported = await questProgress.ReportAsync(
                 command.AccountId, command.CharacterId,
                 [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
@@ -595,9 +591,9 @@ public sealed class DungeonPickupProjectionDelivery(
                 {
                     itemMessages.Add(GameInventoryDelivery.VirtualResourceNotification(
                         [new InventoryRuntimeValueState(
-                            accountMaterial.VirtualSlotIndex,
+                            accountMaterial.SlotIndex,
                             accountMaterial.ItemId,
-                            accountMaterial.FinalCount)],
+                            accountMaterial.Value)],
                         clock.GetUtcNow()));
                 }
                 if (result.QuestProgress is { } questProgress)

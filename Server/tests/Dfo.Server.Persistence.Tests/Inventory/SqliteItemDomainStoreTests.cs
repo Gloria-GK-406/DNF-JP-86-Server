@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
@@ -28,6 +29,79 @@ public sealed class SqliteItemDomainStoreTests
 
     private static readonly ContainerId Equipment =
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Equipment);
+
+    [Fact]
+    public async Task AccountContainersWithTheSameSlotKeepSeparateContents()
+    {
+        await using var store = await NewStoreAsync();
+        var cargo = new ContainerId("account:6:AccountCargo");
+        var other = new ContainerId("account:6:Main");
+        var transaction = new StubTransaction();
+        var session = store.Value.SessionIn(transaction);
+        session.Write(cargo, Pile(0, Potion(5)));
+        session.Write(other, Pile(0, Stone(7)));
+        await transaction.SettleAsync();
+
+        var inspect = new StubTransaction();
+        var read = store.Value.SessionIn(inspect);
+        Assert.Equal(Potion(5), (await read.ReadAsync(cargo, 0, CancellationToken.None))!.Core);
+        Assert.Equal(Stone(7), (await read.ReadAsync(other, 0, CancellationToken.None))!.Core);
+        Assert.Empty(await read.ReadAllAsync(new ContainerId("account:7:Main"), CancellationToken.None));
+        Assert.Empty(await read.ReadAllAsync(Main, CancellationToken.None));
+        await inspect.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task AccountCargoQueryExcludesOtherAccountContainers()
+    {
+        await using var store = await NewStoreAsync();
+        await using (var connection = Open(store.Path))
+        {
+            await InsertAccountItemAsync(connection, 12, 0, Potion(5));
+            await InsertAccountItemAsync(connection, 0, 1, Stone(7));
+        }
+        var table = new SqliteAccountCargoItemTable(new SqliteDatabase(store.Path, new DomainTransactionScope()));
+        var row = Assert.Single(await table.ReadByAccountAsync(new AccountId(6), CancellationToken.None));
+        Assert.Equal(12, row.ListType);
+        Assert.Equal(Potion(5), row.Core);
+    }
+
+    [Fact]
+    public async Task SchemaUpgradeAllowsDifferentAccountContainersButRejectsDuplicateSlots()
+    {
+        await using var store = await NewStoreAsync();
+        await using (var connection = Open(store.Path))
+        {
+            await using var legacy = connection.CreateCommand();
+            legacy.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot "
+                + "ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account'";
+            await legacy.ExecuteNonQueryAsync();
+            await InsertAccountItemAsync(connection, 12, 0, Potion(5));
+        }
+
+        _ = new SqliteDatabase(store.Path, new DomainTransactionScope());
+        _ = new SqliteDatabase(store.Path, new DomainTransactionScope());
+        await using var upgraded = Open(store.Path);
+        await InsertAccountItemAsync(upgraded, 0, 0, Stone(7));
+        var duplicate = await Assert.ThrowsAsync<SqliteException>(
+            () => InsertAccountItemAsync(upgraded, 12, 0, Potion(9)));
+        Assert.Equal(19, duplicate.SqliteErrorCode);
+        await using var query = upgraded.CreateCommand();
+        query.CommandText = "SELECT count(*) FROM item_slots WHERE owner_scope='account' AND owner_id=6 AND slot_index=0";
+        Assert.Equal(2L, await query.ExecuteScalarAsync());
+    }
+
+    private static async Task InsertAccountItemAsync(SqliteConnection connection, int listType, int slot,
+        InventoryItemCoreState core)
+    {
+        await InsertItemAsync(connection, slot, core, listType);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE item_slots SET owner_scope='account',owner_id=6 "
+            + "WHERE owner_scope='character' AND owner_id=60 AND list_type=@list AND slot_index=@slot";
+        command.Parameters.AddWithValue("@list", listType);
+        command.Parameters.AddWithValue("@slot", slot);
+        await command.ExecuteNonQueryAsync();
+    }
 
     [Fact]
     public async Task AccountCargo_TransfersAnInstanceAcrossCharactersWithoutChangingItsIdentity()
@@ -475,6 +549,10 @@ public sealed class SqliteItemDomainStoreTests
                 CancellationToken.None));
         Assert.Throws<InvalidOperationException>(() =>
             session.Clear(new ContainerId("run:1:Main"), 0));
+        Assert.Throws<InvalidOperationException>(() =>
+            session.Write(ContainerId.ForAccount(new AccountId(6), InventoryContainerType.QuickSlot), Pile(0, Potion(1))));
+        Assert.Throws<InvalidOperationException>(() =>
+            session.Write(new ContainerId("account:6:99"), Pile(0, Potion(1))));
     }
 
     /// <remarks>

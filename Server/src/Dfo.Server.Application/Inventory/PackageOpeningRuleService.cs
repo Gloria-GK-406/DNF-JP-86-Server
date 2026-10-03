@@ -5,7 +5,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource content) : IPackageOpeningRuleService
+internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource content, IItemPlacementRuleService placements) : IPackageOpeningRuleService
 {
     public async ValueTask<OpeningPackageDefinition> DefinitionAsync(int itemId, OpeningPackageKind kind, CancellationToken ct)
     {
@@ -64,6 +64,9 @@ internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource 
             var item = await content.GetRewardAsync(reward.ItemId, ct).ConfigureAwait(false);
             if (item is not { Supported: true } || reward.Count <= 0 || reward.PeriodDays < 0)
                 throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, $"Unsupported reward {reward.ItemId}.");
+            if (AccountMaterialCatalog.ContainsItem(item.ItemId))
+                item = item with { Placement = await placements.PlacementForAsync(item.ItemId, ct).ConfigureAwait(false)
+                    ?? throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Shared reward has no placement.") };
             if (item.Placement.WorldClass == ItemWorldClass.Avatar
                 && (item.Abilities.IsEmpty ? reward.Ability != 0 : !item.Abilities.Contains(reward.Ability))
                 || item.Placement.WorldClass != ItemWorldClass.Avatar && reward.Ability != 0)

@@ -5,10 +5,8 @@ using Dfo.Server.Abstractions.Accounts;
 namespace Dfo.Server.Abstractions.Effects;
 
 public abstract record InventoryEffect : DomainEffect;
-public sealed record ConsumeAccountMaterialEffect(AccountMaterialKind Kind, int ExpectedItemId, int Count) : InventoryEffect;
 public sealed record SpendGoldEffect(int Amount) : InventoryEffect;
 public sealed record GrantStackableEffect(int ItemId, int Count) : InventoryEffect;
-public sealed record GrantAccountMaterialEffect(AccountMaterialKind Kind, int ExpectedItemId, int Count) : InventoryEffect;
 public sealed record EquipmentEffectTarget(ItemIdentity Identity, int ExpectedItemId);
 public abstract record EquipmentEffect(EquipmentEffectTarget Equipment) : InventoryEffect;
 public sealed record SetEquipmentUpgradeEffect(EquipmentEffectTarget Equipment, byte Level) : EquipmentEffect(Equipment);
@@ -21,14 +19,13 @@ public sealed record DestroyEquipmentEffect(EquipmentEffectTarget Equipment) : E
 public sealed record InventorySlotEffectChange(BusinessSlot Slot, InventoryItemCoreState? Core);
 public sealed record EquipmentEffectChange(EquipmentInstanceFacts Before, EquipmentInstanceFacts? After) : EffectChange;
 public sealed record GoldEffectChange(int Remaining) : EffectChange;
-public sealed record AccountMaterialEffectChange(AccountMaterialChange Change) : EffectChange;
 public sealed record StackableGrantAddition(BusinessSlot Slot, int ItemId, int Count);
 public sealed record StackableGrantEffectChange(IReadOnlyList<StackableGrantAddition> Additions,
     IReadOnlyList<InventorySlotEffectChange> Slots) : EffectChange;
 
 public enum InventoryEffectRejection { None, InvalidTarget, InsufficientAssets, UnsupportedItem, NoRoom }
-public sealed record InventoryEffectPreviewResult(InventoryEffectRejection Rejection, int PhysicalRewardEntries = 0,
-    int AccountRewardKinds = 0, InventoryEffectHoldingsSnapshot? Holdings = null);
+public sealed record InventoryEffectPreviewResult(InventoryEffectRejection Rejection, int RewardEntries = 0,
+    InventoryEffectHoldingsSnapshot? Holdings = null);
 public sealed record InventoryEffectHoldingsSnapshot(System.Collections.Immutable.ImmutableArray<ContainerSlotItem> Main, int Gold);
 public sealed class InventoryEffectException(InventoryEffectRejection rejection)
     : InvalidOperationException($"Inventory effect plan refused: {rejection}.")
@@ -55,8 +52,6 @@ public interface IInventoryEffectPreviewState
     ValueTask<int> OpenSlotCountAsync(BusinessInventorySpace space, CancellationToken ct) => ValueTask.FromResult(int.MaxValue);
     ValueTask<ContainerSlotItem?> ReadSlotAsync(BusinessSlot slot, CancellationToken ct);
     void SetSlot(BusinessSlot slot, ContainerSlotItem? item);
-    ValueTask<int> AccountCountAsync(AccountMaterialKind kind, CancellationToken ct);
-    void SetAccountCount(AccountMaterialKind kind, int count);
     ValueTask<int> GoldAsync(CancellationToken ct);
     void SetGold(int amount);
     ValueTask<ContainerSlotItem?> VirtualSlotAsync(int index, CancellationToken ct);
@@ -67,6 +62,5 @@ public interface IInventoryEffectPreviewState
     void SetSeriaLuck(int value);
     ValueTask<DoublePotCounterState> DoublePotCountersAsync(CancellationToken ct);
     void SetDoublePotCounters(DoublePotCounterState counters);
-    void AddedPhysicalRewardEntries(int count);
-    void AddedAccountReward(AccountMaterialKind kind);
+    void AddedRewardEntries(int count);
 }

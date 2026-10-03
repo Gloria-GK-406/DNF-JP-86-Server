@@ -41,7 +41,7 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     {
         var result = Enumerable.Range(placement.Destination.FirstIndex, placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(i => new BusinessSlot(placement.Destination.Space, i));
-        if (ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+        if (placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
             result = result.Concat(Enumerable.Range(0, 6).Select(i => new BusinessSlot(BusinessInventorySpace.QuickSlot, i)));
         return result.ToArray();
     }
@@ -75,7 +75,7 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
             var (slot, added, core) = Next(Arrival(effect.Grant, candidates, held, remaining), effect.Grant, held, applying: false);
             if (added <= 0 || added > remaining) throw new InvalidDataException("Nonprogressing prepared grant.");
             var item = new ContainerSlotItem(slot.Index, core, effect.Grant.Item.Placement.WorldClass);
-            held[slot] = item; state.SetSlot(slot, item); state.AddedPhysicalRewardEntries(1); remaining -= added;
+            held[slot] = item; state.SetSlot(slot, item); state.AddedRewardEntries(1); remaining -= added;
         }
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)

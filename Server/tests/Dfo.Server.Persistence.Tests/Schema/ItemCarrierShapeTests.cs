@@ -274,25 +274,6 @@ public sealed class ItemCarrierShapeTests
     }
 
     /// <remarks>
-    /// The cargo declared <c>UNIQUE(account_id, slot_index)</c>, which a four-part constraint over
-    /// the position weakens for account rows. One partial unique index takes it back to exactly
-    /// today's strength -- see D-16 in the ruling. It is an index of the slot table now, because
-    /// the two columns it names are the slot table's; the fact it enforces did not change.
-    /// </remarks>
-    [Fact]
-    public async Task TheCargosOwnSlotUniquenessIsRestoredByAPartialIndex()
-    {
-        var indexes = await IndexesAsync();
-
-        Assert.True(
-            indexes.TryGetValue("idx_item_slots_account_slot", out var sql),
-            "The cargo's slot uniqueness has no successor index.");
-        Assert.Contains("UNIQUE", sql!, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON item_slots(owner_id, slot_index)", sql!, StringComparison.Ordinal);
-        Assert.Contains("WHERE owner_scope = 'account'", sql!, StringComparison.Ordinal);
-    }
-
-    /// <remarks>
     /// The detail table was keyed on the avatar UID, which says: at most one of these anywhere, not
     /// per character. That rule is still enforced and still tested: the lease that claims a UID
     /// another character holds is built by

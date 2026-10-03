@@ -33,7 +33,7 @@ public sealed class CompoundItemCodecTests
         var inventory = new OpeningInventoryReceipt(session, [new(a, null, core), new(b, null, core with { ItemId = 1285 })], [],
             [new(a, 1286, 1, 0, 0, 0), new(b, 1285, 2, 0, 0, 0)], DateTimeOffset.UnixEpoch);
         var receipt = new RecipeCraftReceipt(inventory, [new(new(BusinessInventorySpace.Consumable, 36), 1287, 1),
-            new(new(BusinessInventorySpace.Material, 19), 3244, 25)], [new(AccountMaterialKind.GoldCube, 3262, 359, -100, 0)]);
+            new(new(BusinessInventorySpace.Material, 19), 3244, 25), new(new(BusinessInventorySpace.SharedMaterial, 5), 3262, 100)]);
         var body = Body(new(receipt)); Assert.Equal(114, body.Length);
         Assert.Equal(Convert.FromHexString("010300650001000000008C00190000000067016400000002"), body[..24]);
         Assert.Equal((byte)9, body[68]); Assert.Equal((byte)9, body[113]);

@@ -16,7 +16,11 @@
 
 ## 2026-10-03 教程完成持久化
 
-[008F](game/client-to-server/0x008F.md)的31在事务中记录角色完成状态；[0004](game/client-to-server/0x0004.md)据此使已完成的1级角色跳过教程，选图投递同步处理。上游源码参考与CurrentImplementation，新增自动回归；实机待验，见[验收表](../Document/TutorialCompletionHumanTest-20261003.md)。
+[008F](game/client-to-server/0x008F.md)的31在事务中记录角色完成状态；[0004](game/client-to-server/0x0004.md)据此使已完成的1级角色跳过教程，选图投递同步处理。2026-10-03 用户确认新手地下城可以验收，修复客户端效果为 ClientVerified；无新增归档实帧，不扩大字节或失败边界证据，见[验收表](../Document/TutorialCompletionHumanTest-20261003.md)。
+
+## 2026-10-03 共享材料容器归一化（CurrentImplementation）
+
+11 种晶体/品级灵魂统一使用账号物品容器；[0013](game/client-to-server/0x0013.md) 的 Main/354..364 可映射共享局部槽并执行金库存取。[000D](game/server-to-client/NOTI-0x000D.md) 快照与 [000E](game/server-to-client/NOTI-0x000E.md) 增量改读真实容器；旧余额列停止生产读写。自动验证与真实 PVF 内容证据不代表客户端验收，本次尚未部署，见[模型](../Document/AccountMaterialBag.md)与[实机清单](../Document/SharedMaterialHumanTest-20261003.md)。
 
 ## 2026-10-01 0.2.0验收收口与新增接入
 

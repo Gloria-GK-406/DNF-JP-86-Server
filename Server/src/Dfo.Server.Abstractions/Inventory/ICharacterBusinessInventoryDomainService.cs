@@ -14,7 +14,7 @@ public static class BusinessInventoryOwnership
             or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial
             or BusinessInventorySpace.PersonalCargo
             or BusinessInventorySpace.WornEquipment or BusinessInventorySpace.WornEquipmentExtension
-            or BusinessInventorySpace.AccountCargo => BusinessInventoryStoreKind.Item,
+            or BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial => BusinessInventoryStoreKind.Item,
         BusinessInventorySpace.Avatar or BusinessInventorySpace.AvatarEmblem
             or BusinessInventorySpace.WornAvatar => BusinessInventoryStoreKind.Avatar,
         BusinessInventorySpace.CreatureInventory or BusinessInventorySpace.CreatureEquipment
@@ -28,6 +28,10 @@ public static class BusinessInventoryOwnership
 public interface ICharacterBusinessInventoryDomainService
 {
     IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind);
+    IBusinessInventoryStore GetStore(ContainerOwner owner, BusinessInventoryStoreKind kind) =>
+        owner.Scope == InventoryOwnerType.Character
+            ? GetStore(new CharacterId(owner.Value), kind)
+            : throw new NotSupportedException("This inventory provider does not support account owners.");
 }
 
 public interface IBusinessInventoryStore

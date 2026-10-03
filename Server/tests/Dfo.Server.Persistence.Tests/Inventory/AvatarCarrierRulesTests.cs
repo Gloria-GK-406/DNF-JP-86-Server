@@ -204,11 +204,9 @@ public sealed class AvatarCarrierRulesTests
 
             ICharacterInventoryEntryRepository entries = new InventoryEntryAssembly(
                 new SqliteCharacterTable(database),
-                new AccountMaterialBagDomainService(
-                    new SqliteAccountMaterialBagStore(path),
-                    new AccountMaterialRuleService(),
-                    new AmbientStoreAccess(scope)),
-                new AccountMaterialRuleService(),
+                new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(),
+                new ItemPlacementRuleService(new EveryTemplateAnAvatar(), new NoWornSlots()), new ItemArrivalRuleService(),
+                items: new SqliteItemDomainStore(path), transactions: scope, slotRules: new ItemSlotRuleService()),
                 new Handing(handed),
                 new SqliteAccountCargoItemTable(database),
                 new SqliteCharacterContainerStateTable(database),

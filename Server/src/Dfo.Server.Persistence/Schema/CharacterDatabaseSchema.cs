@@ -78,6 +78,7 @@ internal static class CharacterDatabaseSchema
         Reconcile(connection);
         MigrateMailboxGold(connection);
         Apply(connection, Indexes);
+        SharedMaterialMigration.Apply(connection);
     }
 
     // The old message-level gold is a receivable asset. Keep its original columns for
@@ -226,6 +227,7 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS schema_migrations(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS gm_administrators (id INTEGER PRIMARY KEY AUTOINCREMENT,login_name TEXT NOT NULL UNIQUE,password_record TEXT NOT NULL,enabled INTEGER NOT NULL,permissions INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_sessions (token_hash TEXT PRIMARY KEY,administrator_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_audit (operation_id TEXT PRIMARY KEY,occurred_at INTEGER NOT NULL,action TEXT NOT NULL,administrator_id INTEGER,administrator_name TEXT,target TEXT NOT NULL,outcome TEXT NOT NULL,reason TEXT NOT NULL);
@@ -303,7 +305,7 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS ix_gm_cera_operations_time ON gm_cera_operations(administrator_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_sessions_expiry ON gm_sessions(expires_at);
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account';
+        DROP INDEX IF EXISTS idx_item_slots_account_slot;
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_mailbox_pending_equipment_uid ON mailbox_attachments(source_item_uid) WHERE asset_kind='equipment' AND claimed_flag=0 AND source_item_uid>0;
         """;

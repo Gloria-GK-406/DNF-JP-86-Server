@@ -55,7 +55,7 @@ public sealed record QuestAcceptOutcome(
     IReadOnlyList<AcceptedQuestItem> Items,
     QuestAcceptRefusal? Refusal = null,
     QuestProgressSnapshot? QuestProgress = null,
-    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null)
+    IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null)
 {
     public static QuestAcceptOutcome Refuse(ushort questId, QuestAcceptRefusal refusal) =>
         new(false, questId, 0, [], refusal);
@@ -119,7 +119,7 @@ public sealed class AcceptQuestCommandHandler(
 
         var declared = definition.EventItems ?? [];
         var placed = new List<AcceptedQuestItem>(declared.Count);
-        var accountChanges = new List<AccountMaterialChange>();
+        var accountChanges = new List<InventoryRuntimeValueState>();
         if (declared.Count > 0)
         {
             var container = containers.FindContainer(
@@ -138,30 +138,22 @@ public sealed class AcceptQuestCommandHandler(
                     .ConfigureAwait(false);
                 switch (granted)
                 {
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
+                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                         placed.Add(new AcceptedQuestItem(
                             checked((ushort)ItemGrantWireProjection.Index(character, topped.SlotIndex)),
                             (uint)item.ItemId,
                             (uint)topped.Added));
                         break;
 
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
+                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                         placed.Add(new AcceptedQuestItem(
                             checked((ushort)ItemGrantWireProjection.Index(character, opened.SlotIndex)),
                             (uint)item.ItemId,
                             (uint)opened.Count));
                         break;
 
-                    case ItemGrantOutcome.AccountMaterial account:
-                        accountChanges.Add(account.Change);
-                        placed.Add(new AcceptedQuestItem(
-                            checked((ushort)account.Change.VirtualSlotIndex),
-                            (uint)item.ItemId,
-                            (uint)account.Change.AddedCount));
-                        break;
-
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
-                    case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
+                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
+                    case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
                         return await this.HandBackAsync(log, command.QuestId, cancellationToken)
                             .ConfigureAwait(false);
 
@@ -171,6 +163,7 @@ public sealed class AcceptQuestCommandHandler(
                         throw new ArgumentOutOfRangeException(
                             nameof(command), granted, "No reading was decided for this outcome.");
                 }
+                if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared) accountChanges.Add(shared);
             }
         }
 

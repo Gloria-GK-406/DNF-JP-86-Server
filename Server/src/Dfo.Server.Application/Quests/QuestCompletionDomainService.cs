@@ -44,7 +44,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         var inventory = await preview.PreviewWithHoldingsAsync(context, rewards, ct).ConfigureAwait(false);
         var goldEntry = rewards.OfType<SetQuestRewardGoldEffect>().Any(x => x.Value > x.Expected) ? 1 : 0;
         if (inventory.Rejection != InventoryEffectRejection.None
-            || inventory.PhysicalRewardEntries + rewards.OfType<GrantAccountMaterialEffect>().Count() + goldEntry > byte.MaxValue)
+            || inventory.RewardEntries + goldEntry > byte.MaxValue)
             return Refuse(projected);
         var plan = await rules.CompleteAsync(quest, reward.Plan, facts, rewards, inventory.Holdings!, ct).ConfigureAwait(false);
         var applied = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);

@@ -23,8 +23,7 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 internal sealed class InventoryEntryAssembly(
     ICharacterTable characters,
-    IAccountMaterialBagDomainService accountMaterials,
-    IAccountMaterialRuleService accountMaterialRules,
+    ICharacterBusinessInventoryDomainService inventories,
     ICharacterItemTable characterItems,
     IAccountCargoItemTable cargoItems,
     ICharacterContainerStateTable containerStates,
@@ -515,16 +514,13 @@ internal sealed class InventoryEntryAssembly(
     private async ValueTask<IReadOnlyList<InventoryRuntimeValueState>> AccountVirtualResourcesAsync(
         AccountId accountId, CancellationToken cancellationToken)
     {
-        var bag = await accountMaterials.Get(accountId).SnapshotAsync(cancellationToken)
-            .ConfigureAwait(false);
-        return accountMaterialRules.Definitions
-            .Select(definition => new InventoryRuntimeValueState(
-                definition.VirtualSlotIndex,
-                definition.ItemId,
-                bag.Count(definition.Kind)))
-            .Where(value => value.Value > 0)
-            .OrderBy(value => value.SlotIndex)
-            .ToArray();
+        var container = inventories.GetStore(new ContainerOwner(InventoryOwnerType.Account, accountId.Value),
+            BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.SharedMaterial);
+        var contents = await container.ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        var counts = contents.ToDictionary(item => item.SlotIndex, item => item.Count);
+        return AccountMaterialCatalog.Definitions.Select((material, index) => new InventoryRuntimeValueState(
+                material.VirtualSlotIndex, material.ItemId, counts.GetValueOrDefault(index)))
+            .Where(value => value.Value > 0).ToArray();
     }
 
     /// <summary>The cooldowns and then the effects, which is the order the client expects.</summary>

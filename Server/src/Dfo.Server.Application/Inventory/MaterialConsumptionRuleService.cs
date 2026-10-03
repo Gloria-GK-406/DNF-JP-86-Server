@@ -8,7 +8,7 @@ internal sealed class MaterialConsumptionRuleService : IMaterialConsumptionRuleS
 {
     public bool IsValidRequest(IReadOnlyList<MaterialCost> costs) =>
         costs.Count > 0 && costs.All(x => x.Count > 0 && x.ItemId > 0)
-        && costs.Select(x => x.Location).Distinct().Count() == costs.Count;
+        && costs.Select(x => x.Slot).Distinct().Count() == costs.Count;
 
     public bool IsConsumable(ContainerSlotItem item, int expectedItemId) =>
         item.ItemId == expectedItemId && item.IsPile

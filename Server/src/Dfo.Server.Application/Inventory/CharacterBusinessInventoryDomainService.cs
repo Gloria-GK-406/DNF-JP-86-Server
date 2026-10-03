@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
@@ -14,10 +15,16 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
     : ICharacterBusinessInventoryDomainService
 {
     public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) =>
-        new BusinessInventoryStore(characterId, kind, backing, placements, arrivals, creatures,
-            items, transactions, slotRules, capacities);
+        GetStore(new ContainerOwner(InventoryOwnerType.Character, characterId.Value), kind);
 
-    private sealed class BusinessInventoryStore(CharacterId characterId, BusinessInventoryStoreKind kind,
+    public IBusinessInventoryStore GetStore(ContainerOwner owner, BusinessInventoryStoreKind kind)
+    {
+        if (owner.Value <= 0 || !Enum.IsDefined(owner.Scope)) throw new ArgumentOutOfRangeException(nameof(owner));
+        return new BusinessInventoryStore(owner, kind, backing, placements, arrivals, creatures,
+            items, transactions, slotRules, capacities);
+    }
+
+    private sealed class BusinessInventoryStore(ContainerOwner owner, BusinessInventoryStoreKind kind,
         ICharacterContainerDomainService backing, IItemPlacementRuleService? placements,
         IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
         IItemDomainStore? items, IDomainTransactionAccessor? transactions,
@@ -30,11 +37,17 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
             if (BusinessInventoryOwnership.StoreOf(space) != kind)
                 throw new InvalidOperationException($"{space} does not belong to the {kind} store.");
             var address = LegacyInventoryStorageCoordinates.ToStorage(new BusinessSlot(space, 0));
-            var container = backing.FindContainer(characterId, address.List);
-            if (container is null && space != BusinessInventorySpace.AccountCargo
+            var accountSpace = space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial;
+            if (owner.Scope == InventoryOwnerType.Account && !accountSpace)
+                throw new InvalidOperationException($"{space} is not an account-owned business container.");
+            var characterId = owner.Scope == InventoryOwnerType.Character ? new CharacterId(owner.Value) : default;
+            var container = owner.Scope == InventoryOwnerType.Character ? backing.FindContainer(characterId, address.List) : null;
+            if (container is null && (owner.Scope == InventoryOwnerType.Account || !accountSpace)
                 && items is not null && transactions is not null
                 && placements is not null && arrivals is not null && slotRules is not null)
-                container = new PersistentItemContainer(ContainerId.ForCharacter(characterId, address.List),
+                container = new PersistentItemContainer(owner.Scope == InventoryOwnerType.Account
+                        ? ContainerId.ForAccount(new AccountId(owner.Value), address.List)
+                        : ContainerId.ForCharacter(characterId, address.List),
                     characterId, new ContainerShape(address.List, 0), items, transactions,
                     null, placements, arrivals, slotRules, capacities);
             return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures, capacities);
@@ -42,7 +55,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
         public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
             FindContainer(space) ?? throw new InvalidOperationException(
-                $"Character {characterId.Value} has no container for {space}.");
+                $"Owner {owner.Scope}:{owner.Value} has no container for {space}.");
     }
 }
 
@@ -52,7 +65,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
     : IBusinessItemContainer
 {
     public BusinessContainerId Id => new(space, backing.Id);
-    public ContainerId StorageId => backing.Id;
+    public ContainerId StorageId { get; } = ValidateStorage(space, backing);
     public BusinessInventorySpace Space => space;
 
     public ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
@@ -223,5 +236,14 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         if (address.List != backing.Type)
             throw new InvalidOperationException($"{slot.Space} is not backed by {backing.Type}.");
         return address.Index;
+    }
+
+    private static ContainerId ValidateStorage(BusinessInventorySpace space, IItemContainer backing)
+    {
+        if (space == BusinessInventorySpace.SharedMaterial
+            && (!backing.Id.TryGetAccountOwner(out _, out var type) || type != InventoryContainerType.SharedMaterial
+                || backing.Type != InventoryContainerType.SharedMaterial))
+            throw new InvalidOperationException($"Shared material container {backing.Id} must belong to an account.");
+        return backing.Id;
     }
 }

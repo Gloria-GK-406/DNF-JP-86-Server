@@ -39,7 +39,6 @@ public sealed class MailboxCompletedHandler(ISelectedSessionDomainService sessio
                 var wire = mappings.ToGameSlot(x);
                 return GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, assets.PreparedAt);
             }));
-            if (assets.Materials.Count > 0) frames.Add(GameInventoryDelivery.VirtualResourceNotification(assets.Materials, assets.PreparedAt));
             if (assets.Gold is { } gold) frames.Add(GameInventoryDelivery.CarriedGoldNotification(gold, assets.PreparedAt));
         }
         if (!sending) frames.Add(notice.Reply);

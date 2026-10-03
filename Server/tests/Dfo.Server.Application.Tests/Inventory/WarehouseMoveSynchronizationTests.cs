@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -11,6 +12,52 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class WarehouseMoveSynchronizationTests
 {
+    public static IEnumerable<object[]> SharedMaterials() => AccountMaterialCatalog.Definitions
+        .SelectMany(material => new byte[] { 2, 12 }.Select(list => new object[] { list, material.ItemId, material.VirtualSlotIndex }));
+
+    [Theory]
+    [MemberData(nameof(SharedMaterials))]
+    public async Task Every_shared_material_uses_the_same_container_for_grants_deposit_and_withdrawal(byte list, int itemId, int virtualSlot)
+    {
+        using var host = WarehouseStorageTests.Fixture();
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
+        await host.SeedShared(itemId, 7);
+        await Send(host, 0, virtualSlot, list, 0, 3);
+        Assert.Null(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
+        Assert.Equal(4, host.SharedCount(itemId));
+        AssertSlot(host, 0, virtualSlot, itemId, 4, 0);
+        AssertSlot(host, list, 0, itemId, 3, 0);
+        await WarehouseStorageTests.InTransaction(host, async () =>
+            await host.Services.GetRequiredService<IItemGrantDomainService>().GrantAsync(host.Session.AccountId,
+                host.Session.CharacterId, host.Services.GetRequiredService<ICharacterContainerDomainService>(), itemId, 2, default));
+        await Send(host, list, 0, 0, virtualSlot, 3);
+        Assert.Null(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
+        Assert.Equal(9, host.SharedCount(itemId));
+        AssertSlot(host, 0, virtualSlot, itemId, 9, 0);
+        AssertSlot(host, list, 0, -1, 0, 0);
+        Assert.Equal(0, host.Count(itemId));
+    }
+
+    [Theory]
+    [MemberData(nameof(SharedMaterials))]
+    public async Task Wrong_fixed_slot_and_overflow_refuse_without_losing_either_side(byte list, int itemId, int virtualSlot)
+    {
+        using var host = WarehouseStorageTests.Fixture();
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
+        await host.SeedShared(itemId, 7);
+        await Send(host, 0, virtualSlot, list, 0, 3);
+        await Send(host, list, 0, 0, 354 + (virtualSlot - 354 + 1) % 11, 3);
+        Assert.NotNull(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
+        Assert.Equal(4, host.SharedCount(itemId));
+        var cargo = WarehouseStorageTests.Bag(host, list == 2 ? BusinessInventorySpace.PersonalCargo : BusinessInventorySpace.AccountCargo);
+        Assert.Equal(3, (await cargo.ReadSlotAsync(0, default))!.Count);
+        await host.SeedShared(itemId, int.MaxValue - 1);
+        await Send(host, list, 0, 0, virtualSlot, 3);
+        Assert.NotNull(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
+        Assert.Equal(int.MaxValue - 1, host.SharedCount(itemId));
+        Assert.Equal(3, (await cargo.ReadSlotAsync(0, default))!.Count);
+    }
+
     [Theory]
     [InlineData(2, false)]
     [InlineData(2, true)]

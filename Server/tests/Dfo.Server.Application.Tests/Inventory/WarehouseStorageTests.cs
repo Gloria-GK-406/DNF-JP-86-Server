@@ -16,6 +16,21 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class WarehouseStorageTests
 {
+    [Theory]
+    [InlineData("account:1:Main")]
+    [InlineData("character:1:AccountCargo")]
+    public async Task Cargo_access_rejects_a_bound_container_with_the_wrong_ownership_or_type(string storageId)
+    {
+        using var host = Fixture();
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
+        await host.Seed(65, 2000, 5);
+        Bind(host, cargoStorageId: new ContainerId(storageId));
+        Assert.IsType<ItemMoveOutcome.Refused>(await Move(host,
+            new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.AccountCargo, 0), 2));
+        Assert.Equal(5, host.Count(2000));
+        Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='account'"));
+    }
+
     [Fact]
     public async Task Account_creation_upgrade_material_cost_and_duplicate_requests_preserve_assets()
     {
@@ -218,16 +233,16 @@ public sealed class WarehouseStorageTests
         });
         Bind(host); return host;
     }
-    internal static void Bind(ShopFixture host, AccountId? account = null)
+    internal static void Bind(ShopFixture host, AccountId? account = null, ContainerId? cargoStorageId = null)
     {
         var registry = host.Services.GetRequiredService<ICharacterContainerDomainService>();
-        var kept = new[] { InventoryContainerType.Main, InventoryContainerType.Equipment }.Select(type => registry.GetContainer(host.Session.CharacterId, type)).ToArray();
+        var kept = new[] { InventoryContainerType.Main, InventoryContainerType.Equipment, InventoryContainerType.SharedMaterial }.Select(type => registry.GetContainer(host.Session.CharacterId, type)).ToArray();
         registry.Clear(host.Session.CharacterId);
         foreach (var container in kept) registry.Register(host.Session.CharacterId, container);
         foreach (var type in new[] { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo, InventoryContainerType.Avatar })
         {
             registry.Register(host.Session.CharacterId, new PersistentItemContainer(type == InventoryContainerType.AccountCargo
-                    ? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type),
+                    ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type),
                 host.Session.CharacterId, new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
                 host.Services.GetRequiredService<IDomainTransactionAccessor>(), null,
                 host.Services.GetRequiredService<IItemPlacementRuleService>(), host.Services.GetRequiredService<IItemArrivalRuleService>(),

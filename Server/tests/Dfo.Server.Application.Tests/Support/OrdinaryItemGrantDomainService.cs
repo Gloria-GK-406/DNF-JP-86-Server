@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Tests.Support;
 internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? placements = null)
     : IItemGrantDomainService
 {
-    public async ValueTask<ItemGrantOutcome> GrantAsync(
+    public async ValueTask<BusinessItemAdditionResult> GrantAsync(
         AccountId accountId,
         CharacterId characterId,
         ICharacterContainerDomainService containers,
@@ -41,7 +41,7 @@ internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? 
                 new ItemPlacementOutcome.PutInEmptySlot(business.Index, opened.Count),
             _ => placement,
         };
-        return new ItemGrantOutcome.CharacterItem(
+        return new BusinessItemAdditionResult(
             new BusinessItemContainer(business.Space, physical), local);
     }
 }

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
@@ -17,6 +18,50 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ContainerIdTests
 {
     [Fact]
+    public void AccountIdentityIncludesItsContainerTypeAndKeepsTheCargoSpelling()
+    {
+        foreach (var expected in Enum.GetValues<InventoryContainerType>())
+        {
+            var id = ContainerId.ForAccount(new AccountId(7), expected);
+            Assert.True(id.TryGetOwner(out var owner, out var type));
+            Assert.Equal(new ContainerOwner(InventoryOwnerType.Account, 7), owner);
+            Assert.Equal(expected, type);
+            Assert.True(id.TryGetAccountOwner(out var account, out type));
+            Assert.Equal(new AccountId(7), account);
+            Assert.Equal(expected, type);
+            Assert.False(id.TryGetCharacterOwner(out _, out _));
+            Assert.Equal(expected == InventoryContainerType.AccountCargo, id.TryGetAccountCargoOwner(out _));
+        }
+        Assert.Equal(new ContainerId("account:7:AccountCargo"), ContainerId.ForAccountCargo(new AccountId(7)));
+        Assert.False(ContainerId.ForCharacter(new CharacterId(7), InventoryContainerType.Main)
+            .TryGetAccountOwner(out _, out _));
+    }
+
+    [Theory]
+    [InlineData("account:7:12")]
+    [InlineData("account:7:Main, Avatar")]
+    [InlineData("account:7: Main")]
+    [InlineData("account:7:main")]
+    [InlineData("account:+7:Main")]
+    [InlineData("account:07:Main")]
+    [InlineData("account: 7 :Main")]
+    [InlineData("account:0:Main")]
+    [InlineData("account:-7:Main")]
+    [InlineData("account:2147483648:Main")]
+    [InlineData("account:7:Unknown")]
+    [InlineData("account:7:Main:extra")]
+    [InlineData("character:0:Main")]
+    [InlineData("run:7:Main")]
+    [InlineData(null)]
+    public void InvalidPersistentIdentitiesNeverProduceAnOwner(string? value)
+    {
+        var id = value is null ? default : new ContainerId(value);
+        Assert.False(id.TryGetOwner(out _, out _));
+        Assert.False(id.TryGetAccountOwner(out _, out _));
+        Assert.False(id.TryGetCharacterOwner(out _, out _));
+    }
+
+    [Fact]
     public void AMintedIdentifierReadsBackAsWhatItWasMintedFrom()
     {
         var id = ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Pet);
@@ -24,6 +69,8 @@ public sealed class ContainerIdTests
         Assert.True(id.TryGetCharacterOwner(out var characterId, out var type));
         Assert.Equal(new CharacterId(60), characterId);
         Assert.Equal(InventoryContainerType.Pet, type);
+        Assert.True(id.TryGetOwner(out var owner, out _));
+        Assert.Equal(new ContainerOwner(InventoryOwnerType.Character, 60), owner);
     }
 
     /// <remarks>

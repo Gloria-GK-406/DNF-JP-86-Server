@@ -10,8 +10,7 @@ namespace Dfo.Server.Application.Mail;
 
 internal sealed class MailStackTransfers(IItemPlacementRuleService placements, ICharacterContainerDomainService containers,
     ICharacterBusinessInventoryDomainService inventories,
-    IMailItemRuleService sendRules, IAccountMaterialRuleService accountRules,
-    IAccountMaterialBagDomainService accountBags, ICharacterTable owners)
+    IMailItemRuleService sendRules, ICharacterTable owners)
 {
     public async ValueTask<ItemPlacement> ValidateAsync(int itemId, CancellationToken ct)
     {
@@ -26,24 +25,21 @@ internal sealed class MailStackTransfers(IItemPlacementRuleService placements, I
         var placement = await ValidateAsync(itemId, ct);
         if (sourceSlot is { } selected && (!CanCarry(selected.Space) || selected.Index < 0))
             throw new MailException(MailFailure.InvalidItem, "Invalid source slot.");
-        if (accountRules.TryGetByItemId(itemId, out var accountMaterial))
-        {
-            if (sourceSlot is not null) throw new MailException(MailFailure.InvalidItem, "Account materials cannot be selected as physical mail attachments.");
-            if (!(await sendRules.CanSendAsync(StackableItemCore.Create(placement.ItemKind, itemId, count), sameAccount, ct)).Allowed)
-                throw new MailException(MailFailure.NotSendable, "Account material is not sendable.");
-            var account = await owners.FindOwnerAsync(character, ct) ?? throw new MailException(MailFailure.CharacterNotFound, "Character was deleted.");
-            var change = await accountBags.Get(account).ConsumeAsync(accountMaterial.Kind, count, ct)
-                ?? throw new MailException(MailFailure.InsufficientAssets, "Not enough account materials.");
-            return [new MailAssetChange(character, null, itemId, -count, null) { AccountMaterial = change }];
-        }
+        if (sourceSlot is not null && placement.Destination.Space == BusinessInventorySpace.SharedMaterial)
+            throw new MailException(MailFailure.InvalidItem, "Shared materials cannot be selected as explicit mail attachment slots.");
+        var account = await owners.FindOwnerAsync(character, ct)
+            ?? throw new MailException(MailFailure.CharacterNotFound, "Character was deleted.");
         var held = new List<(IBusinessItemContainer Container, BusinessSlot Slot, ContainerSlotItem Item)>();
-        var spaces = ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        var spaces = placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
             ? new[] { placement.Destination.Space, BusinessInventorySpace.QuickSlot }
             : [placement.Destination.Space];
         foreach (var space in spaces.Distinct())
         {
-            if (!CanCarry(space)) continue;
-            var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(space))
+            if (!CanCarry(space) && space != BusinessInventorySpace.SharedMaterial) continue;
+            var owner = space == BusinessInventorySpace.SharedMaterial
+                ? new ContainerOwner(InventoryOwnerType.Account, account.Value)
+                : new ContainerOwner(InventoryOwnerType.Character, character.Value);
+            var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(space))
                 .FindContainer(space);
             if (container is null) continue;
             foreach (var item in await container.ReadAllAsync(ct).ConfigureAwait(false))
@@ -75,8 +71,6 @@ internal sealed class MailStackTransfers(IItemPlacementRuleService placements, I
         try
         {
             var added = await containers.AddAsync(character, itemId, count, ct);
-            if (added.AccountMaterial is { } material)
-                return [new MailAssetChange(character, null, itemId, count, null) { AccountMaterial = material }];
             return added.Items.Select(x => new MailAssetChange(character, x.Slot, itemId, x.Count, null)).ToArray();
         }
         catch (ContainerAdditionException e)

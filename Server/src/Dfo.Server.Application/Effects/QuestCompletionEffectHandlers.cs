@@ -75,18 +75,18 @@ internal sealed class MaterializeSkillBuildsEffectHandler(ICharacterSkillBuildTa
     }
 }
 internal sealed class GrantBasicCharacterItemEffectHandler(ICharacterContainerDomainService containers,
-    IItemPlacementRuleService placements, IAccountMaterialRuleService accounts) : EffectHandler<GrantBasicCharacterItemEffect>
+    IItemPlacementRuleService placements) : EffectHandler<GrantBasicCharacterItemEffect>
 {
     public override async ValueTask ValidateAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
     {
-        if (effect.Count <= 0 || effect.ItemId <= 0 || accounts.TryGetByItemId(effect.ItemId, out _)
+        if (effect.Count <= 0 || effect.ItemId <= 0
             || await placements.PlacementForAsync(effect.ItemId, ct).ConfigureAwait(false) != effect.Placement)
             throw new InventoryEffectException(InventoryEffectRejection.UnsupportedItem);
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
     {
         var result = await containers.AddAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
-        if (result.AccountMaterial is not null || result.Items.Sum(x => (long)x.Count) != effect.Count) throw new InvalidOperationException("Basic physical grant was incomplete.");
+        if (result.Items.Sum(x => (long)x.Count) != effect.Count) throw new InvalidOperationException("Basic physical grant was incomplete.");
         return new BasicCharacterItemChange([.. result.Items]);
     }
 }

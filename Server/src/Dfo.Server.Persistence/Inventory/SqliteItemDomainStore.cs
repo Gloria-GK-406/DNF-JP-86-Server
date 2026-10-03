@@ -830,25 +830,23 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// </remarks>
     private static (string Scope, int Owner, int ListType) OwnerOf(ContainerId containerId)
     {
-        if (containerId.TryGetAccountCargoOwner(out var accountId))
-            return ("account", accountId.Value, (int)InventoryContainerType.AccountCargo);
-
-        if (!containerId.TryGetCharacterOwner(out var characterId, out var containerType))
+        if (!containerId.TryGetOwner(out var owner, out var containerType))
         {
             throw new InvalidOperationException(
-                $"Container '{containerId.Value}' is not a character's, so this store holds none of it.");
+                $"Container '{containerId.Value}' has no canonical persistent owner.");
         }
 
         if (containerType is not (InventoryContainerType.Main
             or InventoryContainerType.Avatar
             or InventoryContainerType.PersonalCargo
             or InventoryContainerType.Equipment
-            or InventoryContainerType.Pet))
+            or InventoryContainerType.Pet)
+            && !(owner.Scope == InventoryOwnerType.Account && containerType is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial))
         {
             throw new InvalidOperationException(
                 $"Container '{containerId.Value}' is not one this store keeps rows for.");
         }
 
-        return ("character", characterId.Value, (int)containerType);
+        return (owner.Scope == InventoryOwnerType.Account ? "account" : "character", owner.Value, (int)containerType);
     }
 }

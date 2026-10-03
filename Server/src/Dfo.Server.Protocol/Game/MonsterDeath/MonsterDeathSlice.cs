@@ -1044,9 +1044,9 @@ public sealed class MonsterDeathHandler(
         {
             frames.Add(GameInventoryDelivery.VirtualResourceNotification(
                 [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
-                    material.VirtualSlotIndex,
+                    material.SlotIndex,
                     material.ItemId,
-                    material.FinalCount))],
+                    material.Value))],
                 DateTimeOffset.UtcNow));
         }
         var quests = applied?.QuestProgress?.Quests;

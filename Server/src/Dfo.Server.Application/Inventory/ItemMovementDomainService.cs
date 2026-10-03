@@ -30,13 +30,15 @@ internal sealed class ItemMovementDomainService(
         var displaced = first is null ? null : second;
         if (moving is null) return new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty);
 
-        var placement = await placementRules.PlacementForAsync(moving.ItemId, cancellationToken)
+        var placement = await placementRules.PlacementForAsync(moving.ItemId, into.Slot.Space, cancellationToken)
             .ConfigureAwait(false);
         if (placement is null || !slotRules.CanOccupySlot(into.Slot, placement)
             || into.Slot.Index >= await into.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
             return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
         var moveCount = requestedCount <= 0 || requestedCount > moving.Count
             ? moving.Count : requestedCount;
+        if (moving.IsPile && placement.StackLimit > 0 && moveCount > placement.StackLimit)
+            return new ItemMoveOutcome.Refused(ItemMoveRefusal.MergeExceedsStackLimit);
 
         // Instance metadata (notably expiry) must not turn a nonstackable same-item
         // deposit into a swap that the client's movement acknowledgement treats as a merge.
@@ -79,9 +81,10 @@ internal sealed class ItemMovementDomainService(
         {
             if (moveCount != moving.Count)
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.PartialSwapNotAllowed);
-            var back = await placementRules.PlacementForAsync(displaced.ItemId, cancellationToken)
+            var back = await placementRules.PlacementForAsync(displaced.ItemId, from.Slot.Space, cancellationToken)
                 .ConfigureAwait(false);
             if (back is null || !slotRules.CanOccupySlot(from.Slot, back)
+                || displaced.IsPile && back.StackLimit > 0 && displaced.Count > back.StackLimit
                 || from.Slot.Index >= await from.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.DisplacedCannotOccupySlot);
             await PutWholeAsync(into, from, moving, cancellationToken).ConfigureAwait(false);
@@ -111,7 +114,7 @@ internal sealed class ItemMovementDomainService(
         int itemId,
         CancellationToken cancellationToken)
     {
-        var placement = await placementRules.PlacementForAsync(itemId, cancellationToken)
+        var placement = await placementRules.PlacementForAsync(itemId, slot.Space, cancellationToken)
             .ConfigureAwait(false);
         if (placement is null)
             return SlotAdmission.ItemUnknown;

@@ -30,6 +30,7 @@ public static class LegacyInventoryStorageCoordinates
         new(BusinessInventorySpace.CreatureEquipment, InventoryContainerType.Pet, 140, 188),
         new(BusinessInventorySpace.CreatureConsumable, InventoryContainerType.Pet, 189, 239),
         new(BusinessInventorySpace.AccountCargo, InventoryContainerType.AccountCargo, 0, 119),
+        new(BusinessInventorySpace.SharedMaterial, InventoryContainerType.SharedMaterial, 0, 10),
         new(BusinessInventorySpace.GuildMedal, InventoryContainerType.GuildMedal, 0, 48),
         new(BusinessInventorySpace.GuardianGem, InventoryContainerType.GuildMedal, 49, 97),
     ];

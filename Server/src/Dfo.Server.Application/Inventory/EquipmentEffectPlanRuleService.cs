@@ -8,7 +8,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class EquipmentEffectPlanRuleService(IEquipmentReinforcementFailureRuleService failures,
     IEquipmentEnchantRuleService enchant, IEquipmentUpgradeRuleService upgrades,
     IEquipmentMagicSealRuleService seals, IEquipmentDisjointRuleService disjoint,
-    IEquipmentDisjointDefinitionSource disjointContent, IAccountMaterialRuleService accounts) : IEquipmentEffectPlanRuleService
+    IEquipmentDisjointDefinitionSource disjointContent) : IEquipmentEffectPlanRuleService
 {
     public async ValueTask<EquipmentEffectPlan<EquipmentReinforcementFailureResult>> ReinforcementAsync(EquipmentInstanceFacts target,
         IEquipmentReinforcementRule rule, MaterialCost material, MaterialCost? protection,
@@ -97,13 +97,7 @@ internal sealed class EquipmentEffectPlanRuleService(IEquipmentReinforcementFail
         return new(decision, effects.AsReadOnly());
     }
 
-    private DomainEffect Grant(int itemId, int count) => accounts.TryGetByItemId(itemId, out var definition)
-        ? new GrantAccountMaterialEffect(definition.Kind, itemId, count) : new GrantStackableEffect(itemId, count);
-    private static DomainEffect Consume(MaterialCost cost) => cost.Location switch
-    {
-        MaterialLocation.Carried carried => new ConsumeFromContainerEffect(carried.Slot, cost.ItemId, cost.Count),
-        MaterialLocation.Account account => new ConsumeAccountMaterialEffect(account.Kind, cost.ItemId, cost.Count),
-        _ => throw new ArgumentOutOfRangeException(nameof(cost)),
-    };
+    private static DomainEffect Grant(int itemId, int count) => new GrantStackableEffect(itemId, count);
+    private static DomainEffect Consume(MaterialCost cost) => new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count);
     private static EquipmentEffectTarget Target(EquipmentInstanceFacts target) => new(new(target.ItemUid), target.Core.ItemId);
 }

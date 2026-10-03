@@ -241,11 +241,9 @@ internal sealed class InventorySide
 
     private InventoryEntryAssembly Assembly => new(
         new SqliteCharacterTable(this.database),
-        new AccountMaterialBagDomainService(
-            new SqliteAccountMaterialBagStore(this.databasePath),
-            new AccountMaterialRuleService(),
-            new AmbientStoreAccess(this.Scope)),
-        new AccountMaterialRuleService(),
+        new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(),
+                new ItemPlacementRuleService(this.placements, new NoWearables()), new ItemArrivalRuleService(),
+                items: new SqliteItemDomainStore(this.databasePath), transactions: this.Scope, slotRules: new ItemSlotRuleService()),
         new SqliteCharacterItemTable(this.database),
         new SqliteAccountCargoItemTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),

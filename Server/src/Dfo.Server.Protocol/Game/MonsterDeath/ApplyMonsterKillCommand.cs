@@ -33,7 +33,7 @@ public sealed record ApplyMonsterKillResult(
     IReadOnlyList<HuntEnemyQuestAdvance> QuestAdvances,
     CommittedInventoryUpdateState? QuestItems = null,
     QuestProgressSnapshot? QuestProgress = null,
-    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null);
+    IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null);
 
 /// <summary>
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.

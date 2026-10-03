@@ -27,7 +27,7 @@ public sealed class EquipmentReinforcementCompletedHandler(
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
 
         var messages = new List<IServerNetworkMessage> { notification.Response };
-        var finalSlots = receipt.Changes.GroupBy(change => change.Slot)
+        var finalSlots = receipt.Changes.Where(change => change.Slot.Space != BusinessInventorySpace.SharedMaterial || change.Core is not null).GroupBy(change => change.Slot)
             .Select(group => group.Last())
             .Select(change => (Slot: slots.Project(change.Slot), change.Core))
             .GroupBy(change => change.Slot.Space)
@@ -47,12 +47,6 @@ public sealed class EquipmentReinforcementCompletedHandler(
                     new CommittedInventoryUpdateState(container.Key, occupied,
                         receipt.PreparedAt)));
         }
-        if (receipt.AccountMaterials.Count > 0)
-            messages.AddRange(AccountMaterialNotifications.Compose(
-                [.. receipt.AccountMaterials.GroupBy(material => material.VirtualSlotIndex)
-                    .Select(group => group.Last()).Select(material => new InventoryRuntimeValueState(
-                    material.VirtualSlotIndex, material.ItemId, material.FinalCount))],
-                receipt.PreparedAt));
         messages.Add(GameInventoryDelivery.CarriedGoldNotification(
             receipt.Gold, receipt.PreparedAt));
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);

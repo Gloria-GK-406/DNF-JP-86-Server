@@ -41,14 +41,14 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(priced.Rejection);
 
         var spaces = new HashSet<BusinessInventorySpace> { quote.Placement.Destination.Space };
-        if (ItemSlotRuleService.AllowsQuickSlot(quote.Placement.ItemKind))
+        if (quote.Placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(quote.Placement.ItemKind))
             spaces.Add(BusinessInventorySpace.QuickSlot);
         foreach (var cost in quote.Materials)
         {
             var material = await placements.PlacementForAsync(cost.ItemId, cancellationToken).ConfigureAwait(false);
             if (material is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.UnsupportedItem);
             spaces.Add(material.Destination.Space);
-            if (ItemSlotRuleService.AllowsQuickSlot(material.ItemKind))
+            if (material.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(material.ItemKind))
                 spaces.Add(BusinessInventorySpace.QuickSlot);
         }
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();

@@ -12,13 +12,13 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class SkillMaterialConsumptionTests
 {
     [Theory]
-    [InlineData(359, 3262, "cube_gold")]
-    [InlineData(358, 3037, "cube_clear")]
-    public async Task Effect_consumption_commits_before_ack_and_absolute_projection(int slot, int item, string column)
+    [InlineData(359, 3262)]
+    [InlineData(358, 3037)]
+    public async Task Effect_consumption_commits_before_ack_and_absolute_projection(int slot, int item)
     {
         using var f = new ShopFixture();
-        f.Sql($"UPDATE accounts SET {column}=2 WHERE account_id=1");
-        f.Sender.BeforeSend = () => Assert.Equal(1, f.Scalar($"SELECT {column} FROM accounts WHERE account_id=1"));
+        await f.SeedShared(item, 2);
+        f.Sender.BeforeSend = () => Assert.Equal(1, f.SharedCount(item));
         await Request(f, slot, item, 1, operation: 3);
         Assert.True(Assert.IsType<DeleteItemResponse>(f.Sender.Messages[0]).Success);
         Assert.Equal(2, f.Sender.Messages.Count);
@@ -26,13 +26,13 @@ public sealed class SkillMaterialConsumptionTests
     }
 
     [Theory]
-    [InlineData(359, 3262, "cube_gold", 3)]
-    [InlineData(358, 3037, "cube_clear", 2)]
-    public async Task Depleted_account_material_sends_only_consumption_ack(int slot, int item, string column, ushort operation)
+    [InlineData(359, 3262, 3)]
+    [InlineData(358, 3037, 2)]
+    public async Task Depleted_account_material_sends_only_consumption_ack(int slot, int item, ushort operation)
     {
         using var f = new ShopFixture();
-        f.Sql($"UPDATE accounts SET {column}=1 WHERE account_id=1");
-        f.Sender.BeforeSend = () => Assert.Equal(0, f.Scalar($"SELECT {column} FROM accounts WHERE account_id=1"));
+        await f.SeedShared(item, 1);
+        f.Sender.BeforeSend = () => Assert.Equal(0, f.SharedCount(item));
         await Request(f, slot, item, 1, operation);
         var ack = Assert.IsType<DeleteItemResponse>(Assert.Single(f.Sender.Messages));
         Assert.True(ack.Success);
@@ -43,19 +43,19 @@ public sealed class SkillMaterialConsumptionTests
     public async Task Effect_insufficient_balance_does_not_consume_or_project()
     {
         using var f = new ShopFixture();
-        f.Sql("UPDATE accounts SET cube_gold=1 WHERE account_id=1");
+        await f.SeedShared(3262, 1, 1);
         await Request(f, 359, 3262, 2, operation: 3);
         Assert.False(Assert.IsType<DeleteItemResponse>(Assert.Single(f.Sender.Messages)).Success);
-        Assert.Equal(1, f.Scalar("SELECT cube_gold FROM accounts WHERE account_id=1"));
+        Assert.Equal(1, f.SharedCount(3262, 1));
     }
     [Theory]
-    [InlineData(358,3037,"cube_clear")]
-    [InlineData(356,3035,"cube_red")]
-    public async Task Operation_two_consumes_account_material_and_notifies_after_commit(int slot,int item,string column)
+    [InlineData(358,3037)]
+    [InlineData(356,3035)]
+    public async Task Operation_two_consumes_account_material_and_notifies_after_commit(int slot,int item)
     {
         using var f = new ShopFixture();
-        f.Sql($"UPDATE accounts SET {column}=3 WHERE account_id=1");
-        f.Sender.BeforeSend = () => Assert.Equal(1,f.Scalar($"SELECT {column} FROM accounts WHERE account_id=1"));
+        await f.SeedShared(item, 3);
+        f.Sender.BeforeSend = () => Assert.Equal(1,f.SharedCount(item));
         await Request(f,slot,item,2);
         var ack=Assert.IsType<DeleteItemResponse>(f.Sender.Messages[0]);
         Assert.True(ack.Success);Assert.Equal(2,ack.AppliedCount);
@@ -85,10 +85,10 @@ public sealed class SkillMaterialConsumptionTests
     [InlineData(3,1,1)]
     public async Task Invalid_wire_shape_or_unknown_operation_does_not_consume(ushort operation,byte entries,uint reserved)
     {
-        using var f = new ShopFixture();f.Sql("UPDATE accounts SET cube_clear=3 WHERE account_id=1");
+        using var f = new ShopFixture();await f.SeedShared(3037, 3, 1);
         await Request(f,358,3037,1,operation,entries,reserved);
         Assert.False(Assert.IsType<DeleteItemResponse>(Assert.Single(f.Sender.Messages)).Success);
-        Assert.Equal(3,f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(3,f.SharedCount(3037, 1));
     }
 
     [Theory]
@@ -97,31 +97,31 @@ public sealed class SkillMaterialConsumptionTests
     public async Task Batch_validation_and_storage_failure_never_leave_partial_consumption(bool effect)
     {
         using var f=new ShopFixture();await f.Seed(65,5000,3);
-        f.Sql("UPDATE accounts SET cube_clear=3 WHERE account_id=1");
+        await f.SeedShared(3037, 3, 1);
         var bus=f.Services.GetRequiredService<ICommandBus>();
-        MaterialCost cube=new(new MaterialLocation.Account(AccountMaterialKind.ClearCube),3037,2);
-        MaterialCost carried=new(new MaterialLocation.Carried(new(BusinessInventorySpace.Consumable,0)),5000,4);
+        MaterialCost cube=new(new BusinessSlot(BusinessInventorySpace.SharedMaterial,4),3037,2);
+        MaterialCost carried=new(new(BusinessInventorySpace.Consumable,0),5000,4);
         ValueTask<MaterialConsumptionResult> Consume(MaterialCost cost) => effect
             ? bus.SendAsync(new ConsumeEffectMaterialsCommand(f.OnlineUser,f.Session,[cube,cost]))
             : bus.SendAsync(new ConsumeSkillMaterialsCommand(f.OnlineUser,f.Session,[cube,cost]));
         var invalid=await Consume(carried);
         Assert.False(invalid.Success);
-        Assert.Equal(3,f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(3,f.SharedCount(3037, 1));
         f.Sql("CREATE TRIGGER refuse_skill BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'test skill failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(async () => await Consume(carried with {Count=3}));
-        Assert.Equal(3,f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(3,f.SharedCount(3037, 1));
         Assert.Equal(3,f.Count(5000));Assert.Empty(f.Sender.Messages);
     }
 
     [Fact]
     public async Task Last_cube_then_insufficient_balance_never_double_debits()
     {
-        using var f=new ShopFixture();f.Sql("UPDATE accounts SET cube_clear=1 WHERE account_id=1");
+        using var f=new ShopFixture();await f.SeedShared(3037, 1, 1);
         await Request(f,358,3037,1);
         Assert.True(Assert.IsType<DeleteItemResponse>(f.Sender.Messages[0]).Success);
         await Request(f,358,3037,1);
         Assert.False(Assert.IsType<DeleteItemResponse>(f.Sender.Messages.Last()).Success);
-        Assert.Equal(0,f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0,f.SharedCount(3037, 1));
     }
 
     [Fact]
@@ -136,13 +136,13 @@ public sealed class SkillMaterialConsumptionTests
     [Fact]
     public async Task Stale_session_and_duplicate_locations_are_refused()
     {
-        using var f=new ShopFixture();f.Sql("UPDATE accounts SET cube_clear=3 WHERE account_id=1");
-        MaterialCost cost=new(new MaterialLocation.Account(AccountMaterialKind.ClearCube),3037,1);
+        using var f=new ShopFixture();await f.SeedShared(3037, 3, 1);
+        MaterialCost cost=new(new BusinessSlot(BusinessInventorySpace.SharedMaterial,4),3037,1);
         var bus=f.Services.GetRequiredService<ICommandBus>();
         Assert.False((await bus.SendAsync(new ConsumeSkillMaterialsCommand(f.OnlineUser,f.Session,[cost,cost]))).Success);
         var old=f.Session;f.Select(2);
         Assert.False((await bus.SendAsync(new ConsumeSkillMaterialsCommand(f.OnlineUser,old,[cost]))).Success);
-        Assert.Equal(3,f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(3,f.SharedCount(3037, 1));
     }
 
     private static ValueTask Request(ShopFixture f,int slot,int item,int count,ushort operation=2,byte entries=1,uint reserved=0) =>

@@ -429,6 +429,7 @@ internal sealed class SqliteAccountCargoItemTable(SqliteDatabase database) : IAc
             FROM item_slots place
             JOIN items held ON held.item_uid = place.core_uid
             WHERE place.owner_scope = 'account' AND place.owner_id = @accountId
+              AND place.list_type = 12
             ORDER BY place.list_type, place.slot_index, held.item_uid;
             """,
             parameters => parameters.AddWithValue("@accountId", accountId.Value),

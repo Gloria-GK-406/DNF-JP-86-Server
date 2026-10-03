@@ -149,7 +149,7 @@ public sealed class EquipmentDisjointTests
 
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(0, shop.Count(3037));
-        Assert.Equal(12, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(12, shop.SharedCount(3037, 1));
         var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
         Assert.Equal(
             new DisjointItemMaterial(
@@ -166,7 +166,7 @@ public sealed class EquipmentDisjointTests
         await Disjoint(shop, 9);
 
         Assert.Equal(0, shop.Count(10100115));
-        Assert.Equal(2, shop.Scalar("SELECT soul_common FROM accounts WHERE account_id=1"));
+        Assert.Equal(2, shop.SharedCount(10100115, 1));
         var response = Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>());
         Assert.Equal(
             new DisjointItemMaterial(
@@ -210,8 +210,8 @@ public sealed class EquipmentDisjointTests
         Assert.Equal(3, shop.Count(3257));
         Assert.Equal(0, shop.Count(3037));
         Assert.Equal(0, shop.Count(10100115));
-        Assert.Equal(12, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
-        Assert.Equal(2, shop.Scalar("SELECT soul_common FROM accounts WHERE account_id=1"));
+        Assert.Equal(12, shop.SharedCount(3037, 1));
+        Assert.Equal(2, shop.SharedCount(10100115, 1));
         Assert.Equal(
             [1000, 3037, 3257, 10100115],
             Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).Materials!
@@ -232,7 +232,7 @@ public sealed class EquipmentDisjointTests
         await Disjoint(shop, 9);
 
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
-        Assert.Equal(12, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(12, shop.SharedCount(3037, 1));
     }
 
     [Fact]
@@ -240,13 +240,13 @@ public sealed class EquipmentDisjointTests
     {
         using var shop = Fixture(rewards: [new(3037, 12)]);
         await shop.SeedCore(9, Piece());
-        shop.Sql("CREATE TRIGGER refuse_account_material BEFORE UPDATE OF cube_clear ON accounts "
-            + "WHEN NEW.cube_clear <> OLD.cube_clear BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_account_material BEFORE INSERT ON item_slots "
+            + "WHEN NEW.owner_scope='account' AND NEW.list_type=240 BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
 
         await Assert.ThrowsAsync<SqliteException>(() => Disjoint(shop, 9).AsTask());
 
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
-        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0, shop.SharedCount(3037, 1));
         Assert.Empty(shop.Sender.Messages);
     }
 
@@ -256,15 +256,15 @@ public sealed class EquipmentDisjointTests
         using var shop = Fixture(rewards: [new(3037, 12)]);
         await shop.SeedCore(9, Piece());
         await shop.Seed(65, 2600469, 2);
-        shop.Sql("CREATE TRIGGER refuse_portable_account_material BEFORE UPDATE OF cube_clear ON accounts "
-            + "WHEN NEW.cube_clear <> OLD.cube_clear BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_portable_account_material BEFORE INSERT ON item_slots "
+            + "WHEN NEW.owner_scope='account' AND NEW.list_type=240 BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
 
         await Assert.ThrowsAsync<SqliteException>(() =>
             Disjoint(shop, 9, disjointToolSlot: 65).AsTask());
 
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(2, shop.Count(2600469));
-        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0, shop.SharedCount(3037, 1));
         Assert.Empty(shop.Sender.Messages);
     }
 
@@ -272,16 +272,15 @@ public sealed class EquipmentDisjointTests
     public async Task The_same_account_exposes_one_material_bag_to_both_characters()
     {
         using var shop = Fixture(rewards: [new(3037, 12)]);
-        var bags = shop.Services.GetRequiredService<IAccountMaterialBagDomainService>();
-        var first = bags.Get(new(1));
+        var first = shop.Shared();
         await shop.SeedCore(9, Piece());
         await Disjoint(shop, 9);
 
         shop.Select(2);
-        var second = bags.Get(new(1));
+        var second = shop.Shared();
 
-        Assert.Same(first, second);
-        Assert.Equal(12, (await second.SnapshotAsync(default)).ClearCube);
+        Assert.Equal(first.StorageId, second.StorageId);
+        Assert.Equal(12, (await second.ReadSlotAsync(4, default))!.Count);
     }
 
     [Fact]
