@@ -173,6 +173,14 @@ internal sealed class IllusionTowerDomainService(
         var current = Match(context);
         if (current is null) return new TowerActionResult(false, null);
         if (!current.CanAdvance(context.Session)) return current.Result(false);
+        if (current.Room.State.ClearedAt is not { } clearedAt) return current.Result(false);
+        if (clock.GetUtcNow() < clearedAt + rules.MinimumClearedStay)
+        {
+            var waiting = current.Clone();
+            if (!waiting.RequestNextLevel(context.Session)) return current.Result(false);
+            Pending.Put(current, waiting);
+            return waiting.Result(true);
+        }
         var level = current.Room.State.Level + 1;
         var prepared = await rules.CreateRoomAsync(level, unchecked(current.Seed + (uint)level - 1), token, current.DungeonId).ConfigureAwait(false);
         var next = current.Clone();
@@ -196,6 +204,16 @@ internal sealed class IllusionTowerDomainService(
         try { delay = rules.ReturnDelay(option); }
         catch (ArgumentOutOfRangeException) { return ValueTask.FromResult(new TowerActionResult(false, Find(context.Session))); }
         return Mutate(context, run => run.SelectReturn(context.Session, option, clock.GetUtcNow(), delay), token);
+    }
+
+    public IReadOnlyList<TowerActionContext> FindAdvancesDue(DateTimeOffset now)
+    {
+        lock (sync)
+            return runs.Values
+                .Where(run => run.NextLevelRequester is { } requester && run.CanAdvance(requester)
+                    && run.Room.State.ClearedAt is { } clearedAt && clearedAt + rules.MinimumClearedStay <= now)
+                .Select(run => new TowerActionContext(run.NextLevelRequester!, run.RunId, run.Room.State.Version))
+                .ToArray();
     }
 
     public IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now)

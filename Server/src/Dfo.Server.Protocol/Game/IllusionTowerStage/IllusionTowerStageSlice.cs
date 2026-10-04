@@ -35,7 +35,8 @@ public sealed class IllusionTowerStageHandler(IllusionTowerProjectionDelivery de
     {
         if (message.Mode == 1)
             _ = await delivery.StartAsync(context.Connection.ConnectionId, message.Metadata, token).ConfigureAwait(false);
-        else if (message.Mode == 2)
-            _ = await delivery.AdvanceAsync(context.Connection.ConnectionId, message.Metadata, token).ConfigureAwait(false);
+        // Mode 2 is the clear report, sent before the client starts its ending talk.
+        // Actor deaths already establish authoritative clear state. Only MOVE_MAP
+        // requests the next floor; replying here would truncate dialogue and pickups.
     }
 }

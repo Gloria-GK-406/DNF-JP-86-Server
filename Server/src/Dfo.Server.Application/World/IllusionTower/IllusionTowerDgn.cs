@@ -61,6 +61,7 @@ internal sealed class IllusionTowerDgn
     public TowerCompletion? Completion { get; private set; }
     public byte? ReturnOption { get; private set; }
     public DateTimeOffset? ReturnDueAt { get; private set; }
+    public SelectedSessionIdentity? NextLevelRequester { get; private set; }
     public int NextUid { get; private set; } = 1;
     public required ImmutableHashSet<ushort> ReservedUids { get; init; }
 
@@ -69,7 +70,7 @@ internal sealed class IllusionTowerDgn
         RunId = RunId, DungeonId = DungeonId, LevelCount = LevelCount, Seed = Seed, StartedAt = StartedAt,
         Members = Members, Room = Room.Clone(), CompletedLevels = CompletedLevels,
         Completion = Completion, ReturnOption = ReturnOption, ReturnDueAt = ReturnDueAt,
-        NextUid = NextUid, ReservedUids = ReservedUids
+        NextUid = NextUid, ReservedUids = ReservedUids, NextLevelRequester = NextLevelRequester
     };
     public IllusionTowerSnapshot Snapshot() => new(RunId, DungeonId, Members, Room.State, CompletedLevels, Completion, StartedAt)
     {
@@ -80,6 +81,7 @@ internal sealed class IllusionTowerDgn
     public TowerActionResult Result(bool changed, TowerActor? killed = null) => new(changed, Snapshot(), killed);
     public void SetRoom(TowerRoomSeed seed, long version)
     {
+        NextLevelRequester = null;
         ushort Allocate()
         {
             while (NextUid <= ushort.MaxValue && ReservedUids.Contains((ushort)NextUid)) NextUid++;
@@ -112,6 +114,12 @@ internal sealed class IllusionTowerDgn
     }
     public bool CanAdvance(SelectedSessionIdentity session) => Completion is null && Room.State.Phase == TowerRoomPhase.Cleared
         && Members.Any(x => x.Session == session && x.IsLeader);
+    public bool RequestNextLevel(SelectedSessionIdentity session)
+    {
+        if (NextLevelRequester == session) return false;
+        NextLevelRequester = session;
+        return true;
+    }
     public TowerActionResult NextLevel(TowerRoomSeed seed)
     {
         if (seed.Level != Room.State.Level + 1) throw new InvalidDataException("Tower room sequence does not match.");
@@ -128,6 +136,7 @@ internal sealed class IllusionTowerDgn
     }
     public TowerActionResult Leave(SelectedSessionIdentity session, bool disconnected, DateTimeOffset now)
     {
+        if (NextLevelRequester == session) NextLevelRequester = null;
         Members = Members.Where(x => x.Session != session).ToImmutableArray();
         Room.RemoveMember(session.CharacterId, Members);
         if (Members.IsEmpty) End(disconnected ? TowerEndReason.Disconnected : TowerEndReason.Abandoned, now);
@@ -144,6 +153,7 @@ internal sealed class IllusionTowerDgn
             return Result(false);
         if (Members.Any(member => member.Session == leader && member.IsLeader))
             return Result(false);
+        NextLevelRequester = null;
         Members = Members
             .Select(member => member with { IsLeader = member.Session == leader })
             .ToImmutableArray();

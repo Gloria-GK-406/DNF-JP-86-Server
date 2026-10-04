@@ -85,6 +85,7 @@ public interface IIllusionTowerDomainService
     ValueTask<TowerActionResult> MarkSettledAsync(TowerActionContext context, TowerSettlementReceipt receipt, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> SelectReturnAsync(TowerActionContext context, byte option, CancellationToken cancellationToken);
     IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now);
+    IReadOnlyList<TowerActionContext> FindAdvancesDue(DateTimeOffset now) => [];
     ValueTask<bool> SupportsDungeonAsync(int dungeonId, CancellationToken cancellationToken);
 }
 

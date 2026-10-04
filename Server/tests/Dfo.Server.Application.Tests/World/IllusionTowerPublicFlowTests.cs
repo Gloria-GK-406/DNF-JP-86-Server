@@ -92,16 +92,15 @@ public sealed class IllusionTowerPublicFlowTests
             }
 
             Assert.Equal(TowerRoomPhase.Cleared, cleared.Room.Phase);
-            if ((floor & 1) == 1)
-            {
-                await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
-                    new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
-            }
-            else
-            {
-                await fixture.Services.GetRequiredService<MoveMapHandler>().HandleAsync(
-                    new(fixture.Connection), new MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
-            }
+            await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
+            Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
+            await fixture.Services.GetRequiredService<MoveMapHandler>().HandleAsync(
+                new(fixture.Connection), new MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
+            Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
+            fixture.Clock.Advance(TimeSpan.FromSeconds(5));
+            await fixture.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
+                .SweepAsync(fixture.Clock.GetUtcNow(), default);
         }
 
         Assert.Equal(RealFloorMaps, visitedMaps);
@@ -312,6 +311,7 @@ public sealed class IllusionTowerPublicFlowTests
         }
 
         public bool IsInTower(CharacterId characterId) => inner.IsInTower(characterId);
+        public IReadOnlyList<TowerActionContext> FindAdvancesDue(DateTimeOffset now) => inner.FindAdvancesDue(now);
         public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members) =>
             inner.TryReserveOrdinaryEntry(members);
         public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
