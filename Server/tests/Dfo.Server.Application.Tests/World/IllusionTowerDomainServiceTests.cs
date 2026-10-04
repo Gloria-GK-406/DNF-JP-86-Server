@@ -1197,6 +1197,55 @@ public sealed class IllusionTowerDomainServiceTests
     }
 
     [Fact]
+    public async Task Death_quickslot_potion_use_sends_remaining_then_empty_without_consuming_default_bag()
+    {
+        using var f = Fixture(configure: services => services.AddSingleton<IItemUseRuleDefinitionSource>(
+            new FakeItemUseRules((6521, ItemUseRules.Potion(cooldownMilliseconds: 0)))));
+        await f.Seed(65, 4183, 2);
+        await f.Seed(4, 6521, 7);
+        var run = (await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var current = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main);
+        var permanent = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main, isDefault: true);
+        await using (var tx = Scope(f).Begin())
+        {
+            var lifecycle = f.Services.GetRequiredService<IItemLifecycleDomainService>();
+            await current.PutAsync(4, await lifecycle.CreateAsync(
+                ItemSnapshot.FromCore(StackableItemCore.Create(2, 6521, 2), true), default), default);
+            await tx.CommitAsync(default);
+        }
+        var handler = f.Services.GetRequiredService<Dfo.Server.Protocol.Game.UseStackable.UseStackableHandler>();
+        var registrations = f.Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            f.Sender.Messages.Clear();
+            await handler.HandleAsync(new(f.Connection), new Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest(
+                GameMessageMetadata.Empty, new(InventoryContainerType.Main, 4), 25333, 6521), default);
+            var frames = f.Sender.Messages.SelectMany(message =>
+                ((IServerMessageEncoder)f.Services.GetRequiredService(registrations[message.GetType()].EncoderType))
+                    .Encode(message).Select(frame => frame.ToArray())).ToArray();
+            Assert.Equal(2, frames.Length);
+            Assert.Equal(1, frames[0][0]);
+            Assert.Equal(0x002C, BitConverter.ToUInt16(frames[0], 1));
+            Assert.Equal(attempt < 2 ? 1 : 0, frames[0][15]);
+            Assert.Equal(0, frames[1][0]);
+            Assert.Equal(0x000E, BitConverter.ToUInt16(frames[1], 1));
+            var body = frames[1].AsSpan(15).ToArray();
+            Assert.Equal(104, body.Length);
+            Assert.Equal((byte)InventoryContainerType.Main, body[0]);
+            Assert.Equal(1, BitConverter.ToUInt16(body, 1));
+            Assert.Equal(4, BitConverter.ToUInt16(body, 3));
+            Assert.Equal(attempt == 0 ? 6521 : -1, BitConverter.ToInt32(body, 5));
+            Assert.Equal(attempt == 0 ? 1 : 0, BitConverter.ToInt32(body, 9));
+            Assert.Equal(7, (await permanent.GetAsync(4, default))!.Count);
+        }
+        Assert.Null(await current.GetAsync(4, default));
+        await Tower(f).LeaveAsync(Context(run, f.Session), false, default);
+        Assert.Same(permanent, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.Equal(7, (await permanent.GetAsync(4, default))!.Count);
+    }
+
+    [Fact]
     public async Task Death_entry_prepare_failure_rolls_back_ticket_and_both_bindings()
     {
         using var f = Fixture();

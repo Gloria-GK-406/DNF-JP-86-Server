@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-04 消耗品耗尽后的槽位同步（待实机复测）
+
+[CMD002C](game/client-to-server/0x002C.md#2026-10-04-a21-塔药耗尽后残留wirecaptured--currentimplementation修复待实机)使用结果后追加NOTI000E绝对槽位状态，耗尽清空；旧图标触发的空槽/物品不符请求拒绝并校准。死亡之塔临时背包有编码帧及永久背包隔离回归；故障已有用户观察和日志证据，修复仍为CurrentImplementation，未升级ClientVerified。
+
 ## 2026-10-03 迷妄之塔入场崩溃修正（待实机复测）
 
 首次实机入场在 CMD0012 扣券回执的塔属性更新路径发生空指针异常。当前将扣券回执与背包更新前移到 [NOTI008E](game/server-to-client/NOTI-0x008E.md)/008F 之前；已有客户端异常日志、静态调用链和自动回归，尚未取得修正后成功入场的 ClientVerified。详见[故障记录](../Document/illusion-tower-entry-crash-20261003.md)。

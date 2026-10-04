@@ -24,15 +24,68 @@ namespace Dfo.Server.Application.Tests.Game;
 /// <summary>
 /// What the server does when the player drinks a potion.
 /// </summary>
-/// <remarks>
-/// Observed live on 2026-08-18: the health came back but the count did not move, because nothing
-/// answered the request. The client applies the recovery itself and decrements its own pile by
-/// one; the acknowledgement is what lets that decrement stand.
-/// </remarks>
 public sealed class UseStackableHandlerTests
 {
     /// <summary>The level on the character's own row, which is what a use is judged against.</summary>
     private const byte RowLevel = 50;
+
+    [Theory]
+    [InlineData(4, 2)]
+    [InlineData(4, 1)]
+    [InlineData(65, 2)]
+    [InlineData(65, 1)]
+    public async Task Use_publishes_absolute_slot_state_after_ack(short wireSlot, int count)
+    {
+        var inventory = new FakeInventory(wireSlot, 8474, count, 2);
+        var (handler, sender) = Build(inventory);
+        await handler.HandleAsync(Context, Request(wireSlot, 8474), default);
+
+        Assert.Equal(count - 1, inventory.Count);
+        Assert.Equal(2, sender.Sent.Count);
+        var ack = Assert.IsType<UseStackableResponse>(sender.Sent[0]);
+        Assert.Null(ack.ErrorCode);
+        Assert.Equal(wireSlot, ack.Slot.Index);
+        var state = Assert.IsType<ItemUseSlotState>(ack.InventoryState);
+        if (count == 1) Assert.Null(state.Item);
+        else Assert.Equal(count - 1, state.Item!.Count);
+        Assert.IsAssignableFrom<IGameNotiMessage>(sender.Sent[1]);
+    }
+
+    [Fact]
+    public async Task Repeated_use_of_an_exhausted_slot_resends_clear_without_consuming_again()
+    {
+        var inventory = new FakeInventory(4, 8474, 1, 2);
+        var (handler, sender) = Build(inventory);
+        await handler.HandleAsync(Context, Request(4, 8474), default);
+        await handler.HandleAsync(Context, Request(4, 8474), default);
+
+        Assert.True(inventory.IsEmpty);
+        Assert.Equal(4, sender.Sent.Count);
+        var ack = Assert.IsType<UseStackableResponse>(sender.Sent[2]);
+        Assert.Equal(UseStackableResponse.Silent, ack.ErrorCode);
+        Assert.Null(Assert.IsType<ItemUseSlotState>(ack.InventoryState).Item);
+        Assert.IsAssignableFrom<IGameNotiMessage>(sender.Sent[3]);
+    }
+
+    [Fact]
+    public async Task Remaining_pile_projection_preserves_item_metadata()
+    {
+        var inventory = new FakeInventory(4, 8474, 2, 2);
+        var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
+        await using (var tx = inventory.Scope.Begin())
+        {
+            var bound = slots.Get(new CharacterId(60), new(BusinessInventorySpace.QuickSlot, 1));
+            var item = (await bound.Container.GetAsync(1, default))!;
+            await bound.Container.UpdateAsync(item, x => x with { ExpireTime = int.MaxValue, SortLockFlag = 1 }, default);
+            await tx.CommitAsync(default);
+        }
+        var (handler, sender) = Build(inventory);
+        await handler.HandleAsync(Context, Request(4, 8474), default);
+        var remaining = sender.Sent.OfType<UseStackableResponse>().Single().InventoryState!.Item!;
+        Assert.Equal(1, remaining.Count);
+        Assert.Equal(int.MaxValue, remaining.ExpireTime);
+        Assert.Equal(1, remaining.SortLockFlag);
+    }
 
     [Fact]
     public async Task Expired_stackable_is_refused_without_consumption()
@@ -49,7 +102,7 @@ public sealed class UseStackableHandlerTests
         var (handler, sender) = Build(inventory);
         await handler.HandleAsync(Context, Request(3, 8474), default);
         Assert.Equal(2, inventory.Count);
-        Assert.Equal(UseStackableResponse.NotConsumable, ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+        Assert.Equal(UseStackableResponse.NotConsumable, ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     [Fact]
@@ -191,13 +244,9 @@ public sealed class UseStackableHandlerTests
         await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
         Assert.Equal(1, inventory.Count);
-        Assert.Null(((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+        Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
-    /// <remarks>
-    /// Exactly one, whatever the pile holds. Consuming a whole stack on one key press is the shape
-    /// the client would never recover from: it decremented by one and has no way to learn better.
-    /// </remarks>
     [Fact]
     public async Task A_large_pile_loses_only_one()
     {
@@ -218,7 +267,7 @@ public sealed class UseStackableHandlerTests
         await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
         Assert.True(inventory.IsEmpty);
-        Assert.Null(((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+        Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     /// <remarks>
@@ -240,7 +289,9 @@ public sealed class UseStackableHandlerTests
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
             UseStackableResponse.Silent,
-            ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
+        Assert.Equal(9000, sender.Sent.OfType<UseStackableResponse>().Single().InventoryState!.Item!.ItemId);
+        Assert.Equal(2, sender.Sent.Count);
     }
 
     [Fact]
@@ -252,7 +303,7 @@ public sealed class UseStackableHandlerTests
 
         Assert.Equal(
             UseStackableResponse.Silent,
-            ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     /// <remarks>
@@ -272,7 +323,7 @@ public sealed class UseStackableHandlerTests
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
             UseStackableResponse.NotConsumable,
-            ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     [Fact]
@@ -292,7 +343,7 @@ public sealed class UseStackableHandlerTests
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
             UseStackableResponse.NotConsumable,
-            ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     /// <remarks>
@@ -309,7 +360,7 @@ public sealed class UseStackableHandlerTests
         await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
         Assert.Equal(1, inventory.Count);
-        Assert.Null(((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+        Assert.Null(((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     /// <remarks>
@@ -419,7 +470,7 @@ public sealed class UseStackableHandlerTests
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
             UseStackableResponse.CurrentlyUnusable,
-            ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+            ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).ErrorCode);
     }
 
     /// <remarks>
@@ -433,7 +484,7 @@ public sealed class UseStackableHandlerTests
 
         await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
-        Assert.Equal(25333, ((UseStackableResponse)sender.Sent.Single()).InstanceValue);
+        Assert.Equal(25333, ((UseStackableResponse)sender.Sent.OfType<UseStackableResponse>().Single()).InstanceValue);
     }
 
     private static readonly NetworkDispatchContext Context = new(
@@ -482,7 +533,7 @@ public sealed class UseStackableHandlerTests
             new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, sessions, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
         var commandHandler = new UseStackableCommandHandler(sessions, slots,
-            new ItemUseEffectDomainService(characters, new ItemUseEffectRuleService(judgement), apply, null!, clock));
+            new ItemUseEffectDomainService(characters, new ItemUseEffectRuleService(judgement), apply, null!, clock), clock);
         return (
             new UseStackableHandler(
                 sessions,
