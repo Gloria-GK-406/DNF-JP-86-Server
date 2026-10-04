@@ -240,30 +240,21 @@ public sealed class IllusionTowerProjectionDelivery(
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : towers.Find(session);
         if (session is null || expected is null) return false;
-        await AdvanceExpectedAsync(session, expected, false, token).ConfigureAwait(false);
-        return true;
-    }
-
-    private async ValueTask AdvanceExpectedAsync(SelectedSessionIdentity session,
-        IllusionTowerSnapshot expected, bool pendingOnly, CancellationToken token)
-    {
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
         await using (await projectionGate.AcquireAsync(
             expected.RunId, UserAccessMode.Exclusive, token).ConfigureAwait(false))
         await using (await AcquireTransitionsAsync(
             expected.Members.Select(member => member.Session), token).ConfigureAwait(false))
         {
-            if (!Exact(session, expected)) return;
-            if (pendingOnly && !towers.FindAdvancesDue(clock.GetUtcNow()).Contains(Context(expected, session))) return;
+            if (!Exact(session, expected)) return true;
             var action = await commands.SendAsync(
                 new AdvanceIllusionTowerCommand(Context(expected, session)), token).ConfigureAwait(false);
-            // A committed request can still be waiting for the pickup window.
-            // Never resend the old map, which would clear its client-side drops.
-            if (action.Changed && action.Run is { } run && run.Room.Version != expected.Room.Version)
+            if (action.Changed && action.Run is { } run)
                 failures = await SendToExactAsync(
                     run, _ => [new IllusionTowerMapNotification(run.Room)], token).ConfigureAwait(false);
         }
         await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
+        return true;
     }
 
     public async ValueTask<bool> KillAsync(NetworkConnectionId connectionId,
@@ -423,20 +414,6 @@ public sealed class IllusionTowerProjectionDelivery(
 
     public async ValueTask SweepAsync(DateTimeOffset now, CancellationToken token)
     {
-        foreach (var context in towers.FindAdvancesDue(now))
-        {
-            try
-            {
-                var expected = towers.Find(context.Session);
-                if (expected is not null && expected.RunId == context.RunId && expected.Room.Version == context.RoomVersion)
-                    await AdvanceExpectedAsync(context.Session, expected, true, token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception error)
-            {
-                logger.LogWarning(error, "Tower advance sweep failed for run {RunId}; retaining the request for retry", context.RunId);
-            }
-        }
         foreach (var context in towers.FindReturnsDue(now))
         {
             IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures;

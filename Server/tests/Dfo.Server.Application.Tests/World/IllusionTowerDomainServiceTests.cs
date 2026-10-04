@@ -48,15 +48,17 @@ public sealed class IllusionTowerDomainServiceTests
                 new(f.Connection), new Dfo.Server.Protocol.Game.IllusionTowerStage.IllusionTowerStageRequest(
                     GameMessageMetadata.Empty, 2, []), default);
 
+        f.Clock.Advance(TimeSpan.FromSeconds(30));
+        await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>().SweepAsync(f.Clock.GetUtcNow(), default);
         Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
         Assert.Equal(TowerRoomPhase.Cleared, tower.Find(f.Session)!.Room.Phase);
         Assert.DoesNotContain(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
     }
 
     [Fact]
-    public async Task Early_move_keeps_drops_pickable_and_advances_once_after_five_seconds()
+    public async Task Cleared_floor_keeps_drops_until_move_and_moves_immediately_without_a_minimum_stay()
     {
-        using var f = Fixture(new Rules { Items = [2000], MinimumClearedStay = TimeSpan.FromSeconds(5) },
+        using var f = Fixture(new Rules { Items = [2000] },
             configure: services => services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
         await f.Seed(65, 4183, 1);
         var tower = Tower(f);
@@ -69,68 +71,18 @@ public sealed class IllusionTowerDomainServiceTests
         var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
         f.Sender.Messages.Clear();
 
-        await delivery.AdvanceAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, default);
-        await delivery.AdvanceAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, default);
         Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
         Assert.Empty(f.Sender.Messages);
         await delivery.PickupAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, drop.Uid, default);
         Assert.True(Assert.Single(tower.Find(f.Session)!.Room.Items).Claimed);
-        f.Clock.Advance(TimeSpan.FromMilliseconds(4999));
         await delivery.SweepAsync(f.Clock.GetUtcNow(), default);
         Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
         Assert.DoesNotContain(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
 
-        f.Clock.Advance(TimeSpan.FromMilliseconds(1));
-        await delivery.SweepAsync(f.Clock.GetUtcNow(), default);
-        await delivery.SweepAsync(f.Clock.GetUtcNow(), default);
         await delivery.AdvanceAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, default);
         Assert.Equal(2, tower.Find(f.Session)!.Room.Level);
-        Assert.Single(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
-        Assert.Empty(tower.FindAdvancesDue(f.Clock.GetUtcNow()));
-    }
-
-    [Fact]
-    public async Task Pending_move_cannot_survive_leave_and_reentry()
-    {
-        using var f = Fixture(new Rules { MinimumClearedStay = TimeSpan.FromSeconds(5) },
-            configure: services => services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser()));
-        await f.Seed(65, 4183, 2);
-        var tower = Tower(f);
-        var run = (await Enter(f)).Run!;
-        var context = Context(run, f.Session);
-        await tower.LoadAsync(context, default);
-        await tower.StartAsync(context, default);
-        await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
-        var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
         await delivery.AdvanceAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, default);
-        await tower.LeaveAsync(context, false, default);
-        var reentered = (await Enter(f)).Run!;
-        f.Clock.Advance(TimeSpan.FromSeconds(5));
-        f.Sender.Messages.Clear();
-        await delivery.SweepAsync(f.Clock.GetUtcNow(), default);
-        Assert.False((await tower.NextLevelAsync(context, default)).Changed);
-        Assert.NotEqual(run.RunId, reentered.RunId);
-        Assert.Equal(reentered.RunId, tower.Find(f.Session)!.RunId);
-        Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
-        Assert.Empty(f.Sender.Messages);
-    }
-
-    [Fact]
-    public async Task Rolled_back_move_request_does_not_create_a_later_transition()
-    {
-        using var f = Fixture(new Rules { MinimumClearedStay = TimeSpan.FromSeconds(5) });
-        await f.Seed(65, 4183, 1);
-        var tower = Tower(f);
-        var run = (await Enter(f)).Run!;
-        var context = Context(run, f.Session);
-        await tower.LoadAsync(context, default);
-        await tower.StartAsync(context, default);
-        await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
-        await using (Scope(f).Begin())
-            Assert.True((await tower.NextLevelAsync(context, default)).Changed);
-        f.Clock.Advance(TimeSpan.FromSeconds(5));
-        Assert.Empty(tower.FindAdvancesDue(f.Clock.GetUtcNow()));
-        Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
+        Assert.Single(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
     }
 
     [Fact]
@@ -1245,8 +1197,6 @@ public sealed class IllusionTowerDomainServiceTests
 
     internal sealed class Rules : IIllusionTowerRuleService
     {
-        // Non-timing tests use an immediate rule; timing regressions explicitly select five seconds.
-        public TimeSpan MinimumClearedStay { get; set; } = TimeSpan.Zero;
         public IReadOnlyList<int> Items { get; set; } = [];
         public int FailLevel { get; set; }
         public byte ActorType { get; set; } = 4;
@@ -1485,7 +1435,6 @@ public sealed class IllusionTowerDomainServiceTests
             run = tower.Find(f.Session)!;
             if (floor < 45)
             {
-                f.Clock.Advance(TimeSpan.FromSeconds(5));
                 run = (await tower.NextLevelAsync(Context(run, f.Session), default)).Run!;
             }
         }

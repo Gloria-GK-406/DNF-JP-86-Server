@@ -97,10 +97,7 @@ public sealed class IllusionTowerPublicFlowTests
             Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
             await fixture.Services.GetRequiredService<MoveMapHandler>().HandleAsync(
                 new(fixture.Connection), new MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
-            Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
-            fixture.Clock.Advance(TimeSpan.FromSeconds(5));
-            await fixture.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
-                .SweepAsync(fixture.Clock.GetUtcNow(), default);
+            Assert.Equal(floor + 1, towers.Find(fixture.Session)!.Room.Level);
         }
 
         Assert.Equal(RealFloorMaps, visitedMaps);
@@ -311,7 +308,6 @@ public sealed class IllusionTowerPublicFlowTests
         }
 
         public bool IsInTower(CharacterId characterId) => inner.IsInTower(characterId);
-        public IReadOnlyList<TowerActionContext> FindAdvancesDue(DateTimeOffset now) => inner.FindAdvancesDue(now);
         public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members) =>
             inner.TryReserveOrdinaryEntry(members);
         public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,

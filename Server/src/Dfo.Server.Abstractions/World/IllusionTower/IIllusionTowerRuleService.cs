@@ -5,7 +5,6 @@ public interface IIllusionTowerRuleService
     ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001);
     ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001);
 
-    TimeSpan MinimumClearedStay => TimeSpan.FromSeconds(5);
     TimeSpan DefaultReturnDelay => TimeSpan.FromSeconds(60);
     TimeSpan? ReturnDelay(byte option) => option switch
     {
