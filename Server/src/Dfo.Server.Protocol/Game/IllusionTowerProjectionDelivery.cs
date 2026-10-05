@@ -55,7 +55,8 @@ public sealed class IllusionTowerProjectionDelivery(
     IllusionTowerEntryGate entryGate,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<IllusionTowerProjectionDelivery> logger)
+    ILogger<IllusionTowerProjectionDelivery> logger,
+    TowerInventoryExperiment? inventoryExperiment = null)
 {
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
@@ -157,7 +158,7 @@ public sealed class IllusionTowerProjectionDelivery(
                     frames.Add(new UserStateNotification(wireUsers, 0x01));
                     frames.Add(new UdpHostNotification(hostSlot));
                     frames.Add(new SupportTagNotification());
-                    if (run.DungeonId == 11000)
+                    if (run.DungeonId == 11000 && inventoryExperiment?.KeepCarriedInventory != true)
                     {
                         var state = refreshed[receiver.Session.CharacterId];
                         frames.Add(new InventoryFullSnapshotMessage(
@@ -564,7 +565,8 @@ public sealed class IllusionTowerProjectionDelivery(
                 if (kill is not null)
                 {
                     await AppendExperienceAsync(frames, member, kill.Award, token).ConfigureAwait(false);
-                    if (run.DungeonId != 11000) AppendInventory(frames, kill.InventoryUpdates, clock.GetUtcNow());
+                    if (run.DungeonId != 11000 || inventoryExperiment?.KeepCarriedInventory == true)
+                        AppendInventory(frames, kill.InventoryUpdates, clock.GetUtcNow());
                     AppendQuest(frames, kill.QuestProgress);
                 }
                 if (requesterResponse is not null && member == requester) frames.Add(requesterResponse);
@@ -618,7 +620,8 @@ public sealed class IllusionTowerProjectionDelivery(
         }
         else
             AppendQuest(frames, member.QuestProgress);
-        foreach (var group in (run.DungeonId == 11000 ? [] : member.InventoryUpdates).GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
+        foreach (var group in (run.DungeonId == 11000 && inventoryExperiment?.KeepCarriedInventory != true
+            ? [] : member.InventoryUpdates).GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
         {
             frames.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(
                 group.Key,

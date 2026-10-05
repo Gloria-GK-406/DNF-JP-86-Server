@@ -426,6 +426,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<CharacterContainerAddition>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
+        services.TryAddSingleton(new TowerInventoryExperiment(
+            configuration.GetValue<bool>("Diagnostics:TowerKeepInventory")));
         services.TryAddSingleton<Dfo.Server.Application.World.IllusionTower.TowerInventoryDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<IQuestTriggerDomainService, QuestTriggerDomainService>();

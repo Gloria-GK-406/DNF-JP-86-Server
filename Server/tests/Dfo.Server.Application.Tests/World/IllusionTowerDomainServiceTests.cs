@@ -971,14 +971,17 @@ public sealed class IllusionTowerDomainServiceTests
             .Find(other.CharacterId));
     }
 
-    [Fact]
-    public async Task Death_tower_entry_and_return_project_current_then_default_inventory()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Death_tower_entry_and_return_project_current_then_default_inventory(bool keepCarriedInventory)
     {
         using var f = Fixture(configure: services =>
         {
             services.RemoveAll<ICharacterSkillPointDomainService>();
             services.AddSingleton<ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
             services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser());
+            services.AddSingleton(new TowerInventoryExperiment(keepCarriedInventory));
         });
         await f.Seed(65, 4183, 2);
         await f.Seed(66, 2000, 7);
@@ -997,11 +1000,16 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.True(await delivery.EnterAsync(f.Session.ConnectionId, f.Session, party,
             DungeonEntryIntent.Interactive, () => Assert.Fail("Entry was refused."), default, dungeonId: 11000));
 
-        var entered = Snapshot();
-        Assert.Equal(14, entered.Items.Length); // Only the standard currency/material virtual slots remain.
-        Assert.All(entered.Items.Where(item => item.Slot >= 354), item => Assert.Equal(0, item.Count));
-        Assert.True(f.Sender.Messages.IndexOf(entered.Message) < f.Sender.Messages.FindIndex(
-            message => message.MessageType == ServerMessageType.GameIllusionTowerInfo));
+        if (keepCarriedInventory)
+            Assert.DoesNotContain(f.Sender.Messages, message => message.GetType().Name == "InventoryFullSnapshotMessage");
+        else
+        {
+            var entered = Snapshot();
+            Assert.Equal(14, entered.Items.Length); // Only the standard currency/material virtual slots remain.
+            Assert.All(entered.Items.Where(item => item.Slot >= 354), item => Assert.Equal(0, item.Count));
+            Assert.True(f.Sender.Messages.IndexOf(entered.Message) < f.Sender.Messages.FindIndex(
+                message => message.MessageType == ServerMessageType.GameIllusionTowerInfo));
+        }
         f.Sender.Messages.Clear();
 
         Assert.True(await delivery.LeaveAndReturnAsync(f.Session.ConnectionId,
@@ -1210,6 +1218,38 @@ public sealed class IllusionTowerDomainServiceTests
                 new(Enumerable.Repeat(ExperienceWeight, 15).ToArray(), Enumerable.Repeat(CardCount, 15).ToArray(), Probabilities, 11, 3, 1), new(4, 0, 0, 0, [], [], [])));
         public ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) => level == FailLevel ? throw new InvalidDataException("fixture room failure") : ValueTask.FromResult(
             new TowerRoomSeed(level, 60000 + level, seed, [new(0, 608, 40, ActorType, true, new(1, 2, 0)) { Items = Items }], []));
+    }
+
+    [Fact]
+    public async Task Death_inventory_probe_preserves_bag_and_materials_and_refuses_pickup_without_claiming()
+    {
+        using var f = Fixture(new Rules { Items = [2000] },
+            configure: services => services.AddSingleton(new TowerInventoryExperiment(true)));
+        await f.Seed(65, 4183, 2);
+        await f.Seed(66, 2000, 7);
+        await f.SeedShared(3033, 90);
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        var main = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main);
+        var materials = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial);
+        var tower = Tower(f);
+        var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
+        Assert.Same(main, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.Same(materials, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial));
+        Assert.Single(containers.GetContainers(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.Equal(1, (await main.GetAsync(65, default))!.Count);
+        Assert.Equal(7, (await main.GetAsync(66, default))!.Count);
+        Assert.Equal(90, f.SharedCount(3033));
+        var context = Context(run, f.Session);
+        await tower.LoadAsync(context, default);
+        await tower.StartAsync(context, default);
+        var drop = Assert.Single((await tower.KillAsync(context, run.Room.Actors[0].Uid, default)).Drops);
+        Assert.False((await tower.PickupAsync(context, drop.Uid, default)).Action.Changed);
+        Assert.False(tower.Find(f.Session)!.Room.Items.Single().Claimed);
+        Assert.Equal(7, (await main.GetAsync(66, default))!.Count);
+        await tower.LeaveAsync(context, false, default);
+        Assert.Same(main, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
+        Assert.Same(materials, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.SharedMaterial));
+        Assert.Equal(90, f.SharedCount(3033));
     }
 
     [Fact]

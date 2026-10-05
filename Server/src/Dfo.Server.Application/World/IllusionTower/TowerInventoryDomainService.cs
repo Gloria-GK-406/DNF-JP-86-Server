@@ -10,13 +10,15 @@ namespace Dfo.Server.Application.World.IllusionTower;
 
 /// <summary>Death Tower replaces carried items and account-material access for this participant only.</summary>
 internal sealed class TowerInventoryDomainService(ICharacterContainerDomainService containers,
-    IDomainTransactionAccessor transactions, IItemPlacementRuleService placements, IItemSlotRuleService slots, ITransientItemDomainStoreFactory stores, IItemGrantDomainService grants)
+    IDomainTransactionAccessor transactions, IItemPlacementRuleService placements, IItemSlotRuleService slots, ITransientItemDomainStoreFactory stores, IItemGrantDomainService grants,
+    TowerInventoryExperiment experiment)
 {
     private static readonly InventoryContainerType[] Types = [InventoryContainerType.Main, InventoryContainerType.SharedMaterial];
     private static ContainerId Identity(CharacterId character, Guid run, InventoryContainerType type) =>
         new($"tower:{run:N}:{character.Value}:{type}");
     public void Enter(CharacterId character, Guid run)
     {
+        if (experiment.KeepCarriedInventory) return;
         if (transactions.Current is null) throw new InvalidOperationException("Tower inventory requires a transaction.");
         var originals = Types.Select(type => containers.GetContainer(character, type, isDefault: true)).ToArray();
         var store = stores.Create();
@@ -30,6 +32,7 @@ internal sealed class TowerInventoryDomainService(ICharacterContainerDomainServi
     }
     public async ValueTask<TowerInventoryUpdate?> AddAsync(SelectedSessionIdentity session, int itemId, CancellationToken ct)
     {
+        if (experiment.KeepCarriedInventory) return null;
         var grant = await grants.GrantAsync(session.AccountId, session.CharacterId, containers, itemId, 1, ct).ConfigureAwait(false);
         var slot = grant.Placement switch
         {
@@ -46,6 +49,7 @@ internal sealed class TowerInventoryDomainService(ICharacterContainerDomainServi
     }
     public void Leave(CharacterId character, Guid run)
     {
+        if (experiment.KeepCarriedInventory) return;
         if (transactions.Current is null) throw new InvalidOperationException("Tower inventory requires a transaction.");
         foreach (var type in Types) containers.Remove(character, Identity(character, run, type));
     }
