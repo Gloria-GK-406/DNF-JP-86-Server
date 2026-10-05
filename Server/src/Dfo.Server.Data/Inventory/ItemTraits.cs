@@ -39,16 +39,13 @@ public static class ItemTraitClassification
     }
 }
 
-/// <summary>Allowed features, not required features. Slot and instance rules apply separately.</summary>
+/// <summary>Container feature rules. Slot and instance rules apply separately.</summary>
 public static class ItemContainerAdmission
 {
     private const ItemTraits Cargo = ItemTraits.Equipment | ItemTraits.Consumable
         | ItemTraits.Material | ItemTraits.Profession | ItemTraits.AccountShared;
 
-    public static bool Accepts(ItemTraits acceptedTraits, ItemTraits itemTraits) =>
-        itemTraits != ItemTraits.None && (itemTraits & acceptedTraits) == itemTraits;
-
-    public static ItemTraits AcceptedBy(BusinessInventorySpace space) => space switch
+    public static ItemAdmissionRule For(BusinessInventorySpace space) => new(space switch
     {
         BusinessInventorySpace.QuickSlot => Cargo | ItemTraits.Quest,
         BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment
@@ -67,5 +64,5 @@ public static class ItemContainerAdmission
         BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo => Cargo,
         // Virtual resources and the not-yet-implemented medal spaces have no item admission.
         _ => ItemTraits.None,
-    };
+    });
 }

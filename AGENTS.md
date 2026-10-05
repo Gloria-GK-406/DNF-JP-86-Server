@@ -516,7 +516,8 @@ if (result.Publication.Audience.Count > 0)
 InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路。
 
 新建和落位根据 PVF 校验类型、是否堆叠和目标规则；既存行的身份形态以实际 `item_slots.kind`
-为准。容量、固定槽、堆叠上限及同账号归属仍由对应业务边界检查。容量缩小后的旧堆可取出或减量，
+为准。容器 flag 准入统一使用 `ItemAdmissionRule` 的 Allowed/All/Any 匹配，语义见
+[物品准入规则](Document/ItemAdmissionRules.md)。容量、固定槽、堆叠上限及同账号归属仍由对应业务边界检查。容量缩小后的旧堆可取出或减量，
 不能借 Update 增长或改写其他状态。普通补货沿用补货规则决定的数量，与普通发放的堆叠规划不同。
 账号仓库无时装细节的历史行仅保留读取兼容，不放宽新建/重新落位的完整性要求。
 角色 Main/1 的零复活币逻辑数量为 0，位置表的物理 count 保持正数。

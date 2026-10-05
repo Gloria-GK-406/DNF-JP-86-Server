@@ -67,7 +67,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
     public ContainerId StorageId { get; } = ValidateStorage(space, backing);
     public BusinessInventorySpace Space => space;
     public bool IsDefault => backing.IsDefault;
-    public ItemTraits AcceptedTraits => ItemContainerAdmission.AcceptedBy(space);
+    public ItemAdmissionRule Admission => ItemContainerAdmission.For(space);
 
     public ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
         !backing.IsDefault ? ValueTask.FromResult(new InventoryCapacityRuleService().OpenSlotCount(space, backing.Shape.Parameter))
@@ -152,7 +152,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         var snapshot = record.Snapshot;
         var placement = placements is null ? null
             : await placements.PlacementForAsync(record.ItemId, space, ct).ConfigureAwait(false);
-        if (!ItemContainerAdmission.Accepts(AcceptedTraits, record.Type)
+        if (!Admission.Matches(record.Type)
             || placement is not null && (record.Type != placement.Traits || snapshot.LegacyKind != placement.ItemKind
                 || record.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)))
             throw new InvalidOperationException($"Item {record.ItemId} cannot enter {space}.");

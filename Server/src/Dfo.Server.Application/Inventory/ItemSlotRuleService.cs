@@ -11,7 +11,7 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
     public bool CanOccupySlot(BusinessSlot slot, ItemPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(placement);
-        if (!ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(slot.Space), placement.Traits))
+        if (!ItemContainerAdmission.For(slot.Space).Matches(placement.Traits))
             return false;
 
         return slot.Space switch
@@ -31,5 +31,5 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
     }
 
     internal static bool AllowsQuickSlot(ItemPlacement placement) =>
-        ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(BusinessInventorySpace.QuickSlot), placement.Traits);
+        ItemContainerAdmission.For(BusinessInventorySpace.QuickSlot).Matches(placement.Traits);
 }

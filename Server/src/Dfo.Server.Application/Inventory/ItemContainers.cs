@@ -149,7 +149,7 @@ internal abstract class StoreBackedItemContainer(
         var worn = business.Space is BusinessInventorySpace.WornEquipment or BusinessInventorySpace.WornEquipmentExtension
             or BusinessInventorySpace.WornAvatar or BusinessInventorySpace.WornCreature or BusinessInventorySpace.WornCreatureEquipment;
         var admitsSlot = placement is not null && (worn
-            ? ItemContainerAdmission.Accepts(ItemContainerAdmission.AcceptedBy(business.Space), snapshot.Type)
+            ? ItemContainerAdmission.For(business.Space).Matches(snapshot.Type)
                 && await placementRules.WornSlotForAsync(snapshot.ItemId, ct).ConfigureAwait(false) == business
             : slotRules.CanOccupySlot(business, placement));
         if (IsDefault && Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)

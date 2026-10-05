@@ -26,11 +26,11 @@ public sealed class ItemTraitsTests
     {
         var material = ItemTraits.Material;
         var shared = material | ItemTraits.AccountShared;
-        Assert.True(ItemContainerAdmission.Accepts(shared, material));
-        Assert.True(ItemContainerAdmission.Accepts(shared, shared));
-        Assert.False(ItemContainerAdmission.Accepts(material, shared));
-        Assert.False(ItemContainerAdmission.Accepts(shared, ItemTraits.None));
-        Assert.False(ItemContainerAdmission.Accepts(shared, material | (ItemTraits)256));
+        Assert.True(new ItemAdmissionRule(shared).Matches(material));
+        Assert.True(new ItemAdmissionRule(shared).Matches(shared));
+        Assert.False(new ItemAdmissionRule(material).Matches(shared));
+        Assert.False(new ItemAdmissionRule(shared).Matches(ItemTraits.None));
+        Assert.False(new ItemAdmissionRule(shared).Matches(material | (ItemTraits)256));
     }
 
     [Theory]
@@ -46,10 +46,10 @@ public sealed class ItemTraitsTests
     [InlineData(BusinessInventorySpace.ExpertMaterial, 10)]
     public void A_container_accepts_its_category_but_never_unknown_bits(BusinessInventorySpace space, byte kind)
     {
-        var accepted = ItemContainerAdmission.AcceptedBy(space);
+        var rule = ItemContainerAdmission.For(space);
         var traits = ItemTraitClassification.For(kind);
-        Assert.True(ItemContainerAdmission.Accepts(accepted, traits));
-        Assert.False(ItemContainerAdmission.Accepts(accepted, traits | (ItemTraits)256));
+        Assert.True(rule.Matches(traits));
+        Assert.False(rule.Matches(traits | (ItemTraits)256));
     }
 
     [Theory]
@@ -57,13 +57,12 @@ public sealed class ItemTraitsTests
     [InlineData(BusinessInventorySpace.AccountCargo)]
     public void Cargo_keeps_the_existing_category_boundary(BusinessInventorySpace space)
     {
-        var accepted = ItemContainerAdmission.AcceptedBy(space);
+        var rule = ItemContainerAdmission.For(space);
         for (byte kind = 0; kind < 12; kind++)
             Assert.Equal(kind is 1 or 2 or 3 or 10 or 11,
-                ItemContainerAdmission.Accepts(accepted, ItemTraitClassification.For(kind)));
+                rule.Matches(ItemTraitClassification.For(kind)));
         foreach (var definition in AccountMaterialCatalog.Definitions)
-            Assert.True(ItemContainerAdmission.Accepts(accepted,
-                StackableItemCore.Create(definition.ItemKind, definition.ItemId, 1).Traits));
+            Assert.True(rule.Matches(StackableItemCore.Create(definition.ItemKind, definition.ItemId, 1).Traits));
     }
 
     [Fact]
@@ -71,7 +70,7 @@ public sealed class ItemTraitsTests
     {
         using var host = WarehouseStorageTests.Fixture();
         var bag = WarehouseStorageTests.Bag(host, BusinessInventorySpace.Consumable);
-        Assert.Equal(ItemTraits.Consumable, bag.AcceptedTraits);
+        Assert.Equal(new ItemAdmissionRule(ItemTraits.Consumable), bag.Admission);
         await Assert.ThrowsAsync<InvalidDataException>(() => WarehouseStorageTests.InTransaction(host,
             async () => await bag.PutAsync(0, await host.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
                 ItemSnapshot.FromCore(StackableItemCore.Create(2, 3000, 1), true), default), default)));

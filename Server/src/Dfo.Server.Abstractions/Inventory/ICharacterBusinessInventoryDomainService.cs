@@ -47,7 +47,7 @@ public interface IBusinessItemContainer
     ContainerId StorageId { get; }
     bool IsDefault => true;
     BusinessInventorySpace Space { get; }
-    ItemTraits AcceptedTraits => ItemContainerAdmission.AcceptedBy(Space);
+    ItemAdmissionRule Admission => ItemContainerAdmission.For(Space);
     ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
         ValueTask.FromResult(int.MaxValue);
     ValueTask<IEquipmentInstance?> GetEquipmentAsync(int index, CancellationToken ct);

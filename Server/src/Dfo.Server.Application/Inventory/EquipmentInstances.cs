@@ -32,7 +32,7 @@ internal sealed class EquipmentCollection(CharacterId owner, ICharacterBusinessI
         foreach (var space in Enum.GetValues<BusinessInventorySpace>())
         {
             if (space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial
-                || ItemContainerAdmission.AcceptedBy(space) == ItemTraits.None) continue;
+                || ItemContainerAdmission.For(space).Allowed == ItemTraits.None) continue;
             var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
             if (container is null) continue;
             foreach (var item in await container.GetAllAsync(ct).ConfigureAwait(false))
@@ -45,7 +45,7 @@ internal sealed class EquipmentCollection(CharacterId owner, ICharacterBusinessI
     {
         EnsureActive();
         if (slot.Space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial
-            || ItemContainerAdmission.AcceptedBy(slot.Space) == ItemTraits.None)
+            || ItemContainerAdmission.For(slot.Space).Allowed == ItemTraits.None)
             return ValueTask.FromResult<IEquipmentInstance?>(null);
         var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(slot.Space)).FindContainer(slot.Space);
         return container is null ? ValueTask.FromResult<IEquipmentInstance?>(null) : container.GetEquipmentAsync(slot.Index, ct);
