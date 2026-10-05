@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ConfigProvider } from 'antd';
+import { App, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { api, ApiError } from './api';
@@ -21,8 +21,8 @@ function Harness({ initial = [] }: { initial?: MailItem[] }) {
   const [items, setItems] = useState(initial);
   return <MailAttachments {...callbacks} items={items} locked={false} onChange={value => { change(value); setItems(value); }} />;
 }
-function open(initial: MailItem[] = []) { render(<ConfigProvider locale={zhCN} theme={{ token: { motion: false } }}><Harness initial={initial} /></ConfigProvider>); }
-function picker() { render(<ConfigProvider locale={zhCN} theme={{ token: { motion: false } }}><MailAttachmentPicker {...callbacks} onClose={vi.fn()} onChoose={vi.fn()} /></ConfigProvider>); }
+function open(initial: MailItem[] = []) { render(<ConfigProvider locale={zhCN} theme={{ token: { motion: false } }}><App><Harness initial={initial} /></App></ConfigProvider>); }
+function picker() { render(<ConfigProvider locale={zhCN} theme={{ token: { motion: false } }}><App><MailAttachmentPicker {...callbacks} onClose={vi.fn()} onChoose={vi.fn()} /></App></ConfigProvider>); }
 async function choose(id: number) {
   fireEvent.click(screen.getByRole('button', { name: '添加物品附件' }));
   fireEvent.click(await screen.findByRole('button', { name: `选择物品 ${id}` }));
@@ -98,5 +98,6 @@ it('旧选中物品的配置响应不能覆盖新选择', async () => {
 
 it.each([401, 403])('目录访问失败 %s 触发原有身份处理', async status => {
   mocked.mockRejectedValue(new ApiError(status, '访问失效')); picker();
-  await screen.findByText('访问失效'); expect(status === 401 ? expired : denied).toHaveBeenCalled();
+  await waitFor(() => expect(status === 401 ? expired : denied).toHaveBeenCalledOnce());
+  expect(screen.queryByText('访问失效')).toBeNull();
 });

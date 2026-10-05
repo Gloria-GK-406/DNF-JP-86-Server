@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Descriptions, Input, InputNumber, Modal, Space, Table, Typography } from 'antd';
+import { Button, Card, Checkbox, Descriptions, Input, InputNumber, Modal, Space, Table, Typography } from 'antd';
 import { api, ApiError, type Balances, type PlayerPage } from './api';
 import { useGmRead } from './useGmRead';
+import { NotiHint, useNotiBar } from './NotiBar';
 import { currencyNames, readPendingCera, type CeraAccount, type CeraChange, type CeraCurrency, type CeraHistory, type CeraInput, type CeraPreview, type CeraReceipt, type CeraResult, type PendingCera } from './cera';
 
 function Wallet({ value }: { value: Balances }) {
@@ -14,11 +15,12 @@ function Changes({ accounts }: { accounts: CeraChange[] }) {
   ]} />;
 }
 export function CeraGrantView({ administratorId, onExpired, onDenied }: { administratorId: number; onExpired: () => void; onDenied: () => void }) {
+  const noti = useNotiBar();
   const storageKey = `dfo.gm.cera.pending.${administratorId}`;
   const [input, setInput] = useState<CeraInput>({ accountIds: [], currency: 'Cera', amount: 1, reason: '' });
   const [pending, setPending] = useState<PendingCera | null>(() => readPendingCera(storageKey));
   const [preview, setPreview] = useState<CeraPreview>(); const [result, setResult] = useState<CeraResult>();
-  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
   const generation = useRef(0); const alive = useRef(true); const edits = useRef(0); const previewId = useRef('');
   const [page, setPage] = useState(1); const [q, setQ] = useState(''); const [accountId, setAccountId] = useState<number | null>(null);
   const [filter, setFilter] = useState(''); const [historyPage, setHistoryPage] = useState(1);
@@ -26,52 +28,51 @@ export function CeraGrantView({ administratorId, onExpired, onDenied }: { admini
   const history = useGmRead<CeraHistory>(`cera/operations?page=${historyPage}&pageSize=20`, onExpired, onDenied);
   useEffect(() => { alive.current = true; return () => { alive.current = false; generation.current++; }; }, []);
   const locked = busy || !!preview || !!pending;
-  function update(value: CeraInput) { edits.current++; setInput(value); setError(''); setNotice(''); }
+  function update(value: CeraInput) { edits.current++; setInput(value); }
   function forgetPending() { setPending(null); try { sessionStorage.removeItem(storageKey); } catch { /* A committed receipt stays visible in memory. */ } }
   function refused(failure: unknown) {
-    setError((failure as Error).message);
     if (failure instanceof ApiError && failure.status === 401) onExpired();
-    if (failure instanceof ApiError && failure.status === 403) onDenied();
+    else if (failure instanceof ApiError && failure.status === 403) onDenied();
+    else noti.failure(failure);
   }
   async function run<T>(action: () => Promise<T>, accept: (value: T) => void) {
-    const epoch = ++generation.current; setBusy(true); setError(''); setNotice('');
+    const epoch = ++generation.current; setBusy(true);
     try { const value = await action(); if (alive.current && epoch === generation.current) accept(value); }
     catch (failure) { if (alive.current && epoch === generation.current) refused(failure); }
     finally { if (alive.current && epoch === generation.current) setBusy(false); }
   }
   async function grant(snapshot: PendingCera) {
-    const epoch = ++generation.current; setBusy(true); setError(''); setNotice('');
+    const epoch = ++generation.current; setBusy(true);
     try { sessionStorage.setItem(storageKey, JSON.stringify(snapshot)); }
-    catch { setError('浏览器无法保存待确认请求，请启用会话存储后重试。'); setBusy(false); return; }
+    catch { noti.error('浏览器无法保存待确认请求，请启用会话存储后重试。'); setBusy(false); return; }
     setPending(snapshot);
     try {
       const delivered = await api<CeraResult>('cera/grant', { ...snapshot.input, requestId: snapshot.requestId });
       if (!alive.current || epoch !== generation.current) return;
       setResult(delivered); forgetPending(); setPreview(undefined); history.refresh(); accounts.refresh();
-      setNotice(delivered.replayed ? '已恢复原发放结果，没有重复到账。' : '整批点券已到账。');
+      noti.success(delivered.replayed ? '已恢复原发放结果，没有重复到账。' : '整批点券已到账。');
     } catch (failure) {
       if (!alive.current || epoch !== generation.current) return;
       if (failure instanceof ApiError && (failure.status === 401 || failure.status === 403)) { refused(failure); }
       else if (failure instanceof ApiError && failure.outcome !== 'unknown' && (failure.status < 500 || failure.outcome === 'rolledBack' || failure.outcome === 'rejected')) {
         forgetPending(); setPreview(undefined); refused(failure);
-      } else { setPreview(undefined); setError('结果暂未确认。请查询原编号或用原内容重试，勿新建编号再次发放。'); }
+      } else { setPreview(undefined); }
     } finally { if (alive.current && epoch === generation.current) setBusy(false); }
   }
   function queryPending() {
     if (!pending) return;
     void run(() => api<CeraReceipt>(`cera/operations/${pending.requestId}`), value => {
       setResult({ receipt: value, replayed: true, reminder: 'unconfirmed' }); forgetPending(); setPreview(undefined);
-      setNotice('已找到持久化发放结果。'); history.refresh(); accounts.refresh();
+      noti.success('已找到持久化发放结果。'); history.refresh(); accounts.refresh();
     });
   }
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    {error && <Alert type="error" title={error} showIcon />}{notice && <Alert type="success" title={notice} showIcon />}
-    {(accounts.error || history.error) && <Alert type="error" title={accounts.error ?? history.error} showIcon />}
-    {pending && <Card title="发放结果待确认"><Alert type="warning" title="保留原编号和内容，查询或安全重试不会重复到账。" showIcon />
+    {pending && !busy && <NotiHint noticeKey={`cera:${pending.requestId}`} title="结果暂未确认。请查询原编号或用原内容重试，勿新建编号再次发放。" action={{ label: '查询结果', onClick: queryPending }} />}
+    {pending && <Card title="发放结果待确认"><Typography.Paragraph type="secondary">保留原编号和内容，查询或安全重试不会重复到账。</Typography.Paragraph>
       <Typography.Paragraph copyable>{pending.requestId}</Typography.Paragraph>
       <Typography.Paragraph>账号 ID：{pending.input.accountIds.join('、')}；{currencyNames[pending.input.currency]}每账号增加 {pending.input.amount}；原因：{pending.input.reason}</Typography.Paragraph>
       <Space><Button disabled={busy} onClick={queryPending}>查询原编号结果</Button><Button disabled={busy} onClick={() => void grant(pending)}>按原内容安全重试</Button></Space></Card>}
-    <Card title="点券编辑"><Alert type="info" title="按账号发放，每账号只到账一次；支持离线和无角色账号，整批提交。" showIcon />
+    <Card title="点券编辑"><Typography.Paragraph type="secondary">按账号发放，每账号只到账一次；支持离线和无角色账号，整批提交。</Typography.Paragraph>
       <Space orientation="vertical" style={{ width: '100%', marginTop: 16 }}>
         <label htmlFor="cera-currency">币种</label><select id="cera-currency" disabled={locked} value={input.currency} onChange={e => update({ ...input, currency: e.target.value as CeraCurrency })}>
           {Object.entries(currencyNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -99,7 +100,7 @@ export function CeraGrantView({ administratorId, onExpired, onDenied }: { admini
     </Card>
     <Modal title="核对点券发放" open={!!preview} onCancel={() => { if (!busy && !pending) setPreview(undefined); }} destroyOnHidden
       footer={<Space><Button disabled={busy || !!pending} onClick={() => setPreview(undefined)}>返回修改</Button><Button type="primary" disabled={busy || !!pending} onClick={() => preview && void grant({ requestId: previewId.current, input: structuredClone(preview.input) })}>确认整批发放</Button></Space>}>
-      {preview && <><Alert type="warning" title="提交按当前余额结算，以发放结果为准。" showIcon /><Typography.Paragraph>{currencyNames[preview.input.currency]}：每账号增加 {preview.input.amount}，{preview.accounts.length} 个不同账号，总增量 {preview.totalAmount}；原因：{preview.input.reason}</Typography.Paragraph><Changes accounts={preview.accounts} /></>}
+      {preview && <><Typography.Paragraph type="secondary">提交按当前余额结算，以发放结果为准。</Typography.Paragraph><Typography.Paragraph>{currencyNames[preview.input.currency]}：每账号增加 {preview.input.amount}，{preview.accounts.length} 个不同账号，总增量 {preview.totalAmount}；原因：{preview.input.reason}</Typography.Paragraph><Changes accounts={preview.accounts} /></>}
     </Modal>
     {result && <Card title="持久化发放结果"><Descriptions column={1} items={[
       { key: 'id', label: '操作编号', children: <Typography.Text copyable>{result.receipt.requestId}</Typography.Text> },

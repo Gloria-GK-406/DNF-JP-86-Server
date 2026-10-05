@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Descriptions, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Card, Checkbox, Descriptions, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import { api, ApiError, type PlayerPage } from './api';
 import { useGmRead } from './useGmRead';
+import { NotiHint, useNotiBar } from './NotiBar';
 import { amplifyTypes, emptyMail, readPending, type MailDocument, type MailHistory, type MailInput, type MailPreview, type MailReceipt, type MailRecipient, type MailSendResult, type PendingMail } from './mail';
 import { MailAttachments, MailAttachmentSummary } from './MailAttachments';
 
 export function OfficialMailView({ administratorId, onExpired, onDenied }: { administratorId: number; onExpired: () => void; onDenied: () => void }) {
+  const noti = useNotiBar();
   const storageKey = `dfo.gm.mail.pending.${administratorId}`;
   const [input, setInput] = useState<MailInput>(emptyMail);
   const [draftRevision, setDraftRevision] = useState(0); const [loaded, setLoaded] = useState(false); const [dirty, setDirty] = useState(false);
   const [templateId, setTemplateId] = useState<string>(); const [templateName, setTemplateName] = useState('');
   const [preview, setPreview] = useState<MailPreview>(); const [pending, setPending] = useState<PendingMail | null>(() => readPending(storageKey));
-  const [result, setResult] = useState<MailSendResult>(); const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<MailSendResult>(); const [busy, setBusy] = useState(false);
   const generation = useRef(0); const alive = useRef(true); const edits = useRef(0);
   const previewRequestId = useRef('');
   const draft = useGmRead<MailDocument>('mail/draft', onExpired, onDenied);
@@ -20,15 +22,15 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
   useEffect(() => { alive.current = true; return () => { alive.current = false; generation.current++; }; }, []);
   useEffect(() => { if (draft.data && !loaded) { setInput(structuredClone(draft.data.input)); setDraftRevision(draft.data.revision); setLoaded(true); } }, [draft.data, loaded]);
   const locked = busy || !!pending || !!preview || !loaded;
-  function update(value: MailInput) { edits.current++; setInput(value); setDirty(true); setNotice(''); setError(''); }
+  function update(value: MailInput) { edits.current++; setInput(value); setDirty(true); }
   function forgetPending() { setPending(null); try { sessionStorage.removeItem(storageKey); } catch { /* Current in-memory receipt still remains available. */ } }
   function refused(failure: unknown) {
-    setError((failure as Error).message);
     if (failure instanceof ApiError && failure.status === 401) onExpired();
-    if (failure instanceof ApiError && failure.status === 403) onDenied();
+    else if (failure instanceof ApiError && failure.status === 403) onDenied();
+    else noti.failure(failure);
   }
   async function run<T>(action: () => Promise<T>, accept: (value: T) => void) {
-    const epoch = ++generation.current; setBusy(true); setError(''); setNotice('');
+    const epoch = ++generation.current; setBusy(true);
     try { const value = await action(); if (alive.current && epoch === generation.current) accept(value); }
     catch (failure) { if (alive.current && epoch === generation.current) refused(failure); }
     finally { if (alive.current && epoch === generation.current) setBusy(false); }
@@ -37,64 +39,63 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
     const version = edits.current; const snapshot = structuredClone(input);
     void run(() => api<MailDocument>('mail/draft', { ...snapshot, expectedRevision: draftRevision }, 'PUT'), value => {
       setDraftRevision(value.revision); if (version === edits.current) setDirty(false);
-      setNotice(version === edits.current ? '草稿已保存。' : '先前版本已保存，当前更改尚未保存。');
+      noti.success(version === edits.current ? '草稿已保存。' : '先前版本已保存，当前更改尚未保存。');
     });
   }
   function loadDraft() {
-    void run(() => api<MailDocument>('mail/draft'), value => { edits.current++; setInput(structuredClone(value.input)); setDraftRevision(value.revision); setDirty(false); setNotice('已加载保存的草稿。'); setLoaded(true); });
+    void run(() => api<MailDocument>('mail/draft'), value => { edits.current++; setInput(structuredClone(value.input)); setDraftRevision(value.revision); setDirty(false); noti.success('已加载保存的草稿。'); setLoaded(true); });
   }
   function saveTemplate(overwrite: boolean) {
     const selected = templates.data?.find(x => x.id === templateId);
-    if (overwrite && !selected) { setError('请先选择需要覆盖的模板。'); return; }
+    if (overwrite && !selected) { noti.error('请先选择需要覆盖的模板。'); return; }
     void run(() => api<MailDocument>(overwrite ? `mail/templates/${selected!.id}` : 'mail/templates',
       { ...structuredClone(input), recipientIds: [], name: templateName, expectedRevision: overwrite ? selected!.revision : 0 }, overwrite ? 'PUT' : undefined), value => {
-      setTemplateId(value.id); setTemplateName(value.name); setNotice('内容模板已保存，不含收件人。'); templates.refresh();
+      setTemplateId(value.id); setTemplateName(value.name); noti.success('内容模板已保存，不含收件人。'); templates.refresh();
     });
   }
   function loadTemplate() {
     const selected = templates.data?.find(x => x.id === templateId);
-    if (!selected) { setError('请选择模板。'); return; }
-    update({ ...structuredClone(selected.input), recipientIds: [...input.recipientIds] }); setNotice('已加载模板内容，保留当前收件人。');
+    if (!selected) { noti.error('请选择模板。'); return; }
+    update({ ...structuredClone(selected.input), recipientIds: [...input.recipientIds] }); noti.success('已加载模板内容，保留当前收件人。');
   }
   function deleteTemplate() {
     const selected = templates.data?.find(x => x.id === templateId); if (!selected) return;
     void run(() => api<MailDocument>(`mail/templates/${selected.id}`, { ...emptyMail(), expectedRevision: selected.revision }, 'DELETE'), () => {
-      setTemplateId(undefined); setTemplateName(''); templates.refresh(); setNotice('模板已删除。');
+      setTemplateId(undefined); setTemplateName(''); templates.refresh(); noti.success('模板已删除。');
     });
   }
   async function send(snapshot: PendingMail) {
-    const epoch = ++generation.current; setBusy(true); setError(''); setNotice('');
+    const epoch = ++generation.current; setBusy(true);
     setPending(snapshot);
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(snapshot));
-    } catch { setError('浏览器无法保存待确认请求，请启用会话存储后重试。'); setBusy(false); setPending(null); return; }
+    } catch { noti.error('浏览器无法保存待确认请求，请启用会话存储后重试。'); setBusy(false); setPending(null); return; }
     try {
       const delivered = await api<MailSendResult>('mail/send', { ...snapshot.input, requestId: snapshot.requestId });
       if (!alive.current || epoch !== generation.current) return;
-      setResult(delivered); forgetPending(); setPreview(undefined); history.refresh(); setNotice(delivered.replayed ? '已恢复原发送结果，没有重复发放。' : '整批邮件已提交。');
+      setResult(delivered); forgetPending(); setPreview(undefined); history.refresh(); noti.success(delivered.replayed ? '已恢复原发送结果，没有重复发放。' : '整批邮件已提交。');
     } catch (failure) {
       if (!alive.current || epoch !== generation.current) return;
       if (failure instanceof ApiError && (failure.status === 401 || failure.status === 403)) { refused(failure); }
       else if (failure instanceof ApiError && failure.outcome !== 'unknown' && (failure.status < 500 || failure.outcome === 'rolledBack' || failure.outcome === 'rejected')) {
         forgetPending(); setPreview(undefined); refused(failure);
-      } else { setError('结果暂未确认。请查询原编号或用原内容重试，勿新建编号再次发送。'); }
+      } else { setPreview(undefined); }
     } finally { if (alive.current && epoch === generation.current) setBusy(false); }
   }
   function queryPending() {
     if (!pending) return;
-    void run(() => api<MailReceipt>(`mail/operations/${pending.requestId}`), value => { setResult({ receipt: value, replayed: true, reminder: 'unconfirmed' }); forgetPending(); setNotice('已找到持久化发送结果。'); history.refresh(); });
+    void run(() => api<MailReceipt>(`mail/operations/${pending.requestId}`), value => { setResult({ receipt: value, replayed: true, reminder: 'unconfirmed' }); forgetPending(); noti.success('已找到持久化发送结果。'); history.refresh(); });
   }
   const selectedTemplate = templates.data?.find(x => x.id === templateId);
   return <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-    {error && <Alert type="error" title={error} showIcon />}{notice && <Alert type="success" title={notice} showIcon />}
-    {(draft.error || templates.error || history.error) && <Alert type="error" title={draft.error ?? templates.error ?? history.error} showIcon />}
-    {pending && <Card title="发送结果待确认"><Alert type="warning" title="保留原编号和内容，查询或重试不会重复发放。" showIcon />
+    {pending && !busy && <NotiHint noticeKey={`mail:${pending.requestId}`} title="结果暂未确认。请查询原编号或用原内容重试，勿新建编号再次发送。" action={{ label: '查询结果', onClick: queryPending }} />}
+    {pending && <Card title="发送结果待确认"><Typography.Paragraph type="secondary">保留原编号和内容，查询或重试不会重复发放。</Typography.Paragraph>
       <Typography.Paragraph copyable>{pending.requestId}</Typography.Paragraph><Typography.Paragraph>收件角色 ID：{pending.input.recipientIds.join('、')}</Typography.Paragraph>
       <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{pending.input.body}</Typography.Paragraph>
       <MailAttachmentSummary items={pending.input.items} onExpired={onExpired} onDenied={onDenied} />
       <Space><Button disabled={busy} onClick={queryPending}>查询原编号结果</Button><Button disabled={busy} onClick={() => void send(pending)}>按原内容安全重试</Button></Space></Card>}
     <Card title="邮件编辑" extra={<Tag>{dirty ? '尚未保存' : '已加载保存内容'}</Tag>}>
-      <Alert type="info" title="支持永久普通装备、永久堆叠物与金币。附件由玩家在邮箱领取，邮件有效期 30 天。" showIcon />
+      <Typography.Paragraph type="secondary">支持永久普通装备、永久堆叠物与金币。附件由玩家在邮箱领取，邮件有效期 30 天。</Typography.Paragraph>
       <Space orientation="vertical" style={{ width: '100%', marginTop: 16 }}>
         <label htmlFor="mail-title">邮件标题</label><Input id="mail-title" value={input.title} disabled={locked} onChange={e => update({ ...input, title: e.target.value })} />
         <label htmlFor="mail-body">邮件正文</label><Input.TextArea id="mail-body" value={input.body} disabled={locked} rows={5} onChange={e => update({ ...input, body: e.target.value })} />
@@ -116,7 +117,7 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
     </Space></Card>
     <RecipientSelection input={input} update={update} locked={locked} onExpired={onExpired} onDenied={onDenied} />
     <Modal title="发送前核对" open={!!preview} onCancel={() => { if (!busy) setPreview(undefined); }} footer={null} width={800} destroyOnHidden>
-      {preview && <><Alert type="warning" title="系统官方来源 · 30 天有效 · 整批提交，任何目标或附件失败均回滚" showIcon />
+      {preview && <><Typography.Paragraph type="secondary">系统官方来源 · 30 天有效 · 整批提交，任何目标或附件失败均回滚</Typography.Paragraph>
         <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginTop: 16 }}>{preview.displayText}</Typography.Paragraph>
         <Typography.Paragraph>实际文字 {preview.utf8Bytes} / 511 字节；收件人 {preview.recipients.length}；每人金币 {preview.input.gold}；总金币 {preview.totalGold}；总物品数量 {preview.totalItems}</Typography.Paragraph>
         <Typography.Paragraph>收件角色：{preview.recipients.map(x => `${x.characterId} ${x.name}`).join('、')}</Typography.Paragraph>
@@ -136,14 +137,14 @@ export function OfficialMailView({ administratorId, onExpired, onDenied }: { adm
 }
 
 function RecipientSelection({ input, update, locked, onExpired, onDenied }: { input: MailInput; update: (input: MailInput) => void; locked: boolean; onExpired: () => void; onDenied: () => void }) {
-  const [q, setQ] = useState(''); const [id, setId] = useState(''); const [filter, setFilter] = useState(''); const [page, setPage] = useState(1); const [error, setError] = useState('');
+  const noti = useNotiBar();
+  const [q, setQ] = useState(''); const [id, setId] = useState(''); const [filter, setFilter] = useState(''); const [page, setPage] = useState(1);
   const recipients = useGmRead<PlayerPage<MailRecipient>>(`mail/recipients?page=${page}&pageSize=20${filter}`, onExpired, onDenied);
   function toggle(characterId: number) { update({ ...input, recipientIds: input.recipientIds.includes(characterId) ? input.recipientIds.filter(x => x !== characterId) : [...input.recipientIds, characterId] }); }
   return <Card title="明确选择收件角色（最多 100 个）">
-    {(error || recipients.error) && <Alert type="error" title={error || recipients.error} showIcon />}
     <Space wrap><Input aria-label="收件角色姓名搜索" value={q} disabled={locked} maxLength={128} placeholder="字面姓名搜索" onChange={e => setQ(e.target.value)} />
       <Input aria-label="收件角色 ID" value={id} disabled={locked} placeholder="角色 ID" onChange={e => setId(e.target.value)} />
-      <Button disabled={locked} onClick={() => { if (id && (!/^\d+$/.test(id) || +id <= 0 || +id > 2147483647)) { setError('角色 ID 必须为正整数。'); return; } setError(''); setPage(1); setFilter(`${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''}${id ? `&characterId=${id}` : ''}`); }}>查找收件人</Button>
+      <Button disabled={locked} onClick={() => { if (id && (!/^\d+$/.test(id) || +id <= 0 || +id > 2147483647)) { noti.error('角色 ID 必须为正整数。'); return; } setPage(1); setFilter(`${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''}${id ? `&characterId=${id}` : ''}`); }}>查找收件人</Button>
       <Button disabled={locked} onClick={() => { setQ(''); setId(''); setFilter(''); setPage(1); }}>清空查询</Button></Space>
     <Typography.Paragraph style={{ marginTop: 12 }}>已选择 {input.recipientIds.length} 个角色 ID：{input.recipientIds.length ? input.recipientIds.join('、') : '尚未选择'}</Typography.Paragraph>
     <Space wrap>{input.recipientIds.map(value => <Button key={value} size="small" disabled={locked} onClick={() => toggle(value)}>取消角色 {value}</Button>)}</Space>
@@ -154,7 +155,7 @@ function RecipientSelection({ input, update, locked, onExpired, onDenied }: { in
   </Card>;
 }
 function ReceiptCard({ value, reminder, onExpired, onDenied }: { value: MailReceipt; reminder: string; onExpired: () => void; onDenied: () => void }) {
-  return <Card title="持久化发送结果"><Alert type="success" title="邮件已提交，玩家可在邮箱领取附件。" description={reminder === 'unconfirmed' ? '在线提醒未确认；不会撤销或重复发放。' : '在线提醒已尝试，不代表客户端已读或附件已领取。'} showIcon />
+  return <Card title="持久化发送结果"><Typography.Paragraph>邮件已提交，玩家可在邮箱领取附件。{reminder === 'unconfirmed' ? '在线提醒未确认；不会撤销或重复发放。' : '在线提醒已尝试，不代表客户端已读或附件已领取。'}</Typography.Paragraph>
     <Descriptions column={1} style={{ marginTop: 16 }} items={[{ key: 'id', label: '操作编号', children: <Typography.Text copyable>{value.requestId}</Typography.Text> },
       { key: 'time', label: '提交时间', children: new Date(value.committedAt).toLocaleString('zh-CN') }, { key: 'expiry', label: '到期时间', children: new Date(value.expiresAt).toLocaleString('zh-CN') },
       { key: 'body', label: '发送正文', children: <span style={{ whiteSpace: 'pre-wrap' }}>{value.input.body}</span> }]} />

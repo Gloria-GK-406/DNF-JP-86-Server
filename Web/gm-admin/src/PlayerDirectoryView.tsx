@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Checkbox, Descriptions, Drawer, Form, Input, InputNumber, Radio, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Button, Card, Checkbox, Descriptions, Drawer, Form, Input, InputNumber, Radio, Space, Spin, Table, Tag, Typography } from 'antd';
 import type { AccountView, Balances, CharacterDetail, CharacterView, PlayerPage } from './api';
 import { SampleTime } from './OverviewView';
 import { useGmRead } from './useGmRead';
@@ -62,7 +62,6 @@ export function PlayerDirectoryView({ onExpired, onDenied }: { onExpired: () => 
       <Space><Button type="primary" htmlType="submit">查询</Button><Button onClick={() => { form.resetFields(); search({}); }}>重置</Button></Space>
     </Form></Card>
     <Space><Button onClick={query.refresh} loading={query.busy}>刷新列表</Button><SampleTime value={query.data?.sampledAt} /></Space>
-    {query.error && <Alert type="error" title={query.error} showIcon />}
     <Table rowKey={kind === 'characters' ? 'characterId' : 'accountId'} dataSource={query.data?.items ?? []} loading={query.busy} columns={columns} scroll={{ x: 1400 }}
       locale={{ emptyText: `没有符合条件的${kind === 'characters' ? '角色' : '账号'}` }}
       pagination={{ current: page, pageSize, total: query.data?.total ?? 0, showSizeChanger: true, showTotal: total => `共 ${total} 条`, onChange: (next, size) => { setPage(size === pageSize ? next : 1); setPageSize(size); setTarget(null); } }} />
@@ -77,7 +76,6 @@ function PlayerDetail({ target, onClose, onExpired, onDenied, onAccount, onChara
   const value = query.data;
   return <Drawer title={target.kind === 'accounts' ? '账号详情' : '角色详情'} open onClose={onClose} size="large">
     <Space vertical style={{ width: '100%' }}><Button onClick={query.refresh} loading={query.busy}>刷新详情</Button>
-      {query.error && <Alert type="error" title={query.error} showIcon />}
       {query.busy && <Spin tip="正在查询详情"><div style={{ height: 80 }} /></Spin>}
       {value && <><SampleTime value={value.sampledAt} /><Descriptions column={1} bordered items={[
         { key: 'accountId', label: '账号 ID', children: value.accountId }, { key: 'loginName', label: '登录名', children: value.loginName },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Empty, Input, InputNumber, Modal, Select, Space, Spin, Table, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Input, InputNumber, Modal, Select, Space, Spin, Table, Tag, Typography } from 'antd';
 import { useGmRead } from './useGmRead';
+import { useNotiBar } from './NotiBar';
 import { amplifyTypes, defaultEquipment, equipmentTypes, itemCategories, itemRarities,
   type MailCatalogEntry, type MailCatalogPage, type MailEquipmentOptions, type MailItem, type MailItemDetails } from './mail';
 
@@ -13,7 +14,7 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
   const [filters, setFilters] = useState<Filters>({ q: '', id: '' });
   const [search, setSearch] = useState<Filters>({ q: '', id: '' });
   const [page, setPage] = useState(1); const [selected, setSelected] = useState<number | undefined>(initial?.itemId);
-  const [error, setError] = useState('');
+  const noti = useNotiBar();
   const params = new URLSearchParams({ page: String(page), pageSize: '15' });
   if (search.q.trim()) params.set('q', search.q.trim());
   if (search.id) params.set('itemId', search.id);
@@ -22,9 +23,9 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
   const results = useGmRead<MailCatalogPage>(`mail/items?${params}`, onExpired, onDenied);
   const details = useGmRead<MailItemDetails>(selected ? `mail/items/${selected}` : null, onExpired, onDenied);
   function apply(next: Filters) {
-    if (next.id && (!/^\d+$/.test(next.id) || +next.id <= 0 || +next.id > 2147483647)) { setError('物品 ID 必须为正整数。'); return; }
-    if (next.minimumLevel !== undefined && next.maximumLevel !== undefined && next.minimumLevel > next.maximumLevel) { setError('最低等级不能大于最高等级。'); return; }
-    setError(''); setPage(1); setSearch(next);
+    if (next.id && (!/^\d+$/.test(next.id) || +next.id <= 0 || +next.id > 2147483647)) { noti.error('物品 ID 必须为正整数。'); return; }
+    if (next.minimumLevel !== undefined && next.maximumLevel !== undefined && next.minimumLevel > next.maximumLevel) { noti.error('最低等级不能大于最高等级。'); return; }
+    setPage(1); setSearch(next);
   }
   function filter(next: Filters) { setFilters(next); apply(next); }
   return <Modal title={initial ? '编辑物品附件' : '添加物品附件'} open onCancel={onClose} footer={null}
@@ -50,7 +51,6 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
       <span>—</span><InputNumber aria-label="装备最高等级" placeholder="最高等级" min={0} max={999} precision={0} value={filters.maximumLevel}
         onChange={value => filter({ ...filters, maximumLevel: value ?? undefined })} />
     </Space>}
-    {(error || results.error) && <Alert type="error" showIcon title={error || results.error} style={{ marginBottom: 12 }} />}
     <div className="mail-picker-body">
       <section className="mail-picker-results" aria-label="物品检索结果">
         <Table<MailCatalogEntry> rowKey="itemId" size="small" loading={results.busy} dataSource={results.data?.items ?? []} pagination={false}
@@ -62,7 +62,7 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
             { title: '等级', width: 60, render: (_, row) => row.level ?? '—' },
             { title: '稀有度', width: 75, render: (_, row) => row.rarity === null ? '—' : itemRarities[row.rarity] ?? row.rarity },
             { title: '', width: 76, render: (_, row) => <Button size="small" type={selected === row.itemId ? 'primary' : 'default'}
-              aria-label={`选择物品 ${row.itemId}`} onClick={() => { setSelected(row.itemId); setError(''); }}>选择</Button> },
+              aria-label={`选择物品 ${row.itemId}`} onClick={() => setSelected(row.itemId)}>选择</Button> },
           ]} />
         <Space className="mail-picker-pagination"><Button disabled={page === 1 || results.busy} onClick={() => setPage(page - 1)}>上一页物品</Button>
           <Typography.Text>第 {page} 页</Typography.Text><Button disabled={!results.data?.hasMore || results.busy} onClick={() => setPage(page + 1)}>下一页物品</Button></Space>
@@ -70,10 +70,10 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
       <Card size="small" title="配置附件" className="mail-picker-config">
         {!selected && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="先从左侧选择一个物品" />}
         {details.busy && <div className="mail-picker-loading"><Spin /><Typography.Paragraph>正在读取物品规则…</Typography.Paragraph></div>}
-        {details.error && <Alert type="error" showIcon title={details.error} action={<Button onClick={details.refresh}>重试</Button>} />}
+        {details.error && <Button onClick={details.refresh}>重试</Button>}
         {details.data && <ItemConfiguration key={details.data.item.itemId} details={details.data}
           initial={initial?.itemId === details.data.item.itemId ? initial : undefined}
-          onChoose={item => { const refusal = onChoose(item, details.data!); if (refusal) setError(refusal); }} />}
+          onChoose={item => { const refusal = onChoose(item, details.data!); if (refusal) noti.error(refusal); }} />}
       </Card>
     </div>
   </Modal>;

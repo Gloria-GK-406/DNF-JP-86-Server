@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Alert, App, Button, Card, Empty, Form, Input, Layout, Menu, Spin, Table, Tag, Typography } from 'antd';
+import { Button, Card, Empty, Form, Input, Layout, Menu, Spin, Table, Tag, Typography } from 'antd';
 import { api, ApiError, type AuditPage, type Identity, type Permission } from './api';
 import { OverviewView } from './OverviewView';
 import { PlayerDirectoryView } from './PlayerDirectoryView';
 import { OfficialMailView } from './OfficialMailView';
 import { CeraGrantView } from './CeraGrantView';
+import { NotiHint, useNotiBar } from './NotiBar';
 
 const pages: { key: string; label: string; permission: Permission | null }[] = [
   { key: '/', label: '服务概览', permission: 'QueryPlayers' }, { key: '/characters', label: '账号与角色', permission: 'QueryPlayers' },
@@ -19,18 +20,18 @@ export function AdminApp() {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [initialized, setInitialized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const noti = useNotiBar();
   const generation = useRef(0);
   const mounted = useRef(true);
   const transitioning = useRef(false);
   const currentIdentity = useRef<Identity | null>(null);
-  const location = useLocation(); const navigate = useNavigate(); const { message } = App.useApp();
+  const location = useLocation(); const navigate = useNavigate();
   function isCurrent(epoch: number) { return mounted.current && generation.current === epoch; }
-  function applyIdentity(value: Identity | null) { currentIdentity.current = value; setIdentity(value); }
+  function applyIdentity(value: Identity | null) { if (currentIdentity.current?.id !== value?.id) noti.clear(); currentIdentity.current = value; setIdentity(value); }
   function beginTransition() { transitioning.current = true; return ++generation.current; }
   function expire(epoch: number) {
     if (!isCurrent(epoch) || transitioning.current) return;
-    generation.current++; applyIdentity(null); setError('会话已失效，请重新登录。');
+    generation.current++; applyIdentity(null); noti.warning('会话已失效，请重新登录。', { key: 'session-expired', persistent: true });
   }
   function denyPermission(epoch: number, permission: Permission) {
     if (!isCurrent(epoch) || transitioning.current || !currentIdentity.current) return;
@@ -39,7 +40,7 @@ export function AdminApp() {
   }
   async function refresh() {
     const epoch = beginTransition();
-    setLoading(true); setError('');
+    setLoading(true);
     try {
       const status = await api<{ initialized: boolean }>('auth/status');
       if (!isCurrent(epoch)) return;
@@ -47,7 +48,7 @@ export function AdminApp() {
       if (!status.initialized) { applyIdentity(null); return; }
       try { const current = await api<Identity>('auth/session'); if (isCurrent(epoch)) applyIdentity(current); }
       catch (failure) { if (!isCurrent(epoch)) return; if (failure instanceof ApiError && failure.status === 401) applyIdentity(null); else throw failure; }
-    } catch (failure) { if (isCurrent(epoch)) setError((failure as Error).message); }
+    } catch (failure) { if (isCurrent(epoch)) noti.failure(failure); }
     finally { if (isCurrent(epoch)) { transitioning.current = false; setLoading(false); } }
   }
   useEffect(() => {
@@ -68,27 +69,26 @@ export function AdminApp() {
   }, [identity?.id]);
   async function login(values: { loginName: string; password: string }) {
     const epoch = beginTransition();
-    setError(''); setLoading(true);
+    setLoading(true);
     try {
       const current = await api<Identity>('auth/login', values);
       if (!isCurrent(epoch)) return;
       applyIdentity(current); navigate(current.permissions.includes('ViewAudit') ? '/operations' : pages.find(page => page.permission !== null && current.permissions.includes(page.permission))?.key ?? '/');
-    } catch (failure) { if (isCurrent(epoch)) setError((failure as Error).message); }
+    } catch (failure) { if (isCurrent(epoch)) noti.failure(failure); }
     finally { if (isCurrent(epoch)) { transitioning.current = false; setLoading(false); } }
   }
   async function logout() {
     const epoch = beginTransition(); setLoading(true);
-    try { await api<void>('auth/logout', {}); if (isCurrent(epoch)) { applyIdentity(null); setError(''); } }
+    try { await api<void>('auth/logout', {}); if (isCurrent(epoch)) applyIdentity(null); }
     catch (failure) {
       if (!isCurrent(epoch)) return;
-      if (failure instanceof ApiError && failure.status === 401) applyIdentity(null); else void message.error((failure as Error).message);
+      if (failure instanceof ApiError && failure.status === 401) applyIdentity(null); else noti.failure(failure);
     } finally { if (isCurrent(epoch)) { transitioning.current = false; setLoading(false); } }
   }
   if (loading && initialized === null) return <div className="login-page"><Spin tip="正在连接管理服务…"><div className="loading-block" /></Spin></div>;
   if (!identity) return <div className="login-page"><Card className="login-card" title="DNF GM 控制台">
     <Typography.Paragraph type="secondary">使用独立管理员账号登录</Typography.Paragraph>
-    {error && <Alert type="error" title={error} showIcon />}
-    {initialized === false ? <Alert type="warning" title="管理员尚未初始化" description="请在服务端配置 GmWeb:Bootstrap:LoginName 和 Password 后重新启动。私有管理功能当前已关闭。" showIcon /> :
+    {initialized === false ? <><NotiHint noticeKey="not-initialized" title="管理员尚未初始化" description="请在服务端配置 GmWeb:Bootstrap:LoginName 和 Password 后重新启动。私有管理功能当前已关闭。" /><Typography.Paragraph>管理服务尚未就绪</Typography.Paragraph></> :
       initialized === null ? <Button onClick={() => void refresh()}>重新连接</Button> :
       <Form layout="vertical" onFinish={login} requiredMark={false}>
         <Form.Item label="管理员账号" name="loginName" rules={[{ required: true, message: '请输入管理员账号' }]}><Input autoComplete="username" maxLength={64} /></Form.Item>
@@ -106,7 +106,7 @@ export function AdminApp() {
   </Layout.Sider><Layout className="workspace"><Layout.Header className="header">
     <Typography.Text>{identity.loginName}</Typography.Text></Layout.Header>
     <Layout.Content className="content"><Typography.Title level={3}>{page?.label ?? '管理后台'}</Typography.Title>
-      {!allowed ? <Alert type="warning" title="没有访问此页面的权限" showIcon /> : location.pathname === '/operations' ?
+      {!allowed ? <><NotiHint noticeKey="permission-denied" title="没有访问此页面的权限" /><Empty description="当前页面不可访问" /></> : location.pathname === '/operations' ?
         <AuditView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} /> :
         location.pathname === '/' ? <OverviewView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
         location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
@@ -117,18 +117,19 @@ export function AdminApp() {
 }
 
 function AuditView({ onExpired }: { onExpired: () => void }) {
+  const noti = useNotiBar();
   const [data, setData] = useState<AuditPage>({ items: [], total: 0, page: 1, pageSize: 20 });
-  const [page, setPage] = useState(1); const [pageSize, setPageSize] = useState(20); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [page, setPage] = useState(1); const [pageSize, setPageSize] = useState(20); const [busy, setBusy] = useState(false);
   useEffect(() => {
-    let active = true; setBusy(true); setError('');
+    let active = true; setBusy(true);
     api<AuditPage>(`audit?page=${page}&pageSize=${pageSize}`).then(result => { if (active) setData(result); }).catch(failure => {
       if (!active) return;
       if (failure instanceof ApiError && failure.status === 401) onExpired();
-      else { setData({ items: [], total: 0, page, pageSize }); setError((failure as Error).message); }
+      else { setData({ items: [], total: 0, page, pageSize }); noti.failure(failure); }
     }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, [page, pageSize]);
-  return <Card>{error && <Alert type="error" title={error} showIcon />}
+  return <Card>
     <Table rowKey="operationId" dataSource={data.items} loading={busy} scroll={{ x: 1000 }}
       pagination={{ current: page, pageSize, total: data.total, showSizeChanger: true, showTotal: total => `共 ${total} 条`, onChange: (next, size) => { setPage(next); setPageSize(size); } }}
       columns={[
