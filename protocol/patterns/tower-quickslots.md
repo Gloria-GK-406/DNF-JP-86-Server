@@ -1,6 +1,6 @@
 # A21 死亡塔快捷栏类型 29
 
-日期：2026-10-05。证据等级：ClientStatic / High；未标记 ClientVerified。
+日期：2026-10-05。本文地址与调用链证据等级：ClientStatic / High。配套六格快捷栏功能已于同日由用户实机验收通过（ClientVerified），明确反馈满格拾取新种类提示“物品栏已满”；验收身份与范围见文末链接。
 
 目标 DNF.exe SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`，镜像基址 `00400000`。
 静态输入：`E:/Project/DNF/DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin`。下述地址均为 VA。
