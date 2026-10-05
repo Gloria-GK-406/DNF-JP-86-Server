@@ -132,7 +132,7 @@ public sealed partial class GmOfficialMailHttpTests
         await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
         using var preview = await host.PostAsync("/api/gm/v1/mail/preview", login.Csrf, Payload(Guid.NewGuid(), body: "正文\r\n二", title: "标题"));
         Assert.Equal("标题\n正文\n二", (await preview.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("displayText").GetString());
-        foreach (var input in new[] { Payload(Guid.NewGuid(), [1, 46]), Payload(Guid.NewGuid(), [1, int.MaxValue]), Payload(Guid.NewGuid(), body: "bad\0"), Payload(Guid.NewGuid(), body: "\t \n"), Payload(Guid.NewGuid(), Enumerable.Repeat(1, 101).ToArray()), Payload(Guid.NewGuid(), gold: -1), Payload(Guid.Empty) })
+        foreach (var input in new[] { Payload(Guid.NewGuid(), [1, 46]), Payload(Guid.NewGuid(), [1, int.MaxValue]), Payload(Guid.NewGuid(), body: "bad\0"), Payload(Guid.NewGuid(), Enumerable.Repeat(1, 101).ToArray()), Payload(Guid.NewGuid(), gold: -1), Payload(Guid.Empty) })
             Assert.Equal(HttpStatusCode.BadRequest, (await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, input)).StatusCode);
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
         var page = await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/recipients?characterId=48");
@@ -140,6 +140,38 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.DoesNotContain("balances", page.GetRawText()); Assert.DoesNotContain("loginName", page.GetRawText());
         Assert.Equal(0, (await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/recipients?characterId=46")).GetProperty("total").GetInt64());
         Assert.Equal(HttpStatusCode.BadRequest, (await host.Client.GetAsync("/api/gm/v1/mail/recipients?page=1&page=2")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("", "此为官方邮件，无需回复。")]
+    [InlineData("\t \r\n", "此为官方邮件，无需回复。")]
+    [InlineData(" 自定义正文\r\n二 ", " 自定义正文\n二 ")]
+    public async Task OptionalBodyDefaultsOnlyWhenSendingAndPreviewMatchesDurableMail(string body, string expected)
+    {
+        await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
+        var editor = new { title = "官方补偿", body, recipientIds = new[] { 1 }, items = Array.Empty<object>(), gold = 100, expectedRevision = 0, name = "可选正文" };
+        using var draft = await Write(host, "PUT", "/draft", login.Csrf, editor);
+        Assert.Equal(HttpStatusCode.OK, draft.StatusCode);
+        var storedBody = body.Replace("\r\n", "\n", StringComparison.Ordinal);
+        Assert.Equal(storedBody, (await draft.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("input").GetProperty("body").GetString());
+        using var template = await host.PostAsync("/api/gm/v1/mail/templates", login.Csrf, editor);
+        Assert.Equal(HttpStatusCode.OK, template.StatusCode);
+        Assert.Equal(storedBody, (await template.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("input").GetProperty("body").GetString());
+        var id = Guid.NewGuid(); var payload = Payload(id, body: body);
+        using var preview = await host.PostAsync("/api/gm/v1/mail/preview", login.Csrf, payload);
+        Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
+        var shown = await preview.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(expected, shown.GetProperty("input").GetProperty("body").GetString());
+        Assert.Equal("官方补偿\n" + expected, shown.GetProperty("displayText").GetString());
+        using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, payload);
+        Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
+        Assert.Equal(expected, (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("receipt").GetProperty("input").GetProperty("body").GetString());
+        using var replay = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(id, body: expected));
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("replayed").GetBoolean());
+        var mailbox = host.Services.GetRequiredService<IMailboxDomainService>();
+        Assert.Equal(expected, Assert.Single(await mailbox.InboxAsync(new CharacterId(1))).Body);
+        Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 
     [Theory]

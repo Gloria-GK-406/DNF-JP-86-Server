@@ -42,7 +42,8 @@ function MailContentEditor({ input, update, locked, prefix, ...access }: MailAcc
   return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     <Typography.Text type="secondary">支持永久普通装备、永久堆叠物与金币；玩家在邮箱领取，邮件有效期 30 天。</Typography.Text>
     <label htmlFor={`${prefix}-title`}>邮件标题</label><Input id={`${prefix}-title`} value={input.title} disabled={locked} onChange={e => update({ ...input, title: e.target.value })} />
-    <label htmlFor={`${prefix}-body`}>邮件正文</label><Input.TextArea id={`${prefix}-body`} value={input.body} disabled={locked} rows={5} onChange={e => update({ ...input, body: e.target.value })} />
+    <label htmlFor={`${prefix}-body`}>邮件正文</label><Input.TextArea id={`${prefix}-body`} placeholder="此为官方邮件，无需回复。" value={input.body} disabled={locked} rows={5} onChange={e => update({ ...input, body: e.target.value })} />
+    <Typography.Text type="secondary">正文选填；留空时将使用输入框中的默认文案。</Typography.Text>
     <Typography.Text type="secondary">实际展示含标题和换行，最多 511 个 UTF-8 字节；以发送预览核对结果为准。</Typography.Text>
     <label htmlFor={`${prefix}-gold`}>每人金币</label><InputNumber id={`${prefix}-gold`} min={0} max={2147483647} precision={0} value={input.gold} disabled={locked} onChange={gold => update({ ...input, gold: gold ?? 0 })} />
     <MailAttachments {...access} items={input.items} locked={locked} onChange={items => update({ ...input, items })} />
@@ -87,7 +88,7 @@ export function MailComposer({ initial, draftRevision, initialDirty, sending, on
       {step < 2 && <Button disabled={locked || revision === undefined} onClick={saveDraft}>保存草稿</Button>}
       {step > 0 && <Button disabled={locked} onClick={() => { setPreview(undefined); setStep(step - 1); }}>返回上一步</Button>}
       {step === 0 ? <Button type="primary" disabled={locked} onClick={() => {
-        if (!input.body.trim()) { noti.error('请输入邮件正文。'); return; } setStep(1);
+        setStep(1);
       }}>下一步：选择收件人</Button> : step === 1 ? <Button type="primary" loading={busy} disabled={sending} onClick={() => {
         void run(() => api<MailPreview>('mail/preview', structuredClone(input)), value => { requestId.current = crypto.randomUUID(); setPreview(value); setStep(2); });
       }}>预览并核对</Button> : <Button type="primary" loading={sending} disabled={busy} onClick={() => void confirm()}>确认整批发送</Button>}

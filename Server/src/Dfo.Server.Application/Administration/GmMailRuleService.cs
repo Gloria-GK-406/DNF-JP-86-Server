@@ -21,12 +21,13 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             || input.Items.Any(x => x is null || x.ItemId <= 0 || x.Count <= 0) || input.Gold < 0)
             throw Invalid("邮件字段、收件人或附件数量无效。");
         var title = Text(input.Title); var body = Text(input.Body);
+        if (sending && string.IsNullOrWhiteSpace(body)) body = "此为官方邮件，无需回复。";
         var items = input.Items.Select(item => item with { Equipment = NormalizeOptions(item.Equipment) }).ToArray();
         if (items.Select(item => (item.ItemId, item.Equipment)).Distinct().Count() != items.Length)
             throw Invalid("相同物品和配置请合并数量；不同装备配置可以分别添加。");
         var result = new GmMailInput(title, body, input.RecipientIds.Distinct().Order().ToArray(), items, input.Gold);
-        if (sending && (result.RecipientIds.Length == 0 || string.IsNullOrWhiteSpace(body) || Utf8.GetByteCount(DisplayText(result)) > 511))
-            throw Invalid("请选择收件人并填写正文，实际显示内容最多 511 个 UTF-8 字节。");
+        if (sending && (result.RecipientIds.Length == 0 || Utf8.GetByteCount(DisplayText(result)) > 511))
+            throw Invalid("请选择收件人，实际显示内容最多 511 个 UTF-8 字节（含留空正文的默认文案）。");
         return result;
     }
     public string DisplayText(GmMailInput input) => input.Title.Length == 0 || input.Title == input.Body ? input.Body : input.Title + "\n" + input.Body;

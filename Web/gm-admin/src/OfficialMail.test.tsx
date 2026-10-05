@@ -53,6 +53,31 @@ it('只有邮件权限的管理员能编辑、选择和预览官方邮件', asyn
   expect(mocked.mock.calls.some(([path]) => path.startsWith('characters'))).toBe(false);
 });
 
+it.each(['', ' \t\n'])('正文选填（场景 %#），保持空草稿并使用后端预览的默认正文发送', async body => {
+  const original = mocked.getMockImplementation()!;
+  const defaultBody = '此为官方邮件，无需回复。';
+  mocked.mockImplementation(async (path, payload, method) => {
+    if (path === 'mail/draft' && payload) return { id: '', name: '草稿', revision: 1, input: payload };
+    if (path === 'mail/preview') return { input: { ...(payload as typeof empty), body: defaultBody }, displayText: defaultBody, utf8Bytes: 36, recipients: [recipient], items: [], totalGold: 0, totalItems: 0 };
+    if (path === 'mail/send') return { receipt: receipt((payload as { requestId: string }).requestId, payload as typeof empty), replayed: false, reminder: 'attempted' };
+    return original(path, payload, method);
+  });
+  open(); await ready();
+  const field = screen.getByLabelText('邮件正文') as HTMLTextAreaElement;
+  expect(field.placeholder).toBe(defaultBody); expect(field.value).toBe('');
+  fireEvent.change(field, { target: { value: body } });
+  await waitFor(() => expect((screen.getByRole('button', { name: '保存草稿' }) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole('button', { name: '保存草稿' })); await screen.findByText('草稿已保存。');
+  expect(mocked).toHaveBeenCalledWith('mail/draft', expect.objectContaining({ body }), 'PUT');
+  await recipients(); fireEvent.click(screen.getByLabelText('选择角色 1'));
+  fireEvent.click(screen.getByRole('button', { name: '预览并核对' }));
+  await screen.findByRole('button', { name: '确认整批发送' });
+  expect(screen.getByText(defaultBody)).toBeTruthy();
+  expect(mocked).toHaveBeenCalledWith('mail/preview', expect.objectContaining({ body }));
+  fireEvent.click(screen.getByRole('button', { name: '确认整批发送' })); await screen.findByText('整批邮件已提交。');
+  expect(mocked).toHaveBeenCalledWith('mail/send', expect.objectContaining({ body: defaultBody, recipientIds: [1] }));
+});
+
 it('确认发送使用预览快照，关闭编辑窗口并刷新记录，详情独立打开', async () => {
   const original = mocked.getMockImplementation()!; let delivered: ReturnType<typeof receipt> | undefined;
   mocked.mockImplementation(async (path, payload) => {
