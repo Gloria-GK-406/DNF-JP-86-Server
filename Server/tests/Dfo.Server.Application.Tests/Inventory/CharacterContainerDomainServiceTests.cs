@@ -108,7 +108,7 @@ public sealed class CharacterContainerDomainServiceTests
         {
             var parameters = handler.GetConstructors().Single().GetParameters();
             Assert.DoesNotContain(
-                parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
+                parameters, value => value.ParameterType == typeof(IDailyRefillDomainService));
             Assert.Contains(
                 parameters, value => value.ParameterType == typeof(IBusinessInventorySlotDomainService));
         }
@@ -121,7 +121,7 @@ public sealed class CharacterContainerDomainServiceTests
         {
             var parameters = handler.GetConstructors().Single().GetParameters();
             Assert.DoesNotContain(
-                parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
+                parameters, value => value.ParameterType == typeof(IDailyRefillDomainService));
             Assert.DoesNotContain(
                 parameters, value => value.ParameterType == typeof(ICharacterContainerDomainService));
             Assert.Contains(parameters, value => value.ParameterType == typeof(ICommandBus));

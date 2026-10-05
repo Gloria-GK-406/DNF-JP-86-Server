@@ -424,7 +424,7 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
         services.TryAddSingleton<IAccountInventoryEntryRepository>(
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
-        services.TryAddSingleton<IEntryInventoryMutationRepository, DailyRefillService>();
+        services.TryAddSingleton<IDailyRefillDomainService, DailyRefillDomainService>();
         // Thirty-three tables: the order they are read in, and everything that makes them one
         // character.
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
@@ -440,7 +440,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
         // What entry has to grant before a character is published. One reader for the daily
         // refill declarations.
-        services.TryAddSingleton<IInventoryLifecycleRuleService, InventoryLifecycleRuleService>();
+        services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
@@ -572,6 +572,11 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Administration.LoginGmAdministratorCommand, Dfo.Server.Data.Administration.GmLoginResult, Dfo.Server.Application.Administration.LoginGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.LogoutGmAdministratorCommand, bool, Dfo.Server.Application.Administration.LogoutGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmAuditCommand, Dfo.Server.Data.Administration.GmAuditPage, Dfo.Server.Application.Administration.QueryGmAuditCommandHandler>(CommandExecutionKind.Transactional);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmDailyRefillDomainService, Dfo.Server.Application.Administration.GmDailyRefillDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmDailyRefillCommand, Dfo.Server.Data.Inventory.DailyRefillList, Dfo.Server.Application.Administration.QueryGmDailyRefillCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ChangeGmDailyRefillCommand, Dfo.Server.Data.Inventory.DailyRefillList, Dfo.Server.Application.Administration.ChangeGmDailyRefillCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommand, Dfo.Server.Data.Administration.GmMailCatalogPage, Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommand, Dfo.Server.Data.Administration.GmMailItemDetails, Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationRuleService, Dfo.Server.Application.Initialization.InitializationRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Initialization.InitializationAssetGrants>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>(p => new Dfo.Server.Application.Initialization.InitializationDomainService(

@@ -59,9 +59,11 @@ internal sealed class PvfEntryLifecycleContentSource(
     /// </summary>
     private const string AvatarEquipmentSuffix = "avatar]";
 
-    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
+    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDeclaredDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => ReadRules(at, ct, true);
+    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => ReadRules(at, ct, false);
+    private ValueTask<IReadOnlyList<DailyRefillRule>> ReadRules(
         DateTimeOffset preparedAt,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool includeInactive)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var archive = provider.Archive;
@@ -69,7 +71,7 @@ internal sealed class PvfEntryLifecycleContentSource(
         var stackables = PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
         var equipment = ReadEquipmentPaths(archive);
         var parsed = Parse(values, preparedAt,
-            id => ResolveItemMetadata(archive, id, stackables, equipment), slotMappings);
+            id => ResolveItemMetadata(archive, id, stackables, equipment), slotMappings, includeInactive);
         return ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(parsed);
     }
 
@@ -100,7 +102,7 @@ internal sealed class PvfEntryLifecycleContentSource(
         IReadOnlyList<string> values,
         DateTimeOffset preparedAt,
         Func<int, RefillItemMetadata> metadata,
-        IInventorySlotMappingRuleService? slotMappings = null)
+        IInventorySlotMappingRuleService? slotMappings = null, bool includeInactive = false)
     {
         slotMappings ??= new InventorySlotMappingRuleService();
         if (values.Count % 4 != 0)
@@ -117,9 +119,9 @@ internal sealed class PvfEntryLifecycleContentSource(
                 || !int.TryParse(values[index + 3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var modeValue))
                 continue;
             var expiresAt = new DateTimeOffset(DateTime.SpecifyKind(expiresLocal, DateTimeKind.Unspecified), TimeSpan.FromHours(8));
-            if (itemId <= 0 || quantity <= 0 || expiresAt <= nowBeijing
+            if (itemId <= 0 || quantity < 0 || (!includeInactive && (quantity == 0 || expiresAt <= nowBeijing))
                 || modeValue is < (int)DailyRefillMode.RefillToTarget
-                    or > (int)DailyRefillMode.AddUpToStackLimit)
+                    or > (int)DailyRefillMode.Add)
                 continue;
             var item = metadata(itemId);
             if (item.SlotEnd < item.SlotStart)

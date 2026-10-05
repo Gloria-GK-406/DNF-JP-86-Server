@@ -93,7 +93,7 @@ public sealed class SelectCharacterProductionStateTests
         var result = await PrepareAsync(sources, seed);
         var refills = new EntryRefill(sources, refill);
         var inventoryEntry = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(refills), refills, sources,
+            new RefillConfiguration(refills), refills, sources,
             new CharacterContainerDomainService(), null!,
             new DomainTransactionScope(), null!, null!,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
@@ -413,7 +413,7 @@ public sealed class SelectCharacterProductionStateTests
     }
 
     private sealed class EntryRefill(Sources sources, bool refill)
-        : IEntryLifecycleContentSource, IEntryInventoryMutationRepository
+        : IEntryLifecycleContentSource, IDailyRefillDomainService
     {
         public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
@@ -439,4 +439,11 @@ public sealed class SelectCharacterProductionStateTests
                 [new DailyRefillCommittedGrant(new(BusinessInventorySpace.Consumable, 0), 9001, 2, 2)]));
         }
     }
+    private sealed class RefillConfiguration(IEntryLifecycleContentSource source) : IDailyRefillConfigurationDomainService
+    {
+        public ValueTask<IReadOnlyList<DailyRefillRule>> EffectiveAsync(DateTimeOffset at, CancellationToken ct) => source.GetDailyRefillRulesAsync(at, ct);
+        public ValueTask<DailyRefillList> ListAsync(DateTimeOffset at, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<DailyRefillList> ChangeAsync(DailyRefillChange change, string actor, DateTimeOffset at, CancellationToken ct) => throw new NotSupportedException();
+    }
+
 }

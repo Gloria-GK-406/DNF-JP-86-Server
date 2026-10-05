@@ -529,6 +529,7 @@ InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路
 [资产赋予领域服务](Document/AssetGrantServices.md)。
 
 账号注册与创角通过 `IInitializationDomainService` 在创建事务内应用当前配置；GM 中账号、角色各有一份独立版本的生效配置，见 [初始化配置](Document/InitializationSettings.md)。
+每日补给通过配置 / 发放领域服务在角色入场时执行，每日尽可能补给一次，空间不足也记录完成；GM 区分 PVF 与自定义规则，见 [每日补给](Document/DailyRefillSettings.md)。
 选角显式注册空的默认内存类型 29 容器。死亡塔入场换成本局六格，跨层保留，退塔/断线换回空容器；
 Main 与 SharedMaterial 不切换。实现及实机边界见 `Document/TowerQuickSlots-20261005.md`。
 

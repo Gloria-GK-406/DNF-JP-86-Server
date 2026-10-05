@@ -18,7 +18,12 @@ internal sealed partial class GmMailRuleService
         foreach (var candidate in candidates)
         {
             token.ThrowIfCancellationRequested();
-            try { await PrepareItemsAsync(new("", "", [], [new(candidate.ItemId, 1)], 0), clock.GetUtcNow(), token); }
+            try
+            {
+                var prepared = await PrepareItemsAsync(new("", "", [], [new(candidate.ItemId, 1)], 0), clock.GetUtcNow(), token);
+                // Apply admission before pagination so restricted pickers do not produce empty pages.
+                if (filter.StackableOnly && prepared.Single().Preview.Kind != "stackable") continue;
+            }
             catch (GmMailException error) when (error.Reason == GmMailRefusal.Invalid) { continue; }
             if (skip-- > 0) continue;
             if (rows.Count == filter.PageSize) return new(rows, filter.Page, filter.PageSize, true);

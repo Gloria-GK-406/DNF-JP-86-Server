@@ -112,7 +112,7 @@ public sealed record DailyRefillCommittedGrant(
 public sealed record DailyRefillMutationResult(
     IReadOnlyList<DailyRefillCommittedGrant> Grants);
 
-public interface IEntryInventoryMutationRepository
+public interface IDailyRefillDomainService
 {
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
         AccountId accountId,

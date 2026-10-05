@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.GmWeb;
+
 internal static class GmInitializationEndpoints
 {
     private const string Prefix = "/api/gm/v1/initialization";
@@ -38,21 +39,34 @@ internal static class GmInitializationEndpoints
         if (c.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = 32768;
         return await c.Request.ReadFromJsonAsync<SaveInitializationRequest<T>>(Json, c.RequestAborted) ?? throw new ArgumentException("配置字段缺失。");
     }
-    private static async Task<IResult> Safe(HttpContext c, Func<Task<IResult>> action)
+    internal static async Task<IResult> Safe(HttpContext c, Func<Task<IResult>> action)
     {
         try { return await action(); }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            var status = e switch { InitializationConflictException => 409, GmMailException m => m.Reason switch {
-                GmMailRefusal.Unauthorized => 401, GmMailRefusal.Forbidden => 403, GmMailRefusal.NotFound => 404, _ => 400 },
-                ArgumentException or JsonException or BadHttpRequestException => 400, _ => 500 };
+            var status = e switch
+            {
+                InitializationConflictException => 409,
+                GmMailException m => m.Reason switch
+                {
+                    GmMailRefusal.Unauthorized => 401,
+                    GmMailRefusal.Forbidden => 403,
+                    GmMailRefusal.NotFound => 404,
+                    _ => 400
+                },
+                ArgumentException or JsonException or BadHttpRequestException => 400,
+                _ => 500
+            };
             if (status == 500 && c.RequestServices.GetService(typeof(ILoggerFactory)) is ILoggerFactory logs)
                 logs.CreateLogger("GmInitialization").LogError(e, "Initialization request failed.");
-            return Results.Json(new { message = status == 500 ? "配置保存或读取失败，请重新读取确认当前生效配置。" : e.Message,
-                outcome = TransactionOutcomeUncertainException.Contains(e) ? "unknown" : "rejected" }, statusCode: status);
+            return Results.Json(new
+            {
+                message = status == 500 ? "配置保存或读取失败，请重新读取确认当前生效配置。" : e.Message,
+                outcome = TransactionOutcomeUncertainException.Contains(e) ? "unknown" : "rejected"
+            }, statusCode: status);
         }
     }
-    private static GmMailItemFilter Filter(HttpContext c)
+    internal static GmMailItemFilter Filter(HttpContext c)
     {
         var q = c.Request.Query;
         int? Number(string key) => !q.ContainsKey(key) ? null : q[key].Count == 1 && int.TryParse(q[key], out var n) ? n : throw new ArgumentException("物品筛选参数无效。");

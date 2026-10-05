@@ -98,7 +98,7 @@ internal sealed class InventorySide
     public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(
         Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()));
 
-    public IEntryInventoryMutationRepository Mutations => new DailyRefillService(
+    public IDailyRefillDomainService Mutations => new DailyRefillDomainService(
         new SqliteCharacterTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
         new DailyRefillRuleService(),
@@ -173,7 +173,7 @@ internal sealed class InventorySide
     public PerCallUseCase PerCall => new(this.Scope, this.Assembly);
 
     /// <summary>The refill, likewise one use case per call.</summary>
-    public IEntryInventoryMutationRepository MutationsPerCall =>
+    public IDailyRefillDomainService MutationsPerCall =>
         new PerCallMutations(this.Scope, this.Mutations);
 
     internal sealed class PerCallUseCase(DomainTransactionScope scope, InventoryEntryAssembly inner)
@@ -192,8 +192,8 @@ internal sealed class InventorySide
     }
 
     private sealed class PerCallMutations(
-        DomainTransactionScope scope, IEntryInventoryMutationRepository inner)
-        : IEntryInventoryMutationRepository
+        DomainTransactionScope scope, IDailyRefillDomainService inner)
+        : IDailyRefillDomainService
     {
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId,

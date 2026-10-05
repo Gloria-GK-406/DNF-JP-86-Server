@@ -12,8 +12,8 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class SelectCharacterEntryInventoryDomainService(
-    IInventoryLifecycleRuleService lifecycleRules,
-    IEntryInventoryMutationRepository mutations,
+    IDailyRefillConfigurationDomainService configuration,
+    IDailyRefillDomainService mutations,
     ICharacterInventoryEntryDomainService inventories,
     ICharacterContainerDomainService containers,
     IItemDomainStore itemStore,
@@ -107,7 +107,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             || result.Account.AccountId != session.AccountId)
             throw new InvalidDataException("Entry inventory owner does not match selected session.");
 
-        var rules = await lifecycleRules.DailyRefillsAsync(result.World.PreparedAt, cancellationToken)
+        var rules = await configuration.EffectiveAsync(result.World.PreparedAt, cancellationToken)
             .ConfigureAwait(false);
         var committed = await mutations.ApplyDailyRefillAsync(
                 session.AccountId, session.CharacterId, rules, result.World.PreparedAt, cancellationToken)

@@ -5,7 +5,7 @@ namespace Dfo.Server.Abstractions.Content;
 public enum DailyRefillMode : byte
 {
     RefillToTarget = 0,
-    AddUpToStackLimit = 1,
+    Add = 1,
 }
 
 public sealed record DailyRefillRule(
@@ -19,6 +19,7 @@ public sealed record DailyRefillRule(
 
 public interface IEntryLifecycleContentSource
 {
+    ValueTask<IReadOnlyList<DailyRefillRule>> GetDeclaredDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => GetDailyRefillRulesAsync(at, ct);
     ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
         DateTimeOffset preparedAt,
         CancellationToken cancellationToken);

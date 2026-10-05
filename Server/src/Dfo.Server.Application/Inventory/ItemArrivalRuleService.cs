@@ -15,29 +15,16 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
 {
-    /// <remarks>
-    /// A refill joins whatever pile is there, however large. It does not consult the stack limit
-    /// because the rule's own quantity is already bounded by it before this is asked -- see
-    /// <see cref="DailyRefillRuleService.GrantFor"/>.
-    /// </remarks>
-    public ItemArrival ForDailyRefill(
-        IReadOnlyList<ItemPile> present,
-        int grant,
-        BusinessSlotRange destination,
-        IReadOnlySet<BusinessSlot> occupiedSlots)
+    /// <summary>Fill existing piles, then an empty slot in the refill's own band.</summary>
+    public ItemArrival ForDailyRefill(IReadOnlyList<ItemPile> present, int grant, BusinessSlotRange destination,
+        IReadOnlySet<BusinessSlot> occupiedSlots, int stackLimit = 0)
     {
-        ArgumentNullException.ThrowIfNull(present);
-        ArgumentNullException.ThrowIfNull(occupiedSlots);
-
-        if (First(present) is { } pile)
-        {
-            return new ItemArrival.OntoExistingPile(
-                pile.Slot, grant, checked(pile.Count + grant));
-        }
-
+        ArgumentNullException.ThrowIfNull(present); ArgumentNullException.ThrowIfNull(occupiedSlots);
+        var limit = stackLimit > 0 ? stackLimit : int.MaxValue;
+        foreach (var pile in present.Where(p => destination.Contains(p.Slot)).OrderBy(p => p.Slot.Index))
+            if (pile.Count < limit) { var added = Math.Min(grant, limit - pile.Count); return new ItemArrival.OntoExistingPile(pile.Slot, added, pile.Count + added); }
         return FirstFreeSlot(destination, occupiedSlots) is { } slot
-            ? new ItemArrival.IntoEmptySlot(slot, grant)
-            : new ItemArrival.NoRoom();
+            ? new ItemArrival.IntoEmptySlot(slot, Math.Min(grant, limit)) : new ItemArrival.NoRoom();
     }
 
     /// <remarks>
@@ -143,10 +130,6 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         yield return bar;
     }
 
-    /// <summary>The pile that grows, chosen by slot so that two runs agree about which one it is.</summary>
-    private static ItemPile? First(IReadOnlyList<ItemPile> present) =>
-        present.Count == 0 ? null : present.MinBy(pile => (pile.Slot.Space, pile.Slot.Index));
-
     /// <remarks>
     /// Only within the band it is given. Which bands an item is given, and in what order, is
     /// <see cref="BandsFor"/>'s business; an item that landed outside all of them is one the client
@@ -194,18 +177,11 @@ internal sealed class DailyRefillRuleService : IDailyRefillRuleService
     public int GrantFor(DailyRefillRule rule, int currentCount)
     {
         ArgumentNullException.ThrowIfNull(rule);
-        if (rule.StackLimit <= 0)
-        {
-            return 0;
-        }
-
         currentCount = Math.Max(0, currentCount);
         return rule.Mode switch
         {
-            DailyRefillMode.RefillToTarget =>
-                Math.Max(0, Math.Min(rule.Quantity, rule.StackLimit) - currentCount),
-            DailyRefillMode.AddUpToStackLimit =>
-                Math.Min(rule.Quantity, Math.Max(0, rule.StackLimit - currentCount)),
+            DailyRefillMode.RefillToTarget => Math.Max(0, rule.Quantity - currentCount),
+            DailyRefillMode.Add => rule.Quantity,
             _ => throw new InvalidDataException($"Daily refill mode {(int)rule.Mode} is invalid."),
         };
     }

@@ -31,7 +31,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var loader = new InventoryLoader(result.CharacterInventory);
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader,
+            new RefillConfiguration(new RefillContent()), new RefillMutation(), loader,
             containers, new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
 
@@ -59,7 +59,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 new InventoryContainerState(InventoryContainerType.Avatar, 0, [])]
         };
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
+            new RefillConfiguration(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new CharacterContainerDomainService(),
             new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -80,7 +80,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var session = Session(result);
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader,
+            new RefillConfiguration(new RefillContent()), new FailingRefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -205,7 +205,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         };
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
+            new RefillConfiguration(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), containers,
             new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
 
@@ -280,7 +280,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                     new(BusinessInventorySpace.Quest, 0, 55))]);
     }
 
-    private sealed class RefillMutation : IEntryInventoryMutationRepository
+    private sealed class RefillMutation : IDailyRefillDomainService
     {
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
@@ -290,7 +290,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 [new DailyRefillCommittedGrant(new(BusinessInventorySpace.Consumable, 0), 9001, 2, 2)]));
     }
 
-    private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
+    private sealed class FailingRefillMutation : IDailyRefillDomainService
     {
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
@@ -339,6 +339,13 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+    }
+
+    private sealed class RefillConfiguration(IEntryLifecycleContentSource source) : IDailyRefillConfigurationDomainService
+    {
+        public ValueTask<IReadOnlyList<DailyRefillRule>> EffectiveAsync(DateTimeOffset at, CancellationToken ct) => source.GetDailyRefillRulesAsync(at, ct);
+        public ValueTask<DailyRefillList> ListAsync(DateTimeOffset at, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<DailyRefillList> ChangeAsync(DailyRefillChange change, string actor, DateTimeOffset at, CancellationToken ct) => throw new NotSupportedException();
     }
 
 }

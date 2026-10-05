@@ -32,7 +32,7 @@ beforeEach(() => {
 it('单一导航下分两个Tab，默认展示生效摘要，编辑才打开窗口', async () => {
   open(); await screen.findByText('当前账号初始化配置');
   expect(screen.queryByRole('dialog')).toBeNull();
-  expect(screen.getByText('30 天')).toBeTruthy();
+  expect(await screen.findByText('30 天')).toBeTruthy();
   fireEvent.click(screen.getByRole('tab', { name: '角色初始化' }));
   expect(await screen.findByText('当前角色初始化配置')).toBeTruthy();
   expect(screen.queryByLabelText('初始角色等级')).toBeNull();

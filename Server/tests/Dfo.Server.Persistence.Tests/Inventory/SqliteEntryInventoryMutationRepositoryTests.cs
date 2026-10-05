@@ -461,7 +461,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             // day grants again -- a refill-to-target rule would grant nothing the second day
             // whatever the boundary did, and the test could not tell the two apart.
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.AddUpToStackLimit, 100, 2,
+                DailyRefillMode.Add, 100, 2,
                 new(BusinessInventorySpace.Consumable, 0, 55));
 
             // 23:30 and 00:30 in UTC+8: one hour apart, and two different days.
@@ -499,7 +499,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             side.BindMain(70);
             var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
-                DailyRefillMode.AddUpToStackLimit, 100, 2,
+                DailyRefillMode.Add, 100, 2,
                 new(BusinessInventorySpace.Consumable, 0, 55));
 
             // 07:30 and 08:30 in UTC+8 on one day: 23:30 and 00:30 in UTC, so two UTC days.
@@ -592,13 +592,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
-    /// <remarks>
-    /// A band with nothing free is refused rather than spilling into the next one. The refusal
-    /// takes the whole entry with it, which is the loud failure the alternative -- an item quietly
-    /// placed outside its band -- would not be.
-    /// </remarks>
+    /// <summary>Unavailable space loses that item, while other items and the daily attempt complete.</summary>
     [Fact]
-    public async Task DailyRefill_RefusesWhenTheBandIsFull()
+    public async Task DailyRefill_SkipsFullBandClaimsDayAndContinuesWithOtherItems()
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
@@ -614,13 +610,44 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 DailyRefillMode.RefillToTarget, 100, 2,
                 new(BusinessInventorySpace.Consumable, 0, 1));
 
-            await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await repository.ApplyDailyRefillAsync(
-                    new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None));
-
+            var available = rule with { ItemId = 5678, Destination = new(BusinessInventorySpace.Consumable, 2, 2) };
+            var first = await repository.ApplyDailyRefillAsync(new(7), new(70), [rule, available], PreparedAt, default);
+            Assert.Equal(5678, Assert.Single(first.Grants).ItemId);
+            Assert.Empty((await repository.ApplyDailyRefillAsync(new(7), new(70), [rule, available], PreparedAt, default)).Grants);
             await using var connection = Open(path);
-            Assert.Equal(0L, await ScalarAsync(connection,
-                "SELECT COUNT(*) FROM character_daily_counters WHERE character_id=70"));
+            Assert.Equal(3L, await ScalarAsync(connection, "SELECT COUNT(*) FROM character_daily_counters WHERE character_id=70"));
+            Assert.Equal(0, await ReadItemCountAsync(connection, 70, 1234));
+            Assert.Equal(5, await ReadItemCountAsync(connection, 70, 5678));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task DailyRefill_PartialMultiPileGrantIsFinalForTheDayEvenAfterSpaceIsFreedOrRulesChange()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-refill-partial-{Guid.NewGuid():N}.db");
+        try
+        {
+            var side = new InventorySide(path); await SeedCharacterAsync(path, 7, 70);
+            await SeedItemAsync(path, 70, 65, 1234, 3); side.BindMain(70);
+            var rule = new DailyRefillRule(1234, 8, DateTimeOffset.MaxValue, DailyRefillMode.Add, 5, 2, new(BusinessInventorySpace.Consumable, 0, 1));
+            var first = await side.MutationsPerCall.ApplyDailyRefillAsync(new(7), new(70), [rule], PreparedAt, default);
+            Assert.Equal(7, first.Grants.Sum(g => g.GrantedCount));
+            await side.InUseCaseAsync(async ct =>
+            {
+                var record = await side.Store.SessionIn(side.Scope.Current!).GetAsync(ContainerId.ForCharacter(new(70), InventoryContainerType.Main), 66, ct);
+                await side.Store.SessionIn(side.Scope.Current!).DeleteItemAsync(await side.Store.SessionIn(side.Scope.Current!).TakeAsync(record!, null, ct), ct);
+                return true;
+            });
+            var second = await side.MutationsPerCall.ApplyDailyRefillAsync(new(7), new(70), [rule with { Quantity = 20 }, rule with { ItemId = 9876 }], PreparedAt, default);
+            Assert.Empty(second.Grants);
+            await using var connection = Open(path);
+            Assert.Equal(1L, await ScalarAsync(connection, "SELECT value FROM character_daily_counters WHERE character_id=70 AND counter_key='daily_refill_attempt'"));
+            Assert.Equal(0, await ReadItemCountAsync(connection, 70, 9876));
+            var nextDay = await side.MutationsPerCall.ApplyDailyRefillAsync(new(7), new(70), [rule], PreparedAt.AddDays(1), default);
+            Assert.Equal(5, Assert.Single(nextDay.Grants).GrantedCount);
+            Assert.Equal(10L, await ScalarAsync(connection, "SELECT SUM(count) FROM item_slots WHERE owner_scope='character' AND owner_id=70 AND id=1234"));
+
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
@@ -634,7 +661,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(itemId is 100 or 200 or 300 or 900
                 ? new ItemPlacement(8, 1, new(BusinessInventorySpace.Avatar, 0, 255))
-                    { WorldClass = ItemWorldClass.Avatar }
+                { WorldClass = ItemWorldClass.Avatar }
                 : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 

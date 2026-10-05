@@ -9,7 +9,7 @@ type AccessCallbacks = { onExpired: () => void; onDenied: () => void };
 type Filters = { q: string; id: string; category?: string; equipmentType?: string; minimumLevel?: number; maximumLevel?: number; rarity?: number };
 
 export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, onDenied, purpose = 'mail' }: AccessCallbacks & {
-  purpose?: 'mail' | 'initialization'; initial?: MailItem; onClose: () => void; onChoose: (item: MailItem, details: MailItemDetails) => string | undefined;
+  purpose?: 'mail' | 'initialization' | 'daily-refill'; initial?: MailItem; onClose: () => void; onChoose: (item: MailItem, details: MailItemDetails) => string | undefined;
 }) {
   const [filters, setFilters] = useState<Filters>({ q: '', id: '' });
   const [search, setSearch] = useState<Filters>({ q: '', id: '' });
@@ -20,24 +20,24 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
   if (search.id) params.set('itemId', search.id);
   for (const key of ['category', 'equipmentType', 'minimumLevel', 'maximumLevel', 'rarity'] as const)
     if (search[key] !== undefined) params.set(key, String(search[key]));
-  const results = useGmRead<MailCatalogPage>(`${purpose === 'mail' ? 'mail' : 'initialization'}/items?${params}`, onExpired, onDenied);
-  const details = useGmRead<MailItemDetails>(selected ? `${purpose === 'mail' ? 'mail' : 'initialization'}/items/${selected}` : null, onExpired, onDenied);
+  const results = useGmRead<MailCatalogPage>(`${purpose === 'mail' ? 'mail' : purpose}/items?${params}`, onExpired, onDenied);
+  const details = useGmRead<MailItemDetails>(selected ? `${purpose === 'mail' ? 'mail' : purpose}/items/${selected}` : null, onExpired, onDenied);
   function apply(next: Filters) {
     if (next.id && (!/^\d+$/.test(next.id) || +next.id <= 0 || +next.id > 2147483647)) { noti.error('物品 ID 必须为正整数。'); return; }
     if (next.minimumLevel !== undefined && next.maximumLevel !== undefined && next.minimumLevel > next.maximumLevel) { noti.error('最低等级不能大于最高等级。'); return; }
     setPage(1); setSearch(next);
   }
   function filter(next: Filters) { setFilters(next); apply(next); }
-  return <Modal title={purpose === 'initialization' ? (initial ? '编辑初始物品' : '添加初始物品') : (initial ? '编辑物品附件' : '添加物品附件')} open onCancel={onClose} footer={null}
+  return <Modal title={purpose === 'daily-refill' ? '选择每日补给物品' : purpose === 'initialization' ? (initial ? '编辑初始物品' : '添加初始物品') : (initial ? '编辑物品附件' : '添加物品附件')} open onCancel={onClose} footer={null}
     width={1160} className="mail-picker-modal" destroyOnHidden>
-    <Typography.Paragraph type="secondary">{purpose === 'initialization' ? '选择额外赠送的永久普通背包物品，装备使用模板默认状态。' : '从当前游戏物品目录检索，选择物品后配置数量与装备状态。仅显示邮件支持发放的永久物品。'}</Typography.Paragraph>
+    <Typography.Paragraph type="secondary">{purpose === 'daily-refill' ? '选择每日补给的永久普通背包堆叠物品。' : purpose === 'initialization' ? '选择额外赠送的永久普通背包物品，装备使用模板默认状态。' : '从当前游戏物品目录检索，选择物品后配置数量与装备状态。仅显示邮件支持发放的永久物品。'}</Typography.Paragraph>
     <div className="mail-picker-filters">
       <Input aria-label="附件名称搜索" placeholder="搜索物品名称" value={filters.q} maxLength={128}
         onChange={event => setFilters({ ...filters, q: event.target.value })} onPressEnter={() => apply(filters)} />
       <Input aria-label="附件精确 ID" placeholder="精确物品 ID" value={filters.id} maxLength={10}
         onChange={event => setFilters({ ...filters, id: event.target.value })} onPressEnter={() => apply(filters)} />
       <Select aria-label="附件分类" placeholder="全部分类" allowClear value={filters.category}
-        options={Object.entries(itemCategories).map(([value, label]) => ({ value, label }))}
+        options={Object.entries(itemCategories).filter(([value]) => purpose !== 'daily-refill' || value !== 'equipment').map(([value, label]) => ({ value, label }))}
         onChange={category => filter({ ...filters, category, equipmentType: undefined, minimumLevel: undefined, maximumLevel: undefined, rarity: undefined })} />
       <Space><Button type="primary" onClick={() => apply(filters)}>搜索物品</Button><Button onClick={() => filter({ q: '', id: '' })}>重置筛选</Button></Space>
     </div>
@@ -67,11 +67,11 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
         <Space className="mail-picker-pagination"><Button disabled={page === 1 || results.busy} onClick={() => setPage(page - 1)}>上一页物品</Button>
           <Typography.Text>第 {page} 页</Typography.Text><Button disabled={!results.data?.hasMore || results.busy} onClick={() => setPage(page + 1)}>下一页物品</Button></Space>
       </section>
-      <Card size="small" title={purpose === 'initialization' ? '配置初始物品' : '配置附件'} className="mail-picker-config">
+      <Card size="small" title={purpose === 'daily-refill' ? '选择补给数量' : purpose === 'initialization' ? '配置初始物品' : '配置附件'} className="mail-picker-config">
         {!selected && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="先从左侧选择一个物品" />}
         {details.busy && <div className="mail-picker-loading"><Spin /><Typography.Paragraph>正在读取物品规则…</Typography.Paragraph></div>}
         {details.error && <Button onClick={details.refresh}>重试</Button>}
-        {details.data && <ItemConfiguration key={details.data.item.itemId} details={details.data} simple={purpose === 'initialization'}
+        {details.data && <ItemConfiguration key={details.data.item.itemId} details={details.data} simple={purpose !== 'mail'} refill={purpose === 'daily-refill'}
           initial={initial?.itemId === details.data.item.itemId ? initial : undefined}
           onChoose={item => { const refusal = onChoose(item, details.data!); if (refusal) noti.error(refusal); }} />}
       </Card>
@@ -79,7 +79,7 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
   </Modal>;
 }
 
-function ItemConfiguration({ details, initial, onChoose, simple = false }: { simple?: boolean; details: MailItemDetails; initial?: MailItem; onChoose: (item: MailItem) => void }) {
+function ItemConfiguration({ details, initial, onChoose, simple = false, refill = false }: { simple?: boolean; refill?: boolean; details: MailItemDetails; initial?: MailItem; onChoose: (item: MailItem) => void }) {
   const [count, setCount] = useState<number | null>(initial?.count ?? 1);
   const [options, setOptions] = useState<MailEquipmentOptions>(initial?.equipment ?? defaultEquipment());
   const capabilities = details.equipment;
@@ -92,7 +92,7 @@ function ItemConfiguration({ details, initial, onChoose, simple = false }: { sim
     <div><Typography.Title level={5} style={{ margin: 0 }}>{details.item.name}</Typography.Title><Typography.Text type="secondary">ID {details.item.itemId}</Typography.Text></div>
     <Space wrap><Tag>{itemCategories[details.item.category]}</Tag>{details.item.equipmentType && <Tag>{equipmentTypes[details.item.equipmentType] ?? details.item.equipmentType}</Tag>}
       {details.item.level !== null && <Tag>Lv. {details.item.level}</Tag>}{details.item.rarity !== null && <Tag>{itemRarities[details.item.rarity]}</Tag>}</Space>
-    <div><label htmlFor="attachment-count">{simple ? '每角色数量' : '每人数量'}</label><InputNumber id="attachment-count" style={{ width: '100%', marginTop: 6 }}
+    <div><label htmlFor="attachment-count">{refill ? '补给数量' : simple ? '每角色数量' : '每人数量'}</label><InputNumber id="attachment-count" style={{ width: '100%', marginTop: 6 }}
       min={1} max={isEquipment && !simple ? 10 : 2147483647} precision={0} value={count} onChange={setCount} /></div>
     {isEquipment && !simple && <>
       <div><label htmlFor="attachment-seal">封装状态</label><Select id="attachment-seal" aria-label="封装状态" style={{ width: '100%', marginTop: 6 }} value={options.seal}
@@ -116,6 +116,6 @@ function ItemConfiguration({ details, initial, onChoose, simple = false }: { sim
     <Button type="primary" block disabled={!valid} onClick={() => {
       const equipment = isEquipment && (options.seal !== 'default' || options.growth !== 'none') ? { ...options } : undefined;
       onChoose({ itemId: details.item.itemId, count: count!, ...(equipment ? { equipment } : {}) });
-    }}>{simple ? (initial ? '保存物品配置' : '加入初始物品') : (initial ? '保存附件配置' : '加入邮件')}</Button>
+    }}>{refill ? '选择此补给物品' : simple ? (initial ? '保存物品配置' : '加入初始物品') : (initial ? '保存附件配置' : '加入邮件')}</Button>
   </Space>;
 }
