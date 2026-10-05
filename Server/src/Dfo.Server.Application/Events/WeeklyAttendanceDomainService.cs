@@ -34,8 +34,13 @@ internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWee
     public async ValueTask<WeeklyAttendanceSettings> SettingsAsync(CancellationToken ct)
     {
         var c = await Configuration(ct); var (d,error) = await Definition(c,ct);
+        var names=new Dictionary<int,string?>();
+        if (d is not null)
+            foreach(var id in d.WeeklyRewards.Concat(d.CumulativeRewards).Select(r=>r.ItemId).Distinct())
+                names[id]=await rules.ItemNameAsync(id,ct);
+        AttendanceRewardView[] Display(AttendanceReward[] rewards)=>rewards.Select(r=>new AttendanceRewardView(r.AttendanceNo,r.ItemId,names[r.ItemId],r.Count)).ToArray();
         return new(EventId,c.Revision,c.SeasonId,d?.SourcePath ?? "event/chn_event/chn_totalattendance.evt",d is not null,error,
-            d?.RequiredClears,d?.TotalWeeks,d?.WeeklyRewards ?? [],d?.CumulativeRewards ?? []);
+            d?.RequiredClears,d?.TotalWeeks,d is null ? [] : Display(d.WeeklyRewards),d is null ? [] : Display(d.CumulativeRewards));
     }
     public async ValueTask<EventInfo?> GetEventInfoAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {

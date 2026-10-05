@@ -1,7 +1,7 @@
 import { Button, Card, Descriptions, Modal, Space, Spin, Table, Tag, Typography } from 'antd';
 import { useGmRead } from '../useGmRead';
 
-type Reward = { attendanceNo: number; itemId: number; count: number };
+type Reward = { attendanceNo: number; itemId: number; itemName: string | null; count: number };
 export type WeeklyAttendanceSettingsData = {
   eventId: number; revision: number; seasonId: string; sourcePath: string; available: boolean;
   unavailableReason: string | null; requiredClears: number | null; totalWeeks: number | null;
@@ -17,7 +17,7 @@ export function WeeklyAttendanceSettings({ title, onClose, onExpired, onDenied }
       pagination={false} locale={{ emptyText: '暂无可用奖励' }} columns={[
         { title: cumulative ? '累计签到次数' : '签到序号', dataIndex: 'attendanceNo', width: 150,
           render: value => cumulative ? `累计 ${value} 次` : `第 ${value} 次` },
-        { title: '物品 ID', dataIndex: 'itemId', render: value => <Typography.Text copyable>{value}</Typography.Text> },
+        { title: '奖励物品', render: (_, row) => <span>{row.itemName ?? '名称未找到'}（<Typography.Text copyable>{row.itemId}</Typography.Text>）</span> },
         { title: '数量', dataIndex: 'count', width: 100 },
       ]} />;
   }

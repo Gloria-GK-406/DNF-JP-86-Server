@@ -22,8 +22,8 @@ beforeEach(() => {
   data = { entries: [{ eventId: 2208, type: 'weekly-attendance', revision: 8, seasonId: 'season-one', enabled: false, status: 'disabled', ...config,
     available: true, unavailableReason: null, updatedAt: null, updatedBy: null }] };
   settings = { eventId: 2208, revision: 8, seasonId: 'season-one', sourcePath: 'event/chn_event/chn_totalattendance.evt', available: true,
-    unavailableReason: null, requiredClears: 4, totalWeeks: 12, weeklyRewards: [{ attendanceNo: 1, itemId: 90001, count: 2 }],
-    cumulativeRewards: [{ attendanceNo: 4, itemId: 90004, count: 1 }] };
+    unavailableReason: null, requiredClears: 4, totalWeeks: 12, weeklyRewards: [{ attendanceNo: 1, itemId: 90001, itemName: '力量药剂', count: 2 }],
+    cumulativeRewards: [{ attendanceNo: 4, itemId: 90004, itemName: '累计签到礼盒', count: 1 }] };
   mocked.mockImplementation(async (path, payload) => {
     if (path === 'auth/status') return { initialized: true }; if (path === 'auth/session') return identity;
     if (path === 'events/weekly-attendance/settings') return structuredClone(settings);
@@ -60,10 +60,20 @@ it('设置活动独立读取周签到规则，显示PVF来源、目标和两类�
   expect(await within(dialog).findByText('event/chn_event/chn_totalattendance.evt')).toBeTruthy();
   expect(within(dialog).getByText('PVF · 只读')).toBeTruthy(); expect(within(dialog).getByText('4 次推荐地下城')).toBeTruthy();
   expect(within(dialog).getByText('90001')).toBeTruthy(); expect(within(dialog).getByText('90004')).toBeTruthy();
+  expect(within(dialog).getByRole('cell', { name: /力量药剂（\s*90001/ })).toBeTruthy();
+  expect(within(dialog).getByRole('cell', { name: /累计签到礼盒（\s*90004/ })).toBeTruthy();
   expect(within(dialog).queryByRole('textbox')).toBeNull(); expect(within(dialog).queryByRole('spinbutton')).toBeNull();
   expect(within(dialog).queryByRole('button', { name: /保存/ })).toBeNull();
   fireEvent.click(within(dialog).getByRole('button', { name: /关\s*闭/ }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); expect(writes()).toHaveLength(0);
+});
+it('缺失名称保留ID并标明未找到，名称作为文本显示且不产生额外查询', async () => {
+  settings.weeklyRewards[0].itemName = null; settings.cumulativeRewards[0].itemName = '<b>签到礼盒</b>';
+  open(); fireEvent.click(await screen.findByRole('button', { name: '设置活动' }));
+  const dialog = await screen.findByRole('dialog');
+  expect(await within(dialog).findByRole('cell', { name: /名称未找到（\s*90001/ })).toBeTruthy();
+  expect(within(dialog).getByRole('cell', { name: /<b>签到礼盒<\/b>（\s*90004/ })).toBeTruthy();
+  expect(mocked.mock.calls.some(([path]) => /item|catalog/.test(path))).toBe(false);
 });
 it('未知活动类型只显示通用管理，不借用周签到界面', async () => {
   data.entries[0].type = 'future-event';

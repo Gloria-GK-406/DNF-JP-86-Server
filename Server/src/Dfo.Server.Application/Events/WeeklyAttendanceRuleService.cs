@@ -8,7 +8,7 @@ using System.Text;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class WeeklyAttendanceRuleService(IWeeklyAttendanceDefinitionSource source, IItemPlacementRuleService items,
-    IDungeonDefinitionSource dungeons, IDailyResetRuleService reset) : IWeeklyAttendanceRuleService
+    IDungeonDefinitionSource dungeons, IDailyResetRuleService reset, IGmMailItemCatalogSource itemNames) : IWeeklyAttendanceRuleService
 {
     private static readonly Encoding CalendarEncoding=CodePagesEncodingProvider.Instance.GetEncoding(936,EncoderFallback.ExceptionFallback,DecoderFallback.ExceptionFallback)!;
     public void ValidateCalendarText(string text)
@@ -45,6 +45,11 @@ internal sealed class WeeklyAttendanceRuleService(IWeeklyAttendanceDefinitionSou
         if (min<=0)min=max;if(max<=0)max=min;
         if (min>max)(min,max)=(max,min);
         return (long)level+5>=min && Math.Max(1,(long)level-5)<=max;
+    }
+    public async ValueTask<string?> ItemNameAsync(int itemId,CancellationToken ct)
+    {
+        var name=(await itemNames.FindAsync(itemId,ct))?.Name;
+        return string.IsNullOrWhiteSpace(name) ? null : name;
     }
     public DateTimeOffset WeekStart(DateTimeOffset now)
     {

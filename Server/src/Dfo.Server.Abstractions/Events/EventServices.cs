@@ -27,6 +27,7 @@ public interface IWeeklyAttendanceRuleService
 {
     void ValidateCalendarText(string text);
     ValueTask<(WeeklyAttendanceDefinition? Definition, string? Error)> DefinitionAsync(CancellationToken ct);
+    ValueTask<string?> ItemNameAsync(int itemId, CancellationToken ct);
     ValueTask<bool> RecommendedAsync(int dungeonId, int level, CancellationToken ct);
     DateTimeOffset WeekStart(DateTimeOffset now);
 }

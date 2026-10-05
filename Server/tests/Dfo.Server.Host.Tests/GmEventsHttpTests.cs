@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Events;
+using Dfo.Server.Data.Administration;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,6 +66,8 @@ public sealed class GmEventsHttpTests
         var settings=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.Equal(2208,settings.EventId);Assert.Equal(0,settings.Revision);Assert.Equal("initial",settings.SeasonId);
         Assert.True(settings.Available);Assert.Equal(4,settings.RequiredClears);Assert.Equal(12,settings.TotalWeeks);
+        Assert.All(settings.WeeklyRewards,r=>Assert.Equal("测试消耗品",r.ItemName));
+        Assert.Equal(new[]{"测试黑色材料","测试白色材料","测试红色材料"},settings.CumulativeRewards.Select(r=>r.ItemName));
         Assert.Equal(12,settings.WeeklyRewards.Length);Assert.Equal(new[]{4,8,11},settings.CumulativeRewards.Select(r=>r.AttendanceNo));
         Assert.Empty(await host.ReadAsync("SELECT event_id FROM event_configuration"));
         Assert.Empty(await host.ReadAsync("SELECT operation_id FROM gm_audit WHERE action='ChangeEvent'"));
@@ -74,6 +77,38 @@ public sealed class GmEventsHttpTests
         await Change(host,token,Configure(0));
         var updated=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.Equal(1,updated.Revision);Assert.Equal("initial",updated.SeasonId);Assert.Equal(4,updated.RequiredClears);
+    }
+    private sealed class Names : IGmMailItemCatalogSource
+    {
+        internal bool Missing { get; set; }
+        internal string Prefix { get; set; }="名称";
+        internal int Reads { get; set; }
+        public ValueTask<GmMailCatalogEntry?> FindAsync(int id,CancellationToken ct)
+        {
+            Reads++;
+            return ValueTask.FromResult<GmMailCatalogEntry?>(Missing ? null : new(id,$"{Prefix}{id}","consumable",null,1,1));
+        }
+        public ValueTask<IReadOnlyList<GmMailCatalogEntry>> SearchAsync(GmMailItemFilter filter,CancellationToken ct)=>throw new NotSupportedException();
+    }
+    [Fact]
+    public async Task Names_are_read_by_attendance_service_once_per_distinct_item_and_do_not_change_season_rules_or_claims()
+    {
+        var names=new Names();
+        await using var host=await GmTestHost.StartAsync(configureServices:s=>{Content(s);s.AddSingleton<IGmMailItemCatalogSource>(names);});
+        await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);await Clears(host);
+        var before=await host.ReadAsync("SELECT input FROM event_configuration");
+        var attendance=host.Services.GetRequiredService<IWeeklyAttendanceDomainService>();
+        var initial=await attendance.SettingsAsync(default);
+        Assert.All(initial.WeeklyRewards,r=>Assert.Equal("名称3",r.ItemName));Assert.Equal(4,names.Reads);
+        names.Prefix="更新名称";var updated=await attendance.SettingsAsync(default);
+        Assert.Equal(initial.SeasonId,updated.SeasonId);Assert.Equal(initial.Revision,updated.Revision);
+        Assert.True(updated.Available);Assert.All(updated.WeeklyRewards,r=>Assert.Equal("更新名称3",r.ItemName));
+        names.Missing=true;var missing=await attendance.SettingsAsync(default);
+        Assert.True(missing.Available);Assert.All(missing.WeeklyRewards,r=>Assert.Null(r.ItemName));
+        Assert.All(missing.CumulativeRewards,r=>Assert.Null(r.ItemName));Assert.Equal(3,missing.WeeklyRewards[0].ItemId);
+        Assert.Equal(before,await host.ReadAsync("SELECT input FROM event_configuration"));
+        Assert.True(await host.Services.GetRequiredService<ICommandBus>().SendAsync(new Act(new(1),Claim:true)));
+        Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
     }
     [Fact]
     public async Task Specific_settings_require_full_permission_and_missing_rules_do_not_fabricate_targets()
@@ -205,6 +240,12 @@ public sealed class GmEventsHttpTests
         Assert.True(entry.Available,entry.UnavailableReason);Assert.Equal("event/chn_event/chn_totalattendance.evt",entry.SourcePath);Assert.Equal(4,entry.RequiredClears);
         Assert.Equal(new[]{490003187,490003188,490003189,490003196,490003190,490003191,490003192,490003197,490003193,490003194,490003195,490003198},entry.WeeklyRewards.Select(r=>r.ItemId));
         Assert.Equal(new[]{4,8,11},entry.CumulativeRewards.Select(r=>r.AttendanceNo));
+        var names=host.Services.GetRequiredService<IGmMailItemCatalogSource>();
+        foreach(var reward in entry.WeeklyRewards.Concat(entry.CumulativeRewards))
+        {
+            Assert.False(string.IsNullOrWhiteSpace(reward.ItemName));
+            Assert.Equal((await names.FindAsync(reward.ItemId,default))!.Name,reward.ItemName);
+        }
         await Clears(host);Assert.True(await host.Services.GetRequiredService<ICommandBus>().SendAsync(new Act(new(1),Claim:true)));
         var mail=Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
         Assert.Equal(490003187,Assert.IsType<Dfo.Server.Data.Mail.MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset).ItemId);
