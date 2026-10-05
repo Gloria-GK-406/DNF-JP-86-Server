@@ -46,6 +46,8 @@ public sealed class GmDailyRefillHttpTests
         {
             var csrf = await GmCeraHttpTests.Login(host); var list = (await host.Client.GetFromJsonAsync<DailyRefillList>(Prefix))!;
             Assert.Equal(0, list.Revision); Assert.Equal("expired", list.Entries.Single(e => e.ItemId == 3033).Status);
+            Assert.Equal("测试消耗品", list.Entries.Single(e => e.ItemId == 3).Name);
+            Assert.Equal("测试黑色材料", list.Entries.Single(e => e.ItemId == 3033).Name);
             await host.ExecuteAsync("INSERT INTO character_daily_counters(character_id,counter_key,period,value) VALUES(90,'pvf_daily_refill_item_3','2026-10-05',1);");
             using var added = await host.PostAsync(Prefix, csrf, new DailyRefillChange(0, "add", 3, 250, 1)); Assert.Equal(HttpStatusCode.OK, added.StatusCode);
             list = (await added.Content.ReadFromJsonAsync<DailyRefillList>())!;
@@ -101,6 +103,7 @@ public sealed class GmDailyRefillHttpTests
         items.Missing = true;
         var list = (await host.Client.GetFromJsonAsync<DailyRefillList>(Prefix))!;
         Assert.Equal("unsupported",list.Entries.Single(e=>e.Source=="custom" && e.ItemId==3).Status);
+        Assert.Equal("物品 42",list.Entries.Single(e=>e.Source=="pvf" && e.ItemId==42).Name);
         var config = host.Services.GetRequiredService<IDailyRefillConfigurationDomainService>();
         Assert.Equal(42,Assert.Single(await config.EffectiveAsync(DateTimeOffset.UtcNow,default)).ItemId);
         Assert.Equal(1,list.Revision);

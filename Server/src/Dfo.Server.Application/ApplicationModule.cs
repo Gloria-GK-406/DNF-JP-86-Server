@@ -447,8 +447,7 @@ public sealed class ApplicationModule : IServerModule
             ICharacterDarkKnightComboDomainService, CharacterDarkKnightComboDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
-        // What entry has to grant before a character is published. One reader for the daily
-        // refill declarations.
+        services.TryAddSingleton<IDailyRefillConfigurationRuleService, DailyRefillConfigurationRuleService>();
         services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();

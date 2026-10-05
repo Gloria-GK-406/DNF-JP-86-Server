@@ -2,6 +2,8 @@
 
 当前实现：`DailyRefillConfigurationDomainService` 合并规则，`DailyRefillDomainService` 执行发放，角色进入游戏时通过这两个领域服务完成每日补给。
 
+Web配置读取链路为HTTP → GM补给领域服务 → 补给配置领域服务 → `IDailyRefillConfigurationRuleService` → PVF内容源。配置规则服务负责读取PVF声明／有效规则、物品名称和自定义补给物品解析；配置领域服务负责持久化、版本校验及规则合并，不直接读取内容源。规则服务不读取玩家状态或配置数据库。
+
 ## GM 配置
 
 左侧「每日补给」显示规则列表。每行标明 PVF / 自定义来源、补给方式、数量、截止时间和生效状态。新增及编辑通过独立窗口完成，物品从当前 PVF 目录选择；自定义支持永久普通背包堆叠物品。
