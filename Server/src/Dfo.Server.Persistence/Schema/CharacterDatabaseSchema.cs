@@ -234,6 +234,10 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS gm_mail_drafts (administrator_id INTEGER PRIMARY KEY,document TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
+        CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS event_attendance_week(event_id INTEGER NOT NULL,season_id TEXT NOT NULL,account_id INTEGER NOT NULL,week_start INTEGER NOT NULL,clears INTEGER NOT NULL,attendance_no INTEGER NOT NULL,PRIMARY KEY(event_id,season_id,account_id,week_start));
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_event_attendance_claim ON event_attendance_week(event_id,season_id,account_id,attendance_no) WHERE attendance_no>0;
+        CREATE TABLE IF NOT EXISTS event_consumed_runs(event_id INTEGER NOT NULL,season_id TEXT NOT NULL,account_id INTEGER NOT NULL,run_id TEXT NOT NULL,PRIMARY KEY(event_id,season_id,account_id,run_id));
         CREATE TABLE IF NOT EXISTS daily_refill_settings(id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,input TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS initialization_settings(kind TEXT PRIMARY KEY CHECK(kind IN ('account','character')),revision INTEGER NOT NULL,input TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_cera_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));

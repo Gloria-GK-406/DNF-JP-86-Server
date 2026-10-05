@@ -1,0 +1,27 @@
+=== event/chn_event/chn_totalattendance.evt ===
+[xui path]
+UI\Event\chn_event_2016\chn_eventTotalAttendance_20161020/EventTotalAttendanceCheckWindow.xui
+[event duration]
+12
+[attendance condition]
+4 44
+[attendance day]
+[/attendance day]
+[attendance week]
+1 490003187 1 2 490003188 1 3 490003189 1 4 490003196 1 5 490003190 1 6 490003191 1 7 490003192 1 8 490003197 1 9 490003193 1 10 490003194 1 11 490003195 1 12 490003198 1
+[/attendance week]
+[reward by the week]
+0
+[bonus attendance count]
+1
+[total attendance day]
+[/total attendance day]
+[total attendance week]
+4 490003219 1 8 490003220 1 11 490003221 1
+[/total attendance week]
+[total attendance week 2nd]
+[/total attendance week 2nd]
+[set ani step]
+1
+[set sd ani visible]
+1

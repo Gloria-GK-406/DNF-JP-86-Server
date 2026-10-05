@@ -837,7 +837,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0069` | `CreatureListMessage`、`CreatureListUpdateMessage` | 仅证明 encoder 可产生该 identity | [0x0069](game/server-to-client/NOTI-0x0069.md) |
 | `0x00` NOTI | `0x006A` | `CreatureEvolutionNotification` | 仅证明 encoder 可产生该 identity | [0x006A](game/server-to-client/NOTI-0x006A.md) |
 | `0x00` NOTI | `0x006B` | `CreatureRevivalNotification`、`PetRevivalStateMessage` | 仅证明 encoder 可产生该 identity | [0x006B](game/server-to-client/NOTI-0x006B.md) |
-| `0x00` NOTI | `0x006C` | `ServerEventBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x006C](game/server-to-client/NOTI-0x006C.md) |
+| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | ClientStatic 丰富日历布局；CurrentImplementation 注册实例投影，待GUI验收 | [0x006C](game/server-to-client/NOTI-0x006C.md) |
 | `0x00` NOTI | `0x0077` | `PetWelcomeStateMessage` | 仅证明 encoder 可产生该 identity | [0x0077](game/server-to-client/NOTI-0x0077.md) |
 | `0x00` NOTI | `0x007C` | `EntryMarkerMessage` | 仅证明 encoder 可产生该 identity | [0x007C](game/server-to-client/NOTI-0x007C.md) |
 | `0x00` NOTI | `0x008E` | `IllusionTowerInfoNotification` | 仅证明 encoder 可产生该 identity | [0x008E](game/server-to-client/NOTI-0x008E.md) |
@@ -961,3 +961,10 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 ## 2026-10-01 普通设计图制作
 
 [COMPOUND_ITEM 0x0019](game/client-to-server/0x0019.md)新增1287设计图9B实帧，接入PVF需求/产物规则、同事务消费/入包、[CMD结果](game/server-to-client/CMD-0x0019.md)及库存刷新。WireCaptured + ClientStatic + 70Reference + ContentStatic + CurrentImplementation；[人工验收](../Document/tasks/recipe-crafting/Human-Test-List.md)待执行，未标ClientVerified。
+
+### 2026-10-05 累计周签到实施补充
+
+| 族 | Type | 本服映射 | 证据边界 | 记录 |
+|---|---|---|---|---|
+| NOTI | 0x042D | WeeklyAttendanceStateMessage | ClientStatic 450B及偏移；CurrentImplementation 状态刷新，未ClientVerified | [042D](game/server-to-client/NOTI-0x042D.md) |
+| CMD | 0x0441 | WeeklyAttendanceRequest / WeeklyAttendanceResponse | ClientStatic 请求14B opaque / 响应4B；CurrentImplementation 原子奖励，未ClientVerified | [0441](game/client-to-server/0x0441.md) |

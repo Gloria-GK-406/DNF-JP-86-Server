@@ -73,6 +73,7 @@ public enum ClientMessageType
     GameMercenaryInfo = 0x0001_01BA,
     GameHiddenCharacterInfo = 0x0001_0286,
     GameSaveCharacterOption = 0x0001_01C0,
+    GameWeeklyAttendance = 0x0001_0441,
     GameSaveGameOption1 = 0x0001_00C5,
     GameContentsPlayInfo = 0x0001_02C1,
 

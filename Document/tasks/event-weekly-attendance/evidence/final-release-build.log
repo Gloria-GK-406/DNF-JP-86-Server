@@ -1,0 +1,18 @@
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Data\bin\Release\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Abstractions\bin\Release\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\bin\Release\net10.0\Dfo.Server.Application.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Pvf\bin\Release\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Infrastructure\bin\Release\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.HttpApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.HttpApi\bin\Release\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Persistence\bin\Release\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Networking\bin\Release\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Protocol\bin\Release\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.GameServer -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.GameServer\bin\Release\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.GmWeb -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.GmWeb\bin\Release\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Host\bin\Release\net10.0\Dfo.Server.Host.dll
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:01.09

@@ -60,3 +60,21 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+## A21 450B 状态投影（2026-10-05）
+
+证据等级：**ClientStatic / Confirmed** 的固定长度与消费偏移；业务含义依上游/PVF交叉核对为 High，未 ClientVerified。当前输入身份与原始反汇编见 [A21 数据契约](../../../Document/tasks/event-weekly-attendance/evidence/client-data-contract.md)。VA009A9B90 一次 ReadBytes(450)，不是450B下界。
+
+| Offset | Width | 当前投影 |
+|---:|---:|---|
+| 0x004 | u32 | 累计已签到次数 |
+| 0x198 | 20B | 已签到的1基周序号，剩余0 |
+| 0x1B0 | u32 | 当前业务周推荐通关次数 |
+| 0x1B8 | u32 | bonus状态，首例保留0 |
+| 0x1BC | u32 | 当前格序号：min(duration,max(1,累计次数)) |
+| 0x1C0 | u8 | 普通签到按钮达标状态 |
+| 0x1C1 | u8 | bonus显示，首例保留0 |
+
+其它字节均0；关闭/未开始/过期/规则不可用时整450B为0。当前格序号沿用上游 ResolveCurrentEventWeekNo，不等于下一奖品序号；下一次奖品为累计次数+1。原生脚本路径是 `event/chn_event/chn_totalattendance.evt`，条件4/44为进度目标，44不是等级。首例只开放普通周签到和累计4/8/11奖励，额外签到/补签语义尚未闭合。
+
+CurrentImplementation：WeeklyAttendanceStateMessage / EventPayloadCodec.Attendance；真实SQLite和隔离消息派发验证长度、奖励、重复请求及关闭清空。待实机核对真实窗口数值、按钮与周格。

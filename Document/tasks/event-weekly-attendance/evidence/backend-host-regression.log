@@ -1,0 +1,43 @@
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.HttpApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.HttpApi\bin\Debug\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.GameServer -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.GameServer\bin\Debug\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.GmWeb -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.GmWeb\bin\Debug\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:02.02]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Invalid_snapshots_capacity_and_failed_audit_do_not_replace_the_active_configuration [FAIL]
+  失败 Dfo.Server.Host.Tests.GmInitializationHttpTests.Invalid_snapshots_capacity_and_failed_audit_do_not_replace_the_active_configuration [531 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: BadRequest
+Actual:   InternalServerError
+  堆栈跟踪:
+     at Dfo.Server.Host.Tests.GmInitializationHttpTests.Invalid_snapshots_capacity_and_failed_audit_do_not_replace_the_active_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\GmInitializationHttpTests.cs:line 76
+   at Dfo.Server.Host.Tests.GmInitializationHttpTests.Invalid_snapshots_capacity_and_failed_audit_do_not_replace_the_active_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\GmInitializationHttpTests.cs:line 83
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:04.15]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Saves_are_independent_versioned_persistent_and_audited_without_modifying_existing_assets [FAIL]
+[xUnit.net 00:00:04.15]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Real_registration_and_creation_apply_current_templates_once_in_the_creation_transaction [SKIP]
+[xUnit.net 00:00:04.15]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Initialization_failure_rolls_back_the_new_identity_and_every_granted_asset [SKIP]
+  失败 Dfo.Server.Host.Tests.GmInitializationHttpTests.Saves_are_independent_versioned_persistent_and_audited_without_modifying_existing_assets [346 ms]
+  错误消息:
+   System.Net.Http.HttpRequestException : Response status code does not indicate success: 500 (Internal Server Error).
+  堆栈跟踪:
+     at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
+   at System.Net.Http.Json.HttpClientJsonExtensions.<FromJsonAsyncCore>g__Core|12_0[TValue,TJsonOptions](HttpClient client, Task`1 responseTask, Boolean usingResponseHeadersRead, CancellationTokenSource linkedCTS, Func`4 deserializeMethod, TJsonOptions jsonOptions, CancellationToken cancellationToken)
+   at Dfo.Server.Host.Tests.GmInitializationHttpTests.Saves_are_independent_versioned_persistent_and_audited_without_modifying_existing_assets() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\GmInitializationHttpTests.cs:line 44
+   at Dfo.Server.Host.Tests.GmInitializationHttpTests.Saves_are_independent_versioned_persistent_and_audited_without_modifying_existing_assets() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Host.Tests\GmInitializationHttpTests.cs:line 60
+--- End of stack trace from previous location ---
+  已跳过 Dfo.Server.Host.Tests.GmInitializationHttpTests.Real_registration_and_creation_apply_current_templates_once_in_the_creation_transaction [1 ms]
+  已跳过 Dfo.Server.Host.Tests.GmInitializationHttpTests.Initialization_failure_rolls_back_the_new_identity_and_every_granted_asset [1 ms]
+[xUnit.net 00:00:06.20]     Dfo.Server.Host.Tests.GmDailyRefillHttpTests.Real_archive_lists_live_expired_and_zero_quantity_rules_and_filters_item_catalog [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmDailyRefillHttpTests.Real_archive_lists_live_expired_and_zero_quantity_rules_and_filters_item_catalog [1 ms]
+
+失败!  - 失败:     2，通过:    13，已跳过:     3，总计:    18，持续时间: 6 s - Dfo.Server.Host.Tests.dll (net10.0)

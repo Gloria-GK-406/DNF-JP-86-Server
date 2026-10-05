@@ -1,0 +1,36 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run src/Events.test.tsx src/DailyRefill.test.tsx src/Initialization.test.tsx src/AdminApp.test.tsx
+
+failed to load config from E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Web\gm-admin\vitest.config.ts
+
+⎯⎯⎯⎯⎯⎯⎯ Startup Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Build failed with 1 error:
+
+[plugin externalize-deps]
+Error: spawn EPERM
+    at ChildProcess.spawn (node:internal/child_process:420:11)
+    at spawn (node:child_process:786:9)
+    at Object.execFile (node:child_process:349:17)
+    at exec (node:child_process:236:25)
+    at optimizeSafeRealPathSync (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:2481:2)
+    at windowsSafeRealPathSync (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:2467:3)
+    at getRealPath (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:29366:36)
+    at tryResolveRealFileOrType (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:29360:9)
+    at tryCleanFsResolve (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:29109:21)
+    at tryFsResolve (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:29102:14)
+    at aggregateBindingErrorsIntoJsError (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/rolldown/dist/shared/error-Bj1xBdEY.mjs:49:18)
+    at unwrapBindingResult (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/rolldown/dist/shared/error-Bj1xBdEY.mjs:19:128)
+    at #build (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/rolldown/dist/shared/rolldown-jmAeXo_f.mjs:133:34)
+    at async bundleConfigFile (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:37867:12)
+    at async bundleAndLoadConfigFile (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:37763:18)
+    at async loadConfigFromFile (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:37724:42)
+    at async resolveConfig (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vite/dist/node/chunks/node.js:37325:22)
+    at async resolveConfig$1 (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vitest/dist/chunks/index.DpLw24bj.js:14851:25)
+    at async createVitest (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vitest/dist/chunks/cli-api.C4x4GGip.js:26:17)
+    at async prepareVitest (file:///E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin/node_modules/vitest/dist/chunks/cli-api.C4x4GGip.js:421:14) {
+  errors: [Getter/Setter]
+}
+
+
+

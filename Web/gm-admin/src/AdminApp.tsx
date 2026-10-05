@@ -8,6 +8,7 @@ import { OfficialMailView } from './OfficialMailView';
 import { CeraGrantView } from './CeraGrantView';
 import { InitializationView } from './InitializationView';
 import { DailyRefillView } from './DailyRefillView';
+import { EventsView } from './EventsView';
 import { NotiHint, useNotiBar } from './NotiBar';
 
 const pages: { key: string; label: string; permission: Permission | 'All' | null }[] = [
@@ -15,9 +16,10 @@ const pages: { key: string; label: string; permission: Permission | 'All' | null
   { key: '/mail', label: '官方邮件', permission: 'SendMail' }, { key: '/wallet', label: '点券发放', permission: 'GrantCera' },
   { key: '/initialization', label: '初始化配置', permission: 'All' },
   { key: '/daily-refill', label: '每日补给', permission: 'All' },
+  { key: '/events', label: '活动管理', permission: 'All' },
   { key: '/operations', label: '操作记录', permission: 'ViewAudit' },
 ];
-const actionLabels: Record<string, string> = { ChangeDailyRefill: '修改每日补给', SaveInitialization: '保存初始化配置', Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
+const actionLabels: Record<string, string> = { ChangeEvent: '管理活动', ChangeDailyRefill: '修改每日补给', SaveInitialization: '保存初始化配置', Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
 const outcomeLabels: Record<string, string> = { Succeeded: '成功', Rejected: '拒绝', RolledBack: '已回滚', Unknown: '结果未确认' };
 
 export function AdminApp() {
@@ -121,6 +123,7 @@ export function AdminApp() {
         location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
         location.pathname === '/mail' ? <OfficialMailView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'SendMail')} /> :
         location.pathname === '/daily-refill' ? <DailyRefillView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => { if (isCurrent(viewGeneration)) setConfigurationDenied(true); }} /> :
+        location.pathname === '/events' ? <EventsView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => { if (isCurrent(viewGeneration)) setConfigurationDenied(true); }} /> :
         location.pathname === '/initialization' ? <InitializationView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => { if (isCurrent(viewGeneration)) setConfigurationDenied(true); }} /> :
         location.pathname === '/wallet' ? <CeraGrantView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'GrantCera')} /> :
         <Empty description="本模块将在后续阶段接入。" />}

@@ -110,3 +110,15 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
 
 <!-- rks:a12:end -->
+
+## A21 活动日历闭环（2026-10-05）
+
+证据等级：**ClientStatic / High**；尚未 ClientVerified。当前客户端与 PVF 身份、VA01419E30 注册、VA014196B0 detail reader 和 VA01417650 tail reader 原始证据见 [A21 数据契约](../../../Document/tasks/event-weekly-attendance/evidence/client-data-contract.md)。旧机器区的静态下界不是丰富 entry 的完整长度，A12 空列表跟踪仅证明空形状。
+
+A21 主表：u16 entryCount；每项 u16 eventId、u32 未知值、开始/结束通知各 dstring、u8 hasDetail；有 detail 时 u8 flagA、u8 flagB、标题/短名/第三字符串各 dstring、u32 startUnix、u32 endUnix、linkKey/description 各 dstring、u8 enabled。当前2208首例随后写空 extra 表的 u8 count=0；空形状仍是3B。原始 tail reader 在 manager 存在 event9 时还有前置 `u8 count + count×u16` 条件分支，然后才读 extra 表（每项 u16 eventId+12×u32）。event9 的赋值时序未完全闭合，当前 encoder 没有覆盖该活动组合，不能视为全部活动的通用布局。
+
+所有 dstring 为 u32 编码字节长度+窄字符串。当前006C按 **CP936 / GBK** 编码，证据为同一 A21 镜像的 [calendar-text-encoding.txt](../../../Document/tasks/event-weekly-attendance/evidence/calendar-text-encoding.txt)：VA0274FCB0→VA027BAE40→`MultiByteToWideChar` 使用全局03B89610，VA00426BE0初始化为936；另有临时949路径恢复原值。这是 **ClientStatic / High 的默认路径证据**，不是运行时捕获的 CodePage。不能据此推定其他文本协议。编码采用异常 fallback，GM配置在保存前拒绝CP936无法表示的文案，不静默替换为问号。
+
+当前实现由注册活动实例投影日历，2208 detail 的 flagA=0/flagB=5 来自上游 seed，含义尚未闭合；第三字符串和 tail 为空。linkKey `total attendance check event/0/0` 满足原生解析语法，静态映射到窗口0x1E1，但可点击效果仍须实机确认。配置有效期、启停和内容有效性同时控制日历与玩法。
+
+CurrentImplementation：`Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs` 的 EventInformationMessage；选角、有效通关、签到和 GM 配置后经统一通知刷新。自动编码/隔离HTTP与消息派发证明服务端闭环，不能替代真实窗口验收。

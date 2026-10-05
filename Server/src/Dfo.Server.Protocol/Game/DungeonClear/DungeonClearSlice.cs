@@ -753,7 +753,8 @@ public sealed class SetPlayResultHandler(
     IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger,
-    DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null,
+    Dfo.Server.Abstractions.Notifications.INotificationBus? eventNotices = null)
     : ClientMessageHandler<SetPlayResultRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -934,7 +935,8 @@ public sealed class SetPlayResultHandler(
                         run.Layout.BasisLevel,
                         run.Difficulty,
                         run.Layout.ExperienceWeight,
-                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount), Session: session),
+                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount), Session: session,
+                    RunId:run.RunId.Value,SettlementLevel:clearProgress.Level),
                 cancellationToken).ConfigureAwait(false));
 
             durableCommitted = true;
@@ -970,6 +972,9 @@ public sealed class SetPlayResultHandler(
                     "The dungeon settlement claim was no longer current after its durable award.");
             }
             settlementCommitted = true;
+            if (paid.AttendanceChanged && eventNotices is not null)
+                await eventNotices.PublishAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
+                    new Dfo.Server.Abstractions.Events.EventsChanged(),cancellationToken);
             var level = currentProgress.Level;
             var total = currentProgress.Experience;
             if (award is not null)

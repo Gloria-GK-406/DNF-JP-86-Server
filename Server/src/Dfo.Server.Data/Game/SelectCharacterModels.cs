@@ -41,7 +41,7 @@ public sealed record SelectCharacterResult(
     GameWorldEntryState World,
     CharacterSessionEntryState Session,
     AccountCharacterRoster? Roster = null,
-    CharacterRosterEntryState? RosterEntry = null);
+    CharacterRosterEntryState? RosterEntry = null, Dfo.Server.Data.Events.EventPlayerSnapshot? Events = null);
 
 public sealed record SelectCharacterQuestSynchronization(
     SelectCharacterResult Result,

@@ -43,6 +43,7 @@ public sealed class PersistenceModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPersistence, Dfo.Server.Persistence.Events.SqliteEventPersistence>();
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
         var databasePath = Path.IsPathRooted(configuredDatabasePath)
             ? configuredDatabasePath

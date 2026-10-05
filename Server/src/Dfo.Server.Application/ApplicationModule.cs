@@ -183,6 +183,14 @@ public sealed class ApplicationModule : IServerModule
         // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
         services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceRuleService, Dfo.Server.Application.Events.WeeklyAttendanceRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventManagementDomainService, Dfo.Server.Application.Events.EventManagementDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmEventsDomainService, Dfo.Server.Application.Events.GmEventsDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.QueryGmEventsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.ChangeGmEventsCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
 
         // The rules a character's entry turns on, kept out of whatever reads or writes the rows
