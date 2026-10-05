@@ -537,32 +537,32 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
     }
 
-    private sealed class NoExperienceAward : ICharacterExperienceDomainService
+    private sealed class NoExperienceAward : ExperienceCharacters
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
+        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
     }
 
-    private sealed class PricingOnlyExperience(IExperienceCalculationDomainService calculation) : ICharacterExperienceDomainService
+    private sealed class PricingOnlyExperience(IExperienceCalculationDomainService calculation) : ExperienceCharacters
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
             _ = await calculation.CalculateAsync(source, 3, cancellationToken);
             return null;
         }
     }
 
-    private sealed class ExperienceMustNotBeAwarded : ICharacterExperienceDomainService
+    private sealed class ExperienceMustNotBeAwarded : ExperienceCharacters
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
+        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("AI character deaths must not award experience.");
     }
 

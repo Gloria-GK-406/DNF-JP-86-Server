@@ -205,7 +205,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.True(result.SettlementCreated);
         Assert.True(result.Run!.Completion!.Settled);
         Assert.NotNull(result.Run.Completion.Receipt);
-        Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=1") > 0);
+        Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=1") > f.ExperienceForLevel(50));
         var exp = f.Scalar("SELECT exp FROM characters WHERE character_id=1");
         var duplicate = await tower.DieAsync(context, default);
         Assert.False(duplicate.Changed);
@@ -217,7 +217,7 @@ public sealed class IllusionTowerDomainServiceTests
     public async Task Entry_consumes_ticket_and_publishes_the_first_room()
     {
         using var f = new ShopFixture(s => s.AddSingleton<IIllusionTowerRuleService>(new Rules()));
-        f.Sql("UPDATE characters SET level=50;");
+        f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");
         await f.Seed(65, 4183, 2);
         var tower = f.Services.GetRequiredService<IIllusionTowerDomainService>();
         var result = await tower.EnterAsync([new(f.Session, 2)], f.Session, 42, default);
@@ -233,7 +233,7 @@ public sealed class IllusionTowerDomainServiceTests
     public async Task Failed_eligibility_preserves_ticket_and_membership(int level, int tickets, string reason)
     {
         using var f = Fixture();
-        f.Sql($"UPDATE characters SET level={level};");
+        f.Sql($"UPDATE characters SET level={level},exp={f.ExperienceForLevel(checked((byte)level))};");
         if (tickets > 0) await f.Seed(65, 4183, tickets);
         var tower = Tower(f);
         Assert.Equal(reason, (await Enter(f)).Rejection);
@@ -592,7 +592,7 @@ public sealed class IllusionTowerDomainServiceTests
             configure: s => { s.AddSingleton<IQuestDefinitionDomainService, TowerQuestDefinitions>(); s.AddSingleton<IExperienceBonusDomainService, ForbiddenBonuses>(); });
         await f.Seed(65, 4183, 1);
         var other = await AddMember(f, 1);
-        f.Sql("UPDATE characters SET level=40 WHERE character_id=3; INSERT INTO character_active_quests VALUES(1,0,64,2),(1,1,65,2),(1,2,999,1);");
+        f.Sql($"UPDATE characters SET level=40,exp={f.ExperienceForLevel(40)} WHERE character_id=3; INSERT INTO character_active_quests VALUES(1,0,64,2),(1,1,65,2),(1,2,999,1);");
         var tower = Tower(f);
         var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default)).Run!;
         for (var floor = 1; floor <= 2; floor++)
@@ -694,14 +694,14 @@ public sealed class IllusionTowerDomainServiceTests
         await Assert.ThrowsAsync<SqliteException>(async () => await tower.KillAsync(context, run.Room.Actors[0].Uid, default));
 
         Assert.False(tower.Find(f.Session)!.Room.Actors[0].Dead);
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Equal(0, f.Count(10089420));
         Assert.Equal(10, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=950"));
         f.Sql("DROP TRIGGER fail_tower_kill_exp;");
         var retried = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
         Assert.True(retried.Run!.Room.Actors[0].Dead);
         Assert.InRange(f.Count(10089420), 1, 3);
-        Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=1") > 0);
+        Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=1") > f.ExperienceForLevel(50));
         Assert.Equal(10 - f.Count(10089420), f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=950"));
     }
 
@@ -768,7 +768,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.Null(tower.Find(f.Session)!.Completion);
         Assert.False(tower.Find(f.Session)!.Members[0].Dead);
         Assert.Equal(100000, f.Gold);
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         f.Sql("DROP TRIGGER fail_tower_exp;");
         var receipt = Assert.Single((await tower.DieAsync(context, default)).Run!.Completion!.Receipt!.Members);
         Assert.Equal(16896, receipt.Gold);
@@ -800,7 +800,7 @@ public sealed class IllusionTowerDomainServiceTests
             Assert.Equal(2, result.Run.Completion.Receipt!.Members[0].Items.Length);
         }
         Assert.Equal(0, f.Count(3000));
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Null(tower.Find(f.Session)!.Completion);
         Assert.False(tower.Find(f.Session)!.Room.Actors[0].Dead);
         var retried = await tower.KillAsync(context, run.Room.Actors[0].Uid, default);
@@ -824,8 +824,8 @@ public sealed class IllusionTowerDomainServiceTests
         f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(other);
         var left = await tower.LeaveAsync(first, true, default);
         Assert.Empty(left.Run!.Completion!.Receipt!.Members);
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=3"));
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=3"));
+        Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.True((await tower.LeaveAsync(second, true, default)).Changed);
     }
 
@@ -894,7 +894,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.Equal(2, tower.Find(f.Session)!.Members.Length);
         Assert.Equal(run.RunId, tower.Find(other)!.RunId);
         Assert.Null(tower.Find(f.Session)!.Completion);
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=3"));
+        Assert.Equal((int)f.ExperienceForLevel(50), f.Scalar("SELECT exp FROM characters WHERE character_id=3"));
 
         f.Sql("DROP TRIGGER fail_tower_settlement;");
         var retried = await coordinator.TryLeaveAsync(
@@ -912,7 +912,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.Equal(TowerEndReason.Defeated, survivor.Completion!.Reason);
         Assert.True(survivor.Completion.Settled);
         Assert.Single(survivor.Completion.Receipt!.Members);
-        Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=3") > 0);
+        Assert.True(f.Scalar("SELECT exp FROM characters WHERE character_id=3") > f.ExperienceForLevel(50));
     }
 
     [Fact]
@@ -1033,6 +1033,7 @@ public sealed class IllusionTowerDomainServiceTests
     {
         using var f = Fixture(new Rules { ExperienceWeight = 100000, Probabilities = [0, 0, 100] }, rewards: true,
             configure: s => s.AddSingleton<IExperienceBonusDomainService, ForbiddenBonuses>());
+        f.SetLevel(86);
         await f.Seed(65, 4183, 1);
         var tower = Tower(f);
         var context = Context((await Enter(f)).Run!, f.Session);
@@ -1042,7 +1043,8 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.Equal(1100000u, receipt.Experience);
         Assert.Equal(receipt.Experience, receipt.Award!.Gained);
         Assert.Equal(receipt.Experience, receipt.Award.Base);
-        Assert.Equal(1100000, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal((int)f.ExperienceForLevel(86), f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal(f.ExperienceForLevel(86) + receipt.Experience, receipt.Award.NotificationTotal);
     }
 
     private sealed class ForbiddenBonuses : IExperienceBonusDomainService
@@ -1155,7 +1157,7 @@ public sealed class IllusionTowerDomainServiceTests
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);
         });
-        f.Sql("UPDATE characters SET level=50;");
+        f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");
         return f;
     }
     private static IIllusionTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IIllusionTowerDomainService>();
@@ -1167,7 +1169,7 @@ public sealed class IllusionTowerDomainServiceTests
             new PartyDirectoryScope(1, 0, 0));
     private static async Task<SelectedSessionIdentity> AddMember(ShopFixture f, int tickets)
     {
-        f.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'tower2'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'tower3',12,50,0); INSERT INTO character_stats(character_id,carried_gold) VALUES(3,100);");
+        f.Sql($"INSERT INTO accounts(account_id,m_id) VALUES(2,'tower2'); INSERT INTO characters(character_id,account_id,name,job,level,exp,slot_index) VALUES(3,2,'tower3',12,50,{f.ExperienceForLevel(50)},0); INSERT INTO character_stats(character_id,carried_gold) VALUES(3,100);");
         var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
         var connection = new NetworkConnectionContext(new("tower-other"), NetworkEndpointKind.Game, 10011);
         var user = registry.RegisterConnection(connection).OnlineUserId;

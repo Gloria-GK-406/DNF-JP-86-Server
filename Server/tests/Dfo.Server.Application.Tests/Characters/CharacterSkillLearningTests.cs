@@ -368,17 +368,21 @@ internal sealed class LearningFixture : IAsyncDisposable
         new PersistenceModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
         services.AddSingleton<ISelectedCharacterCurrentViewDomainService, MinimalCurrentView>();
-        if (!useArchive) services.AddSingleton<ISkillRuleDefinitionSource>(Content);
+        if (!useArchive)
+        {
+            services.AddSingleton<ISkillRuleDefinitionSource>(Content);
+            services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
+        }
         configure?.Invoke(services);
         Services = services.BuildServiceProvider();
         _ = Services.GetRequiredService<SqliteDatabase>();
     }
     public async Task SeedAsync()
     {
-        Sql("""
+        Sql($"""
             INSERT INTO accounts(account_id,m_id) VALUES(1,'learning'),(2,'other');
-            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,bonus_sp,bonus_tp,skill_tree_index)
-            VALUES(71,1,'learning',12,0,85,5,3,-1),(72,2,'other',12,0,85,0,0,-1);
+            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
+            VALUES(71,1,'learning',12,0,85,{Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85)},5,3,-1),(72,2,'other',12,0,85,{Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85)},0,0,-1);
             INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
             VALUES(71,'pve',0,7,1,2,X'0908'),(71,'pve',1,15,1,1,X'07'),(72,'pve',0,7,1,8,X'06');
             """);

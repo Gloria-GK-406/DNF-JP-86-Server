@@ -52,10 +52,10 @@ public sealed class WarehouseStorageTests
     public async Task Account_creation_upgrade_material_cost_and_duplicate_requests_preserve_assets()
     {
         using var host = Fixture();
-        host.Sql("UPDATE characters SET level=59; UPDATE character_stats SET carried_gold=3000000;");
+        host.Sql($"UPDATE characters SET level=59,exp={host.ExperienceForLevel(59)}; UPDATE character_stats SET carried_gold=3000000;");
         Assert.Equal(InventoryExpansionRejection.InvalidStage, (await Command(host, 0x0131)).Rejection);
         Assert.Equal(3000000, host.Gold);
-        host.Sql("UPDATE characters SET level=60;");
+        host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)};");
         Assert.NotNull((await Command(host, 0x0131)).Receipt);
         Assert.Equal(2900000, host.Gold);
         Assert.Equal(1, Capacity(host));
@@ -80,7 +80,7 @@ public sealed class WarehouseStorageTests
     public async Task Gold_transfer_is_exact_bounded_and_rejects_stale_sessions()
     {
         using var host = Fixture();
-        host.Sql("UPDATE characters SET level=60; UPDATE character_stats SET carried_gold=20000000; INSERT INTO account_cargo_state(account_id,selection_key,value32) VALUES(1,1,9999999);");
+        host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}; UPDATE character_stats SET carried_gold=20000000; INSERT INTO account_cargo_state(account_id,selection_key,value32) VALUES(1,1,9999999);");
         Assert.NotNull((await Command(host, 0x0133, 1)).Receipt);
         Assert.Equal(10000000, CargoGold(host));
         Assert.Equal(19999999, host.Gold);
@@ -101,7 +101,7 @@ public sealed class WarehouseStorageTests
     public async Task Later_storage_failure_rolls_back_gold_or_upgrade_item_with_capacity()
     {
         using var host = Fixture();
-        host.Sql("UPDATE characters SET level=60; CREATE TRIGGER reject_cargo BEFORE UPDATE ON account_cargo_state BEGIN SELECT RAISE(ABORT,'forced'); END;");
+        host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}; CREATE TRIGGER reject_cargo BEFORE UPDATE ON account_cargo_state BEGIN SELECT RAISE(ABORT,'forced'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Command(host, 0x0131));
         Assert.Equal(100000, host.Gold);
         Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM account_cargo_state"));
@@ -206,7 +206,7 @@ public sealed class WarehouseStorageTests
     public async Task Successful_handler_delivery_starts_with_committed_ack_then_authoritative_snapshots()
     {
         using var host=Fixture();
-        host.Sql("UPDATE characters SET level=60");
+        host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}");
         host.Sender.BeforeSend=()=>{Assert.Equal(0,host.Gold);Assert.Equal(1,Capacity(host));};
         await host.Services.GetRequiredService<WarehouseHandler>().HandleAsync(new(host.Connection),
             new WarehouseRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty with { Type=0x0131 },0),default);

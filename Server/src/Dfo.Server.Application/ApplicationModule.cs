@@ -112,8 +112,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<SpiritPotionDomainService>();
         services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
-        services.TryAddSingleton<ICharacterExperienceDomainService, CharacterExperienceDomainService>();
-        services.TryAddSingleton<ICharacterProgressionDomainService, CharacterProgressionDomainService>();
+        services.TryAddSingleton<IExperienceCapsuleDomainService, ExperienceCapsuleDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
         services.TryAddSingleton<OnlineStateRegistry>();
@@ -420,7 +419,12 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ICharacterStatRuleService>(),
                     provider.GetRequiredService<ICharacterSkillStateDomainService>(),
                     provider.GetRequiredService<IDungeonRunDomainService>(),
-                    () => provider.GetRequiredService<IIllusionTowerDomainService>()),
+                    () => provider.GetRequiredService<IIllusionTowerDomainService>(),
+                    provider.GetRequiredService<IExperienceRuleService>(),
+                    provider.GetRequiredService<IExperienceCalculationDomainService>(),
+                    provider.GetRequiredService<IExperienceCapsuleDomainService>(),
+                    provider.GetRequiredService<IDomainTransactionAccessor>(),
+                    () => provider.GetRequiredService<IApplyEffectsDomainService>()),
                 () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());

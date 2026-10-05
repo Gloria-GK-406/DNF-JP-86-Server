@@ -125,7 +125,7 @@ public sealed class CharacterIdentityTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             row,
-            new NoSkillPointLedger(), null!, null!);
+            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
 
     /// <summary>One character's row, whose identity can be moved between questions.</summary>
     /// <remarks>

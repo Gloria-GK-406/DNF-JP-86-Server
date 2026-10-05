@@ -259,7 +259,7 @@ public sealed class CommonExperienceEffectTests
     [Fact]
     public void All_effect_commands_have_session_marker_and_transactional_registration()
     {
-        string[] expected = ["UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
+        string[] expected = ["ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
             "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
             "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand"];

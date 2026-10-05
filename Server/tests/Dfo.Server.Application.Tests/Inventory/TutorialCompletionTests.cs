@@ -20,7 +20,7 @@ public sealed class TutorialCompletionTests
     public async Task Completed_level_one_tutorial_is_skipped_on_fresh_selection_and_other_characters_are_unchanged(byte reward)
     {
         using var host = new ShopFixture(services => services.AddSingleton<ITutorialRewardDefinitionSource>(new Rewards()));
-        host.Sql("UPDATE characters SET level=1");
+        host.Sql($"UPDATE characters SET level=1,exp={host.ExperienceForLevel(1)}");
         var before = await Entry(host, 0);
         Assert.Equal(0, before[^25]);
         await Report(host, 30, 0);
@@ -84,7 +84,7 @@ public sealed class TutorialCompletionTests
         var database = host.Services.GetRequiredService<SqliteDatabase>();
         CharacterDatabaseSchema.Ensure(database.ConnectionString);
         CharacterDatabaseSchema.Ensure(database.ConnectionString);
-        Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM characters WHERE level=2 AND tutorial_completed=0"));
+        Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM characters WHERE level=1 AND tutorial_completed=0"));
         Assert.Equal(100000, host.Gold);
         Assert.Equal(0, (await Entry(host, 0))[^25]);
     }

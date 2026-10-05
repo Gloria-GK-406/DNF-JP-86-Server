@@ -307,11 +307,12 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());
         services.AddSingleton<INetworkMessageSender>(Sender);
         services.AddSingleton<TimeProvider>(Clock);
+        services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
         Sender.Services = provider;
         _ = provider.GetRequiredService<SqliteDatabase>();
-        Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,2,0),(2,1,'shop2',12,2,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
+        Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,1,0),(2,1,'shop2',12,1,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
         onlineUser = registry.RegisterConnection(connection).OnlineUserId;
         registry.Authenticate(onlineUser, new AccountId(1));
@@ -435,6 +436,9 @@ internal sealed class ShopFixture : IDisposable
         command.Parameters.AddWithValue("$slot", slot);
         return (byte[])command.ExecuteScalar()!;
     }
+
+    public uint ExperienceForLevel(byte level) => provider.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(level);
+    public void SetLevel(byte level, int? character = null) => Sql($"UPDATE characters SET level={level},exp={ExperienceForLevel(level)}" + (character is { } id ? $" WHERE character_id={id}" : ""));
 
     public void Sql(string sql)
     {

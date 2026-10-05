@@ -7,7 +7,7 @@ using Dfo.Server.Data.Initialization;
 using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Initialization;
 internal sealed class InitializationAssetGrants(IAccountWalletDomainService wallets, IPremiumServiceDomainService premiums,
-    IInventoryLevelDomainService levels, ICharacterProgressionDomainService progression, IItemGrantDomainService items)
+    IInventoryLevelDomainService levels, ICharacterDomainService characters, IItemGrantDomainService items)
 {
     public async ValueTask AccountAsync(AccountId account, AccountInitialization input, CancellationToken ct)
     {
@@ -19,7 +19,7 @@ internal sealed class InitializationAssetGrants(IAccountWalletDomainService wall
     }
     public async ValueTask CharacterAsync(CharacterId character, CharacterInitialization input, CancellationToken ct)
     {
-        if (input.Level != 1) await progression.SetLevelAsync(character, checked((byte)input.Level), ct);
+        if (input.Level != 1) await characters.Get(character).SetLevelAsync( checked((byte)input.Level), ct);
         await levels.SetLevelAsync(ContainerId.ForCharacter(character, InventoryContainerType.PersonalCargo), input.PersonalCargoLevel, ct);
         foreach (var item in input.Items) await items.GrantAllPersistentAsync(character, item.ItemId, item.Count, ct);
     }

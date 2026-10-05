@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +11,7 @@ using Microsoft.Data.Sqlite;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
-namespace Dfo.Server.Application.Tests.World;
+namespace Dfo.Server.Application.Tests.Characters;
 
 /// <summary>
 /// The one place experience is added to a character.
@@ -20,7 +21,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// this code already produced a wrong total, when a quest finished twice wrote the same figure both
 /// times because its own copy added to an entry-time snapshot rather than to the store.
 /// </remarks>
-public sealed class CharacterExperienceDomainServiceTests
+public sealed class CharacterExperienceTests
 {
     private static readonly CharacterId Character = new(7);
 
@@ -77,13 +78,13 @@ public sealed class CharacterExperienceDomainServiceTests
         Assert.Equal(460u, award!.Total);
     }
 
-    /// <summary>The level is read from the store and handed to the valuation, not taken from it.</summary>
+    /// <summary>The level is derived from stored experience before valuation.</summary>
     /// <remarks>
     /// The inversion that makes a stale copy impossible. The caller cannot pass a level in, so it
     /// cannot pass a wrong one.
     /// </remarks>
     [Fact]
-    public async Task TheValuationIsAskedWithTheStoredLevel()
+    public async Task TheValuationIsAskedWithTheExperienceDerivedLevel()
     {
         using var characters = new AwardFixture(level: 12, experience: 0);
         var grant = characters;
@@ -93,7 +94,7 @@ public sealed class CharacterExperienceDomainServiceTests
             level => { asked = level; return Worth(1); },
             CancellationToken.None);
 
-        Assert.Equal(12, asked);
+        Assert.Equal(1, asked);
     }
 
     /// <remarks>
@@ -240,9 +241,9 @@ public sealed class CharacterExperienceDomainServiceTests
     public async Task TutorialRequestWithStaleLevelNeverLowersCurrentProgress()
     {
         var row = new RecordingCharacterTable(level: 5, experience: 700);
-        var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(Grant(row),
+        var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(
             new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
-                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!), null!), null!);
+                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!, experienceRules: new FixedProgression(Thresholds)), null!));
         var result = await handler.HandleAsync(null!,
             new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand(Character),
             CancellationToken.None);
@@ -251,10 +252,103 @@ public sealed class CharacterExperienceDomainServiceTests
         Assert.Null(row.LastWrite);
     }
 
-    private static ValueTask<ExperienceBreakdown> Worth(uint amount) => ValueTask.FromResult(new ExperienceBreakdown(Base: amount));
+    [Fact]
+    public void ExtraPvfThresholdsMustNotRaiseThePlayableLevelCeiling()
+    {
+        IExperienceRuleService rules = new FixedProgression(Enumerable.Range(1, 99).Select(x => (uint)x * 100).ToArray());
+        var decision = rules.DecideAward(new(86, 8500), new(Base: 14));
+        Assert.Equal(86, decision.Award.Level);
+        Assert.Equal(8500u, decision.Award.Total);
+        Assert.Equal(14u, decision.Award.Gained);
+    }
 
-    private static CharacterExperienceDomainService Grant(ICharacterTable characters) =>
-        new(characters, new FixedProgression(Thresholds), null!, null!);
+    [Fact]
+    public void ExperienceDeterminesLevelEvenWhenTheOldLevelColumnDisagrees()
+    {
+        IExperienceRuleService rules = new FixedProgression(Thresholds);
+        var decision = rules.DecideAward(new(5, 10), new(Base: 20));
+        Assert.Equal(1, decision.Award.Level);
+        Assert.Equal(30u, decision.Award.Total);
+    }
+
+    [Fact]
+    public async Task AtCapEachNotificationUsesOnlyThatAwardAndCapsuleReceivesEachOnce()
+    {
+        using var fixture = new AwardFixture(5, 700);
+        var first = await fixture.AwardAsync(_ => Worth(14), default);
+        var second = await fixture.AwardAsync(_ => Worth(57), default);
+        Assert.Equal(700u, first!.Total);
+        Assert.Equal(714u, first.NotificationTotal);
+        Assert.Equal(700u, second!.Total);
+        Assert.Equal(757u, second.NotificationTotal);
+        Assert.Equal(71, fixture.Capsule);
+        Assert.Equal(71, fixture.Honour);
+        Assert.Null(fixture.LastWrite);
+    }
+
+    [Fact]
+    public async Task CrossingCapFillsOnlyTheOverflowIntoCapsule()
+    {
+        using var fixture = new AwardFixture(4, 690);
+        var award = await fixture.AwardAsync(_ => Worth(30), default);
+        Assert.Equal(700u, award!.Total);
+        Assert.Equal(720u, award.NotificationTotal);
+        Assert.Equal(20u, award.Overflow);
+        Assert.Equal(20, fixture.Capsule);
+    }
+
+    [Fact]
+    public async Task LegacyOverflowIsNormalizedWithoutBecomingANewReward()
+    {
+        using var fixture = new AwardFixture(86, 3347);
+        var award = await fixture.AwardAsync(_ => Worth(14), default);
+        Assert.Equal(700u, award!.Total);
+        Assert.Equal(714u, award.NotificationTotal);
+        Assert.Equal(14, fixture.Capsule);
+        Assert.Equal((5, 700u), fixture.LastWrite);
+    }
+
+    [Fact]
+    public async Task AProgressWriteFailureRollsBackTheCapsuleToo()
+    {
+        using var fixture = new AwardFixture(4, 690) { AcceptWrites = false };
+        await Assert.ThrowsAsync<SqliteException>(async () => await fixture.AwardAsync(_ => Worth(30), default));
+        Assert.Equal(0, fixture.Capsule);
+        Assert.Equal(0, fixture.Honour);
+    }
+
+    [Fact]
+    public async Task ATransactionDiscardedAfterRewardRollsBackBothOwners()
+    {
+        using var fixture = new AwardFixture(4, 690);
+        await fixture.AwardWithoutCommitAsync(30);
+        Assert.Equal(0, fixture.Capsule);
+        Assert.Equal(0, fixture.Honour);
+        Assert.Null(fixture.LastWrite);
+    }
+
+    [Fact]
+    public async Task UnrepresentableNotificationRefusesBeforeAnyOwnerChanges()
+    {
+        using var fixture = new AwardFixture(5, 700);
+        await Assert.ThrowsAsync<OverflowException>(async () => await fixture.AwardAsync(_ => Worth(uint.MaxValue), default));
+        Assert.Equal(0, fixture.Capsule);
+        Assert.Null(fixture.LastWrite);
+    }
+
+    [Fact]
+    public async Task CapsuleSaturatesWithoutReducingTheReturnedReward()
+    {
+        using var fixture = new AwardFixture(5, 700);
+        var award = await fixture.AwardAsync(_ => Worth(100000), default);
+        Assert.Equal(100000u, award!.Gained);
+        Assert.Equal(100700u, award.NotificationTotal);
+        Assert.Equal(10000, fixture.Capsule);
+        await fixture.AwardAsync(_ => Worth(14), default);
+        Assert.Equal(10000, fixture.Capsule);
+    }
+
+    private static ValueTask<ExperienceBreakdown> Worth(uint amount) => ValueTask.FromResult(new ExperienceBreakdown(Base: amount));
 
     private sealed class AwardFixture : IDisposable, IExperienceCalculationDomainService
     {
@@ -269,6 +363,13 @@ public sealed class CharacterExperienceDomainServiceTests
             });
             shop.Sql($"UPDATE characters SET level={level},exp={experience} WHERE character_id=1; CREATE TABLE xp_writes(level INTEGER,exp INTEGER); CREATE TRIGGER xp_audit AFTER UPDATE OF exp ON characters BEGIN INSERT INTO xp_writes VALUES(NEW.level,NEW.exp); END");
         }
+        public int Capsule => shop.Scalar("SELECT growth_capsule_exp FROM accounts WHERE account_id=1");
+        public int Honour => shop.Scalar("SELECT honor_exp FROM accounts WHERE account_id=1");
+        public async Task AwardWithoutCommitAsync(uint gain)
+        {
+            await using var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            await shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(new(Base: gain), null, default);
+        }
         public bool AcceptWrites { init { if (!value) shop.Sql("CREATE TRIGGER refuse_xp BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'XP refused'); END"); } }
         public bool Exists { init { if (!value) shop.Sql("DELETE FROM characters WHERE character_id=1"); } }
         public (int, uint)? LastWrite => shop.Scalar("SELECT COUNT(*) FROM xp_writes") == 0 ? null :
@@ -277,7 +378,7 @@ public sealed class CharacterExperienceDomainServiceTests
         {
             price = valuation;
             await using var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            var award = await shop.Services.GetRequiredService<ICharacterExperienceDomainService>().ApplyAwardAsync(
+            var award = await shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(
                 new QuestExperienceContext(new(ExperienceEvent.QuestCompletion, new(1), new(1), 0), 0),
                 shop.Clock.GetUtcNow(), null, ct);
             await tx.CommitAsync(ct);
@@ -290,7 +391,7 @@ public sealed class CharacterExperienceDomainServiceTests
     /// <summary>Only the level thresholds; these tests are about the grant's arithmetic.</summary>
     private sealed class FixedProgression(IReadOnlyList<uint> thresholds) : IExperienceRuleService
     {
-        public DungeonExperienceProgressionPolicy Progression() => new(thresholds, 0, 1, 100);
+        public DungeonExperienceProgressionPolicy Progression() => new(thresholds, 100000, 10000, 100);
 
         public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
 

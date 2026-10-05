@@ -163,6 +163,11 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 ### 角色自己的数，问角色
 
 身份、等级、经验、当前基础属性、已学技能和 SP/TP 账本属于角色，从 `ICharacter` 按 ID 现查。
+经验与等级的唯一修改入口是 `ICharacter.AddExpAsync` / `SetExpAsync` / `SetLevelAsync`。
+`ProgressAsync` 从累计经验和 `IExperienceRuleService.CharacterScale()` 推导等级；86 级经验上限取
+PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一旧数据并装载上限与投影触发器。
+`ExperienceAward.Total` 是封顶存储结果，`NotificationTotal` 是该次回包累计值，不可持久化。
+满级溢出由角色实例调用账号胶囊领域服务，与角色更新同事务。详见 [经验规则](Document/CharacterExperience.md)。
 这些查询不要求角色在线。角色实例只保留 ID 和取数服务，不缓存等级、技能组合或查询结果；
 数据库读取复用当前命令的 SQLite 事务，提交、回滚之后再问仍从当前事实作答。
 

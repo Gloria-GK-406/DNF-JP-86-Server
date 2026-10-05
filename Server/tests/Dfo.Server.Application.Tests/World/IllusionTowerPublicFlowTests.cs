@@ -221,6 +221,7 @@ public sealed class IllusionTowerPublicFlowTests
 
     private static ShopFixture CreateFixture(bool gateSweepFind = false) => new(services =>
     {
+        services.AddSingleton<IDungeonExperienceProgressionPolicySource, PvfDungeonExperienceProgressionPolicySource>();
         services.RemoveAll<IItemPlacementDefinitionSource>();
         services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
         services.RemoveAll<ICharacterSkillPointDomainService>();
@@ -245,8 +246,8 @@ public sealed class IllusionTowerPublicFlowTests
 
     private static async Task PrepareSelectedCharacterAsync(ShopFixture fixture, int tickets)
     {
-        fixture.Sql("""
-            UPDATE characters SET level=50 WHERE character_id=1;
+        fixture.Sql($"""
+            UPDATE characters SET level=50,exp={fixture.ExperienceForLevel(50)} WHERE character_id=1;
             INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0),(2,0);
             INSERT INTO character_pvp(character_id) VALUES(1),(2);
             INSERT INTO character_settings(character_id) VALUES(1),(2);

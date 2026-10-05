@@ -12,7 +12,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World.IllusionTower;
 
 internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleService rules,
-    ICharacterExperienceDomainService experience, ICharacterDomainService characters,
+    ICharacterDomainService characters,
     IItemGrantDomainService grants, ICharacterContainerDomainService containers,
     IQuestProgressDomainService quests, IQuestEnemyDropDomainService questDrops,
     ICharacterQuestLogDomainService questLogs,
@@ -31,7 +31,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
         foreach (var member in run.Members)
         {
             var session = member.Session;
-            var award = await experience.ApplyAwardAsync(new TowerKillExperienceContext(
+            var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerKillExperienceContext(
                 new(ExperienceEvent.TowerKill, session.AccountId, session.CharacterId, run.DungeonId), actor.Seed.ActorType),
                 clock.GetUtcNow(), session, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
@@ -150,7 +150,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 delivered.Add(new(candidate.ItemId, 1));
                 updates.Add(new(new(grant.Container.Space, placed.SlotIndex), item.Snapshot));
             }
-            var award = await experience.ApplyAwardAsync(new TowerClearExperienceContext(
+            var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerClearExperienceContext(
                 new(ExperienceEvent.TowerClear, session.AccountId, session.CharacterId, run.DungeonId), completion.RewardLevel),
                 clock.GetUtcNow(), session, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");

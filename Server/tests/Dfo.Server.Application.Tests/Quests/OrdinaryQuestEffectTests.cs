@@ -168,7 +168,7 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(450u,result.Changes<CharacterExperienceChange>().Last().Award.Gained);
         Assert.Equal(300,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Equal(3,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
-        var zero=rules.DecideAward(new(1,300),new()); Assert.Equal(1,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
+        var zero=rules.DecideAward(new(3,300),new()); Assert.Equal(3,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
     }
     internal sealed class FixedProgression(IReadOnlyList<uint>? thresholds = null) : IExperienceRuleService
     {
@@ -278,7 +278,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         using var shop=Shop();
         await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<ICharacterTable>(), shop.Services.GetRequiredService<ICharacterProgressionDomainService>());
+        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>());
         var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
         Assert.Equal("Decided experience target changed.",error.Message);
     }
@@ -296,8 +296,8 @@ public sealed class OrdinaryQuestEffectTests
         shop.Sql("UPDATE characters SET level=1,exp=1000 WHERE character_id=1"); Carry(shop);
         var first=await Finish(shop); Assert.Equal(101u,first.Experience); Assert.Equal(1101u,first.NewExperience);
         Assert.Equal(1101,shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); Assert.Equal(1,shop.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=2001"));
-        shop.Sql("UPDATE characters SET level=40 WHERE character_id=1"); Carry(shop);
-        var high=await Finish(shop); Assert.True(high.Experience>first.Experience); Assert.Equal(first.NewExperience+high.Experience,high.NewExperience);
+        shop.Sql("UPDATE characters SET level=40,exp=39001101 WHERE character_id=1"); Carry(shop);
+        var high=await Finish(shop); Assert.True(high.Experience>first.Experience); Assert.Equal(39001101u+high.Experience,high.NewExperience);
     }
     [Fact]
     public async Task Reward_filters_selection_by_old_job_and_grow_before_advancement()
@@ -337,7 +337,7 @@ public sealed class OrdinaryQuestEffectTests
     [Theory]
     [InlineData(1,0,450,3,300)]
     [InlineData(3,300,100,3,300)]
-    [InlineData(1,300,0,1,300)]
+    [InlineData(3,300,0,3,300)]
     public async Task Decided_experience_separates_multilevel_cap_and_zero_from_earned(byte level,uint held,uint earned,byte afterLevel,uint after)
     {
         using var shop=Shop();shop.Sql($"UPDATE characters SET level={level},exp={held} WHERE character_id=1");

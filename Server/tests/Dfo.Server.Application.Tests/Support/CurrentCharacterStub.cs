@@ -7,6 +7,12 @@ namespace Dfo.Server.Application.Tests.Support;
 internal sealed class CurrentCharacterStub : ICharacter
 {
     public CharacterId Id { get; init; } = new(60);
+
+    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<CharacterProgressionState> SetExpAsync(long experience, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<bool> TrySetExpAsync(CharacterProgressionState expected, long experience, CancellationToken ct) => throw new NotSupportedException();
     public CharacterProgressionState? Progress { get; set; } = new(60, 1000);
     public CharacterIdentityState? Identity { get; set; } = new(new(60), 0, [65], 0, 0);
     public CharacterBaseStats? Stats { get; set; } = CharacterBaseStats.Zero;

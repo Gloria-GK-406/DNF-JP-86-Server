@@ -6,7 +6,7 @@ public sealed class AssetMutationOwnershipTests
 {
     [Theory]
     [InlineData("TrySetCeraBalancesAsync", "Accounts/AccountWalletDomainService.cs")]
-    [InlineData("SetProgressAsync", "Characters/CharacterProgressionDomainService.cs")]
+    [InlineData("SetProgressAsync", "Characters/PlayingCharacter.Experience.cs")]
     [InlineData("UpsertExpiryAsync", "Accounts/PremiumServiceDomainService.cs")]
     [InlineData("ChangeCharacterAsync", "Inventory/InventoryLevelDomainService.cs")]
     [InlineData("ChangeAccountAsync", "Inventory/InventoryLevelDomainService.cs")]

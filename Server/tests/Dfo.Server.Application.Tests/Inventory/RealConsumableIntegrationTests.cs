@@ -131,7 +131,7 @@ public sealed class RealConsumableIntegrationTests
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71 AND slot_index=101"));
         Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
     }
 
     [Theory]

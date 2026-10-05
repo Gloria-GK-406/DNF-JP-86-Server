@@ -71,6 +71,11 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
             var timer = System.Diagnostics.Stopwatch.StartNew();
             var count = await services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync(cancellationToken);
             logger.LogInformation("Lottery definitions initialized: {Count} pots in {ElapsedMs} ms", count, timer.ElapsedMilliseconds);
+            var scale = services.GetRequiredService<IExperienceRuleService>().CharacterScale();
+            await services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterExperienceStoragePolicy>()
+                .InstallAsync(scale, cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Character progression constrained: TopLevel={TopLevel}, MaxExperience={Maximum}",
+                scale.TopLevel, scale.MaximumExperience);
         }
         cancellationToken.ThrowIfCancellationRequested();
     }

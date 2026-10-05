@@ -40,6 +40,8 @@ public sealed record QuestFinishOutcome(
     IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null,
     byte? GrowType = null)
 {
+    public uint NotificationExperience { get; init; } = NewExperience;
+
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>
         new(false, questId, 0, 0, [], 0, 0, QuestFinishRefusal.Unusable, questProgress);
@@ -126,7 +128,7 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
                         break;
                 }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
-                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType);
+                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType) { NotificationExperience = result.Award.NotificationTotal };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {

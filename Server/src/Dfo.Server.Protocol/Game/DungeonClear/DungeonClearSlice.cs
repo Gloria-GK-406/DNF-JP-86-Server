@@ -1025,7 +1025,7 @@ public sealed class SetPlayResultHandler(
                     settlement.QuestMaze),
                 new ExperienceNotification(
                     level,
-                    total,
+                    award?.NotificationTotal ?? total,
                     mirror,
                     AccountHonorLevel.Initial,
                     ExperienceBonusLines.Of(award)),

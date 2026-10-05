@@ -112,7 +112,7 @@ public sealed class RecipeCraftTests
         await Seed(f);
         Assert.Equal(OpeningRejection.ItemUnusable, (await Assert.ThrowsAsync<OpeningRejectedException>(() => Craft(f))).Reason);
         Assert.Equal(1, f.Count(1287)); Assert.Equal(100, f.SharedCount(3262, 1));
-        f.Sql("UPDATE characters SET level=85 WHERE character_id=1");
+        f.Sql($"UPDATE characters SET level=85,exp={f.ExperienceForLevel(85)} WHERE character_id=1");
         var result = await Craft(f);
         Assert.Equal(1, f.Count(1286)); Assert.Equal(0, f.Count(1287)); Assert.Equal(0, f.Count(3244));
         Assert.Equal(1286, Assert.Single(result.Inventory.Rewards).ItemId);

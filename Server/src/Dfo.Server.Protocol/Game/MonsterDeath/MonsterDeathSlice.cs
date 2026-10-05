@@ -704,7 +704,7 @@ public sealed class MonsterDeathHandler(
                 // that moved the character would have to be undone by hand, and the
                 // account it ran on could not be trusted for anything afterwards.
                 level,
-                diagnostics.LabelProbe ? total + ExperienceDiagnostics.ProbeTotal : total,
+                diagnostics.LabelProbe ? checked((award?.NotificationTotal ?? total) + ExperienceDiagnostics.ProbeTotal) : award?.NotificationTotal ?? total,
                 mirror, AccountHonorLevel.Initial,
                 ExperienceBonusLines.Of(award), diagnostics.LabelProbe),
             new MonsterDeathNotification(
@@ -1020,7 +1020,7 @@ public sealed class MonsterDeathHandler(
 
             frames.Add(new ExperienceNotification(
                 level,
-                diagnostics.LabelProbe ? total + ExperienceDiagnostics.ProbeTotal : total,
+                diagnostics.LabelProbe ? checked((award?.NotificationTotal ?? total) + ExperienceDiagnostics.ProbeTotal) : award?.NotificationTotal ?? total,
                 mirror,
                 AccountHonorLevel.Initial,
                 ExperienceBonusLines.Of(award),

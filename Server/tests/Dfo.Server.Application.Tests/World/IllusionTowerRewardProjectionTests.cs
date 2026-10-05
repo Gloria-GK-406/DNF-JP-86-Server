@@ -122,7 +122,7 @@ public sealed class IllusionTowerRewardProjectionTests
             services.AddSingleton<IGameMessageSender>(sender);
             services.AddSingleton<INetworkConnectionCloser>(closer);
         });
-        fixture.Sql("UPDATE characters SET level=50;");
+        fixture.Sql($"UPDATE characters SET level=50,exp={fixture.ExperienceForLevel(50)};");
         return fixture;
     }
 

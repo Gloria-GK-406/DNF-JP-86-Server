@@ -130,8 +130,11 @@ internal sealed class CharacterSide
             new SqliteDungeonEffectOutboxTable(this.database),
             new SqliteAccountTable(this.database),
             new SqliteCharacterTable(this.database),
-            experienceRules, rules, new CharacterProgressionDomainService(new SqliteCharacterTable(database),
-                experienceRules, null!, null!, Scope));
+            experienceRules, rules, new CharacterDomainService(null!, null!, id => new PlayingCharacter(id,
+                null!, null!, null!, null!, null!, new SqliteCharacterTable(database), null!, null!, null!,
+                experienceRules: experienceRules,
+                capsules: new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
+                transactions: Scope), null!));
 
     /// <summary>Runs one call inside a use case and settles it, the way one command would.</summary>
     public async Task<TResult> InUseCaseAsync<TResult>(

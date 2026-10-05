@@ -30,7 +30,7 @@ public sealed class QuestClearCouponDomainServiceTests
         Assert.Equal((0x05040303 & ~0x1FF) | 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
         Assert.Equal(9, f.Scalar("SELECT slot_index FROM character_quest_notify_selections WHERE character_id=71"));
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
     }
 
     [Theory]

@@ -638,7 +638,7 @@ public sealed class IllusionTowerProjectionDelivery(
         var skillPoints = await characters.Get(session.CharacterId)
             .RemainingSkillPointsAsync(token).ConfigureAwait(false);
         if (skillPoints is not null)
-            frames.Add(new ExperienceNotification(award.Level, award.Total, skillPoints,
+            frames.Add(new ExperienceNotification(award.Level, award.NotificationTotal, skillPoints,
                 AccountHonorLevel.Initial, ExperienceBonusLines.Of(award)));
     }
 

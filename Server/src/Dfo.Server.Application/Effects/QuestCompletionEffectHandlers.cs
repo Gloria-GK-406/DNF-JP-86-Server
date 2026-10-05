@@ -6,7 +6,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Effects;
 
-internal sealed class CharacterExperienceEffectHandler(ICharacterTable characters, ICharacterProgressionDomainService progression) : EffectHandler<CharacterExperienceEffect>
+internal sealed class CharacterExperienceEffectHandler(ICharacterDomainService characters) : EffectHandler<CharacterExperienceEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, CharacterExperienceEffect effect, CancellationToken ct)
     {
@@ -17,13 +17,10 @@ internal sealed class CharacterExperienceEffectHandler(ICharacterTable character
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, CharacterExperienceEffect effect, CancellationToken ct)
     {
         var d = effect.Decision;
-        var current = await characters.FindProgressAsync(context.CharacterId, ct).ConfigureAwait(false);
-        if (current is null || current.Level != d.Before.Level || current.Experience != d.Before.Experience)
+        if (await characters.Get(context.CharacterId).ProgressAsync(ct).ConfigureAwait(false) != d.Before)
             throw new InvalidOperationException("Decided experience target changed.");
-        if ((d.Award.Level != d.Before.Level || d.Award.Total != d.Before.Experience)
-            && !await progression.TryApplyAsync(context.CharacterId, d.Before, new(d.Award.Level, d.Award.Total), ct).ConfigureAwait(false))
-            throw new InvalidOperationException("Experience target refused the write.");
-        return new CharacterExperienceChange(d.Award);
+        var award = await characters.Get(context.CharacterId).AddExpAsync(d.Award.Breakdown, d.Before, ct).ConfigureAwait(false);
+        return new CharacterExperienceChange(award);
     }
 }
 internal sealed class SetQuestRewardGoldEffectHandler(ICharacterCarriedGoldTable gold, ICharacterDomainService characters) : EffectHandler<SetQuestRewardGoldEffect>

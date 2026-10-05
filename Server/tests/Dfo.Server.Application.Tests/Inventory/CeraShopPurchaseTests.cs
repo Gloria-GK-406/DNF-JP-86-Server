@@ -534,6 +534,7 @@ internal sealed class CeraShopFixture : IDisposable
             if (useArchive)
             {
                 services.AddSingleton<ICeraShopDefinitionSource, PvfCeraShopDefinitionSource>();
+                services.AddSingleton<IDungeonExperienceProgressionPolicySource, PvfDungeonExperienceProgressionPolicySource>();
                 services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
             }
             else
@@ -543,7 +544,7 @@ internal sealed class CeraShopFixture : IDisposable
             }
             configure?.Invoke(services);
         });
-        Host.Sql("UPDATE accounts SET cera=100000; UPDATE characters SET level=85;");
+        Host.Sql($"UPDATE accounts SET cera=100000; UPDATE characters SET level=85,exp={Host.ExperienceForLevel(85)};");
         foreach (var type in (InventoryContainerType[])[InventoryContainerType.Avatar, InventoryContainerType.Pet])
             Host.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Host.Session.CharacterId,
                 new PersistentItemContainer(ContainerId.ForCharacter(Host.Session.CharacterId, type), new(type, 0),

@@ -209,7 +209,7 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Sql("DELETE FROM character_daily_counters");
         await Recover(shop, 1);
         shop.Select(2);
-        shop.Sql("UPDATE characters SET level=85 WHERE character_id=2");
+        shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=2");
         var other = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
         await other.SetWeakness();
         await Recover(shop, 1);
@@ -341,7 +341,7 @@ public sealed class WeaknessGoldRecoveryTests
 
     private static async Task<IWeakness> Weaken(ShopFixture shop)
     {
-        shop.Sql("UPDATE characters SET level=85 WHERE character_id=1");
+        shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=1");
         var state = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
         await state.SetWeakness();
         Assert.Equal(10, state.Value);

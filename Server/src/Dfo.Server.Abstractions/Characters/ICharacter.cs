@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Abstractions.Characters;
 
@@ -30,6 +31,19 @@ namespace Dfo.Server.Abstractions.Characters;
 public interface ICharacter
 {
     CharacterId Id { get; }
+
+    /// <summary>Price and settle a reward in the caller's transaction, including max-level overflow.</summary>
+    ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at,
+        Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct);
+    /// <summary>Settle an already priced reward; an expected state rejects stale quest decisions.</summary>
+    ValueTask<ExperienceAward> AddExpAsync(ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct);
+    /// <summary>Clamp experience and derive level. This is a setter, so it never fills a capsule.</summary>
+    ValueTask<CharacterProgressionState> SetExpAsync(long experience, CancellationToken ct);
+    /// <summary>Set the cumulative starting experience for the requested playable level.</summary>
+    ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct);
+    /// <summary>Apply a guarded experience setter during recovery, without generating a reward.</summary>
+    ValueTask<bool> TrySetExpAsync(CharacterProgressionState expected, long experience, CancellationToken ct);
+
 
     ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken);

@@ -526,7 +526,7 @@ public sealed class UseStackableHandlerTests
             new CharacterId(60), judgement, cooldowns,
             PresentCharacters.StandingInTown(new CharacterId(60)), new NoCarriedGold(),
             new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
-            new NoSkillPointLedger(), null!, null!));
+            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()));
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
             new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots, inventory.Lifecycle),
             new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, sessions, inventory.Scope),

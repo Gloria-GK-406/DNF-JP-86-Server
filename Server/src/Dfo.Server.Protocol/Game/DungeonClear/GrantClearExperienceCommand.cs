@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -29,7 +30,7 @@ public sealed record GrantClearExperienceCommand(
 
 /// <summary>Calculate settlement and persist progression within one transaction.</summary>
 public sealed class GrantClearExperienceCommandHandler(
-    ICharacterExperienceDomainService grant, TimeProvider clock, Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null)
+    ICharacterDomainService grant, TimeProvider clock, Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
@@ -40,7 +41,7 @@ public sealed class GrantClearExperienceCommandHandler(
         if (context.ExecutionKind is not CommandExecutionKind.Transactional)
             throw new InvalidOperationException("Awarding experience requires a transaction.");
         var now = command.SettledAt ?? clock.GetUtcNow();
-        var award = await grant.ApplyAwardAsync(new ClearExperienceContext(
+        var award = await grant.Get(command.CharacterId).AddExpAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, command.AccountId,
                     command.CharacterId, command.DungeonId), command.Clear), now, command.Session,
             cancellationToken).ConfigureAwait(false);

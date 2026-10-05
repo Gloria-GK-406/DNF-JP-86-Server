@@ -155,7 +155,7 @@ public sealed class CharacterEntryRuleServiceTests
         public void AtTheLastLevelTheWholeGainBecomesHonour()
         {
             var split = new DungeonEffectRuleService().SplitExperience(
-                new DungeonExperienceSettlement(86, 84_000, 25, NormalizeMaxLevelExp: true), Policy);
+                new DungeonExperienceSettlement(86, 85_001, 25, NormalizeMaxLevelExp: true), Policy);
 
             Assert.Equal(new DungeonExperienceSplit(25, 0, 86, 85_000, true, true), split);
         }
@@ -166,7 +166,7 @@ public sealed class CharacterEntryRuleServiceTests
             var split = new DungeonEffectRuleService().SplitExperience(
                 new DungeonExperienceSettlement(85, 80_000, 25, NormalizeMaxLevelExp: false), Policy);
 
-            Assert.Equal(new DungeonExperienceSplit(0, 25, 85, 80_025, false, true), split);
+            Assert.Equal(new DungeonExperienceSplit(0, 25, 81, 80_025, false, true), split);
         }
 
         /// <remarks>Only what overshoots the last level's threshold becomes honour.</remarks>

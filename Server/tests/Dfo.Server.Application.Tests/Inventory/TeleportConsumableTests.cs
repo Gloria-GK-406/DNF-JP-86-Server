@@ -28,6 +28,7 @@ public sealed class TeleportConsumableTests
             s.AddSingleton<ITownDefinitionSource>(new Towns());
             s.AddSingleton<ISelectedCharacterCurrentViewDomainService>(new CurrentView());
         });
+        f.SetLevel(2);
         f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(f.Session, Start);
         return f;
     }
@@ -87,6 +88,7 @@ public sealed class TeleportConsumableTests
         var current = new CharacterPositionState(2, 3, 100, 200, 1);
         var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
         areas.TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 3), current, false);
+        f.SetLevel(2);
         f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(f.Session, current);
         f.Sender.Messages.Clear();
         await Send(f);
@@ -129,9 +131,9 @@ public sealed class TeleportConsumableTests
     public async Task Destination_level_requirement_and_dungeon_state_refuse_without_consuming()
     {
         using var f = Fixture(); await f.Seed(65, 2000, 2);
-        f.Sql("UPDATE characters SET level=1 WHERE character_id=1"); await Send(f);
+        f.Sql($"UPDATE characters SET level=1,exp={f.ExperienceForLevel(1)} WHERE character_id=1"); await Send(f);
         Assert.Equal(2, f.Count(2000));
-        f.Sql("UPDATE characters SET level=2 WHERE character_id=1");
+        f.Sql($"UPDATE characters SET level=2,exp={f.ExperienceForLevel(2)} WHERE character_id=1");
         var cell = new MazeCell(0, 0);
         f.Services.GetRequiredService<IDungeonRunDomainService>().PreparePartyEntry(
             [new(f.Session.AccountId, f.Session.CharacterId, 0, true)],

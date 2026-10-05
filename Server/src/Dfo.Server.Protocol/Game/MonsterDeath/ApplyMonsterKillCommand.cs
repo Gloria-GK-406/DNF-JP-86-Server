@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -39,7 +40,7 @@ public sealed record ApplyMonsterKillResult(
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
 /// </summary>
 public sealed class ApplyMonsterKillCommandHandler(
-    ICharacterExperienceDomainService experience,
+    ICharacterDomainService experience,
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,

@@ -102,9 +102,9 @@ public sealed class CurrentCharacterStateTests
         var refreshed = await fixture.Services.GetRequiredService<ICharacterStateProjectionDomainService>()
             .RefreshAsync(stale, default);
         Assert.Equal(51, refreshed.Character.Progression.Level);
-        Assert.Equal(123456u, refreshed.Character.Progression.Experience);
+        Assert.Equal(fixture.ExpFor(51), refreshed.Character.Progression.Experience);
         Assert.Equal(0x12, refreshed.Character.Identity.GrowType);
-        Assert.Equal(123456, refreshed.CharacterEntry.Public.Extras.CharacterExperience);
+        Assert.Equal((long)fixture.ExpFor(51), refreshed.CharacterEntry.Public.Extras.CharacterExperience);
         Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, refreshed.CharacterEntry.Public.DerivedStats.HpMaximum);
         Assert.Equal(4, refreshed.CharacterEntry.Public.DerivedStats.Progress1);
         Assert.Equal(73, refreshed.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent);
@@ -131,20 +131,18 @@ public sealed class CurrentCharacterStateTests
         await using var fixture = new Fixture();
         await fixture.SeedAsync();
         var handler = new GrantTutorialLevelCommandHandler(
-            fixture.Services.GetRequiredService<ICharacterExperienceDomainService>(),
-            fixture.Services.GetRequiredService<ICharacterDomainService>(),
-            fixture.Services.GetRequiredService<ICharacterProgressionDomainService>());
+            fixture.Services.GetRequiredService<ICharacterDomainService>());
         await using var transaction = fixture.Scope.Begin();
-        await fixture.SqlAsync("UPDATE characters SET level=5,exp=700 WHERE character_id=71;");
+        await fixture.SqlAsync($"UPDATE characters SET level=5,exp={fixture.ExpFor(5)} WHERE character_id=71;");
         var result = await handler.HandleAsync(null!, new GrantTutorialLevelCommand(Id), default);
         Assert.Equal(TutorialLevelUpStatus.AlreadyPast, result.Status);
-        Assert.Equal(new CharacterProgressionState(5, 700), await fixture.Character.ProgressAsync(default));
+        Assert.Equal(new CharacterProgressionState(5, fixture.ExpFor(5)), await fixture.Character.ProgressAsync(default));
     }
 
     private static async Task AssertChangedAsync(Fixture fixture, ICharacter character, CharacterBaseStats baseline)
     {
         var state = await ReadAsync(character);
-        Assert.Equal(new CharacterProgressionState(51, 123456), state.Progress);
+        Assert.Equal(new CharacterProgressionState(51, fixture.ExpFor(51)), state.Progress);
         Assert.Same(fixture.Stats.GetStats(new CharacterCareer(0, 2, 1), 51), state.Stats);
         Assert.Same(baseline, fixture.Stats.GetStats(new CharacterCareer(0, 1), 16));
         Assert.NotEqual(baseline, state.Stats);
@@ -189,13 +187,14 @@ public sealed class CurrentCharacterStateTests
             _ = Services.GetRequiredService<SqliteDatabase>();
             Character = Services.GetRequiredService<ICharacterDomainService>().Get(Id);
         }
+        public uint ExpFor(byte level) => Services.GetRequiredService<IExperienceRuleService>().CharacterScale().ExperienceForLevel(level);
         public async Task SeedAsync()
         {
             await using var transaction = Scope.Begin();
-            await SqlAsync("""
+            await SqlAsync($"""
                 INSERT INTO accounts(account_id,m_id) VALUES(1,'current');
                 INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
-                VALUES(71,1,'current',X'4142',0,1,16,1234,5,3,1);
+                VALUES(71,1,'current',X'4142',0,1,16,{ExpFor(16)},5,3,1);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0);
                 INSERT INTO character_stats(character_id,stat_hp_max,progress1,progress2,current_hp_mp_percent) VALUES(71,17,4,5,73);
                 INSERT INTO character_pvp(character_id) VALUES(71);
@@ -206,8 +205,8 @@ public sealed class CurrentCharacterStateTests
                 """);
             await transaction.CommitAsync(default);
         }
-        public ValueTask ChangeAsync() => SqlAsync("""
-            UPDATE characters SET grow_type=18,level=51,exp=123456,bonus_sp=19,bonus_tp=70000 WHERE character_id=71;
+        public ValueTask ChangeAsync() => SqlAsync($"""
+            UPDATE characters SET grow_type=18,level=51,exp={ExpFor(51)},bonus_sp=19,bonus_tp=70000 WHERE character_id=71;
             UPDATE character_skills SET level=255 WHERE character_id=71 AND mode='pve' AND page_index=0 AND slot=7;
             INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level) VALUES(71,'pve',0,8,999999,2),(71,'pve',0,9,64,255);
             """);

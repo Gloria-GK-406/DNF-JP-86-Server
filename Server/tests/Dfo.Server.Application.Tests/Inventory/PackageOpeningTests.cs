@@ -184,7 +184,7 @@ public sealed class PackageOpeningTests
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Package());
         Assert.Equal(OpeningRejection.ItemUnusable, error.Reason); Assert.Equal(3, opening.Host.Count(1001));
         // The rule source is shared and cached by the character judgement, so use the current character's facts to clear this gate.
-        opening.Host.Sql("UPDATE characters SET level=86 WHERE character_id=1");
+        opening.Host.Sql($"UPDATE characters SET level=86,exp={opening.Host.ExperienceForLevel(86)} WHERE character_id=1");
         await opening.Package();
         error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Package());
         Assert.Equal(OpeningRejection.ItemUnusable, error.Reason); Assert.Contains("OnCooldown", error.Message, StringComparison.Ordinal);

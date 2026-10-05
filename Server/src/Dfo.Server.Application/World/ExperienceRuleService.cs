@@ -23,6 +23,10 @@ internal sealed class ExperienceRuleService(
     ExperienceTuning tuning,
     ExperienceEntitlementPolicy entitlements) : IExperienceRuleService
 {
+    private readonly Lazy<DungeonExperienceProgressionPolicy> policy = new(progression.Load);
+    private CharacterExperienceScale? scale;
+    public CharacterExperienceScale CharacterScale() => scale ??= new(Progression().LevelThresholds);
+
     public uint WorthOfKill(in KillCircumstances kill) =>
         MonsterExperienceRules.WorthOf(kill, parameters.Load(), tuning);
 
@@ -54,5 +58,5 @@ internal sealed class ExperienceRuleService(
         return found;
     }
 
-    public DungeonExperienceProgressionPolicy Progression() => progression.Load();
+    public DungeonExperienceProgressionPolicy Progression() => policy.Value;
 }

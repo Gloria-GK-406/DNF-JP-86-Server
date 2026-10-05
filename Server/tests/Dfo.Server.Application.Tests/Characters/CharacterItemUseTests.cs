@@ -313,7 +313,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.At(level: 50),
-            new NoSkillPointLedger(), null!, null!);
+            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
@@ -342,7 +342,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.None,
-            new NoSkillPointLedger(), null!, null!);
+            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
@@ -400,7 +400,7 @@ public sealed class CharacterItemUseTests
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
                 new SqliteCharacterTable(database),
-                new NoSkillPointLedger(), null!, null!);
+                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
 
             Assert.Equal(
                 ItemUsability.Allowed,
@@ -493,7 +493,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.At(level, job),
-            new NoSkillPointLedger(), null!, null!, null, () => tower);
+            new NoSkillPointLedger(), null!, null!, null, () => tower, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
     }
 
     private static ICharacter Build(
