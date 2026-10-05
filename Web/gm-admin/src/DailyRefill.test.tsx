@@ -30,7 +30,7 @@ it('默认展示 PVF 和自定义来源，包括覆盖与过期状态', async ()
   open(); await screen.findByText('每日补给规则');
   expect(await screen.findByText('已被自定义覆盖')).toBeTruthy();
   expect(screen.getByText('自定义')).toBeTruthy(); expect(screen.getByText('已过期')).toBeTruthy();
-  expect(screen.getByText('每日添加 X')).toBeTruthy(); expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.getByText('增量发放')).toBeTruthy(); expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.getByText(/整理背包或重登不会补发/)).toBeTruthy();
 });
 it('新增通过补给专用目录选择物品并保存数量、方式及原版本', async () => {
@@ -40,9 +40,9 @@ it('新增通过补给专用目录选择物品并保存数量、方式及原版�
   fireEvent.click(await within(picker).findByLabelText('选择物品 7'));
   fireEvent.click(await within(picker).findByRole('button', { name: '选择此补给物品' }));
   await waitFor(() => expect(screen.queryByText('选择每日补给物品', { selector: '.ant-modal-title' })).toBeNull());
-  fireEvent.change(screen.getByLabelText('数量 X'), { target: { value: '12' } });
+  fireEvent.change(screen.getByLabelText('目标数量'), { target: { value: '12' } });
   fireEvent.mouseDown(screen.getByLabelText('补给方式'));
-  fireEvent.click(await screen.findByText('每日添加 X：额外发放 X 个'));
+  fireEvent.click(await screen.findByText('增量发放：额外发放指定数量'));
   fireEvent.click(screen.getByRole('button', { name: '保存并生效' }));
   await waitFor(() => expect(mocked).toHaveBeenCalledWith('daily-refill', { expectedRevision: 8, action: 'add', itemId: 7, quantity: 12, mode: 1, expiresAt: null }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
