@@ -283,7 +283,7 @@ internal sealed class InventoryEntryAssembly(
     private async ValueTask<IReadOnlyList<InventoryRuntimeValueState>> AccountVirtualResourcesAsync(
         AccountId accountId, CancellationToken cancellationToken)
     {
-        var container = inventories.GetStore(new ContainerOwner(InventoryOwnerType.Account, accountId.Value),
+        var container = inventories.GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, accountId.Value),
             BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.SharedMaterial);
         var contents = await container.GetAllAsync(cancellationToken).ConfigureAwait(false);
         var counts = contents.ToDictionary(item => item.SlotIndex, item => item.Count);

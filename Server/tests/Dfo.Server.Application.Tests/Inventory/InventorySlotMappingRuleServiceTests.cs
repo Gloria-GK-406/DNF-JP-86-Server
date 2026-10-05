@@ -44,6 +44,8 @@ public sealed class InventorySlotMappingRuleServiceTests
 
     public static TheoryData<GameSlot, BusinessSlot> Boundaries => new()
     {
+        { new(InventoryContainerType.QuickSlot, 3), new(BusinessInventorySpace.TowerQuickSlot, 0) },
+        { new(InventoryContainerType.QuickSlot, 8), new(BusinessInventorySpace.TowerQuickSlot, 5) },
         { new(InventoryContainerType.Main, 3), new(BusinessInventorySpace.QuickSlot, 0) },
         { new(InventoryContainerType.Main, 8), new(BusinessInventorySpace.QuickSlot, 5) },
         { new(InventoryContainerType.Main, 9), new(BusinessInventorySpace.CarriedEquipment, 0) },

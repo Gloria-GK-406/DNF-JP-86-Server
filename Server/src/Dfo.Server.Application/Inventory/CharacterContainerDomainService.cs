@@ -5,7 +5,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-/// <summary>Character-local current bindings, with explicit permanent fallbacks.</summary>
+/// <summary>Character-local current bindings, with explicit default fallbacks.</summary>
 internal sealed class CharacterContainerDomainService(CharacterContainerAddition? additions = null,
     IDomainTransactionAccessor? transactions = null) : ICharacterContainerDomainService
 {
@@ -15,6 +15,10 @@ internal sealed class CharacterContainerDomainService(CharacterContainerAddition
     public ValueTask<ContainerAddition> AddAsync(CharacterId characterId, int itemId, int count, CancellationToken ct) =>
         (additions ?? throw new InvalidOperationException("Container addition service is not configured."))
             .AddAsync(this, characterId, itemId, count, ct);
+
+    public ValueTask<ContainerAddition> AddToPersistentAsync(CharacterId characterId, int itemId, int count, CancellationToken ct) =>
+        (additions ?? throw new InvalidOperationException("Container addition service is not configured."))
+            .AddAsync(this, characterId, itemId, count, ct, persistent: true);
 
     private T Access<T>(CharacterId character, bool mutate, Func<Held, T> action)
     {
@@ -44,6 +48,22 @@ internal sealed class CharacterContainerDomainService(CharacterContainerAddition
                 throw new InvalidOperationException("A default container cannot be removable.");
             held.Registered.Add(container);
             held.Current.TryAdd(container.Type, container.Id);
+            return true;
+        });
+    }
+    public void ReplaceDefault(CharacterId characterId, ContainerId expectedDefaultId, IItemContainer replacement)
+    {
+        ArgumentNullException.ThrowIfNull(replacement);
+        Access(characterId, true, held =>
+        {
+            var index = held.Registered.FindIndex(x => x.Id == expectedDefaultId && x.IsDefault);
+            if (index < 0 || !replacement.IsDefault || replacement.IsRemovable
+                || held.Registered[index].Type != replacement.Type
+                || held.Registered.Where((_, i) => i != index).Any(x => x.Id == replacement.Id))
+                throw new InvalidOperationException("Replacement must name the existing default and preserve its type and default role.");
+            held.Registered[index] = replacement;
+            if (held.Current.GetValueOrDefault(replacement.Type) == expectedDefaultId)
+                held.Current[replacement.Type] = replacement.Id;
             return true;
         });
     }

@@ -122,7 +122,8 @@ public interface IItemContainer
     InventoryContainerType Type { get; }
     ContainerShape Shape { get; }
     bool IsRemovable { get; }
-    /// <summary>The permanent fallback, independent of the current binding.</summary>
+    bool IsPersistent => true;
+    /// <summary>The fallback binding, independent of storage lifetime.</summary>
     bool IsDefault => !IsRemovable;
     ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct);
     ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct);

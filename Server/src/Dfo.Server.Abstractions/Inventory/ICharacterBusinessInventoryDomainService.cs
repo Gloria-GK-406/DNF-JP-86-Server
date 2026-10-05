@@ -9,7 +9,7 @@ public static class BusinessInventoryOwnership
 {
     public static BusinessInventoryStoreKind StoreOf(BusinessInventorySpace space) => space switch
     {
-        BusinessInventorySpace.QuickSlot or BusinessInventorySpace.CarriedEquipment
+        BusinessInventorySpace.QuickSlot or BusinessInventorySpace.TowerQuickSlot or BusinessInventorySpace.CarriedEquipment
             or BusinessInventorySpace.Consumable or BusinessInventorySpace.Material
             or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial
             or BusinessInventorySpace.PersonalCargo
@@ -28,10 +28,9 @@ public static class BusinessInventoryOwnership
 public interface ICharacterBusinessInventoryDomainService
 {
     IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind);
-    IBusinessInventoryStore GetStore(ContainerOwner owner, BusinessInventoryStoreKind kind) =>
-        owner.Scope == InventoryOwnerType.Character
-            ? GetStore(new CharacterId(owner.Value), kind)
-            : throw new NotSupportedException("This inventory provider does not support account owners.");
+    /// <summary>Explicit persistent access for offline delivery and entry loading; does not register an online container.</summary>
+    IBusinessInventoryStore GetPersistentStore(ContainerOwner owner, BusinessInventoryStoreKind kind) =>
+        throw new NotSupportedException("This inventory provider does not support explicit persistent access.");
 }
 
 public interface IBusinessInventoryStore
@@ -46,6 +45,7 @@ public interface IBusinessItemContainer
     BusinessContainerId Id { get; }
     ContainerId StorageId { get; }
     bool IsDefault => true;
+    bool IsPersistent => true;
     BusinessInventorySpace Space { get; }
     ItemAdmissionRule Admission => ItemContainerAdmission.For(Space);
     ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>

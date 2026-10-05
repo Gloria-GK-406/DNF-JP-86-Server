@@ -7,6 +7,7 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
 {
     public BusinessSlot ToBusinessSlot(GameSlot source) => source.Space switch
     {
+        InventoryContainerType.QuickSlot when In(source.Index, 3, 8) => Business(BusinessInventorySpace.TowerQuickSlot, source.Index, 3),
         InventoryContainerType.Main when In(source.Index, 3, 8) => Business(BusinessInventorySpace.QuickSlot, source.Index, 3),
         InventoryContainerType.Main when In(source.Index, 9, 64) => Business(BusinessInventorySpace.CarriedEquipment, source.Index, 9),
         InventoryContainerType.Main when In(source.Index, 65, 120) => Business(BusinessInventorySpace.Consumable, source.Index, 65),
@@ -33,6 +34,7 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
 
     public GameSlot ToGameSlot(BusinessSlot source) => source.Space switch
     {
+        BusinessInventorySpace.TowerQuickSlot => Game(source, InventoryContainerType.QuickSlot, 3, 5),
         BusinessInventorySpace.QuickSlot => Game(source, InventoryContainerType.Main, 3, 5),
         BusinessInventorySpace.CarriedEquipment => Game(source, InventoryContainerType.Main, 9, 55),
         BusinessInventorySpace.Consumable => Game(source, InventoryContainerType.Main, 65, 55),

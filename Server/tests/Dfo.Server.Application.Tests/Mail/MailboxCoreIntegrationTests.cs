@@ -340,7 +340,7 @@ public sealed partial class MailboxCoreIntegrationTests
         }
 
     public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
-        .GetStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
+        .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
         .GetContainer(BusinessInventorySpace.SharedMaterial);
 
     public async Task SeedShared(int item, int count, int account = 1)

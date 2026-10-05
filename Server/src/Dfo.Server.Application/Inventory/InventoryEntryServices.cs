@@ -25,7 +25,7 @@ internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEn
         var stored = await repository.LoadCharacterAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
         var result = InventoryEntryProjection.ProjectCharacter(stored, accountId, characterId);
-        if (containers?.FindContainer(characterId, InventoryContainerType.Main) is { IsDefault: false } current)
+        if (containers?.FindContainer(characterId, InventoryContainerType.Main) is { IsPersistent: false } current)
         {
             var items = await current.GetAllAsync(cancellationToken).ConfigureAwait(false);
             result = result with { Containers = result.Containers.Select(value => value.ContainerType == InventoryContainerType.Main
@@ -49,7 +49,7 @@ internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryR
         var stored = await repository.LoadAccountAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
         var result = InventoryEntryProjection.ProjectAccount(stored, accountId, characterId);
-        if (containers?.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { IsDefault: false } current)
+        if (containers?.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { IsPersistent: false } current)
         {
             var contents = await current.GetAllAsync(cancellationToken).ConfigureAwait(false);
             var counts = contents.ToDictionary(item => item.StorageSlotIndex, item => item.Count);

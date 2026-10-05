@@ -16,6 +16,7 @@ public enum InventoryContainerType : byte
     TitleBookPvp = 21,
     TitleBookDespair = 22,
     TitleBookEvent = 23,
+    // Native tower quick slots; their wire indexes remain 3..8.
     QuickSlot = 29,
     KnightShieldEquipped = 33,
     KnightShieldCatalog = 34,
@@ -59,12 +60,14 @@ public enum BusinessInventorySpace
     GuildMedal,
     GuardianGem,
     SharedMaterial,
+    TowerQuickSlot,
 }
 
 public static class BusinessInventorySpaceRules
 {
     public static bool IsCarriedItemSpace(this BusinessInventorySpace space) => space is
         BusinessInventorySpace.QuickSlot
+        or BusinessInventorySpace.TowerQuickSlot
         or BusinessInventorySpace.CarriedEquipment
         or BusinessInventorySpace.Consumable
         or BusinessInventorySpace.Material

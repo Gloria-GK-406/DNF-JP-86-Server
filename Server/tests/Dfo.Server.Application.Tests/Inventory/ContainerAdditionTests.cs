@@ -43,6 +43,10 @@ public sealed class ContainerAdditionTests
         Assert.Equal(new[] { 0, 1, 2 }, material.Items.Select(x => x.Slot.Index));
         Assert.Equal(new[] { 2, 2, 1 }, material.Items.Select(x => x.Count));
         Assert.All(material.Items, x => Assert.Equal(BusinessInventorySpace.Material, x.Slot.Space));
+        service.Register(new(1), new PersistentItemContainer(ContainerId.ForCharacter(new(1), InventoryContainerType.Pet),
+            new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
+            f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
+            f.Services.GetRequiredService<IItemSlotRuleService>()));
         var pet = await service.AddAsync(new(1), 9002, 1, default);
         Assert.Equal(BusinessInventorySpace.CreatureConsumable, Assert.Single(pet.Items).Slot.Space);
         Assert.Equal(0, pet.Items[0].Slot.Index);
@@ -146,7 +150,13 @@ public sealed class ContainerAdditionTests
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         service.Clear(new(1));
-        await service.AddAsync(new(1), 9001, 3, default);
+        var inventories = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>();
+        var store = inventories.GetStore(new CharacterId(1), BusinessInventoryStoreKind.Item);
+        Assert.Null(store.FindContainer(BusinessInventorySpace.Material));
+        Assert.Throws<InvalidOperationException>(() => store.GetContainer(BusinessInventorySpace.Material));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.AddAsync(new(1), 9001, 3, default));
+        Assert.Equal(0, f.Count(9001));
+        await service.AddToPersistentAsync(new(1), 9001, 3, default);
         Assert.Null(service.FindContainer(new(1), InventoryContainerType.Main));
         Assert.Equal(3, f.Count(9001));
     }
@@ -160,7 +170,7 @@ public sealed class ContainerAdditionTests
         var containers = shop.Host.Services.GetRequiredService<ICharacterContainerDomainService>();
         containers.Clear(shop.Host.Session.CharacterId);
 
-        var added = await containers.AddAsync(shop.Host.Session.CharacterId, 63000, 1, default);
+        var added = await containers.AddToPersistentAsync(shop.Host.Session.CharacterId, 63000, 1, default);
 
         var item = Assert.Single(added.Items);
         Assert.Equal(BusinessInventorySpace.CreatureInventory, item.Slot.Space);

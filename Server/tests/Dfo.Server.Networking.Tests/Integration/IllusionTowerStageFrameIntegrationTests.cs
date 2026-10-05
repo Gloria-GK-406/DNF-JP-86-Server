@@ -86,6 +86,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             {
                 containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForCharacter(selected.CharacterId, InventoryContainerType.Main), InventoryContainerType.Main));
                 containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForAccount(selected.AccountId, InventoryContainerType.SharedMaterial), InventoryContainerType.SharedMaterial));
+                containers.Register(selected.CharacterId, new EmptyDefault(new ContainerId("tower:empty:network-test"), InventoryContainerType.QuickSlot));
             }
             var bus = host.Services.GetRequiredService<ICommandBus>();
             var entered = await bus.SendAsync(
@@ -121,7 +122,15 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                     if (acknowledged) Assert.Equal(1, frame[GameServerFrameEncoder.HeaderLength]);
                 }
                 Assert.True(acknowledged);
-                Assert.Equal(6521, Assert.Single(await containers.GetContainer(selected.CharacterId, InventoryContainerType.Main).GetAllAsync(timeout.Token)).ItemId);
+                var pickup = await ReadFrameAsync(stream, timeout.Token);
+                Assert.Equal(0x0027, BinaryPrimitives.ReadUInt16LittleEndian(pickup.AsSpan(1)));
+                var update = await ReadFrameAsync(stream, timeout.Token);
+                Assert.Equal(0x000E, BinaryPrimitives.ReadUInt16LittleEndian(update.AsSpan(1)));
+                Assert.Equal(29, update[GameServerFrameEncoder.HeaderLength]);
+                Assert.Equal(3, BinaryPrimitives.ReadInt16LittleEndian(update.AsSpan(GameServerFrameEncoder.HeaderLength + 3)));
+                var towerBag = containers.GetContainer(selected.CharacterId, InventoryContainerType.QuickSlot);
+                Assert.False(towerBag.IsPersistent);
+                Assert.Equal(6521, Assert.Single(await towerBag.GetAllAsync(timeout.Token)).ItemId);
                 Assert.Empty(await containers.GetContainer(selected.CharacterId, InventoryContainerType.Main, isDefault: true).GetAllAsync(timeout.Token));
             }
             client.Dispose();

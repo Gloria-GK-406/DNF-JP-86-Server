@@ -25,16 +25,20 @@ internal sealed class ItemPlacementRuleService(
     public async ValueTask<ItemPlacement?> PlacementForAsync(int itemId, CancellationToken cancellationToken)
     {
         var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
-        return SharedPlacement(itemId, placement is null ? null : placement with { ItemId = itemId });
+        return SharedPlacement(itemId, TowerPlacement(placement is null ? null : placement with { ItemId = itemId }));
     }
 
     public async ValueTask<ItemPlacement?> PlacementForAsync(int itemId, BusinessInventorySpace destination,
         CancellationToken cancellationToken)
     {
         var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
-        if (placement is not null) placement = placement with { ItemId = itemId };
+        if (placement is not null) placement = TowerPlacement(placement with { ItemId = itemId });
         return destination == BusinessInventorySpace.SharedMaterial ? SharedPlacement(itemId, placement) : placement;
     }
+
+    private static ItemPlacement? TowerPlacement(ItemPlacement? placement) =>
+        placement is not null && placement.Traits.HasFlag(ItemTraits.Tower)
+            ? placement with { Destination = new(BusinessInventorySpace.TowerQuickSlot, 0, 5) } : placement;
 
     private static ItemPlacement? SharedPlacement(int itemId, ItemPlacement? placement)
     {

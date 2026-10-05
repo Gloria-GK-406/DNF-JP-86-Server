@@ -19,6 +19,7 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
             BusinessInventorySpace.SharedMaterial =>
                 placement.WorldClass == ItemWorldClass.Interchangeable && placement.Destination.Contains(slot),
             BusinessInventorySpace.QuickSlot => true,
+            BusinessInventorySpace.TowerQuickSlot => placement.Destination.Contains(slot),
             BusinessInventorySpace.Avatar => placement.WorldClass == ItemWorldClass.Avatar,
             BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo => true,
             BusinessInventorySpace.CreatureInventory =>

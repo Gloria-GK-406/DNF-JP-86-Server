@@ -522,10 +522,11 @@ InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路
 账号仓库无时装细节的历史行仅保留读取兼容，不放宽新建/重新落位的完整性要求。
 角色 Main/1 的零复活币逻辑数量为 0，位置表的物理 count 保持正数。
 
-容器自身用 `IsDefault` 标记永久默认容器，每种类型至多一个且不可移除。
-`GetContainer(..., isDefault: false)` 使用当前绑定，`true` 显式取默认容器；业务容器与物品发放接口同样支持。
-死亡之塔为参战角色事务性切换 Main 和 SharedMaterial 到本局易失容器，结算/任务奖励显式写默认容器；
-退塔或断线恢复绑定并丢弃临时内容。实现及实机边界见 `Document/DeathTowerImplementation-20261004.md`。
+`IsDefault` 标记默认绑定角色，每种类型至多一个且不可移除；`IsPersistent` 独立描述存储生命周期。
+`GetContainer(..., isDefault: false)` 使用当前绑定，`true` 显式取默认容器；Find/Get 不补建缺失容器。
+`ReplaceDefault` 事务性替换已有默认容器；离线操作显式使用 `GetPersistentStore` / `AddToPersistentAsync`。
+选角显式注册空的默认内存类型 29 容器。死亡塔入场换成本局六格，跨层保留，退塔/断线换回空容器；
+Main 与 SharedMaterial 不切换。实现及实机边界见 `Document/TowerQuickSlots-20261005.md`。
 
 边界限制：`core_uid` 没有数据库唯一约束，普通写入由记录接收机制限制；入场仍检查重复行身份。
 `items.item_uid` 的 wire 范围 CHECK 不能靠给既存表 ADD COLUMN 补上，编码仍使用 checked 转换。

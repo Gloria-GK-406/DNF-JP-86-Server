@@ -11,6 +11,28 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class SkillMaterialConsumptionTests
 {
+    [Fact]
+    public async Task Type_29_skill_request_consumes_the_tower_cube_and_projects_type_29_after_commit()
+    {
+        using var f = new ShopFixture();
+        var scope = f.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>();
+        var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
+        await using (var tx = scope.Begin())
+        {
+            await f.Services.GetRequiredService<IItemGrantDomainService>()
+                .GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 6515, 2, default);
+            await tx.CommitAsync(default);
+        }
+        await f.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(f.Connection),
+            new DeleteItemRequest(GameMessageMetadata.Empty, new(InventoryContainerType.QuickSlot, 3), 1, 2, 6515, 2, 0, 1), default);
+        var ack = Assert.IsType<DeleteItemResponse>(f.Sender.Messages[0]);
+        Assert.True(ack.Success);
+        Assert.Equal(new GameSlot(InventoryContainerType.QuickSlot, 3), ack.Slot);
+        Assert.Equal("InventoryDeltaMessage", f.Sender.Messages[1].GetType().Name);
+        Assert.Empty(await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot).GetAllAsync(default));
+        Assert.Equal(0, f.Count(6515));
+    }
+
     [Theory]
     [InlineData(359, 3262)]
     [InlineData(358, 3037)]

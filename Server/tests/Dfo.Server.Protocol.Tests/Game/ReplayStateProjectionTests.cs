@@ -18,6 +18,35 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class ReplayStateProjectionTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Tower_replay_uses_current_memory_slots_and_late_replay_preserves_restored_slots(bool inTower)
+    {
+        var state = State(ReplayProjectionNeeds.Inventory);
+        var inventory = state.Inventory!.Character();
+        var ordinary = inventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Main);
+        if (inTower)
+            inventory = inventory with { Containers = [.. inventory.Containers,
+                new InventoryContainerState(InventoryContainerType.QuickSlot, 6,
+                    [new InventoryItemState(null, 4, StackableItemCore.Create(2, 6521, 2))])] };
+        state = state with { Inventory = new(inventory, state.Inventory.Account()),
+            Request = new(ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.TowerQuickSlot, 0)]) };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        var main = messages.OfType<InventorySnapshotMessage>().Single(x => x.Container.ContainerType == InventoryContainerType.Main).Container;
+        if (inTower)
+        {
+            Assert.DoesNotContain(main.Items, x => x.SlotIndex == 3);
+            Assert.Equal(6521, Assert.Single(main.Items, x => x.SlotIndex == 4).Core.ItemId);
+            Assert.Equal(InventoryContainerType.QuickSlot, Assert.Single(messages.OfType<InventoryDeltaMessage>()).ContainerType);
+        }
+        else
+        {
+            Assert.Equal(ordinary.Items, main.Items);
+            Assert.Empty(messages.OfType<InventoryDeltaMessage>());
+        }
+    }
+
     [Fact]
     public void Current_inventory_has_six_tables_zero_virtual_balances_and_explicit_empty_physical_slots()
     {

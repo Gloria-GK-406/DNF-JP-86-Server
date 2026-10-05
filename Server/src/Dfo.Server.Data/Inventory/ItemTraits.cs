@@ -13,6 +13,7 @@ public enum ItemTraits
     Profession = 1 << 5,
     Avatar = 1 << 6,
     Creature = 1 << 7,
+    Tower = 1 << 8,
 }
 
 public static class ItemTraitClassification
@@ -34,6 +35,9 @@ public static class ItemTraitClassification
             10 => ItemTraits.Material | ItemTraits.Profession,
             _ => ItemTraits.None,
         };
+        // A21 stackable.lst tower consumables 6516..6525 and clear cube 6515.
+        if (itemId is >= 6515 and <= 6525 && traits is ItemTraits.Consumable or ItemTraits.Material)
+            traits |= ItemTraits.Tower;
         return traits != ItemTraits.None && AccountMaterialCatalog.ContainsItem(itemId)
             ? traits | ItemTraits.AccountShared : traits;
     }
@@ -45,7 +49,10 @@ public static class ItemContainerAdmission
     private const ItemTraits Cargo = ItemTraits.Equipment | ItemTraits.Consumable
         | ItemTraits.Material | ItemTraits.Profession | ItemTraits.AccountShared;
 
-    public static ItemAdmissionRule For(BusinessInventorySpace space) => new(space switch
+    public static ItemAdmissionRule For(BusinessInventorySpace space) => space == BusinessInventorySpace.TowerQuickSlot
+        ? new(ItemTraits.Tower | ItemTraits.Consumable | ItemTraits.Material,
+            all: ItemTraits.Tower, any: ItemTraits.Consumable | ItemTraits.Material)
+        : new(space switch
     {
         BusinessInventorySpace.QuickSlot => Cargo | ItemTraits.Quest,
         BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment

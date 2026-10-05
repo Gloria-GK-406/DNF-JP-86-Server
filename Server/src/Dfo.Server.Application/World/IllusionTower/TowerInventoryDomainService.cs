@@ -8,31 +8,25 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.World.IllusionTower;
 
-/// <summary>Death Tower replaces carried items and account-material access for this participant only.</summary>
 internal sealed class TowerInventoryDomainService(ICharacterContainerDomainService containers,
-    IDomainTransactionAccessor transactions, IItemPlacementRuleService placements, IItemSlotRuleService slots, ITransientItemDomainStoreFactory stores, IItemGrantDomainService grants,
-    TowerInventoryExperiment experiment)
+    IDomainTransactionAccessor transactions, IItemPlacementRuleService placements, IItemSlotRuleService slots,
+    ITransientItemDomainStoreFactory stores, IItemGrantDomainService grants)
 {
-    private static readonly InventoryContainerType[] Types = [InventoryContainerType.Main, InventoryContainerType.SharedMaterial];
-    private static ContainerId Identity(CharacterId character, Guid run, InventoryContainerType type) =>
-        new($"tower:{run:N}:{character.Value}:{type}");
+    private static ContainerId Identity(CharacterId character, Guid run) => new($"tower:{run:N}:{character.Value}");
+    private IItemContainer Fresh(ContainerId id) => new MemoryItemContainer(id,
+        new(InventoryContainerType.QuickSlot, 6), stores.Create(), transactions, placements, slots);
+
     public void Enter(CharacterId character, Guid run)
     {
-        if (experiment.KeepCarriedInventory) return;
         if (transactions.Current is null) throw new InvalidOperationException("Tower inventory requires a transaction.");
-        var originals = Types.Select(type => containers.GetContainer(character, type, isDefault: true)).ToArray();
-        var store = stores.Create();
-        foreach (var original in originals)
-        {
-            var temporary = new TemporaryItemContainer(Identity(character, run, original.Type), original.Shape,
-                store, transactions, placements, slots);
-            containers.Register(character, temporary);
-            if (!containers.UseContainer(character, temporary.Id)) throw new InvalidOperationException("Tower inventory could not be selected.");
-        }
+        var original = containers.GetContainer(character, InventoryContainerType.QuickSlot, isDefault: true);
+        containers.ReplaceDefault(character, original.Id, Fresh(Identity(character, run)));
     }
     public async ValueTask<TowerInventoryUpdate?> AddAsync(SelectedSessionIdentity session, int itemId, CancellationToken ct)
     {
-        if (experiment.KeepCarriedInventory) return null;
+        var placement = await placements.PlacementForAsync(itemId, ct).ConfigureAwait(false);
+        if (placement is null || !ItemContainerAdmission.For(BusinessInventorySpace.TowerQuickSlot).Matches(placement.Traits))
+            throw new InvalidDataException($"Tower drop {itemId} is not admitted to the tower quick slots.");
         var grant = await grants.GrantAsync(session.AccountId, session.CharacterId, containers, itemId, 1, ct).ConfigureAwait(false);
         var slot = grant.Placement switch
         {
@@ -42,15 +36,16 @@ internal sealed class TowerInventoryDomainService(ICharacterContainerDomainServi
             _ => throw new InvalidDataException($"Tower pickup has invalid placement: {grant.Placement}."),
         };
         if (slot < 0) return null;
-        if (grant.Container.IsDefault) throw new InvalidOperationException("Tower pickup cannot enter a permanent container.");
+        if (grant.Container.IsPersistent || grant.Container.Space != BusinessInventorySpace.TowerQuickSlot)
+            throw new InvalidOperationException("Tower pickup requires the memory quick-slot container.");
         var placed = await grant.Container.GetAsync(slot, ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Tower pickup disappeared.");
         return new(new(grant.Container.Space, slot), placed.Snapshot);
     }
     public void Leave(CharacterId character, Guid run)
     {
-        if (experiment.KeepCarriedInventory) return;
         if (transactions.Current is null) throw new InvalidOperationException("Tower inventory requires a transaction.");
-        foreach (var type in Types) containers.Remove(character, Identity(character, run, type));
+        containers.ReplaceDefault(character, Identity(character, run),
+            Fresh(new ContainerId($"tower:empty:{character.Value}:{Guid.NewGuid():N}")));
     }
 }

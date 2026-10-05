@@ -96,7 +96,8 @@ public sealed class SelectCharacterProductionStateTests
             new InventoryLifecycleRuleService(refills), refills, sources,
             new CharacterContainerDomainService(), null!,
             new DomainTransactionScope(), null!, null!,
-            new CharacterEntryPreparationRuleService(sources, sources, sources));
+            new CharacterEntryPreparationRuleService(sources, sources, sources),
+            transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("creature-entry"), 1, 10011);

@@ -20,7 +20,7 @@ public sealed class SharedMaterialContainerTests
     {
         using var host = Fixture();
         var shared = host.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
-            .GetStore(new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item)
+            .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.SharedMaterial);
         await Change(host, async () => { await shared.AddAsync(3033, 7, default); });
         await Change(host, async () =>
@@ -52,11 +52,11 @@ public sealed class SharedMaterialContainerTests
     {
         using var host = Fixture();
         var inventories = host.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>();
-        Assert.Throws<ArgumentOutOfRangeException>(() => inventories.GetStore(
+        Assert.Throws<ArgumentOutOfRangeException>(() => inventories.GetPersistentStore(
             new ContainerOwner(InventoryOwnerType.Account, 0), BusinessInventoryStoreKind.Item));
-        Assert.Throws<ArgumentOutOfRangeException>(() => inventories.GetStore(
+        Assert.Throws<ArgumentOutOfRangeException>(() => inventories.GetPersistentStore(
             new ContainerOwner((InventoryOwnerType)99, 1), BusinessInventoryStoreKind.Item));
-        Assert.Throws<InvalidOperationException>(() => inventories.GetStore(
+        Assert.Throws<InvalidOperationException>(() => inventories.GetPersistentStore(
             new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item)
                 .GetContainer(BusinessInventorySpace.Material));
         var capacity = host.Services.GetRequiredService<IInventoryCapacityDomainService>();
@@ -96,7 +96,7 @@ public sealed class SharedMaterialContainerTests
     {
         using var host = Fixture();
         var shared = host.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
-            .GetStore(new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item)
+            .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.SharedMaterial);
         await Change(host, async () => { await shared.AddAsync(3033, 7, default); });
         foreach (var (index, core) in new[]
@@ -123,7 +123,7 @@ public sealed class SharedMaterialContainerTests
         using var host = Fixture();
         host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
         var store = host.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
-            .GetStore(new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item);
+            .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, 1), BusinessInventoryStoreKind.Item);
         var shared = store.GetContainer(BusinessInventorySpace.SharedMaterial);
         var cargo = store.GetContainer(BusinessInventorySpace.AccountCargo);
         await Change(host, async () =>
@@ -148,10 +148,10 @@ public sealed class SharedMaterialContainerTests
         host.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'offline')");
         var inventories = host.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>();
         var owner = new ContainerOwner(InventoryOwnerType.Account, 1);
-        var first = inventories.GetStore(owner, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.SharedMaterial);
-        var second = inventories.GetStore(new ContainerOwner(InventoryOwnerType.Account, 2), BusinessInventoryStoreKind.Item)
+        var first = inventories.GetPersistentStore(owner, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.SharedMaterial);
+        var second = inventories.GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, 2), BusinessInventoryStoreKind.Item)
             .GetContainer(BusinessInventorySpace.SharedMaterial);
-        var cargo = inventories.GetStore(owner, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.AccountCargo);
+        var cargo = inventories.GetPersistentStore(owner, BusinessInventoryStoreKind.Item).GetContainer(BusinessInventorySpace.AccountCargo);
         await Change(host, async () => Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>((await first.AddAsync(3033, 7, default)).Placement));
         Assert.Equal(7, (await first.GetAsync(0, default))!.Count);
         Assert.Empty(await second.GetAllAsync(default));

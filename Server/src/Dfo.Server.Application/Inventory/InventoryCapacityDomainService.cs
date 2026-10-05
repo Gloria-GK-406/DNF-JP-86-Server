@@ -45,7 +45,7 @@ internal sealed class InventoryCapacityRuleService : IInventoryCapacityRuleServi
             or BusinessInventorySpace.Material or BusinessInventorySpace.Quest
             or BusinessInventorySpace.ExpertMaterial => parameter is >= 0 and <= 24 && parameter % 8 == 0
                 ? 32 + parameter : 0,
-        BusinessInventorySpace.QuickSlot => 6,
+        BusinessInventorySpace.QuickSlot or BusinessInventorySpace.TowerQuickSlot => 6,
         BusinessInventorySpace.AvatarEmblem => 63,
         BusinessInventorySpace.CreatureInventory => 140,
         BusinessInventorySpace.CreatureEquipment => 49,

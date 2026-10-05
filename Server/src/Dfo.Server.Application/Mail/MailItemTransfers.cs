@@ -44,7 +44,7 @@ internal sealed class MailItemTransfers(IItemPlacementRuleService placements,
     {
         foreach (var space in CarriedSpaces)
         {
-            var container = inventories.GetStore(character, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
+            var container = inventories.GetPersistentStore(new ContainerOwner(InventoryOwnerType.Character, character.Value), BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
             if (container is null || !container.StorageId.TryGetCharacterOwner(out var owner, out _) || owner != character) continue;
             foreach (var item in await container.GetAllAsync(ct).ConfigureAwait(false))
             {
@@ -157,7 +157,7 @@ internal sealed class MailItemTransfers(IItemPlacementRuleService placements,
             var owner = space == BusinessInventorySpace.SharedMaterial
                 ? new ContainerOwner(InventoryOwnerType.Account, account.Value)
                 : new ContainerOwner(InventoryOwnerType.Character, character.Value);
-            return inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
+            return inventories.GetPersistentStore(owner, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
         }).ToArray();
     }
     private static MailException Error(MailFailure failure, string message) => new(failure, message);

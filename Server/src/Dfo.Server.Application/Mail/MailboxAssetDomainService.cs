@@ -25,7 +25,7 @@ internal sealed class MailboxAssetDomainService(IItemDomainStore store, IDomainT
                 ? new ContainerOwner(InventoryOwnerType.Account, (await owners.FindOwnerAsync(character, token)
                     ?? throw new InvalidDataException("Mail recipient no longer exists.")).Value)
                 : new ContainerOwner(InventoryOwnerType.Character, character.Value);
-            var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(slot.Space))
+            var container = inventories.GetPersistentStore(owner, BusinessInventoryOwnership.StoreOf(slot.Space))
                 .GetContainer(slot.Space);
             var item = await session.GetAsync(container.StorageId,
                 physical.Index, token).ConfigureAwait(false);

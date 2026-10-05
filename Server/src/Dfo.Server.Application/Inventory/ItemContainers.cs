@@ -79,6 +79,7 @@ internal abstract class StoreBackedItemContainer(
 
     public abstract bool IsRemovable { get; }
     public abstract bool IsDefault { get; }
+    public abstract bool IsPersistent { get; }
 
     public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) =>
         ReadAsync(session => session.GetAsync(id, index, ct));
@@ -112,7 +113,7 @@ internal abstract class StoreBackedItemContainer(
         var before = current.Snapshot;
         var next = change(before.DeepCopy()).DeepCopy();
         var virtualSlot = Type == InventoryContainerType.Main && reference.StorageSlotIndex is >= 0 and <= 2;
-        if ((capacities is not null || !IsDefault) && !virtualSlot)
+        if ((capacities is not null || !IsPersistent) && !virtualSlot)
         {
             var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, reference.StorageSlotIndex), before.LegacyKind);
             if (business.Index >= await OpenSlotsAsync(business.Space, ct).ConfigureAwait(false)
@@ -135,7 +136,7 @@ internal abstract class StoreBackedItemContainer(
     }
 
     private ValueTask<int> OpenSlotsAsync(BusinessInventorySpace space, CancellationToken ct) =>
-        IsDefault ? capacities!.OpenSlotCountAsync(id, space, ct)
+        IsPersistent ? capacities!.OpenSlotCountAsync(id, space, ct)
             : ValueTask.FromResult(new InventoryCapacityRuleService().OpenSlotCount(space, Shape.Parameter));
 
     private async ValueTask ValidatePlacementAsync(int index, ItemSnapshot snapshot, long total, CancellationToken ct)
@@ -143,7 +144,7 @@ internal abstract class StoreBackedItemContainer(
         if (Type == InventoryContainerType.Main && index == 1
             && snapshot is { LegacyKind: 0, ItemId: 1, Type: ItemTraits.None, IsPile: true }) return;
         var business = LegacyInventoryStorageCoordinates.ToBusiness(new(Type, index), snapshot.LegacyKind);
-        if ((capacities is not null || !IsDefault) && business.Index >= await OpenSlotsAsync(business.Space, ct).ConfigureAwait(false))
+        if ((capacities is not null || !IsPersistent) && business.Index >= await OpenSlotsAsync(business.Space, ct).ConfigureAwait(false))
             throw new InvalidOperationException($"Slot {business} is not open.");
         var placement = await placementRules.PlacementForAsync(snapshot.ItemId, business.Space, ct).ConfigureAwait(false);
         var worn = business.Space is BusinessInventorySpace.WornEquipment or BusinessInventorySpace.WornEquipmentExtension
@@ -152,7 +153,7 @@ internal abstract class StoreBackedItemContainer(
             ? ItemContainerAdmission.For(business.Space).Matches(snapshot.Type)
                 && await placementRules.WornSlotForAsync(snapshot.ItemId, ct).ConfigureAwait(false) == business
             : slotRules.CanOccupySlot(business, placement));
-        if (IsDefault && Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
+        if (IsPersistent && Type == InventoryContainerType.SharedMaterial && (!id.TryGetAccountOwner(out _, out var type) || type != Type)
             || placement is null || snapshot.LegacyKind != placement.ItemKind || snapshot.Type != placement.Traits
             || snapshot.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable)
             || snapshot.IsPile && placement.StackLimit > 0 && total > placement.StackLimit
@@ -226,14 +227,16 @@ internal sealed class PersistentItemContainer(
 {
     public override bool IsRemovable => false;
     public override bool IsDefault => true;
+    public override bool IsPersistent => true;
 }
 
-/// <summary>Run-owned item storage with the same placement rules as the permanent container.</summary>
-internal sealed class TemporaryItemContainer(ContainerId id, ContainerShape shape,
+internal sealed class MemoryItemContainer(ContainerId id, ContainerShape shape,
     IItemDomainStore store, IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placements, IItemSlotRuleService slots)
     : StoreBackedItemContainer(id, shape, store, transactions, placements, slots)
 {
-    public override bool IsRemovable => true;
-    public override bool IsDefault => false;
+    internal IItemLifecycleDomainService Lifecycle { get; } = new ItemLifecycleDomainService(store, transactions, placements);
+    public override bool IsRemovable => false;
+    public override bool IsDefault => true;
+    public override bool IsPersistent => false;
 }

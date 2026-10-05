@@ -334,6 +334,11 @@ internal sealed class ShopFixture : IDisposable
         bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
             provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, bag);
+        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
+            new MemoryItemContainer(new ContainerId($"tower:empty:{character}:fixture"), new(InventoryContainerType.QuickSlot, 6),
+                provider.GetRequiredService<ITransientItemDomainStoreFactory>().Create(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(),
+                provider.GetRequiredService<IItemSlotRuleService>()));
         equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
             provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
@@ -370,7 +375,7 @@ internal sealed class ShopFixture : IDisposable
     }
 
     public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
-        .GetStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
+        .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
         .GetContainer(BusinessInventorySpace.SharedMaterial);
 
     public async Task SeedShared(int item, int count, int account = 1)

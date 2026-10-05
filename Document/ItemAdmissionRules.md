@@ -24,8 +24,9 @@ var rule = new ItemAdmissionRule(
     all: ItemTraits.Creature | ItemTraits.Consumable);
 ```
 
-现有容器保留原允许集合，`All` 和 `Any` 都为空；迁移不改变物品分类、存储或报文。
+普通容器保留原允许集合，`All` 和 `Any` 都为空。2026-10-05 增加 Tower 特征与独立塔快捷栏，其准入要求如下。
 所有 flag 准入调用统一使用 `Matches`；现有容量、槽位、堆叠、所有权和 PVF 身份校验继续独立执行。
 装备查找中的 `Allowed == None` 仅用于跳过没有物品准入的业务空间，不用于判断某件物品是否可放入。
 
-当前没有增加 Tower 标志、塔快捷栏准入规则或类型 29 的协议适配，也没有增加规则 OR 组合或表达式引擎。
+塔快捷栏使用 `Allowed = Tower | Consumable | Material`、`All = Tower`、`Any = Consumable | Material`。普通容器的 Allowed 不含 Tower，因此塔物品不能流入普通背包。
+实现与验收边界见[死亡塔快捷栏](TowerQuickSlots-20261005.md)。没有增加规则 OR 组合或表达式引擎。

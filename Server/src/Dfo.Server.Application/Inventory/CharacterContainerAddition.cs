@@ -14,7 +14,7 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
     ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)
 {
     public async ValueTask<ContainerAddition> AddAsync(ICharacterContainerDomainService containers,
-        CharacterId character, int itemId, int count, CancellationToken ct)
+        CharacterId character, int itemId, int count, CancellationToken ct, bool persistent = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
@@ -27,17 +27,18 @@ internal sealed class CharacterContainerAddition(IItemPlacementRuleService place
                 ?? throw new ContainerAdditionException(ContainerAdditionFailure.UnknownItem);
             var type = LegacyInventoryStorageCoordinates.ToStorage(
                 new BusinessSlot(placement.Destination.Space, placement.Destination.FirstIndex)).List;
+            if (persistent && placement.Destination.Space == BusinessInventorySpace.TowerQuickSlot)
+                throw new InvalidOperationException("Tower items have no persistent destination.");
             var accountOwned = type is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial;
             var expectedOwner = accountOwned ? new ContainerOwner(InventoryOwnerType.Account, account.Value)
                 : new ContainerOwner(InventoryOwnerType.Character, character.Value);
-            // Honor a selected transactional container, validating both ownership and its kind.
-            // Offline delivery does not manufacture an online registration.
-            var bag = containers.FindContainer(character, type) ?? new PersistentItemContainer(
+            var bag = persistent ? new PersistentItemContainer(
                 accountOwned ? ContainerId.ForAccount(account, type) : ContainerId.ForCharacter(character, type),
-                new(type, 0), store, transactions, placements, slotRules, capacities);
+                new(type, 0), store, transactions, placements, slotRules, capacities)
+                : containers.GetContainer(character, type);
             if (bag is not StoreBackedItemContainer)
                 throw new NotSupportedException("Whole-quantity addition requires a transactional store-backed container.");
-            if (bag.Type != type || bag.IsDefault && (!bag.Id.TryGetOwner(out var actualOwner, out var actualType)
+            if (bag.Type != type || bag.IsPersistent && (!bag.Id.TryGetOwner(out var actualOwner, out var actualType)
                 || actualOwner != expectedOwner || actualType != type))
                 throw new InvalidOperationException("The selected container belongs to another owner or inventory type.");
             var business = new BusinessItemContainer(placement.Destination.Space, bag, placements, arrivals, creatures, capacities, lifecycle);

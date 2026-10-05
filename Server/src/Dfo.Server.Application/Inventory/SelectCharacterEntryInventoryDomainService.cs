@@ -21,7 +21,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IItemPlacementRuleService placementRules,
     IItemSlotRuleService slotRules,
     ICharacterEntryPreparationRuleService preparationRules,
-    IInventorySlotMappingRuleService? slotMappings = null, IInventoryCapacityDomainService? capacities = null) : ISelectCharacterEntryInventoryDomainService
+    IInventorySlotMappingRuleService? slotMappings = null, IInventoryCapacityDomainService? capacities = null,
+    ITransientItemDomainStoreFactory? transientStores = null) : ISelectCharacterEntryInventoryDomainService
 {
     private readonly IInventorySlotMappingRuleService slotMappings = slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
@@ -77,6 +78,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             ?? throw new InvalidDataException(
                 "Entry inventory has no avatar container to bind the character to.");
 
+        var transient = (transientStores ?? throw new InvalidOperationException("Memory inventory storage is not configured.")).Create();
         containers.Clear(characterId);
         foreach (var container in ((InventoryContainerState[])[main, equipment, avatar])
             .Concat(inventory.Containers.Where(value => value.ContainerType is InventoryContainerType.Pet
@@ -93,6 +95,9 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 placementRules,
                 slotRules, capacities));
         }
+        containers.Register(characterId, new MemoryItemContainer(
+            new ContainerId($"tower:empty:{characterId.Value}:{Guid.NewGuid():N}"), new(InventoryContainerType.QuickSlot, 6),
+            transient, transactions, placementRules, slotRules));
     }
 
     public async ValueTask<EntryInventoryPreparation> ApplyDailyRefillAsync(

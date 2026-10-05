@@ -7,6 +7,29 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ItemTraitsTests
 {
     [Theory]
+    [InlineData(6515, 3, ItemTraits.Material)]
+    [InlineData(6518, 2, ItemTraits.Consumable)]
+    [InlineData(6519, 2, ItemTraits.Consumable)]
+    [InlineData(6520, 2, ItemTraits.Consumable)]
+    [InlineData(6521, 2, ItemTraits.Consumable)]
+    [InlineData(6523, 2, ItemTraits.Consumable)]
+    [InlineData(6524, 2, ItemTraits.Consumable)]
+    public void Tower_items_require_the_tower_space_and_ordinary_items_cannot_enter_it(int id, byte kind, ItemTraits category)
+    {
+        var traits = ItemTraitClassification.For(kind, id);
+        Assert.Equal(category | ItemTraits.Tower, traits);
+        var tower = ItemContainerAdmission.For(BusinessInventorySpace.TowerQuickSlot);
+        Assert.True(tower.Matches(traits));
+        Assert.False(tower.Matches(category));
+        Assert.False(tower.Matches(ItemTraits.Tower));
+        Assert.False(tower.Matches(traits | ItemTraits.AccountShared));
+        foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable,
+            BusinessInventorySpace.Material, BusinessInventorySpace.SharedMaterial, BusinessInventorySpace.PersonalCargo,
+            BusinessInventorySpace.AccountCargo })
+            Assert.False(ItemContainerAdmission.For(space).Matches(traits));
+    }
+
+    [Theory]
     [InlineData(1, ItemTraits.Equipment)]
     [InlineData(2, ItemTraits.Consumable)]
     [InlineData(3, ItemTraits.Material)]

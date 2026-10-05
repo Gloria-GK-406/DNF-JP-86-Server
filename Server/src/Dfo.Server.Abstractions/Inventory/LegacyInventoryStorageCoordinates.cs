@@ -12,6 +12,7 @@ public static class LegacyInventoryStorageCoordinates
 
     private static readonly Band[] Bands =
     [
+        new(BusinessInventorySpace.TowerQuickSlot, InventoryContainerType.QuickSlot, 3, 8),
         new(BusinessInventorySpace.QuickSlot, InventoryContainerType.Main, 3, 8),
         new(BusinessInventorySpace.CarriedEquipment, InventoryContainerType.Main, 9, 64),
         new(BusinessInventorySpace.Consumable, InventoryContainerType.Main, 65, 120),

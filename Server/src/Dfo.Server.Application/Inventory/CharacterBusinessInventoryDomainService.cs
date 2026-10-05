@@ -14,48 +14,66 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
     IInventoryCapacityDomainService? capacities = null, IItemLifecycleDomainService? lifecycle = null)
     : ICharacterBusinessInventoryDomainService
 {
-    public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) =>
-        GetStore(new ContainerOwner(InventoryOwnerType.Character, characterId.Value), kind);
+    public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(characterId.Value);
+        return new BusinessInventoryStore(characterId, kind, backing, placements, arrivals, creatures, capacities, lifecycle);
+    }
 
-    public IBusinessInventoryStore GetStore(ContainerOwner owner, BusinessInventoryStoreKind kind)
+    public IBusinessInventoryStore GetPersistentStore(ContainerOwner owner, BusinessInventoryStoreKind kind)
     {
         if (owner.Value <= 0 || !Enum.IsDefined(owner.Scope)) throw new ArgumentOutOfRangeException(nameof(owner));
-        return new BusinessInventoryStore(owner, kind, backing, placements, arrivals, creatures,
-            items, transactions, slotRules, capacities, lifecycle);
+        if (items is null || transactions is null || placements is null || slotRules is null)
+            throw new InvalidOperationException("Persistent inventory access is not configured.");
+        return new PersistentBusinessInventoryStore(owner, kind, items, transactions, placements, slotRules,
+            arrivals, creatures, capacities, lifecycle);
     }
 
-    private sealed class BusinessInventoryStore(ContainerOwner owner, BusinessInventoryStoreKind kind,
+    private sealed class BusinessInventoryStore(CharacterId characterId, BusinessInventoryStoreKind kind,
         ICharacterContainerDomainService backing, IItemPlacementRuleService? placements,
         IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
-        IItemDomainStore? items, IDomainTransactionAccessor? transactions,
-        IItemSlotRuleService? slotRules, IInventoryCapacityDomainService? capacities, IItemLifecycleDomainService? lifecycle) : IBusinessInventoryStore
+        IInventoryCapacityDomainService? capacities, IItemLifecycleDomainService? lifecycle) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
-
         public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false)
         {
-            if (BusinessInventoryOwnership.StoreOf(space) != kind)
-                throw new InvalidOperationException($"{space} does not belong to the {kind} store.");
+            CheckStore(space, kind);
             var address = LegacyInventoryStorageCoordinates.ToStorage(new BusinessSlot(space, 0));
-            var accountSpace = space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial;
-            if (owner.Scope == InventoryOwnerType.Account && !accountSpace)
-                throw new InvalidOperationException($"{space} is not an account-owned business container.");
-            var characterId = owner.Scope == InventoryOwnerType.Character ? new CharacterId(owner.Value) : default;
-            var container = owner.Scope == InventoryOwnerType.Character ? backing.FindContainer(characterId, address.List, isDefault) : null;
-            if (container is null && (owner.Scope == InventoryOwnerType.Account || !accountSpace)
-                && items is not null && transactions is not null
-                && placements is not null && arrivals is not null && slotRules is not null)
-                container = new PersistentItemContainer(owner.Scope == InventoryOwnerType.Account
-                        ? ContainerId.ForAccount(new AccountId(owner.Value), address.List)
-                        : ContainerId.ForCharacter(characterId, address.List),
-                    new ContainerShape(address.List, 0), items, transactions, placements, slotRules, capacities);
+            var container = backing.FindContainer(characterId, address.List, isDefault);
             return container is null ? null : new BusinessItemContainer(space, container, placements, arrivals, creatures, capacities, lifecycle);
         }
-
         public IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false) =>
-            FindContainer(space, isDefault) ?? throw new InvalidOperationException(
-                $"Owner {owner.Scope}:{owner.Value} has no container for {space}.");
+            FindContainer(space, isDefault) ?? throw new InvalidOperationException($"Character {characterId.Value} has no registered {space} container.");
     }
+
+    private sealed class PersistentBusinessInventoryStore(ContainerOwner owner, BusinessInventoryStoreKind kind,
+        IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placements,
+        IItemSlotRuleService slots, IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
+        IInventoryCapacityDomainService? capacities, IItemLifecycleDomainService? lifecycle) : IBusinessInventoryStore
+    {
+        public BusinessInventoryStoreKind Kind => kind;
+        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) => GetContainer(space, isDefault);
+        public IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false)
+        {
+            CheckStore(space, kind);
+            if (space == BusinessInventorySpace.TowerQuickSlot)
+                throw new InvalidOperationException("Tower quick slots have no persistent storage.");
+            var accountSpace = space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial;
+            if (accountSpace != (owner.Scope == InventoryOwnerType.Account))
+                throw new InvalidOperationException($"{space} does not belong to {owner.Scope}.");
+            var type = LegacyInventoryStorageCoordinates.ToStorage(new BusinessSlot(space, 0)).List;
+            var id = owner.Scope == InventoryOwnerType.Account ? ContainerId.ForAccount(new AccountId(owner.Value), type)
+                : ContainerId.ForCharacter(new CharacterId(owner.Value), type);
+            return new BusinessItemContainer(space, new PersistentItemContainer(id, new(type, 0), items,
+                transactions, placements, slots, capacities), placements, arrivals, creatures, capacities, lifecycle);
+        }
+    }
+    private static void CheckStore(BusinessInventorySpace space, BusinessInventoryStoreKind kind)
+    {
+        if (BusinessInventoryOwnership.StoreOf(space) != kind)
+            throw new InvalidOperationException($"{space} does not belong to the {kind} store.");
+    }
+
 }
 
 internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemContainer backing,
@@ -67,10 +85,11 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
     public ContainerId StorageId { get; } = ValidateStorage(space, backing);
     public BusinessInventorySpace Space => space;
     public bool IsDefault => backing.IsDefault;
+    public bool IsPersistent => backing.IsPersistent;
     public ItemAdmissionRule Admission => ItemContainerAdmission.For(space);
 
     public ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
-        !backing.IsDefault ? ValueTask.FromResult(new InventoryCapacityRuleService().OpenSlotCount(space, backing.Shape.Parameter))
+        !backing.IsPersistent ? ValueTask.FromResult(new InventoryCapacityRuleService().OpenSlotCount(space, backing.Shape.Parameter))
             : capacities is null ? ValueTask.FromResult(int.MaxValue)
             : capacities.OpenSlotCountAsync(backing.Id, space, cancellationToken);
 
@@ -232,7 +251,8 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
                 }
                 else if (placement.WorldClass == ItemWorldClass.Avatar)
                     snapshot = snapshot with { AvatarDetail = ArrivingAvatar.Facts() };
-                var record = await (lifecycle ?? throw new InvalidOperationException("Item lifecycle service is missing."))
+                var record = await ((backing is MemoryItemContainer memory ? memory.Lifecycle : lifecycle)
+                    ?? throw new InvalidOperationException("Item lifecycle service is missing."))
                     .CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
                 await destination.PutAsync(empty.Slot.Index, record, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -254,7 +274,7 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
 
     private static ContainerId ValidateStorage(BusinessInventorySpace space, IItemContainer backing)
     {
-        if (backing.IsDefault && space == BusinessInventorySpace.SharedMaterial
+        if (backing.IsPersistent && space == BusinessInventorySpace.SharedMaterial
             && (!backing.Id.TryGetAccountOwner(out _, out var type) || type != InventoryContainerType.SharedMaterial
                 || backing.Type != InventoryContainerType.SharedMaterial))
             throw new InvalidOperationException($"Shared material container {backing.Id} must belong to an account.");

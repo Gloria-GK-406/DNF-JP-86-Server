@@ -171,6 +171,67 @@ public sealed class CharacterContainerDomainServiceTests
         Assert.Same(permanent, registry.GetContainer(Character, InventoryContainerType.Main));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Replacing_default_preserves_selection_and_rollback(bool separateCurrent)
+    {
+        var scope = new DomainTransactionScope();
+        ICharacterContainerDomainService registry = new CharacterContainerDomainService(transactions: scope);
+        var original = Container("original", removable: false);
+        var replacement = Container("replacement", removable: false);
+        var temporary = Container("temporary");
+        registry.Register(Character, original);
+        if (separateCurrent)
+        {
+            registry.Register(Character, temporary);
+            registry.UseContainer(Character, temporary.Id);
+        }
+        await using (var tx = scope.Begin())
+        {
+            registry.ReplaceDefault(Character, original.Id, replacement);
+            Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main, true));
+            Assert.Same(separateCurrent ? temporary : replacement, registry.GetContainer(Character, InventoryContainerType.Main));
+        }
+        Assert.Same(original, registry.GetContainer(Character, InventoryContainerType.Main, true));
+        await using (var tx = scope.Begin())
+        {
+            registry.ReplaceDefault(Character, original.Id, replacement);
+            await tx.CommitAsync(default);
+        }
+        if (separateCurrent) registry.Remove(Character, temporary.Id);
+        Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal([replacement], registry.GetContainers(Character, InventoryContainerType.Main));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("current")]
+    [InlineData("duplicate")]
+    [InlineData("wrong-type")]
+    [InlineData("non-default")]
+    public void Invalid_default_replacement_keeps_both_bindings(string scenario)
+    {
+        ICharacterContainerDomainService registry = new CharacterContainerDomainService();
+        var original = Container("original", removable: false);
+        var current = Container("current");
+        registry.Register(Character, original);
+        registry.Register(Character, current);
+        registry.UseContainer(Character, current.Id);
+        var expected = scenario is "missing" or "current" ? new ContainerId(scenario) : original.Id;
+        var replacement = scenario switch
+        {
+            "duplicate" => Container("current", removable: false),
+            "wrong-type" => Container("new", InventoryContainerType.Avatar),
+            "non-default" => Container("new"),
+            _ => Container("new", removable: false),
+        };
+        Assert.Throws<InvalidOperationException>(() => registry.ReplaceDefault(Character, expected, replacement));
+        Assert.Same(original, registry.GetContainer(Character, InventoryContainerType.Main, true));
+        Assert.Same(current, registry.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal([original, current], registry.GetContainers(Character, InventoryContainerType.Main));
+    }
+
     private static IItemContainer Container(string id, bool removable = true) =>
         new StandInContainer(
             new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0), removable);
