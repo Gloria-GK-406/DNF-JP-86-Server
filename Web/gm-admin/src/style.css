@@ -33,9 +33,9 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
 .mail-picker-config { background: #fafbfe; }
 .mail-picker-config .ant-empty { padding: 20px 0; }
 .mail-picker-loading { text-align: center; padding: 40px 0; color: #748094; }
-.mail-workflow-modal { top: 32px; max-width: calc(100vw - 32px); padding-bottom: 32px; }
-.mail-workflow-modal .ant-modal-body { max-height: calc(100dvh - 190px); overflow-y: auto; }
-.mail-workflow-body { margin-top: 24px; }
+.mail-workflow-modal, .cera-workflow-modal { top: 32px; max-width: calc(100vw - 32px); padding-bottom: 32px; }
+.mail-workflow-modal .ant-modal-body, .cera-workflow-modal .ant-modal-body { max-height: calc(100dvh - 190px); overflow-y: auto; }
+.mail-workflow-body, .cera-workflow-body { margin-top: 24px; }
 @media (max-width: 900px) {
   .mail-picker-filters { grid-template-columns: 1fr 1fr; }
   .mail-picker-body { grid-template-columns: 1fr; }
