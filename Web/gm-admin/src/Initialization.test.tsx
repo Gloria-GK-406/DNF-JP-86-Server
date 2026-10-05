@@ -14,7 +14,7 @@ function open() { return render(<ConfigProvider theme={{ token: { motion: false 
 beforeEach(() => {
   data = { account: { revision: 2, input: { cera: 100, tokenCera: 20, happyTokenCera: 0, accountCargoLevel: 0, contracts: [{ type: 97, days: 30 }] }, updatedAt: null, updatedBy: '配置管理员' },
     character: { revision: 3, input: { level: 1, personalCargoLevel: 8, items: [] }, updatedAt: null, updatedBy: '配置管理员' },
-    options: { maximumLevel: 86, contracts: [{ value: 97, label: '晶之契约' }], personalCargo: [{ value: 8, label: '8 格' }, { value: 24, label: '24 格' }], accountCargo: [{ value: 0, label: '未开通' }, { value: 8, label: '8 格' }] } };
+    options: { maximumLevel: 86, contracts: [{ value: 97, label: '晶之契约' }], personalCargo: [{ value: 8, label: '破烂的铁质金库（8格）' }, { value: 24, label: '生锈的铜质金库（24格）' }], accountCargo: [{ value: 0, label: '未开通' }, { value: 8, label: '账号金库（8格）' }] } };
   mocked.mockImplementation(async (path, payload) => {
     if (path === 'auth/status') return { initialized: true }; if (path === 'auth/session') return identity;
     if (path === 'initialization') return structuredClone(data);

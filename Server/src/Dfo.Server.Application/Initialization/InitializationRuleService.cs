@@ -31,12 +31,17 @@ internal sealed class InitializationRuleService(IInventoryExpansionRuleService e
         return details;
     }
     private static readonly InitializationChoice[] Contracts = [new(22, "霸王之契约"), new(27, "达人之契约"), new(84, "成长之契约"), new(97, "晶之契约")];
+    // A21 client dstr names: 1160/1161/6625/1162/6626/1163/6627/5570/22056/22057/44495..44497.
+    // These capacities are total open slots, not an upgrade's added slots.
+    private static readonly string[] PersonalCargoNames = ["破烂的铁质金库", "生锈的铜质金库", "银质金库", "精炼的银质金库",
+        "黄金金库", "华丽的黄金金库", "耀眼的黄金金库", "坚固的金刚石金库", "华丽的金刚石金库", "泰拉石金库",
+        "华丽的泰拉石金库", "魔刹石金库", "华丽的魔刹石金库"];
     public static AccountInitialization DefaultAccount() => new(0, 0, 0, 0, []);
     public static CharacterInitialization DefaultCharacter() => new(1, 8, []);
     public async ValueTask<InitializationOptions> OptionsAsync(CancellationToken ct) => new(
         Math.Min(86, experience.Progression().LevelThresholds.Count + 1), [.. Contracts],
-        Enumerable.Range(0, 13).Select(i => new InitializationChoice(8 + i * 16, $"{8 + i * 16} 格")).ToArray(),
-        [new(0, "未开通"), .. (await expansion.AccountCargoAsync(ct)).Tiers.Select(t => new InitializationChoice(t.Capacity, $"{t.Capacity} 格"))]);
+        PersonalCargoNames.Select((name, i) => new InitializationChoice(8 + i * 16, $"{name}（{8 + i * 16}格）")).ToArray(),
+        [new(0, "未开通"), .. (await expansion.AccountCargoAsync(ct)).Tiers.Select(t => new InitializationChoice(t.Capacity, $"账号金库（{t.Capacity}格）"))]);
     public async ValueTask ValidateAsync(AccountInitialization input, CancellationToken ct)
     {
         if (input is null || input.Cera < 0 || input.TokenCera < 0 || input.HappyTokenCera < 0 || input.Contracts is null
