@@ -54,6 +54,44 @@ public sealed class GmEventsHttpTests
     private static async Task Clears(GmTestHost host,int count=4)
     { for(var i=0;i<count;i++) Assert.True(await host.Services.GetRequiredService<ICommandBus>().SendAsync(new Act(new(1),RunId:Guid.NewGuid()))); }
     [Fact]
+    public async Task List_contains_only_common_fields_and_specific_settings_are_read_only_without_creating_state()
+    {
+        await using var host=await GmTestHost.StartAsync(configureServices:s=>Content(s));
+        var token=await GmCeraHttpTests.Login(host);
+        using var list=System.Text.Json.JsonDocument.Parse(await host.Client.GetStringAsync(Url));
+        var entry=list.RootElement.GetProperty("entries")[0];
+        foreach(var field in new[]{"sourcePath","requiredClears","totalWeeks","weeklyRewards","cumulativeRewards"})
+            Assert.False(entry.TryGetProperty(field,out _));
+        var settings=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
+        Assert.Equal(2208,settings.EventId);Assert.Equal(0,settings.Revision);Assert.Equal("initial",settings.SeasonId);
+        Assert.True(settings.Available);Assert.Equal(4,settings.RequiredClears);Assert.Equal(12,settings.TotalWeeks);
+        Assert.Equal(12,settings.WeeklyRewards.Length);Assert.Equal(new[]{4,8,11},settings.CumulativeRewards.Select(r=>r.AttendanceNo));
+        Assert.Empty(await host.ReadAsync("SELECT event_id FROM event_configuration"));
+        Assert.Empty(await host.ReadAsync("SELECT operation_id FROM gm_audit WHERE action='ChangeEvent'"));
+        using var response=await host.PostAsync(Url+"/weekly-attendance/settings",token,new { requiredClears=99 });
+        Assert.Equal(HttpStatusCode.Forbidden,response.StatusCode);
+        Assert.Empty(await host.ReadAsync("SELECT event_id FROM event_configuration"));
+        await Change(host,token,Configure(0));
+        var updated=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
+        Assert.Equal(1,updated.Revision);Assert.Equal("initial",updated.SeasonId);Assert.Equal(4,updated.RequiredClears);
+    }
+    [Fact]
+    public async Task Specific_settings_require_full_permission_and_missing_rules_do_not_fabricate_targets()
+    {
+        await using(var denied=await GmTestHost.StartAsync(permissions:"QueryPlayers",configureServices:s=>Content(s)))
+        {
+            Assert.Equal(HttpStatusCode.Unauthorized,(await denied.Client.GetAsync(Url+"/weekly-attendance/settings")).StatusCode);
+            await GmCeraHttpTests.Login(denied);
+            Assert.Equal(HttpStatusCode.Forbidden,(await denied.Client.GetAsync(Url+"/weekly-attendance/settings")).StatusCode);
+        }
+        await using var host=await GmTestHost.StartAsync(configureServices:s=>Content(s,new Rules { Broken=true }));
+        await GmCeraHttpTests.Login(host);
+        var settings=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
+        Assert.False(settings.Available);Assert.NotNull(settings.UnavailableReason);
+        Assert.Null(settings.RequiredClears);Assert.Null(settings.TotalWeeks);
+        Assert.Empty(settings.WeeklyRewards);Assert.Empty(settings.CumulativeRewards);
+    }
+    [Fact]
     public async Task Registered_events_are_available_to_authorized_administrator()
     {
         await using var host = await GmTestHost.StartAsync();
@@ -162,7 +200,8 @@ public sealed class GmEventsHttpTests
         var path=new PvfContentOptions().ResolveArchivePath()!;
         await using var host=await GmTestHost.StartAsync(realContent:true,configuration:new Dictionary<string,string?> { ["Pvf:ArchivePath"]=path },configureServices:s=>
         { s.AddSingleton<IDungeonDefinitionSource>(new Dungeons());s.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive); });
-        await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);var entry=await Get(host);
+        await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);
+        var entry=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.True(entry.Available,entry.UnavailableReason);Assert.Equal("event/chn_event/chn_totalattendance.evt",entry.SourcePath);Assert.Equal(4,entry.RequiredClears);
         Assert.Equal(new[]{490003187,490003188,490003189,490003196,490003190,490003191,490003192,490003197,490003193,490003194,490003195,490003198},entry.WeeklyRewards.Select(r=>r.ItemId));
         Assert.Equal(new[]{4,8,11},entry.CumulativeRewards.Select(r=>r.AttendanceNo));

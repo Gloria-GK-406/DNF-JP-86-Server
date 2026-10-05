@@ -18,6 +18,7 @@ public interface IEventManagementDomainService
 }
 public interface IWeeklyAttendanceDomainService
 {
+    ValueTask<WeeklyAttendanceSettings> SettingsAsync(CancellationToken ct);
     ValueTask<WeeklyAttendanceState> StateAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
     ValueTask<bool> RecordClearAsync(AccountId account, Guid runId, int dungeonId, int level, DateTimeOffset now, CancellationToken ct);
     ValueTask<AttendanceClaimResult> ClaimAsync(AccountId account, CharacterId recipient, DateTimeOffset now, CancellationToken ct);

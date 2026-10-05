@@ -9,10 +9,12 @@ public sealed record EventConfiguration(long Revision, string SeasonId, bool Ena
     DateTimeOffset? UpdatedAt = null, string? UpdatedBy = null, string? RuleDefinition = null);
 public sealed record ManagedEventEntry(int EventId, string Type, long Revision, string SeasonId, bool Enabled, string Status,
     string Title, string ShortName, string Description, string StartNotice, string EndNotice,
-    DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, string SourcePath, bool Available, string? UnavailableReason,
-    int RequiredClears, int TotalWeeks, AttendanceReward[] WeeklyRewards, AttendanceReward[] CumulativeRewards,
+    DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, bool Available, string? UnavailableReason,
     DateTimeOffset? UpdatedAt, string? UpdatedBy);
 public sealed record ManagedEventList(ManagedEventEntry[] Entries);
+public sealed record WeeklyAttendanceSettings(int EventId, long Revision, string SeasonId, string SourcePath,
+    bool Available, string? UnavailableReason, int? RequiredClears, int? TotalWeeks,
+    AttendanceReward[] WeeklyRewards, AttendanceReward[] CumulativeRewards);
 public sealed record EventChange([property: JsonRequired] int EventId, [property: JsonRequired] long ExpectedRevision,
     [property: JsonRequired] string Action, string? Title = null, string? ShortName = null, string? Description = null,
     string? StartNotice = null, string? EndNotice = null, DateTimeOffset? StartsAt = null, DateTimeOffset? EndsAt = null);

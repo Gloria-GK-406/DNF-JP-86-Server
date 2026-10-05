@@ -4,7 +4,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Administration;
 namespace Dfo.Server.Application.Events;
-internal sealed class GmEventsDomainService(IGmAccessDomainService access,IEventManagementDomainService events,
+internal sealed class GmEventsDomainService(IGmAccessDomainService access,IEventManagementDomainService events,IWeeklyAttendanceDomainService attendance,
     IEventPersistence store,IGmAuditDomainService audit,TimeProvider clock) : IGmEventsDomainService
 {
     private async ValueTask<GmIdentity> Authorize(string secret,CancellationToken ct)
@@ -15,6 +15,8 @@ internal sealed class GmEventsDomainService(IGmAccessDomainService access,IEvent
     }
     public async ValueTask<ManagedEventList> ListAsync(string secret,CancellationToken ct)
     { await Authorize(secret,ct); return await events.ListAsync(clock.GetUtcNow(),ct); }
+    public async ValueTask<WeeklyAttendanceSettings> WeeklyAttendanceSettingsAsync(string secret,CancellationToken ct)
+    { await Authorize(secret,ct); return await attendance.SettingsAsync(ct); }
     public async ValueTask<ManagedEventList> ChangeAsync(string secret,EventChange change,CancellationToken ct)
     {
         await store.AcquireWriteAsync(ct);
@@ -28,6 +30,9 @@ internal sealed class GmEventsDomainService(IGmAccessDomainService access,IEvent
 public sealed record QueryGmEventsCommand(string Secret) : ICommand<ManagedEventList>;
 internal sealed class QueryGmEventsCommandHandler(IGmEventsDomainService events) : ICommandHandler<QueryGmEventsCommand,ManagedEventList>
 { public ValueTask<ManagedEventList> HandleAsync(CommandExecutionContext c,QueryGmEventsCommand q,CancellationToken ct)=>events.ListAsync(q.Secret,ct); }
+public sealed record QueryGmWeeklyAttendanceSettingsCommand(string Secret) : ICommand<WeeklyAttendanceSettings>;
+internal sealed class QueryGmWeeklyAttendanceSettingsCommandHandler(IGmEventsDomainService events) : ICommandHandler<QueryGmWeeklyAttendanceSettingsCommand,WeeklyAttendanceSettings>
+{ public ValueTask<WeeklyAttendanceSettings> HandleAsync(CommandExecutionContext c,QueryGmWeeklyAttendanceSettingsCommand q,CancellationToken ct)=>events.WeeklyAttendanceSettingsAsync(q.Secret,ct); }
 public sealed record ChangeGmEventsCommand(string Secret,EventChange Change) : ICommand<ManagedEventList>;
 internal sealed class ChangeGmEventsCommandHandler(IGmEventsDomainService events) : ICommandHandler<ChangeGmEventsCommand,ManagedEventList>
 { public ValueTask<ManagedEventList> HandleAsync(CommandExecutionContext c,ChangeGmEventsCommand q,CancellationToken ct)=>events.ChangeAsync(q.Secret,q.Change,ct); }

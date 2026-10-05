@@ -29,8 +29,13 @@ internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWee
         var c = await Configuration(ct); var (d,error) = await Definition(c,ct);
         var status = d is null ? "unavailable" : !c.Enabled ? "disabled" : c.StartsAt > now ? "scheduled" : c.EndsAt <= now ? "expired" : "active";
         return new(EventId,"weekly-attendance",c.Revision,c.SeasonId,c.Enabled,status,c.Title,c.ShortName,c.Description,c.StartNotice,c.EndNotice,
-            c.StartsAt,c.EndsAt,d?.SourcePath ?? "event/chn_event/chn_totalattendance.evt",d is not null,error,d?.RequiredClears ?? 0,d?.TotalWeeks ?? 0,
-            d?.WeeklyRewards ?? [],d?.CumulativeRewards ?? [],c.UpdatedAt,c.UpdatedBy);
+            c.StartsAt,c.EndsAt,d is not null,error,c.UpdatedAt,c.UpdatedBy);
+    }
+    public async ValueTask<WeeklyAttendanceSettings> SettingsAsync(CancellationToken ct)
+    {
+        var c = await Configuration(ct); var (d,error) = await Definition(c,ct);
+        return new(EventId,c.Revision,c.SeasonId,d?.SourcePath ?? "event/chn_event/chn_totalattendance.evt",d is not null,error,
+            d?.RequiredClears,d?.TotalWeeks,d?.WeeklyRewards ?? [],d?.CumulativeRewards ?? []);
     }
     public async ValueTask<EventInfo?> GetEventInfoAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {

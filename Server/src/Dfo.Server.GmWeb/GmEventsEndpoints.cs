@@ -21,6 +21,8 @@ internal static class GmEventsEndpoints
         var permission=new GmRequiredPermission(GmPermission.All);
         group.MapGet(Prefix,(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
             Results.Ok(await bus.SendAsync(new QueryGmEventsCommand(Secret(c)),c.RequestAborted)))).WithMetadata(permission);
+        group.MapGet(Prefix+"/weekly-attendance/settings",(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
+            Results.Ok(await bus.SendAsync(new QueryGmWeeklyAttendanceSettingsCommand(Secret(c)),c.RequestAborted)))).WithMetadata(permission);
         group.MapPost(Prefix,(HttpContext c,ICommandBus bus,INotificationBus notices,ISelectedSessionSnapshotQuery online)=>GmInitializationEndpoints.Safe(c,async()=>
         {
             var result=await bus.SendAsync(new ChangeGmEventsCommand(Secret(c),await Read(c)),c.RequestAborted);
