@@ -234,6 +234,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS gm_mail_drafts (administrator_id INTEGER PRIMARY KEY,document TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
+        CREATE TABLE IF NOT EXISTS initialization_settings(kind TEXT PRIMARY KEY CHECK(kind IN ('account','character')),revision INTEGER NOT NULL,input TEXT NOT NULL,updated_at INTEGER NOT NULL,updated_by TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_cera_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
         CREATE TABLE IF NOT EXISTS notice_states (
             owner_type INTEGER NOT NULL CHECK(owner_type IN (0,1)),

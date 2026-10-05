@@ -100,7 +100,7 @@ public sealed class CharacterRepositoryProductsTests
             characterId => new PlayingCharacter(
                 characterId, judgement, cooldowns, presence, new NoCarriedGold(),
                 new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
-                new NoSkillPointLedger(), null!, null!));
+                new NoSkillPointLedger(), null!, null!), null!);
     }
 
     /// <summary>A table holding a row for character 60 and for nobody else.</summary>

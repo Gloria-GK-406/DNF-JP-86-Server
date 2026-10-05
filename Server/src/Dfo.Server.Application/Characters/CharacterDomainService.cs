@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
     ICharacterCreationRuleService creationRules,
-    Func<CharacterId, ICharacter> playingCharacter)
+    Func<CharacterId, ICharacter> playingCharacter, Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService> initialization)
     : ICharacterDomainService
 {
     /// <remarks>
@@ -172,6 +172,7 @@ internal sealed class CharacterDomainService(
             new NewCharacterSpec(
                 accountId, rawName, job, slotIndex, born.Stats, born.Skills, born.Equipment),
             cancellationToken).ConfigureAwait(false);
+        await initialization().ApplyCharacterAsync(characterId, cancellationToken).ConfigureAwait(false);
         return new CharacterCreationResult(CharacterCreationStatus.Created, characterId);
     }
 

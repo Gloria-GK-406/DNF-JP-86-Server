@@ -6,14 +6,16 @@ import { OverviewView } from './OverviewView';
 import { PlayerDirectoryView } from './PlayerDirectoryView';
 import { OfficialMailView } from './OfficialMailView';
 import { CeraGrantView } from './CeraGrantView';
+import { InitializationView } from './InitializationView';
 import { NotiHint, useNotiBar } from './NotiBar';
 
-const pages: { key: string; label: string; permission: Permission | null }[] = [
+const pages: { key: string; label: string; permission: Permission | 'All' | null }[] = [
   { key: '/', label: '服务概览', permission: 'QueryPlayers' }, { key: '/characters', label: '账号与角色', permission: 'QueryPlayers' },
   { key: '/mail', label: '官方邮件', permission: 'SendMail' }, { key: '/wallet', label: '点券发放', permission: 'GrantCera' },
+  { key: '/initialization', label: '初始化配置', permission: 'All' },
   { key: '/operations', label: '操作记录', permission: 'ViewAudit' },
 ];
-const actionLabels: Record<string, string> = { Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
+const actionLabels: Record<string, string> = { SaveInitialization: '保存初始化配置', Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
 const outcomeLabels: Record<string, string> = { Succeeded: '成功', Rejected: '拒绝', RolledBack: '已回滚', Unknown: '结果未确认' };
 
 export function AdminApp() {
@@ -21,6 +23,10 @@ export function AdminApp() {
   const [initialized, setInitialized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const noti = useNotiBar();
+  const [initializationDenied, setInitializationDenied] = useState(false);
+  const hasPermission = (value: Identity, permission: Permission | 'All') => permission === 'All'
+    ? !initializationDenied && (['QueryPlayers', 'SendMail', 'GrantCera', 'ViewAudit'] as Permission[]).every(p => value.permissions.includes(p))
+    : value.permissions.includes(permission);
   const generation = useRef(0);
   const mounted = useRef(true);
   const transitioning = useRef(false);
@@ -69,11 +75,12 @@ export function AdminApp() {
   }, [identity?.id]);
   async function login(values: { loginName: string; password: string }) {
     const epoch = beginTransition();
+    setInitializationDenied(false);
     setLoading(true);
     try {
       const current = await api<Identity>('auth/login', values);
       if (!isCurrent(epoch)) return;
-      applyIdentity(current); navigate(current.permissions.includes('ViewAudit') ? '/operations' : pages.find(page => page.permission !== null && current.permissions.includes(page.permission))?.key ?? '/');
+      applyIdentity(current); navigate(current.permissions.includes('ViewAudit') ? '/operations' : pages.find(page => page.permission !== null && hasPermission(current, page.permission))?.key ?? '/');
     } catch (failure) { if (isCurrent(epoch)) noti.failure(failure); }
     finally { if (isCurrent(epoch)) { transitioning.current = false; setLoading(false); } }
   }
@@ -96,9 +103,9 @@ export function AdminApp() {
         <Button htmlType="submit" type="primary" block loading={loading}>登录</Button>
       </Form>}
   </Card></div>;
-  const visible = pages.filter(page => page.permission === null || identity.permissions.includes(page.permission));
+  const visible = pages.filter(page => page.permission === null || hasPermission(identity, page.permission));
   const page = pages.find(item => item.key === location.pathname);
-  const allowed = page?.permission === null || (page?.permission !== undefined && identity.permissions.includes(page.permission));
+  const allowed = page?.permission === null || (page?.permission !== undefined && hasPermission(identity, page.permission));
   const viewGeneration = generation.current;
   return <Layout className="shell"><Layout.Sider className="sidebar" theme="light" width={216}>
     <div className="brand">DNF <span>GM 控制台</span></div><Menu items={visible} selectedKeys={[location.pathname]} onClick={({ key }) => navigate(key)} />
@@ -111,6 +118,7 @@ export function AdminApp() {
         location.pathname === '/' ? <OverviewView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
         location.pathname === '/characters' ? <PlayerDirectoryView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'QueryPlayers')} /> :
         location.pathname === '/mail' ? <OfficialMailView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'SendMail')} /> :
+        location.pathname === '/initialization' ? <InitializationView key={`${identity.id}:${viewGeneration}`} onExpired={() => expire(viewGeneration)} onDenied={() => { if (isCurrent(viewGeneration)) setInitializationDenied(true); }} /> :
         location.pathname === '/wallet' ? <CeraGrantView key={`${identity.id}:${viewGeneration}`} administratorId={identity.id} onExpired={() => expire(viewGeneration)} onDenied={() => denyPermission(viewGeneration, 'GrantCera')} /> :
         <Empty description="本模块将在后续阶段接入。" />}
     </Layout.Content></Layout></Layout>;

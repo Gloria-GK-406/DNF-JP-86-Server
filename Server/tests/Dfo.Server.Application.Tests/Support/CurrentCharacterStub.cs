@@ -13,7 +13,7 @@ internal sealed class CurrentCharacterStub : ICharacter
     public int Gold { get; set; }
     public Func<ValueTask<CharacterProgressionState?>>? ProgressReader { get; set; }
     public static ICharacterDomainService Domain(CurrentCharacterStub? character = null) =>
-        new CharacterDomainService(null!, null!, _ => character ?? new CurrentCharacterStub());
+        new CharacterDomainService(null!, null!, _ => character ?? new CurrentCharacterStub(), null!);
     public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken token) => ValueTask.FromResult(Stats);
     public ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken token) => ProgressReader?.Invoke() ?? ValueTask.FromResult(Progress);
     public ValueTask<CharacterIdentityState?> IdentityAsync(CancellationToken token) => ValueTask.FromResult(Identity);

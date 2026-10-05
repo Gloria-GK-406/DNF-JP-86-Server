@@ -32,6 +32,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         GmPlayerDirectoryEndpoints.Map(group);
         GmOfficialMailEndpoints.Map(group);
         GmCeraEndpoints.Map(group);
+        GmInitializationEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage);
     }
 

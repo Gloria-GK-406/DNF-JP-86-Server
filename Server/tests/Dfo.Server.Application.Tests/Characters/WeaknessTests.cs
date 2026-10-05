@@ -59,7 +59,7 @@ public sealed class WeaknessTests
     {
         var second = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
         var weakness = new WeaknessDomainService(() => new CharacterDomainService(null!, null!,
-                id => id == Id ? new CurrentCharacterStub() : second),
+                id => id == Id ? new CurrentCharacterStub() : second, null!),
             new WeaknessRuleService(new ConfigurationBuilder().Build()));
         var runs = new DungeonRunDomainService(null!, null!, weakness);
         DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];

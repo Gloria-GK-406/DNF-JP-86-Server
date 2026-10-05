@@ -41,3 +41,5 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
   .mail-picker-body { grid-template-columns: 1fr; }
   .mail-attachment-row { flex-wrap: wrap; }
 }
+
+.initialization-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 20px; }

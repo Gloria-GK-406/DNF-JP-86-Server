@@ -1,5 +1,7 @@
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Initialization;
+using Dfo.Server.Data.Initialization;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
@@ -28,6 +30,7 @@ public sealed class CharacterLifecycleServiceTests
         var repository = new FakeRepository(existing);
         var services = new ServiceCollection();
         services.AddSingleton<ICharacterRepository>(repository);
+        services.AddSingleton<IInitializationDomainService>(new CreationInitialization(repository));
         services.AddSingleton(stats);
         services.AddSingleton<IInitialSkillDefinitionSource>(new FakeInitialSkillSource());
         services.AddSingleton<IInitialEquipmentDefinitionSource>(new FakeInitialEquipmentSource());
@@ -35,6 +38,27 @@ public sealed class CharacterLifecycleServiceTests
             services,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         return (services.BuildServiceProvider().GetRequiredService<ICharacterDomainService>(), repository);
+    }
+
+    [Fact]
+    public async Task Creation_initializes_the_new_repository_identity_once()
+    {
+        var (service, repository) = Build();
+        var result = await service.CreateCharacterAsync(Account, 0, "Valid"u8.ToArray(), default);
+        Assert.Equal(result.CharacterId, Assert.Single(repository.Initialized));
+        Assert.NotNull(repository.LastSpec);
+    }
+
+    private sealed class CreationInitialization(FakeRepository repository) : IInitializationDomainService
+    {
+        public ValueTask ApplyCharacterAsync(CharacterId character, CancellationToken ct)
+        { Assert.NotNull(repository.LastSpec); repository.Initialized.Add(character); return ValueTask.CompletedTask; }
+        public ValueTask ApplyAccountAsync(AccountId account, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<InitializationDocument<AccountInitialization>> AccountAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<InitializationDocument<CharacterInitialization>> CharacterAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<InitializationOptions> OptionsAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<InitializationDocument<AccountInitialization>> SaveAsync(SaveInitializationRequest<AccountInitialization> r, string a, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<InitializationDocument<CharacterInitialization>> SaveAsync(SaveInitializationRequest<CharacterInitialization> r, string a, CancellationToken ct) => throw new NotSupportedException();
     }
 
     private static CharacterSummary Existing(ushort slot, string name) =>
@@ -354,6 +378,7 @@ public sealed class CharacterLifecycleServiceTests
     private sealed class FakeRepository(CharacterSummary[] existing) : ICharacterRepository
     {
         public NewCharacterSpec? LastSpec { get; private set; }
+        public List<CharacterId> Initialized { get; } = [];
 
         public List<CharacterId> Deleted { get; } = [];
 
