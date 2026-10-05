@@ -141,6 +141,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.Add(new CurrentUserStateMessage(appearance.Character(), appearance.Public(), equipment, pets));
             messages.Add(new ExtendedUserStateMessage(appearance.Character(), appearance.Public(), skills, equipment, state.At));
         }
+        if (needs.HasFlag(ReplayProjectionNeeds.Joust))
+            messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Messages(state.Joust ?? throw Missing("Joust")));
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

@@ -60,3 +60,14 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+
+## 2026-10-06 A21 JOUST 接线（ClientStatic / CurrentImplementation）
+
+EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
+
+46B：offset0 u16RoundNo；offset2 i32PersonalTotal；offset6起8×5B（u8KnightIndex,i32PersonalBet）。
+
+reader `000D23E0` ReadBytes0x2E，5B步长。
+
+实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。轮号由保存的UTC+8 schedule/start推导每日1..N，不使用当前已修改配置。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。

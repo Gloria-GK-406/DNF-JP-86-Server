@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-06 A21 骑士马战大竞猜
+
+[04E6](game/client-to-server/0x04E6.md)、[04E7](game/client-to-server/0x04E7.md)、[04E8](game/client-to-server/0x04E8.md)及[04B8](game/server-to-client/NOTI-0x04B8.md)/[04B9](game/server-to-client/NOTI-0x04B9.md)/[04BA](game/server-to-client/NOTI-0x04BA.md)/[04BB](game/server-to-client/NOTI-0x04BB.md)已接线原生查询、事务下注、历史、入场和提交后在线投影。ClientStatic + CurrentImplementation；HumanPending，无ClientVerified。04E7槽位i32、04BB四个u8、历史错误也固定3505B；LinkKey必须`joust event/0/0`。详见[使用说明](../Document/JoustEvents.md)。
+
 ## 2026-10-04 消耗品耗尽后的槽位同步（待实机复测）
 
 [CMD002C](game/client-to-server/0x002C.md#2026-10-04-a21-塔药耗尽后残留wirecaptured--currentimplementation修复待实机)使用结果后追加NOTI000E绝对槽位状态，耗尽清空；旧图标触发的空槽/物品不符请求拒绝并校准。死亡之塔临时背包有编码帧及永久背包隔离回归；故障已有用户观察和日志证据，修复仍为CurrentImplementation，未升级ClientVerified。

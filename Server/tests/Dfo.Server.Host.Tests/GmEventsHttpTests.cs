@@ -48,9 +48,9 @@ public sealed class GmEventsHttpTests
         services.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
     }
     private static EventChange Configure(long rev,string action="configure")=>new(2208,rev,action,"签到","周签到","说明","开始","结束",DateTimeOffset.Parse("2026-01-01T00:00:00Z"),DateTimeOffset.Parse("2028-01-01T00:00:00Z"));
-    private static async Task<ManagedEventEntry> Get(GmTestHost host)=>Assert.Single((await host.Client.GetFromJsonAsync<ManagedEventList>(Url))!.Entries);
+    private static async Task<ManagedEventEntry> Get(GmTestHost host)=>Assert.Single((await host.Client.GetFromJsonAsync<ManagedEventList>(Url))!.Entries,e=>e.EventId==2208);
     private static async Task<ManagedEventEntry> Change(GmTestHost host,string csrf,EventChange c)
-    { using var response=await host.PostAsync(Url,csrf,c);Assert.Equal(HttpStatusCode.OK,response.StatusCode);return Assert.Single((await response.Content.ReadFromJsonAsync<ManagedEventList>())!.Entries); }
+    { using var response=await host.PostAsync(Url,csrf,c);Assert.Equal(HttpStatusCode.OK,response.StatusCode);return Assert.Single((await response.Content.ReadFromJsonAsync<ManagedEventList>())!.Entries,e=>e.EventId==2208); }
     private static async Task<string> Enable(GmTestHost host)
     { var csrf=await GmCeraHttpTests.Login(host);await Change(host,csrf,Configure(0));await Change(host,csrf,new(2208,1,"enable"));return csrf; }
     private static async Task Clears(GmTestHost host,int count=4)
@@ -174,7 +174,7 @@ public sealed class GmEventsHttpTests
         await using(var host=await GmTestHost.StartAsync(directory:directory,configureServices:s=>Content(s)))
         {
             await GmPlayerDirectoryHttpTests.SeedAsync(host);var csrf=await Enable(host);season=(await Get(host)).SeasonId;
-            Assert.Same(host.Services.GetRequiredService<IWeeklyAttendanceDomainService>(),Assert.Single(host.Services.GetServices<IManagedEventDomainService>()));
+            Assert.Same(host.Services.GetRequiredService<IWeeklyAttendanceDomainService>(),Assert.Single(host.Services.GetServices<IManagedEventDomainService>(),e=>e.EventId==2208));
             var events=host.Services.GetRequiredService<IEventManagementDomainService>();Assert.Single(await events.GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default));
             var start=DateTimeOffset.Parse("2026-01-01T00:00:00Z");var end=DateTimeOffset.Parse("2028-01-01T00:00:00Z");
             Assert.Empty(await events.GetEventInfoListAsync(new(1),start.AddTicks(-1),default));Assert.Single(await events.GetEventInfoListAsync(new(1),start,default));

@@ -15,8 +15,8 @@ public enum ReplayProjectionNeeds
 {
     None = 0, Inventory = 1, Pets = 2, Skills = 4, Quests = 8, Experience = 16,
     Fatigue = 32, ItemUsage = 64, Premium = 128, CharacterAppearance = 256,
-    TownLocation = 512,
-    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation,
+    TownLocation = 512, Joust = 1024,
+    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation | Joust,
 }
 
 /// <summary>Only projection categories and physical addresses, never old receipts or reward increments.</summary>
@@ -131,7 +131,8 @@ public sealed record ReplayStateSnapshot(SelectedSessionIdentity Session, Replay
     ReplaySkillState? Skills, ReplayQuestState? Quests, CharacterProgressionState? Progress,
     CharacterSkillProtocolMirrorState? Points, CharacterFatigueBalance? Fatigue,
     ImmutableArray<ItemUsageState> ItemUsage, ImmutableArray<AccountPremiumEntryState> Premiums,
-    ImmutableArray<CharacterPremiumUsageSlotState> PremiumUsage, ReplayCharacterState? Appearance);
+    ImmutableArray<CharacterPremiumUsageSlotState> PremiumUsage, ReplayCharacterState? Appearance)
+{ public Dfo.Server.Data.Events.JoustState? Joust { get; init; } }
 
 public interface IReplayStateDomainService
 {
@@ -144,3 +145,7 @@ public interface IReplayStateProjectionDelivery
     ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
         ReplayProjectionRequest request, CancellationToken cancellationToken);
 }
+
+/// <summary>Records physical slots changed by a primary command that uses direct material consumption.</summary>
+public interface IRequestReplayProjectionDomainService
+{ void RecordInventorySlots(SelectedSessionIdentity session,IReadOnlyList<BusinessSlot> slots); }

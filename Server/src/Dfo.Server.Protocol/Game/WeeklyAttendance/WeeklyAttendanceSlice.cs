@@ -84,14 +84,13 @@ public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessio
         if (result.Succeeded) await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new MailboxChanged(session.CharacterId),ct);
     }
 }
-public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventManagementDomainService events,
-    IWeeklyAttendanceDomainService attendance,TimeProvider clock) : INotificationHandler<EventsChanged>
+public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection) : INotificationHandler<EventsChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
         if (sessions.FindByCharacter(recipient.CharacterId) is not { } session) return [];
-        var now=clock.GetUtcNow();
-        return [new EventInformationMessage(await events.GetEventInfoListAsync(session.AccountId,now,ct)),
-            new WeeklyAttendanceStateMessage(await attendance.StateAsync(session.AccountId,now,ct))];
+        var state=await projection.ReadNowAsync(session,ct);
+        return [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
+            .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Messages(joust) : []];
     }
 }

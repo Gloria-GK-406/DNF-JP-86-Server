@@ -25,7 +25,7 @@ internal sealed class EffectOperationEntry(SelectedSessionIdentity session, long
 }
 
 /// <summary>The synchronous flow frame connects the one primary command to its preallocated ledger entry.</summary>
-internal sealed class EffectOperationContext
+internal sealed class EffectOperationContext : IRequestReplayProjectionDomainService
 {
     private readonly AsyncLocal<Frame?> current = new();
     private readonly AsyncLocal<Execution?> execution = new();
@@ -111,6 +111,14 @@ internal sealed class EffectOperationContext
         if (ForSettlement(execution, command) is not { } frame) return;
         frame.Entry.State = uncertain ? EffectOperationState.Blocked
             : frame.RollbackConfirmed ? EffectOperationState.ConfirmedRollback : EffectOperationState.Rejected;
+    }
+    public void RecordInventorySlots(SelectedSessionIdentity session,IReadOnlyList<BusinessSlot> slots)
+    {
+        var frame=Current;if(frame is null)return;
+        if(execution.Value is not {IsMain:true,Closed:false} || frame.Frozen || !frame.TransactionStarted || frame.Recipient.Session!=session)
+            throw new InvalidOperationException("Inventory footprint requires the captured primary transaction.");
+        frame.Needs|=ReplayProjectionNeeds.Inventory;
+        foreach(var slot in slots)frame.Slots.Add(slot);
     }
     public void Record(EffectExecutionContext owner, IReadOnlyList<AppliedEffect> applied)
     {

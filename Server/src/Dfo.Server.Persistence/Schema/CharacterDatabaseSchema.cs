@@ -235,6 +235,11 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
         CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS event_joust_schedule(id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,input TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS event_joust_round(round_id TEXT PRIMARY KEY,starts_at INTEGER NOT NULL,ends_at INTEGER NOT NULL,settled INTEGER NOT NULL,input TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS ix_joust_round_time ON event_joust_round(starts_at DESC);
+        CREATE TABLE IF NOT EXISTS event_joust_bet(character_id INTEGER NOT NULL,request_id TEXT NOT NULL,round_id TEXT NOT NULL REFERENCES event_joust_round(round_id),input TEXT NOT NULL,PRIMARY KEY(character_id,request_id));
+        CREATE INDEX IF NOT EXISTS ix_joust_bet_round ON event_joust_bet(round_id);
         CREATE TABLE IF NOT EXISTS event_attendance_week(event_id INTEGER NOT NULL,season_id TEXT NOT NULL,account_id INTEGER NOT NULL,week_start INTEGER NOT NULL,clears INTEGER NOT NULL,attendance_no INTEGER NOT NULL,PRIMARY KEY(event_id,season_id,account_id,week_start));
         CREATE UNIQUE INDEX IF NOT EXISTS ux_event_attendance_claim ON event_attendance_week(event_id,season_id,account_id,attendance_no) WHERE attendance_no>0;
         CREATE TABLE IF NOT EXISTS event_consumed_runs(event_id INTEGER NOT NULL,season_id TEXT NOT NULL,account_id INTEGER NOT NULL,run_id TEXT NOT NULL,PRIMARY KEY(event_id,season_id,account_id,run_id));

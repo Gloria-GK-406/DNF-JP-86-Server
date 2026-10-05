@@ -163,7 +163,7 @@ public sealed class ReplayStateSnapshotTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(
             new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))));
         await Assert.ThrowsAsync<InvalidDataException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(fixture.Session, new((ReplayProjectionNeeds)1024, []))));
+            new ReadReplayStateCommand(fixture.Session, new((ReplayProjectionNeeds)2048, []))));
         await Assert.ThrowsAsync<InventorySlotMappingException>(async () => await bus.SendAsync(
             new ReadReplayStateCommand(fixture.Session, new(ReplayProjectionNeeds.Inventory,
                 [new(BusinessInventorySpace.VirtualResource, 0)]))));

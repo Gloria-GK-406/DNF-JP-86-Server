@@ -45,3 +45,6 @@ public interface IEventPersistence
     ValueTask<bool> CountClearAsync(int eventId, string season, AccountId account, DateTimeOffset week, Guid run, CancellationToken ct);
     ValueTask<bool> MarkClaimedAsync(int eventId, string season, AccountId account, DateTimeOffset week, int required, int maximum, CancellationToken ct);
 }
+
+public interface IEventPlayerProjectionDomainService
+{ ValueTask<EventPlayerSnapshot> ReadNowAsync(Dfo.Server.Data.World.SelectedSessionIdentity session,CancellationToken ct); }

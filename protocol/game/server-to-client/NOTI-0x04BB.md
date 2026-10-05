@@ -60,3 +60,14 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+
+## 2026-10-06 A21 JOUST 接线（ClientStatic / CurrentImplementation）
+
+EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
+
+31B：offset0 u16RoundNo；offset2 u8Stage；offset3起7×4B：+0 u8WinnerKnightIndex，+1 u8WinnerAuxIndex，+2 u8LoserKnightIndex，+3 u8LoserAuxIndex。绝不能写成两u16或padding。阶段0/1/2/3累计4/6/7/7个结果；尚未提供结果用KnightFF/Aux0占位（ServerPolicy，未来槽读取未实机确认）。
+
+reader `000D24A0` ReadBytes0x1F；consumer `000FCCA0/000F7A70`取+0/+1赢家、+2/+3输家，对方aux存对象+8。`016182F0`→`024FDC00`按Knight/Aux查Win/Loss表（+78/+8C），`024FD925/024FDA02`加载[win]/[loss]。PVF每表实际28整数=4×7，loader容量5选项不等于实际35整数。Aux0有效首项；真实原服选择策略Unknown。Stage3最终文本/scene12跳转仍Unknown。
+
+实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。轮号由保存的UTC+8 schedule/start推导每日1..N，不使用当前已修改配置。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Joust;
 using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Protocol.Game.Creatures;
@@ -129,6 +130,21 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustInfo);
+        services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustHistory);
+        services.RegisterMessageHandler<JoustBetHandler>(ClientMessageType.GameJoustBet);
+        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E6,ClientMessageType.GameJoustInfo);
+        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E8,ClientMessageType.GameJoustHistory);
+        services.AddGameCmdMessageDecoder<JoustBetDecoder>(0x04E7,ClientMessageType.GameJoustBet);
+        services.AddGameCmdMessageEncoder<JoustResponse,JoustResponseEncoder>();
+        services.AddGameNotiMessageEncoder<JoustStateMessage,GameNotiStateSynchronizationEncoder<JoustStateMessage>>();
+        services.AddGameNotiMessageEncoder<JoustInfoMessage,GameNotiStateSynchronizationEncoder<JoustInfoMessage>>();
+        services.AddGameNotiMessageEncoder<JoustBetsMessage,GameNotiStateSynchronizationEncoder<JoustBetsMessage>>();
+        services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustChanged,JoustChangedHandler>(retryLimit:0);
+        services.AddCommandHandler<JoustStateCommand,Dfo.Server.Data.Events.JoustState,JoustStateCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<JoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],JoustHistoryCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional,UserAccessMode.Exclusive,UserAccessMode.Exclusive);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler>(ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();

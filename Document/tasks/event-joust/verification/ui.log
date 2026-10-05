@@ -1,0 +1,16 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run --no-file-parallelism
+
+
+ RUN  v5.0.3 E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin
+
+
+ Test Files  10 passed (10)
+      Tests  138 passed (138)
+   Start at  03:12:51
+   Duration  56.94s (tests 56%, import 29%, environment 13%, setup 2%, transform 1%)
+
+     Import  38 modules were evaluated 186 times · 16.01s total, 29% of tracked time
+             ~12.74s faster with isolate: false — shared modules are evaluated once per worker instead of once per file
+             learn more: https://vitest.dev/guide/improving-performance#test-isolation

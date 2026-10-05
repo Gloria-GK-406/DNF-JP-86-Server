@@ -195,7 +195,7 @@ public sealed class EffectOperationReplayTests
         });
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry,
-            f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), (ReplayProjectionNeeds)1024);
+            f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), (ReplayProjectionNeeds)2048);
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
         Assert.Equal(100000, f.Gold); Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);

@@ -34,7 +34,6 @@ public sealed class NotificationHandlerArchitectureTests
     /// </summary>
     private static readonly IReadOnlyDictionary<Type, string> Exempt = new Dictionary<Type, string>
     {
-        [typeof(TimeProvider)] = "Environment clock for projecting an event's current availability; it reads no domain state.",
     };
 
     private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;

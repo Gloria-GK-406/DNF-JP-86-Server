@@ -58,6 +58,7 @@ public sealed class InfrastructureModule : IServerModule
         });
         services.TryAddSingleton<PvfArchiveProvider>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDefinitionSource, PvfWeeklyAttendanceDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDefinitionSource, PvfJoustDefinitionSource>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();

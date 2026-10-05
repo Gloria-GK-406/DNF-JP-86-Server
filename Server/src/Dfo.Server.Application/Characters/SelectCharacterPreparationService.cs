@@ -40,7 +40,8 @@ public sealed class SelectCharacterPreparationService(
     TimeProvider timeProvider,
     ICharacterPositionDomainService? currentPositions = null,
     Dfo.Server.Abstractions.Events.IEventManagementDomainService? events = null,
-    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
+    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> LoadCurrentAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -257,7 +258,8 @@ public sealed class SelectCharacterPreparationService(
             rosterEntry,
             events is null || attendance is null ? null : new Dfo.Server.Data.Events.EventPlayerSnapshot(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
-                await attendance.StateAsync(accountId,preparedAt,cancellationToken)));
+                await attendance.StateAsync(accountId,preparedAt,cancellationToken),
+                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)));
 
         return result;
     }

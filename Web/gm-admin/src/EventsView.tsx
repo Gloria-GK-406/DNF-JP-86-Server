@@ -52,7 +52,8 @@ export function EventsView(access: Access) {
   }
   function confirm(entry: EventEntry) {
     modal.confirm({ title: `${entry.enabled ? '停用' : '启用'}「${entry.title}」？`,
-      content: entry.enabled ? '停用后玩家不能继续参与活动或领取活动奖励；本期进度和已领取记录保留。' : '活动仅在配置的有效期内生效；本期进度和已领取记录保留，不会重复发奖。',
+      content: entry.type === 'joust' ? (entry.enabled ? '停用后禁止新下注；已有投注的轮次仍会继续结算并发放奖励。' : '活动仅在配置的有效期内允许下注；已有投注和奖励记录保留，不会重复发奖。') :
+        entry.enabled ? '停用后玩家不能继续参与活动或领取活动奖励；本期进度和已领取记录保留。' : '活动仅在配置的有效期内生效；本期进度和已领取记录保留，不会重复发奖。',
       okText: entry.enabled ? '确认停用' : '确认启用', cancelText: '取消', onOk: () => change(entry, entry.enabled ? 'disable' : 'enable') });
   }
   const locked = busy || uncertain || current.busy || !current.data;

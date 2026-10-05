@@ -80,6 +80,22 @@ it('未知活动类型只显示通用管理，不借用周签到界面', async (
   open(); expect(await screen.findByText('future-event')).toBeTruthy(); expect(screen.getByRole('button', { name: '通用配置' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: '设置活动' })).toBeNull();
 });
+it('马战设置独立分派，停用明确保留已有投注的结算责任', async () => {
+  data.entries[0].type = 'joust'; data.entries[0].title = '骑士马战大竞猜'; data.entries[0].enabled = true;
+  const original = mocked.getMockImplementation()!;
+  mocked.mockImplementation((path, payload) => path === 'events/joust/settings' ? Promise.resolve({
+    eventId: 2365, revision: 4, schedule: { dailyStartTime: '10:00', roundsPerDay: 7, roundIntervalMinutes: 120, bettingMinutes: 90, lockMinutes: 10, stageSeconds: 200 },
+    sourcePath: 'event/chn_event/chn_joust.evt', available: true, unavailableReason: null, minimumLevel: 17, maximumBetting: 1000,
+    knights: [], currencies: [], reward: null, bettingReward: null, updatedAt: null, updatedBy: null,
+  }) : original(path, payload));
+  open(); fireEvent.click(await screen.findByRole('button', { name: '设置活动' }));
+  const dialog = await screen.findByRole('dialog'); await within(dialog).findByText('event/chn_event/chn_joust.evt');
+  expect(within(dialog).getByLabelText('每天期数')).toBeTruthy();
+  expect(mocked.mock.calls.some(([path]) => path === 'events/weekly-attendance/settings')).toBe(false);
+  fireEvent.click(within(dialog).getByRole('button', { name: /关\s*闭/ }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); fireEvent.click(screen.getByRole('button', { name: /停\s*用/ }));
+  await screen.findByText('停用后禁止新下注；已有投注的轮次仍会继续结算并发放奖励。'); expect(writes()).toHaveLength(0);
+});
 it('专属规则不可用时展示原因，不将缺失规则显示成零目标', async () => {
   settings.available = false; settings.unavailableReason = 'PVF 规则缺失'; settings.requiredClears = null; settings.totalWeeks = null;
   settings.weeklyRewards = []; settings.cumulativeRewards = [];

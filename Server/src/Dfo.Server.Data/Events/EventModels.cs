@@ -27,7 +27,7 @@ public sealed record WeeklyAttendanceState(bool Active, int AttendanceCount, int
 {
     public static WeeklyAttendanceState Empty { get; } = new(false, 0, 0, 0, false, []);
 }
-public sealed record EventPlayerSnapshot(EventInfo[] Information, WeeklyAttendanceState Attendance)
+public sealed record EventPlayerSnapshot(EventInfo[] Information, WeeklyAttendanceState Attendance, JoustState? Joust = null)
 {
     public static EventPlayerSnapshot Empty { get; } = new([], WeeklyAttendanceState.Empty);
 }
