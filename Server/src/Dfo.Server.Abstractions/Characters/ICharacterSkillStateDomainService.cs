@@ -9,6 +9,8 @@ public interface ICharacterSkillStateDomainService
     ValueTask UnlockAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken);
     ValueTask ActivateAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken);
 
+    ValueTask ReconcileLevelAsync(CharacterId characterId, CancellationToken cancellationToken);
+
     ValueTask ReconcileAsync(CharacterId characterId, CancellationToken cancellationToken);
 
     ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken);

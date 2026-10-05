@@ -36,7 +36,7 @@ internal sealed class CharacterRosterService(
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
     IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue,
-    IItemDomainStore itemStore, IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions) : ICharacterRepository
+    IItemGrantDomainService grants) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -270,8 +270,6 @@ internal sealed class CharacterRosterService(
             }
         }
 
-        var itemSession = itemStore.SessionIn(transactions.Current
-            ?? throw new InvalidOperationException("Character creation requires a transaction."));
         foreach (var piece in equipment)
         {
             if (await placementRules.ClassifyAsync(piece.ItemId, cancellationToken).ConfigureAwait(false) != ItemWorldClass.Equipment)
@@ -279,14 +277,12 @@ internal sealed class CharacterRosterService(
             var snapshot = new ItemSnapshot { ItemId = piece.ItemId, LegacyKind = piece.ItemKind,
                 Type = ItemTraitClassification.For(piece.ItemKind, piece.ItemId), IsPile = false,
                 InstanceValue = Random.Shared.Next(1, int.MaxValue), Durability = piece.Durability };
-            var record = await lifecycle.CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
-            await itemSession.PutAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Equipment),
-                piece.SlotIndex, record, cancellationToken).ConfigureAwait(false);
+            await grants.PutNewAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Equipment),
+                piece.SlotIndex, snapshot, cancellationToken).ConfigureAwait(false);
         }
-        var coins = await lifecycle.CreateAsync(new ItemSnapshot { ItemId = ReviveCoinItemId,
-            LegacyKind = 0, Type = ItemTraits.None, IsPile = true, Count = InitialReviveCoins }, cancellationToken).ConfigureAwait(false);
-        await itemSession.PutAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Main), ReviveCoinSlot,
-            coins, cancellationToken).ConfigureAwait(false);
+        await grants.PutNewAsync(ContainerId.ForCharacter(characterId, InventoryContainerType.Main), ReviveCoinSlot,
+            new ItemSnapshot { ItemId = ReviveCoinItemId, LegacyKind = 0, Type = ItemTraits.None,
+                IsPile = true, Count = InitialReviveCoins }, cancellationToken).ConfigureAwait(false);
 
         // The rows without which the character cannot be entered. Each of the six holds one
         // row per character for as long as the character exists, so this is where they begin.

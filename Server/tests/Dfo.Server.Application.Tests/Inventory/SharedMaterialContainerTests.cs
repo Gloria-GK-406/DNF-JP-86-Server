@@ -26,7 +26,7 @@ public sealed class SharedMaterialContainerTests
         await Change(host, async () =>
         {
             var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
-            if (wholeQuantity) await containers.AddAsync(new CharacterId(1), 3033, 3, default);
+            if (wholeQuantity) await host.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new CharacterId(1), 3033, 3, default);
             else await host.Services.GetRequiredService<IItemGrantDomainService>()
                 .GrantAsync(new AccountId(1), new CharacterId(1), containers, 3033, 3, default);
         });

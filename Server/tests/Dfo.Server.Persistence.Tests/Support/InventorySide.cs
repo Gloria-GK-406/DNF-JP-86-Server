@@ -79,7 +79,7 @@ internal sealed class InventorySide
         new CharacterBusinessInventoryDomainService(Containers,
             new ItemPlacementRuleService(placements, new NoWearables()),
             new ItemArrivalRuleService(), lifecycle: Lifecycle),
-        new ItemPlacementRuleService(placements, new NoWearables()));
+        new ItemPlacementRuleService(placements, new NoWearables()), Lifecycle, Store, Scope, new SqliteCharacterTable(database), null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database), new SqliteAccountCargoStateTable(database), new InventoryCapacityRuleService()));
 
     public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
         AccountId account, CharacterId character, CancellationToken ct)
@@ -105,7 +105,7 @@ internal sealed class InventorySide
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
             new ItemArrivalRuleService(), lifecycle: Lifecycle),
-        new ItemArrivalRuleService(), Lifecycle);
+        new ItemArrivalRuleService(), Grants);
 
     /// <summary>
     /// Binds a character to its own main container, as entry does.

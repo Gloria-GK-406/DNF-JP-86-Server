@@ -2,11 +2,13 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.Accounts;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillStateDomainService(
     ICharacterTable characters, ICharacterSkillTable skills, ICharacterEntryTable entries,
-    ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds)
+    ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds,
+    IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules)
     : ICharacterSkillStateDomainService
 {
     public ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId id, CancellationToken ct) => builds.ReadAsync(id, ct);
@@ -60,6 +62,55 @@ internal sealed class CharacterSkillStateDomainService(
         if (transactions.Current is null) throw new InvalidOperationException("Skill mutation requires a domain transaction.");
     }
 
+    public async ValueTask ReconcileLevelAsync(CharacterId id, CancellationToken ct)
+    {
+        RequireTransaction();
+        var facts = await ReadAsync(id, ct) ?? throw new InvalidOperationException("Character is unavailable.");
+        // Unknown learning cannot be safely priced or reduced.
+        if (!rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).IsComplete)
+            throw new InvalidDataException("Cannot change level with unknown learned skill rules.");
+        await ReconcileAsync(id, ct);
+        var learningLevel = await LearningLevelAsync(id, facts.Level, ct);
+        bool changed;
+        do
+        {
+            changed = false;
+            facts = await ReadAsync(id, ct) ?? throw new InvalidOperationException("Character is unavailable.");
+            foreach (var page in facts.Pages)
+            {
+                var learnedLevels = page.Skills.ToDictionary(s => checked((int)s.SkillId), s => (int)s.Level);
+                foreach (var learned in page.Skills)
+                {
+                    var rule = rules.Get(facts.Career.Job, checked((int)learned.SkillId))
+                        ?? throw new InvalidDataException("Unknown learned skill.");
+                    var free = rule.GetFreeLevel(facts.Career, facts.Level);
+                    var allowed = Math.Min(learned.Level, Math.Max(rule.GetMaxLevel(facts.Career, learningLevel) ?? 0, free));
+                    while (allowed > free && !rule.CanLearn(facts.Career, learningLevel, allowed, learnedLevels)) allowed--;
+                    if (learned.Level == allowed) continue;
+                    var touched = allowed == 0 ? await skills.RemoveAsync(id, page.PageIndex, learned.Slot, ct)
+                        : await skills.SetLevelAsync(id, page.PageIndex, learned.Slot, allowed, ct);
+                    if (touched != 1) throw new InvalidOperationException("Skill changed during level reconciliation.");
+                    if (allowed == 0) learnedLevels.Remove(rule.SkillId); else learnedLevels[rule.SkillId] = allowed;
+                    changed = true;
+                }
+            }
+        } while (changed);
+        facts = await ReadAsync(id, ct) ?? throw new InvalidOperationException("Character is unavailable.");
+        var ledger = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
+        foreach (var page in facts.Pages)
+        {
+            var remaining = ledger.For(new(page.PageIndex));
+            if (remaining.Sp < 0 || remaining.Tp < 0) await ResetAsync(id, new(page.PageIndex), ct);
+        }
+    }
+
+    private async ValueTask<int> LearningLevelAsync(CharacterId id, int level, CancellationToken ct)
+    {
+        var owner = await characters.FindOwnerAsync(id, ct) ?? throw new InvalidOperationException("Character is unavailable.");
+        return level + (await premiums.For(owner).HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, ct)
+            ? premiumRules.LevelAllowance(PremiumBenefit.LearnSkillsEarly) : 0);
+    }
+
     public ValueTask ReconcileAsync(CharacterId characterId, CancellationToken cancellationToken) =>
         ReconcilePagesAsync(characterId, null, cancellationToken);
 
@@ -70,6 +121,7 @@ internal sealed class CharacterSkillStateDomainService(
         var facts = await ReadAsync(characterId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Skill reconciliation character is unavailable.");
         var available = rules.GetAll(facts.Career.Job).ToDictionary(rule => rule.SkillId);
+        var learningLevel = await LearningLevelAsync(characterId, facts.Level, cancellationToken);
         // Validate the career even for an empty stored skill tree.
         _ = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
         await builds.EnsureAsync(characterId, cancellationToken).ConfigureAwait(false);
@@ -84,7 +136,7 @@ internal sealed class CharacterSkillStateDomainService(
                     retained.Add(checked((int)learned.SkillId), learned);
                     continue;
                 }
-                if (rule.GetMaxLevel(facts.Career, facts.Level) is null && rule.GetFreeLevel(facts.Career, facts.Level) == 0)
+                if (rule.GetMaxLevel(facts.Career, learningLevel) is null && rule.GetFreeLevel(facts.Career, facts.Level) == 0)
                 {
                     if (await skills.RemoveAsync(characterId, page, learned.Slot, cancellationToken).ConfigureAwait(false) != 1)
                         throw new InvalidOperationException("Skill row changed during reconciliation.");

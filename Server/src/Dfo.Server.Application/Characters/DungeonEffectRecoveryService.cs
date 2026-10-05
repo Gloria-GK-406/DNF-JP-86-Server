@@ -28,7 +28,7 @@ internal sealed class DungeonEffectRecoveryService(
     IAccountTable accounts,
     ICharacterTable characters,
     IExperienceRuleService experienceRules,
-    IDungeonEffectRuleService rules) : IDungeonPersistentEffectRecoveryRepository
+    IDungeonEffectRuleService rules, ICharacterProgressionDomainService progression) : IDungeonPersistentEffectRecoveryRepository
 {
     /// <summary>How long a claim holds before another recovery may take the effect.</summary>
     private static readonly TimeSpan Lease = TimeSpan.FromMinutes(1);
@@ -169,9 +169,9 @@ internal sealed class DungeonEffectRecoveryService(
             oldCapsule = checked((uint)Math.Max(0, totals.GrowthCapsuleExperience));
         }
 
-        if (await characters.SetProgressAsync(
-                characterId, split.NewLevel, (long)split.NewExp, cancellationToken)
-                .ConfigureAwait(false) != 1)
+        if (!await progression.TryApplyAsync(characterId,
+                new(checked((byte)stored.Level), checked((uint)stored.Experience)),
+                new(checked((byte)split.NewLevel), checked((uint)split.NewExp)), cancellationToken).ConfigureAwait(false))
         {
             throw new InvalidDataException("Dungeon experience character is unavailable.");
         }

@@ -14,9 +14,6 @@ public sealed record ExperienceAward(ExperienceBreakdown Breakdown, byte Level, 
 public interface ICharacterExperienceDomainService
 {
     uint? ThresholdForLevel(byte level);
-    ValueTask<bool> TrySetProgressAsync(CharacterId characterId, byte level, uint experience,
-        CancellationToken cancellationToken);
-
     /// <summary>Calculate using the stored level, then persist progression in the caller's transaction.
     /// The reward is never clipped to the level ceiling.</summary>
     ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source,

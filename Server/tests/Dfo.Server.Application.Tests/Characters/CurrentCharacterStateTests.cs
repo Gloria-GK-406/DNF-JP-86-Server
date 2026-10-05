@@ -132,7 +132,8 @@ public sealed class CurrentCharacterStateTests
         await fixture.SeedAsync();
         var handler = new GrantTutorialLevelCommandHandler(
             fixture.Services.GetRequiredService<ICharacterExperienceDomainService>(),
-            fixture.Services.GetRequiredService<ICharacterDomainService>());
+            fixture.Services.GetRequiredService<ICharacterDomainService>(),
+            fixture.Services.GetRequiredService<ICharacterProgressionDomainService>());
         await using var transaction = fixture.Scope.Begin();
         await fixture.SqlAsync("UPDATE characters SET level=5,exp=700 WHERE character_id=71;");
         var result = await handler.HandleAsync(null!, new GrantTutorialLevelCommand(Id), default);

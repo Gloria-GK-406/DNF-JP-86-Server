@@ -16,8 +16,8 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService users, ICharacterTable owners, IDungeonRunDomainService runs,
     ICharacterDomainService characters, ICharacterCarriedGoldTable goldRows, ICarriedGoldRuleService goldRules,
-    ICharacterContainerStateTable characterStates, IAccountCargoStateTable accountStates,
-    IInventoryExpansionStateTable writes,
+    IAccountCargoStateTable accountStates,
+    IInventoryExpansionStateTable writes, IInventoryLevelDomainService levels,
     IInventoryExpansionRuleService rules, IBusinessInventorySlotDomainService slots,
     ICharacterBusinessInventoryDomainService inventories, IItemPlacementRuleService placements,
     IDomainTransactionAccessor transactions, IItemDomainStore items,
@@ -155,18 +155,13 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
         && users.TryGetByConnection(session.ConnectionId, out var user) && user is { State: OnlineUserState.CharacterActive }
         && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
         && await owners.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false);
-    private async ValueTask<int> ParameterAsync(SelectedSessionIdentity session, InventoryExpansionKind kind, CancellationToken ct) =>
-        kind == InventoryExpansionKind.AccountCargo
-            ? (await accountStates.ReadByAccountAsync(session.AccountId, ct).ConfigureAwait(false)).SingleOrDefault()?.SelectionKey ?? 0
-            : (await characterStates.ReadByCharacterAsync(session.CharacterId, ct).ConfigureAwait(false))
-                .SingleOrDefault(row => row.ListType == (int)Type(kind))?.Value ?? (kind == InventoryExpansionKind.PersonalCargo ? 8 : 0);
-    private async ValueTask ChangeAsync(SelectedSessionIdentity session, InventoryExpansionChange change, CancellationToken ct)
-    {
-        var changed = change.Kind == InventoryExpansionKind.AccountCargo
-            ? await writes.ChangeAccountAsync(session.AccountId, change.ExpectedParameter, change.Parameter, ct).ConfigureAwait(false)
-            : await writes.ChangeCharacterAsync(session.CharacterId, Type(change.Kind), change.ExpectedParameter, change.Parameter, ct).ConfigureAwait(false);
-        if (!changed) throw new InventoryExpansionException(InventoryExpansionRejection.StateChanged);
-    }
+    private ValueTask<int> ParameterAsync(SelectedSessionIdentity session, InventoryExpansionKind kind, CancellationToken ct) =>
+        levels.GetLevelAsync(Container(session, kind), ct);
+    private ValueTask ChangeAsync(SelectedSessionIdentity session, InventoryExpansionChange change, CancellationToken ct) =>
+        levels.SetLevelAsync(Container(session, change.Kind), change.Parameter, ct, change.ExpectedParameter);
+    private static ContainerId Container(SelectedSessionIdentity session, InventoryExpansionKind kind) =>
+        kind == InventoryExpansionKind.AccountCargo ? ContainerId.ForAccountCargo(session.AccountId)
+            : ContainerId.ForCharacter(session.CharacterId, Type(kind));
     private IDomainTransaction RequireTransaction() => transactions.Current ?? throw new InvalidOperationException("Inventory expansion requires a transaction.");
     private static InventoryContainerType Type(InventoryExpansionKind kind) => kind switch
     {

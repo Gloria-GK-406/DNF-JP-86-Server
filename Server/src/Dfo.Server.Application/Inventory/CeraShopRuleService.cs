@@ -10,7 +10,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
-    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
+    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals, IAccountWalletRuleService wallets,
     IInventoryExpansionDefinitionSource? expansionContent = null) : ICeraShopRuleService
 {
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
@@ -296,20 +296,25 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
             : own;
     }
 
-    private static bool TryPay(AccountCeraBalances before, int cost, CeraShopPaymentMode mode, out AccountCeraBalances after)
+    private bool TryPay(AccountCeraBalances before, int cost, CeraShopPaymentMode mode, out AccountCeraBalances after)
     {
-        var cera = before.Cera; var token = before.TokenCera; var happy = before.HappyTokenCera;
+        after = before;
         var remaining = cost;
         if (mode != CeraShopPaymentMode.CeraOnly)
         {
-            var take = Math.Min(remaining, happy); happy -= take; remaining -= take;
-            take = Math.Min(remaining, token); token -= take; remaining -= take;
+            var take = Math.Min(remaining, after.HappyTokenCera);
+            if (take > 0) after = wallets.Spend(after, AccountCurrency.HappyTokenCera, take);
+            remaining -= take;
+            take = Math.Min(remaining, after.TokenCera);
+            if (take > 0) after = wallets.Spend(after, AccountCurrency.TokenCera, take);
+            remaining -= take;
         }
         if (mode != CeraShopPaymentMode.PointsOnly)
         {
-            var take = Math.Min(remaining, cera); cera -= take; remaining -= take;
+            var take = Math.Min(remaining, after.Cera);
+            if (take > 0) after = wallets.Spend(after, AccountCurrency.Cera, take);
+            remaining -= take;
         }
-        after = new(cera, token, happy);
         return remaining == 0;
     }
 

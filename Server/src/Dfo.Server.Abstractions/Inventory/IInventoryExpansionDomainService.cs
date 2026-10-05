@@ -4,7 +4,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public enum InventoryExpansionRejection { None, NoSession, InvalidRequest, InvalidStage, InsufficientAssets, GoldLimit, StateChanged }
+public enum InventoryExpansionRejection { None, NoSession, InvalidRequest, InvalidStage, InsufficientAssets, GoldLimit, StateChanged, OccupiedSlots }
 public sealed record InventoryExpansionChange(InventoryExpansionKind Kind, int ExpectedParameter, int Parameter);
 public sealed record InventoryExpansionReceipt(SelectedSessionIdentity Session, CharacterInventoryEntryState Character,
     AccountInventoryEntryState Account, DateTimeOffset At);

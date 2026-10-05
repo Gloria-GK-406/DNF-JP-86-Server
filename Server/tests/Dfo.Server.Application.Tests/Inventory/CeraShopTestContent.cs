@@ -58,7 +58,7 @@ internal sealed class CeraShopTestContent : ICeraShopDefinitionSource, IItemPlac
             _ => new(2, 10, new(BusinessInventorySpace.Consumable, 0, 1)),
         };
     }
-    public CeraShopRuleService Rules() => new(this, new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService());
+    public CeraShopRuleService Rules() => new(this, new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new Dfo.Server.Application.Accounts.AccountWalletRuleService());
     public ValueTask<CeraShopProductDefinition?> GetProductAsync(int id, CancellationToken ct) => ValueTask.FromResult(Products.GetValueOrDefault(id));
     public ValueTask<CeraShopItemDefinition?> GetItemAsync(int id, CancellationToken ct) => ValueTask.FromResult(Items.GetValueOrDefault(id));
     public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Placements.GetValueOrDefault(id));

@@ -6,7 +6,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Effects;
 
-internal sealed class CharacterExperienceEffectHandler(ICharacterTable characters) : EffectHandler<CharacterExperienceEffect>
+internal sealed class CharacterExperienceEffectHandler(ICharacterTable characters, ICharacterProgressionDomainService progression) : EffectHandler<CharacterExperienceEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, CharacterExperienceEffect effect, CancellationToken ct)
     {
@@ -21,12 +21,12 @@ internal sealed class CharacterExperienceEffectHandler(ICharacterTable character
         if (current is null || current.Level != d.Before.Level || current.Experience != d.Before.Experience)
             throw new InvalidOperationException("Decided experience target changed.");
         if ((d.Award.Level != d.Before.Level || d.Award.Total != d.Before.Experience)
-            && await characters.SetProgressAsync(context.CharacterId, d.Award.Level, d.Award.Total, ct).ConfigureAwait(false) != 1)
+            && !await progression.TryApplyAsync(context.CharacterId, d.Before, new(d.Award.Level, d.Award.Total), ct).ConfigureAwait(false))
             throw new InvalidOperationException("Experience target refused the write.");
         return new CharacterExperienceChange(d.Award);
     }
 }
-internal sealed class SetQuestRewardGoldEffectHandler(ICharacterCarriedGoldTable gold) : EffectHandler<SetQuestRewardGoldEffect>
+internal sealed class SetQuestRewardGoldEffectHandler(ICharacterCarriedGoldTable gold, ICharacterDomainService characters) : EffectHandler<SetQuestRewardGoldEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, SetQuestRewardGoldEffect effect, CancellationToken ct)
     {
@@ -38,7 +38,7 @@ internal sealed class SetQuestRewardGoldEffectHandler(ICharacterCarriedGoldTable
         if ((await gold.FindAsync(context.CharacterId, ct).ConfigureAwait(false))?.Carried != effect.Expected)
             throw new InvalidOperationException("Decided gold target changed.");
         if (effect.Value != effect.Expected
-            && await gold.AddAsync(context.CharacterId, effect.Value - effect.Expected, effect.Value, ct).ConfigureAwait(false) != effect.Value)
+            && await characters.Get(context.CharacterId).AddGoldAsync(effect.Value - effect.Expected, ct).ConfigureAwait(false) != effect.Value)
             throw new InvalidOperationException("Gold target refused the write.");
         return new QuestRewardGoldChange(effect.Expected, effect.Value);
     }
@@ -74,7 +74,7 @@ internal sealed class MaterializeSkillBuildsEffectHandler(ICharacterSkillBuildTa
         return new SkillBuildsMaterializedChange();
     }
 }
-internal sealed class GrantBasicCharacterItemEffectHandler(ICharacterContainerDomainService containers,
+internal sealed class GrantBasicCharacterItemEffectHandler(IItemGrantDomainService grants,
     IItemPlacementRuleService placements) : EffectHandler<GrantBasicCharacterItemEffect>
 {
     public override async ValueTask ValidateAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
@@ -85,7 +85,7 @@ internal sealed class GrantBasicCharacterItemEffectHandler(ICharacterContainerDo
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
     {
-        var result = await containers.AddAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
+        var result = await grants.GrantAllAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
         if (result.Items.Sum(x => (long)x.Count) != effect.Count) throw new InvalidOperationException("Basic physical grant was incomplete.");
         return new BasicCharacterItemChange([.. result.Items]);
     }

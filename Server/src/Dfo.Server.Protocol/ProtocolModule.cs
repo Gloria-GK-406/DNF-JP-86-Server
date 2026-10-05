@@ -219,7 +219,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Administration.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);

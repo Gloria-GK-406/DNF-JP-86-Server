@@ -39,7 +39,7 @@ public sealed class ContainerAdditionTests
     {
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        var material = await service.AddAsync(new(1), 9001, 5, default);
+        var material = await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9001, 5, default);
         Assert.Equal(new[] { 0, 1, 2 }, material.Items.Select(x => x.Slot.Index));
         Assert.Equal(new[] { 2, 2, 1 }, material.Items.Select(x => x.Count));
         Assert.All(material.Items, x => Assert.Equal(BusinessInventorySpace.Material, x.Slot.Space));
@@ -47,7 +47,7 @@ public sealed class ContainerAdditionTests
             new(InventoryContainerType.Pet, 0), f.Services.GetRequiredService<IItemDomainStore>(),
             f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>()));
-        var pet = await service.AddAsync(new(1), 9002, 1, default);
+        var pet = await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9002, 1, default);
         Assert.Equal(BusinessInventorySpace.CreatureConsumable, Assert.Single(pet.Items).Slot.Space);
         Assert.Equal(0, pet.Items[0].Slot.Index);
         Assert.Equal(5, f.Count(9001));
@@ -64,8 +64,8 @@ public sealed class ContainerAdditionTests
             f.Services.GetRequiredService<IDomainTransactionAccessor>(),
             f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>()));
-        await grants.AddAsync(new(1), 9001, 1, default);
-        await grants.AddAsync(new(1), 9002, 1, default);
+        await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9001, 1, default);
+        await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9002, 1, default);
 
         var stores = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>();
         var item = stores.GetStore(new CharacterId(1), BusinessInventoryStoreKind.Item)
@@ -107,11 +107,11 @@ public sealed class ContainerAdditionTests
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         var full = await Assert.ThrowsAsync<ContainerAdditionException>(async () =>
-            await service.AddAsync(new(1), 9001, 19, default));
+            await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9001, 19, default));
         Assert.Equal(ContainerAdditionFailure.NoRoom, full.Reason);
         Assert.Equal(0, f.Count(9001));
         var unknown = await Assert.ThrowsAsync<ContainerAdditionException>(async () =>
-            await service.AddAsync(new(1), 999999, 1, default));
+            await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 999999, 1, default));
         Assert.Equal(ContainerAdditionFailure.UnknownItem, unknown.Reason);
     }
 
@@ -120,7 +120,7 @@ public sealed class ContainerAdditionTests
     {
         using var f = Fixture();
         var service = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        var addition = await service.AddAsync(new(1), 3037, 3, default);
+        var addition = await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 3037, 3, default);
         var item = Assert.Single(addition.Items);
         Assert.Equal(new BusinessSlot(BusinessInventorySpace.SharedMaterial, 4), item.Slot);
         Assert.Equal(3, item.Count);
@@ -140,7 +140,7 @@ public sealed class ContainerAdditionTests
         service.Clear(new(1)); // A misbound initial default must still fail ownership validation.
         service.Register(new(1), wrong);
         service.UseContainer(new(1), wrong.Id);
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.AddAsync(new(1), 9001, 1, default));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9001, 1, default));
         Assert.Equal(0, f.Scalar("SELECT count(*) FROM item_slots WHERE id=9001"));
     }
 
@@ -154,9 +154,9 @@ public sealed class ContainerAdditionTests
         var store = inventories.GetStore(new CharacterId(1), BusinessInventoryStoreKind.Item);
         Assert.Null(store.FindContainer(BusinessInventorySpace.Material));
         Assert.Throws<InvalidOperationException>(() => store.GetContainer(BusinessInventorySpace.Material));
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.AddAsync(new(1), 9001, 3, default));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new(1), 9001, 3, default));
         Assert.Equal(0, f.Count(9001));
-        await service.AddToPersistentAsync(new(1), 9001, 3, default);
+        await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAllPersistentAsync(new(1), 9001, 3, default);
         Assert.Null(service.FindContainer(new(1), InventoryContainerType.Main));
         Assert.Equal(3, f.Count(9001));
     }
@@ -170,7 +170,7 @@ public sealed class ContainerAdditionTests
         var containers = shop.Host.Services.GetRequiredService<ICharacterContainerDomainService>();
         containers.Clear(shop.Host.Session.CharacterId);
 
-        var added = await containers.AddToPersistentAsync(shop.Host.Session.CharacterId, 63000, 1, default);
+        var added = await shop.Host.Services.GetRequiredService<IItemGrantDomainService>().GrantAllPersistentAsync(shop.Host.Session.CharacterId, 63000, 1, default);
 
         var item = Assert.Single(added.Items);
         Assert.Equal(BusinessInventorySpace.CreatureInventory, item.Slot.Space);

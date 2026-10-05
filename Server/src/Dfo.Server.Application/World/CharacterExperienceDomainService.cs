@@ -17,10 +17,6 @@ internal sealed class CharacterExperienceDomainService(
         return level < 2 || thresholds.Count < level - 1 ? null : thresholds[level - 2];
     }
 
-    public async ValueTask<bool> TrySetProgressAsync(
-        CharacterId characterId, byte level, uint experience, CancellationToken ct) =>
-        await characters.SetProgressAsync(characterId, level, experience, ct).ConfigureAwait(false) == 1;
-
     public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source,
         DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct)
     {

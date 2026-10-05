@@ -6,19 +6,10 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 /// <summary>Character-local current bindings, with explicit default fallbacks.</summary>
-internal sealed class CharacterContainerDomainService(CharacterContainerAddition? additions = null,
-    IDomainTransactionAccessor? transactions = null) : ICharacterContainerDomainService
+internal sealed class CharacterContainerDomainService(IDomainTransactionAccessor? transactions = null) : ICharacterContainerDomainService
 {
     private readonly object sync = new();
     private readonly Dictionary<int, Held> byCharacter = [];
-
-    public ValueTask<ContainerAddition> AddAsync(CharacterId characterId, int itemId, int count, CancellationToken ct) =>
-        (additions ?? throw new InvalidOperationException("Container addition service is not configured."))
-            .AddAsync(this, characterId, itemId, count, ct);
-
-    public ValueTask<ContainerAddition> AddToPersistentAsync(CharacterId characterId, int itemId, int count, CancellationToken ct) =>
-        (additions ?? throw new InvalidOperationException("Container addition service is not configured."))
-            .AddAsync(this, characterId, itemId, count, ct, persistent: true);
 
     private T Access<T>(CharacterId character, bool mutate, Func<Held, T> action)
     {

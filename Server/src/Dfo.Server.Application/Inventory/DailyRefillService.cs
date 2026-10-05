@@ -30,7 +30,7 @@ internal sealed class DailyRefillService(
     IDailyRefillRuleService refillRules,
     ICharacterBusinessInventoryDomainService inventories,
     IItemArrivalRuleService arrivals,
-    IItemLifecycleDomainService lifecycle) : IEntryInventoryMutationRepository
+    IItemGrantDomainService grants) : IEntryInventoryMutationRepository
 {
     /// <summary>What a refill counter is called, with the item appended.</summary>
     private const string CounterPrefix = "pvf_daily_refill_item_";
@@ -119,19 +119,18 @@ internal sealed class DailyRefillService(
         {
             case ItemArrival.OntoExistingPile pile:
                 var existing = held.Single(item => item.SlotIndex == pile.Slot.Index);
-                await bag.UpdateAsync(existing, current => current with { Count = pile.Total }, cancellationToken)
+                await grants.ApplyPlannedAsync(bag, pile.Slot.Index, existing.Snapshot with { Count = pile.Total }, cancellationToken)
                     .ConfigureAwait(false);
                 outcome = new ItemPlacementOutcome.AddedToPile(pile.Slot.Index, pile.Added, pile.Total);
                 break;
             case ItemArrival.IntoEmptySlot empty:
                 if (rule.ItemKind == 0)
                     throw new InvalidDataException($"Daily refill item {rule.ItemId} has no kind.");
-                var record = await lifecycle.CreateAsync(new ItemSnapshot
+                await grants.ApplyPlannedAsync(bag, empty.Slot.Index, new ItemSnapshot
                 {
                     ItemId = rule.ItemId, Count = empty.Count, IsPile = true,
                     LegacyKind = rule.ItemKind, Type = ItemTraitClassification.For(rule.ItemKind, rule.ItemId),
                 }, cancellationToken).ConfigureAwait(false);
-                await bag.PutAsync(empty.Slot.Index, record, cancellationToken).ConfigureAwait(false);
                 outcome = new ItemPlacementOutcome.PutInEmptySlot(empty.Slot.Index, empty.Count);
                 break;
             case ItemArrival.NoRoom:

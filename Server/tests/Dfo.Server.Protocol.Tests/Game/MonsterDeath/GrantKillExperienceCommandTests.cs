@@ -166,10 +166,6 @@ public sealed class GrantKillExperienceCommandTests
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        /// <summary>Pricing stand-ins never set progress outright; the tutorial is the only path that does.</summary>
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
         public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {

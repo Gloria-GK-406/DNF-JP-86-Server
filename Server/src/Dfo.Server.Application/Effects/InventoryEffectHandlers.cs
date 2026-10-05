@@ -18,7 +18,7 @@ internal sealed class SpendGoldEffectHandler(ICharacterDomainService characters)
             ?? throw new InventoryEffectException(InventoryEffectRejection.InsufficientAssets));
 }
 
-internal sealed class GrantStackableEffectHandler(ICharacterContainerDomainService containers,
+internal sealed class GrantStackableEffectHandler(IItemGrantDomainService grants,
     IBusinessInventorySlotDomainService slots, IItemPlacementRuleService placements) : EffectHandler<GrantStackableEffect>
 {
     public override async ValueTask ValidateAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
@@ -30,7 +30,7 @@ internal sealed class GrantStackableEffectHandler(ICharacterContainerDomainServi
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantStackableEffect effect, CancellationToken ct)
     {
-        var added = await containers.AddAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
+        var added = await grants.GrantAllAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false);
         var changes = new List<InventorySlotEffectChange>();
         foreach (var slot in added.Items.Select(x => x.Slot).Distinct())
             changes.Add(new(slot, (await slots.Get(context.CharacterId, slot).Container.GetAsync(slot.Index, ct)

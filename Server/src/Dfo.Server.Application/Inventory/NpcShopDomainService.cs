@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -16,11 +17,11 @@ internal sealed class NpcShopDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas,
     ICharacterDomainService characters,
-    IAccountTable accounts,
+    IAccountWalletDomainService wallets,
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle) : INpcShopDomainService
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -83,7 +84,7 @@ internal sealed class NpcShopDomainService(
         var skillPoints = await character.RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         if (skillPoints is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
-        var wallet = await accounts.FindWalletAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
+        var wallet = await wallets.ReadAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
         if (wallet is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var cera = checked((int)wallet.Cera);
@@ -101,11 +102,7 @@ internal sealed class NpcShopDomainService(
         foreach (var grant in plan.GrantedSlots)
         {
             var bag = bags[grant.Slot.Space];
-            var existing = await bag.GetAsync(grant.Slot.Index, cancellationToken).ConfigureAwait(false);
-            if (existing is null)
-                await bag.PutAsync(grant.Slot.Index, await lifecycle.CreateAsync(grant.Core, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            else
-                await bag.UpdateAsync(existing, current => current with { Count = checked(current.Count + grant.AddedCount) }, cancellationToken).ConfigureAwait(false);
+            await grants.ApplyPlannedAsync(bag, grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
         }
         if (purchaseKey is not null
             && !await purchases.TryAddAsync(purchaseKey, quote.Count, quote.Definition.Limit!.Count, cancellationToken)

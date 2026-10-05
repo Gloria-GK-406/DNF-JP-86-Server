@@ -278,7 +278,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         using var shop=Shop();
         await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<ICharacterTable>());
+        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<ICharacterTable>(), shop.Services.GetRequiredService<ICharacterProgressionDomainService>());
         var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
         Assert.Equal("Decided experience target changed.",error.Message);
     }

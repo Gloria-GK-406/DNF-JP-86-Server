@@ -524,7 +524,9 @@ InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路
 
 `IsDefault` 标记默认绑定角色，每种类型至多一个且不可移除；`IsPersistent` 独立描述存储生命周期。
 `GetContainer(..., isDefault: false)` 使用当前绑定，`true` 显式取默认容器；Find/Get 不补建缺失容器。
-`ReplaceDefault` 事务性替换已有默认容器；离线操作显式使用 `GetPersistentStore` / `AddToPersistentAsync`。
+`ReplaceDefault` 事务性替换已有默认容器；离线操作显式使用 `GetPersistentStore` / `IItemGrantDomainService.GrantAllPersistentAsync`。
+容器注册服务只管理绑定；整批物品赋予归属 `IItemGrantDomainService`。钱包、成长和容量的修改入口见
+[资产赋予领域服务](Document/AssetGrantServices.md)。
 选角显式注册空的默认内存类型 29 容器。死亡塔入场换成本局六格，跨层保留，退塔/断线换回空容器；
 Main 与 SharedMaterial 不切换。实现及实机边界见 `Document/TowerQuickSlots-20261005.md`。
 

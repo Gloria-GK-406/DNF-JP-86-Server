@@ -33,6 +33,12 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
         IDomainTransactionAccessor transactions, TimeProvider clock, IPremiumServiceRuleService rules,
         bool blackDiamondEnabled, ushort blackDiamondExtraFatigue) : IAccountPremiumServices
     {
+        public ValueTask<AccountPremiumEntryState> AddDaysAsync(PremiumServiceType type, int days, CancellationToken cancellationToken)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(days);
+            return ExtendAsync(type, TimeSpan.FromDays(days), cancellationToken);
+        }
+
         public async ValueTask SetExpiryAsync(PremiumServiceType type, long expectedExpiry, long nextExpiry,
             CancellationToken cancellationToken)
         {
@@ -105,8 +111,7 @@ internal sealed class PremiumServiceDomainService(IAccountPremiumTable table,
             var old = rows.SingleOrDefault(row => row.PremiumType == (int)type)?.ExpiresAtUnixSeconds ?? 0;
             var expiry = checked(Math.Max(clock.GetUtcNow().ToUnixTimeSeconds(), old)
                 + duration.Ticks / TimeSpan.TicksPerSecond);
-            if (await table.UpsertExpiryAsync(accountId, (int)type, expiry, cancellationToken).ConfigureAwait(false) != 1)
-                throw new InvalidOperationException("Premium extension affected no row.");
+            await SetExpiryAsync(type, old, expiry, cancellationToken).ConfigureAwait(false);
             return new((int)type, expiry);
         }
     }

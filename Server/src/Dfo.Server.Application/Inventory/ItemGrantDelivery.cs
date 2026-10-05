@@ -7,8 +7,8 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-// The registry exposes this operation; this collaborator owns routing and full-quantity delivery.
-internal sealed class CharacterContainerAddition(IItemPlacementRuleService placements, ICharacterTable owners,
+// Item grants own routing and full-quantity delivery.
+internal sealed class ItemGrantDelivery(IItemPlacementRuleService placements, ICharacterTable owners,
     DomainTransactionScope transactions, IItemDomainStore store,
     IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules, IItemLifecycleDomainService lifecycle,
     ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)

@@ -242,7 +242,7 @@ public sealed class CharacterExperienceDomainServiceTests
         var row = new RecordingCharacterTable(level: 5, experience: 700);
         var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(Grant(row),
             new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
-                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!)));
+                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!)), null!);
         var result = await handler.HandleAsync(null!,
             new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand(Character),
             CancellationToken.None);

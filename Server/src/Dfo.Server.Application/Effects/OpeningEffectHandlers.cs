@@ -18,7 +18,7 @@ internal abstract class OpeningEffectHandler<T> : EffectHandler<T>, IInventoryEf
         IInventoryEffectPreviewState state, CancellationToken ct) => PreviewAsync(context, (T)effect, state, ct);
 }
 
-internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomainService slots, IItemArrivalRuleService arrivals, IItemLifecycleDomainService lifecycle)
+internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomainService slots, IItemArrivalRuleService arrivals, IItemGrantDomainService grants)
     : OpeningEffectHandler<GrantPreparedItemEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, CancellationToken ct)
@@ -105,10 +105,7 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
             var (slot, added, core) = Next(arrival, grant, held);
             if (added <= 0 || added > remaining) throw new InvalidDataException("Nonprogressing prepared grant.");
             var bag = slots.Get(context.CharacterId, slot).Container;
-            var existing = await bag.GetAsync(slot.Index, ct).ConfigureAwait(false);
-            var placed = existing is null
-                ? await bag.PutAsync(slot.Index, await lifecycle.CreateAsync(core, ct).ConfigureAwait(false), ct).ConfigureAwait(false)
-                : await bag.UpdateAsync(existing, current => current with { Count = checked(current.Count + added) }, ct).ConfigureAwait(false);
+            var placed = await grants.ApplyPlannedAsync(bag, slot.Index, core, ct).ConfigureAwait(false);
             held[slot] = placed.Snapshot;
             changed.Add(slot); displayed.Add(new(slot, grant.Reward.ItemId, added, core.Durability, core.Attribute, grant.Expiration));
             remaining -= added;
@@ -117,7 +114,7 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
     }
 }
 
-internal sealed class GrantOpeningVirtualEffectHandler(ICharacterContainerDomainService containers, IItemLifecycleDomainService lifecycle)
+internal sealed class GrantOpeningVirtualEffectHandler(ICharacterContainerDomainService containers, IItemGrantDomainService grants)
     : OpeningEffectHandler<GrantOpeningVirtualEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, GrantOpeningVirtualEffect effect, CancellationToken ct)
@@ -143,8 +140,7 @@ internal sealed class GrantOpeningVirtualEffectHandler(ICharacterContainerDomain
         var main = containers.FindContainer(context.CharacterId, InventoryContainerType.Main) ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
         var item = await main.GetAsync(effect.Slot, ct).ConfigureAwait(false);
         var core = Add(effect, item?.Snapshot);
-        if (item is null) await main.PutAsync(effect.Slot, await lifecycle.CreateAsync(core, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
-        else await main.UpdateAsync(item, current => Add(effect, current), ct).ConfigureAwait(false);
+        await grants.ApplyPlannedAsync(main, effect.Slot, core, ct).ConfigureAwait(false);
         var slot = new BusinessSlot(BusinessInventorySpace.VirtualResource, effect.Slot);
         return new OpeningVirtualChange(slot, core, new(slot, effect.Reward.ItemId, effect.Reward.Count, 0, 0, 0));
     }

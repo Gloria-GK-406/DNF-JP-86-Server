@@ -16,14 +16,6 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// </remarks>
 public interface ICharacterContainerDomainService
 {
-    /// <summary>Adds the whole quantity, resolves the destination internally, or throws without partial delivery.</summary>
-    ValueTask<ContainerAddition> AddAsync(CharacterId characterId, int itemId, int count,
-        CancellationToken cancellationToken) => throw new NotSupportedException("This container registry cannot add items.");
-
-    /// <summary>Explicit offline delivery to persistent storage, independent of online bindings.</summary>
-    ValueTask<ContainerAddition> AddToPersistentAsync(CharacterId characterId, int itemId, int count,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-
     /// <summary>Adds a container to the character. The first of its type becomes the current one.</summary>
     /// <exception cref="InvalidOperationException">
     /// The character already holds a container under that identifier. Two containers answering to

@@ -19,6 +19,11 @@ public interface IAccountPremiumServices
 {
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAtAsync(DateTimeOffset at, CancellationToken token) =>
         ValueTask.FromException<IReadOnlyList<AccountPremiumEntryState>>(new NotSupportedException("Explicit-time premium read is unavailable."));
+    ValueTask<AccountPremiumEntryState> AddDaysAsync(PremiumServiceType type, int days, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(days);
+        return ExtendAsync(type, TimeSpan.FromDays(days), cancellationToken);
+    }
     ValueTask SetExpiryAsync(PremiumServiceType type, long expectedExpiry, long nextExpiry, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadAsync(CancellationToken cancellationToken);
     ValueTask<ushort> GetExtraFatigueAsync(CancellationToken cancellationToken);

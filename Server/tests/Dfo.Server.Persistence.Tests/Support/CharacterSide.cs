@@ -61,8 +61,9 @@ internal sealed class CharacterSide
         new SqliteCharacterContainerStateTable(this.database),
         items,
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
-        this.itemStore, new ItemLifecycleDomainService(this.itemStore, this.Scope,
-            new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())), this.Scope);
+        new ItemGrantDomainService(null!, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()),
+            new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())),
+            this.itemStore, this.Scope, new SqliteCharacterTable(this.database), null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())));
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.
@@ -129,8 +130,8 @@ internal sealed class CharacterSide
             new SqliteDungeonEffectOutboxTable(this.database),
             new SqliteAccountTable(this.database),
             new SqliteCharacterTable(this.database),
-            experienceRules,
-            rules);
+            experienceRules, rules, new CharacterProgressionDomainService(new SqliteCharacterTable(database),
+                experienceRules, null!, null!, Scope));
 
     /// <summary>Runs one call inside a use case and settles it, the way one command would.</summary>
     public async Task<TResult> InUseCaseAsync<TResult>(

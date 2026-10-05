@@ -541,11 +541,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId,
-            byte level,
-            uint experience,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
     }
@@ -554,11 +549,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId,
-            byte level,
-            uint experience,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
@@ -571,11 +561,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId,
-            byte level,
-            uint experience,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("AI character deaths must not award experience.");

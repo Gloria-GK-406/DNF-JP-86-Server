@@ -112,6 +112,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
         services.TryAddSingleton<ICharacterExperienceDomainService, CharacterExperienceDomainService>();
+        services.TryAddSingleton<ICharacterProgressionDomainService, CharacterProgressionDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
         services.TryAddSingleton<OnlineStateRegistry>();
@@ -170,6 +171,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
         services.TryAddSingleton<IInventoryExpansionRuleService, InventoryExpansionRuleService>();
         services.TryAddSingleton<IInventoryExpansionDomainService, InventoryExpansionDomainService>();
+        services.TryAddSingleton<IInventoryLevelRuleService, InventoryLevelRuleService>();
+        services.TryAddSingleton<IInventoryLevelDomainService, InventoryLevelDomainService>();
         services.TryAddSingleton<IInventoryCapacityRuleService, InventoryCapacityRuleService>();
         services.TryAddSingleton<IInventoryCapacityDomainService, InventoryCapacityDomainService>();
         services.TryAddSingleton<ICargoItemRuleService, CargoItemRuleService>();
@@ -424,7 +427,7 @@ public sealed class ApplicationModule : IServerModule
         // Thirty-three tables: the order they are read in, and everything that makes them one
         // character.
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
-        services.TryAddSingleton<CharacterContainerAddition>();
+        services.TryAddSingleton<ItemGrantDelivery>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
         services.TryAddSingleton<Dfo.Server.Application.World.IllusionTower.TowerInventoryDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
@@ -550,7 +553,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAccessDomainService, Dfo.Server.Application.Administration.GmAccessDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAuditDomainService, Dfo.Server.Application.Administration.GmAuditDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraRuleService, Dfo.Server.Application.Administration.GmCeraRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IAccountWalletDomainService, Dfo.Server.Application.Administration.AccountWalletDomainService>();
+        services.TryAddSingleton<IAccountWalletRuleService, AccountWalletRuleService>();
+        services.TryAddSingleton<IAccountWalletDomainService, AccountWalletDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraReminderDomainService, Dfo.Server.Application.Administration.GmCeraReminderDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraDomainService, Dfo.Server.Application.Administration.GmCeraDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmCeraCommand, Dfo.Server.Data.Administration.GmCeraQueryResult, Dfo.Server.Application.Administration.QueryGmCeraCommandHandler>(CommandExecutionKind.Transactional);

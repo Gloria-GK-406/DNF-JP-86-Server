@@ -20,8 +20,8 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
-    ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
-    ICeraShopRuleService rules, IItemLifecycleDomainService lifecycle, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
+    ICharacterTable characterRows, IAccountWalletDomainService wallets, ICharacterBusinessInventoryDomainService stores,
+    ICeraShopRuleService rules, IItemGrantDomainService grants, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
     ICreatureDomainService? creatureDomains = null, IInventoryExpansionDomainService? expansion = null,
@@ -41,7 +41,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
 
         var character = characters.Get(session.CharacterId);
         var progress = await character.ProgressAsync(cancellationToken).ConfigureAwait(false);
-        var wallet = await accounts.FindWalletAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
+        var wallet = await wallets.ReadAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
         if (progress is null || wallet is null)
             return CeraShopPurchaseResult.Refused(CeraShopRejection.NoSession);
         var quoted = await rules.QuoteAsync(input, progress.Level, now, cancellationToken).ConfigureAwait(false);
@@ -95,14 +95,14 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         }
         quote = quote with { Grants = boundedGrants.ToImmutable() };
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
-        var before = new AccountCeraBalances(checked((int)wallet.Cera), checked((int)wallet.TokenCera), checked((int)wallet.HappyTokenCera));
+        var before = wallet;
         var planned = rules.Plan(quote, held, gold, before, Random.Shared.Next(1, int.MaxValue));
         if (planned.Plan is not { } plan)
             return CeraShopPurchaseResult.Refused(planned.Rejection, planned.Detail);
 
         // From the first write onwards, every refusal must unwind the shared transaction.
-        if (before != plan.Balances && await accounts.TrySetCeraBalancesAsync(session.AccountId, before, plan.Balances,
-                cancellationToken).ConfigureAwait(false) != 1)
+        if (before != plan.Balances && !await wallets.TryApplyAsync(session.AccountId, before, plan.Balances,
+                cancellationToken).ConfigureAwait(false))
             throw new CeraShopPurchaseRejectedException(CeraShopRejection.StateChanged, "Account balances changed before settlement.");
         if (plan.GoldCost > 0)
             gold = await character.TrySpendGoldAsync(plan.GoldCost, cancellationToken).ConfigureAwait(false)
@@ -120,15 +120,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         foreach (var write in plan.Writes)
         {
             var bag = bags[write.Slot.Space];
-            var existing = await bag.GetAsync(write.Slot.Index, cancellationToken).ConfigureAwait(false);
-            if (existing is null)
-                await bag.PutAsync(write.Slot.Index, await lifecycle.CreateAsync(write.Core, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
-            else
-            {
-                if (!existing.Snapshot.CanStackWith(write.Core) || write.Core.Count < existing.Count)
-                    throw new InvalidOperationException("CERA grant target changed after planning.");
-                await bag.UpdateAsync(existing, current => current with { Count = write.Core.Count }, cancellationToken).ConfigureAwait(false);
-            }
+            await grants.ApplyPlannedAsync(bag, write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
         }
         await itemStore.SessionIn(transaction).ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
 
