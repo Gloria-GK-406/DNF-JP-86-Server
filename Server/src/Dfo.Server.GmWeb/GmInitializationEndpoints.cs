@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dfo.Server.Abstractions.Administration;
@@ -54,6 +55,7 @@ internal static class GmInitializationEndpoints
                     GmMailRefusal.NotFound => 404,
                     _ => 400
                 },
+                KeyNotFoundException => 404,
                 ArgumentException or JsonException or BadHttpRequestException => 400,
                 _ => 500
             };
@@ -66,7 +68,7 @@ internal static class GmInitializationEndpoints
             }, statusCode: status);
         }
     }
-    internal static GmMailItemFilter Filter(HttpContext c)
+    internal static ItemCatalogFilter Filter(HttpContext c)
     {
         var q = c.Request.Query;
         int? Number(string key) => !q.ContainsKey(key) ? null : q[key].Count == 1 && int.TryParse(q[key], out var n) ? n : throw new ArgumentException("物品筛选参数无效。");

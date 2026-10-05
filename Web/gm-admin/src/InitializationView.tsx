@@ -3,8 +3,8 @@ import { Button, Card, Descriptions, Empty, Form, InputNumber, Modal, Select, Sp
 import { api, ApiError } from './api';
 import { useGmRead } from './useGmRead';
 import { useNotiBar } from './NotiBar';
-import { MailAttachmentPicker } from './MailAttachmentPicker';
-import type { MailItemDetails } from './mail';
+import { ItemPicker } from './ItemPicker';
+import type { ItemCatalogDetails } from './items';
 import type { AccountInitialization, CharacterInitialization, InitialItem, InitializationViewData } from './initialization';
 
 type Access = { onExpired: () => void; onDenied: () => void };
@@ -125,7 +125,7 @@ function InitializationEditor({ kind, data, busy, uncertain, onSave, onClose, on
         </Space>} />
       </>}
     </Form>
-    {picker !== null && <MailAttachmentPicker purpose="initialization" initial={picker === 'new' ? undefined : items[picker]} {...access}
+    {picker !== null && <ItemPicker purpose="initialization" initial={picker === 'new' ? undefined : items[picker]} {...access}
       onClose={() => setPicker(null)} onChoose={item => {
         const next = [...items]; const existing = next.findIndex((v, i) => v.itemId === item.itemId && i !== picker);
         if (existing >= 0) return '同种初始物品请合并数量，或直接编辑已有物品。';
@@ -140,7 +140,7 @@ function InitialItems({ items, actions, ...access }: Access & { items: InitialIt
     <Space orientation="vertical" style={{ width: '100%' }}>{items.map((item, index) => <InitialItemRow key={`${index}:${item.itemId}`} item={item} actions={actions?.(index)} {...access} />)}</Space>;
 }
 function InitialItemRow({ item, actions, ...access }: Access & { item: InitialItem; actions?: React.ReactNode }) {
-  const details = useGmRead<MailItemDetails>(`initialization/items/${item.itemId}`, access.onExpired, access.onDenied);
+  const details = useGmRead<ItemCatalogDetails>(`initialization/items/${item.itemId}`, access.onExpired, access.onDenied);
   return <div className="mail-attachment-row"><div className="mail-attachment-description"><Typography.Text strong>{details.data?.item.name ?? `物品 ${item.itemId}`}</Typography.Text>
     <div className="mail-item-id">ID {item.itemId} · 每角色 {item.count.toLocaleString('zh-CN')} 个</div></div>{actions}</div>;
 }

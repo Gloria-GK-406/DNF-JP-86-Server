@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
@@ -12,9 +13,9 @@ internal sealed class SaveGmAccountInitializationCommandHandler(IGmInitializatio
 public sealed record SaveGmCharacterInitializationCommand(string Secret, SaveInitializationRequest<CharacterInitialization> Request) : ICommand<object>;
 internal sealed class SaveGmCharacterInitializationCommandHandler(IGmInitializationDomainService settings) : ICommandHandler<SaveGmCharacterInitializationCommand, object>
 { public ValueTask<object> HandleAsync(CommandExecutionContext c, SaveGmCharacterInitializationCommand q, CancellationToken ct) => settings.SaveAsync(q.Secret, null, q.Request, ct); }
-public sealed record SearchGmInitializationItemsCommand(string Secret, GmMailItemFilter Filter) : ICommand<GmMailCatalogPage>;
-internal sealed class SearchGmInitializationItemsCommandHandler(IGmInitializationDomainService settings) : ICommandHandler<SearchGmInitializationItemsCommand, GmMailCatalogPage>
-{ public ValueTask<GmMailCatalogPage> HandleAsync(CommandExecutionContext c, SearchGmInitializationItemsCommand q, CancellationToken ct) => settings.SearchAsync(q.Secret, q.Filter, ct); }
-public sealed record ReadGmInitializationItemCommand(string Secret, int ItemId) : ICommand<GmMailItemDetails>;
-internal sealed class ReadGmInitializationItemCommandHandler(IGmInitializationDomainService settings) : ICommandHandler<ReadGmInitializationItemCommand, GmMailItemDetails>
-{ public ValueTask<GmMailItemDetails> HandleAsync(CommandExecutionContext c, ReadGmInitializationItemCommand q, CancellationToken ct) => settings.ItemAsync(q.Secret, q.ItemId, ct); }
+public sealed record SearchGmInitializationItemsCommand(string Secret, ItemCatalogFilter Filter) : ICommand<ItemCatalogPage>;
+internal sealed class SearchGmInitializationItemsCommandHandler(IGmInitializationDomainService settings) : ICommandHandler<SearchGmInitializationItemsCommand, ItemCatalogPage>
+{ public ValueTask<ItemCatalogPage> HandleAsync(CommandExecutionContext c, SearchGmInitializationItemsCommand q, CancellationToken ct) => settings.SearchAsync(q.Secret, q.Filter, ct); }
+public sealed record ReadGmInitializationItemCommand(string Secret, int ItemId) : ICommand<ItemCatalogDetails>;
+internal sealed class ReadGmInitializationItemCommandHandler(IGmInitializationDomainService settings) : ICommandHandler<ReadGmInitializationItemCommand, ItemCatalogDetails>
+{ public ValueTask<ItemCatalogDetails> HandleAsync(CommandExecutionContext c, ReadGmInitializationItemCommand q, CancellationToken ct) => settings.ItemAsync(q.Secret, q.ItemId, ct); }

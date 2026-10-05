@@ -1,4 +1,5 @@
-using Dfo.Server.Data.Administration;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Initialization;
@@ -11,10 +12,9 @@ public interface IInitializationPersistence
     ValueTask<InitializationStoredDocument?> ReadAsync(string kind, CancellationToken ct);
     ValueTask<bool> SaveAsync(string kind, long expectedRevision, string input, DateTimeOffset at, string actor, CancellationToken ct);
 }
-public interface IInitializationRuleService
+public interface IInitializationRuleService : IItemCatalogSelectionRuleService
 {
-    ValueTask<GmMailCatalogPage> SearchAsync(GmMailItemFilter filter, CancellationToken ct);
-    ValueTask<GmMailItemDetails> ItemAsync(int itemId, CancellationToken ct);
+    ValueTask<ItemCatalogDetails> ItemAsync(int itemId, CancellationToken ct);
     ValueTask<InitializationOptions> OptionsAsync(CancellationToken ct);
     ValueTask ValidateAsync(AccountInitialization input, CancellationToken ct);
     ValueTask ValidateAsync(CharacterInitialization input, CancellationToken ct);

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using System.Globalization;
 using System.Text.Json;
 using Dfo.Server.Abstractions.Mail;
@@ -90,6 +91,8 @@ internal static class GmOfficialMailEndpoints
     { try { return await action(); } catch (Exception error) when (error is not OperationCanceledException) { return Failure(context, error); } }
     private static IResult Failure(HttpContext context, Exception error, string? outcome = null)
     {
+        if (error is KeyNotFoundException) return Error(404, error.Message, outcome);
+        if (error is ArgumentException) return Error(400, error.Message, outcome);
         if (error is GmMailException mail) return Error(mail.Reason switch { GmMailRefusal.Unauthorized => 401, GmMailRefusal.Forbidden => 403, GmMailRefusal.NotFound => 404, GmMailRefusal.Conflict or GmMailRefusal.Changed => 409, _ => 400 }, mail.Message, outcome);
         if (error is JsonException or BadHttpRequestException or NotSupportedException) return Error(400, "邮件请求字段无效或超过 32 KiB。", outcome);
         Log(context, error, "GM mail request failed.");
@@ -115,7 +118,7 @@ internal static class GmOfficialMailEndpoints
         var q = query["q"].ToString(); if (q.Length > 128) throw new GmMailException(GmMailRefusal.Invalid, "搜索最多 128 个字符。");
         return new(Parse("page", 1), Parse("pageSize", 20), CharacterId: query.ContainsKey("characterId") ? Parse("characterId", 0) : null, Q: string.IsNullOrWhiteSpace(q) ? null : q.Trim());
     }
-    private static GmMailItemFilter ItemFilter(HttpContext context)
+    private static ItemCatalogFilter ItemFilter(HttpContext context)
     {
         var query = context.Request.Query;
         foreach (var name in new[] { "q", "itemId", "category", "equipmentType", "minimumLevel", "maximumLevel", "rarity", "page", "pageSize" })

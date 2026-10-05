@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Mail;
 using Dfo.Server.Application.Configuration;
@@ -448,6 +449,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
         services.TryAddSingleton<IDailyRefillConfigurationRuleService, DailyRefillConfigurationRuleService>();
+        services.TryAddSingleton<IItemCatalogRuleService, ItemCatalogRuleService>();
+        services.TryAddSingleton<IItemCatalogDomainService, ItemCatalogDomainService>();
+        services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<Dfo.Server.Abstractions.Administration.IGmMailRuleService>());
+        services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationRuleService>());
+        services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<IDailyRefillConfigurationRuleService>());
         services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
@@ -570,7 +576,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Administration.GrantGmCeraCommand, Dfo.Server.Data.Administration.GmCeraGrantResult, Dfo.Server.Application.Administration.GrantGmCeraCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<Dfo.Server.Application.Administration.RecordGmCeraFailureCommand, bool, Dfo.Server.Application.Administration.RecordGmCeraFailureCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailRuleService, Dfo.Server.Application.Administration.GmMailRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailEquipmentRuleService, Dfo.Server.Application.Administration.GmMailEquipmentRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IItemEquipmentRuleService, Dfo.Server.Application.Inventory.ItemEquipmentRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmOfficialMailDomainService, Dfo.Server.Application.Administration.GmOfficialMailDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmMailCommand, Dfo.Server.Data.Administration.GmMailQueryResult, Dfo.Server.Application.Administration.QueryGmMailCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.EditGmMailCommand, Dfo.Server.Data.Administration.GmMailDocument, Dfo.Server.Application.Administration.EditGmMailCommandHandler>(CommandExecutionKind.Transactional);
@@ -583,8 +589,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmDailyRefillDomainService, Dfo.Server.Application.Administration.GmDailyRefillDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmDailyRefillCommand, Dfo.Server.Data.Inventory.DailyRefillList, Dfo.Server.Application.Administration.QueryGmDailyRefillCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.ChangeGmDailyRefillCommand, Dfo.Server.Data.Inventory.DailyRefillList, Dfo.Server.Application.Administration.ChangeGmDailyRefillCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommand, Dfo.Server.Data.Administration.GmMailCatalogPage, Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommand, Dfo.Server.Data.Administration.GmMailItemDetails, Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommand, Dfo.Server.Data.Inventory.ItemCatalogPage, Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommand, Dfo.Server.Data.Inventory.ItemCatalogDetails, Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationRuleService, Dfo.Server.Application.Initialization.InitializationRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Initialization.InitializationAssetGrants>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>(p => new Dfo.Server.Application.Initialization.InitializationDomainService(
@@ -594,8 +600,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmInitializationCommand, Dfo.Server.Data.Initialization.InitializationView, Dfo.Server.Application.Administration.QueryGmInitializationCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.SaveGmAccountInitializationCommand, object, Dfo.Server.Application.Administration.SaveGmAccountInitializationCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.SaveGmCharacterInitializationCommand, object, Dfo.Server.Application.Administration.SaveGmCharacterInitializationCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmInitializationItemsCommand, Dfo.Server.Data.Administration.GmMailCatalogPage, Dfo.Server.Application.Administration.SearchGmInitializationItemsCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmInitializationItemCommand, Dfo.Server.Data.Administration.GmMailItemDetails, Dfo.Server.Application.Administration.ReadGmInitializationItemCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmInitializationItemsCommand, Dfo.Server.Data.Inventory.ItemCatalogPage, Dfo.Server.Application.Administration.SearchGmInitializationItemsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmInitializationItemCommand, Dfo.Server.Data.Inventory.ItemCatalogDetails, Dfo.Server.Application.Administration.ReadGmInitializationItemCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));

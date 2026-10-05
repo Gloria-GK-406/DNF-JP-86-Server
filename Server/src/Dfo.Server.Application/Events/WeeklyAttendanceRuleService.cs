@@ -8,7 +8,7 @@ using System.Text;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class WeeklyAttendanceRuleService(IWeeklyAttendanceDefinitionSource source, IItemPlacementRuleService items,
-    IDungeonDefinitionSource dungeons, IDailyResetRuleService reset, IGmMailItemCatalogSource itemNames) : IWeeklyAttendanceRuleService
+    IDungeonDefinitionSource dungeons, IDailyResetRuleService reset, IItemCatalogSource itemNames) : IWeeklyAttendanceRuleService
 {
     private static readonly Encoding CalendarEncoding=new UTF8Encoding(false,true);
     public void ValidateCalendarText(string text)

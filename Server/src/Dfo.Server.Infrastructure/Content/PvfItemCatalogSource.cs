@@ -1,14 +1,14 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Pvf;
 using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Data.Administration;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfGmMailItemCatalogSource(PvfArchiveProvider provider,
-    ILogger<PvfGmMailItemCatalogSource> logger) : IGmMailItemCatalogSource
+internal sealed class PvfItemCatalogSource(PvfArchiveProvider provider,
+    ILogger<PvfItemCatalogSource> logger) : IItemCatalogSource
 {
     private static class Fields
     {
@@ -22,22 +22,22 @@ internal sealed class PvfGmMailItemCatalogSource(PvfArchiveProvider provider,
     private readonly Lock gate = new();
     private readonly SemaphoreSlim buildGate = new(1);
     private Dictionary<int, (string Path, bool Equipment)>? paths;
-    private readonly Dictionary<int, GmMailCatalogEntry?> cache = [];
-    private GmMailCatalogEntry[]? searchable;
+    private readonly Dictionary<int, ItemCatalogEntry?> cache = [];
+    private ItemCatalogEntry[]? searchable;
 
-    public ValueTask<GmMailCatalogEntry?> FindAsync(int itemId, CancellationToken token)
+    public ValueTask<ItemCatalogEntry?> FindAsync(int itemId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         lock (gate)
         {
             LoadPaths();
             if (cache.TryGetValue(itemId, out var cached)) return ValueTask.FromResult(cached);
-            if (!paths!.TryGetValue(itemId, out var location)) return ValueTask.FromResult<GmMailCatalogEntry?>(null);
-            GmMailCatalogEntry? entry;
+            if (!paths!.TryGetValue(itemId, out var location)) return ValueTask.FromResult<ItemCatalogEntry?>(null);
+            ItemCatalogEntry? entry;
             try { entry = Read(itemId, location.Path, location.Equipment); }
             catch (InvalidDataException error)
             {
-                logger.LogWarning(error, "GM item catalog omits malformed template {ItemId} at {Path}.", itemId, location.Path);
+                logger.LogWarning(error, "Item catalog omits malformed template {ItemId} at {Path}.", itemId, location.Path);
                 entry = null;
             }
             cache.Add(itemId, entry);
@@ -45,7 +45,7 @@ internal sealed class PvfGmMailItemCatalogSource(PvfArchiveProvider provider,
         }
     }
 
-    public async ValueTask<IReadOnlyList<GmMailCatalogEntry>> SearchAsync(GmMailItemFilter filter, CancellationToken token)
+    public async ValueTask<IReadOnlyList<ItemCatalogEntry>> SearchAsync(ItemCatalogFilter filter, CancellationToken token)
     {
         if (filter.ItemId is { } id)
         {
@@ -59,10 +59,10 @@ internal sealed class PvfGmMailItemCatalogSource(PvfArchiveProvider provider,
             {
                 int[] ids;
                 lock (gate) { LoadPaths(); ids = paths!.Keys.Order().ToArray(); }
-                // Only compact display metadata is retained; eligibility is checked for the requested page.
+                // Retain display metadata; the catalog domain applies purpose admission before pagination.
                 searchable = await Task.Run(async () =>
                 {
-                    var rows = new List<GmMailCatalogEntry>();
+                    var rows = new List<ItemCatalogEntry>();
                     foreach (var itemId in ids)
                         if (await FindAsync(itemId, token) is { } entry) rows.Add(entry);
                     return rows.ToArray();
@@ -84,14 +84,12 @@ internal sealed class PvfGmMailItemCatalogSource(PvfArchiveProvider provider,
         paths = result;
     }
 
-    private GmMailCatalogEntry? Read(int itemId, string path, bool equipment)
+    private ItemCatalogEntry? Read(int itemId, string path, bool equipment)
     {
         var archive = provider.Archive;
         var document = PvfDocument.Open(archive, path).AtRoot();
         var type = TypeName(archive, document, equipment ? Fields.EquipmentType : Fields.StackableType, path);
-        if (equipment && PvfEntryLifecycleContentSource.ClassifyEquipmentType(type is null ? null : $"[{type}]") != ItemWorldClass.Equipment) return null;
         var kind = equipment ? (byte)1 : PvfEntryLifecycleContentSource.ResolveStackableItemKind(itemId, type);
-        if (kind is 0 or 5 or 6 or 7 or 8) return null;
         var category = equipment ? "equipment" : kind switch { 3 or 10 or 11 => "material", 4 => "quest", 2 => "consumable", _ => "other" };
         var name = document.Read(Fields.Name);
         return new(itemId, string.IsNullOrWhiteSpace(name) ? $"物品 {itemId}" : name, category,
@@ -108,7 +106,7 @@ internal sealed class PvfGmMailItemCatalogSource(PvfArchiveProvider provider,
         return archive.ResolveString(values[0].Value).Trim().Trim('`', '[', ']').ToLowerInvariant();
     }
 
-    private static bool Matches(GmMailCatalogEntry item, GmMailItemFilter filter) =>
+    private static bool Matches(ItemCatalogEntry item, ItemCatalogFilter filter) =>
         (string.IsNullOrWhiteSpace(filter.Q) || item.Name.Contains(filter.Q.Trim(), StringComparison.OrdinalIgnoreCase))
         && (filter.Category is null || item.Category == filter.Category)
         && (filter.EquipmentType is null || string.Equals(item.EquipmentType, filter.EquipmentType, StringComparison.OrdinalIgnoreCase))

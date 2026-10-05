@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions;
@@ -61,7 +62,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
-        services.TryAddSingleton<IGmMailItemCatalogSource, PvfGmMailItemCatalogSource>();
+        services.TryAddSingleton<IItemCatalogSource, PvfItemCatalogSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();

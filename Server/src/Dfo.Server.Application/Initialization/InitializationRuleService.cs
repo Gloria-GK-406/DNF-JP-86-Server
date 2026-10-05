@@ -1,34 +1,26 @@
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Administration;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Initialization;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Data.Administration;
 using Dfo.Server.Data.Initialization;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Initialization;
 
 internal sealed class InitializationRuleService(IInventoryExpansionRuleService expansion, IInventoryLevelRuleService levels,
-    IExperienceRuleService experience, IGmMailRuleService itemRules, IItemPlacementRuleService placements,
+    IExperienceRuleService experience, IItemCatalogRuleService itemRules, IItemPlacementRuleService placements,
     IInventoryCapacityRuleService capacities, IItemArrivalRuleService arrivals) : IInitializationRuleService
 {
-    private static bool Supports(BusinessInventorySpace space) => space is BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.Consumable
-        or BusinessInventorySpace.Material or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial or BusinessInventorySpace.AvatarEmblem;
-    public async ValueTask<GmMailCatalogPage> SearchAsync(GmMailItemFilter filter, CancellationToken ct)
+    public string SelectionKey => "initialization";
+    public bool Allows(ItemCatalogDefinition definition) => PermanentOrdinaryItemRules.Allows(definition)
+        && Supports(definition.Placement.Destination.Space);
+    private static bool Supports(BusinessInventorySpace space) => PermanentOrdinaryItemRules.IsOrdinaryBackpack(space);
+    public async ValueTask<ItemCatalogDetails> ItemAsync(int itemId, CancellationToken ct)
     {
-        var page = await itemRules.SearchItemsAsync(filter, ct);
-        var supported = new List<GmMailCatalogEntry>();
-        foreach (var item in page.Items)
-            if (await placements.PlacementForAsync(item.ItemId, ct) is { } p && Supports(p.Destination.Space)) supported.Add(item);
-        return page with { Items = supported };
-    }
-    public async ValueTask<GmMailItemDetails> ItemAsync(int itemId, CancellationToken ct)
-    {
-        var details = await itemRules.ItemDetailsAsync(itemId, ct);
-        var placement = await placements.PlacementForAsync(itemId, ct);
-        if (placement is null || !Supports(placement.Destination.Space)) throw new ArgumentException("此物品不是可初始化的普通背包物品。");
-        return details;
+        var definition = await itemRules.DefinitionAsync(itemId, ct);
+        if (!Allows(definition)) throw new ArgumentException("此物品不是可初始化的永久普通背包物品。");
+        return await itemRules.DetailsAsync(definition, ct);
     }
     private static readonly InitializationChoice[] Contracts = [new(22, "霸王之契约"), new(27, "达人之契约"), new(84, "成长之契约"), new(97, "晶之契约")];
     // A21 client dstr names: 1160/1161/6625/1162/6626/1163/6627/5570/22056/22057/44495..44497.
@@ -63,7 +55,7 @@ internal sealed class InitializationRuleService(IInventoryExpansionRuleService e
         foreach (var item in input.Items)
         {
             try { await ItemAsync(item.ItemId, ct); }
-            catch (GmMailException e) { throw new ArgumentException(e.Message, e); }
+            catch (KeyNotFoundException e) { throw new ArgumentException(e.Message, e); }
             var p = await placements.PlacementForAsync(item.ItemId, ct) ?? throw new ArgumentException("物品没有可投递的位置。");
             if (!Supports(p.Destination.Space)) throw new ArgumentException("初始物品仅支持普通背包物品；账号共有材料请通过对应资产功能管理。");
             var open = Math.Min(capacities.OpenSlotCount(p.Destination.Space, 24), p.Destination.LastIndex + 1);

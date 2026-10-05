@@ -14,21 +14,21 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Administration;
 
 internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence, IGmAccessDomainService access,
-    IGmMailRuleService rules, IMailboxDomainService mailbox, IItemLifecycleDomainService lifecycle,
+    IGmMailRuleService rules, IItemCatalogDomainService catalog, IMailboxDomainService mailbox, IItemLifecycleDomainService lifecycle,
     ICharacterTable characters, IGmAuditDomainService audit, IDomainTransactionAccessor transactions,
     TimeProvider clock) : IGmOfficialMailDomainService
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private static GmMailInput Empty => new("", "", [], [], 0);
-    public async ValueTask<GmMailCatalogPage> SearchItemsAsync(string secret, GmMailItemFilter filter, CancellationToken token)
+    public async ValueTask<ItemCatalogPage> SearchItemsAsync(string secret, ItemCatalogFilter filter, CancellationToken token)
     {
         await AuthorizeAsync(secret, token);
-        return await rules.SearchItemsAsync(filter, token);
+        return await catalog.SearchAsync(filter, rules.SelectionKey, token);
     }
-    public async ValueTask<GmMailItemDetails> ItemDetailsAsync(string secret, int itemId, CancellationToken token)
+    public async ValueTask<ItemCatalogDetails> ItemDetailsAsync(string secret, int itemId, CancellationToken token)
     {
         await AuthorizeAsync(secret, token);
-        return await rules.ItemDetailsAsync(itemId, token);
+        return await catalog.ItemAsync(itemId, rules.SelectionKey, token);
     }
     public async ValueTask<GmMailQueryResult> QueryAsync(string secret, GmMailQuery kind, GmPlayerFilter filter, Guid id, GmMailInput? input, CancellationToken token)
     {

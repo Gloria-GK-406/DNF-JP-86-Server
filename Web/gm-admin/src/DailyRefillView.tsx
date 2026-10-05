@@ -3,7 +3,7 @@ import { App, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Tabl
 import { api, ApiError } from './api';
 import { useGmRead } from './useGmRead';
 import { useNotiBar } from './NotiBar';
-import { MailAttachmentPicker } from './MailAttachmentPicker';
+import { ItemPicker } from './ItemPicker';
 export type RefillEntry = { itemId: number; name: string; source: 'pvf' | 'custom'; quantity: number; mode: number;
   expiresAt: string | null; status: string; pvfEnabled: boolean };
 export type RefillList = { revision: number; entries: RefillEntry[]; updatedAt: string | null; updatedBy: string | null };
@@ -91,7 +91,7 @@ function RefillEditor({ entry, busy, uncertain, onSave, onClose, onReload, ...ac
       <Form.Item name="quantity" label={mode === 0 ? '目标数量' : '发放数量'} rules={[{ required: true, type: 'integer', min: 1, max: 2147483647, message: '请输入正整数数量' }]}><InputNumber min={1} max={2147483647} precision={0} style={{ width: '100%' }} /></Form.Item>
       <Form.Item name="expiry" label="截止时间（留空为长期有效）"><Input type="datetime-local" /></Form.Item>
     </Form>
-    {picker && <MailAttachmentPicker purpose="daily-refill" {...access} onClose={() => setPicker(false)} onChoose={(selected, details) => {
+    {picker && <ItemPicker purpose="daily-refill" {...access} onClose={() => setPicker(false)} onChoose={(selected, details) => {
       setItem({ itemId: selected.itemId, name: details.item.name }); form.setFieldValue('quantity', selected.count); setPicker(false); setDirty(true); return undefined;
     }} />}
   </Modal>;

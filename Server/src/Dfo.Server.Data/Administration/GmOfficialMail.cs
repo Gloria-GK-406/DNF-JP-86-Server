@@ -6,9 +6,7 @@ namespace Dfo.Server.Data.Administration;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GmMailItem([property: JsonRequired] int ItemId, [property: JsonRequired] int Count,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] GmMailEquipmentOptions? Equipment = null);
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record GmMailEquipmentOptions(string Seal = "default", string Growth = "none", int Level = 0, int AmplifyType = 0);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ItemEquipmentOptions? Equipment = null);
 public sealed record GmMailInput(string Title, string Body, int[] RecipientIds, GmMailItem[] Items, int Gold);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GmMailEditorRequest(string Title, string Body, int[] RecipientIds, GmMailItem[] Items, [property: JsonRequired] int Gold,

@@ -3,7 +3,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public interface IDailyRefillConfigurationRuleService
+public interface IDailyRefillConfigurationRuleService : IItemCatalogSelectionRuleService
 {
     ValueTask<IReadOnlyList<DailyRefillRule>> DeclaredPvfAsync(DateTimeOffset at, CancellationToken ct);
     ValueTask<IReadOnlyList<DailyRefillRule>> ActivePvfAsync(DateTimeOffset at, CancellationToken ct);

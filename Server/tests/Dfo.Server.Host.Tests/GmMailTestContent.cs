@@ -8,10 +8,10 @@ namespace Dfo.Server.Host.Tests;
 // Business/transaction tests use declared content on every machine. Tests of the actual
 // archive opt out explicitly; missing local PVF must not turn rollback checks into 500s.
 internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItemPlacementDefinitionSource,
-    IGmMailItemCatalogSource, IEquipmentDefinitionSource, IEquipmentReinforcementDefinitionSource,
+    IItemCatalogSource, IEquipmentDefinitionSource, IEquipmentReinforcementDefinitionSource,
     IEquipmentOutworldContentSource, IGoldCarryLimitSource
 {
-    private static readonly GmMailCatalogEntry[] Items = [
+    private static readonly ItemCatalogEntry[] Items = [
         new(3, "测试消耗品", "consumable", null, 1, 1),
         new(3033, "测试黑色材料", "material", null, 1, 1),
         new(3034, "测试白色材料", "material", null, 1, 1),
@@ -26,18 +26,18 @@ internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItem
         var content = new GmMailTestContent();
         services.AddSingleton<IPackageOpeningDefinitionSource>(content);
         services.AddSingleton<IItemPlacementDefinitionSource>(content);
-        services.AddSingleton<IGmMailItemCatalogSource>(content);
+        services.AddSingleton<IItemCatalogSource>(content);
         services.AddSingleton<IEquipmentDefinitionSource>(content);
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(content);
         services.AddSingleton<IEquipmentOutworldContentSource>(content);
         services.AddSingleton<IGoldCarryLimitSource>(content);
     }
 
-    public ValueTask<GmMailCatalogEntry?> FindAsync(int itemId, CancellationToken token) =>
+    public ValueTask<ItemCatalogEntry?> FindAsync(int itemId, CancellationToken token) =>
         ValueTask.FromResult(Items.SingleOrDefault(item => item.ItemId == itemId));
 
-    public ValueTask<IReadOnlyList<GmMailCatalogEntry>> SearchAsync(GmMailItemFilter filter, CancellationToken token) =>
-        ValueTask.FromResult<IReadOnlyList<GmMailCatalogEntry>>(Items.Where(item =>
+    public ValueTask<IReadOnlyList<ItemCatalogEntry>> SearchAsync(ItemCatalogFilter filter, CancellationToken token) =>
+        ValueTask.FromResult<IReadOnlyList<ItemCatalogEntry>>(Items.Where(item =>
             (filter.ItemId is null || item.ItemId == filter.ItemId)
             && (filter.Q is null || item.Name.Contains(filter.Q, StringComparison.OrdinalIgnoreCase))
             && (filter.Category is null || item.Category == filter.Category)

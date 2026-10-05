@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using System.Net;
 using System.Net.Http.Json;
 using Dfo.Server.Abstractions.Events;
@@ -78,23 +79,23 @@ public sealed class GmEventsHttpTests
         var updated=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.Equal(1,updated.Revision);Assert.Equal("initial",updated.SeasonId);Assert.Equal(4,updated.RequiredClears);
     }
-    private sealed class Names : IGmMailItemCatalogSource
+    private sealed class Names : IItemCatalogSource
     {
         internal bool Missing { get; set; }
         internal string Prefix { get; set; }="名称";
         internal int Reads { get; set; }
-        public ValueTask<GmMailCatalogEntry?> FindAsync(int id,CancellationToken ct)
+        public ValueTask<ItemCatalogEntry?> FindAsync(int id,CancellationToken ct)
         {
             Reads++;
-            return ValueTask.FromResult<GmMailCatalogEntry?>(Missing ? null : new(id,$"{Prefix}{id}","consumable",null,1,1));
+            return ValueTask.FromResult<ItemCatalogEntry?>(Missing ? null : new(id,$"{Prefix}{id}","consumable",null,1,1));
         }
-        public ValueTask<IReadOnlyList<GmMailCatalogEntry>> SearchAsync(GmMailItemFilter filter,CancellationToken ct)=>throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<ItemCatalogEntry>> SearchAsync(ItemCatalogFilter filter,CancellationToken ct)=>throw new NotSupportedException();
     }
     [Fact]
     public async Task Names_are_read_by_attendance_service_once_per_distinct_item_and_do_not_change_season_rules_or_claims()
     {
         var names=new Names();
-        await using var host=await GmTestHost.StartAsync(configureServices:s=>{Content(s);s.AddSingleton<IGmMailItemCatalogSource>(names);});
+        await using var host=await GmTestHost.StartAsync(configureServices:s=>{Content(s);s.AddSingleton<IItemCatalogSource>(names);});
         await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);await Clears(host);
         var before=await host.ReadAsync("SELECT input FROM event_configuration");
         var attendance=host.Services.GetRequiredService<IWeeklyAttendanceDomainService>();
@@ -241,7 +242,7 @@ public sealed class GmEventsHttpTests
         Assert.True(entry.Available,entry.UnavailableReason);Assert.Equal("event/chn_event/chn_totalattendance.evt",entry.SourcePath);Assert.Equal(4,entry.RequiredClears);
         Assert.Equal(new[]{490003187,490003188,490003189,490003196,490003190,490003191,490003192,490003197,490003193,490003194,490003195,490003198},entry.WeeklyRewards.Select(r=>r.ItemId));
         Assert.Equal(new[]{4,8,11},entry.CumulativeRewards.Select(r=>r.AttendanceNo));
-        var names=host.Services.GetRequiredService<IGmMailItemCatalogSource>();
+        var names=host.Services.GetRequiredService<IItemCatalogSource>();
         foreach(var reward in entry.WeeklyRewards.Concat(entry.CumulativeRewards))
         {
             Assert.False(string.IsNullOrWhiteSpace(reward.ItemName));

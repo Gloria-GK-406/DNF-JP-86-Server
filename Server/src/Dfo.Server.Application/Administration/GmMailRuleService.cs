@@ -11,8 +11,10 @@ using Dfo.Server.Application.Inventory;
 namespace Dfo.Server.Application.Administration;
 
 internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openings, IItemPlacementRuleService placements,
-    IGmMailEquipmentRuleService equipmentRules, IGmMailItemCatalogSource catalog, TimeProvider clock) : IGmMailRuleService
+    IItemEquipmentRuleService equipmentRules, IItemCatalogRuleService catalog) : IGmMailRuleService
 {
+    public string SelectionKey => "mail";
+    public bool Allows(ItemCatalogDefinition definition) => PermanentOrdinaryItemRules.Allows(definition);
     private static readonly UTF8Encoding Utf8 = new(false, true);
     public GmMailInput Normalize(GmMailInput input, bool sending)
     {
@@ -66,9 +68,10 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             if (requested.Equipment is { } options)
             {
                 if (!equipment) throw Invalid($"物品 {requested.ItemId} 是堆叠物，不能配置装备属性。");
-                core = await equipmentRules.ConfigureAsync(core, options, token);
+                try { core = await equipmentRules.ConfigureAsync(core, options, token); }
+                catch (ArgumentException e) { throw Invalid(e.Message); }
             }
-            var name = (await catalog.FindAsync(requested.ItemId, token))?.Name;
+            var name = await catalog.ItemNameAsync(requested.ItemId, token);
             output.Add(new(requested, new(requested.ItemId, requested.Count, equipment ? "equipment" : "stackable",
                 core.Durability, core.SealFlag != 0, name, core.ReinforcementLevel, core.AmplifyType, core.AmplifyValue), core));
         }
@@ -82,7 +85,7 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
         catch (EncoderFallbackException) { throw Invalid("邮件文字包含无效字符。"); }
         return text;
     }
-    private static GmMailEquipmentOptions? NormalizeOptions(GmMailEquipmentOptions? options)
+    private static ItemEquipmentOptions? NormalizeOptions(ItemEquipmentOptions? options)
     {
         if (options is null) return null;
         if (options.Seal is not ("default" or "unsealed") || options.Growth is not ("none" or "reinforcement" or "amplification")
@@ -91,7 +94,7 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             || (options.Growth == "amplification" ? options.AmplifyType is < 1 or > 4 : options.AmplifyType != 0))
             throw Invalid("装备封装、成长模式、等级或异次元属性组合无效。");
         // Omitting the default configuration preserves the exact JSON/hash of pre-extension mail.
-        return options == new GmMailEquipmentOptions() ? null : options;
+        return options == new ItemEquipmentOptions() ? null : options;
     }
     private static GmMailException Invalid(string text) => new(GmMailRefusal.Invalid, text);
 }

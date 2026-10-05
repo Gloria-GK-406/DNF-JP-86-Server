@@ -4,7 +4,8 @@ import { api, ApiError, type PlayerPage } from './api';
 import { useGmRead } from './useGmRead';
 import { useNotiBar } from './NotiBar';
 import { MailAttachments } from './MailAttachments';
-import { amplifyTypes, emptyMail, type MailDocument, type MailInput, type MailPreview, type MailRecipient, type PendingMail } from './mail';
+import { amplifyTypes } from "./items";
+import { emptyMail, type MailDocument, type MailInput, type MailPreview, type MailRecipient, type PendingMail } from "./mail";
 
 export type MailAccess = { onExpired: () => void; onDenied: () => void };
 export type SendOutcome = 'committed' | 'rejected' | 'unknown';

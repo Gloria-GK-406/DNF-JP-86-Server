@@ -33,7 +33,7 @@ public sealed class GmDailyRefillHttpTests
         foreach (var change in new[] { new DailyRefillChange(0, "add", 3, 0, 1), new(0, "add", 3, 5, 8), new(0, "add", 27312, 5, 1), new(0, "add", 999999, 5, 1), new(0, "pvf", 999999, Enabled: false), new(0, "add", 3, 5, 1, DateTimeOffset.UtcNow.AddDays(-1)) })
             Assert.Equal(HttpStatusCode.BadRequest, (await host.PostAsync(Prefix, csrf, change)).StatusCode);
         Assert.Empty(await host.ReadAsync("SELECT id FROM daily_refill_settings"));
-        var page = (await host.Client.GetFromJsonAsync<Dfo.Server.Data.Administration.GmMailCatalogPage>(Prefix + "/items?pageSize=50"))!;
+        var page = (await host.Client.GetFromJsonAsync<Dfo.Server.Data.Inventory.ItemCatalogPage>(Prefix + "/items?pageSize=50"))!;
         Assert.NotEmpty(page.Items);
         Assert.DoesNotContain(page.Items, e => e.Category == "equipment");
 

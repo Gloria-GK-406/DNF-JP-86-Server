@@ -3,7 +3,7 @@ import { Button, Card, Descriptions, Modal, Popconfirm, Space, Table, Tabs, Tag,
 import { api, ApiError } from './api';
 import { useGmRead } from './useGmRead';
 import { NotiHint, useNotiBar } from './NotiBar';
-import { emptyMail, readPending, type MailDocument, type MailHistory, type MailInput, type MailReceipt, type MailSendResult, type PendingMail } from './mail';
+import { emptyMail, readPending, type MailDocument, type MailHistory, type MailInput, type MailReceipt, type MailSendResult, type PendingMail } from "./mail";
 import { MailAttachmentSummary } from './MailAttachments';
 import { MailComposer, MailTemplateEditor, PreparedAttachments, useMailAction, type MailAccess, type SendOutcome } from './MailEditors';
 

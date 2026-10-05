@@ -1,27 +1,25 @@
-using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Data.Administration;
 using Dfo.Server.Data.Inventory;
 using Microsoft.Extensions.Logging;
 
-namespace Dfo.Server.Application.Administration;
+namespace Dfo.Server.Application.Inventory;
 
-internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equipment,
+internal sealed class ItemEquipmentRuleService(IEquipmentDefinitionSource equipment,
     IEquipmentOutworldContentSource outworld, IEquipmentUpgradeRuleService upgrades,
-    ILogger<GmMailEquipmentRuleService> logger) : IGmMailEquipmentRuleService
+    ILogger<ItemEquipmentRuleService> logger) : IItemEquipmentRuleService
 {
-    public async ValueTask<GmMailEquipmentCapabilities> CapabilitiesAsync(ItemSnapshot core, CancellationToken token)
+    public async ValueTask<ItemEquipmentCapabilities> CapabilitiesAsync(ItemSnapshot core, CancellationToken token)
     {
         try { return await ReadCapabilitiesAsync(core, token); }
         catch (InvalidDataException error)
         {
-            logger.LogWarning(error, "GM equipment growth configuration unavailable for item {ItemId}.", core.ItemId);
+            logger.LogWarning(error, "Equipment growth configuration unavailable for item {ItemId}.", core.ItemId);
             return new(0, 0, false, "装备成长规则读取失败，暂不可配置强化。", "装备成长规则读取失败，暂不可配置增幅。", new Dictionary<byte, ushort>());
         }
     }
 
-    private async ValueTask<GmMailEquipmentCapabilities> ReadCapabilitiesAsync(ItemSnapshot core, CancellationToken token)
+    private async ValueTask<ItemEquipmentCapabilities> ReadCapabilitiesAsync(ItemSnapshot core, CancellationToken token)
     {
         // Admission uses an unsealed, full-durability template. GM creates the requested final state;
         // it does not execute a player's random upgrade, charge resources, or mutate an owned item.
@@ -48,7 +46,7 @@ internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equi
             canAmplify ? null : "该装备的等级、稀有度或模板规则不支持增幅。", values);
     }
 
-    public async ValueTask<ItemSnapshot> ConfigureAsync(ItemSnapshot core, GmMailEquipmentOptions options, CancellationToken token)
+    public async ValueTask<ItemSnapshot> ConfigureAsync(ItemSnapshot core, ItemEquipmentOptions options, CancellationToken token)
     {
         var configured = options.Seal == "unsealed" ? core with { SealFlag = 0 } : core;
         if (options.Growth == "none") return configured;
@@ -78,5 +76,5 @@ internal sealed class GmMailEquipmentRuleService(IEquipmentDefinitionSource equi
         return 31;
     }
 
-    private static GmMailException Invalid(string message) => new(GmMailRefusal.Invalid, message);
+    private static ArgumentException Invalid(string message) => new(message);
 }

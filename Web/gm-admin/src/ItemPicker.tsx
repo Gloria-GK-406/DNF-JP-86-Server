@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { Button, Card, Empty, Input, InputNumber, Modal, Select, Space, Spin, Table, Tag, Typography } from 'antd';
 import { useGmRead } from './useGmRead';
 import { useNotiBar } from './NotiBar';
-import { amplifyTypes, defaultEquipment, equipmentTypes, itemCategories, itemRarities,
-  type MailCatalogEntry, type MailCatalogPage, type MailEquipmentOptions, type MailItem, type MailItemDetails } from './mail';
+import { amplifyTypes, defaultEquipment, equipmentTypes, itemCategories, itemRarities, type ItemCatalogEntry, type ItemCatalogPage, type ItemEquipmentOptions, type ItemInput, type ItemCatalogDetails } from './items';
 
 type AccessCallbacks = { onExpired: () => void; onDenied: () => void };
 type Filters = { q: string; id: string; category?: string; equipmentType?: string; minimumLevel?: number; maximumLevel?: number; rarity?: number };
 
-export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, onDenied, purpose = 'mail' }: AccessCallbacks & {
-  purpose?: 'mail' | 'initialization' | 'daily-refill'; initial?: MailItem; onClose: () => void; onChoose: (item: MailItem, details: MailItemDetails) => string | undefined;
+export function ItemPicker({ initial, onClose, onChoose, onExpired, onDenied, purpose }: AccessCallbacks & {
+  purpose: 'mail' | 'initialization' | 'daily-refill'; initial?: ItemInput; onClose: () => void; onChoose: (item: ItemInput, details: ItemCatalogDetails) => string | undefined;
 }) {
   const [filters, setFilters] = useState<Filters>({ q: '', id: '' });
   const [search, setSearch] = useState<Filters>({ q: '', id: '' });
@@ -20,8 +19,8 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
   if (search.id) params.set('itemId', search.id);
   for (const key of ['category', 'equipmentType', 'minimumLevel', 'maximumLevel', 'rarity'] as const)
     if (search[key] !== undefined) params.set(key, String(search[key]));
-  const results = useGmRead<MailCatalogPage>(`${purpose === 'mail' ? 'mail' : purpose}/items?${params}`, onExpired, onDenied);
-  const details = useGmRead<MailItemDetails>(selected ? `${purpose === 'mail' ? 'mail' : purpose}/items/${selected}` : null, onExpired, onDenied);
+  const results = useGmRead<ItemCatalogPage>(`${purpose}/items?${params}`, onExpired, onDenied);
+  const details = useGmRead<ItemCatalogDetails>(selected ? `${purpose}/items/${selected}` : null, onExpired, onDenied);
   function apply(next: Filters) {
     if (next.id && (!/^\d+$/.test(next.id) || +next.id <= 0 || +next.id > 2147483647)) { noti.error('物品 ID 必须为正整数。'); return; }
     if (next.minimumLevel !== undefined && next.maximumLevel !== undefined && next.minimumLevel > next.maximumLevel) { noti.error('最低等级不能大于最高等级。'); return; }
@@ -53,7 +52,7 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
     </Space>}
     <div className="mail-picker-body">
       <section className="mail-picker-results" aria-label="物品检索结果">
-        <Table<MailCatalogEntry> rowKey="itemId" size="small" loading={results.busy} dataSource={results.data?.items ?? []} pagination={false}
+        <Table<ItemCatalogEntry> rowKey="itemId" size="small" loading={results.busy} dataSource={results.data?.items ?? []} pagination={false}
           scroll={{ y: 430, x: 520 }} locale={{ emptyText: results.busy ? '正在加载物品目录…' : '没有符合条件的可发放物品' }}
           rowClassName={row => row.itemId === selected ? 'mail-picker-selected' : ''}
           columns={[
@@ -79,9 +78,9 @@ export function MailAttachmentPicker({ initial, onClose, onChoose, onExpired, on
   </Modal>;
 }
 
-function ItemConfiguration({ details, initial, onChoose, simple = false, refill = false }: { simple?: boolean; refill?: boolean; details: MailItemDetails; initial?: MailItem; onChoose: (item: MailItem) => void }) {
+function ItemConfiguration({ details, initial, onChoose, simple = false, refill = false }: { simple?: boolean; refill?: boolean; details: ItemCatalogDetails; initial?: ItemInput; onChoose: (item: ItemInput) => void }) {
   const [count, setCount] = useState<number | null>(initial?.count ?? 1);
-  const [options, setOptions] = useState<MailEquipmentOptions>(initial?.equipment ?? defaultEquipment());
+  const [options, setOptions] = useState<ItemEquipmentOptions>(initial?.equipment ?? defaultEquipment());
   const capabilities = details.equipment;
   const isEquipment = details.kind === 'equipment';
   const maximum = options.growth === 'amplification' ? capabilities?.maxAmplificationLevel ?? 0 : capabilities?.maxReinforcementLevel ?? 0;

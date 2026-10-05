@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -90,7 +91,7 @@ public sealed class GmInitializationHttpTests
         var csrf = await GmCeraHttpTests.Login(host);
         using var savedAccount = await host.PostAsync(Prefix + "/account", csrf, new SaveInitializationRequest<AccountInitialization>(0, Account() with { AccountCargoLevel = 8 }));
         Assert.Equal(HttpStatusCode.OK, savedAccount.StatusCode);
-        var catalog = (await host.Client.GetFromJsonAsync<Dfo.Server.Data.Administration.GmMailCatalogPage>(Prefix + "/items?category=consumable&pageSize=15"))!;
+        var catalog = (await host.Client.GetFromJsonAsync<Dfo.Server.Data.Inventory.ItemCatalogPage>(Prefix + "/items?category=consumable&pageSize=15"))!;
         var item = catalog.Items.First();
         using var savedRole = await host.PostAsync(Prefix + "/character", csrf,
             new SaveInitializationRequest<CharacterInitialization>(0, new(20, 24, [new(item.ItemId, 20)])));

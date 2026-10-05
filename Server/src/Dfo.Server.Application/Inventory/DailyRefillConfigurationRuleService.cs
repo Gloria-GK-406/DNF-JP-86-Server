@@ -1,15 +1,17 @@
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Initialization;
 using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Data.Administration;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class DailyRefillConfigurationRuleService(IEntryLifecycleContentSource content,
-    IInitializationRuleService catalog, IGmMailItemCatalogSource itemNames,
-    IItemPlacementRuleService placements) : IDailyRefillConfigurationRuleService
+    IItemCatalogRuleService catalog, IItemCatalogSource itemNames) : IDailyRefillConfigurationRuleService
 {
+    public string SelectionKey => "daily-refill";
+    public bool Allows(ItemCatalogDefinition definition) => PermanentOrdinaryItemRules.Allows(definition)
+        && definition.Placement.WorldClass == ItemWorldClass.Interchangeable
+        && PermanentOrdinaryItemRules.IsOrdinaryBackpack(definition.Placement.Destination.Space);
+
     public ValueTask<IReadOnlyList<DailyRefillRule>> DeclaredPvfAsync(DateTimeOffset at, CancellationToken ct) =>
         content.GetDeclaredDailyRefillRulesAsync(at, ct);
 
@@ -21,11 +23,11 @@ internal sealed class DailyRefillConfigurationRuleService(IEntryLifecycleContent
 
     public async ValueTask<DailyRefillRule> ResolveCustomAsync(CustomDailyRefill input, CancellationToken ct)
     {
-        GmMailItemDetails details;
-        try { details = await catalog.ItemAsync(input.ItemId, ct); }
-        catch (GmMailException e) { throw new ArgumentException(e.Message, e); }
-        if (details.Kind != "stackable") throw new ArgumentException("每日补给仅支持永久普通背包堆叠物品。");
-        var placement = await placements.PlacementForAsync(input.ItemId, ct) ?? throw new ArgumentException("物品没有补给位置。");
+        ItemCatalogDefinition definition;
+        try { definition = await catalog.DefinitionAsync(input.ItemId, ct); }
+        catch (KeyNotFoundException e) { throw new ArgumentException(e.Message, e); }
+        if (!Allows(definition)) throw new ArgumentException("每日补给仅支持永久普通背包堆叠物品。");
+        var placement = definition.Placement;
         return new(input.ItemId, input.Quantity, input.ExpiresAt ?? DateTimeOffset.MaxValue, (DailyRefillMode)input.Mode,
             placement.StackLimit, placement.ItemKind, placement.Destination);
     }
