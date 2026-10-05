@@ -8,15 +8,14 @@ namespace Dfo.Server.Protocol.Tests.Game.WeeklyAttendance;
 public sealed class WeeklyAttendanceProtocolTests
 {
     [Fact]
-    public void Calendar_chinese_notice_has_known_GBK_bytes_and_decodes_with_A21_default_codepage()
+    public void Calendar_chinese_notice_has_known_UTF8_bytes_and_decodes_with_patched_A21_codepage()
     {
         var info=new EventInfo(2208,"中文","中文","中文","中文","中文",DateTimeOffset.FromUnixTimeSeconds(1),DateTimeOffset.FromUnixTimeSeconds(2),"total attendance check event/0/0");
         using var reader=new BinaryReader(new MemoryStream(EventPayloadCodec.Information([info])));
         Assert.Equal(1,reader.ReadUInt16());Assert.Equal(2208,reader.ReadUInt16());Assert.Equal(0u,reader.ReadUInt32());
         var length=reader.ReadUInt32();var bytes=reader.ReadBytes(checked((int)length));
-        // Independent GBK vector: 中=D6 D0, 文=CE C4; the A21 consumer uses MultiByteToWideChar(936).
-        Assert.Equal(new byte[]{0xD6,0xD0,0xCE,0xC4},bytes);Assert.Equal(4u,length);
-        var consumer=System.Text.CodePagesEncodingProvider.Instance.GetEncoding(936)!;
+        Assert.Equal(new byte[]{0xE4,0xB8,0xAD,0xE6,0x96,0x87},bytes);Assert.Equal(6u,length);
+        var consumer=new System.Text.UTF8Encoding(false,true);
         Assert.Equal("中文",consumer.GetString(bytes));
     }
     [Fact]
@@ -39,14 +38,14 @@ public sealed class WeeklyAttendanceProtocolTests
     [Fact]
     public void Calendar_detail_round_trips_client_read_order_and_entry_sends_attendance_after_calendar()
     {
-        var info=new EventInfo(2208,"累计周签到","周签到","说明","开始","结束",DateTimeOffset.FromUnixTimeSeconds(1700000000),DateTimeOffset.FromUnixTimeSeconds(1800000000),"total attendance check event/0/0");
+        var info=new EventInfo(2208,"累计周签到😀","周签到𠮷","说明한글","开始é","结束🚀",DateTimeOffset.FromUnixTimeSeconds(1700000000),DateTimeOffset.FromUnixTimeSeconds(1800000000),"total attendance check event/0/0");
         using var reader=new BinaryReader(new MemoryStream(EventPayloadCodec.Information([info])));
-        var consumer=System.Text.CodePagesEncodingProvider.Instance.GetEncoding(936)!;
+        var consumer=new System.Text.UTF8Encoding(false,true);
         string Text()=>consumer.GetString(reader.ReadBytes(checked((int)reader.ReadUInt32())));
         Assert.Equal(1,reader.ReadUInt16());Assert.Equal(2208,reader.ReadUInt16());Assert.Equal(0u,reader.ReadUInt32());
-        Assert.Equal("开始",Text());Assert.Equal("结束",Text());Assert.Equal(1,reader.ReadByte());Assert.Equal(0,reader.ReadByte());Assert.Equal(5,reader.ReadByte());
-        Assert.Equal("累计周签到",Text());Assert.Equal("周签到",Text());Assert.Equal("",Text());Assert.Equal(1700000000u,reader.ReadUInt32());Assert.Equal(1800000000u,reader.ReadUInt32());
-        Assert.Equal(info.LinkKey,Text());Assert.Equal("说明",Text());Assert.Equal(1,reader.ReadByte());Assert.Equal(0,reader.ReadByte());Assert.Equal(reader.BaseStream.Length,reader.BaseStream.Position);
+        Assert.Equal(info.StartNotice,Text());Assert.Equal(info.EndNotice,Text());Assert.Equal(1,reader.ReadByte());Assert.Equal(0,reader.ReadByte());Assert.Equal(5,reader.ReadByte());
+        Assert.Equal(info.Title,Text());Assert.Equal(info.ShortName,Text());Assert.Equal("",Text());Assert.Equal(1700000000u,reader.ReadUInt32());Assert.Equal(1800000000u,reader.ReadUInt32());
+        Assert.Equal(info.LinkKey,Text());Assert.Equal(info.Description,Text());Assert.Equal(1,reader.ReadByte());Assert.Equal(0,reader.ReadByte());Assert.Equal(reader.BaseStream.Length,reader.BaseStream.Position);
         var result=SelectCharacterPayloadTestData.CreateComplete() with { Events=new([info],new(true,0,0,1,false,[])) };
         var messages=SelectedCharacterStateMessageFactory.Create(result).ToList();var calendar=messages.FindIndex(m=>m is EventInformationMessage);
         Assert.True(calendar>0);Assert.IsType<WeeklyAttendanceStateMessage>(messages[calendar+1]);

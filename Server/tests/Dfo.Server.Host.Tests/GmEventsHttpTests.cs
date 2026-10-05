@@ -134,19 +134,20 @@ public sealed class GmEventsHttpTests
         Assert.Equal(HttpStatusCode.OK, (await host.Client.GetAsync("/api/gm/v1/events")).StatusCode);
     }
     [Fact]
-    public async Task Unrepresentable_calendar_text_is_rejected_without_changing_configuration_or_audit()
+    public async Task Unicode_calendar_text_is_saved_and_projected_without_GBK_restrictions()
     {
         await using var host=await GmTestHost.StartAsync(configureServices:s=>Content(s));
-        var token=await GmCeraHttpTests.Login(host);var before=await Change(host,token,Configure(0));
-        var unsupported=new[]{ Configure(1) with { Title="签到😀" },Configure(1) with { ShortName="😀" },
-            Configure(1) with { Description="说明😀" },Configure(1) with { StartNotice="开始😀" },Configure(1) with { EndNotice="结束😀" } };
-        foreach(var change in unsupported)
-        {
-            using var response=await host.PostAsync(Url,token,change);
-            Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);
-            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await Get(host)));
-            Assert.Single(await host.ReadAsync("SELECT operation_id FROM gm_audit WHERE action='ChangeEvent'"));
-        }
+        var token=await GmCeraHttpTests.Login(host);
+        var change=Configure(0) with { Title="签到😀",ShortName="周签到𠮷",Description="说明한글",StartNotice="开始é",EndNotice="结束🚀" };
+        await Change(host,token,change);await Change(host,token,new(2208,1,"enable"));
+        var entry=await Get(host);
+        var info=Assert.Single(await host.Services.GetRequiredService<IEventManagementDomainService>().GetEventInfoListAsync(new(1),DateTimeOffset.UtcNow,default));
+        Assert.Equal(change.Title,entry.Title);Assert.Equal(change.ShortName,entry.ShortName);Assert.Equal(change.Description,entry.Description);
+        Assert.Equal(change.StartNotice,entry.StartNotice);Assert.Equal(change.EndNotice,entry.EndNotice);
+        Assert.Equal(change.Title,info.Title);Assert.Equal(change.ShortName,info.ShortName);Assert.Equal(change.Description,info.Description);
+        Assert.Equal(change.StartNotice,info.StartNotice);Assert.Equal(change.EndNotice,info.EndNotice);
+        var rules=host.Services.GetRequiredService<IWeeklyAttendanceRuleService>();
+        foreach(var malformed in new[]{ "\uD800", "\uDC00" })Assert.Throws<ArgumentException>(()=>rules.ValidateCalendarText(malformed));
     }
     [Fact]
     public async Task Permissions_csrf_strict_input_revision_and_audit_failure_protect_configuration()

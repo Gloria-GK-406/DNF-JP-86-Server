@@ -837,7 +837,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0069` | `CreatureListMessage`、`CreatureListUpdateMessage` | 仅证明 encoder 可产生该 identity | [0x0069](game/server-to-client/NOTI-0x0069.md) |
 | `0x00` NOTI | `0x006A` | `CreatureEvolutionNotification` | 仅证明 encoder 可产生该 identity | [0x006A](game/server-to-client/NOTI-0x006A.md) |
 | `0x00` NOTI | `0x006B` | `CreatureRevivalNotification`、`PetRevivalStateMessage` | 仅证明 encoder 可产生该 identity | [0x006B](game/server-to-client/NOTI-0x006B.md) |
-| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | ClientStatic 丰富日历布局；CurrentImplementation 注册实例投影，待GUI验收 | [0x006C](game/server-to-client/NOTI-0x006C.md) |
+| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | ClientStatic 丰富日历布局；已观察日历/窗口打开；运行时确认UTF-8，CurrentImplementation 编码修正待复测 | [0x006C](game/server-to-client/NOTI-0x006C.md) |
 | `0x00` NOTI | `0x0077` | `PetWelcomeStateMessage` | 仅证明 encoder 可产生该 identity | [0x0077](game/server-to-client/NOTI-0x0077.md) |
 | `0x00` NOTI | `0x007C` | `EntryMarkerMessage` | 仅证明 encoder 可产生该 identity | [0x007C](game/server-to-client/NOTI-0x007C.md) |
 | `0x00` NOTI | `0x008E` | `IllusionTowerInfoNotification` | 仅证明 encoder 可产生该 identity | [0x008E](game/server-to-client/NOTI-0x008E.md) |

@@ -6,6 +6,8 @@ terminal_stage: verification
 
 # Spec Result：活动管理与累计周签到
 
+状态修正（2026-10-05）：下文CP936审查结论遗漏客户端兼容补丁，现按运行时65001统一UTF-8；历史测试通过不代表编码选择正确，见[006C记录](../../../protocol/game/server-to-client/NOTI-0x006C.md)。
+
 ## Delivered
 
 - 活动管理从注册实例汇总领域信息，2208周签到的管理与玩法接口共享同一对象；支持配置、启停及显式新期次。

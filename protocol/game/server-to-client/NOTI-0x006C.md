@@ -117,7 +117,9 @@ BodyLength = 未知（字段集合已知不完整）
 
 A21 主表：u16 entryCount；每项 u16 eventId、u32 未知值、开始/结束通知各 dstring、u8 hasDetail；有 detail 时 u8 flagA、u8 flagB、标题/短名/第三字符串各 dstring、u32 startUnix、u32 endUnix、linkKey/description 各 dstring、u8 enabled。当前2208首例随后写空 extra 表的 u8 count=0；空形状仍是3B。原始 tail reader 在 manager 存在 event9 时还有前置 `u8 count + count×u16` 条件分支，然后才读 extra 表（每项 u16 eventId+12×u32）。event9 的赋值时序未完全闭合，当前 encoder 没有覆盖该活动组合，不能视为全部活动的通用布局。
 
-所有 dstring 为 u32 编码字节长度+窄字符串。当前006C按 **CP936 / GBK** 编码，证据为同一 A21 镜像的 [calendar-text-encoding.txt](../../../Document/tasks/event-weekly-attendance/evidence/calendar-text-encoding.txt)：VA0274FCB0→VA027BAE40→`MultiByteToWideChar` 使用全局03B89610，VA00426BE0初始化为936；另有临时949路径恢复原值。这是 **ClientStatic / High 的默认路径证据**，不是运行时捕获的 CodePage。不能据此推定其他文本协议。编码采用异常 fallback，GM配置在保存前拒绝CP936无法表示的文案，不静默替换为问号。
+所有 dstring 为 u32 编码字节长度+窄字符串。当前006C统一使用严格 **UTF-8**，长度为实际编码字节数；GM配置接受合法Unicode文案，拒绝孤立代理项，不静默替换。
+
+2026-10-05编码结论修正（Confirmed）：先前按 [calendar-text-encoding.txt](../../../Document/tasks/event-weekly-attendance/evidence/calendar-text-encoding.txt) 的原始客户端静态默认值936选择GBK，遗漏实际客户端补丁。`DNF-JP-86-ClientHack/ClientHack/plugins/0020_client_compatibility/client_compatibility.c` 的A21分支在RVA `00026BE1`把初始化立即数936改为65001。对正在运行的 `E:/Project/DNF/DNFClient-A21-protocol2/DNF.exe`（PID30016）只读核查：VA `00426BE0`为 `68 E9 FD 00 00`（push65001），全局VA `03B89610`实际为65001；用户截图同时显示活动日历和原生签到窗口已打开、动态标题乱码。原始静态证据保留，但不再代表打补丁后的运行环境。UTF-8修正后的客户端显示仍待复测，不扩大为完整签到玩法ClientVerified。
 
 当前实现由注册活动实例投影日历，2208 detail 的 flagA=0/flagB=5 来自上游 seed，含义尚未闭合；第三字符串和 tail 为空。linkKey `total attendance check event/0/0` 满足原生解析语法，静态映射到窗口0x1E1，但可点击效果仍须实机确认。配置有效期、启停和内容有效性同时控制日历与玩法。
 

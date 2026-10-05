@@ -14,8 +14,8 @@ namespace Dfo.Server.Protocol.Game.WeeklyAttendance;
 
 internal static class EventPayloadCodec
 {
-    // A21 calendar dstring: VA0274FCB0 -> VA027BAE40 -> MultiByteToWideChar; default codepage 936.
-    private static readonly Encoding CalendarEncoding=CodePagesEncodingProvider.Instance.GetEncoding(936,EncoderFallback.ExceptionFallback,DecoderFallback.ExceptionFallback)!;
+    // ClientCompatibility patches A21 SetCodePage to 65001; the running client consumes UTF-8.
+    private static readonly Encoding CalendarEncoding=new UTF8Encoding(false,true);
     public static byte[] Information(IReadOnlyList<EventInfo> events)
     {
         using var buffer=new MemoryStream(); using var writer=new BinaryWriter(buffer,CalendarEncoding,true);

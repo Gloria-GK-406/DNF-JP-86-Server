@@ -10,11 +10,11 @@ namespace Dfo.Server.Application.Events;
 internal sealed class WeeklyAttendanceRuleService(IWeeklyAttendanceDefinitionSource source, IItemPlacementRuleService items,
     IDungeonDefinitionSource dungeons, IDailyResetRuleService reset, IGmMailItemCatalogSource itemNames) : IWeeklyAttendanceRuleService
 {
-    private static readonly Encoding CalendarEncoding=CodePagesEncodingProvider.Instance.GetEncoding(936,EncoderFallback.ExceptionFallback,DecoderFallback.ExceptionFallback)!;
+    private static readonly Encoding CalendarEncoding=new UTF8Encoding(false,true);
     public void ValidateCalendarText(string text)
     {
         try { _=CalendarEncoding.GetByteCount(text); }
-        catch (EncoderFallbackException e) { throw new ArgumentException("活动展示文案包含客户端 CP936 无法表示的字符。",nameof(text),e); }
+        catch (EncoderFallbackException e) { throw new ArgumentException("活动展示文案包含无效的 Unicode 字符。",nameof(text),e); }
     }
     public async ValueTask<(WeeklyAttendanceDefinition? Definition,string? Error)> DefinitionAsync(CancellationToken ct)
     {
