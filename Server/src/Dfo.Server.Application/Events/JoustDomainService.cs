@@ -92,7 +92,9 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         if(existing is not null)return existing;
         if(!Active(c,now))return null;
         var s=await Schedule(ct);var start=rules.CurrentStart(s.Schedule,now);
-        if(start is null || start<c.StartsAt || start>=c.EndsAt)return null;
+        // Enabling or restarting inside a round joins its scheduled timeline; do not reset its start.
+        // Active(c, now) already bounds participation by the activity's effective period.
+        if(start is null || start>=c.EndsAt)return null;
         var id=$"{c.SeasonId}:{start.Value.ToUnixTimeSeconds()}";
         if(await store.RoundAsync(id,ct) is {} saved)return saved;
         var (d,_)=await rules.DefinitionAsync(ct);if(d is null)return null;

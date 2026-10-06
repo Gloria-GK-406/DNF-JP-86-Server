@@ -11,6 +11,12 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
     ISelectedSessionSnapshotQuery selected,INotificationBus notices,TimeProvider clock,ILogger<JoustMaintenanceService> logger) : BackgroundService
 {
     private (bool Active,string? Round,JoustPhase Phase)? delivered;
+    public override async Task StartAsync(CancellationToken cancellationToken)
+    {
+        // Recover before the host becomes ready, so first entry sees the current absolute-time phase.
+        await TickAsync(cancellationToken);
+        await base.StartAsync(cancellationToken);
+    }
     internal async ValueTask TickAsync(CancellationToken ct)
     {
         var now=clock.GetUtcNow();

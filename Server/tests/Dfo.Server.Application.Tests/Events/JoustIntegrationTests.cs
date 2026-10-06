@@ -34,6 +34,103 @@ namespace Dfo.Server.Application.Tests.Events;
 
 public sealed class JoustIntegrationTests
 {
+    [Theory]
+    [InlineData("not-started")]
+    [InlineData("expired")]
+    [InlineData("before-daily")]
+    [InlineData("after-daily")]
+    [InlineData("disabled")]
+    public async Task Startup_outside_the_effective_activity_or_daily_window_does_not_create_a_round(string gate)
+    {
+        using var f=new Fixture();
+        f.Now=DateTimeOffset.Parse(gate switch
+        {
+            "before-daily"=>"2026-10-06T09:59:59+08:00",
+            "after-daily"=>"2026-10-07T00:00:00+08:00",
+            _=>"2026-10-06T12:10:00+08:00",
+        });
+        await f.Enable(startsAt:f.Now.AddSeconds(gate=="not-started"?1:-1));
+        if(gate=="expired")f.Now=f.Now.AddDays(3);
+        if(gate=="disabled")await f.Run(async()=>
+        {await f.Managed.ChangeAsync(new(2365,2,"disable"),"test",f.Now,default);return true;});
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        try
+        {
+            await worker.StartAsync(default);
+            Assert.False((await f.Services.GetRequiredService<IJoustProjectionDomainService>().ReadAsync(new(1),f.Now,default)).Active);
+            Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+        }
+        finally{await worker.StopAsync(default);}
+    }
+
+    [Fact]
+    public async Task Startup_settlement_failure_prevents_readiness_and_successful_restarts_pay_only_once()
+    {
+        using var f=new Fixture();f.Now=DateTimeOffset.Parse("2026-10-06T12:10:00+08:00");
+        await f.Enable(startsAt:f.Now.AddMinutes(-1));await f.Seed(121,490002916,10);
+        var state=await f.State();Assert.True((await f.Bet("startup",state.Knights[0].Knight.Index,0,5)).Succeeded);
+        f.Now=DateTimeOffset.Parse("2026-10-06T13:50:00+08:00");
+        f.Sql("CREATE TRIGGER fail_startup_settlement BEFORE UPDATE ON event_joust_round WHEN NEW.settled=1 BEGIN SELECT RAISE(ABORT,'startup settlement failure'); END;");
+        using(var failed=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services))
+            await Assert.ThrowsAsync<SqliteException>(()=>failed.StartAsync(default));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(0,f.Scalar("SELECT settled FROM event_joust_round"));
+        f.Sql("DROP TRIGGER fail_startup_settlement;");
+        using(var recovered=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services))
+        {
+            try{await recovered.StartAsync(default);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));}
+            finally{await recovered.StopAsync(default);}
+        }
+        using var reopened=f.Reopen();
+        using var restarted=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(reopened.Services);
+        try
+        {
+            await restarted.StartAsync(default);
+            Assert.Equal(1,reopened.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+            Assert.Equal(1,reopened.Scalar("SELECT settled FROM event_joust_round"));
+        }
+        finally{await restarted.StopAsync(default);}
+    }
+
+    [Theory]
+    [InlineData("12:10:00", JoustPhase.Betting, 0)]
+    [InlineData("13:30:00", JoustPhase.Locked, 0)]
+    [InlineData("13:40:00", JoustPhase.QuarterFinal, 4)]
+    [InlineData("13:43:20", JoustPhase.SemiFinal, 6)]
+    [InlineData("13:46:40", JoustPhase.Final, 7)]
+    [InlineData("13:50:00", JoustPhase.Result, 7)]
+    public async Task Startup_inside_an_activity_recovers_the_current_round_and_phase_before_start_returns(
+        string time, JoustPhase phase, int revealed)
+    {
+        using var f=new Fixture();f.Now=DateTimeOffset.Parse($"2026-10-06T{time}+08:00");
+        await f.Enable(startsAt:f.Now.AddMinutes(-1));
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        try
+        {
+            await worker.StartAsync(default);
+            // Entry uses the read-only projection: it must already be ready without a query or timer tick.
+            var state=await f.Services.GetRequiredService<IJoustProjectionDomainService>().ReadAsync(new(1),f.Now,default);
+            Assert.True(state.Active);Assert.Equal(phase,state.Phase);Assert.Equal(revealed,state.Winners.Length);
+            Assert.Equal(DateTimeOffset.Parse("2026-10-06T12:00:00+08:00"),state.StartsAt);
+            Assert.Equal(DateTimeOffset.Parse("2026-10-06T14:00:00+08:00"),state.EndsAt);
+            Assert.Equal(2,state.DailyRoundNo);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+            await worker.StopAsync(default);
+            using var reopened=f.Reopen();
+            using var restarted=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(reopened.Services);
+            try
+            {
+                await restarted.StartAsync(default);
+                var restored=await reopened.Services.GetRequiredService<IJoustProjectionDomainService>().ReadAsync(new(1),reopened.Now,default);
+                Assert.Equal(state.RoundId,restored.RoundId);Assert.Equal(state.Phase,restored.Phase);
+                Assert.Equal(state.Knights.Select(k=>k.Knight.Index),restored.Knights.Select(k=>k.Knight.Index));
+                Assert.Equal(state.Winners,restored.Winners);
+                Assert.Equal(1,reopened.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+            }
+            finally{await restarted.StopAsync(default);}
+        }
+        finally{await worker.StopAsync(default);}
+    }
+
     [PvfFact]
     public async Task Real_content_both_coins_preferred_stack_idempotence_split_bets_and_restart_are_durable()
     {
@@ -277,10 +374,10 @@ public sealed class JoustIntegrationTests
         public Fixture Reopen()=>new(directory,clock,false);
         public async Task<T> Run<T>(Func<ValueTask<T>> act)
         {await using var tx=provider.GetRequiredService<DomainTransactionScope>().Begin();var result=await act();await tx.CommitAsync(default);return result;}
-        public async Task Enable()
+        public async Task Enable(DateTimeOffset? startsAt=null)
         {
             await Run(async()=>await provider.GetRequiredService<ICharacterDomainService>().Get(new(1)).SetLevelAsync(17,default));
-            await Run(async()=>{await Managed.ChangeAsync(new(2365,0,"configure","马战","马战","","","",Now.AddDays(-1),Now.AddDays(3)),"test",Now,default);
+            await Run(async()=>{await Managed.ChangeAsync(new(2365,0,"configure","马战","马战","","","",startsAt ?? Now.AddDays(-1),Now.AddDays(3)),"test",Now,default);
                 await Managed.ChangeAsync(new(2365,1,"enable"),"test",Now,default);return true;});
         }
         public Task<JoustState> State()=>Run(()=>Joust.StateAsync(new(1),Now,default));

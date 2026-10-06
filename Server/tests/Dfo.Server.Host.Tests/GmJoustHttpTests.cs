@@ -8,6 +8,35 @@ namespace Dfo.Server.Host.Tests;
 
 public sealed class GmJoustHttpTests
 {
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    { public override DateTimeOffset GetUtcNow()=>now; }
+
+    [Theory]
+    [InlineData("12:10:00", JoustPhase.Betting)]
+    [InlineData("13:40:00", JoustPhase.QuarterFinal)]
+    public async Task Starting_host_mid_round_recovers_before_http_is_ready(string time,JoustPhase phase)
+    {
+        var directory=GmTestHost.NewDirectory();
+        var now=DateTimeOffset.Parse($"2026-10-06T{time}+08:00");
+        await using(var initial=await GmTestHost.StartAsync(directory:directory,
+            clock:new FixedClock(DateTimeOffset.Parse("2026-10-06T09:00:00+08:00")),configureServices:Configure))
+        {
+            var csrf=await GmCeraHttpTests.Login(initial);
+            using var configured=await initial.PostAsync("/api/gm/v1/events",csrf,
+                new EventChange(2365,0,"configure","马战","马战","","","",now.AddMinutes(-1),now.AddDays(1)));
+            Assert.Equal(HttpStatusCode.OK,configured.StatusCode);
+            using var enabled=await initial.PostAsync("/api/gm/v1/events",csrf,new EventChange(2365,1,"enable"));
+            Assert.Equal(HttpStatusCode.OK,enabled.StatusCode);
+            Assert.Empty(await initial.ReadAsync("SELECT round_id FROM event_joust_round"));
+        }
+        await using var restarted=await GmTestHost.StartAsync(directory:directory,clock:new FixedClock(now),configureServices:Configure);
+        Assert.Equal(HttpStatusCode.OK,(await restarted.Client.GetAsync("/api/gm/v1/health")).StatusCode);
+        var state=await restarted.Services.GetRequiredService<IJoustProjectionDomainService>().ReadAsync(new(0),now,default);
+        Assert.True(state.Active);Assert.Equal(phase,state.Phase);
+        Assert.Equal(DateTimeOffset.Parse("2026-10-06T12:00:00+08:00"),state.StartsAt);
+        Assert.Single(await restarted.ReadAsync("SELECT round_id FROM event_joust_round"));
+    }
+
     private const string Url="/api/gm/v1/events/joust/settings";
     private sealed class Source : IJoustDefinitionSource
     {
