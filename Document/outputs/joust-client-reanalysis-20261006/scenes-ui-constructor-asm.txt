@@ -1,0 +1,147 @@
+dump: E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+sha256: 6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image base: 00400000; addresses below are RVA
+
+RVA 000F9D40..000F9F60
+000F9D40 55                       push ebp
+000F9D41 8b ec                    mov ebp, esp
+000F9D43 6a ff                    push -1
+000F9D45 68 2a 80 cb 02           push 0x2cb802a
+000F9D4A 64 a1 00 00 00 00        mov eax, dword ptr fs:[0]
+000F9D50 50                       push eax
+000F9D51 83 ec 20                 sub esp, 0x20
+000F9D54 53                       push ebx
+000F9D55 56                       push esi
+000F9D56 57                       push edi
+000F9D57 a1 e0 ce 99 03           mov eax, dword ptr [0x399cee0]
+000F9D5C 33 c5                    xor eax, ebp
+000F9D5E 50                       push eax
+000F9D5F 8d 45 f4                 lea eax, [ebp - 0xc]
+000F9D62 64 a3 00 00 00 00        mov dword ptr fs:[0], eax
+000F9D68 8b f1                    mov esi, ecx
+000F9D6A 89 75 ec                 mov dword ptr [ebp - 0x14], esi
+000F9D6D 68 d0 bc 06 03           push 0x306bcd0
+000F9D72 e8 49 0f 2c 02           call 0x27bacc0
+000F9D77 83 ec 1c                 sub esp, 0x1c
+000F9D7A 8b cc                    mov ecx, esp
+000F9D7C 89 65 f0                 mov dword ptr [ebp - 0x10], esp
+000F9D7F 50                       push eax
+000F9D80 e8 7b 1a f3 ff           call 0x42b800
+000F9D85 8b 45 08                 mov eax, dword ptr [ebp + 8]
+000F9D88 68 fc 01 00 00           push 0x1fc
+000F9D8D 50                       push eax
+000F9D8E 8b ce                    mov ecx, esi
+000F9D90 e8 eb d0 52 01           call 0x1a26e80
+000F9D95 33 db                    xor ebx, ebx
+000F9D97 c7 06 ec bb 06 03        mov dword ptr [esi], 0x306bbec
+000F9D9D c7 86 7c 01 00 00 e4 bb 06 03 mov dword ptr [esi + 0x17c], 0x306bbe4
+000F9DA7 8d be a8 01 00 00        lea edi, [esi + 0x1a8]
+000F9DAD 6a 08                    push 8
+000F9DAF 89 5d fc                 mov dword ptr [ebp - 4], ebx
+000F9DB2 89 1f                    mov dword ptr [edi], ebx
+000F9DB4 e8 a7 96 f2 ff           call 0x423460
+000F9DB9 83 c4 04                 add esp, 4
+000F9DBC 3b c3                    cmp eax, ebx
+000F9DBE 0f 84 9f 01 00 00        je 0x4f9f63
+000F9DC4 89 07                    mov dword ptr [edi], eax
+000F9DC6 89 58 04                 mov dword ptr [eax + 4], ebx
+000F9DC9 33 c9                    xor ecx, ecx
+000F9DCB 89 08                    mov dword ptr [eax], ecx
+000F9DCD 8b 0f                    mov ecx, dword ptr [edi]
+000F9DCF 89 39                    mov dword ptr [ecx], edi
+000F9DD1 89 5f 04                 mov dword ptr [edi + 4], ebx
+000F9DD4 89 5f 08                 mov dword ptr [edi + 8], ebx
+000F9DD7 89 5f 0c                 mov dword ptr [edi + 0xc], ebx
+000F9DDA 8d be bc 01 00 00        lea edi, [esi + 0x1bc]
+000F9DE0 6a 08                    push 8
+000F9DE2 c6 45 fc 01              mov byte ptr [ebp - 4], 1
+000F9DE6 89 1f                    mov dword ptr [edi], ebx
+000F9DE8 e8 73 96 f2 ff           call 0x423460
+000F9DED 83 c4 04                 add esp, 4
+000F9DF0 3b c3                    cmp eax, ebx
+000F9DF2 0f 84 b3 01 00 00        je 0x4f9fab
+000F9DF8 89 07                    mov dword ptr [edi], eax
+000F9DFA 89 58 04                 mov dword ptr [eax + 4], ebx
+000F9DFD 33 c9                    xor ecx, ecx
+000F9DFF 89 08                    mov dword ptr [eax], ecx
+000F9E01 8b 17                    mov edx, dword ptr [edi]
+000F9E03 89 3a                    mov dword ptr [edx], edi
+000F9E05 89 5f 04                 mov dword ptr [edi + 4], ebx
+000F9E08 89 5f 08                 mov dword ptr [edi + 8], ebx
+000F9E0B 89 5f 0c                 mov dword ptr [edi + 0xc], ebx
+000F9E0E 8d be d0 01 00 00        lea edi, [esi + 0x1d0]
+000F9E14 6a 08                    push 8
+000F9E16 c6 45 fc 02              mov byte ptr [ebp - 4], 2
+000F9E1A 89 1f                    mov dword ptr [edi], ebx
+000F9E1C e8 3f 96 f2 ff           call 0x423460
+000F9E21 83 c4 04                 add esp, 4
+000F9E24 3b c3                    cmp eax, ebx
+000F9E26 0f 84 5b 01 00 00        je 0x4f9f87
+000F9E2C 89 07                    mov dword ptr [edi], eax
+000F9E2E 89 58 04                 mov dword ptr [eax + 4], ebx
+000F9E31 33 c9                    xor ecx, ecx
+000F9E33 89 08                    mov dword ptr [eax], ecx
+000F9E35 8b 07                    mov eax, dword ptr [edi]
+000F9E37 89 38                    mov dword ptr [eax], edi
+000F9E39 89 5f 04                 mov dword ptr [edi + 4], ebx
+000F9E3C 89 5f 08                 mov dword ptr [edi + 8], ebx
+000F9E3F 89 5f 0c                 mov dword ptr [edi + 0xc], ebx
+000F9E42 8d 8e e4 01 00 00        lea ecx, [esi + 0x1e4]
+000F9E48 c6 45 fc 03              mov byte ptr [ebp - 4], 3
+000F9E4C e8 3f 51 ec 00           call 0x13bef90
+000F9E51 8d be 04 02 00 00        lea edi, [esi + 0x204]
+000F9E57 6a 08                    push 8
+000F9E59 c6 45 fc 04              mov byte ptr [ebp - 4], 4
+000F9E5D 89 1f                    mov dword ptr [edi], ebx
+000F9E5F e8 fc 95 f2 ff           call 0x423460
+000F9E64 83 c4 04                 add esp, 4
+000F9E67 3b c3                    cmp eax, ebx
+000F9E69 0f 84 f4 00 00 00        je 0x4f9f63
+000F9E6F 89 07                    mov dword ptr [edi], eax
+000F9E71 89 58 04                 mov dword ptr [eax + 4], ebx
+000F9E74 33 c9                    xor ecx, ecx
+000F9E76 89 08                    mov dword ptr [eax], ecx
+000F9E78 8b 0f                    mov ecx, dword ptr [edi]
+000F9E7A 89 39                    mov dword ptr [ecx], edi
+000F9E7C 89 5f 04                 mov dword ptr [edi + 4], ebx
+000F9E7F 89 5f 08                 mov dword ptr [edi + 8], ebx
+000F9E82 89 5f 0c                 mov dword ptr [edi + 0xc], ebx
+000F9E85 c7 86 f8 01 00 00 01 00 00 00 mov dword ptr [esi + 0x1f8], 1
+000F9E8F 89 9e 00 02 00 00        mov dword ptr [esi + 0x200], ebx
+000F9E95 66 89 9e fc 01 00 00     mov word ptr [esi + 0x1fc], bx
+000F9E9C 8d 8e 40 02 00 00        lea ecx, [esi + 0x240]
+000F9EA2 c6 45 fc 05              mov byte ptr [ebp - 4], 5
+000F9EA6 c7 86 24 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x224], 0xff00ff
+000F9EB0 c7 86 28 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x228], 0xff00ff
+000F9EBA c7 86 2c 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x22c], 0xff00ff
+000F9EC4 c7 86 30 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x230], 0xff00ff
+000F9ECE c7 86 34 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x234], 0xff00ff
+000F9ED8 c7 86 38 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x238], 0xff00ff
+000F9EE2 c7 86 3c 02 00 00 ff 00 ff 00 mov dword ptr [esi + 0x23c], 0xff00ff
+000F9EEC e8 9f 9b 2c 02           call 0x27c3a90
+000F9EF1 89 9e 5c 02 00 00        mov dword ptr [esi + 0x25c], ebx
+000F9EF7 89 9e 60 02 00 00        mov dword ptr [esi + 0x260], ebx
+000F9EFD 33 d2                    xor edx, edx
+000F9EFF 8d 8e e4 01 00 00        lea ecx, [esi + 0x1e4]
+000F9F05 c6 45 fc 07              mov byte ptr [ebp - 4], 7
+000F9F09 89 9e 18 02 00 00        mov dword ptr [esi + 0x218], ebx
+000F9F0F 66 89 96 1c 02 00 00     mov word ptr [esi + 0x21c], dx
+000F9F16 c7 86 20 02 00 00 ff ff ff ff mov dword ptr [esi + 0x220], 0xffffffff
+000F9F20 e8 8b 16 b5 00           call 0x104b5b0
+000F9F25 8d 8e a8 01 00 00        lea ecx, [esi + 0x1a8]
+000F9F2B e8 00 fa ff ff           call 0x4f9930
+000F9F30 8d 8e bc 01 00 00        lea ecx, [esi + 0x1bc]
+000F9F36 e8 f5 f9 ff ff           call 0x4f9930
+000F9F3B 8d 8e d0 01 00 00        lea ecx, [esi + 0x1d0]
+000F9F41 e8 ea f9 ff ff           call 0x4f9930
+000F9F46 8b ce                    mov ecx, esi
+000F9F48 e8 83 c2 ff ff           call 0x4f61d0
+000F9F4D 8b c6                    mov eax, esi
+000F9F4F 8b 4d f4                 mov ecx, dword ptr [ebp - 0xc]
+000F9F52 64 89 0d 00 00 00 00     mov dword ptr fs:[0], ecx
+000F9F59 59                       pop ecx
+000F9F5A 5f                       pop edi
+000F9F5B 5e                       pop esi
+000F9F5C 5b                       pop ebx
+000F9F5D 8b e5                    mov esp, ebp
+000F9F5F 5d                       pop ebp

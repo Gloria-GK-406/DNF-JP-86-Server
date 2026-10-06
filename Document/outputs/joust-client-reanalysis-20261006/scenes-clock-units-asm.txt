@@ -1,0 +1,62 @@
+dump: E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+sha256: 6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+image base: 00400000; addresses below are RVA
+
+RVA 02453B20..02453B80
+02453B20 55                       push ebp
+02453B21 8b ec                    mov ebp, esp
+02453B23 51                       push ecx
+02453B24 8b 45 08                 mov eax, dword ptr [ebp + 8]
+02453B27 8b 0c 85 10 d2 c6 04     mov ecx, dword ptr [eax*4 + 0x4c6d210]
+02453B2E 8d 55 fc                 lea edx, [ebp - 4]
+02453B31 52                       push edx
+02453B32 8d 45 08                 lea eax, [ebp + 8]
+02453B35 50                       push eax
+02453B36 89 4d 08                 mov dword ptr [ebp + 8], ecx
+02453B39 e8 92 84 f6 ff           call 0x27bbfd0
+02453B3E 8b 45 fc                 mov eax, dword ptr [ebp - 4]
+02453B41 83 c4 08                 add esp, 8
+02453B44 8b e5                    mov esp, ebp
+02453B46 5d                       pop ebp
+02453B47 c3                       ret
+02453B48 cc                       int3
+02453B49 cc                       int3
+02453B4A cc                       int3
+02453B4B cc                       int3
+02453B4C cc                       int3
+02453B4D cc                       int3
+02453B4E cc                       int3
+02453B4F cc                       int3
+02453B50 55                       push ebp
+02453B51 8b ec                    mov ebp, esp
+02453B53 83 ec 14                 sub esp, 0x14
+02453B56 56                       push esi
+02453B57 ff 15 08 96 02 03        call dword ptr [0x3029608]
+02453B5D 89 45 fc                 mov dword ptr [ebp - 4], eax
+02453B60 8d 45 f8                 lea eax, [ebp - 8]
+02453B63 50                       push eax
+02453B64 8d 4d fc                 lea ecx, [ebp - 4]
+02453B67 51                       push ecx
+02453B68 e8 d3 83 f6 ff           call 0x27bbf40
+02453B6D 8b 55 f8                 mov edx, dword ptr [ebp - 8]
+02453B70 83 c4 08                 add esp, 8
+02453B73 89 15 d0 d2 c6 04        mov dword ptr [0x4c6d2d0], edx
+02453B79 33 f6                    xor esi, esi
+02453B7B eb 03                    jmp 0x2853b80
+02453B7D 8d 49 00                 lea ecx, [ecx]
+
+RVA 000F5250..000F5280
+000F5250 3b 70 08                 cmp esi, dword ptr [eax + 8]
+000F5253 73 05                    jae 0x4f525a
+000F5255 83 c6 07                 add esi, 7
+000F5258 eb 96                    jmp 0x4f51f0
+000F525A e8 82 d1 76 02           call 0x2c623e1
+000F525F 68 74 bb 06 03           push 0x306bb74
+000F5264 e8 57 5a 2c 02           call 0x27bacc0
+000F5269 83 c4 04                 add esp, 4
+000F526C 50                       push eax
+000F526D 8d 85 5c ff ff ff        lea eax, [ebp - 0xa4]
+000F5273 50                       push eax
+000F5274 8b cb                    mov ecx, ebx
+000F5276 e8 e5 84 24 02           call 0x273d760
+000F527B 8b c8                    mov ecx, eax

@@ -11,6 +11,7 @@ namespace Dfo.Server.Networking.Tests.Integration;
 internal sealed class TestInfrastructure(IHost inner, string directory) : IHost
 {
     public IServiceProvider Services => inner.Services;
+    public string DatabasePath => Path.Combine(directory, "test.db");
     public Task StartAsync(CancellationToken cancellationToken = default) => inner.StartAsync(cancellationToken);
     public Task StopAsync(CancellationToken cancellationToken = default) => inner.StopAsync(cancellationToken);
     public void Dispose()
@@ -22,7 +23,7 @@ internal sealed class TestInfrastructure(IHost inner, string directory) : IHost
         Directory.Delete(directory, recursive: true);
     }
 
-    public static IHost Build(HostApplicationBuilder builder)
+    public static TestInfrastructure Build(HostApplicationBuilder builder)
     {
         var directory = Path.Combine(Path.GetTempPath(), "dfo-network-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);

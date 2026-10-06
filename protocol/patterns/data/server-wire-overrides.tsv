@@ -29,3 +29,6 @@ CMD	WarehouseResponse	0x0134	Game/Warehouse/WarehouseMessages.cs	EncodeBody admi
 CMD	WarehouseResponse	0x0198	Game/Warehouse/WarehouseMessages.cs	EncodeBody admits this dynamic response type
 CMD	CargoCapacityUpgradeMessage	0x0198	Game/GameInventorySnapshotDelivery.cs	WireType selects PersonalCargo capacity-upgrade acknowledgement
 CMD	CargoCapacityUpgradeMessage	0x0132	Game/GameInventorySnapshotDelivery.cs	WireType selects AccountCargo capacity-upgrade acknowledgement
+CMD	JoustResponse	0x04E6	Game/Joust/JoustSlice.cs	JoustQueryHandler passes info response type to dynamic encoder
+CMD	JoustResponse	0x04E7	Game/Joust/JoustSlice.cs	JoustBetHandler passes bet response type to dynamic encoder
+CMD	JoustResponse	0x04E8	Game/Joust/JoustSlice.cs	JoustQueryHandler passes history response type to dynamic encoder

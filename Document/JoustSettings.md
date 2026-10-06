@@ -1,6 +1,6 @@
 # 马战活动设置（2026-10-06）
 
-用户授权：完成一版活动设置重构，不部署。基线 `8c9d28e4`，分支 `task/warehouse-storage`。以下为 CurrentImplementation / ServerPolicy，未新增客户端协议或补丁，不代表官方算法。
+当前实现基线 `f9dd4c9a`，纳入 0.2.2 收尾。以下为 CurrentImplementation / ServerPolicy，未新增客户端协议或补丁，不代表官方算法。历史“不部署”指最初设置界面交付阶段，当前验收与运行版本边界见 [收尾记录](closeout-0.2.2-20261006.md)。
 
 ## 弹窗
 

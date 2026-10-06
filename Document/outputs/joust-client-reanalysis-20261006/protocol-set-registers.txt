@@ -1,0 +1,27 @@
+Matches 501 pattern: PUSH reader, PUSH opcode, CALL singleton, MOV ecx,eax, CALL registration
+CMD 04EC handler VA 00444480 registration VA 00444904
+CMD 04ED handler VA 00444010 registration VA 0044491C
+CMD 04EF handler VA 00442820 registration VA 00444934
+CMD 04F0 handler VA 00442380 registration VA 0044494C
+CMD 04EE handler VA 004446B0 registration VA 00444964
+CMD 04E6 handler VA 004D2030 registration VA 004D28F2
+CMD 04E7 handler VA 004D20B0 registration VA 004D290A
+CMD 04E8 handler VA 004D25B0 registration VA 004D2922
+CMD 04DF handler VA 00501560 registration VA 00502EB1
+CMD 04E0 handler VA 00504DD0 registration VA 00505D3D
+CMD 044A handler VA 014151B0 registration VA 0141A129
+CMD 0201 handler VA 0141F500 registration VA 0141F6CC
+CMD 04E9 handler VA 02231720 registration VA 02EEBCC3
+CMD 01D5 handler VA 0141D6A0 registration VA 02F48F2B
+NOTI 04BC handler VA 004425E0 registration VA 0044497C
+NOTI 04B8 handler VA 004D2690 registration VA 004D293A
+NOTI 04B9 handler VA 004D2330 registration VA 004D2952
+NOTI 04BA handler VA 004D23E0 registration VA 004D296A
+NOTI 04BB handler VA 004D24A0 registration VA 004D2982
+NOTI 04B0 handler VA 004FDA30 registration VA 004FECD5
+NOTI 006C handler VA 01419E30 registration VA 0141A0CD
+NOTI 02B0 handler VA 01415320 registration VA 0141A0E5
+NOTI 01C4 handler VA 0141F450 registration VA 0141F6B5
+NOTI 04B1 handler VA 004CF8F0 registration VA 02EEAFDE
+NOTI 04BF handler VA 0051DF80 registration VA 02EEC0BB
+NOTI 0197 handler VA 0141C2D0 registration VA 02F48F13

@@ -11,6 +11,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application;
 using Dfo.Server.Application.Commands;
+using Microsoft.Data.Sqlite;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -78,7 +79,15 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 host.Services.GetRequiredService<IGameTcpService>(),
                 host.Services.GetRequiredService<IOnlineUserQueryDomainService>(), timeout.Token);
             var selected = SelectedSessionIdentity.Create(
-                new AccountId(7401), new CharacterId(7401), connectionId, 1, gamePort);
+                new AccountId(7401), new CharacterId(1), connectionId, 1, gamePort);
+            // The real grant service verifies ownership even for temporary tower containers.
+            await using (var seed = new SqliteConnection($"Data Source={host.DatabasePath}"))
+            {
+                await seed.OpenAsync(timeout.Token);
+                using var insert = seed.CreateCommand();
+                insert.CommandText = "INSERT INTO characters(character_id, account_id, name, level) VALUES(1, 7401, 'tower-test', 60)";
+                Assert.Equal(1, await insert.ExecuteNonQueryAsync(timeout.Token));
+            }
             host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
 
             var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
@@ -238,7 +247,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
 
     private sealed class Character : ICharacter
     {
-        public CharacterId Id => new(7401);
+        public CharacterId Id => new(1);
 
     public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct) => throw new NotSupportedException();

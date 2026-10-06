@@ -1,0 +1,11 @@
+0x3627690 [win]
+0x3627678 [/win]
+0x3627660 [loss]
+0x3627648 [/loss]
+0x306bb74 conditionImg
+0x306bb50 attackTypeImg
+0x306bb9c countdown
+0x306bbb8 winnerFaceImg
+0x306badc winningRateText
+0x306bab4 knightNameText
+0x306bd5c finaleAni

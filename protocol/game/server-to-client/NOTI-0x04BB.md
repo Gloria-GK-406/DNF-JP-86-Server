@@ -49,6 +49,13 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 0.2.2 当前行为与证据（2026-10-06）
+
+CurrentImplementation：31B结果消息只由比赛生命周期发送，不能作为04E6回复、登录或重放快照。淘汰记录按当前已揭示阶段编码，赢家/输家属于各自真实对阵；用户对修正后的胜败图反馈“没问题了”（仅该观察行为ClientVerified）。完整终局七场结果保留在领域，不能把各轮获胜记录解释为八人最终都仍获胜。
+
+Stage2在非起播场景可能直接进入scene12并公告冠军；Stage3无条件进入scene12，均为ClientStatic。当前策略发送Stage0/1和结束事件Stage3一次，暂不发送Stage2。本地三组动画、缺Stage2的展示效果、state5推进与中途恢复仍未完整验收，不能把无公告刷屏解释为全部动画已正确。原生时序未取得WireCaptured；见 [重分析](../../../Document/outputs/joust-client-reanalysis-20261006/report.md) 和 [验收边界](../../../Document/closeout-0.2.2-20261006.md)。
+
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 

@@ -2,7 +2,7 @@
 
 ## 2026-10-06 A21 骑士马战大竞猜
 
-[04E6](game/client-to-server/0x04E6.md)、[04E7](game/client-to-server/0x04E7.md)、[04E8](game/client-to-server/0x04E8.md)及[04B8](game/server-to-client/NOTI-0x04B8.md)/[04B9](game/server-to-client/NOTI-0x04B9.md)/[04BA](game/server-to-client/NOTI-0x04BA.md)/[04BB](game/server-to-client/NOTI-0x04BB.md)已接线原生查询、事务下注、历史、入场和提交后在线投影。ClientStatic + CurrentImplementation；HumanPending，无ClientVerified。04E7槽位i32、04BB四个u8、历史错误也固定3505B；LinkKey必须`joust event/0/0`。详见[使用说明](../Document/JoustEvents.md)。
+[04E6](game/client-to-server/0x04E6.md)、[04E7](game/client-to-server/0x04E7.md)、[04E8](game/client-to-server/0x04E8.md)及[04B8](game/server-to-client/NOTI-0x04B8.md)/[04B9](game/server-to-client/NOTI-0x04B9.md)/[04BA](game/server-to-client/NOTI-0x04BA.md)/[04BB](game/server-to-client/NOTI-0x04BB.md)已接线原生查询、事务下注、历史、入场和提交后在线投影。成功04E6只返回ACK→04BA→04B9；04B8只用于入场初始化及实际生命周期事件，04BB只用于比赛结果事件。查询不推进、不结算、不发邮件。用户确认登录出现一次开启通知、操作窗口不再公告，并接受当前赔率；这些行为记为ClientVerified，其余布局/统计/完整动画仍按ClientStatic、CurrentImplementation或HumanPending区分。04E7槽位i32、04BB四个u8、历史错误也固定3505B；LinkKey必须`joust event/0/0`。详见[使用说明](../Document/JoustEvents.md)和[0.2.2收口边界](../Document/closeout-0.2.2-20261006.md)。
 
 ## 2026-10-04 消耗品耗尽后的槽位同步（待实机复测）
 
@@ -707,10 +707,14 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x035C` | `SyncItemSpaceDecoder` | 仅证明 decoder 已注册 | [0x035C](game/client-to-server/0x035C.md) |
 | `0x01` | `0x036F` | `PremiumServiceUsageReportDecoder` | 仅证明 decoder 已注册 | [0x036F](game/client-to-server/0x036F.md) |
 | `0x01` | `0x039D` | `RequestIgaVersionDecoder` | 仅证明 decoder 已注册 | [0x039D](game/client-to-server/0x039D.md) |
+| `0x01` | `0x0441` | `WeeklyAttendanceDecoder` | 仅证明 decoder 已注册 | [0x0441](game/client-to-server/0x0441.md) |
 | `0x01` | `0x0450` | `MagicBoxBatchOpeningDecoder` | 仅证明 decoder 已注册 | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` | `0x045C` | `FrameLagPerDungeonDecoder` | 仅证明 decoder 已注册 | [0x045C](game/client-to-server/0x045C.md) |
 | `0x01` | `0x04D7` | `LogConnectProcessDecoder` | 仅证明 decoder 已注册 | [0x04D7](game/client-to-server/0x04D7.md) |
 | `0x01` | `0x04DD` | `ConnectionCheckMessageDecoder` | 仅证明 decoder 已注册 | [0x04DD](game/client-to-server/0x04DD.md) |
+| `0x01` | `0x04E6` | `JoustQueryDecoder` | 仅证明 decoder 已注册 | [0x04E6](game/client-to-server/0x04E6.md) |
+| `0x01` | `0x04E7` | `JoustBetDecoder` | 仅证明 decoder 已注册 | [0x04E7](game/client-to-server/0x04E7.md) |
+| `0x01` | `0x04E8` | `JoustQueryDecoder` | 仅证明 decoder 已注册 | [0x04E8](game/client-to-server/0x04E8.md) |
 | `0x01` | `0x04F1` | `LogDomainConnectDecoder` | 仅证明 decoder 已注册 | [0x04F1](game/client-to-server/0x04F1.md) |
 
 ### S→C：encoder-backed wire identity
@@ -796,8 +800,12 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x02CB` | `SortLockResponse` | 仅证明 encoder 可产生该 identity | [0x02CB](game/client-to-server/0x02CB.md) |
 | `0x01` CMD | `0x02CC` | `ShopPurchaseCountResponse` | 仅证明 encoder 可产生该 identity | [0x02CC](game/client-to-server/0x02CC.md) |
 | `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 仅证明 encoder 可产生该 identity | [0x036F](game/client-to-server/0x036F.md) |
+| `0x01` CMD | `0x0441` | `WeeklyAttendanceResponse` | 仅证明 encoder 可产生该 identity | [0x0441](game/client-to-server/0x0441.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
+| `0x01` CMD | `0x04E6` | `JoustResponse` | 仅证明 encoder 可产生该 identity | [0x04E6](game/client-to-server/0x04E6.md) |
+| `0x01` CMD | `0x04E7` | `JoustResponse` | 仅证明 encoder 可产生该 identity | [0x04E7](game/client-to-server/0x04E7.md) |
+| `0x01` CMD | `0x04E8` | `JoustResponse` | 仅证明 encoder 可产生该 identity | [0x04E8](game/client-to-server/0x04E8.md) |
 | `0x00` NOTI | `0x0001` | `GameInitialConnectionNotice` | 仅证明 encoder 可产生该 identity | [0x0001](game/server-to-client/NOTI-0x0001.md) |
 | `0x00` NOTI | `0x0002` | `AccountCharacterRosterResponse`、`AccountRosterStateMessage`、`CurrentUserStateMessage`、`ExtendedUserStateMessage`、`OtherCharacterDetailResponse`、`PvpLobbySnapshotMessage`、`PvpParticipantPublicationMessage`、`TownReadyStateMessage` | 仅证明 encoder 可产生该 identity | [0x0002](game/server-to-client/NOTI-0x0002.md) |
 | `0x00` NOTI | `0x0003` | `UserStateBaselineMessage`、`UserStateNotification` | 仅证明 encoder 可产生该 identity | [0x0003](game/server-to-client/NOTI-0x0003.md) |
@@ -841,7 +849,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0069` | `CreatureListMessage`、`CreatureListUpdateMessage` | 仅证明 encoder 可产生该 identity | [0x0069](game/server-to-client/NOTI-0x0069.md) |
 | `0x00` NOTI | `0x006A` | `CreatureEvolutionNotification` | 仅证明 encoder 可产生该 identity | [0x006A](game/server-to-client/NOTI-0x006A.md) |
 | `0x00` NOTI | `0x006B` | `CreatureRevivalNotification`、`PetRevivalStateMessage` | 仅证明 encoder 可产生该 identity | [0x006B](game/server-to-client/NOTI-0x006B.md) |
-| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | ClientStatic 丰富日历布局；已观察日历/窗口打开；运行时确认UTF-8，CurrentImplementation 编码修正待复测 | [0x006C](game/server-to-client/NOTI-0x006C.md) |
+| `0x00` NOTI | `0x006C` | `EventInformationMessage`、`ServerEventBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x006C](game/server-to-client/NOTI-0x006C.md) |
 | `0x00` NOTI | `0x0077` | `PetWelcomeStateMessage` | 仅证明 encoder 可产生该 identity | [0x0077](game/server-to-client/NOTI-0x0077.md) |
 | `0x00` NOTI | `0x007C` | `EntryMarkerMessage` | 仅证明 encoder 可产生该 identity | [0x007C](game/server-to-client/NOTI-0x007C.md) |
 | `0x00` NOTI | `0x008E` | `IllusionTowerInfoNotification` | 仅证明 encoder 可产生该 identity | [0x008E](game/server-to-client/NOTI-0x008E.md) |
@@ -894,7 +902,12 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0381` | `CollectionBoxStateMessage` | 仅证明 encoder 可产生该 identity | [0x0381](game/server-to-client/NOTI-0x0381.md) |
 | `0x00` NOTI | `0x03C1` | `RentalStateMessage` | 仅证明 encoder 可产生该 identity | [0x03C1](game/server-to-client/NOTI-0x03C1.md) |
 | `0x00` NOTI | `0x03D8` | `LotteryProgressStateMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
+| `0x00` NOTI | `0x042D` | `WeeklyAttendanceStateMessage` | 仅证明 encoder 可产生该 identity | [0x042D](game/server-to-client/NOTI-0x042D.md) |
 | `0x00` NOTI | `0x0465` | `EpicBookBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
+| `0x00` NOTI | `0x04B8` | `JoustStateMessage` | 仅证明 encoder 可产生该 identity | [0x04B8](game/server-to-client/NOTI-0x04B8.md) |
+| `0x00` NOTI | `0x04B9` | `JoustInfoMessage` | 仅证明 encoder 可产生该 identity | [0x04B9](game/server-to-client/NOTI-0x04B9.md) |
+| `0x00` NOTI | `0x04BA` | `JoustBetsMessage` | 仅证明 encoder 可产生该 identity | [0x04BA](game/server-to-client/NOTI-0x04BA.md) |
+| `0x00` NOTI | `0x04BB` | `JoustResultsMessage` | 仅证明 encoder 可产生该 identity | [0x04BB](game/server-to-client/NOTI-0x04BB.md) |
 
 <!-- rks:server-coverage:end -->
 

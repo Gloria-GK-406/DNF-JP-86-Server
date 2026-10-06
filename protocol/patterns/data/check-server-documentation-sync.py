@@ -124,7 +124,7 @@ def inbound_registrations(
     sources: dict[pathlib.Path, str], source_root: pathlib.Path, constants: dict[str, int]
 ) -> tuple[list[Registration], list[str]]:
     pattern = re.compile(
-        r"AddGameCmdMessageDecoder<\s*(?P<decoder>[A-Za-z_]\w*)\s*>\s*"
+        r"AddGameCmdMessageDecoder<\s*(?P<decoder>[A-Za-z_][\w.]*)\s*>\s*"
         r"\(\s*(?P<type>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+|0[xX][0-9A-Fa-f]+)",
         re.S,
     )
@@ -141,7 +141,7 @@ def inbound_registrations(
             rows.append(
                 Registration(
                     Identity("C2S", "CMD", value),
-                    match.group("decoder"),
+                    match.group("decoder").rsplit(".", 1)[-1],
                     relative(path, source_root),
                 )
             )
@@ -186,7 +186,8 @@ def registration_symbols(
     """Return (family, message symbol, encoder symbol, source) registrations."""
     direct_re = re.compile(
         r"AddGame(?P<family>Cmd|Noti)MessageEncoder<\s*"
-        r"(?P<message>[A-Za-z_]\w*)\s*,\s*(?P<encoder>[A-Za-z_]\w*)\s*>\s*\(\s*\)",
+        r"(?P<message>[A-Za-z_][\w.]*)\s*,\s*(?P<encoder>[A-Za-z_][\w.]*)"
+        r"(?:\s*<\s*[A-Za-z_][\w.]*\s*>)?\s*>\s*\(\s*\)",
         re.S,
     )
     generic_re = re.compile(
@@ -204,8 +205,8 @@ def registration_symbols(
             rows.append(
                 (
                     match.group("family").upper(),
-                    match.group("message"),
-                    match.group("encoder"),
+                    match.group("message").rsplit(".", 1)[-1],
+                    match.group("encoder").rsplit(".", 1)[-1],
                     src,
                 )
             )
@@ -281,7 +282,7 @@ def outbound_registrations(
         values = overrides.get(key)
         evidence_source = registration_source
 
-        if values is None and encoder == "<generic>":
+        if values is None and encoder in ("<generic>", "GameNotiStateSynchronizationEncoder"):
             for path, text in sources.items():
                 body = record_body(text, message)
                 if body is None:
@@ -294,7 +295,7 @@ def outbound_registrations(
                         evidence_source = relative(path, source_root)
                 break
 
-        if values is None and encoder != "<generic>":
+        if values is None and encoder not in ("<generic>", "GameNotiStateSynchronizationEncoder"):
             for path, text in sources.items():
                 body = class_body(text, encoder)
                 if body is None:
@@ -532,6 +533,24 @@ def self_test() -> int:
             return 1
         if source_scan_failures(source_root, sources, inbound, symbols):
             print("self-test failed: valid source registration was rejected")
+            return 1
+        activity_sources = {
+            source: (
+                "services.AddGameCmdMessageDecoder<Game.Events.EventDecoder>(0x0441);\n"
+                "services.AddGameCmdMessageEncoder<Game.Events.EventResponse, Game.Events.EventEncoder>();\n"
+                "services.AddGameNotiMessageEncoder<Game.Events.EventState, GameNotiStateSynchronizationEncoder<Game.Events.EventState>>();\n"
+                "public class EventEncoder { object Encode() => OnePayload(0x0441, null); }\n"
+                "public sealed record EventState { internal override ushort Type => 0x042D; }\n"
+            )
+        }
+        activity_inbound, activity_errors = inbound_registrations(activity_sources, source_root, {})
+        activity_symbols, symbol_errors = registration_symbols(activity_sources, source_root)
+        activity_outbound, outbound_errors = outbound_registrations(activity_sources, source_root, {}, {})
+        if (activity_errors or symbol_errors or outbound_errors
+                or source_scan_failures(source_root, activity_sources, activity_inbound, activity_symbols)
+                or {row.identity for row in activity_inbound + activity_outbound} != {
+                    Identity("C2S", "CMD", 0x0441), Identity("S2C", "CMD", 0x0441), Identity("S2C", "NOTI", 0x042D)}):
+            print("self-test failed: qualified activity types or nested state encoder were not resolved")
             return 1
         missing = compare(inbound, [], set(), pathlib.Path(temp) / "protocol")
         if not any("catalog missing registered inbound CMD 0x0084" in item for item in missing):

@@ -451,7 +451,11 @@ internal sealed class ShopFixture : IDisposable
     public void Dispose()
     {
         provider.Dispose();
-        SqliteConnection.ClearAllPools();
+        using var poolKey = new SqliteConnection(ConnectionString);
+        SqliteConnection.ClearPool(poolKey);
+        using var readOnly = new SqliteConnection(new SqliteConnectionStringBuilder(ConnectionString)
+            { Mode = SqliteOpenMode.ReadOnly }.ToString());
+        SqliteConnection.ClearPool(readOnly);
         Directory.Delete(directory, true);
     }
 

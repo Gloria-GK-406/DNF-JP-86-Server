@@ -2,6 +2,8 @@
 
 > 2026-10-05：本文保留原实现及探测历史。Main/SharedMaterial 临时切换和 `Diagnostics:TowerKeepInventory` 已移除；当前实现以[默认容器替换与死亡塔快捷栏](TowerQuickSlots-20261005.md)为准。
 
+> 2026-10-06 收尾：用户已接受当前六格快捷栏及满格拒绝拾取行为；下文“尚未实机验收”指原实现阶段，不能用于否定新实现验收，也不能扩展成全部塔流程已验证。具体边界见[0.2.2收尾记录](closeout-0.2.2-20261006.md)。
+
 日期：2026-10-04。代码工作区：`task/warehouse-storage`，实施基线 `f2859ef4`。死亡之塔尚未实机验收；迷妄之塔此前的通关结果不能转记为死亡之塔通过。
 
 2026-10-05 实机探测（基线 `e1a4fe35`）：启动配置 `Diagnostics:TowerKeepInventory=true` 时跳过死亡塔 Main/SharedMaterial 临时容器的创建、切换与退出移除，不发送入塔清空背包快照；拾取暂时拒绝且不领取地面物品，普通奖励增量照常发送。该开关默认关闭，下述临时背包流程仍是默认实现。本次仅验证保留普通背包后客户端是否自动禁用普通物品，不作为临时拾取改造或服务端禁用规则验收。客户端禁用静态依据见[调用链](E:/Project/DNF/Document/upstream-tower-test-20261004/塔道具禁用调用链-续查.md)；008E offset7 处理决定见[协议记录](../protocol/game/server-to-client/NOTI-0x008E.md)。

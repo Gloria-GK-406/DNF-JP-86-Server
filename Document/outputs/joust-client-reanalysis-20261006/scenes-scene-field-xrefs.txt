@@ -1,0 +1,19 @@
+0xf2828 mov edi, dword ptr [esi + 0x218]
+0xf282e mov dword ptr [esi + 0x218], ecx
+0xf39b4 mov edi, dword ptr [esi + 0x218]
+0xf4a27 mov dword ptr [esi + 0x218], edi
+0xf5c72 cmp dword ptr [ecx + 0x218], 3
+0xf899f cmp dword ptr [eax + 0x218], 3
+0xf90a6 cmp dword ptr [ebx + 0x218], 3
+0xf9f09 mov dword ptr [esi + 0x218], ebx
+0xfa1ed mov dword ptr [esi + 0x218], eax
+0xfb83f mov eax, dword ptr [esi + 0x218]
+0xfcde6 cmp dword ptr [esi + 0x218], 0xd
+0xfcfe2 mov eax, dword ptr [esi + 0x218]
+0xfd1e2 mov eax, dword ptr [esi + 0x218]
+0xfdab8 cmp dword ptr [esi + eax*4 + 0x218], 0
+0xfdac2 mov eax, dword ptr [esi + eax*4 + 0x218]
+0xfdae4 mov eax, dword ptr [esi + eax*4 + 0x218]
+0xfdb35 mov ecx, dword ptr [esi + eax*4 + 0x218]
+0xfdb8a lea edi, [ebx + 0x218]
+0xfdcb4 lea edi, [esi + 0x218]

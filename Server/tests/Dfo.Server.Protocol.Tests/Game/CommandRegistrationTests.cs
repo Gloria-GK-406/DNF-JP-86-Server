@@ -168,6 +168,7 @@ public sealed class CommandRegistrationTests
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
+        new Dfo.Server.Networking.NetworkingModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
         return services.BuildServiceProvider();
     }

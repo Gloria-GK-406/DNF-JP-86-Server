@@ -973,6 +973,18 @@ public sealed class JoustIntegrationTests
         public int Count(int item)=>Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON i.item_uid=s.core_uid WHERE s.owner_scope='character' AND s.owner_id=1 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
         public int Scalar(string sql){using var c=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path}.ToString());c.Open();using var cmd=c.CreateCommand();cmd.CommandText=sql;return Convert.ToInt32(cmd.ExecuteScalar());}
         public void Sql(string sql){using var c=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path}.ToString());c.Open();using var cmd=c.CreateCommand();cmd.CommandText=sql;cmd.ExecuteNonQuery();}
-        public void Dispose(){provider.Dispose();if(owns){SqliteConnection.ClearAllPools();Directory.Delete(directory,true);}}
+        public void Dispose()
+        {
+            provider.Dispose();
+            if (!owns) return;
+            // Read-only command transactions use a separate pool for this same database.
+            var key = new SqliteConnectionStringBuilder { DataSource = System.IO.Path.GetFullPath(Path) };
+            using var writable = new SqliteConnection(key.ToString());
+            SqliteConnection.ClearPool(writable);
+            key.Mode = SqliteOpenMode.ReadOnly;
+            using var readOnly = new SqliteConnection(key.ToString());
+            SqliteConnection.ClearPool(readOnly);
+            Directory.Delete(directory, true);
+        }
     }
 }
