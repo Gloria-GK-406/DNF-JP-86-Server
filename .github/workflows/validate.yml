@@ -19,10 +19,12 @@ jobs:
         include:
           - os: ubuntu-24.04
             rid: linux-x64
+            timeout: 30
           - os: windows-2022
             rid: win-x64
+            timeout: 45
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.timeout }}
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_NOLOGO: 1
