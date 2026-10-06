@@ -1,0 +1,2663 @@
+{
+  "schema": "a21-joust-scenarios/v1",
+  "stage": 2,
+  "date": "2026-10-06",
+  "network_execution": false,
+  "ordering_status": "模拟候选与对照，不宣称原服发包顺序或ClientVerified",
+  "initial_state_assumptions": {
+    "resetApplied": true,
+    "managerState": 0,
+    "uiScene": 0,
+    "counter": -1,
+    "inventory": 100,
+    "sessionNetworkReady": true,
+    "level": 20,
+    "requiredLevel": 17
+  },
+  "fixture": {
+    "knightIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "displayNames": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H"
+    ],
+    "namesAreActualPvf": false,
+    "materialSlot": 7,
+    "champion": 3,
+    "records": [
+      {
+        "winner": 0,
+        "winnerAux": 0,
+        "loser": 1,
+        "loserAux": 0
+      },
+      {
+        "winner": 3,
+        "winnerAux": 0,
+        "loser": 2,
+        "loserAux": 0
+      },
+      {
+        "winner": 4,
+        "winnerAux": 0,
+        "loser": 5,
+        "loserAux": 0
+      },
+      {
+        "winner": 7,
+        "winnerAux": 0,
+        "loser": 6,
+        "loserAux": 0
+      },
+      {
+        "winner": 3,
+        "winnerAux": 0,
+        "loser": 0,
+        "loserAux": 0
+      },
+      {
+        "winner": 4,
+        "winnerAux": 0,
+        "loser": 7,
+        "loserAux": 0
+      },
+      {
+        "winner": 3,
+        "winnerAux": 0,
+        "loser": 4,
+        "loserAux": 0
+      }
+    ],
+    "padding": {
+      "winner": 255,
+      "winnerAux": 0,
+      "loser": 255,
+      "loserAux": 0
+    },
+    "paddingEvidence": "ServerPolicy/Hypothesis; native consumes stage0=6 records, stage1/2/3=7 records"
+  },
+  "scenarios": [
+    {
+      "id": "native-candidate-full",
+      "title": "完整闭环候选：初始化、下注、三组动画、结算",
+      "description": "展示所有独立层；最终本地scene12后不再自动BB3，避免再次冠军公告。",
+      "kind": "candidate",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "每组比赛之前发送state4使scene13是可达性候选，未证明原服如此广播。",
+        "stage0填4条/stage1填6条其余FF是服务端策略假设；原生实际分别消费6/7条，缺席安全待实机。",
+        "本地动画完成由点击localAdvance抽象；不宣称9100是确定毫秒或原服阶段间隔。",
+        "ACK与B9/BA、扣除与共享投影的先后是示例，不是原服已捕获顺序。",
+        "初始库存100、level20>=17、材料槽7足够，只是模拟前提。",
+        "openUI选择已识别的保留分支并执行显示初始化：自动04E6，成功后F5CC0显示投注UI并自动04E8；不额外手工重复请求。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "native-candidate-full-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "初始化示例：04B8 state1（带原生公告）",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "native-candidate-full-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "native-candidate-full-03",
+          "time": "T+03"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "native-candidate-full-04",
+          "time": "T+04"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "native-candidate-full-05",
+          "time": "T+05"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "native-candidate-full-06",
+          "time": "T+06"
+        },
+        {
+          "op": "ackHistory",
+          "payload": {
+            "success": 1,
+            "result": 0,
+            "entries": []
+          },
+          "label": "04E8 ACK：历史投影",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "逻辑记录末4B保留raw；线帧固定500x7B，不由简化数组取代",
+          "anchor": "RVA000D25B0 / VA004D25B0",
+          "id": "native-candidate-full-07",
+          "time": "T+07"
+        },
+        {
+          "op": "selectKnight",
+          "payload": {
+            "index": 3
+          },
+          "label": "选择模拟骑士D",
+          "evidence": "ClientStatic",
+          "note": "PVF内容/材料规则按fixture足够条件模拟",
+          "id": "native-candidate-full-08",
+          "time": "T+08"
+        },
+        {
+          "op": "confirmBet",
+          "payload": {
+            "knight": 3,
+            "slot": 7,
+            "amount": 10
+          },
+          "label": "确认投注：04E7",
+          "evidence": "ClientStatic",
+          "note": "仅发请求；14B opaque不在此伪造",
+          "anchor": "RVA000F2B10 / VA004F2B10",
+          "id": "native-candidate-full-09",
+          "time": "T+09"
+        },
+        {
+          "op": "acceptBetBusiness",
+          "payload": {
+            "knight": 3,
+            "amount": 10
+          },
+          "label": "DOMAIN：接受下注并扣除10",
+          "evidence": "DOMAIN Simulation",
+          "note": "模拟ledger与服务端库存100→90；真实规则/容器由领域实现",
+          "id": "native-candidate-full-10",
+          "time": "T+10"
+        },
+        {
+          "op": "inventoryProjection",
+          "payload": {
+            "remaining": 90
+          },
+          "label": "共享库存投影：剩余90",
+          "evidence": "SharedProjectionAbstraction",
+          "note": "不是马战专属opcode；使客户端库存与已提交业务一致",
+          "id": "native-candidate-full-11",
+          "time": "T+11"
+        },
+        {
+          "op": "ackBet",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E7 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功04E7 ACK不写manager state，不扣除库存；ensure1FB后F4300重新计算材料输入控件。",
+          "anchor": "RVA000D20B0 / VA004D20B0",
+          "id": "native-candidate-full-12",
+          "time": "T+12"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 10,
+            "amounts": [
+              0,
+              0,
+              0,
+              10,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "native-candidate-full-13",
+          "time": "T+13"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 3,
+            "round": 1
+          },
+          "label": "封盘候选：state3，不改变scene",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "native-candidate-full-14",
+          "time": "T+14"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "第一组起播候选：重置scene13",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "native-candidate-full-15",
+          "time": "T+15"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 0,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=0",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "七槽；仅前4有效，其余FF是待实机的填槽策略",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "native-candidate-full-16",
+          "time": "T+16"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "第一组：scene3→4",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "native-candidate-full-17",
+          "time": "T+17"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "第一组：scene4→5",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "native-candidate-full-18",
+          "time": "T+18"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "第二组起播候选：再次重置scene13",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "native-candidate-full-19",
+          "time": "T+19"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 1,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=1",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "七槽；仅前6有效，其余FF是待实机的填槽策略",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "native-candidate-full-20",
+          "time": "T+20"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "第二组：scene6→7",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "native-candidate-full-21",
+          "time": "T+21"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "第二组：scene7→8",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "native-candidate-full-22",
+          "time": "T+22"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "第三组起播候选：再次重置scene13",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "native-candidate-full-23",
+          "time": "T+23"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 2,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=2",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "native-candidate-full-24",
+          "time": "T+24"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "第三组：scene9→10",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "native-candidate-full-25",
+          "time": "T+25"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "第三组：scene10→11→12，冠军字符串公告",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "native-candidate-full-26",
+          "time": "T+26"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 2,
+            "round": 1
+          },
+          "label": "结束展示候选：state2→scene2",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "native-candidate-full-27",
+          "time": "T+27"
+        },
+        {
+          "op": "settleBusiness",
+          "payload": {
+            "winner": 3,
+            "mailCount": 1
+          },
+          "label": "DOMAIN：结算并创建一封模拟邮件",
+          "evidence": "DOMAIN Simulation",
+          "note": "邮件业务是领域/共享系统；非04BB/历史ACK自动副作用",
+          "id": "native-candidate-full-28",
+          "time": "T+28"
+        },
+        {
+          "op": "queryHistory",
+          "payload": {},
+          "label": "主动再次查询04E8",
+          "evidence": "ClientStatic + ReadOnlyServerPolicy",
+          "note": "只查询历史，不触发结算/邮件公告",
+          "id": "native-candidate-full-29",
+          "time": "T+29"
+        },
+        {
+          "op": "ackHistory",
+          "payload": {
+            "success": 1,
+            "result": 0,
+            "entries": [
+              {
+                "round": 1,
+                "knight": 3,
+                "valueRaw": "00000000"
+              }
+            ]
+          },
+          "label": "04E8 ACK：历史投影",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "逻辑记录末4B保留raw；线帧固定500x7B，不由简化数组取代",
+          "anchor": "RVA000D25B0 / VA004D25B0",
+          "id": "native-candidate-full-30",
+          "time": "T+30"
+        }
+      ]
+    },
+    {
+      "id": "missing-state-open",
+      "title": "只有006C、ACK、B9/BA：打开仍被state0拒绝",
+      "description": "证明活动表、资料查询成功与manager状态是独立门，结果UI不会等待查询回包后自行重试。",
+      "kind": "contrast",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "manager0来自本模型显式reset初值；未宣称客户端构造或每次登录必为0。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "missing-state-open-01",
+          "time": "T+01"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "missing-state-open-02",
+          "time": "T+02"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "missing-state-open-03",
+          "time": "T+03"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "missing-state-open-04",
+          "time": "T+04"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "missing-state-open-05",
+          "time": "T+05"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "missing-state-open-06",
+          "time": "T+06"
+        }
+      ]
+    },
+    {
+      "id": "missing-event-gate",
+      "title": "已有state1但缺006C入口：通用打开被挡",
+      "description": "已有轮次状态不能替代EventManager中093D入口存在条件。",
+      "kind": "contrast",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "openUI表示通用入口尝试；缺入口时不会进入F6050发查询。"
+      ],
+      "events": [
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "04B8 rawState=1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "missing-event-gate-01",
+          "time": "T+01"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "missing-event-gate-02",
+          "time": "T+02"
+        },
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "missing-event-gate-03",
+          "time": "T+03"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "missing-event-gate-04",
+          "time": "T+04"
+        }
+      ]
+    },
+    {
+      "id": "current-server-skip",
+      "title": "当前服务端序列对照：半决赛跳过动画",
+      "description": "重放父代理审计的当前序列；第一组结束scene5后只BB1会直接scene8，Final无包，End用state2+BB3。",
+      "kind": "contrast",
+      "evidence": "CurrentImplementation inputs + ClientStatic consumption",
+      "assumptions": [
+        "这是CurrentImplementation输入的对照，不是原服规范。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "current-server-skip-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "04B8 rawState=1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "current-server-skip-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "current-server-skip-03",
+          "time": "T+03"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "current-server-skip-04",
+          "time": "T+04"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "current-server-skip-05",
+          "time": "T+05"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "current-server-skip-06",
+          "time": "T+06"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "04B8 rawState=4",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "current-server-skip-07",
+          "time": "T+07"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 0,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=0",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "七槽；仅前4有效，其余FF是待实机的填槽策略",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "current-server-skip-08",
+          "time": "T+08"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "scene3→4",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "current-server-skip-09",
+          "time": "T+09"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "scene4→5",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "current-server-skip-10",
+          "time": "T+10"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 1,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=1",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "此时scene5；BB1走其它分支→scene8，未进入scene6",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "current-server-skip-11",
+          "time": "T+11"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 2,
+            "round": 1
+          },
+          "label": "04B8 rawState=2",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "current-server-skip-12",
+          "time": "T+12"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 3,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=3",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "End直接stage3→scene12冠军，第三组起播未展示",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "current-server-skip-13",
+          "time": "T+13"
+        }
+      ]
+    },
+    {
+      "id": "only-add-stage2",
+      "title": "仅补BB2：scene8直接进入冠军",
+      "description": "第一组动画完毕后BB1跳8，再补BB2仍进12；说明恢复stage2本身不够。",
+      "kind": "contrast",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "info只提供模拟参赛者，不使用实际PVF名称。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "only-add-stage2-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "04B8 rawState=4",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "only-add-stage2-02",
+          "time": "T+02"
+        },
+        {
+          "id": "only-add-stage2-03",
+          "time": "T+03",
+          "label": "显示结果UI以允许本地推进",
+          "op": "openUI",
+          "payload": {},
+          "evidence": "ClientStatic + ShowInitializationAssumption",
+          "note": "选择保留show-init分支，自动04E6/04E8，不重放scene；后续tickWhileHidden默认false。",
+          "anchor": "RVA000F6050 / VA004F6050"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "only-add-stage2-04",
+          "time": "T+04"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 0,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=0",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "七槽；仅前4有效，其余FF是待实机的填槽策略",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "only-add-stage2-05",
+          "time": "T+05"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "scene3→4",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "only-add-stage2-06",
+          "time": "T+06"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "scene4→5",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "only-add-stage2-07",
+          "time": "T+07"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 1,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 255,
+                "winnerAux": 0,
+                "loser": 255,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=1",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "七槽；仅前6有效，其余FF是待实机的填槽策略",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "only-add-stage2-08",
+          "time": "T+08"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 2,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=2",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "only-add-stage2-09",
+          "time": "T+09"
+        }
+      ]
+    },
+    {
+      "id": "readonly-repeat-query",
+      "title": "资料与历史重复查询：业务账本保持不变",
+      "description": "全部请求与响应只读取投影；没有acceptBetBusiness、settleBusiness或状态公告事件。",
+      "kind": "read-only",
+      "evidence": "ClientStatic + ReadOnlyServerPolicy",
+      "assumptions": [
+        "ReadOnlyServerPolicy是目标业务契约，静态客户端不会替服务端阻止写库。",
+        "查询返回的客户端投影/可选BB可能有UI副作用；这里未返回BB。",
+        "自动查询只在openUI/openBetUI及已显示scene0/1消费中生成，不额外手工重复首条。",
+        "首次openUI派生04E6与成功后的04E8；后续显式query事件是刻意重复查询。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "readonly-repeat-query-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "04B8 rawState=1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "readonly-repeat-query-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "readonly-repeat-query-03",
+          "time": "T+03"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "readonly-repeat-query-04",
+          "time": "T+04"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "readonly-repeat-query-05",
+          "time": "T+05"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "readonly-repeat-query-06",
+          "time": "T+06"
+        },
+        {
+          "op": "queryInfo",
+          "payload": {},
+          "label": "显式重复查询04E6",
+          "evidence": "ClientStatic",
+          "note": "模型记录请求但不推进领域状态",
+          "id": "readonly-repeat-query-07",
+          "time": "T+07"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "readonly-repeat-query-08",
+          "time": "T+08"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "readonly-repeat-query-09",
+          "time": "T+09"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "readonly-repeat-query-10",
+          "time": "T+10"
+        },
+        {
+          "op": "ackHistory",
+          "payload": {
+            "success": 1,
+            "result": 0,
+            "entries": []
+          },
+          "label": "04E8 ACK：历史投影",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "逻辑记录末4B保留raw；线帧固定500x7B，不由简化数组取代",
+          "anchor": "RVA000D25B0 / VA004D25B0",
+          "id": "readonly-repeat-query-11",
+          "time": "T+11"
+        },
+        {
+          "op": "queryHistory",
+          "payload": {},
+          "label": "显式重复查询04E8",
+          "evidence": "ReadOnlyServerPolicy",
+          "note": "只返回历史；不刷新邮箱提示",
+          "id": "readonly-repeat-query-12",
+          "time": "T+12"
+        },
+        {
+          "op": "ackHistory",
+          "payload": {
+            "success": 1,
+            "result": 0,
+            "entries": []
+          },
+          "label": "04E8 ACK：历史投影",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "逻辑记录末4B保留raw；线帧固定500x7B，不由简化数组取代",
+          "anchor": "RVA000D25B0 / VA004D25B0",
+          "id": "readonly-repeat-query-13",
+          "time": "T+13"
+        },
+        {
+          "op": "queryInfo",
+          "payload": {},
+          "label": "再次查询04E6",
+          "evidence": "ClientStatic",
+          "note": "",
+          "id": "readonly-repeat-query-14",
+          "time": "T+14"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "readonly-repeat-query-15",
+          "time": "T+15"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "readonly-repeat-query-16",
+          "time": "T+16"
+        }
+      ]
+    },
+    {
+      "id": "repeat-bb3-champion",
+      "title": "重复BB3：冠军公告再次出现",
+      "description": "stage3无条件进入scene12，reader不以旧round/state去重；同一轮重复输入仍可公告。",
+      "kind": "contrast",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "winnerAux/loserAux0选择第0组，不据此模拟伤害公式。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "repeat-bb3-champion-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "04B8 rawState=4",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "repeat-bb3-champion-02",
+          "time": "T+02"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "repeat-bb3-champion-03",
+          "time": "T+03"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 3,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=3",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "repeat-bb3-champion-04",
+          "time": "T+04"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 3,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=3",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "repeat-bb3-champion-05",
+          "time": "T+05"
+        }
+      ]
+    },
+    {
+      "id": "mid-join-native",
+      "title": "比赛中途加入：原生恢复尝试会重播",
+      "description": "使用state4+BB2虽能起播第三组，也会有B8直接公告，并由本地动画到冠军；不是精确、静默恢复。",
+      "kind": "recovery",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "没有已播放时间字段；示例不能恢复第三组已播放毫秒数。",
+        "尚未发现任意阶段完全静默原生恢复入口；本例只展示已知可达路径。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "mid-join-native-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "原生state4入场：scene13并直接公告",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "mid-join-native-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "mid-join-native-03",
+          "time": "T+03"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "mid-join-native-04",
+          "time": "T+04"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "mid-join-native-05",
+          "time": "T+05"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "mid-join-native-06",
+          "time": "T+06"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 2,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=2",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "mid-join-native-07",
+          "time": "T+07"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "从scene9开始播放→10",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "mid-join-native-08",
+          "time": "T+08"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "本地最终→12冠军",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "mid-join-native-09",
+          "time": "T+09"
+        }
+      ]
+    },
+    {
+      "id": "marker-b8-only",
+      "title": "0190兼容marker：只跳B8直接公告",
+      "description": "stateSnapshot4仍调用manager与scene消费，使scene13；BB3及本地冠军链不受该hook抑制。",
+      "kind": "compatibility",
+      "evidence": "CompatibilityExtension + ClientStatic",
+      "assumptions": [
+        "模拟启用0190_JoustStateSync；插件只mask B8的两个state消费者。",
+        "scene0/1自动query与scene12公告不是被marker全面禁止的副作用。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "marker-b8-only-01",
+          "time": "T+01"
+        },
+        {
+          "op": "stateSnapshot",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "扩展snapshot4：静默B8直接公告",
+          "evidence": "CompatibilityExtension",
+          "note": "等价marked0x84经过0190两处hook，不是原生消息",
+          "id": "marker-b8-only-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "marker-b8-only-03",
+          "time": "T+03"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "marker-b8-only-04",
+          "time": "T+04"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "marker-b8-only-05",
+          "time": "T+05"
+        },
+        {
+          "op": "bets",
+          "payload": {
+            "total": 0,
+            "amounts": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "label": "04BA：个人投注投影",
+          "evidence": "ClientStatic",
+          "note": "只更新客户端投注投影，不扣除物品",
+          "anchor": "RVA000D23E0 / VA004D23E0",
+          "id": "marker-b8-only-06",
+          "time": "T+06"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 3,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=3",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "marker-b8-only-07",
+          "time": "T+07"
+        }
+      ],
+      "options": {
+        "extensionEnabled": true
+      }
+    },
+    {
+      "id": "marker-local-champion",
+      "title": "marker恢复BB2：本地tick仍冠军公告",
+      "description": "B8直接公告被跳过，不等于最终公告被跳过。",
+      "kind": "compatibility",
+      "evidence": "CompatibilityExtension + ClientStatic",
+      "assumptions": [
+        "不向BB payload添加未定义的high-bit静默标志。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "marker-local-champion-01",
+          "time": "T+01"
+        },
+        {
+          "op": "stateSnapshot",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "扩展snapshot4→scene13",
+          "evidence": "CompatibilityExtension",
+          "note": "",
+          "id": "marker-local-champion-02",
+          "time": "T+02"
+        },
+        {
+          "id": "marker-local-champion-03",
+          "time": "T+03",
+          "label": "显示结果UI以允许本地推进",
+          "op": "openUI",
+          "payload": {},
+          "evidence": "ClientStatic + ShowInitializationAssumption",
+          "note": "选择保留show-init分支，自动04E6/04E8，不重放scene；后续tickWhileHidden默认false。",
+          "anchor": "RVA000F6050 / VA004F6050"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "marker-local-champion-04",
+          "time": "T+04"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 2,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=2",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "marker-local-champion-05",
+          "time": "T+05"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "scene9→10",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "marker-local-champion-06",
+          "time": "T+06"
+        },
+        {
+          "op": "localAdvance",
+          "payload": {},
+          "label": "scene10→11→12公告",
+          "evidence": "ClientStaticAbstraction",
+          "note": "抽象一步动画完成/轨迹耗尽；不表示固定秒数",
+          "anchor": "RVA000FB7F0 / VA004FB7F0",
+          "id": "marker-local-champion-07",
+          "time": "T+07"
+        }
+      ],
+      "options": {
+        "extensionEnabled": true
+      }
+    },
+    {
+      "id": "state5-counter-chain",
+      "title": "state5 counter链：2→0→1→2→0",
+      "description": "BB2先建立完整第三组结果并counter2；state5强制结束第三组后，连续输入绕转第一/二/三组结束显示。",
+      "kind": "client-static",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "没有BB覆盖counter的连续输入；原服state5发送时点未知。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "state5-counter-chain-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "label": "04B8 rawState=4",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-counter-chain-02",
+          "time": "T+02"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "state5-counter-chain-03",
+          "time": "T+03"
+        },
+        {
+          "op": "results",
+          "payload": {
+            "stage": 2,
+            "round": 1,
+            "records": [
+              {
+                "winner": 0,
+                "winnerAux": 0,
+                "loser": 1,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 2,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 5,
+                "loserAux": 0
+              },
+              {
+                "winner": 7,
+                "winnerAux": 0,
+                "loser": 6,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 0,
+                "loserAux": 0
+              },
+              {
+                "winner": 4,
+                "winnerAux": 0,
+                "loser": 7,
+                "loserAux": 0
+              },
+              {
+                "winner": 3,
+                "winnerAux": 0,
+                "loser": 4,
+                "loserAux": 0
+              }
+            ]
+          },
+          "label": "04BB stage=2",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "完整七条模拟结果；aux均0",
+          "anchor": "RVA000FCCA0 / VA004FCCA0",
+          "id": "state5-counter-chain-04",
+          "time": "T+04"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 5,
+            "round": 1
+          },
+          "label": "counter2：scene11→12；counter变0",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-counter-chain-05",
+          "time": "T+05"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 5,
+            "round": 1
+          },
+          "label": "counter0：scene5；counter变1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-counter-chain-06",
+          "time": "T+06"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 5,
+            "round": 1
+          },
+          "label": "counter1：scene8；counter变2",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-counter-chain-07",
+          "time": "T+07"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 5,
+            "round": 1
+          },
+          "label": "counter2：scene11→12再次冠军；counter变0",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-counter-chain-08",
+          "time": "T+08"
+        }
+      ]
+    },
+    {
+      "id": "state5-before-results",
+      "title": "BB之前state5：counter=-1没有轮转",
+      "description": "窗口构造counter=-1；state5虽写manager5，但没有匹配0/1/2 scene跳转分支。",
+      "kind": "client-static",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "模型显式使用已取证的UI构造counter=-1，不把manager构造值当0证明。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "state5-before-results-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 5,
+            "round": 1
+          },
+          "label": "04B8 rawState=5",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-before-results-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "state5-before-results-03",
+          "time": "T+03"
+        },
+        {
+          "op": "ackInfo",
+          "payload": {
+            "success": 1,
+            "result": 0
+          },
+          "label": "04E6 ACK",
+          "evidence": "ClientStatic",
+          "note": "成功ACK不写manager state；成功04E6只ensure投注窗口，不自动show",
+          "anchor": "RVA000D2030 / VA004D2030",
+          "id": "state5-before-results-04",
+          "time": "T+04"
+        },
+        {
+          "op": "info",
+          "payload": {},
+          "label": "04B9：八名骑士资料",
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "默认fixture index0..7、模拟名字A..H；condition/count默认值不是实际PVF资料",
+          "anchor": "RVA000D2330 / VA004D2330",
+          "id": "state5-before-results-05",
+          "time": "T+05"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 5,
+            "round": 1
+          },
+          "label": "04B8 rawState=5",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state5-before-results-06",
+          "time": "T+06"
+        }
+      ]
+    },
+    {
+      "id": "remove-event-no-reset",
+      "title": "移除活动入口：不擅自重置manager/scene",
+      "description": "006C取消093D不在已解析路径直接reset service45；再次通用打开被入口门挡。",
+      "kind": "client-static",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "不据此断言真实客户端已打开窗口会自动关闭；此场景显式closeUI。",
+        "eventList=false抽象093D入口消失，不代表只改006C enabled字节的完整编码。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "remove-event-no-reset-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "04B8 rawState=1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "remove-event-no-reset-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "remove-event-no-reset-03",
+          "time": "T+03"
+        },
+        {
+          "op": "closeUI",
+          "payload": {},
+          "label": "关闭结果UI",
+          "evidence": "ClientStatic",
+          "note": "",
+          "id": "remove-event-no-reset-04",
+          "time": "T+04"
+        },
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": false
+          },
+          "label": "006C：移除活动入口",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "remove-event-no-reset-05",
+          "time": "T+05"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "remove-event-no-reset-06",
+          "time": "T+06"
+        }
+      ]
+    },
+    {
+      "id": "state1-query-feedback",
+      "title": "查询回送state1对照：自动请求可形成反馈链",
+      "description": "窗口已显示时state1→scene1→自动04E6；若服务端每次查询再发state1，会再次请求并重复公告。",
+      "kind": "contrast",
+      "evidence": "ClientStatic + CandidateOrdering",
+      "assumptions": [
+        "演示有界三次输入，模型不自动无限回包。",
+        "服务端query应为纯读；本对照输入是旧错误接线的行为展示。"
+      ],
+      "events": [
+        {
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "label": "006C：活动入口存在",
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "模拟仅093D一项；不代表006C全部布局/副作用",
+          "anchor": "RVA01019E30 / VA01419E30",
+          "id": "state1-query-feedback-01",
+          "time": "T+01"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "04B8 rawState=1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state1-query-feedback-02",
+          "time": "T+02"
+        },
+        {
+          "op": "openUI",
+          "payload": {},
+          "label": "尝试打开结果UI",
+          "evidence": "ClientStatic",
+          "note": "选择保留分支的显示初始化：自动04E6后同步检查已有state；成功后F5CC0显示投注UI并自动04E8。没有repeat-current-scene；重开是否必执行初始化Unknown。",
+          "anchor": "RVA000F6050 / VA004F6050",
+          "id": "state1-query-feedback-03",
+          "time": "T+03"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "查询响应错误地回送state1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state1-query-feedback-04",
+          "time": "T+04"
+        },
+        {
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "label": "下一次查询又回state1",
+          "evidence": "ClientStatic",
+          "note": "state业务命名不由编号单独证明",
+          "anchor": "RVA000D2690 / VA004D2690",
+          "id": "state1-query-feedback-05",
+          "time": "T+05"
+        }
+      ]
+    },
+    {
+      "id": "bet-ui-history-init",
+      "title": "独立显示投注UI：初始化自动查历史",
+      "description": "显示1FB的已识别virtual+18初始化发送04E8；get-or-create不等于显示初始化。",
+      "kind": "client-static",
+      "evidence": "ClientStatic + ShowInitializationAssumption",
+      "assumptions": [
+        "service45存在、网络ready且选中已识别show初始化路径；不宣称每次重开必执行该函数。"
+      ],
+      "events": [
+        {
+          "id": "bet-ui-history-init-01",
+          "time": "T+01",
+          "label": "006C：活动入口存在",
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "093D单项模拟"
+        },
+        {
+          "id": "bet-ui-history-init-02",
+          "time": "T+02",
+          "label": "初始化state1",
+          "op": "state",
+          "payload": {
+            "value": 1,
+            "round": 1
+          },
+          "evidence": "ClientStatic",
+          "note": "具有B8直接公告"
+        },
+        {
+          "id": "bet-ui-history-init-03",
+          "time": "T+03",
+          "label": "显示投注UI：自动04E8",
+          "op": "openBetUI",
+          "payload": {},
+          "evidence": "ClientStatic",
+          "note": "不额外手工列queryHistory",
+          "anchor": "RVA000F4B10 / VA004F4B10"
+        },
+        {
+          "id": "bet-ui-history-init-04",
+          "time": "T+04",
+          "label": "返回空历史ACK",
+          "op": "ackHistory",
+          "payload": {
+            "success": 1,
+            "result": 0,
+            "entries": []
+          },
+          "evidence": "ClientStatic + FixturePolicy",
+          "note": "线帧仍为3505B；逻辑entries简化显示"
+        }
+      ]
+    },
+    {
+      "id": "marker-without-plugin",
+      "title": "没有0190：marker不是原生静默状态",
+      "description": "相同0x84原始字节按signed读取为-124，保存到manager，超出原生scene/直接公告表范围。",
+      "kind": "compatibility-contrast",
+      "evidence": "ClientStatic",
+      "options": {
+        "extensionEnabled": false
+      },
+      "assumptions": [
+        "禁用0190扩展；不把marked字节当合法原生state4。"
+      ],
+      "events": [
+        {
+          "id": "marker-without-plugin-01",
+          "time": "T+01",
+          "label": "006C：活动入口存在",
+          "op": "eventList",
+          "payload": {
+            "enabled": true
+          },
+          "evidence": "ClientStatic + SimulationAbstraction",
+          "note": "093D单项模拟"
+        },
+        {
+          "id": "marker-without-plugin-02",
+          "time": "T+02",
+          "label": "注入marked0x84但没有hook",
+          "op": "stateSnapshot",
+          "payload": {
+            "value": 4,
+            "round": 1
+          },
+          "evidence": "CompatibilityExtensionInput + ClientStatic",
+          "note": "native保存signed=-124；scene仍0、counter仍-1；这不是state4静默恢复"
+        }
+      ]
+    }
+  ]
+}

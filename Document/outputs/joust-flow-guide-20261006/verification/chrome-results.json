@@ -1,0 +1,32 @@
+[
+  {
+    "name": "desktop",
+    "screenshot": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\warehouse-storage\\Document\\outputs\\joust-flow-guide-20261006\\verification\\desktop.png",
+    "proof": {
+      "status": "passed",
+      "checks": 110,
+      "scenarios": 16,
+      "viewport": [
+        1422,
+        1104
+      ],
+      "boundary": "own HTML in local headless Chrome; not game ClientVerified"
+    },
+    "chromeExit": 0
+  },
+  {
+    "name": "compact",
+    "screenshot": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\warehouse-storage\\Document\\outputs\\joust-flow-guide-20261006\\verification\\compact.png",
+    "proof": {
+      "status": "passed",
+      "checks": 110,
+      "scenarios": 16,
+      "viewport": [
+        662,
+        904
+      ],
+      "boundary": "own HTML in local headless Chrome; not game ClientVerified"
+    },
+    "chromeExit": 0
+  }
+]
