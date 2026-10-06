@@ -70,7 +70,7 @@ EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；
 
 reader `000D24A0` ReadBytes0x1F；consumer `000FCCA0/000F7A70`取+0/+1赢家、+2/+3输家，对方aux存对象+8。`016182F0`→`024FDC00`按Knight/Aux查Win/Loss表（+78/+8C），`024FD925/024FDA02`加载[win]/[loss]。PVF每表实际28整数=4×7，loader容量5选项不等于实际35整数。Aux0有效首项；真实原服选择策略Unknown。Stage3最终文本/scene12跳转仍Unknown。
 
-实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。轮号由保存的UTC+8 schedule/start推导每日1..N，不使用当前已修改配置。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。
+实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。2026-10-06 当前实现：轮号改为赛果成功入库时分配的全局累计序号；时间仅为场次字段，查询读取保存的结果。进行中场次使用下一候选序号作原生同步标记，不提前写入历史。详见 [期号与时间 ID](../../../Document/tasks/event-joust/knight-statistics-result.md#期号与时间-id2026-10-06)。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。
 
 
 ### 2026-10-06 冠军公告的客户端副作用

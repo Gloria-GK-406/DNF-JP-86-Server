@@ -28,7 +28,7 @@ public sealed class JoustProtocolTests
     }
     private static JoustState State(JoustPhase phase=JoustPhase.QuarterFinal)=>new(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
         new[]{0,1,2,3,4,5,6,8}.Select(i=>new JoustKnightState(new(i,"knight",0,new int[28],new int[28]),10,i,2.5m)).ToArray(),
-        [1,2,5,8,2,8,8],36,1000,17){DailyRoundNo=7};
+        [1,2,5,8,2,8,8],36,1000,17){RoundNo=7};
     [Fact] public void Bet_decoder_keeps_i32_slot_and_does_not_use_opaque_prefix_as_identity()
     {
         var b=Enumerable.Repeat((byte)0xAA,23).ToArray();b[14]=11;BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(15),70000);BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(19),1000);
@@ -46,7 +46,29 @@ public sealed class JoustProtocolTests
     }
     [Fact] public void History_has_five_byte_ack_and_exactly_500_records_with_zero_terminator()
     {
-        var b=JoustPayloadCodec.History(0,[new("saved",DateTimeOffset.UnixEpoch,11,3.4m){DailyRoundNo=3}]);Assert.Equal(3505,b.Length);Assert.Equal(new byte[]{1,0,0,0,0,3,0,11},b[..8]);Assert.Equal(3.4f,BinaryPrimitives.ReadSingleLittleEndian(b.AsSpan(8)));Assert.Equal(0,BinaryPrimitives.ReadUInt16LittleEndian(b.AsSpan(12)));Assert.Equal(new byte[]{1,6,0,0,0},JoustPayloadCodec.Ack(6));Assert.Equal(3505,JoustPayloadCodec.History(6,[]).Length);
+        var b=JoustPayloadCodec.History(0,[new("saved",DateTimeOffset.UnixEpoch,11,3.4m){RoundNo=3}]);Assert.Equal(3505,b.Length);Assert.Equal(new byte[]{1,0,0,0,0,3,0,11},b[..8]);Assert.Equal(3.4f,BinaryPrimitives.ReadSingleLittleEndian(b.AsSpan(8)));Assert.Equal(0,BinaryPrimitives.ReadUInt16LittleEndian(b.AsSpan(12)));Assert.Equal(new byte[]{1,6,0,0,0},JoustPayloadCodec.Ack(6));Assert.Equal(3505,JoustPayloadCodec.History(6,[]).Length);
+    }
+    [Theory]
+    [InlineData(1L,1)]
+    [InlineData(65535L,65535)]
+    [InlineData(65536L,1)]
+    [InlineData(70000L,4465)]
+    public void All_round_fields_project_the_same_persistent_index_without_using_the_history_zero_terminator(long index,int expected)
+    {
+        var state=State() with{RoundNo=index};
+        foreach(var body in new[]{JoustPayloadCodec.State(state),JoustPayloadCodec.Info(state),JoustPayloadCodec.Bets(state),JoustPayloadCodec.Results(state)})
+            Assert.Equal(expected,BinaryPrimitives.ReadUInt16LittleEndian(body));
+        var history=JoustPayloadCodec.History(0,[new("saved",DateTimeOffset.UnixEpoch,3,8m){RoundNo=index}]);
+        Assert.Equal(expected,BinaryPrimitives.ReadUInt16LittleEndian(history.AsSpan(5)));
+        Assert.Equal(index,state.RoundNo);
+    }
+    [Fact]
+    public void Latest_500_persistent_indices_remain_distinct_across_native_u16_boundary()
+    {
+        var history=Enumerable.Range(65300,500).Select(i=>new JoustHistoryEntry("saved",DateTimeOffset.UnixEpoch,3,8m){RoundNo=i}).ToArray();
+        var body=JoustPayloadCodec.History(0,history);
+        var numbers=Enumerable.Range(0,500).Select(i=>BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(5+i*7))).ToArray();
+        Assert.Equal(500,numbers.Distinct().Count());Assert.DoesNotContain((ushort)0,numbers);
     }
     [Theory]
     [InlineData(3L,0L,3,0)]

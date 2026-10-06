@@ -1,8 +1,10 @@
 using System.Text.Json;
+using System.Globalization;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
+using Microsoft.Data.Sqlite;
 namespace Dfo.Server.Persistence.Events;
 
 internal sealed class SqliteJoustPersistence(SqliteDatabase database) : IJoustPersistence
@@ -30,8 +32,40 @@ internal sealed class SqliteJoustPersistence(SqliteDatabase database) : IJoustPe
             p.AddWithValue("@settled",r.Settled?1:0);p.AddWithValue("@input",JsonSerializer.Serialize(r));},ct);
     public async ValueTask<JoustRound[]> UnsettledAsync(CancellationToken ct) => [..await database.ReadAllAsync(
         "SELECT input FROM event_joust_round WHERE settled=0 ORDER BY starts_at;",_=>{},r=>Read<JoustRound>(r.GetString(0)),ct)];
-    public async ValueTask<JoustRound[]> HistoryAsync(CancellationToken ct) => [..await database.ReadAllAsync(
-        "SELECT input FROM event_joust_round WHERE settled=1 ORDER BY starts_at DESC LIMIT 500;",_=>{},r=>Read<JoustRound>(r.GetString(0)),ct)];
+    private static JoustHistoryEntry Result(SqliteDataReader r)=>new(r.GetString(1),DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(2)),
+        r.GetInt32(3),decimal.Parse(r.GetString(4),CultureInfo.InvariantCulture)){RoundNo=r.GetInt64(0)};
+    public async ValueTask<JoustHistoryEntry[]> HistoryAsync(CancellationToken ct) => [..await database.ReadAllAsync(
+        "SELECT result_index,round_id,starts_at,winner_index,odds FROM event_joust_result ORDER BY result_index DESC LIMIT 500;",_=>{},Result,ct)];
+    public ValueTask<JoustHistoryEntry?> ResultAsync(string id,CancellationToken ct)=>database.ReadFirstAsync(
+        "SELECT result_index,round_id,starts_at,winner_index,odds FROM event_joust_result WHERE round_id=@id;",p=>p.AddWithValue("@id",id),Result,ct);
+    public async ValueTask<long> NextResultIndexAsync(CancellationToken ct) => (await database.ReadFirstAsync(
+        "SELECT COALESCE((SELECT seq FROM sqlite_sequence WHERE name='event_joust_result'),0)+1;",_=>{},r=>new ResultIndex(r.GetInt64(0)),ct))!.Value;
+    private sealed record ResultIndex(long Value);
+    public async ValueTask<JoustHistoryEntry> RecordResultAsync(JoustHistoryEntry result,CancellationToken ct)
+    {
+        if(result.RoundId!=result.StartsAt.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)
+            || result.RoundNo!=0 || result.WinnerIndex is <0 or >11 || result.Odds<=0)
+            throw new ArgumentException("马战结果需要时间场次 ID、有效胜者和倍率；期号由存储分配。");
+        // A filtered INSERT avoids consuming AUTOINCREMENT values on duplicate
+        // results. Allocation, settlement, mail and stats share the ambient transaction.
+        await database.ExecuteAsync("""
+            INSERT INTO event_joust_result(round_id,starts_at,winner_index,odds)
+            SELECT @id,@start,@winner,@odds
+            WHERE EXISTS(SELECT 1 FROM event_joust_round WHERE round_id=@id AND starts_at=@start AND settled=1)
+              AND NOT EXISTS(SELECT 1 FROM event_joust_result WHERE round_id=@id);
+            """,p=>{p.AddWithValue("@id",result.RoundId);p.AddWithValue("@start",result.StartsAt.ToUnixTimeSeconds());
+                    p.AddWithValue("@winner",result.WinnerIndex);p.AddWithValue("@odds",result.Odds.ToString(CultureInfo.InvariantCulture));},ct);
+        var saved=await ResultAsync(result.RoundId,ct) ?? throw new InvalidOperationException("只能记录已完成场次的赛果。");
+        if(saved.StartsAt!=result.StartsAt || saved.WinnerIndex!=result.WinnerIndex || saved.Odds!=result.Odds)
+            throw new InvalidDataException("同一马战场次已有不同赛果，不能覆盖。");
+        return saved;
+    }
+    public async ValueTask<bool> HasUnrecordedResultsAsync(CancellationToken ct) => await database.ReadFirstAsync(
+        "SELECT 1 FROM event_joust_round r WHERE settled=1 AND NOT EXISTS(SELECT 1 FROM event_joust_result s WHERE s.round_id=r.round_id) LIMIT 1;",
+        _=>{},_=>new Marker(),ct) is not null;
+    public async ValueTask<JoustRound[]> UnrecordedResultsAsync(CancellationToken ct) => [..await database.ReadAllAsync(
+        "SELECT input FROM event_joust_round r WHERE settled=1 AND NOT EXISTS(SELECT 1 FROM event_joust_result s WHERE s.round_id=r.round_id) ORDER BY starts_at,round_id;",
+        _=>{},r=>Read<JoustRound>(r.GetString(0)),ct)];
     public async ValueTask<bool> HasUnrecordedStatisticsAsync(CancellationToken ct) => await database.ReadFirstAsync(
         "SELECT 1 FROM event_joust_round r WHERE settled=1 AND NOT EXISTS(SELECT 1 FROM event_joust_statistics_round s WHERE s.round_id=r.round_id) LIMIT 1;",
         _=>{},_=>new Marker(),ct) is not null;

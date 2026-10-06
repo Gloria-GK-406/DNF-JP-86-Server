@@ -36,7 +36,12 @@ public interface IJoustPersistence
     ValueTask<bool> HasUnsettledAsync(CancellationToken ct);
     ValueTask SaveRoundAsync(JoustRound round,CancellationToken ct);
     ValueTask<JoustRound[]> UnsettledAsync(CancellationToken ct);
-    ValueTask<JoustRound[]> HistoryAsync(CancellationToken ct);
+    ValueTask<JoustHistoryEntry[]> HistoryAsync(CancellationToken ct);
+    ValueTask<JoustHistoryEntry?> ResultAsync(string roundId,CancellationToken ct);
+    ValueTask<long> NextResultIndexAsync(CancellationToken ct);
+    ValueTask<JoustHistoryEntry> RecordResultAsync(JoustHistoryEntry result,CancellationToken ct);
+    ValueTask<bool> HasUnrecordedResultsAsync(CancellationToken ct);
+    ValueTask<JoustRound[]> UnrecordedResultsAsync(CancellationToken ct);
     ValueTask<bool> HasUnrecordedStatisticsAsync(CancellationToken ct);
     ValueTask<JoustRound[]> UnrecordedStatisticsAsync(CancellationToken ct);
     ValueTask<JoustKnightStatistics[]> KnightStatisticsAsync(CancellationToken ct);

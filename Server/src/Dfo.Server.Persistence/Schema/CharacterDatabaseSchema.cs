@@ -79,6 +79,7 @@ internal static class CharacterDatabaseSchema
         MigrateMailboxGold(connection);
         Apply(connection, Indexes);
         SharedMaterialMigration.Apply(connection);
+        JoustRoundIdentityMigration.Apply(connection);
     }
 
     // The old message-level gold is a receivable asset. Keep its original columns for
@@ -240,6 +241,11 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS ix_joust_round_time ON event_joust_round(starts_at DESC);
         CREATE TABLE IF NOT EXISTS event_joust_bet(character_id INTEGER NOT NULL,request_id TEXT NOT NULL,round_id TEXT NOT NULL REFERENCES event_joust_round(round_id),input TEXT NOT NULL,PRIMARY KEY(character_id,request_id));
         CREATE INDEX IF NOT EXISTS ix_joust_bet_round ON event_joust_bet(round_id);
+        CREATE TABLE IF NOT EXISTS event_joust_result (
+            result_index INTEGER PRIMARY KEY AUTOINCREMENT,
+            round_id TEXT NOT NULL UNIQUE REFERENCES event_joust_round(round_id),
+            starts_at INTEGER NOT NULL, winner_index INTEGER NOT NULL CHECK(winner_index BETWEEN 0 AND 11),
+            odds TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_joust_knight_statistics (
             knight_index INTEGER PRIMARY KEY CHECK(knight_index BETWEEN 0 AND 11),
             wins INTEGER NOT NULL CHECK(typeof(wins)='integer' AND wins>=0),

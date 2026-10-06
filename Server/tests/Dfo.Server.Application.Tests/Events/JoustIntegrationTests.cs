@@ -37,6 +37,125 @@ namespace Dfo.Server.Application.Tests.Events;
 public sealed class JoustIntegrationTests
 {
     [PvfFact]
+    public async Task Result_indices_start_at_one_follow_commits_across_days_and_ignore_maintenance_gaps()
+    {
+        using var f=new Fixture();f.Now=DateTimeOffset.Parse("2026-10-06T12:10:00+08:00");
+        await f.Enable();await f.AdvanceLifecycle();var first=await f.GetState();
+        Assert.Equal(first.StartsAt!.Value.ToUnixTimeSeconds().ToString(),first.RoundId);
+        Assert.Equal(1,first.RoundNo);Assert.Empty(await f.Joust.GetHistoryAsync(default));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_result"));
+        f.Now=first.StartsAt.Value.AddMinutes(110);await f.AdvanceLifecycle();
+        var result=Assert.Single(await f.Joust.GetHistoryAsync(default));Assert.Equal(1,result.RoundNo);
+        var store=f.Services.GetRequiredService<IJoustPersistence>();
+        // Repeated writes and reads must not burn a result index.
+        await f.Run(()=>store.RecordResultAsync(result with{RoundNo=0},default));
+        await f.AdvanceLifecycle();Assert.Equal(2,await store.NextResultIndexAsync(default));
+        f.Now=first.StartsAt.Value.AddDays(1).AddHours(4).AddMinutes(10);
+        await f.AdvanceLifecycle();var next=await f.GetState();
+        Assert.Equal(DateTimeOffset.Parse("2026-10-07T16:00:00+08:00"),next.StartsAt);
+        Assert.Equal(2,next.RoundNo);Assert.Single(await f.Joust.GetHistoryAsync(default));
+        f.Now=next.StartsAt!.Value.AddMinutes(110);await f.AdvanceLifecycle();
+        Assert.Equal(new long[]{2,1},(await f.Joust.GetHistoryAsync(default)).Select(r=>r.RoundNo));
+        using var reopened=f.Reopen();await reopened.AdvanceLifecycle();
+        Assert.Equal(new long[]{2,1},(await reopened.Joust.GetHistoryAsync(default)).Select(r=>r.RoundNo));
+        Assert.Equal(3,await reopened.Services.GetRequiredService<IJoustPersistence>().NextResultIndexAsync(default));
+        Assert.Equal(14,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
+    }
+
+    [PvfFact]
+    public async Task Result_index_follows_record_order_and_stored_result_cannot_be_rewritten_by_queries_or_conflicts()
+    {
+        using var f=new Fixture();var store=f.Services.GetRequiredService<IJoustPersistence>();
+        var rules=f.Services.GetRequiredService<IJoustRuleService>();var d=(await rules.DefinitionAsync(default)).Definition!;
+        var later=KnownBracket(rules.CreateRound("later",f.Now.AddDays(1),new(0,JoustSchedule.Default),d)) with{Settled=true};
+        var earlier=KnownBracket(rules.CreateRound("earlier",f.Now,new(0,JoustSchedule.Default),d)) with{Settled=true};
+        await f.Run(async()=>
+        {
+            await store.SaveRoundAsync(later,default);await store.SaveRoundAsync(earlier,default);
+            await store.RecordResultAsync(new(later.RoundId,later.StartsAt,0,2.5m),default);
+            await store.RecordResultAsync(new(earlier.RoundId,earlier.StartsAt,0,8m),default);return true;
+        });
+        var history=await f.Joust.GetHistoryAsync(default);
+        Assert.Equal(new[]{earlier.RoundId,later.RoundId},history.Select(r=>r.RoundId));
+        Assert.Equal(new long[]{2,1},history.Select(r=>r.RoundNo));
+        await f.Run(async()=>{await store.InsertBetAsync(new("late-write",later.RoundId,new(1),0,490002916,10),default);return true;});
+        // History consumes the archived multiplier rather than recalculating from current bets.
+        Assert.Equal(2.5m,(await f.Joust.GetHistoryAsync(default)).Single(r=>r.RoundId==later.RoundId).Odds);
+        await Assert.ThrowsAsync<InvalidDataException>(()=>f.Run(()=>store.RecordResultAsync(new(later.RoundId,later.StartsAt,0,7m),default)));
+        Assert.Equal(3,await store.NextResultIndexAsync(default));
+        await using(var query=f.Services.GetRequiredService<DomainTransactionScope>().Begin(readOnly:true))
+        {
+            Assert.Equal(history,await f.Joust.GetHistoryAsync(default));
+            await Assert.ThrowsAsync<InvalidOperationException>(async()=>await store.RecordResultAsync(new(later.RoundId,later.StartsAt,0,2.5m),default));
+        }
+    }
+
+    [PvfFact]
+    public async Task Result_write_failure_rolls_back_settlement_mail_statistics_and_next_index()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+        var state=await f.GetState();Assert.True((await f.Bet("result-fault",state.Knights[0].Knight.Index,0,5)).Succeeded);
+        f.Now=f.Now.AddMinutes(110);
+        f.Sql("CREATE TRIGGER fail_joust_result BEFORE INSERT ON event_joust_result BEGIN SELECT RAISE(ABORT,'result fault'); END;");
+        await Assert.ThrowsAsync<SqliteException>(()=>f.AdvanceLifecycle());
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        Assert.Empty(await f.Joust.GetHistoryAsync(default));
+        Assert.Equal(1,await f.Services.GetRequiredService<IJoustPersistence>().NextResultIndexAsync(default));
+        f.Sql("DROP TRIGGER fail_joust_result;");await f.AdvanceLifecycle();await f.AdvanceLifecycle();
+        Assert.Equal(1,Assert.Single(await f.Joust.GetHistoryAsync(default)).RoundNo);
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(7,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
+    }
+
+    [PvfFact]
+    public async Task Legacy_prefixed_round_ids_migrate_all_references_without_repaying_or_renumbering_results()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+        var state=await f.GetState();Assert.True((await f.Bet("legacy-id",state.Knights[0].Knight.Index,0,5)).Succeeded);
+        f.Now=f.Now.AddMinutes(110);await f.AdvanceLifecycle();
+        var id=state.RoundId!;var legacy="legacy-season:"+id;
+        f.Sql($"""
+            BEGIN; PRAGMA defer_foreign_keys=ON;
+            UPDATE event_joust_round SET round_id='{legacy}',input=json_set(input,'$.RoundId','{legacy}') WHERE round_id='{id}';
+            UPDATE event_joust_bet SET round_id='{legacy}',input=json_set(input,'$.RoundId','{legacy}') WHERE round_id='{id}';
+            UPDATE event_joust_statistics_round SET round_id='{legacy}' WHERE round_id='{id}';
+            UPDATE event_joust_result SET round_id='{legacy}' WHERE round_id='{id}';
+            COMMIT;
+            """);
+        f.Sql("CREATE TRIGGER fail_joust_id_migration BEFORE UPDATE ON event_joust_statistics_round BEGIN SELECT RAISE(ABORT,'identity migration fault'); END;");
+        Assert.Throws<SqliteException>(()=>f.Reopen());
+        Assert.Equal(1,f.Scalar($"SELECT COUNT(*) FROM event_joust_round WHERE round_id='{legacy}'"));
+        Assert.Equal(0,f.Scalar($"SELECT COUNT(*) FROM event_joust_round WHERE round_id='{id}'"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM pragma_foreign_key_check"));
+        f.Sql("DROP TRIGGER fail_joust_id_migration;");
+        using var migrated=f.Reopen();var store=migrated.Services.GetRequiredService<IJoustPersistence>();
+        Assert.Null(await store.RoundAsync(legacy,default));Assert.NotNull(await store.RoundAsync(id,default));
+        Assert.Equal(id,(await store.RequestAsync(new(1),"legacy-id",default))!.RoundId);
+        var saved=Assert.Single(await migrated.Joust.GetHistoryAsync(default));Assert.Equal(id,saved.RoundId);Assert.Equal(1,saved.RoundNo);
+        await migrated.AdvanceLifecycle();Assert.Equal(1,migrated.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(7,migrated.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
+        Assert.Equal(1,migrated.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        Assert.Equal(0,migrated.Scalar("SELECT COUNT(*) FROM pragma_foreign_key_check"));
+        using var again=migrated.Reopen();Assert.Equal(saved,Assert.Single(await again.Joust.GetHistoryAsync(default)));
+    }
+
+    [PvfFact]
+    public async Task Same_planned_start_maps_to_one_time_id_even_for_different_activity_instances()
+    {
+        using var f=new Fixture();var rules=f.Services.GetRequiredService<IJoustRuleService>();
+        var d=(await rules.DefinitionAsync(default)).Definition!;var start=f.Now;
+        var first=rules.CreateRound("first",start,new(0,JoustSchedule.Default),d);
+        var second=rules.CreateRound("second",start.ToUniversalTime(),new(0,JoustSchedule.Default),d);
+        Assert.Equal(start.ToUnixTimeSeconds().ToString(),first.RoundId);Assert.Equal(first.RoundId,second.RoundId);
+        Assert.NotEqual(first.RoundId,rules.CreateRound("first",start.AddMinutes(1),new(0,JoustSchedule.Default),d).RoundId);
+        await f.Enable();await Task.WhenAll(f.AdvanceLifecycle(),f.AdvanceLifecycle());
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+        using var restarted=f.Reopen();await restarted.AdvanceLifecycle();Assert.Equal(first.RoundId,(await restarted.GetState()).RoundId);
+    }
+
+    [PvfFact]
     public async Task Completed_tournament_updates_each_match_once_and_knight_queries_remain_read_only()
     {
         using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
@@ -83,6 +202,7 @@ public sealed class JoustIntegrationTests
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_knight_statistics"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_result"));
         f.Sql("DROP TRIGGER fail_joust_statistics;");await f.AdvanceLifecycle();await f.AdvanceLifecycle();
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         Assert.Equal(7,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
@@ -104,7 +224,7 @@ public sealed class JoustIntegrationTests
             }
             return true;
         });
-        Assert.Equal(500,(await f.Joust.GetHistoryAsync(default)).Length);
+        Assert.Empty(await f.Joust.GetHistoryAsync(default));
         Assert.Equal(0,(await f.KnightInfo(0))!.Statistics.Wins);
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
         using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
@@ -113,6 +233,8 @@ public sealed class JoustIntegrationTests
         Assert.Equal(3507,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
         Assert.Equal(3507,f.Scalar("SELECT SUM(losses) FROM event_joust_knight_statistics"));
         Assert.Equal(501,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        Assert.Equal(501,f.Scalar("SELECT COUNT(*) FROM event_joust_result"));
+        Assert.Equal(Enumerable.Range(2,500).Reverse().Select(i=>(long)i),(await f.Joust.GetHistoryAsync(default)).Select(r=>r.RoundNo));
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Empty(f.Events);
         await f.AdvanceLifecycle();Assert.Equal(1503,(await f.KnightInfo(0))!.Statistics.Wins);
     }
@@ -209,7 +331,7 @@ public sealed class JoustIntegrationTests
             Assert.True(state.Active);Assert.Equal(phase,state.Phase);Assert.Equal(revealed,state.Winners.Length);
             Assert.Equal(DateTimeOffset.Parse("2026-10-06T12:00:00+08:00"),state.StartsAt);
             Assert.Equal(DateTimeOffset.Parse("2026-10-06T14:00:00+08:00"),state.EndsAt);
-            Assert.Equal(2,state.DailyRoundNo);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+            Assert.Equal(1,state.RoundNo);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
             await worker.StopAsync(default);
             using var reopened=f.Reopen();
             using var restarted=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(reopened.Services);
@@ -534,8 +656,8 @@ public sealed class JoustIntegrationTests
         f.Now=f.Now.AddHours(2);await worker.TickAsync(default);await worker.TickAsync(default);
         Assert.Equal(new[]{JoustLifecycleEventKind.RoundEnded,JoustLifecycleEventKind.RoundStarted},f.Events.Select(e=>e.Kind));
         Assert.Equal(original.RoundId,f.Events[0].State.RoundId);
-        Assert.Equal((ushort)1,f.Events[0].State.DailyRoundNo);
-        Assert.Equal((ushort)2,f.Events[1].State.DailyRoundNo);
+        Assert.Equal((ushort)1,f.Events[0].State.RoundNo);
+        Assert.Equal((ushort)2,f.Events[1].State.RoundNo);
         Assert.Equal(JoustPhase.Result,f.Events[0].State.Phase);
         Assert.Equal(7,f.Events[0].State.Winners.Length);
         Assert.Single(f.Sender.Messages,m=>m.GetType().Name=="JoustResultsMessage");

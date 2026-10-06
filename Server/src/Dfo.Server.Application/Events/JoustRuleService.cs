@@ -54,7 +54,7 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
             stage = Enumerable.Range(0,stage.Length/2).Select(i => stage[i*2+RandomNumberGenerator.GetInt32(2)]).ToArray();
             winners.AddRange(stage);
         }
-        return new($"{season}:{start.ToUnixTimeSeconds()}", season, start, start.AddMinutes(schedule.Schedule.RoundIntervalMinutes),
+        return new(start.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture), season, start, start.AddMinutes(schedule.Schedule.RoundIntervalMinutes),
             schedule, d, knights, [..winners], false);
     }
     public JoustKnightStatistics[] ResultStatistics(JoustRound round)

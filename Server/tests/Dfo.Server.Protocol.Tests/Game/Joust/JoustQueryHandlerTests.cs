@@ -73,7 +73,7 @@ public sealed class JoustQueryHandlerTests
         var state = new JoustState(true, DateTimeOffset.UnixEpoch, JoustPhase.Result, "round",
             null, null, null, [], [], 0, 1000, 17);
         JoustHistoryEntry[] history = hasHistory
-            ? [new("saved", DateTimeOffset.UnixEpoch, 3, 2.5m) { DailyRoundNo = 7 }]
+            ? [new("saved", DateTimeOffset.UnixEpoch, 3, 2.5m) { RoundNo = 7 }]
             : [];
         foreach (var messages in await QueryTwice(state, 0x04E8, history))
         {

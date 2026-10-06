@@ -40,7 +40,7 @@ public sealed record JoustKnightState(JoustKnight Knight, long Pool, int Persona
 public sealed record JoustState(bool Active, DateTimeOffset ServerTime, JoustPhase Phase, string? RoundId,
     DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, DateTimeOffset? NextTransitionAt, JoustKnightState[] Knights,
     int[] Winners, int PersonalTotal, int MaximumBetting, int MinimumLevel)
-{ public ushort DailyRoundNo { get; init; }  }
+{ public long RoundNo { get; init; } }
 public sealed record JoustLifecycleResult(int SettledRounds)
 {
     // Captured in the settlement transaction, including rounds no longer current at publication time.
@@ -49,4 +49,4 @@ public sealed record JoustLifecycleResult(int SettledRounds)
 public sealed record JoustInventoryDebit(BusinessSlot Slot, InventoryItemCoreState? Remaining);
 public sealed record JoustBetResult(bool Succeeded, string? Rejection, bool Replayed, JoustState State, JoustInventoryDebit[] Debits);
 public sealed record JoustHistoryEntry(string RoundId, DateTimeOffset StartsAt, int WinnerIndex, decimal Odds)
-{ public ushort DailyRoundNo { get; init; } }
+{ public long RoundNo { get; init; } }

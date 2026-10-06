@@ -23,13 +23,20 @@ namespace Dfo.Server.Protocol.Game.Joust;
 
 internal static class JoustPayloadCodec
 {
+    // Native fields are u16 with zero terminating history. Keep the full index
+    // in the domain; the latest 500 consecutive results remain distinct on wire.
+    private static ushort NativeRoundNo(long index)
+    {
+        if(index<0)throw new InvalidDataException("Joust result index cannot be negative.");
+        return index==0?(ushort)0:(ushort)(1+(index-1)%ushort.MaxValue);
+    }
     internal static byte NativeState(JoustState s) => !s.Active ? (byte)0 : (byte)(s.Phase switch
     { JoustPhase.Betting => 1, JoustPhase.Locked => 3, JoustPhase.Result => 2, _ => 4 });
     internal static byte[] State(JoustState s)
-    { var b=new byte[3];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);b[2]=NativeState(s);return b; }
+    { var b=new byte[3];BinaryPrimitives.WriteUInt16LittleEndian(b,NativeRoundNo(s.RoundNo));b[2]=NativeState(s);return b; }
     internal static byte[] Info(JoustState s)
     {
-        var b=new byte[90];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);
+        var b=new byte[90];BinaryPrimitives.WriteUInt16LittleEndian(b,NativeRoundNo(s.RoundNo));
         for(var i=0;i<8;i++)
         { var p=2+i*11;b[p]=255;if(i>=s.Knights.Length)continue;var k=s.Knights[i];b[p]=checked((byte)k.Knight.Index);
           // Condition has no current server source; win/loss come from committed tournament results.
@@ -52,7 +59,7 @@ internal static class JoustPayloadCodec
     }
     internal static byte[] Bets(JoustState s)
     {
-        var b=new byte[46];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);
+        var b=new byte[46];BinaryPrimitives.WriteUInt16LittleEndian(b,NativeRoundNo(s.RoundNo));
         BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(2),s.PersonalTotal);
         for(var i=0;i<8;i++)
         {var p=6+i*5;b[p]=255;if(i>=s.Knights.Length)continue;b[p]=checked((byte)s.Knights[i].Knight.Index);
@@ -60,7 +67,7 @@ internal static class JoustPayloadCodec
     }
     internal static byte[] Results(JoustState s)
     {
-        var b=new byte[31];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);
+        var b=new byte[31];BinaryPrimitives.WriteUInt16LittleEndian(b,NativeRoundNo(s.RoundNo));
         b[2]=s.Phase switch {JoustPhase.SemiFinal=>1,JoustPhase.Final=>2,JoustPhase.Result=>3,_=>0};
         for(var i=0;i<7;i++){b[3+i*4]=255;b[5+i*4]=255;}
         var entrants=s.Knights.Select(k=>k.Knight.Index).ToArray();var offset=0;
@@ -83,8 +90,8 @@ internal static class JoustPayloadCodec
         var b=new byte[3505];b[0]=1;BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(1),result);
         if(result!=0)return b;
         foreach(var (entry,i) in entries.Take(500).Select((e,i)=>(e,i)))
-        {if(entry.DailyRoundNo==0)throw new InvalidDataException("Joust history needs a nonzero saved schedule ordinal.");
-         var p=5+i*7;BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p),entry.DailyRoundNo);b[p+2]=checked((byte)entry.WinnerIndex);
+        {if(entry.RoundNo<=0)throw new InvalidDataException("Joust history needs a positive saved result index.");
+         var p=5+i*7;BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p),NativeRoundNo(entry.RoundNo));b[p+2]=checked((byte)entry.WinnerIndex);
          BinaryPrimitives.WriteSingleLittleEndian(b.AsSpan(p+3),(float)entry.Odds);}return b;
     }
     // Both 04B8 and terminal 04BB have client announcement side effects.

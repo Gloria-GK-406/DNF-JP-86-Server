@@ -103,7 +103,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         // Enabling or restarting inside a round joins its scheduled timeline; do not reset its start.
         // Active(c, now) already bounds participation by the activity's effective period.
         if(start is null || start>=c.EndsAt)return null;
-        var id=$"{c.SeasonId}:{start.Value.ToUnixTimeSeconds()}";
+        var id=start.Value.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
         if(await store.RoundAsync(id,ct) is {} saved)return saved;
         var (d,_)=await rules.DefinitionAsync(ct);if(d is null)return null;
         var round=rules.CreateRound(c.SeasonId,start.Value,s,d);await store.SaveRoundAsync(round,ct);return round;
@@ -114,6 +114,13 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         // A restart inside Result can create the current scheduled round. Include it in
         // this same settlement pass so the next tick cannot announce a recovered result.
         var c=await Configuration(ct) ?? Initial;await EnsureCurrentRoundAsync(c,now,ct);
+        // Legacy completed rounds receive a persistent result index in chronological
+        // order during startup recovery; queries never perform this backfill.
+        foreach(var saved in await store.UnrecordedResultsAsync(ct))
+        {
+            _=rules.ResultStatistics(saved);
+            await RecordResultAsync(saved,ct);
+        }
         // Upgrade already completed rounds without replaying settlement, mail or notices.
         // This write belongs to lifecycle recovery, never to any information query.
         foreach(var saved in await store.UnrecordedStatisticsAsync(ct))
@@ -142,13 +149,15 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
             }
             // This marker and every attachment join the same ambient SQLite transaction.
             await store.SaveRoundAsync(round with{Settled=true},ct);
+            await RecordResultAsync(round,ct);
             await store.RecordStatisticsAsync(round.RoundId,statistics,ct);
             completed.Add(await Project(round,new(0),true,now,ct));
         }
         return new(completed.Count){CompletedRounds=[..completed]};
     }
     public async ValueTask<bool> NeedsAdvanceAsync(DateTimeOffset now,CancellationToken ct)=>
-        Active(await Configuration(ct) ?? Initial,now) || await store.HasUnsettledAsync(ct) || await store.HasUnrecordedStatisticsAsync(ct);
+        Active(await Configuration(ct) ?? Initial,now) || await store.HasUnsettledAsync(ct)
+            || await store.HasUnrecordedStatisticsAsync(ct) || await store.HasUnrecordedResultsAsync(ct);
     private async ValueTask<JoustState> Project(JoustRound? r,CharacterId character,bool active,DateTimeOffset now,CancellationToken ct)
     {
         if(r is null)return new(false,now,JoustPhase.Inactive,null,null,null,null,[],[],0,0,0);
@@ -158,13 +167,8 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
             return new JoustKnightState(k,pool,bets.Where(b=>b.Character==character && b.KnightIndex==k.Index).Sum(b=>b.Amount),rules.Odds(total,pool))
                 {Statistics=statistics.GetValueOrDefault(k.Index) ?? new(k.Index,0,0,0)};}).ToArray();
         return new(active,now,phase.Phase,r.RoundId,r.StartsAt,r.EndsAt,phase.Next,states,r.Winners.Take(phase.Revealed).ToArray(),
-            bets.Where(b=>b.Character==character).Sum(b=>b.Amount),r.Definition.MaximumBetting,r.Definition.MinimumLevel){DailyRoundNo=RoundNo(r)};
-    }
-    private static ushort RoundNo(JoustRound r)
-    {
-        var local=r.StartsAt.ToOffset(TimeSpan.FromHours(8));
-        var first=TimeSpan.ParseExact(r.Schedule.Schedule.DailyStartTime,"hh\\:mm",System.Globalization.CultureInfo.InvariantCulture);
-        return checked((ushort)(1+(int)(local.TimeOfDay-first).TotalMinutes/r.Schedule.Schedule.RoundIntervalMinutes));
+            bets.Where(b=>b.Character==character).Sum(b=>b.Amount),r.Definition.MaximumBetting,r.Definition.MinimumLevel)
+            {RoundNo=(await store.ResultAsync(r.RoundId,ct))?.RoundNo ?? await store.NextResultIndexAsync(ct)};
     }
     public async ValueTask<JoustState> GetStateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct)
     {
@@ -222,11 +226,11 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         await store.InsertBetAsync(new JoustBet(requestId,round.RoundId,session.CharacterId,knightIndex,costs[0].ItemId,amount){PreferredSlot=preferredSlot},ct);
         return new(true,null,false,(await Project(round,session.CharacterId,true,now,ct)),consumed.Debits.Select(d=>new JoustInventoryDebit(d.Cost.Slot,d.Remaining)).ToArray());
     }
-    public async ValueTask<JoustHistoryEntry[]> GetHistoryAsync(CancellationToken ct)
+    private async ValueTask RecordResultAsync(JoustRound round,CancellationToken ct)
     {
-        var history=new List<JoustHistoryEntry>();
-        foreach(var r in await store.HistoryAsync(ct))
-        {var bets=await store.BetsAsync(r.RoundId,ct);var winner=r.Winners[^1];history.Add(new(r.RoundId,r.StartsAt,winner,rules.Odds(bets.Sum(b=>(long)b.Amount),bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount))){DailyRoundNo=RoundNo(r)});}
-        return [..history];
+        var bets=await store.BetsAsync(round.RoundId,ct);var winner=round.Winners[^1];
+        var odds=rules.Odds(bets.Sum(b=>(long)b.Amount),bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount));
+        await store.RecordResultAsync(new(round.RoundId,round.StartsAt,winner,odds),ct);
     }
+    public ValueTask<JoustHistoryEntry[]> GetHistoryAsync(CancellationToken ct)=>store.HistoryAsync(ct);
 }
