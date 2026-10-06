@@ -88,8 +88,6 @@ public sealed class MailboxDelivery(ISelectedSessionDomainService sessions, IOnl
         else
         {
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new MailboxCompleted(session, reply, result), token);
-            if (result.SentTo is { } target)
-                await notifications.PublishAsync(new NotificationAudience.TheseCharacters([target]), new MailboxArrived(target, result.MailCount), token);
         }
     }
 }
@@ -101,11 +99,3 @@ public sealed class MailboxOpenHandler(MailboxDelivery delivery) : ClientMessage
 { protected override ValueTask HandleMessageAsync(NetworkDispatchContext c, MailboxOpenRequest m, CancellationToken t) => delivery.HandleAsync(c, MailboxOperation.Open, 0, 0, null, t); }
 public sealed class MailboxQueryHandler(MailboxDelivery delivery) : ClientMessageHandler<MailboxQueryRequest>
 { protected override ValueTask HandleMessageAsync(NetworkDispatchContext c, MailboxQueryRequest m, CancellationToken t) => delivery.HandleAsync(c, MailboxOperation.Query, 0, 0, m.Name, t); }
-
-public sealed record MailboxArrived(Dfo.Server.Data.Characters.CharacterId Character, int Count) : INotification<MailboxArrived>;
-public sealed class MailboxArrivedHandler : INotificationHandler<MailboxArrived>
-{
-    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, MailboxArrived notice, CancellationToken token) =>
-        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(recipient.CharacterId == notice.Character
-            ? [new MailboxAlarm((ushort)Math.Clamp(notice.Count, 0, ushort.MaxValue))] : []);
-}

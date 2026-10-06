@@ -85,6 +85,8 @@ internal sealed class SqliteDatabase
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(write);
+        if (this.transactions.Current?.IsReadOnly == true)
+            throw new InvalidOperationException("A read-only query cannot write to the database.");
         var ambient = this.Participant()
             ?? throw new InvalidOperationException(
                 "This database keeps what is written to it past this process, so it is only "
@@ -98,6 +100,6 @@ internal sealed class SqliteDatabase
     private SqliteDatabaseParticipant? Participant() =>
         this.transactions.Current is { } ambient
             ? ambient.Enlist(
-                this.ConnectionString, () => new SqliteDatabaseParticipant(this.ConnectionString))
+                this.ConnectionString, () => new SqliteDatabaseParticipant(this.ConnectionString, ambient.IsReadOnly))
             : null;
 }

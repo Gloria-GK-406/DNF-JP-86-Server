@@ -19,10 +19,10 @@ public interface IJoustDomainService
 {
     ValueTask<JoustSettings> SettingsAsync(CancellationToken ct);
     ValueTask<JoustSettings> SaveSettingsAsync(JoustSettingsChange change,string actor,DateTimeOffset now,CancellationToken ct);
-    ValueTask<JoustState> StateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct);
+    ValueTask<JoustState> GetStateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct);
     ValueTask<JoustBetResult> BetAsync(SelectedSessionIdentity session,string requestId,int knightIndex,BusinessSlot preferredSlot,int amount,DateTimeOffset now,CancellationToken ct);
-    ValueTask<JoustHistoryEntry[]> HistoryAsync(DateTimeOffset now,CancellationToken ct);
-    ValueTask<bool> AdvanceAsync(DateTimeOffset now,CancellationToken ct);
+    ValueTask<JoustHistoryEntry[]> GetHistoryAsync(CancellationToken ct);
+    ValueTask<JoustLifecycleResult> AdvanceLifecycleAsync(DateTimeOffset now,CancellationToken ct);
     ValueTask<bool> NeedsAdvanceAsync(DateTimeOffset now,CancellationToken ct);
 }
 public interface IJoustPersistence

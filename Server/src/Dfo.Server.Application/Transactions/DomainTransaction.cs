@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Transactions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Transactions;
 
@@ -12,8 +14,18 @@ namespace Dfo.Server.Application.Transactions;
 /// the remaining commits have declared that they cannot fail. That is why a second participant
 /// whose commit can fail is refused rather than accepted and hoped for.
 /// </remarks>
-internal sealed class DomainTransaction : IDomainTransaction
+internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTransaction>? logger = null) : IDomainTransaction
 {
+    private readonly Dictionary<object, Func<CancellationToken, ValueTask>> afterCommit = [];
+    public bool IsReadOnly => readOnly;
+
+    public void RegisterAfterCommit(object key, Func<CancellationToken, ValueTask> callback)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(callback);
+        if (this.settled || this.IsReadOnly) throw new InvalidOperationException("Post-commit effects require an open writable transaction.");
+        this.afterCommit[key] = callback;
+    }
     private readonly Dictionary<object, ITransactionParticipant> enlisted = [];
     private readonly List<ITransactionParticipant> order = [];
     private ITransactionParticipant? commitFallible;
@@ -43,6 +55,8 @@ internal sealed class DomainTransaction : IDomainTransaction
         }
 
         var participant = create();
+        if (this.IsReadOnly && !participant.SupportsReadOnly)
+            throw new InvalidOperationException("A read-only query cannot enlist a writable state participant.");
         if (participant.CommitCanFail && this.commitFallible is not null)
         {
             throw new InvalidOperationException(
@@ -70,10 +84,6 @@ internal sealed class DomainTransaction : IDomainTransaction
         }
 
         this.settled = true;
-        if (this.order.Count == 0)
-        {
-            return;
-        }
 
         try
         {
@@ -91,6 +101,7 @@ internal sealed class DomainTransaction : IDomainTransaction
         }
         catch (Exception failure)
         {
+            this.afterCommit.Clear();
             await this.RollbackEnlistedAsync(failure).ConfigureAwait(false);
             throw;
         }
@@ -108,6 +119,7 @@ internal sealed class DomainTransaction : IDomainTransaction
             }
             catch (Exception violation)
             {
+                this.afterCommit.Clear();
                 throw new TransactionOutcomeUncertainException(
                     TransactionUncertaintyReason.NonFallibleCommitContractViolation,
                     $"'{participant.GetType().Name}' declared that its commit cannot fail, and it " +
@@ -115,6 +127,21 @@ internal sealed class DomainTransaction : IDomainTransaction
                     violation);
             }
         }
+        // These effects observe an already committed outcome. Failure cannot turn it into
+        // a rollback or a retryable command failure, nor suppress other recipients' effects.
+        foreach (var callback in this.afterCommit.Values)
+        {
+            try
+            {
+                await callback(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                (logger ?? NullLogger<DomainTransaction>.Instance).LogWarning(error,
+                    "Post-commit effect failed; the transaction remains committed.");
+            }
+        }
+        this.afterCommit.Clear();
     }
 
     public ValueTask RollbackAsync()
@@ -128,6 +155,7 @@ internal sealed class DomainTransaction : IDomainTransaction
         }
 
         this.settled = true;
+        this.afterCommit.Clear();
         return this.RollbackEnlistedAsync(cause);
     }
 

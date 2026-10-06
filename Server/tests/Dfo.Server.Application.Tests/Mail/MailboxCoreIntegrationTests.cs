@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Inventory;
@@ -23,6 +24,98 @@ public sealed partial class MailboxCoreIntegrationTests
     private static readonly CharacterId Sender = new(1);
     private static readonly CharacterId Recipient = new(2);
     private static readonly CharacterId Stranger = new(3);
+
+    [Fact]
+    public async Task Delivery_notifies_only_committed_recipients_once_per_transaction()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        var observed = new List<(bool Settled, int RecipientCount, int StrangerCount)>();
+        notices.BeforePublish = () => observed.Add((scope.Current is null, fixture.InboxRows(Recipient), fixture.InboxRows(Stranger)));
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("first", "body").Build());
+            await fixture.Mail.SendPreparedAsync(MailBuilder.FromSystem(Recipient).WithText("second", "body").Build(), []);
+            await fixture.Mail.SendAsync(MailBuilder.FromCharacter(Sender, Stranger).WithText("third", "body").Build());
+            Assert.Empty(notices.Recipients);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(new[] { Recipient, Stranger }, notices.Recipients);
+        Assert.Equal(new[] { (true, 2, 1), (true, 2, 1) }, observed);
+    }
+
+    [Fact]
+    public async Task Rolled_back_or_failed_mail_never_notifies_and_delivery_errors_do_not_undo_commit()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        await using (scope.Begin())
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        Assert.Empty(notices.Recipients);
+        Assert.Equal(0, fixture.InboxRows(Recipient));
+        fixture.Sql("CREATE TRIGGER fail_delivery BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'mail failed'); END");
+        await Assert.ThrowsAsync<SqliteException>(() => fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build()).AsTask());
+        Assert.Empty(notices.Recipients);
+        fixture.Sql("DROP TRIGGER fail_delivery");
+        notices.BeforePublish = () => throw new InvalidOperationException("notification transport unavailable");
+        var sent = await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        Assert.True(sent.MailId > 0);
+        Assert.Equal(1, fixture.InboxRows(Recipient));
+        Assert.Single(notices.Recipients);
+    }
+
+    [Fact]
+    public async Task Mail_notifications_wait_for_every_participant_to_commit()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        var participant = new MailDeliveryParticipant();
+        notices.BeforePublish = () => participant.NotifiedAfterCommit = participant.Committed;
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+            scope.Current!.Enlist(participant, () => participant);
+            await tx.CommitAsync(default);
+        }
+        Assert.True(participant.NotifiedAfterCommit);
+        notices.Recipients.Clear();
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+            scope.Current!.Enlist(new object(), () => new MailDeliveryParticipant { RefusePrepare = true });
+            await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
+        }
+        Assert.Empty(notices.Recipients);
+        Assert.Equal(1, fixture.InboxRows(Recipient));
+    }
+
+    private sealed class MailDeliveryParticipant : ITransactionParticipant
+    {
+        public bool CommitCanFail => false;
+        public bool RefusePrepare { get; init; }
+        public bool Committed { get; private set; }
+        public bool NotifiedAfterCommit { get; set; }
+        public ValueTask PrepareAsync(CancellationToken ct) => RefusePrepare
+            ? ValueTask.FromException(new InvalidOperationException("refused participant")) : ValueTask.CompletedTask;
+        public ValueTask CommitAsync(CancellationToken ct) { Committed = true; return ValueTask.CompletedTask; }
+        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
+    }
+
+    private sealed class RecordingMailNotifications : INotificationBus
+    {
+        public List<CharacterId> Recipients { get; } = [];
+        public Action? BeforePublish { get; set; }
+        public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notification, CancellationToken ct)
+            where T : class, INotification<T>
+        {
+            Recipients.AddRange(Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+            BeforePublish?.Invoke();
+            return ValueTask.FromResult(new NotificationDelivery([]));
+        }
+    }
 
     [Fact]
     public async Task EquipmentRetainsUidAndCoreWhileDetachedAndAfterClaim()
@@ -321,6 +414,7 @@ public sealed partial class MailboxCoreIntegrationTests
             new InfrastructureModule().ConfigureServices(services, config);
             new PersistenceModule().ConfigureServices(services, config);
             new ApplicationModule().ConfigureServices(services, config);
+            services.AddSingleton<INotificationBus>(new RecordingMailNotifications());
             services.AddSingleton<IItemPlacementDefinitionSource>(new MailPlacements());
             services.AddSingleton<IMailItemDefinitionSource>(new MailDefinitions());
             services.AddSingleton<IGoldCarryLimitSource>(new FixedGoldCarryLimit());

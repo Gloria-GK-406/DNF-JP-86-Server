@@ -109,7 +109,7 @@ export function JoustSettings({ title, onClose, onExpired, onDenied }: ActivityS
   const busy = reading || saving;
   return <Modal open title={`设置活动 · ${title}`} width={960} onCancel={close} closable={!saving} keyboard={!saving}
     mask={{ closable: false }} destroyOnHidden styles={{ body: { maxHeight: 'calc(100vh - 240px)', overflowY: 'auto', paddingRight: 8 } }}
-    footer={<Space><Button disabled={busy} onClick={() => void read()}>{uncertain || readError ? '重新读取生效赛程' : '刷新规则'}</Button>
+    footer={<Space><Button disabled={busy} onClick={() => void read()}>{uncertain || readError ? '重新读取生效赛程' : '重新读取设置'}</Button>
       <Button disabled={saving} onClick={close}>关闭</Button><Button type="primary" loading={saving}
         disabled={busy || readError || uncertain || !data?.available || !draft} onClick={submit}>{reviewRequired ? '核对后保存赛程' : '保存赛程'}</Button></Space>}>
     <Space orientation="vertical" size="middle" style={{ width: '100%' }}>

@@ -1,7 +1,6 @@
 using Dfo.Server.Data.Events;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Events;
-using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Microsoft.Extensions.Hosting;
@@ -20,12 +19,10 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
     internal async ValueTask TickAsync(CancellationToken ct)
     {
         var now=clock.GetUtcNow();
-        var settled=await joust.NeedsAdvanceAsync(now,ct) && await bus.SendAsync(new AdvanceJoustCommand(now),ct);
+        if(await joust.NeedsAdvanceAsync(now,ct))await bus.SendAsync(new AdvanceJoustLifecycleCommand(now),ct);
         var state=await projection.ReadAsync(new(0),now,ct);
         var signature=(state.Active,state.RoundId,state.Phase);
         var sessions=selected.Snapshot();
-        if(settled)
-            foreach(var session in sessions)await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new MailboxChanged(session.CharacterId),ct);
         if(delivered!=signature)
         {
             await notices.PublishAsync(new NotificationAudience.TheseSessions(sessions),new JoustChanged(now),ct);

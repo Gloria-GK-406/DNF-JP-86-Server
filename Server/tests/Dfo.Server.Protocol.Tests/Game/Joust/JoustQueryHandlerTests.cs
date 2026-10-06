@@ -61,37 +61,67 @@ public sealed class JoustQueryHandlerTests
             Assert.Equal(6u, Assert.IsType<JoustResponse>(Assert.Single(messages)).Result);
     }
 
-    private static async Task<IReadOnlyList<IGameServerMessage>[]> QueryTwice(JoustState state)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Repeated_history_queries_return_only_history_without_mail_or_phase_notifications(bool hasHistory)
+    {
+        var state = new JoustState(true, DateTimeOffset.UnixEpoch, JoustPhase.Result, "round",
+            null, null, null, [], [], 0, 1000, 17);
+        JoustHistoryEntry[] history = hasHistory
+            ? [new("saved", DateTimeOffset.UnixEpoch, 3, 2.5m) { DailyRoundNo = 7 }]
+            : [];
+        foreach (var messages in await QueryTwice(state, 0x04E8, history))
+        {
+            var response = Assert.IsType<JoustResponse>(Assert.Single(messages));
+            Assert.Equal((ushort)0x04E8, response.Type);
+            Assert.Equal(0u, response.Result);
+            Assert.Equal(history, response.History);
+        }
+    }
+
+    private static async Task<IReadOnlyList<IGameServerMessage>[]> QueryTwice(JoustState state,
+        ushort type = 0x04E6, JoustHistoryEntry[]? history = null)
     {
         var connection = new NetworkConnectionContext(new("joust-test"), NetworkEndpointKind.Game, 10010);
         var session = SelectedSessionIdentity.Create(new(1), new(1), connection.ConnectionId, 1, 10010);
         var sessions = new Sessions(session);
-        using var services = new ServiceCollection()
-            .AddSingleton<ISelectedSessionDomainService>(sessions)
-            .AddSingleton<IOnlineUserQueryDomainService>(new Users(new(OnlineUserId.New(), connection,
-                session.AccountId, session.CharacterId, OnlineUserState.CharacterActive, 1)))
-            .BuildServiceProvider();
         var transitions = new SelectedSessionTransitionGate();
         var sender = new Sender();
-        var handler = new JoustQueryHandler(sessions, new Commands(state), sender, new Notices(), sessions,
-            transitions, new SelectedSessionSafety(services, transitions, NullLogger<SelectedSessionSafety>.Instance));
+        using var services = new ServiceCollection()
+            .AddSingleton<ISelectedSessionDomainService>(sessions)
+            .AddSingleton<ISelectedSessionSnapshotQuery>(sessions)
+            .AddSingleton<IOnlineUserQueryDomainService>(new Users(new(OnlineUserId.New(), connection,
+                session.AccountId, session.CharacterId, OnlineUserState.CharacterActive, 1)))
+            .AddSingleton<ICommandBus>(new Commands(state, history ?? []))
+            .AddSingleton<IGameMessageSender>(sender)
+            .AddSingleton<INotificationBus>(new Notices())
+            .AddSingleton(transitions)
+            .AddSingleton(sp => new SelectedSessionSafety(sp, transitions, NullLogger<SelectedSessionSafety>.Instance))
+            .BuildServiceProvider();
+        var handler = ActivatorUtilities.CreateInstance<JoustQueryHandler>(services);
         var replies = new List<IReadOnlyList<IGameServerMessage>>();
         for (var i = 0; i < 2; i++)
         {
             sender.Sent.Clear();
-            await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, 0x04E6, 0, 1)), default);
+            await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, type, 0, 1)), default);
             replies.Add(sender.Sent.ToArray());
         }
         return [.. replies];
     }
 
-    private sealed class Commands(JoustState state) : ICommandBus
+    private sealed class Commands(JoustState state, JoustHistoryEntry[] history) : ICommandBus
     {
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            Assert.IsType<JoustStateCommand>(command);
-            return ValueTask.FromResult((TResult)(object)state);
+            object result = command switch
+            {
+                QueryJoustStateCommand => state,
+                QueryJoustHistoryCommand => history,
+                _ => throw new InvalidOperationException("Unexpected query command."),
+            };
+            return ValueTask.FromResult((TResult)result);
         }
     }
     private sealed class Sessions(SelectedSessionIdentity session) : ISelectedSessionDomainService, ISelectedSessionSnapshotQuery
@@ -118,7 +148,7 @@ public sealed class JoustQueryHandlerTests
     private sealed class Notices : INotificationBus
     {
         public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notice, CancellationToken ct)
-            where T : class, INotification<T> => throw new InvalidOperationException("These queries do not settle rewards.");
+            where T : class, INotification<T> => throw new InvalidOperationException("A query must not publish notifications.");
     }
     private sealed class Sender : IGameMessageSender
     {

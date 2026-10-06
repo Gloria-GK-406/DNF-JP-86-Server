@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Transactions;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Transactions;
 
@@ -10,7 +11,7 @@ namespace Dfo.Server.Application.Transactions;
 /// character, so neither can be handed the transaction by injection. They ask this scope for it
 /// instead, which is what keeps the business code free of any transaction vocabulary.
 /// </remarks>
-internal sealed class DomainTransactionScope : IDomainTransactionAccessor
+internal sealed class DomainTransactionScope(ILogger<DomainTransaction>? logger = null) : IDomainTransactionAccessor
 {
     private readonly AsyncLocal<DomainTransaction?> ambient = new();
 
@@ -28,7 +29,7 @@ internal sealed class DomainTransactionScope : IDomainTransactionAccessor
     public IDomainTransaction? Current =>
         this.ambient.Value is { IsSettled: false } open ? open : null;
 
-    public DomainTransactionLease Begin()
+    public DomainTransactionLease Begin(bool readOnly = false)
     {
         if (this.ambient.Value is { IsSettled: false })
         {
@@ -36,7 +37,7 @@ internal sealed class DomainTransactionScope : IDomainTransactionAccessor
                 "A domain transaction is already open on this flow. One use case opens one.");
         }
 
-        var transaction = new DomainTransaction();
+        var transaction = new DomainTransaction(readOnly, logger);
         this.ambient.Value = transaction;
         return new DomainTransactionLease(transaction);
     }

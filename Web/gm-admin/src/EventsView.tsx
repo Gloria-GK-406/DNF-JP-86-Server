@@ -117,7 +117,7 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
     mask={{ closable: false }} destroyOnHidden footer={<Space><Button disabled={busy} onClick={close}>取消</Button>
       {uncertain ? <Button type="primary" disabled={busy} onClick={onReload}>重新读取生效活动</Button> :
         <Button type="primary" loading={busy} onClick={() => form.submit()}>{action === 'configure' ? '保存配置' : '新建期次'}</Button>}</Space>}>
-    <Typography.Paragraph type="secondary">{action === 'configure' ? '保存配置保留本期进度；已有进度时不能修改有效期。活动启停请使用列表中的独立操作。' : '请核对新期次的展示信息和有效期；玩法规则沿用该活动的规则。'}</Typography.Paragraph>
+    <Typography.Paragraph type="secondary">{action === 'configure' ? entry.type === 'joust' ? '保存配置保留已有轮次和投注；有效期控制新参与，已有投注仍会结算。活动启停请使用列表中的独立操作。' : '保存配置保留本期进度；已有进度时不能修改有效期。活动启停请使用列表中的独立操作。' : '请核对新期次的展示信息和有效期；玩法规则沿用该活动的规则。'}</Typography.Paragraph>
     <Form form={form} layout="vertical" initialValues={{ title: entry.title, shortName: entry.shortName, description: entry.description,
       startNotice: entry.startNotice, endNotice: entry.endNotice, startsAt: inputTime(entry.startsAt), endsAt: inputTime(entry.endsAt) }}
       disabled={busy || uncertain} onValuesChange={() => setDirty(true)} onFinish={finish} onFinishFailed={() => noti.error('请核对活动配置字段。')}>

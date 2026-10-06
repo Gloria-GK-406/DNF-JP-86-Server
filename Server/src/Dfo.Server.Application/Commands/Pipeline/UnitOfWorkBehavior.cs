@@ -25,6 +25,21 @@ internal sealed class UnitOfWorkBehavior<TResult>(DomainTransactionScope scope, 
         CommandExecutionDelegate<TResult> next,
         CancellationToken cancellationToken)
     {
+        if (context.ExecutionKind == CommandExecutionKind.ReadOnly)
+        {
+            await using var query = scope.Begin(readOnly: true);
+            try
+            {
+                var result = await next().ConfigureAwait(false);
+                await query.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+            catch (Exception cause)
+            {
+                await query.AbortAsync(cause).ConfigureAwait(false);
+                throw;
+            }
+        }
         if (context.ExecutionKind != CommandExecutionKind.Transactional)
         {
             return await next().ConfigureAwait(false);

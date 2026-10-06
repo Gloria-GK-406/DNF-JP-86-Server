@@ -142,8 +142,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<JoustBetsMessage,GameNotiStateSynchronizationEncoder<JoustBetsMessage>>();
         services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustChanged,JoustChangedHandler>(retryLimit:0);
-        services.AddCommandHandler<JoustStateCommand,Dfo.Server.Data.Events.JoustState,JoustStateCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
-        services.AddCommandHandler<JoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],JoustHistoryCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly,accountAccessMode:UserAccessMode.Exclusive);
         services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional,UserAccessMode.Exclusive,UserAccessMode.Exclusive);
         services.RegisterMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler>(ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
@@ -159,8 +159,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<MailboxSendDecoder>(0x005E, ClientMessageType.GameMailboxSend);
         services.AddGameCmdMessageDecoder<MailboxSendMultiDecoder>(0x013B, ClientMessageType.GameMailboxSendMulti);
         services.AddGameCmdMessageEncoder<MailboxSendResponse, MailboxSendEncoder>();
-        services.AddNotificationHandler<MailboxArrived, MailboxArrivedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailboxChanged, MailboxChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>(retryLimit: 0);
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
@@ -238,7 +237,7 @@ public sealed class ProtocolModule : IServerModule
         // check is only worth having while something says which assemblies it covers, and this
         // line is that something.
         services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
-        services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailboxChanged).Assembly);
+        services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>(retryLimit: 0);

@@ -1,5 +1,6 @@
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.Joust;
+using Dfo.Server.Protocol.Game.Mailbox;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Networking.Runtime;
 using System.Buffers.Binary;
@@ -67,8 +68,8 @@ public sealed class JoustIntegrationTests
     public async Task Startup_settlement_failure_prevents_readiness_and_successful_restarts_pay_only_once()
     {
         using var f=new Fixture();f.Now=DateTimeOffset.Parse("2026-10-06T12:10:00+08:00");
-        await f.Enable(startsAt:f.Now.AddMinutes(-1));await f.Seed(121,490002916,10);
-        var state=await f.State();Assert.True((await f.Bet("startup",state.Knights[0].Knight.Index,0,5)).Succeeded);
+        await f.Enable(startsAt:f.Now.AddMinutes(-1));await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+        var state=await f.GetState();Assert.True((await f.Bet("startup",state.Knights[0].Knight.Index,0,5)).Succeeded);
         f.Now=DateTimeOffset.Parse("2026-10-06T13:50:00+08:00");
         f.Sql("CREATE TRIGGER fail_startup_settlement BEFORE UPDATE ON event_joust_round WHEN NEW.settled=1 BEGIN SELECT RAISE(ABORT,'startup settlement failure'); END;");
         using(var failed=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services))
@@ -134,7 +135,7 @@ public sealed class JoustIntegrationTests
     [PvfFact]
     public async Task Real_content_both_coins_preferred_stack_idempotence_split_bets_and_restart_are_durable()
     {
-        using var f=new Fixture();await f.Enable();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
         var settings=await f.Joust.SettingsAsync(default);
         Assert.True(settings.Available,settings.UnavailableReason);Assert.Equal(17,settings.MinimumLevel);Assert.Equal(1000,settings.MaximumBetting);
         Assert.Equal(Enumerable.Range(0,12),settings.Knights.Select(k=>k.Index));
@@ -145,21 +146,21 @@ public sealed class JoustIntegrationTests
         Assert.Same(f.Joust,f.Services.GetServices<IManagedEventDomainService>().Single(e=>e.EventId==2365));
         Assert.Contains(await f.Services.GetRequiredService<IEventManagementDomainService>().GetEventInfoListAsync(new(1),f.Now,default),e=>e.EventId==2365);
         await f.Seed(121,490002916,20);await f.Seed(122,490002916,30);await f.Seed(123,490700609,80);
-        var state=await f.State();var knight=state.Knights[0].Knight.Index;
+        var state=await f.GetState();var knight=state.Knights[0].Knight.Index;
         var bet=await f.Bet("one",knight,0,35);Assert.True(bet.Succeeded,bet.Rejection);Assert.Equal(35,bet.State.PersonalTotal);
         Assert.Equal(15,f.Count(490002916));Assert.Equal(80,f.Count(490700609));Assert.Equal(2,bet.Debits.Length);
         var repeated=await f.Bet("one",knight,0,35);Assert.True(repeated.Replayed);Assert.Equal(15,f.Count(490002916));
         Assert.Equal("RequestConflict",(await f.Bet("one",knight,0,36)).Rejection);
         Assert.Equal("InsufficientMaterial",(await f.Bet("two",knight,0,16)).Rejection);Assert.Equal(80,f.Count(490700609));
         Assert.True((await f.Bet("three",state.Knights[1].Knight.Index,2,10)).Succeeded);Assert.Equal(70,f.Count(490700609));
-        using var reopened=f.Reopen();Assert.Equal(45,(await reopened.State()).PersonalTotal);
+        using var reopened=f.Reopen();Assert.Equal(45,(await reopened.GetState()).PersonalTotal);
         Assert.True((await reopened.Bet("three",state.Knights[1].Knight.Index,2,10)).Replayed);Assert.Equal(70,f.Count(490700609));
-        Assert.Equal(state.Knights.Select(k=>k.Knight.Index),(await reopened.State()).Knights.Select(k=>k.Knight.Index));
+        Assert.Equal(state.Knights.Select(k=>k.Knight.Index),(await reopened.GetState()).Knights.Select(k=>k.Knight.Index));
     }
     [PvfFact]
     public async Task Fault_after_inventory_debit_rolls_back_bet_and_balance_and_retry_is_available()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,20);var state=await f.State();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,20);var state=await f.GetState();
         f.Sql("CREATE TRIGGER fail_joust_bet BEFORE INSERT ON event_joust_bet BEGIN SELECT RAISE(ABORT,'injected bet failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(()=>f.Bet("retry",state.Knights[0].Knight.Index,0,5));
         Assert.Equal(20,f.Count(490002916));Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_bet"));
@@ -169,7 +170,7 @@ public sealed class JoustIntegrationTests
     [PvfFact]
     public async Task Level_limits_invalid_knight_phase_and_expired_instance_refuse_without_consumption()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,2000);var state=await f.State();var knight=state.Knights[0].Knight.Index;
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,2000);var state=await f.GetState();var knight=state.Knights[0].Knight.Index;
         await f.Run(async()=>await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).SetLevelAsync(16,default));
         Assert.Equal("LevelTooLow",(await f.Bet("level",knight,0,1)).Rejection);
         await f.Run(async()=>await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).SetLevelAsync(17,default));
@@ -186,18 +187,18 @@ public sealed class JoustIntegrationTests
     [PvfFact]
     public async Task Disabled_activity_still_settles_after_restart_once_and_real_reward_attachments_can_be_claimed()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,100);
-        var state=await f.State();var round=await f.Services.GetRequiredService<IJoustPersistence>().RoundAsync(state.RoundId!,default);
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,100);
+        var state=await f.GetState();var round=await f.Services.GetRequiredService<IJoustPersistence>().RoundAsync(state.RoundId!,default);
         Assert.True((await f.Bet("win",round!.Winners[^1],0,30)).Succeeded);
         Assert.True((await f.Bet("lose",round.Knights.First(k=>k.Index!=round.Winners[^1]).Index,0,71)).Succeeded==false);
         Assert.True((await f.Bet("lose",round.Knights.First(k=>k.Index!=round.Winners[^1]).Index,0,70)).Succeeded);
         await f.Run(async()=>{await f.Managed.ChangeAsync(new(2365,2,"disable"),"test",f.Now,default);return true;});
         Assert.Equal("Closed",(await f.Bet("disabled",round.Winners[^1],0,1)).Rejection);
-        f.Now=f.Now.AddMinutes(110);using var reopened=f.Reopen();await reopened.State();
+        f.Now=f.Now.AddMinutes(110);using var reopened=f.Reopen();await reopened.AdvanceLifecycle();
         var mail=Assert.Single(await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
         Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002925,Count:100});
         Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916,Count:99});
-        await reopened.State();Assert.Equal(1,reopened.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        await reopened.AdvanceLifecycle();Assert.Equal(1,reopened.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         foreach(var attachment in mail.Attachments)await reopened.Services.GetRequiredService<IMailboxDomainService>().ClaimAsync(new(1),attachment.Id);
         Assert.Equal(100,reopened.Count(490002925));Assert.Equal(99,reopened.Count(490002916));
         Assert.All((await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1))).Single().Attachments,a=>Assert.True(a.Claimed));
@@ -206,39 +207,39 @@ public sealed class JoustIntegrationTests
     [PvfFact]
     public async Task Fault_in_settlement_rolls_back_all_mail_and_settled_marker_then_retry_recovers_once()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);var state=await f.State();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();
         await f.Bet("bet",state.Knights[0].Knight.Index,0,10);f.Now=f.Now.AddMinutes(110);
         f.Sql("CREATE TRIGGER fail_joust_settle BEFORE UPDATE OF settled ON event_joust_round WHEN NEW.settled=1 BEGIN SELECT RAISE(ABORT,'injected settlement failure'); END;");
-        await Assert.ThrowsAsync<SqliteException>(()=>f.State());Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        await Assert.ThrowsAsync<SqliteException>(()=>f.AdvanceLifecycle());Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=0"));
-        f.Sql("DROP TRIGGER fail_joust_settle;");await f.State();await f.State();Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        f.Sql("DROP TRIGGER fail_joust_settle;");await f.AdvanceLifecycle();await f.AdvanceLifecycle();Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
     [PvfFact]
     public async Task Settings_are_revisioned_restart_durable_and_existing_round_keeps_original_schedule_and_results()
     {
-        using var f=new Fixture();await f.Enable();var original=await f.State();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();var original=await f.GetState();
         var changed=await f.Run(()=>f.Joust.SaveSettingsAsync(new(0,new("10:05",2,60,30,10,200)),"test",f.Now,default));
-        Assert.Equal(1,changed.Revision);Assert.Equal(original.EndsAt,(await f.State()).EndsAt);
+        Assert.Equal(1,changed.Revision);Assert.Equal(original.EndsAt,(await f.GetState()).EndsAt);
         await Assert.ThrowsAsync<Dfo.Server.Abstractions.Initialization.InitializationConflictException>(()=>f.Run(()=>f.Joust.SaveSettingsAsync(new(0,JoustSchedule.Default),"test",f.Now,default)));
         using var reopened=f.Reopen();Assert.Equal(changed.Schedule,(await reopened.Joust.SettingsAsync(default)).Schedule);
-        Assert.Equal(original.Knights.Select(k=>k.Knight.Index),(await reopened.State()).Knights.Select(k=>k.Knight.Index));
-        f.Now=original.EndsAt!.Value;reopened.Now=f.Now;var next=await reopened.State();Assert.Equal(f.Now.AddMinutes(-55),next.StartsAt);
+        Assert.Equal(original.Knights.Select(k=>k.Knight.Index),(await reopened.GetState()).Knights.Select(k=>k.Knight.Index));
+        f.Now=original.EndsAt!.Value;reopened.Now=f.Now;await reopened.AdvanceLifecycle();var next=await reopened.GetState();Assert.Equal(f.Now.AddMinutes(-55),next.StartsAt);
     }
     [PvfFact]
     public async Task Prize_is_not_sent_during_final_animation_and_expired_activity_keeps_its_settlement_obligation()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);var state=await f.State();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();
         await f.Bet("one",state.Knights[0].Knight.Index,0,10);
         await f.Run(async()=>{await f.Managed.ChangeAsync(new(2365,2,"configure","马战","马战","","","",f.Now.AddDays(-1),f.Now.AddMinutes(1)),"test",f.Now,default);return true;});
-        f.Now=f.Now.AddMinutes(100).AddSeconds(400);var final=await f.State();Assert.Equal(JoustPhase.Final,final.Phase);Assert.Equal(7,final.Winners.Length);
+        f.Now=f.Now.AddMinutes(100).AddSeconds(400);var final=await f.GetState();Assert.Equal(JoustPhase.Final,final.Phase);Assert.Equal(7,final.Winners.Length);
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.False(final.Active);
-        f.Now=f.Now.AddSeconds(200);await f.State();Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
-        using var reopened=f.Reopen();await reopened.State();Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        f.Now=f.Now.AddSeconds(200);await f.AdvanceLifecycle();Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        using var reopened=f.Reopen();await reopened.GetState();Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
     }
     [PvfFact]
     public async Task Pool_protocol_bound_does_not_debit_materials()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);var state=await f.State();var knight=state.Knights[0].Knight.Index;
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();var knight=state.Knights[0].Knight.Index;
         await f.Run(async()=>{await f.Services.GetRequiredService<IJoustPersistence>().InsertBetAsync(new("synthetic-full-pool",state.RoundId!,new(2),knight,490002916,int.MaxValue-1000),default);return true;});
         Assert.Equal("PoolLimitExceeded",(await f.Bet("too-big",knight,0,1)).Rejection);Assert.Equal(10,f.Count(490002916));
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_bet"));
@@ -247,8 +248,8 @@ public sealed class JoustIntegrationTests
     [PvfFact]
     public async Task Illegal_material_in_selected_slot_refuses_instead_of_spending_another_coin()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);await f.Seed(122,490002925,1);
-        var state=await f.State();Assert.Equal("InvalidMaterial",(await f.Bet("wrong-material",state.Knights[0].Knight.Index,1,1)).Rejection);
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);await f.Seed(122,490002925,1);
+        var state=await f.GetState();Assert.Equal("InvalidMaterial",(await f.Bet("wrong-material",state.Knights[0].Knight.Index,1,1)).Rejection);
         Assert.Equal(10,f.Count(490002916));Assert.Equal(1,f.Count(490002925));Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_bet"));
     }
     [Fact]
@@ -274,14 +275,14 @@ public sealed class JoustIntegrationTests
     [Fact]
     public async Task Settled_round_rejects_new_bet_after_clock_rewinds()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,20);var first=await f.State();
-        await f.Bet("before",first.Knights[0].Knight.Index,0,5);f.Now=f.Now.AddMinutes(110);await f.Run(()=>f.Joust.AdvanceAsync(f.Now,default));
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,20);var first=await f.GetState();
+        await f.Bet("before",first.Knights[0].Knight.Index,0,5);f.Now=f.Now.AddMinutes(110);await f.AdvanceLifecycle();
         f.Now=f.Now.AddMinutes(-110);var result=await f.Bet("after",first.Knights[0].Knight.Index,0,5);Assert.False(result.Succeeded);Assert.Equal("RoundSettled",result.Rejection);Assert.Equal(15,f.Count(490002916));
     }
     [Fact]
     public async Task Native_dispatch_uses_physical_ledger_and_refreshes_joust_on_duplicate_without_second_debit()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,30);var state=await f.State();var counter=new GameInboundFrameCounter();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,30);var state=await f.GetState();var counter=new GameInboundFrameCounter();
         JoustBetRequest Request(ushort seq,int amount=5)
         {var (ordinal,fresh)=counter.Observe(seq);var body=new byte[23];body[14]=(byte)state.Knights[0].Knight.Index;BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(15),121);BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(19),amount);
          return new((new GameMessageMetadata(1,0x04E7,0,seq){InboundOrdinal=ordinal,SequenceIsFresh=fresh}).WithRawBody(body),body[14],121,amount);}
@@ -303,7 +304,7 @@ public sealed class JoustIntegrationTests
     [Fact]
     public async Task Native_query_holds_selection_lease_until_exact_physical_batch_is_sent()
     {
-        using var f=new Fixture();await f.Enable();var gate=f.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();var gate=f.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
         Task<IAsyncDisposable>? pending=null;var started=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         f.Sender.BeforeSend=()=>
         {
@@ -319,24 +320,67 @@ public sealed class JoustIntegrationTests
     [Fact]
     public async Task Native_bet_confirmed_rollback_can_retry_same_frame_without_partial_debit()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);var state=await f.State();var stream=new GameInboundFrameCounter();
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();var stream=new GameInboundFrameCounter();
         JoustBetRequest Request(){var(ordinal,fresh)=stream.Observe(1);var body=new byte[23];body[14]=(byte)state.Knights[0].Knight.Index;BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(15),121);BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(19),5);return new((new GameMessageMetadata(1,0x04E7,0,1){InboundOrdinal=ordinal,SequenceIsFresh=fresh}).WithRawBody(body),body[14],121,5);}
         f.Sql("CREATE TRIGGER fail_native_bet BEFORE INSERT ON event_joust_bet BEGIN SELECT RAISE(ABORT,'native injected'); END;");
         var dispatcher=f.Services.GetRequiredService<INetworkMessageDispatcher>();await dispatcher.DispatchAsync(new(f.Connection),Request(),default);Assert.Equal(10,f.Count(490002916));Assert.Equal(6u,f.Sender.Messages.OfType<JoustResponse>().Last().Result);
         f.Sql("DROP TRIGGER fail_native_bet;");await dispatcher.DispatchAsync(new(f.Connection),Request(),default);Assert.Equal(5,f.Count(490002916));Assert.Equal(0u,f.Sender.Messages.OfType<JoustResponse>().Last().Result);
     }
     [Theory]
-    [InlineData(4)] [InlineData(14)]
-    public async Task Query_catchup_refreshes_mailbox_when_result_has_already_become_next_round_or_inactive(int hours)
+    [InlineData(4, 0x04E6)] [InlineData(14, 0x04E6)]
+    [InlineData(4, 0x04E8)] [InlineData(14, 0x04E8)]
+    public async Task Queries_do_not_create_rounds_settle_or_send_mail(int hours, int opcode)
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);var state=await f.State();await f.Bet("late",state.Knights[0].Knight.Index,0,5);
-        f.Now=f.Now.AddHours(hours);await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,0x04E6,0,1)),default);
-        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Contains(f.Sender.Messages,m=>m.GetType().Name=="MailboxAlarm");
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();await f.Bet("late",state.Knights[0].Knight.Index,0,5);
+        f.Sender.Messages.Clear(); f.Sender.Batches.Clear();
+        f.Now=f.Now.AddHours(hours);
+        for(var i=0;i<3;i++)await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,(ushort)opcode,0,1)),default);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+        Assert.Equal(5,f.Count(490002916));
+        Assert.DoesNotContain(f.Sender.Messages,m=>m.GetType().Name=="MailboxAlarm");
     }
     [Fact]
-    public async Task Maintenance_projects_only_changed_round_phase_and_sends_settlement_mailbox_refresh()
+    public async Task Queries_before_lifecycle_do_not_create_a_round()
     {
-        using var f=new Fixture();await f.Enable();await f.Seed(121,490002916,10);var state=await f.State();await f.Bet("tick",state.Knights[0].Knight.Index,0,5);
+        using var f=new Fixture();await f.Enable();
+        var dispatcher=f.Services.GetRequiredService<INetworkMessageDispatcher>();
+        foreach(var opcode in new ushort[]{0x04E6,0x04E8})
+            await dispatcher.DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,opcode,0,1)),default);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+    }
+    [Fact]
+    public async Task Repeated_queries_after_settlement_do_not_announce_existing_mail()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+        await f.Bet("earned",(await f.GetState()).Knights[0].Knight.Index,0,5);
+        f.Now=f.Now.AddMinutes(110);await f.AdvanceLifecycle();
+        Assert.Single(f.Sender.Messages.OfType<MailboxAlarm>());
+        f.Sender.Messages.Clear();
+        var dispatcher=f.Services.GetRequiredService<INetworkMessageDispatcher>();
+        for(var i=0;i<3;i++)foreach(var opcode in new ushort[]{0x04E6,0x04E8})
+            await dispatcher.DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,opcode,0,1)),default);
+        await f.AdvanceLifecycle();
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.DoesNotContain(f.Sender.Messages,m=>m is MailboxAlarm);
+    }
+    [Fact]
+    public async Task Refused_bet_does_not_settle_an_overdue_round()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+        var knight=(await f.GetState()).Knights[0].Knight.Index;
+        await f.Bet("valid",knight,0,5);f.Now=f.Now.AddMinutes(110);
+        Assert.False((await f.Bet("late",knight,0,1)).Succeeded);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+        Assert.Equal(5,f.Count(490002916));
+    }
+    [Fact]
+    public async Task Maintenance_projects_phase_changes_and_mail_service_notifies_actual_delivery()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();await f.Bet("tick",state.Knights[0].Knight.Index,0,5);
         var tick=ActivatorUtilities.CreateInstance<Dfo.Server.Application.Events.JoustMaintenanceService>(f.Services);
         await tick.TickAsync(default);var count=f.Sender.Messages.Count;Assert.True(count>0);await tick.TickAsync(default);Assert.Equal(count,f.Sender.Messages.Count);
         f.Now=f.Now.AddMinutes(90);await tick.TickAsync(default);Assert.True(f.Sender.Messages.Count>count);count=f.Sender.Messages.Count;await tick.TickAsync(default);Assert.Equal(count,f.Sender.Messages.Count);
@@ -380,7 +424,9 @@ public sealed class JoustIntegrationTests
             await Run(async()=>{await Managed.ChangeAsync(new(2365,0,"configure","马战","马战","","","",startsAt ?? Now.AddDays(-1),Now.AddDays(3)),"test",Now,default);
                 await Managed.ChangeAsync(new(2365,1,"enable"),"test",Now,default);return true;});
         }
-        public Task<JoustState> State()=>Run(()=>Joust.StateAsync(new(1),Now,default));
+        public async Task<JoustState> GetState()
+        {await using var tx=provider.GetRequiredService<DomainTransactionScope>().Begin(readOnly:true);var state=await Joust.GetStateAsync(new(1),Now,default);await tx.CommitAsync(default);return state;}
+        public Task<JoustLifecycleResult> AdvanceLifecycle()=>Run(()=>Joust.AdvanceLifecycleAsync(Now,default));
         public Task<JoustBetResult> Bet(string request,int knight,int slot,int amount)=>Run(()=>Joust.BetAsync(Session,request,knight,new(BusinessInventorySpace.Material,slot),amount,Now,default));
         public Task<bool> Seed(int slot,int item,int count)=>Run(async()=>
         {

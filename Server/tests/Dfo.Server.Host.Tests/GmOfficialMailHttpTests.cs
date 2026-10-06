@@ -234,8 +234,9 @@ public sealed partial class GmOfficialMailHttpTests
         {
             using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(id)); Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
             Assert.Equal("unconfirmed", (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reminder").GetString());
+            Assert.Equal(1, notices.Count); // A replay must not announce an existing letter again.
         }
-        Assert.Equal(2, notices.Count); Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
+        Assert.Equal(1, notices.Count); Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
         Assert.Equal(HttpStatusCode.OK, (await host.Client.GetAsync("/api/gm/v1/mail/operations/" + id)).StatusCode);
     }
 
@@ -540,7 +541,11 @@ public sealed partial class GmOfficialMailHttpTests
         internal int Count { get; private set; }
         internal Func<Task>? AssertCommitted { get; set; }
         public async ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notification, CancellationToken token) where T : class, INotification<T>
-        { Count++; if (AssertCommitted is not null) await AssertCommitted(); throw new InvalidOperationException("Isolated postcommit delivery fault"); }
+        {
+            if (notification is not MailDelivered) return new NotificationDelivery([]);
+            Count++; if (AssertCommitted is not null) await AssertCommitted();
+            throw new InvalidOperationException("Isolated postcommit mail delivery fault");
+        }
     }
     private sealed class PoisonCommit : ITransactionParticipant
     {

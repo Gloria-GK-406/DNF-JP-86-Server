@@ -15,6 +15,7 @@ internal sealed class CommandExecutionPolicyBehavior<TResult>(NetworkCommandAuth
         return context.ExecutionKind switch
         {
             CommandExecutionKind.Direct => next(),
+            CommandExecutionKind.ReadOnly => next(),
             CommandExecutionKind.Workflow => next(),
             // The transaction was opened further out, by the unit-of-work behaviour, so by the
             // time execution reaches here the command is already inside it.

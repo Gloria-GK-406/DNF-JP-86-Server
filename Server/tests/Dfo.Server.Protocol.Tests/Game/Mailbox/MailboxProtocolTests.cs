@@ -13,10 +13,10 @@ namespace Dfo.Server.Protocol.Tests.Game.Mailbox;
 public sealed class MailboxProtocolTests
 {
     [Fact]
-    public async Task NeutralMailboxChangeComposesCurrentCountAndRetainsExistingAlarmWire()
+    public async Task CommittedMailDeliveryComposesCurrentCountAndRetainsExistingAlarmWire()
     {
-        var query = new CurrentMailbox(); var handler = new MailboxChangedHandler(query); var character = new CharacterId(1);
-        var recipient = new NotificationRecipient(character, new NetworkConnectionId("Game:1")); var notice = new MailboxChanged(character);
+        var query = new CurrentMailbox(); var handler = new MailDeliveredHandler(query); var character = new CharacterId(1);
+        var recipient = new NotificationRecipient(character, new NetworkConnectionId("Game:1")); var notice = new MailDelivered(character);
         query.Count = 2;
         var first = Assert.IsType<MailboxAlarm>(Assert.Single(await handler.ComposeAsync(recipient, notice, default)));
         Assert.Equal(new byte[] { 2, 0 }, Body(new MailboxAlarmEncoder().Encode(first)));

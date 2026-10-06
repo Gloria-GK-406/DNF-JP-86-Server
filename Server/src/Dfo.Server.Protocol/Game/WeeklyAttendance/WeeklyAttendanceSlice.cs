@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Events;
-using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
@@ -81,7 +80,6 @@ public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessio
         var result=await commands.SendAsync(new ClaimWeeklyAttendanceCommand(session),ct);
         await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new AttendanceCompleted(session,result.Succeeded),ct);
         await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new EventsChanged(),ct);
-        if (result.Succeeded) await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new MailboxChanged(session.CharacterId),ct);
     }
 }
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection) : INotificationHandler<EventsChanged>

@@ -4,9 +4,9 @@ using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.Mailbox;
 
-public sealed class MailboxChangedHandler(IMailboxQueryDomainService mailbox) : INotificationHandler<MailboxChanged>
+public sealed class MailDeliveredHandler(IMailboxQueryDomainService mailbox) : INotificationHandler<MailDelivered>
 {
-    public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, MailboxChanged notice, CancellationToken token)
+    public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, MailDelivered notice, CancellationToken token)
     {
         if (recipient.CharacterId != notice.Character) return [];
         var current = await mailbox.PageAsync(notice.Character, 1, token);

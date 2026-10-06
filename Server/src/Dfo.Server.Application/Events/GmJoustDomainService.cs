@@ -31,6 +31,6 @@ internal sealed class QueryGmJoustSettingsCommandHandler(IGmJoustDomainService j
 public sealed record ChangeGmJoustSettingsCommand(string Secret,JoustSettingsChange Change) : ICommand<JoustSettings>;
 internal sealed class ChangeGmJoustSettingsCommandHandler(IGmJoustDomainService joust) : ICommandHandler<ChangeGmJoustSettingsCommand,JoustSettings>
 {public ValueTask<JoustSettings> HandleAsync(CommandExecutionContext c,ChangeGmJoustSettingsCommand q,CancellationToken ct)=>joust.SaveAsync(q.Secret,q.Change,ct);}
-public sealed record AdvanceJoustCommand(DateTimeOffset Now) : ICommand<bool>;
-internal sealed class AdvanceJoustCommandHandler(IJoustDomainService joust) : ICommandHandler<AdvanceJoustCommand,bool>
-{public ValueTask<bool> HandleAsync(CommandExecutionContext c,AdvanceJoustCommand q,CancellationToken ct)=>joust.AdvanceAsync(q.Now,ct);}
+public sealed record AdvanceJoustLifecycleCommand(DateTimeOffset Now) : ICommand<JoustLifecycleResult>;
+internal sealed class AdvanceJoustLifecycleCommandHandler(IJoustDomainService joust) : ICommandHandler<AdvanceJoustLifecycleCommand,JoustLifecycleResult>
+{public ValueTask<JoustLifecycleResult> HandleAsync(CommandExecutionContext c,AdvanceJoustLifecycleCommand q,CancellationToken ct)=>joust.AdvanceLifecycleAsync(q.Now,ct);}

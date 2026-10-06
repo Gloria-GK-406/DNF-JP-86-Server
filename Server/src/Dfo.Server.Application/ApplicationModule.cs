@@ -191,9 +191,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmJoustDomainService,Dfo.Server.Application.Events.GmJoustDomainService>();
-        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmJoustSettingsCommand,Dfo.Server.Data.Events.JoustSettings,Dfo.Server.Application.Events.QueryGmJoustSettingsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmJoustSettingsCommand,Dfo.Server.Data.Events.JoustSettings,Dfo.Server.Application.Events.QueryGmJoustSettingsCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmJoustSettingsCommand,Dfo.Server.Data.Events.JoustSettings,Dfo.Server.Application.Events.ChangeGmJoustSettingsCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustCommand,bool,Dfo.Server.Application.Events.AdvanceJoustCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
         services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
@@ -201,8 +201,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventManagementDomainService, Dfo.Server.Application.Events.EventManagementDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPlayerProjectionDomainService,Dfo.Server.Application.Events.EventPlayerProjectionDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmEventsDomainService, Dfo.Server.Application.Events.GmEventsDomainService>();
-        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.QueryGmEventsCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmWeeklyAttendanceSettingsCommand, Dfo.Server.Data.Events.WeeklyAttendanceSettings, Dfo.Server.Application.Events.QueryGmWeeklyAttendanceSettingsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.QueryGmEventsCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmWeeklyAttendanceSettingsCommand, Dfo.Server.Data.Events.WeeklyAttendanceSettings, Dfo.Server.Application.Events.QueryGmWeeklyAttendanceSettingsCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.ChangeGmEventsCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
 

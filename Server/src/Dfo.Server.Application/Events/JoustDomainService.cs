@@ -25,7 +25,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
     private static bool Active(EventConfiguration c,DateTimeOffset now)=>c.Enabled && c.StartsAt<=now && c.EndsAt>now;
     private async ValueTask Write(CancellationToken ct)
     {
-        if (transactions.Current is null) throw new InvalidOperationException("马战写入和推进必须在命令事务内执行。");
+        if (transactions.Current is null || transactions.Current.IsReadOnly) throw new InvalidOperationException("马战写入和推进必须在命令事务内执行。");
         await events.AcquireWriteAsync(ct);
     }
     private async ValueTask<JoustScheduleConfiguration> Schedule(CancellationToken ct)=>await store.ScheduleAsync(ct) ?? new(0,JoustSchedule.Default);
@@ -86,7 +86,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         else throw new ArgumentException("未知活动操作。");
         if(!await events.SaveAsync(EventId,change.ExpectedRevision,c with{Revision=c.Revision+1,UpdatedAt=now,UpdatedBy=actor},ct))throw new InitializationConflictException();
     }
-    private async ValueTask<JoustRound?> Current(EventConfiguration c,DateTimeOffset now,CancellationToken ct)
+    private async ValueTask<JoustRound?> EnsureCurrentRoundAsync(EventConfiguration c,DateTimeOffset now,CancellationToken ct)
     {
         var existing=await store.CurrentRoundAsync(now,ct);
         if(existing is not null)return existing;
@@ -100,9 +100,9 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var (d,_)=await rules.DefinitionAsync(ct);if(d is null)return null;
         var round=rules.CreateRound(c.SeasonId,start.Value,s,d);await store.SaveRoundAsync(round,ct);return round;
     }
-    public async ValueTask<bool> AdvanceAsync(DateTimeOffset now,CancellationToken ct)
+    public async ValueTask<JoustLifecycleResult> AdvanceLifecycleAsync(DateTimeOffset now,CancellationToken ct)
     {
-        await Write(ct);var changed=false;
+        await Write(ct);var settledRounds=0;
         foreach(var round in await store.UnsettledAsync(ct))
         {
             if(rules.Phase(round,now).Phase!=JoustPhase.Result)continue;
@@ -125,9 +125,9 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
                 await mailbox.SendPreparedAsync(builder.Build(),prepared,ct);
             }
             // This marker and every attachment join the same ambient SQLite transaction.
-            await store.SaveRoundAsync(round with{Settled=true},ct);changed=true;
+            await store.SaveRoundAsync(round with{Settled=true},ct);settledRounds++;
         }
-        var c=await Configuration(ct) ?? Initial;await Current(c,now,ct);return changed;
+        var c=await Configuration(ct) ?? Initial;await EnsureCurrentRoundAsync(c,now,ct);return new(settledRounds);
     }
     public async ValueTask<bool> NeedsAdvanceAsync(DateTimeOffset now,CancellationToken ct)=>
         Active(await Configuration(ct) ?? Initial,now) || await store.HasUnsettledAsync(ct);
@@ -146,20 +146,16 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var first=TimeSpan.ParseExact(r.Schedule.Schedule.DailyStartTime,"hh\\:mm",System.Globalization.CultureInfo.InvariantCulture);
         return checked((ushort)(1+(int)(local.TimeOfDay-first).TotalMinutes/r.Schedule.Schedule.RoundIntervalMinutes));
     }
-    public async ValueTask<JoustState> ReadAsync(CharacterId character,DateTimeOffset now,CancellationToken ct)
+    public async ValueTask<JoustState> GetStateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct)
     {
         var c=await Configuration(ct) ?? Initial;var r=await store.CurrentRoundAsync(now,ct);
         return await Project(r,character,Active(c,now) && r?.SeasonId==c.SeasonId,now,ct);
     }
-    public async ValueTask<JoustState> StateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct)
-    {
-        var settled=await AdvanceAsync(now,ct);var c=await Configuration(ct) ?? Initial;var r=await Current(c,now,ct);
-        return (await Project(r,character,Active(c,now) && r?.SeasonId==c.SeasonId,now,ct)) with{SettledDuringAdvance=settled};
-    }
+    public ValueTask<JoustState> ReadAsync(CharacterId character,DateTimeOffset now,CancellationToken ct) => GetStateAsync(character,now,ct);
     public async ValueTask<JoustBetResult> BetAsync(SelectedSessionIdentity session,string requestId,int knightIndex,BusinessSlot preferredSlot,int amount,DateTimeOffset now,CancellationToken ct)
     {
         await Write(ct);
-        if(string.IsNullOrWhiteSpace(requestId) || requestId.Length>160)return new(false,"InvalidRequest",false,await StateAsync(session.CharacterId,now,ct),[]);
+        if(string.IsNullOrWhiteSpace(requestId) || requestId.Length>160)return new(false,"InvalidRequest",false,await GetStateAsync(session.CharacterId,now,ct),[]);
         var prior=await store.RequestAsync(session.CharacterId,requestId,ct);
         if(prior is not null)
         {
@@ -169,7 +165,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
                 return new(false,"RequestConflict",false,await Project(old,session.CharacterId,false,now,ct),[]);
             return new(true,null,true,await Project(old,session.CharacterId,Active(c,now) && old?.SeasonId==c.SeasonId && old.EndsAt>now,now,ct),[]);
         }
-        var state=await StateAsync(session.CharacterId,now,ct);
+        var state=await GetStateAsync(session.CharacterId,now,ct);
         JoustBetResult Refuse(string reason)=>new(false,reason,false,state,[]);
         if(!state.Active)return Refuse("Closed");if(state.Phase!=JoustPhase.Betting)return Refuse("NotBettingPhase");
         if(amount<=0 || !state.Knights.Any(k=>k.Knight.Index==knightIndex))return Refuse("InvalidRequest");
@@ -204,11 +200,11 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var consumed=await materials.ConsumeAsync(session,costs,ct);
         if(!consumed.Success)return Refuse(consumed.Rejection!);
         await store.InsertBetAsync(new JoustBet(requestId,round.RoundId,session.CharacterId,knightIndex,costs[0].ItemId,amount){PreferredSlot=preferredSlot},ct);
-        return new(true,null,false,(await Project(round,session.CharacterId,true,now,ct)) with{SettledDuringAdvance=state.SettledDuringAdvance},consumed.Debits.Select(d=>new JoustInventoryDebit(d.Cost.Slot,d.Remaining)).ToArray());
+        return new(true,null,false,(await Project(round,session.CharacterId,true,now,ct)),consumed.Debits.Select(d=>new JoustInventoryDebit(d.Cost.Slot,d.Remaining)).ToArray());
     }
-    public async ValueTask<JoustHistoryEntry[]> HistoryAsync(DateTimeOffset now,CancellationToken ct)
+    public async ValueTask<JoustHistoryEntry[]> GetHistoryAsync(CancellationToken ct)
     {
-        await AdvanceAsync(now,ct);var history=new List<JoustHistoryEntry>();
+        var history=new List<JoustHistoryEntry>();
         foreach(var r in await store.HistoryAsync(ct))
         {var bets=await store.BetsAsync(r.RoundId,ct);var winner=r.Winners[^1];history.Add(new(r.RoundId,r.StartsAt,winner,rules.Odds(bets.Sum(b=>(long)b.Amount),bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount))){DailyRoundNo=RoundNo(r)});}
         return [..history];

@@ -132,17 +132,17 @@ it('不确定保存后的重读保留提交意图，即使原草稿与旧生效�
   fireEvent.click(screen.getByRole('button', { name: '重新读取生效赛程' })); await screen.findByText(/09:00 开始/);
   expect(input('每天开始时间（北京时间 UTC+8）').value).toBe('10:00'); expect(writes()).toHaveLength(1);
 });
-it('普通400保持全部草稿可继续编辑，刷新规则也保留草稿', async () => {
+it('普通400保持全部草稿可继续编辑，重新读取设置也保留草稿', async () => {
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation((request, payload) => payload ? Promise.reject(new ApiError(400, '赛程拒绝')) : original(request, payload));
   await ready(); edited(); fireEvent.click(screen.getByRole('button', { name: '保存赛程' })); await screen.findByText('赛程拒绝');
   expectDraft(); expect(input('每天期数').disabled).toBe(false); expect(screen.queryByText('请重新读取生效赛程后再保存')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: '刷新规则' }));
+  fireEvent.click(screen.getByRole('button', { name: '重新读取设置' }));
   await waitFor(() => expect((screen.getByRole('button', { name: '保存赛程' }) as HTMLButtonElement).disabled).toBe(false)); expectDraft();
 });
 it('未编辑的正常刷新同步服务器新赛程与revision', async () => {
   await ready(); settings.schedule.dailyStartTime = '09:00'; settings.revision = 9;
-  fireEvent.click(screen.getByRole('button', { name: '刷新规则' }));
+  fireEvent.click(screen.getByRole('button', { name: '重新读取设置' }));
   await waitFor(() => expect(input('每天开始时间（北京时间 UTC+8）').value).toBe('09:00'));
   expect(screen.queryByText('当前生效赛程')).toBeNull(); fireEvent.click(screen.getByRole('button', { name: '保存赛程' }));
   await waitFor(() => expect(writes()).toHaveLength(1));
@@ -151,7 +151,7 @@ it('未编辑的正常刷新同步服务器新赛程与revision', async () => {
 });
 it('保留已编辑草稿的正常刷新遇到外部修改时要求核对，避免无提示覆盖新赛程', async () => {
   await ready(); edited(); settings.schedule.dailyStartTime = '09:00'; settings.revision = 9;
-  fireEvent.click(screen.getByRole('button', { name: '刷新规则' })); await screen.findByText(/09:00 开始/); expectDraft();
+  fireEvent.click(screen.getByRole('button', { name: '重新读取设置' })); await screen.findByText(/09:00 开始/); expectDraft();
   expect(writes()).toHaveLength(0); fireEvent.click(screen.getByRole('button', { name: '核对后保存赛程' }));
   await screen.findByText('确认保存核对后的赛程？', { selector: '.ant-modal-confirm-title' }); expect(writes()).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: '确认保存赛程' }));

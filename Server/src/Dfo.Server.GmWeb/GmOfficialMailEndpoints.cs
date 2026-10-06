@@ -1,14 +1,11 @@
 using Dfo.Server.Data.Inventory;
 using System.Globalization;
 using System.Text.Json;
-using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Administration;
-using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
-using Dfo.Server.Data.Characters;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -49,7 +46,7 @@ internal static class GmOfficialMailEndpoints
     private static GmRequiredPermission Permission => new(GmPermission.SendMail);
     private static async Task<IResult> Query(HttpContext context, ICommandBus commands, GmMailQuery kind, Guid id = default) =>
         Results.Ok((await commands.SendAsync(new QueryGmMailCommand(Secret(context), kind, Filter(context), id), context.RequestAborted)).Value);
-    private static async Task<IResult> Send(HttpContext context, ICommandBus commands, INotificationBus notifications)
+    private static async Task<IResult> Send(HttpContext context, ICommandBus commands)
     {
         GmMailEditorRequest? input = null; var executing = false;
         try
@@ -58,18 +55,8 @@ internal static class GmOfficialMailEndpoints
             var prepared = (GmMailPreparation)(await commands.SendAsync(new QueryGmMailCommand(Secret(context), GmMailQuery.Prepare, id: input.RequestId, input: Input(input)), context.RequestAborted)).Value;
             executing = true;
             var sent = await commands.SendAsync(new SendGmMailCommand(Secret(context), prepared), context.RequestAborted);
-            var reminder = "attempted";
-            try
-            {
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                foreach (var recipient in sent.Receipt.Recipients)
-                {
-                    var character = new CharacterId(recipient.Character.CharacterId);
-                    var delivery = await notifications.PublishAsync(new NotificationAudience.TheseCharacters([character]), new MailboxChanged(character), timeout.Token);
-                    if (delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Failed or NotificationOutcome.Gone)) reminder = "unconfirmed";
-                }
-            }
-            catch (Exception error) { Log(context, error, "GM committed mail reminder failed."); reminder = "unconfirmed"; }
+            // Mail delivery owns arrival notifications; this HTTP result confirms durable sending only.
+            const string reminder = "unconfirmed";
             return Results.Ok(new { sent.Receipt, sent.Replayed, reminder });
         }
         catch (Exception error)

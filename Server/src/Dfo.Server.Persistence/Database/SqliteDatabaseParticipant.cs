@@ -19,8 +19,9 @@ namespace Dfo.Server.Persistence.Database;
 /// in their own vocabulary and are asked to flush during prepare; they never open a connection,
 /// begin a transaction, or commit.
 /// </remarks>
-internal sealed class SqliteDatabaseParticipant(string connectionString) : ITransactionParticipant
+internal sealed class SqliteDatabaseParticipant(string connectionString, bool readOnly = false) : ITransactionParticipant
 {
+    public bool SupportsReadOnly => readOnly;
     private readonly Dictionary<object, ISqliteStoreFacet> facets = [];
 
     /// <summary>The facets in the order they first joined, which is the order they are flushed.</summary>
@@ -98,7 +99,9 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
             return this.connection;
         }
 
-        var link = new SqliteConnection(connectionString);
+        var link = new SqliteConnection(readOnly
+            ? new SqliteConnectionStringBuilder(connectionString) { Mode = SqliteOpenMode.ReadOnly }.ToString()
+            : connectionString);
         try
         {
             await link.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -123,6 +126,8 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
     /// </remarks>
     public async ValueTask PrepareAsync(CancellationToken cancellationToken)
     {
+        if (readOnly && this.order.Any(facet => facet.HasStagedWork))
+            throw new InvalidOperationException("A read-only query cannot commit staged state changes.");
         // Custody validation must also run after immediate writes or a mid-use-case flush.
         foreach (var facet in this.order) facet.ValidateForCommit();
         if (!this.order.Any(facet => facet.HasStagedWork))
