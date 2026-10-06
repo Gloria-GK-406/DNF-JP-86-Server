@@ -1,0 +1,39 @@
+{
+  "Date": "2026-10-07",
+  "ServerBaseline": "81f4373f8e5d686257420080b3f1b0c7cc7fc83c",
+  "ResearchBranch": "task/abyss-research",
+  "UpstreamBaseline": "c20dba5fa52c2faf4b5087a3b477676be8434e8f",
+  "UpstreamExistingChanges": [
+    "?? _reference-backup-20260826/"
+  ],
+  "Sources": [
+    {
+      "Path": "E:\\Project\\DNF\\DNFClient-A21-protocol2\\DNF.exe",
+      "Bytes": 28398592,
+      "Sha256": "1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD"
+    },
+    {
+      "Path": "E:\\Project\\DNF\\DNFClient-A21-protocol2\\DNF.unpacked-b1-debug.exe",
+      "Bytes": 94199808,
+      "Sha256": "CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14"
+    },
+    {
+      "Path": "E:\\Project\\DNF\\DNFClient-A21-protocol2\\Script.pvf",
+      "Bytes": 73054825,
+      "Sha256": "03154D18DE43F5A0BCB11B2935AE8BB40BABD22495700657D682E491A24A3543"
+    },
+    {
+      "Path": "E:\\Project\\DNF\\Research\\1995chen-dnf\\build\\dnf_data\\home\\template\\init\\df_game_r",
+      "Bytes": 36360954,
+      "Sha256": "DD0AE672B1DCE3FF9C6C403BEAEC71B3EF666B14DEB567D4CAB0DA99D8711F9E"
+    },
+    {
+      "Path": "E:\\Project\\DNF\\Research\\1995chen-dnf\\other\\等级补丁\\70\\df_game_r",
+      "Bytes": 36360954,
+      "Sha256": "CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7"
+    }
+  ],
+  "DeepAbyssWireCapturePerformed": false,
+  "NativeClientAcceptancePerformed": false,
+  "DeploymentPerformed": false
+}

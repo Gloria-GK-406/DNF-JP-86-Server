@@ -1,0 +1,754 @@
+=== etc/hellparty.etc ===
+[hellparty basic values]
+[max base value]
+100
+[min base value]
+1
+[base value]
+1
+[base rising value]
+5
+[sub base rates]
+1
+[level difference rates]
+10000 5000 2000
+[difficulty rates]
+2000 4500 6800 6800 6800
+[party rates]
+0 1800 4000 8000
+[ancient dungeon add rate]
+8500
+[guide line value]
+63
+[/hellparty basic values]
+[difficulty]
+4 A 8 5 3 60 0 B 6 4 97 40 0 C 4 3 0 0 0 D 0 3 0 0 1
+[/difficulty]
+[hellparty monster group]
+[group index]
+1
+[group]
+B 10618 1 25617 1
+[/group]
+[group index]
+2
+[group]
+B 15603 1 15603 1 413 0 413 0 409 0 409 0 409 0 409 0
+[/group]
+[group index]
+3
+[group]
+A 5613 1 410 0 410 0 410 0 411 0 411 0 411 0 50077 0 50077 0
+[/group]
+[group index]
+4
+[group]
+A 205 1 61814 0 203 1 204 1
+[/group]
+[group index]
+5
+[group]
+A 10620 1 10620 1 10620 1 10620 1 61003 0 61003 0 61003 0 61003 0 61003 0 61003 0
+[/group]
+[group index]
+6
+[group]
+A 10620 1 15603 1 10618 1 25617 1
+[/group]
+[group index]
+7
+[group]
+A 15603 1 15603 1 10618 1 25617 1
+[/group]
+[group index]
+11
+[group]
+B 20611 1 20611 1 20611 1 20611 1 20611 1 20611 1
+[/group]
+[group index]
+12
+[group]
+B 619 1 1000 0 1000 0 1000 0 1000 0 1000 0 1000 0 1000 0 1000 0 1000 0 1000 0
+[/group]
+[group index]
+13
+[group]
+B 618 1 50033 0 50033 0 50033 0 50033 0 50033 0 50033 0
+[/group]
+[group index]
+14
+[group]
+A 15606 1 15606 1 15606 1 15606 1 15606 1 15606 1
+[/group]
+[group index]
+15
+[group]
+B 15606 1 15606 1 15606 1 15606 1
+[/group]
+[group index]
+16
+[group]
+B 612 1 612 1 613 1
+[/group]
+[group index]
+17
+[group]
+A 10601 1 10601 1 10601 1 10601 1 10601 1 10601 1 10601 1 10601 1
+[/group]
+[group index]
+18
+[group]
+B 25621 1 25619 1 25619 1 25619 1 25619 1 25620 1 25620 1
+[/group]
+[group index]
+19
+[group]
+A 25624 1 200 0 200 0 200 0 200 0 201 0 201 0 201 0 201 0 50095 0
+[/group]
+[group index]
+20
+[group]
+B 10621 1 10621 1 61301 0 61301 0 61303 0 61300 0 61300 0 61300 0 61300 0 61300 0 61300 0 61300 0
+[/group]
+[group index]
+31
+[group]
+B 1506 1 1506 1 1506 1 1506 1 1506 1
+[/group]
+[group index]
+32
+[group]
+B 30004 1 30004 1 30004 1 30004 1 30004 1
+[/group]
+[group index]
+33
+[group]
+A 10626 1 10626 1 10626 1 10626 1 10626 1
+[/group]
+[group index]
+34
+[group]
+B 10626 1 10626 1 10626 1
+[/group]
+[group index]
+35
+[group]
+A 30003 1 30003 1 30003 1 30003 1 30003 1
+[/group]
+[group index]
+36
+[group]
+B 30003 1 30003 1 30003 1
+[/group]
+[group index]
+37
+[group]
+B 1510 1 5411 1 10629 1 15412 1
+[/group]
+[group index]
+38
+[group]
+B 20420 1 20421 1 20422 1
+[/group]
+[group index]
+39
+[group]
+B 20423 1 20421 1 20422 1
+[/group]
+[group index]
+40
+[group]
+B 20423 1 20420 1 20422 1
+[/group]
+[group index]
+41
+[group]
+B 20423 1 20420 1 20421 1
+[/group]
+[group index]
+42
+[group]
+A 30004 1 30004 1 30004 1 1506 1 1506 1 1506 1 1506 1
+[/group]
+[group index]
+43
+[group]
+A 20423 1 20420 1 20421 1 20422 1
+[/group]
+[group index]
+44
+[group]
+A 10627 1 10627 1 10627 1 10627 1 10627 1 56717 0
+[/group]
+[group index]
+45
+[group]
+A 10621 1 10621 1 10621 1 10621 1 10621 1 10621 1
+[/group]
+[group index]
+51
+[group]
+B 615 1 622 1 621 1
+[/group]
+[group index]
+52
+[group]
+A 5608 1 5611 1 5612 1
+[/group]
+[group index]
+53
+[group]
+B 15607 1 15607 1 15607 1
+[/group]
+[group index]
+54
+[group]
+A 10622 1 10622 1 10622 1 10622 1 10622 1 10622 1
+[/group]
+[group index]
+55
+[group]
+B 10622 1 10622 1 10622 1 10622 1
+[/group]
+[group index]
+56
+[group]
+B 25622 1 25622 1 25622 1 25622 1 25622 1
+[/group]
+[group index]
+57
+[group]
+A 25622 1 25622 1 25622 1 25622 1 25622 1 25622 1 25622 1
+[/group]
+[group index]
+58
+[group]
+B 615 1 5608 1 5612 1 25622 1
+[/group]
+[group index]
+59
+[group]
+B 622 1 621 1 5612 1 15607 1
+[/group]
+[group index]
+60
+[group]
+B 615 1 5611 1 5612 1 10622 1
+[/group]
+[group index]
+61
+[group]
+B 5612 1 15607 1 10622 1 25622 1
+[/group]
+[group index]
+62
+[group]
+B 615 1 622 1 10622 1 25622 1
+[/group]
+[group index]
+63
+[group]
+A 20610 1 10622 1 10622 1 25622 1
+[/group]
+[group index]
+71
+[group]
+B 5610 1 20613 1 20612 1 20614 1
+[/group]
+[group index]
+72
+[group]
+B 20613 1 20612 1 20614 1 15604 1
+[/group]
+[group index]
+73
+[group]
+B 5610 1 20612 1 20614 1 15604 1
+[/group]
+[group index]
+74
+[group]
+B 5610 1 20613 1 20614 1 15604 1
+[/group]
+[group index]
+75
+[group]
+B 5610 1 20613 1 20612 1 15604 1
+[/group]
+[group index]
+76
+[group]
+A 20612 1 20614 1 15604 1 20610 1
+[/group]
+[group index]
+77
+[group]
+A 20613 1 20614 1 15604 1 20610 1
+[/group]
+[group index]
+78
+[group]
+B 20613 1 20612 1 15604 1 20610 1
+[/group]
+[group index]
+79
+[group]
+B 5610 1 20614 1 15604 1 20610 1
+[/group]
+[group index]
+80
+[group]
+B 5610 1 20613 1 15604 1 20610 1
+[/group]
+[group index]
+81
+[group]
+B 5610 1 20613 1 20614 1 20610 1
+[/group]
+[group index]
+82
+[group]
+B 5610 1 20613 1 20612 1 20610 1
+[/group]
+[group index]
+91
+[group]
+A 5609 1 10624 1 15608 1 20610 1
+[/group]
+[group index]
+92
+[group]
+B 5607 1 10623 1 15605 1 620 1
+[/group]
+[group index]
+93
+[group]
+A 620 1 25623 1 5606 1 616 1
+[/group]
+[group index]
+94
+[group]
+A 5607 1 25623 1 5606 1 616 1
+[/group]
+[group index]
+95
+[group]
+A 5607 1 10623 1 5606 1 616 1
+[/group]
+[group index]
+96
+[group]
+B 5607 1 10623 1 15605 1 616 1
+[/group]
+[group index]
+97
+[group]
+B 5607 1 10623 1 15605 1 620 1
+[/group]
+[group index]
+98
+[group]
+A 10623 1 620 1 5606 1 616 1
+[/group]
+[group index]
+99
+[group]
+B 5607 1 10623 1 620 1 616 1
+[/group]
+[group index]
+100
+[group]
+B 5607 1 10623 1 620 1 5606 1
+[/group]
+[group index]
+101
+[group]
+B 5607 1 10623 1 25623 1 5606 1
+[/group]
+[group index]
+102
+[group]
+B 5607 1 10623 1 620 1 25623 1
+[/group]
+[group index]
+103
+[group]
+A 5609 1 10624 1 5606 1 616 1
+[/group]
+[group index]
+104
+[group]
+A 10624 1 15608 1 5606 1 616 1
+[/group]
+[group index]
+105
+[group]
+A 5609 1 15608 1 5606 1 616 1
+[/group]
+[group index]
+106
+[group]
+A 20610 1 10624 1 5606 1 616 1
+[/group]
+[group index]
+107
+[group]
+A 5609 1 620 1 15608 1 25623 1 616 1
+[/group]
+[group index]
+121
+[group]
+B 1050 0
+[/group]
+[group index]
+122
+[group]
+B 1051 0
+[/group]
+[group index]
+123
+[group]
+B 1052 0
+[/group]
+[group index]
+124
+[group]
+B 1053 0
+[/group]
+[group index]
+125
+[group]
+A 1050 0
+[/group]
+[group index]
+126
+[group]
+A 1051 0
+[/group]
+[group index]
+127
+[group]
+A 1052 0
+[/group]
+[group index]
+128
+[group]
+A 1053 0
+[/group]
+[group index]
+108
+[group]
+A 436 1 437 1
+[/group]
+[group index]
+109
+[group]
+A 436 1
+[/group]
+[group index]
+110
+[group]
+A 439 1 441 1
+[/group]
+[group index]
+111
+[group]
+A 440 1 441 1
+[/group]
+[group index]
+112
+[group]
+A 437 1
+[/group]
+[group index]
+113
+[group]
+A 438 1 441 1
+[/group]
+[group index]
+114
+[group]
+A 439 1 441 1
+[/group]
+[group index]
+115
+[group]
+A 440 1 441 1
+[/group]
+[group index]
+116
+[group]
+B 437 1 441 1 441 1
+[/group]
+[group index]
+117
+[group]
+B 438 1 440 1 441 1
+[/group]
+[group index]
+118
+[group]
+B 439 1 440 1 441 1
+[/group]
+[group index]
+119
+[group]
+B 439 1 438 1 441 1
+[/group]
+[group index]
+120
+[group]
+B 436 1 441 1 441 1
+[/group]
+[group index]
+129
+[group]
+B 64007 0 64008 0 64009 0
+[/group]
+[group index]
+130
+[group]
+B 64013 0 64014 0 64015 0
+[/group]
+[group index]
+131
+[group]
+B 64010 0 64011 0 64012 0
+[/group]
+[group index]
+132
+[group]
+A 64007 0 64008 0 64009 0
+[/group]
+[group index]
+133
+[group]
+A 64013 0 64014 0 64015 0
+[/group]
+[group index]
+134
+[group]
+A 64010 0 64011 0 64012 0
+[/group]
+[group index]
+135
+[group]
+A 442 1
+[/group]
+[group index]
+136
+[group]
+A 20444 1 20445 1
+[/group]
+[group index]
+137
+[group]
+A 5418 1
+[/group]
+[group index]
+138
+[group]
+A 15418 1
+[/group]
+[group index]
+139
+[group]
+A 40402 1
+[/group]
+[group index]
+140
+[group]
+A 30409 1
+[/group]
+[group index]
+162
+[group]
+A 40401 1
+[/group]
+[group index]
+151
+[group]
+B 25405 1 25406 1 25407 1
+[/group]
+[group index]
+152
+[group]
+B 30410 1 30410 1
+[/group]
+[group index]
+153
+[group]
+B 25405 1 25406 1 30410 1
+[/group]
+[group index]
+154
+[group]
+B 30410 1 25407 1 25408 1
+[/group]
+[group index]
+155
+[group]
+A 20438 1 36404 1
+[/group]
+[group index]
+156
+[group]
+A 443 1 25409 1
+[/group]
+[group index]
+157
+[group]
+A 10414 1 25409 1
+[/group]
+[group index]
+158
+[group]
+A 443 1 10414 1
+[/group]
+[group index]
+159
+[group]
+A 30410 1 30410 1 30410 1
+[/group]
+[group index]
+160
+[group]
+B 443 1 25407 1
+[/group]
+[group index]
+161
+[group]
+B 25409 1 25407 1 25408 1
+[/group]
+[group index]
+163
+[group]
+A 25405 1 25406 1 25407 1 25408 1
+[/group]
+[group index]
+164
+[group]
+B 25405 1 25407 1 25408 1
+[/group]
+[group index]
+165
+[group]
+B 10414 1 25406 1
+[/group]
+[group index]
+166
+[group]
+A 25415 1 1522 1 10631 1
+[/group]
+[group index]
+167
+[group]
+B 25415 1 1522 1
+[/group]
+[group index]
+168
+[group]
+B 1522 1 10631 1
+[/group]
+[group index]
+169
+[group]
+A 25625 1 25626 1 10510 1
+[/group]
+[group index]
+170
+[group]
+B 25625 1 10510 1
+[/group]
+[group index]
+171
+[group]
+B 25625 1 25626 1
+[/group]
+[group index]
+172
+[group]
+A 55015 1 36454 1 20450 1 1010 1
+[/group]
+[group index]
+173
+[group]
+B 55015 1 36454 1 20450 1
+[/group]
+[group index]
+174
+[group]
+B 55015 1 20450 1 1010 1
+[/group]
+[group index]
+175
+[group]
+A 21113 1 206 1 55501 1
+[/group]
+[group index]
+176
+[group]
+B 21113 1 55501 1
+[/group]
+[group index]
+177
+[group]
+B 206 1 55501 1
+[/group]
+[group index]
+180
+[group]
+D 425 1 62504 0 62504 0 62504 0
+[/group]
+[group index]
+181
+[group]
+D 427 1 62504 0 62504 0 62504 0
+[/group]
+[group index]
+182
+[group]
+D 428 1 62504 0 62504 0 62504 0 62504 0
+[/group]
+[group index]
+183
+[group]
+D 429 1 62504 0 62504 0 62504 0 62504 0
+[/group]
+[group index]
+184
+[group]
+D 430 1 62504 0 62504 0 62504 0 62504 0
+[/group]
+[group index]
+185
+[group]
+B 10312 1 35301 1
+[/group]
+[group index]
+186
+[group]
+A 308 1 25308 1 40301 1 20304 1 15307 1
+[/group]
+[group index]
+187
+[group]
+A 65002 1 25409 1
+[/group]
+[group index]
+188
+[group]
+A 65003 1 25409 1
+[/group]
+[group index]
+189
+[group]
+A 65002 1 65003 1
+[/group]
+[group index]
+196
+[group]
+A 4992 1 59997 1
+[/group]
+[/hellparty monster group]
+[hellparty script end]

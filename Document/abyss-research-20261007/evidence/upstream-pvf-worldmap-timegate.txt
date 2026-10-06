@@ -1,0 +1,69 @@
+=== worldmap/TimeGate.wdm ===
+[map image]
+WorldMap/TimeGate.img 0
+[ui path]
+WorldMap/UI/TimeGate.xui
+[dungeon]
+3066
+[in progress]
+2358 70 2364 71 2371 72 2386 73 2408 74 2424 75 2438 76 2460 77 2477 515
+[in progress]
+2356 515
+[in progress]
+2357 516
+[in progress]
+2359 516
+[in progress]
+2360 516
+[in progress]
+12740 516
+[in progress]
+2361 516
+[in progress]
+12741 516
+[in progress]
+2362 516
+[in progress]
+12742 516
+[in progress]
+2363 517
+[in progress]
+2394 517
+[in progress]
+2392 517
+[in progress]
+2394 517
+[in progress]
+2400 518
+[in progress]
+2406 518
+[in progress]
+2407 519
+[in progress]
+2476 520
+[in progress]
+2479 520
+[in progress]
+2480 520
+[in progress]
+2481 8003 -1 2007 13508
+[/dungeon]
+[name]
+时空之门
+[hell dungeon]
+1
+[hell quest]
+4391
+[/hell quest]
+[hell freepass item]
+490003066 1 490002858 1 490003092 1 490003314 1 490700622 1 490003362 1 490003168 1 490003358 1 490003222 1 2749403 1 2749501 1 2682582 1 2749535 1 2749911 1 10002090 1 10002197 1 10002586 1 10004045 1 10004046 1 490000338 1
+[/hell freepass item]
+[item condition]
+3330
+[/item condition]
+[kinggoldenhorn kingsilverhorn condition]
+2680998
+[/kinggoldenhorn kingsilverhorn condition]
+[kinggoldenhorn kingsilverhorn allow level]
+71 85
+[/kinggoldenhorn kingsilverhorn allow level]

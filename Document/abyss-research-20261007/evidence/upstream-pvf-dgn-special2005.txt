@@ -1,0 +1,86 @@
+id 2005 -> Special/GentInfiltrate.dgn
+=== dungeon/Special/GentInfiltrate.dgn ===
+[name]
+决战哈尔特山
+[explain]
+    卡特勒被冒险家和根特精锐部队打败后， 剩下的残兵败将进入了根特北部的哈尔特山， 在那里建立了最后的堡垒。    他们的首领猎狗基辛格把吉赛尔丢弃的机器人改造为自己的武器， 用剩余的物资建造了一个巨大的导弹塔， 准备对根特进行反击。    冒险家， 潜入哈尔特山摧毁导弹塔， 消灭猎狗基辛格和他的残余部队吧！
+[cutscene image]
+Map/CutScene/GentEastGate.img 0
+[minimap image]
+Map/MiniMap/Act6.img
+[worldmap pattern info]
+1 4 WorldMap/SelectdungeonSlot/gent.img 8
+[minimum required level]
+63
+[basis level]
+66
+[experience increasing point]
+1.1
+[champion]
+3 25 40 60 60
+[pathgate object]
+8974 8973 8972 8971 8970 8969 8968 8967 8966 8965
+[maze info]
+[size]
+4 5
+[greed]
+AAJJMMAA
+ AALLHHMM
+ BBPPEEKK
+ AALLNNGG
+ AADDGGAA
+[map specification]
+map 0 2 17059 map 1 0 17071 map 2 0 32591 map 1 1 17061 map 2 1 17062 map 3 1 17063 map 3 2 17064 map 1 2 17060 map 1 3 17067 map 2 3 17066 map 3 3 17065 map 1 4 32592 map 2 4 17072 map 0 0 17069 boss 2 2 17068
+[/map specification]
+[start map]
+0 2
+[/start map]
+[boss map]
+2 2
+[/boss map]
+[escape hell]
+1
+[special dungeon]
+1
+[difficulty]
+1
+[designate dungeon difficulty]
+1
+[warp map condition]
+[source grid pos]
+2 1
+[dest grid pos]
+0 0
+[/warp map condition]
+[common timer]
+UI/Common/Timer_SP_GentInfiltrate.xui 777 573 23
+[boss room entrance condition]
+[clear action] [time condition] 1 0 [hunt monster] 2 69201 0 2 69210 0 2
+[clear condition]
+[clear map]
+list 2 17068 17069 1
+[/clear condition]
+[dungeon minimap icon setting]
+[grid]
+0 0 1 1 Common/MinimapIcon/gent_tower00.ani 1
+[grid]
+1 0 3 1 Common/MinimapIcon/gent_tower00.ani 1
+[grid]
+2 0 1 3 Common/MinimapIcon/gent_tower00.ani 1
+[grid]
+3 0 3 3 Common/MinimapIcon/gent_tower00.ani 1
+[/dungeon minimap icon setting]
+[use fatigue only start dungeon]
+8
+[/use fatigue only start dungeon]
+[prohibit practice]
+1
+[special passive object item]
+0 -1 1 3266 10000 1 -1 1 3270 9000 2 -1 1 3271 9000 3 -1 1 3272 6000 4 -1 1 10088439 10000 5 -1 1 3337 4000
+[/special passive object item]
+[recommend equipment]
+0 2 0 2 0 3 10 3 12 3
+[/recommend equipment]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]

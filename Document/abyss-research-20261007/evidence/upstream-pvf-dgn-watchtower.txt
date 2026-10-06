@@ -1,0 +1,239 @@
+id 190 -> CastleoftheDead\Wahchtower\Watchtower.dgn
+=== dungeon/CastleoftheDead\Wahchtower\Watchtower.dgn ===
+[name]
+倒悬的瞭望台
+[explain]
+    在魔界和天界之间制造一个次元裂缝并非易事， 因为只有赫尔德才能完美的掌握和使用转移的力量。 所以卢克在为巴卡尔建造寂静城时， 在顶部设置了一个精密的导航仪器， 以避免寂静城在迷宫般的异次元中迷失方向。 但在科学文明几近毁灭的魔界中寻找一个能运行精密导航仪器的系统几乎是一个不可能的任务。 只用齿轮和弹簧在短时间内根本无法做出那种拥有一定人工智能的系统， 虽然卢克已经完成了包括顶端悬空的瞭望台在内的所有寂静城的外部构造， 但导航系统却因智能无法达标而迟迟无法完成。 这时候卢克脑海中浮现了一个方案， 利用人类的大脑说不定就可以完美的解决这个问题。 随后艾尔丁纪念馆中号称拥有最完美大脑的一部何蒙库鲁兹悄无声息的消失了……
+[cutscene image]
+Map/CutScene/Castle_of_the_dead.img 0
+[minimap image]
+Map/MiniMap/Act6.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/CastleoftheDead.img 0
+[minimum required level]
+85
+[basis level]
+88
+[experience increasing point]
+1.6
+[champion]
+6 28 45 70 80
+[difficulty level]
+1 1 1 1 1
+[recommend equipment]
+0 2 0 2 0 3 12 3 12 6
+[/recommend equipment]
+[pathgate object]
+69053 69057 -1 69054 69058 -1 69051 69055 69052 69056
+[story mode]
+[difficulty size]
+2
+[first difficulty rate]
+100 100
+[increase difficulty rate]
+5 25
+[increase exp rate]
+0 30
+[quest list]
+3005 , 3007 , 3008 , 3009 ,
+[/quest list]
+[/story mode]
+[maze info]
+[size]
+5 4
+[greed]
+AAAAAAIIAA
+ AAAAAAKKAA
+ IIAAAALLMM
+ DDFFFFHHGG
+[map specification]
+map 3 0 38134 map 3 1 38135 boss 0 2 38136 map 3 2 38137 map 4 2 38138 map 0 3 38139 map 1 3 38140 map 2 3 38141 map 3 3 38142 map 4 3 38143
+[/map specification]
+[start map]
+3 0
+[/start map]
+[boss map]
+0 2
+[/boss map]
+[hell dungeon]
+1
+[seal door map index]
+60078
+[seal door pos]
+3 3
+[season seal door map index]
+91009
+[season seal door pos]
+3 1
+[hit count]
+50 50 50 50 50
+[seal door appear rate]
+10
+[maze info]
+[quest connection]
+0 3005 -1
+[size]
+4 3
+[greed]
+AAAAIIAA
+ JJFFGGAA
+ DDFFFFEE
+[map specification]
+map 2 0 43500 map 2 1 43501 map 1 1 43502 map 0 1 43503 map 0 2 43504 map 1 2 43505 map 2 2 43506 boss 3 2 43507
+[/map specification]
+[start map]
+2 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 3007 -1
+[size]
+5 3
+[greed]
+AAAAAABBMM
+ JJFFFFFFGG
+ CCAAAAAAAA
+[map specification]
+map 3 0 43508 map 4 0 43509 map 4 1 43510 map 3 1 43511 map 2 1 43512 map 1 1 43513 map 0 1 43514 boss 0 2 43515
+[/map specification]
+[start map]
+3 0
+[/start map]
+[boss map]
+0 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 3008 -1
+[size]
+4 3
+[greed]
+BBFFFFMM
+ AAAAJJGG
+ AAAACCAA
+[map specification]
+map 0 0 43516 map 1 0 43517 map 2 0 43518 map 3 0 43519 map 3 1 43520 map 2 1 43521 boss 2 2 43522
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 3009 -1
+[size]
+3 4
+[greed]
+AABBMM
+ JJFFGG
+ DDMMAA
+ AACCAA
+[map specification]
+map 1 0 43523 map 2 0 43524 map 2 1 43525 map 1 1 43526 map 0 1 43527 map 0 2 43528 map 1 2 43529 boss 1 3 43530
+[/map specification]
+[start map]
+1 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[escape hell]
+1
+[special passive object item]
+0 -1 1 10099829 2600 1 -1 1 10088439 10000 2 -1 1 10099777 2500
+[/special passive object item]
+[recommend party]
+> 1 > 2 > 2 > 3 > 4
+[/recommend party]
+[maze info]
+[quest connection]
+0 15080 -1
+[size]
+4 3
+[greed]
+AAAAIIAA
+JJFFGGAA
+DDFFFFEE
+[map specification]
+map 2 0 43500 map 2 1 43501 map 1 1 43502 map 0 1 43503 map 0 2 43504 map 1 2 43505 map 2 2 43506 boss 3 2 43507
+[/map specification]
+[start map]
+2 0
+[/start map]
+[boss map]
+3 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 15081 -1
+[size]
+5 3
+[greed]
+AAAAAABBMM
+JJFFFFFFGG
+CCAAAAAAAA
+[map specification]
+map 3 0 43508 map 4 0 43509 map 4 1 43510 map 3 1 43511 map 2 1 43512 map 1 1 43513 map 0 1 43514 boss 0 2 43515
+[/map specification]
+[start map]
+3 0
+[/start map]
+[boss map]
+0 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 15082 -1
+[size]
+4 3
+[greed]
+BBFFFFMM
+AAAAJJGG
+AAAACCAA
+[map specification]
+map 0 0 43516 map 1 0 43517 map 2 0 43518 map 3 0 43519 map 3 1 43520 map 2 1 43521 boss 2 2 43522
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 2
+[/boss map]
+[escape hell]
+1
+[maze info]
+[quest connection]
+0 15083 -1
+[size]
+3 4
+[greed]
+AABBMM
+JJFFGG
+DDMMAA
+AACCAA
+[map specification]
+map 1 0 43523 map 2 0 43524 map 2 1 43525 map 1 1 43526 map 0 1 43527 map 0 2 43528 map 1 2 43529 boss 1 3 43530
+[/map specification]
+[start map]
+1 0
+[/start map]
+[boss map]
+1 3
+[/boss map]
+[escape hell]
+1

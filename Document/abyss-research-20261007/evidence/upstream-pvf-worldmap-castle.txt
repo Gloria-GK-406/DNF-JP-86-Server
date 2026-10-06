@@ -1,0 +1,23 @@
+=== worldmap/CastleoftheDead.wdm ===
+[map image]
+WorldMap/CastleoftheDead.img 0
+[ui path]
+WorldMap/UI/CastleoftheDead.xui
+[dungeon]
+190 -1 191 -1 192 -1 193 -1 194 -1 195 3041 8012 -1
+[/dungeon]
+[name]
+寂静城
+[quick party]
+1
+[hell dungeon]
+1
+[hell quest]
+2002
+[/hell quest]
+[hell freepass item]
+490003092 1 490003314 1 490700622 1 490003362 1 490003168 1 490003222 1 490003358 1 490003066 1 490002858 1 2749403 1 2749501 1 2682582 1 2749535 1 2749911 1 10002090 1 10002197 1 10002586 1 10004045 1 10004046 1 490000338 1
+[/hell freepass item]
+[item condition]
+3330
+[/item condition]

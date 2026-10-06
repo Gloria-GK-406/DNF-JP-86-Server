@@ -1,5 +1,11 @@
 # NOTI `0x001D` `START_MAP`
 
+## 2026-10-07 深渊模式字节的证据边界
+
+RVA`00D57B30`先读取三u8、u32，再在正文offset7/8分别读取u8并写不同全局`VA03A5C8F9/03A5C8FA`，之后u32与u8。读取布局为**ClientStatic / Confirmed**；offset7的默认2、2是否表示普通模式或深渊强度等枚举含义尚未闭合，不能由当前上游/JP编码值直接断言客户端语义。
+
+本轮没有重新闭合全部演员、物品记录和条件尾，也没有深渊实际帧与UI验收。绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`；[原始前缀证据](../../../Document/abyss-research-20261007/client.md#地图通知真实前缀)。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

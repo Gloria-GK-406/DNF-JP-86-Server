@@ -779,7 +779,7 @@
 | `0x0410` | `BINGO_STAMP_INFO` | 布局已闭合 | `26` | [0x0410.md](client-to-server/0x0410.md) |
 | `0x0411` | `RETRY_BOOTER_INFO` | 布局已闭合 | `22` | [0x0411.md](client-to-server/0x0411.md) |
 | `0x0412` | `OLYMPIC_MEDAL_INFO` | 布局已闭合 | `1` | [0x0412.md](client-to-server/0x0412.md) |
-| `0x0413` | `VERY_DIFFICULT_HELL_PARTY` | 布局已闭合 | `18` | [0x0413.md](client-to-server/0x0413.md) |
+| `0x0413` | `VERY_DIFFICULT_HELL_PARTY` | ClientStatic（活动开关；wire边界未闭合） | 本地raw writer `18`；wire Unknown | [0x0413.md](client-to-server/0x0413.md) |
 | `0x0414` | `LEVEL_DECISION` | 布局已闭合 | `20` | [0x0414.md](client-to-server/0x0414.md) |
 | `0x0415` | `COMPOUND_FOR_DIAMETRICALLY_ITEM` | 布局已闭合 | `19` | [0x0415.md](client-to-server/0x0415.md) |
 | `0x0416` | `UNIQUE_ADVANCED_BIND_SHPERE` | 布局已闭合 | `62` | [0x0416.md](client-to-server/0x0416.md) |
@@ -835,7 +835,7 @@
 | `0x04BD` | `CARD_GAME_COMPOUND` | 布局已闭合 | `22` | [0x04BD.md](client-to-server/0x04BD.md) |
 | `0x04BE` | `GUILD_MODE_CHANGE_CHN` | 布局已闭合 | `15` | [0x04BE.md](client-to-server/0x04BE.md) |
 | `0x04C2` | `REQUEST_LAUNDRY` | 布局已闭合 | `19` | [0x04C2.md](client-to-server/0x04C2.md) |
-| `0x04C3` | `FRIENDSHIP_HELL_PARTY_SELECT` | 布局已闭合 | `18` | [0x04C3.md](client-to-server/0x04C3.md) |
+| `0x04C3` | `FRIENDSHIP_HELL_PARTY_SELECT` | ClientStatic（逐项选择；wire边界未闭合） | 本地raw writer `18`；wire Unknown | [0x04C3.md](client-to-server/0x04C3.md) |
 | `0x04C4` | `CONTRACT_OF_GUILD` | 布局已闭合 | `18` | [0x04C4.md](client-to-server/0x04C4.md) |
 | `0x04C5` | `GROW_BEANSTALK_NPC` | 布局已闭合 | `18` | [0x04C5.md](client-to-server/0x04C5.md) |
 | `0x04C6` | `NPC_GROW_UP_USE_ITEM` | 布局已闭合 | `18` | [0x04C6.md](client-to-server/0x04C6.md) |
@@ -1070,7 +1070,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x00CC` | `NEXON_CASH_EVENT` | 结构未知 | `—` | [NOTI-0x00CC.md](server-to-client/NOTI-0x00CC.md) |
 | `0x00CD` | `EXPERT_JOB_INFO` | 布局部分可得 | `≥ 2` | [NOTI-0x00CD.md](server-to-client/NOTI-0x00CD.md) |
 | `0x00CE` | `CREATE_DISJOINT_STORE` | 布局部分可得 | `≥ 12` | [NOTI-0x00CE.md](server-to-client/NOTI-0x00CE.md) |
-| `0x00CF` | `HELLPARTY_VALUE` | 布局部分可得 | `≥ 4` | [NOTI-0x00CF.md](server-to-client/NOTI-0x00CF.md) |
+| `0x00CF` | `HELLPARTY_VALUE` | ClientStatic（读取闭合；无深渊实机验收） | 消费 `4` | [NOTI-0x00CF.md](server-to-client/NOTI-0x00CF.md) |
 | `0x00D0` | `BLOOD_DUNGEON_STATE_RANKING` | 布局部分可得 | `≥ 24` | [NOTI-0x00D0.md](server-to-client/NOTI-0x00D0.md) |
 | `0x00D1` | `BLOOD_DUNGEON_STATE_REWARD` | 布局部分可得 | `≥ 2 + n×9` | [NOTI-0x00D1.md](server-to-client/NOTI-0x00D1.md) |
 | `0x00D2` | `BLOOD_MONSTER_SPAWN` | 布局部分可得 | `≥ 4 + n×17` | [NOTI-0x00D2.md](server-to-client/NOTI-0x00D2.md) |
@@ -1450,7 +1450,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x02A4` | `REAL_ESTATE_GOLD_CARD_INFO` | 布局部分可得 | `≥ 1 + n×3` | [NOTI-0x02A4.md](server-to-client/NOTI-0x02A4.md) |
 | `0x02A5` | `REAL_ESTATE_TAX_INFO` | 结构未知 | `—` | [NOTI-0x02A5.md](server-to-client/NOTI-0x02A5.md) |
 | `0x02A6` | `REAL_ESTATE_REWARD_INFO` | 布局部分可得 | `≥ 1 + n×14` | [NOTI-0x02A6.md](server-to-client/NOTI-0x02A6.md) |
-| `0x02A7` | `HELL_PARTY_MONSTER_INFO` | 布局部分可得 | `≥ 4 + n×8` | [NOTI-0x02A7.md](server-to-client/NOTI-0x02A7.md) |
+| `0x02A7` | `HELL_PARTY_MONSTER_INFO` | ClientStatic（索引/等级列表；非重连PartyId） | 消费 `4 + n×8` | [NOTI-0x02A7.md](server-to-client/NOTI-0x02A7.md) |
 | `0x02A8` | `DISCONN_DUNGEON_INFO` | 布局部分可得 | `≥ 9` | [NOTI-0x02A8.md](server-to-client/NOTI-0x02A8.md) |
 | `0x02A9` | `REJOIN_DUNGEON` | 布局部分可得 | `≥ 2` | [NOTI-0x02A9.md](server-to-client/NOTI-0x02A9.md) |
 | `0x02AA` | `CANCEL_REJOIN_DUNGEON` | 布局部分可得 | `≥ 2` | [NOTI-0x02AA.md](server-to-client/NOTI-0x02AA.md) |
@@ -1521,7 +1521,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x02FB` | `LICENSE_DUNGEON_INCOUNT_INFO` | 布局部分可得 | `≥ 1` | [NOTI-0x02FB.md](server-to-client/NOTI-0x02FB.md) |
 | `0x02FC` | `ANCIENT_GATE_VALUE` | 布局部分可得 | `≥ 4` | [NOTI-0x02FC.md](server-to-client/NOTI-0x02FC.md) |
 | `0x030D` | `ITEM_AVERAGE_PRICE_LIST` | 布局部分可得 | `≥ 3 + n×10` | [NOTI-0x030D.md](server-to-client/NOTI-0x030D.md) |
-| `0x030E` | `HELL_PARTY_CLEAR` | 结构未知 | `—` | [NOTI-0x030E.md](server-to-client/NOTI-0x030E.md) |
+| `0x030E` | `HELL_PARTY_CLEAR` | ClientStatic（纯事件入口；实际wire待采样） | 消费 `0` | [NOTI-0x030E.md](server-to-client/NOTI-0x030E.md) |
 | `0x030F` | `USE_BINGO_BOX_RESULT` | 布局部分可得 | `≥ 1` | [NOTI-0x030F.md](server-to-client/NOTI-0x030F.md) |
 | `0x0310` | `PROPER_DUNGEON_EVENT` | 结构未知 | `—` | [NOTI-0x0310.md](server-to-client/NOTI-0x0310.md) |
 | `0x0312` | `CREATE_CHARAC_FIRST_LOGIN` | 结构未知 | `—` | [NOTI-0x0312.md](server-to-client/NOTI-0x0312.md) |
@@ -1668,7 +1668,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x042B` | `GOLD_SILVER_HORN_INFO` | 布局部分可得 | `≥ 4` | [NOTI-0x042B.md](server-to-client/NOTI-0x042B.md) |
 | `0x042D` | `EVENT_TOTAL_ATTENDANCE` | 布局部分可得 | `≥ 450` | [NOTI-0x042D.md](server-to-client/NOTI-0x042D.md) |
 | `0x042F` | `LEGEND_SWORD_INFO` | 布局部分可得 | `≥ 46` | [NOTI-0x042F.md](server-to-client/NOTI-0x042F.md) |
-| `0x0431` | `HELL_PARTY_BOOSTER_GAGE` | 布局部分可得 | `≥ 8` | [NOTI-0x0431.md](server-to-client/NOTI-0x0431.md) |
+| `0x0431` | `HELL_PARTY_BOOSTER_GAGE` | ClientStatic（两标量；业务单位未闭合） | 消费 `8` | [NOTI-0x0431.md](server-to-client/NOTI-0x0431.md) |
 | `0x0432` | `DUNGEON_ENTER_COUNT_INFO_INACCOUNT` | 布局部分可得 | `≥ 1 + n×8` | [NOTI-0x0432.md](server-to-client/NOTI-0x0432.md) |
 | `0x0434` | `EVENT_VALUE_TO_CLIENT` | 布局部分可得 | `≥ 20` | [NOTI-0x0434.md](server-to-client/NOTI-0x0434.md) |
 | `0x0435` | `EVENT_ROULETTE_BUFF` | 结构未知 | `—` | [NOTI-0x0435.md](server-to-client/NOTI-0x0435.md) |
@@ -1694,7 +1694,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x048A` | `FISHING_EVENT_ATTENDANCE` | 布局部分可得 | `≥ 6` | [NOTI-0x048A.md](server-to-client/NOTI-0x048A.md) |
 | `0x0499` | `CARD_GAME_REWARD_DATA` | 布局部分可得 | `≥ 51` | [NOTI-0x0499.md](server-to-client/NOTI-0x0499.md) |
 | `0x049A` | `ACCOUNT_DUNGEON_INOUT_COUNT` | 布局部分可得 | `≥ 5` | [NOTI-0x049A.md](server-to-client/NOTI-0x049A.md) |
-| `0x049C` | `FRIENDSHIP_HELL_PARTY_INFO` | 布局部分可得 | `≥ 32` | [NOTI-0x049C.md](server-to-client/NOTI-0x049C.md) |
+| `0x049C` | `FRIENDSHIP_HELL_PARTY_INFO` | ClientStatic（UI信息块；业务字段未知） | 消费 `32` | [NOTI-0x049C.md](server-to-client/NOTI-0x049C.md) |
 | `0x049D` | `INTEGRATE_EVENT_DATA` | 布局部分可得 | `—` | [NOTI-0x049D.md](server-to-client/NOTI-0x049D.md) |
 | `0x049E` | `P1_DATA` | 布局部分可得 | `≥ 292` | [NOTI-0x049E.md](server-to-client/NOTI-0x049E.md) |
 | `0x049F` | `P1_DAILY_DATA` | 布局部分可得 | `≥ 15` | [NOTI-0x049F.md](server-to-client/NOTI-0x049F.md) |

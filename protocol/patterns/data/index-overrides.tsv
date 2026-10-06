@@ -17,3 +17,10 @@ S2C	NOTI	0x000B	Implemented（双端已上报建队 UI 通过；待逐帧归因/
 S2C	NOTI	0x001A	ClientVerified（A21 换队长时 host slot 1，与 0x0009 type 2 成对验证；单帧效应未隔离）	`1`
 S2C	NOTI	0x0018	ClientVerified（A21 gate/normal audience）	`≥ 12`
 S2C	NOTI	0x0099	ClientVerified（A21 双端初始 HP）	`1 + n×5`
+S2C	NOTI	0x00CF	ClientStatic（读取闭合；无深渊实机验收）	消费 `4`
+S2C	NOTI	0x02A7	ClientStatic（索引/等级列表；非重连PartyId）	消费 `4 + n×8`
+S2C	NOTI	0x030E	ClientStatic（纯事件入口；实际wire待采样）	消费 `0`
+S2C	NOTI	0x0431	ClientStatic（两标量；业务单位未闭合）	消费 `8`
+S2C	NOTI	0x049C	ClientStatic（UI信息块；业务字段未知）	消费 `32`
+C2S	CMD	0x0413	ClientStatic（活动开关；wire边界未闭合）	本地raw writer `18`；wire Unknown
+C2S	CMD	0x04C3	ClientStatic（逐项选择；wire边界未闭合）	本地raw writer `18`；wire Unknown

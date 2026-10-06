@@ -1,0 +1,460 @@
+
+FUNCTION 085334ea size=230 _ZN8WongWork21CGenerateRandomNumberC1Ei
+085334ea: 55                   push     ebp
+085334eb: 89e5                 mov      ebp, esp
+085334ed: 57                   push     edi
+085334ee: 56                   push     esi
+085334ef: 53                   push     ebx
+085334f0: 83ec2c               sub      esp, 0x2c
+085334f3: 8b4508               mov      eax, dword ptr [ebp + 8]
+085334f6: 8b550c               mov      edx, dword ptr [ebp + 0xc]
+085334f9: 895004               mov      dword ptr [eax + 4], edx
+085334fc: 837d0c00             cmp      dword ptr [ebp + 0xc], 0
+08533500: 0f84c2000000         je       0x85335c8
+08533506: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533509: 8b4004               mov      eax, dword ptr [eax + 4]
+0853350c: 89c7                 mov      edi, eax
+0853350e: 69c7c8090000         imul     eax, edi, 0x9c8
+08533514: 890424               mov      dword ptr [esp], eax
+08533517: e8a4f81e00           call     0x8722dc0                           _Znaj
+0853351c: 89c3                 mov      ebx, eax
+0853351e: 89d8                 mov      eax, ebx
+08533520: 89c6                 mov      esi, eax
+08533522: 8d47ff               lea      eax, [edi - 1]
+08533525: 89c7                 mov      edi, eax
+08533527: eb11                 jmp      0x853353a
+08533529: 893424               mov      dword ptr [esp], esi
+0853352c: e8176abaff           call     0x80d9f48                           _ZN7CMTRandC2Ev
+08533531: 81c6c8090000         add      esi, 0x9c8
+08533537: 83ef01               sub      edi, 1
+0853353a: 83ffff               cmp      edi, -1
+0853353d: 0f95c0               setne    al
+08533540: 84c0                 test     al, al
+08533542: 75e5                 jne      0x8533529
+08533544: 89da                 mov      edx, ebx
+08533546: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533549: 8910                 mov      dword ptr [eax], edx
+0853354b: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+08533552: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+08533559: eb50                 jmp      0x85335ab
+0853355b: 89d6                 mov      esi, edx
+0853355d: 89c7                 mov      edi, eax
+0853355f: 891c24               mov      dword ptr [esp], ebx
+08533562: e849161f00           call     0x8724bb0                           _ZdaPv
+08533567: 89f8                 mov      eax, edi
+08533569: 89f2                 mov      edx, esi
+0853356b: 890424               mov      dword ptr [esp], eax
+0853356e: e8dd015b00           call     0x8ae3750                           _Unwind_Resume
+08533573: c7042400000000       mov      dword ptr [esp], 0
+0853357a: e8d1a1b4ff           call     0x807d750
+0853357f: 8b15ccde4309         mov      edx, dword ptr [0x943decc]
+08533585: 01d0                 add      eax, edx
+08533587: 0345e4               add      eax, dword ptr [ebp - 0x1c]
+0853358a: 8b5508               mov      edx, dword ptr [ebp + 8]
+0853358d: 8b0a                 mov      ecx, dword ptr [edx]
+0853358f: 8b55e4               mov      edx, dword ptr [ebp - 0x1c]
+08533592: 69d2c8090000         imul     edx, edx, 0x9c8
+08533598: 8d1411               lea      edx, [ecx + edx]
+0853359b: 89442404             mov      dword ptr [esp + 4], eax
+0853359f: 891424               mov      dword ptr [esp], edx
+085335a2: e87785b9ff           call     0x80cbb1e                           _ZN7CMTRand4seedEm
+085335a7: 8345e401             add      dword ptr [ebp - 0x1c], 1
+085335ab: 8b4508               mov      eax, dword ptr [ebp + 8]
+085335ae: 8b4004               mov      eax, dword ptr [eax + 4]
+085335b1: 3b45e4               cmp      eax, dword ptr [ebp - 0x1c]
+085335b4: 0f9fc0               setg     al
+085335b7: 84c0                 test     al, al
+085335b9: 75b8                 jne      0x8533573
+085335bb: a1ccde4309           mov      eax, dword ptr [0x943decc]
+085335c0: 0345e4               add      eax, dword ptr [ebp - 0x1c]
+085335c3: a3ccde4309           mov      dword ptr [0x943decc], eax
+085335c8: 83c42c               add      esp, 0x2c
+085335cb: 5b                   pop      ebx
+085335cc: 5e                   pop      esi
+085335cd: 5f                   pop      edi
+085335ce: 5d                   pop      ebp
+085335cf: c3                   ret
+
+FUNCTION 085334ea size=230 _ZN8WongWork21CGenerateRandomNumberC2Ei
+085334ea: 55                   push     ebp
+085334eb: 89e5                 mov      ebp, esp
+085334ed: 57                   push     edi
+085334ee: 56                   push     esi
+085334ef: 53                   push     ebx
+085334f0: 83ec2c               sub      esp, 0x2c
+085334f3: 8b4508               mov      eax, dword ptr [ebp + 8]
+085334f6: 8b550c               mov      edx, dword ptr [ebp + 0xc]
+085334f9: 895004               mov      dword ptr [eax + 4], edx
+085334fc: 837d0c00             cmp      dword ptr [ebp + 0xc], 0
+08533500: 0f84c2000000         je       0x85335c8
+08533506: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533509: 8b4004               mov      eax, dword ptr [eax + 4]
+0853350c: 89c7                 mov      edi, eax
+0853350e: 69c7c8090000         imul     eax, edi, 0x9c8
+08533514: 890424               mov      dword ptr [esp], eax
+08533517: e8a4f81e00           call     0x8722dc0                           _Znaj
+0853351c: 89c3                 mov      ebx, eax
+0853351e: 89d8                 mov      eax, ebx
+08533520: 89c6                 mov      esi, eax
+08533522: 8d47ff               lea      eax, [edi - 1]
+08533525: 89c7                 mov      edi, eax
+08533527: eb11                 jmp      0x853353a
+08533529: 893424               mov      dword ptr [esp], esi
+0853352c: e8176abaff           call     0x80d9f48                           _ZN7CMTRandC2Ev
+08533531: 81c6c8090000         add      esi, 0x9c8
+08533537: 83ef01               sub      edi, 1
+0853353a: 83ffff               cmp      edi, -1
+0853353d: 0f95c0               setne    al
+08533540: 84c0                 test     al, al
+08533542: 75e5                 jne      0x8533529
+08533544: 89da                 mov      edx, ebx
+08533546: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533549: 8910                 mov      dword ptr [eax], edx
+0853354b: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+08533552: c745e400000000       mov      dword ptr [ebp - 0x1c], 0
+08533559: eb50                 jmp      0x85335ab
+0853355b: 89d6                 mov      esi, edx
+0853355d: 89c7                 mov      edi, eax
+0853355f: 891c24               mov      dword ptr [esp], ebx
+08533562: e849161f00           call     0x8724bb0                           _ZdaPv
+08533567: 89f8                 mov      eax, edi
+08533569: 89f2                 mov      edx, esi
+0853356b: 890424               mov      dword ptr [esp], eax
+0853356e: e8dd015b00           call     0x8ae3750                           _Unwind_Resume
+08533573: c7042400000000       mov      dword ptr [esp], 0
+0853357a: e8d1a1b4ff           call     0x807d750
+0853357f: 8b15ccde4309         mov      edx, dword ptr [0x943decc]
+08533585: 01d0                 add      eax, edx
+08533587: 0345e4               add      eax, dword ptr [ebp - 0x1c]
+0853358a: 8b5508               mov      edx, dword ptr [ebp + 8]
+0853358d: 8b0a                 mov      ecx, dword ptr [edx]
+0853358f: 8b55e4               mov      edx, dword ptr [ebp - 0x1c]
+08533592: 69d2c8090000         imul     edx, edx, 0x9c8
+08533598: 8d1411               lea      edx, [ecx + edx]
+0853359b: 89442404             mov      dword ptr [esp + 4], eax
+0853359f: 891424               mov      dword ptr [esp], edx
+085335a2: e87785b9ff           call     0x80cbb1e                           _ZN7CMTRand4seedEm
+085335a7: 8345e401             add      dword ptr [ebp - 0x1c], 1
+085335ab: 8b4508               mov      eax, dword ptr [ebp + 8]
+085335ae: 8b4004               mov      eax, dword ptr [eax + 4]
+085335b1: 3b45e4               cmp      eax, dword ptr [ebp - 0x1c]
+085335b4: 0f9fc0               setg     al
+085335b7: 84c0                 test     al, al
+085335b9: 75b8                 jne      0x8533573
+085335bb: a1ccde4309           mov      eax, dword ptr [0x943decc]
+085335c0: 0345e4               add      eax, dword ptr [ebp - 0x1c]
+085335c3: a3ccde4309           mov      dword ptr [0x943decc], eax
+085335c8: 83c42c               add      esp, 0x2c
+085335cb: 5b                   pop      ebx
+085335cc: 5e                   pop      esi
+085335cd: 5f                   pop      edi
+085335ce: 5d                   pop      ebp
+085335cf: c3                   ret
+
+FUNCTION 08533b3e size=91 _ZN8WongWork14CItemGeneratorC1Ei
+08533b3e: 55                   push     ebp
+08533b3f: 89e5                 mov      ebp, esp
+08533b41: 56                   push     esi
+08533b42: 53                   push     ebx
+08533b43: 83ec10               sub      esp, 0x10
+08533b46: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b49: c70090a7c908         mov      dword ptr [eax], 0x8c9a790
+08533b4f: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b52: 8d5008               lea      edx, [eax + 8]
+08533b55: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+08533b58: 89442404             mov      dword ptr [esp + 4], eax
+08533b5c: 891424               mov      dword ptr [esp], edx
+08533b5f: e886f9ffff           call     0x85334ea                           _ZN8WongWork21CGenerateRandomNumberC2Ei
+08533b64: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b67: 83c010               add      eax, 0x10
+08533b6a: 890424               mov      dword ptr [esp], eax
+08533b6d: e87cfaffff           call     0x85335ee                           _ZN8WongWork21GenerateRandomUpgradeC2Ev
+08533b72: eb1e                 jmp      0x8533b92
+08533b74: 89d3                 mov      ebx, edx
+08533b76: 89c6                 mov      esi, eax
+08533b78: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b7b: 83c008               add      eax, 8
+08533b7e: 890424               mov      dword ptr [esp], eax
+08533b81: e84afaffff           call     0x85335d0                           _ZN8WongWork21CGenerateRandomNumberD2Ev
+08533b86: 89f0                 mov      eax, esi
+08533b88: 89da                 mov      edx, ebx
+08533b8a: 890424               mov      dword ptr [esp], eax
+08533b8d: e8befb5a00           call     0x8ae3750                           _Unwind_Resume
+08533b92: 83c410               add      esp, 0x10
+08533b95: 5b                   pop      ebx
+08533b96: 5e                   pop      esi
+08533b97: 5d                   pop      ebp
+08533b98: c3                   ret
+
+FUNCTION 08533b3e size=91 _ZN8WongWork14CItemGeneratorC2Ei
+08533b3e: 55                   push     ebp
+08533b3f: 89e5                 mov      ebp, esp
+08533b41: 56                   push     esi
+08533b42: 53                   push     ebx
+08533b43: 83ec10               sub      esp, 0x10
+08533b46: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b49: c70090a7c908         mov      dword ptr [eax], 0x8c9a790
+08533b4f: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b52: 8d5008               lea      edx, [eax + 8]
+08533b55: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+08533b58: 89442404             mov      dword ptr [esp + 4], eax
+08533b5c: 891424               mov      dword ptr [esp], edx
+08533b5f: e886f9ffff           call     0x85334ea                           _ZN8WongWork21CGenerateRandomNumberC2Ei
+08533b64: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b67: 83c010               add      eax, 0x10
+08533b6a: 890424               mov      dword ptr [esp], eax
+08533b6d: e87cfaffff           call     0x85335ee                           _ZN8WongWork21GenerateRandomUpgradeC2Ev
+08533b72: eb1e                 jmp      0x8533b92
+08533b74: 89d3                 mov      ebx, edx
+08533b76: 89c6                 mov      esi, eax
+08533b78: 8b4508               mov      eax, dword ptr [ebp + 8]
+08533b7b: 83c008               add      eax, 8
+08533b7e: 890424               mov      dword ptr [esp], eax
+08533b81: e84afaffff           call     0x85335d0                           _ZN8WongWork21CGenerateRandomNumberD2Ev
+08533b86: 89f0                 mov      eax, esi
+08533b88: 89da                 mov      edx, ebx
+08533b8a: 890424               mov      dword ptr [esp], eax
+08533b8d: e8befb5a00           call     0x8ae3750                           _Unwind_Resume
+08533b92: 83c410               add      esp, 0x10
+08533b95: 5b                   pop      ebx
+08533b96: 5e                   pop      esi
+08533b97: 5d                   pop      ebp
+08533b98: c3                   ret
+
+FUNCTION 085380fa size=143 _ZN8WongWork12CMonsterDrop10loadScriptEPKcS2_S2_
+085380fa: 55                   push     ebp
+085380fb: 89e5                 mov      ebp, esp
+085380fd: 83ec28               sub      esp, 0x28
+08538100: 8b4508               mov      eax, dword ptr [ebp + 8]
+08538103: 8b00                 mov      eax, dword ptr [eax]
+08538105: 83c004               add      eax, 4
+08538108: 8b10                 mov      edx, dword ptr [eax]
+0853810a: 8b450c               mov      eax, dword ptr [ebp + 0xc]
+0853810d: 89442404             mov      dword ptr [esp + 4], eax
+08538111: 8b4508               mov      eax, dword ptr [ebp + 8]
+08538114: 890424               mov      dword ptr [esp], eax
+08538117: ffd2                 call     edx
+08538119: 85c0                 test     eax, eax
+0853811b: 0f95c0               setne    al
+0853811e: 84c0                 test     al, al
+08538120: 7407                 je       0x8538129
+08538122: b815070000           mov      eax, 0x715
+08538127: eb5e                 jmp      0x8538187
+08538129: c745f400000000       mov      dword ptr [ebp - 0xc], 0
+08538130: 8b4508               mov      eax, dword ptr [ebp + 8]
+08538133: 8d90ac380200         lea      edx, [eax + 0x238ac]
+08538139: 8b4510               mov      eax, dword ptr [ebp + 0x10]
+0853813c: 89442404             mov      dword ptr [esp + 4], eax
+08538140: 891424               mov      dword ptr [esp], edx
+08538143: e8fcd1ffff           call     0x8535344                           _ZN8WongWork17CMonsterDrop_Hell10loadScriptEPKc
+08538148: 8945f4               mov      dword ptr [ebp - 0xc], eax
+0853814b: 837df400             cmp      dword ptr [ebp - 0xc], 0
+0853814f: 7405                 je       0x8538156
+08538151: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+08538154: eb31                 jmp      0x8538187
+08538156: 837d1400             cmp      dword ptr [ebp + 0x14], 0
+0853815a: 7426                 je       0x8538182
+0853815c: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853815f: 8d906c700400         lea      edx, [eax + 0x4706c]
+08538165: 8b4514               mov      eax, dword ptr [ebp + 0x14]
+08538168: 89442404             mov      dword ptr [esp + 4], eax
+0853816c: 891424               mov      dword ptr [esp], edx
+0853816f: e87af2ffff           call     0x85373ee                           _ZN8WongWork19CSpecialMonsterDrop10loadScriptEPKc
+08538174: 8945f4               mov      dword ptr [ebp - 0xc], eax
+08538177: 837df400             cmp      dword ptr [ebp - 0xc], 0
+0853817b: 7405                 je       0x8538182
+0853817d: 8b45f4               mov      eax, dword ptr [ebp - 0xc]
+08538180: eb05                 jmp      0x8538187
+08538182: b800000000           mov      eax, 0
+08538187: c9                   leave
+08538188: c3                   ret
+
+FUNCTION 0853a6c8 size=304 _ZN8WongWork12CMonsterDropC1Ei
+0853a6c8: 55                   push     ebp
+0853a6c9: 89e5                 mov      ebp, esp
+0853a6cb: 56                   push     esi
+0853a6cc: 53                   push     ebx
+0853a6cd: 83ec10               sub      esp, 0x10
+0853a6d0: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6d3: 8b550c               mov      edx, dword ptr [ebp + 0xc]
+0853a6d6: 89542404             mov      dword ptr [esp + 4], edx
+0853a6da: 890424               mov      dword ptr [esp], eax
+0853a6dd: e85c94ffff           call     0x8533b3e                           _ZN8WongWork14CItemGeneratorC2Ei
+0853a6e2: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6e5: c70048a7c908         mov      dword ptr [eax], 0x8c9a748
+0853a6eb: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6ee: 83c018               add      eax, 0x18
+0853a6f1: 890424               mov      dword ptr [esp], eax
+0853a6f4: e823060000           call     0x853ad1c                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EEC2Ev
+0853a6f9: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6fc: 83c024               add      eax, 0x24
+0853a6ff: 890424               mov      dword ptr [esp], eax
+0853a702: e815060000           call     0x853ad1c                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EEC2Ev
+0853a707: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a70a: 0540030000           add      eax, 0x340
+0853a70f: 890424               mov      dword ptr [esp], eax
+0853a712: e84ff7ffff           call     0x8539e66                           _ZN8WongWork17CItemGenRateTableC2Ev
+0853a717: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a71a: 05ac380200           add      eax, 0x238ac
+0853a71f: c744240402000000     mov      dword ptr [esp + 4], 2
+0853a727: 890424               mov      dword ptr [esp], eax
+0853a72a: e83bfeffff           call     0x853a56a                           _ZN8WongWork17CMonsterDrop_HellC2Ei
+0853a72f: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a732: 056c700400           add      eax, 0x4706c
+0853a737: c744240403000000     mov      dword ptr [esp + 4], 3
+0853a73f: 890424               mov      dword ptr [esp], eax
+0853a742: e8dffcffff           call     0x853a426                           _ZN8WongWork19CSpecialMonsterDropC2Ei
+0853a747: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a74a: 0578932500           add      eax, 0x259378
+0853a74f: 890424               mov      dword ptr [esp], eax
+0853a752: e857ffffff           call     0x853a6ae                           _ZN8WongWork12CMonsterDrop25stFirstMobHuntingWeight_tC2Ev
+0853a757: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a75a: c7808093250001000000 mov      dword ptr [eax + 0x259380], 1
+0853a764: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a767: ba0000803f           mov      edx, 0x3f800000
+0853a76c: 899084932500         mov      dword ptr [eax + 0x259384], edx
+0853a772: 83c410               add      esp, 0x10
+0853a775: 5b                   pop      ebx
+0853a776: 5e                   pop      esi
+0853a777: 5d                   pop      ebp
+0853a778: c3                   ret
+0853a779: 89d3                 mov      ebx, edx
+0853a77b: 89c6                 mov      esi, eax
+0853a77d: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a780: 05ac380200           add      eax, 0x238ac
+0853a785: 890424               mov      dword ptr [esp], eax
+0853a788: e881feffff           call     0x853a60e                           _ZN8WongWork17CMonsterDrop_HellD2Ev
+0853a78d: 89f0                 mov      eax, esi
+0853a78f: 89da                 mov      edx, ebx
+0853a791: eb00                 jmp      0x853a793
+0853a793: 89d3                 mov      ebx, edx
+0853a795: 89c6                 mov      esi, eax
+0853a797: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a79a: 0540030000           add      eax, 0x340
+0853a79f: 890424               mov      dword ptr [esp], eax
+0853a7a2: e889f8ffff           call     0x853a030                           _ZN8WongWork17CItemGenRateTableD2Ev
+0853a7a7: 89f0                 mov      eax, esi
+0853a7a9: 89da                 mov      edx, ebx
+0853a7ab: eb00                 jmp      0x853a7ad
+0853a7ad: 89d3                 mov      ebx, edx
+0853a7af: 89c6                 mov      esi, eax
+0853a7b1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a7b4: 83c024               add      eax, 0x24
+0853a7b7: 890424               mov      dword ptr [esp], eax
+0853a7ba: e871050000           call     0x853ad30                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EED2Ev
+0853a7bf: 89f0                 mov      eax, esi
+0853a7c1: 89da                 mov      edx, ebx
+0853a7c3: eb00                 jmp      0x853a7c5
+0853a7c5: 89d3                 mov      ebx, edx
+0853a7c7: 89c6                 mov      esi, eax
+0853a7c9: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a7cc: 83c018               add      eax, 0x18
+0853a7cf: 890424               mov      dword ptr [esp], eax
+0853a7d2: e859050000           call     0x853ad30                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EED2Ev
+0853a7d7: 89f0                 mov      eax, esi
+0853a7d9: 89da                 mov      edx, ebx
+0853a7db: eb00                 jmp      0x853a7dd
+0853a7dd: 89d3                 mov      ebx, edx
+0853a7df: 89c6                 mov      esi, eax
+0853a7e1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a7e4: 890424               mov      dword ptr [esp], eax
+0853a7e7: e8ae93ffff           call     0x8533b9a                           _ZN8WongWork14CItemGeneratorD2Ev
+0853a7ec: 89f0                 mov      eax, esi
+0853a7ee: 89da                 mov      edx, ebx
+0853a7f0: 890424               mov      dword ptr [esp], eax
+0853a7f3: e8588f5a00           call     0x8ae3750                           _Unwind_Resume
+
+FUNCTION 0853a6c8 size=304 _ZN8WongWork12CMonsterDropC2Ei
+0853a6c8: 55                   push     ebp
+0853a6c9: 89e5                 mov      ebp, esp
+0853a6cb: 56                   push     esi
+0853a6cc: 53                   push     ebx
+0853a6cd: 83ec10               sub      esp, 0x10
+0853a6d0: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6d3: 8b550c               mov      edx, dword ptr [ebp + 0xc]
+0853a6d6: 89542404             mov      dword ptr [esp + 4], edx
+0853a6da: 890424               mov      dword ptr [esp], eax
+0853a6dd: e85c94ffff           call     0x8533b3e                           _ZN8WongWork14CItemGeneratorC2Ei
+0853a6e2: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6e5: c70048a7c908         mov      dword ptr [eax], 0x8c9a748
+0853a6eb: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6ee: 83c018               add      eax, 0x18
+0853a6f1: 890424               mov      dword ptr [esp], eax
+0853a6f4: e823060000           call     0x853ad1c                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EEC2Ev
+0853a6f9: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a6fc: 83c024               add      eax, 0x24
+0853a6ff: 890424               mov      dword ptr [esp], eax
+0853a702: e815060000           call     0x853ad1c                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EEC2Ev
+0853a707: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a70a: 0540030000           add      eax, 0x340
+0853a70f: 890424               mov      dword ptr [esp], eax
+0853a712: e84ff7ffff           call     0x8539e66                           _ZN8WongWork17CItemGenRateTableC2Ev
+0853a717: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a71a: 05ac380200           add      eax, 0x238ac
+0853a71f: c744240402000000     mov      dword ptr [esp + 4], 2
+0853a727: 890424               mov      dword ptr [esp], eax
+0853a72a: e83bfeffff           call     0x853a56a                           _ZN8WongWork17CMonsterDrop_HellC2Ei
+0853a72f: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a732: 056c700400           add      eax, 0x4706c
+0853a737: c744240403000000     mov      dword ptr [esp + 4], 3
+0853a73f: 890424               mov      dword ptr [esp], eax
+0853a742: e8dffcffff           call     0x853a426                           _ZN8WongWork19CSpecialMonsterDropC2Ei
+0853a747: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a74a: 0578932500           add      eax, 0x259378
+0853a74f: 890424               mov      dword ptr [esp], eax
+0853a752: e857ffffff           call     0x853a6ae                           _ZN8WongWork12CMonsterDrop25stFirstMobHuntingWeight_tC2Ev
+0853a757: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a75a: c7808093250001000000 mov      dword ptr [eax + 0x259380], 1
+0853a764: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a767: ba0000803f           mov      edx, 0x3f800000
+0853a76c: 899084932500         mov      dword ptr [eax + 0x259384], edx
+0853a772: 83c410               add      esp, 0x10
+0853a775: 5b                   pop      ebx
+0853a776: 5e                   pop      esi
+0853a777: 5d                   pop      ebp
+0853a778: c3                   ret
+0853a779: 89d3                 mov      ebx, edx
+0853a77b: 89c6                 mov      esi, eax
+0853a77d: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a780: 05ac380200           add      eax, 0x238ac
+0853a785: 890424               mov      dword ptr [esp], eax
+0853a788: e881feffff           call     0x853a60e                           _ZN8WongWork17CMonsterDrop_HellD2Ev
+0853a78d: 89f0                 mov      eax, esi
+0853a78f: 89da                 mov      edx, ebx
+0853a791: eb00                 jmp      0x853a793
+0853a793: 89d3                 mov      ebx, edx
+0853a795: 89c6                 mov      esi, eax
+0853a797: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a79a: 0540030000           add      eax, 0x340
+0853a79f: 890424               mov      dword ptr [esp], eax
+0853a7a2: e889f8ffff           call     0x853a030                           _ZN8WongWork17CItemGenRateTableD2Ev
+0853a7a7: 89f0                 mov      eax, esi
+0853a7a9: 89da                 mov      edx, ebx
+0853a7ab: eb00                 jmp      0x853a7ad
+0853a7ad: 89d3                 mov      ebx, edx
+0853a7af: 89c6                 mov      esi, eax
+0853a7b1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a7b4: 83c024               add      eax, 0x24
+0853a7b7: 890424               mov      dword ptr [esp], eax
+0853a7ba: e871050000           call     0x853ad30                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EED2Ev
+0853a7bf: 89f0                 mov      eax, esi
+0853a7c1: 89da                 mov      edx, ebx
+0853a7c3: eb00                 jmp      0x853a7c5
+0853a7c5: 89d3                 mov      ebx, edx
+0853a7c7: 89c6                 mov      esi, eax
+0853a7c9: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a7cc: 83c018               add      eax, 0x18
+0853a7cf: 890424               mov      dword ptr [esp], eax
+0853a7d2: e859050000           call     0x853ad30                           _ZNSt6vectorIN8WongWork12CMonsterDrop15stGenItemProb_tESaIS2_EED2Ev
+0853a7d7: 89f0                 mov      eax, esi
+0853a7d9: 89da                 mov      edx, ebx
+0853a7db: eb00                 jmp      0x853a7dd
+0853a7dd: 89d3                 mov      ebx, edx
+0853a7df: 89c6                 mov      esi, eax
+0853a7e1: 8b4508               mov      eax, dword ptr [ebp + 8]
+0853a7e4: 890424               mov      dword ptr [esp], eax
+0853a7e7: e8ae93ffff           call     0x8533b9a                           _ZN8WongWork14CItemGeneratorD2Ev
+0853a7ec: 89f0                 mov      eax, esi
+0853a7ee: 89da                 mov      edx, ebx
+0853a7f0: 890424               mov      dword ptr [esp], eax
+0853a7f3: e8588f5a00           call     0x8ae3750                           _Unwind_Resume

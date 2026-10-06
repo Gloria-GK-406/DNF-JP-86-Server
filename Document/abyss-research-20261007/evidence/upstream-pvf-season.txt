@@ -1,0 +1,198 @@
+=== etc/seasonserver/season.etc ===
+[season no]
+1
+[duration]
+2016-01-01 06:00:00 2030-01-01 06:00:00
+[start level]
+17
+[start town]
+3
+[equipment not decrease durability]
+off
+[character convert condition]
+86 1
+[dungeon difficulty]
+[fix] [normal]
+[striker]
+off
+[guild striker]
+off
+[adventure union buff]
+off
+[Mercenary]
+off
+[max fatigue rate]
+50
+[party level]
+10
+[quest]
+off
+[force clear quest]
+85 12855 85 4540 46 11059 70 4391 81 4539 85 2002 15 12775 15 12758 15 12759 15 12782 25 12736 35 12787 40 12722 40 12723 45 12783 50 12735 50 12786 55 12728 60 12784 65 12730 70 12785 75 2631 75 2632 77 12737 79 12788 80 12738 81 12789 82 12744 83 12790 84 3045 84 3046 85 3047 85 3048 86 12746 86 12791 85 12856 85 6697 85 2654 1 4465 5 4469 5 4470 5 4471 5 4472 8 4473 8 4474 8 4475 15 4477 17 4478 26 4479 27 4480 37 4481 44 4482 45 4483 46 4484 54 4485 55 4486 64 4487 70 4488 79 4489 85 3044
+[/force clear quest]
+[daily challenge]
+off
+[account cargo]
+off
+[guild cargo]
+off
+[auction]
+off
+[trade]
+on
+[trade cube]
+off
+[mail]
+off
+[gift]
+on
+[tutorial apc]
+off
+[event maker]
+off
+[honor level]
+off
+[max level exp capsule]
+off
+[fatigue accel]
+off
+[pc room rent item]
+off
+[pc room cera item]
+off
+[pc room simona]
+off
+[territory combat]
+off
+[draw hp percent]
+on
+[draw hp single line]
+on
+[season hellparty]
+on
+[circle dungeon]
+off
+[character convert]
+off
+[quick party]
+off
+[expert job]
+off
+[item pick up when complete battle]
+on
+[recovery when overkill]
+on 3 3
+[tutorial dungeon Index]
+7513 7514
+[ban town area]
+2 11 21 -1 18 -1
+[/ban town area]
+[ban world map]
+16 30 31 33 34 35 36 38 100 101 37 28
+[/ban world map]
+[ban dungeon]
+4000
+[/ban dungeon]
+[level reward]
+20 10157346 25 10157919 30 10157347 35 10157919 40 10157348 45 10157919 50 10157349 55 10157919 60 10157350 65 10157747 70 10157351 75 10157836 80 10157420 85 10157421 86 10157748
+[/level reward]
+[use item recommend]
+50 10157349 season_item_recommend_00 60 10157350 season_item_recommend_01 65 10157747 season_item_recommend_02 75 10157836 season_item_recommend_03
+[/use item recommend]
+[achievement reward]
+10 3326 10 season_conquer_title10 season_conquer_explain10 20 3326 20 season_conquer_title20 season_conquer_explain20 30 100331528 1 season_conquer_title30 season_conquer_explain30 40 3326 30 season_conquer_title40 season_conquer_explain40 50 3326 40 season_conquer_title50 season_conquer_explain50 60 100331529 1 season_conquer_title60 season_conquer_explain60 70 3326 50 season_conquer_title70 season_conquer_explain70 80 3326 60 season_conquer_title80 season_conquer_explain80 90 3326 70 season_conquer_title90 season_conquer_explain90 100 100331530 1 season_conquer_title100 season_conquer_explain100
+[/achievement reward]
+[season special reward quest index]
+11391
+[ancient dungeon freepass ticket]
+5
+[ancientgate base rising value]
+10
+[ancientgate guide line value]
+63
+[hellparty base rising value]
+10
+[create character reward]
+10157323
+[dimmension enter level]
+85
+[default free coin]
+5
+[character sliding move x]
+150
+[character sliding move y]
+70
+[character sliding move time]
+200
+[character sliding wait time]
+200
+[character sliding cool time]
+800
+[monster sliding]
+on
+[monster sliding cool time]
+2000 8000
+[monster sliding move time]
+600 600
+[monster sliding distance normal]
+100 200
+[monster sliding distance chase]
+300 400
+[champion monster add rate]
+100
+[boss hp regen]
+off
+[monster resurrection]
+off
+[monster resurrection count]
+1
+[monster resurrection rate]
+50
+[character resurrection]
+on
+[character resurrection rate]
+50
+[character resurrection hp limit]
+45
+[character resurrection hp recovery]
+5
+[character resurrection flash count]
+2
+[character resurrection flash alpha]
+150
+[character resurrection flash inTime]
+100
+[character resurrection flash stayTime]
+300
+[character resurrection flash outTime]
+200
+[monster attack delay rate]
+0.5
+[monster attack delay static]
+300
+[monster over counter delay rate]
+0.25
+[monster over counter delay min]
+100
+[monster over counter delay max]
+250
+[monster attack later delay rate]
+-0.5
+[monster attack later delay static]
+-500
+[counter damage rate]
+2
+[aerial damage rate]
+2
+[backattack damage rate]
+2
+[normal monster motion counter damage rate]
+1
+[named monster motion counter damage rate]
+0.3
+[boss monster motion counter damage rate]
+0.1
+[npc guide]
+-1 season_guide_01 1 season_guide_02 0 season_guide_03 -1 season_guide_04
+[/npc guide]
+[/season no]

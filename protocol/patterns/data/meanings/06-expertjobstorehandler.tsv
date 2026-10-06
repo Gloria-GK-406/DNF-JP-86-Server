@@ -1,5 +1,5 @@
 family	type	offset	meaning	confidence	source
-CMD	0x00EB	0	摊主 UserId（u16，非 CharacterId）：上游要求非 0，并与该玩家已进入的摊位 store.OwnerUserId 比对	Confirmed	上游 DisjointMachineRequest.cs:20,27 读 BitConverter.ToUInt16(body,0) 作 OwnerUserId；ExpertJobStoreHandler.cs:249 与 store.OwnerUserId 比对。注：本 type 双用途，未进入摊位时走 HELLPARTY_START（GameProtocolHandler.cs:997-999），该路径不读 body（DungeonMapHandler.cs:922-941），故本行只对拆解机变体成立
+CMD	0x00EB	0	摊主 UserId（u16，非 CharacterId）：上游要求非 0，并与该玩家已进入的摊位 store.OwnerUserId 比对	Confirmed	上游 DisjointMachineRequest.cs:20,27 读 BitConverter.ToUInt16(body,0) 作 OwnerUserId；ExpertJobStoreHandler.cs:249 与 store.OwnerUserId 比对。仅描述上游拆解用法；A21是否存在同号深渊变体未确认，见Document/abyss-research-20261007/client.md
 CMD	0x00EB	2	待拆解物品的背包槽位索引（int16，上游要求 >= 0）	Confirmed	上游 DisjointMachineRequest.cs:19,28 读 BitConverter.ToInt16(body,2) 作 TargetSlotIndex；ExpertJobStoreHandler.cs:281,301 传给 DisjointMachineService.TryDisjoint
 CMD	0x00EB	4	物品所在背包列表类型 InventoryListType：上游只接受 Main(=0)，其余值直接拒绝	Confirmed	上游 DisjointMachineRequest.cs:18,22 读 body[4] 作 InventoryListType 并要求 == Main；InventoryListType.cs:5 Main = 0
 CMD	0x0257	0	摊位类型 kind：上游 0=拆解机(DisjointMachine)，3=附魔店(EnchantShop)	Confirmed	上游 CreateExpertJobStoreRequest.cs:29 读 body[0] 作 ExpertJobStoreKind；ExpertJobStoreKind.cs:5-6 定义 0/3

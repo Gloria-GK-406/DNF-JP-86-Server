@@ -1,0 +1,170 @@
+
+RVA 0234D264:0234D2D4 VA 0274D264
+RVA 0234D264 VA 0274D264 8a4d0c               mov      cl, byte ptr [ebp + 0xc]
+RVA 0234D267 VA 0274D267 66897ded             mov      word ptr [ebp - 0x13], di
+RVA 0234D26B VA 0274D26B 8dbe18e21500         lea      edi, [esi + 0x15e218]
+RVA 0234D271 VA 0274D271 8d8708f00a00         lea      eax, [edi + 0xaf008]
+RVA 0234D277 VA 0274D277 50                   push     eax
+RVA 0234D278 VA 0274D278 c645ec01             mov      byte ptr [ebp - 0x14], 1
+RVA 0234D27C VA 0274D27C c745ef00000000       mov      dword ptr [ebp - 0x11], 0
+RVA 0234D283 VA 0274D283 884df7               mov      byte ptr [ebp - 9], cl
+RVA 0234D286 VA 0274D286 8945e8               mov      dword ptr [ebp - 0x18], eax
+RVA 0234D289 VA 0274D289 ff1560910203         call     dword ptr [0x3029160]
+RVA 0234D28F VA 0274D28F 8b55e8               mov      edx, dword ptr [ebp - 0x18]
+RVA 0234D292 VA 0274D292 8b9f04f00a00         mov      ebx, dword ptr [edi + 0xaf004]
+RVA 0234D298 VA 0274D298 52                   push     edx
+RVA 0234D299 VA 0274D299 03df                 add      ebx, edi
+RVA 0234D29B VA 0274D29B ff1564910203         call     dword ptr [0x3029164]
+RVA 0234D2A1 VA 0274D2A1 6a0e                 push     0xe
+RVA 0234D2A3 VA 0274D2A3 8d45ec               lea      eax, [ebp - 0x14]
+RVA 0234D2A6 VA 0274D2A6 50                   push     eax
+RVA 0234D2A7 VA 0274D2A7 8bce                 mov      ecx, esi
+RVA 0234D2A9 VA 0274D2A9 899e34cc2b00         mov      dword ptr [esi + 0x2bcc34], ebx
+RVA 0234D2AF VA 0274D2AF e8353d0403           call     0x5790fe9
+RVA 0234D2B4 VA 0274D2B4 8b4dfc               mov      ecx, dword ptr [ebp - 4]
+RVA 0234D2B7 VA 0274D2B7 5f                   pop      edi
+RVA 0234D2B8 VA 0274D2B8 5b                   pop      ebx
+RVA 0234D2B9 VA 0274D2B9 c7862ccc2b0000000000 mov      dword ptr [esi + 0x2bcc2c], 0
+RVA 0234D2C3 VA 0274D2C3 33cd                 xor      ecx, ebp
+RVA 0234D2C5 VA 0274D2C5 b801000000           mov      eax, 1
+RVA 0234D2CA VA 0274D2CA 5e                   pop      esi
+RVA 0234D2CB VA 0274D2CB e823555100           call     0x2c627f3
+RVA 0234D2D0 VA 0274D2D0 8be5                 mov      esp, ebp
+RVA 0234D2D2 VA 0274D2D2 5d                   pop      ebp
+RVA 0234D2D3 VA 0274D2D3 c2                   .byte    0xc2
+
+RVA 0234CED0:0234CF06 VA 0274CED0
+RVA 0234CED0 VA 0274CED0 55                   push     ebp
+RVA 0234CED1 VA 0274CED1 8bec                 mov      ebp, esp
+RVA 0234CED3 VA 0274CED3 80790800             cmp      byte ptr [ecx + 8], 0
+RVA 0234CED7 VA 0274CED7 7509                 jne      0x274cee2
+RVA 0234CED9 VA 0274CED9 b854000080           mov      eax, 0x80000054
+RVA 0234CEDE VA 0274CEDE 5d                   pop      ebp
+RVA 0234CEDF VA 0274CEDF c20800               ret      8
+RVA 0234CEE2 VA 0274CEE2 8b5508               mov      edx, dword ptr [ebp + 8]
+RVA 0234CEE5 VA 0274CEE5 85d2                 test     edx, edx
+RVA 0234CEE7 VA 0274CEE7 7509                 jne      0x274cef2
+RVA 0234CEE9 VA 0274CEE9 b808000080           mov      eax, 0x80000008
+RVA 0234CEEE VA 0274CEEE 5d                   pop      ebp
+RVA 0234CEEF VA 0274CEEF c20800               ret      8
+RVA 0234CEF2 VA 0274CEF2 8b450c               mov      eax, dword ptr [ebp + 0xc]
+RVA 0234CEF5 VA 0274CEF5 01812ccc2b00         add      dword ptr [ecx + 0x2bcc2c], eax
+RVA 0234CEFB VA 0274CEFB 50                   push     eax
+RVA 0234CEFC VA 0274CEFC 52                   push     edx
+RVA 0234CEFD VA 0274CEFD e8e7400403           call     0x5790fe9
+RVA 0234CF02 VA 0274CF02 5d                   pop      ebp
+RVA 0234CF03 VA 0274CF03 c20800               ret      8
+
+RVA 012F82C4:012F8363 VA 016F82C4
+RVA 012F82C4 VA 016F82C4 6a00                 push     0
+RVA 012F82C6 VA 016F82C6 68eb000000           push     0xeb
+RVA 012F82CB VA 016F82CB e880470501           call     0x274ca50
+RVA 012F82D0 VA 016F82D0 8bc8                 mov      ecx, eax
+RVA 012F82D2 VA 016F82D2 e8094f0501           call     0x274d1e0
+RVA 012F82D7 VA 016F82D7 8b4d0c               mov      ecx, dword ptr [ebp + 0xc]
+RVA 012F82DA VA 016F82DA 51                   push     ecx
+RVA 012F82DB VA 016F82DB e870470501           call     0x274ca50
+RVA 012F82E0 VA 016F82E0 8bc8                 mov      ecx, eax
+RVA 012F82E2 VA 016F82E2 e829500501           call     0x274d310
+RVA 012F82E7 VA 016F82E7 8b5508               mov      edx, dword ptr [ebp + 8]
+RVA 012F82EA VA 016F82EA 52                   push     edx
+RVA 012F82EB VA 016F82EB e860470501           call     0x274ca50
+RVA 012F82F0 VA 016F82F0 8bc8                 mov      ecx, eax
+RVA 012F82F2 VA 016F82F2 e819500501           call     0x274d310
+RVA 012F82F7 VA 016F82F7 83fb0c               cmp      ebx, 0xc
+RVA 012F82FA VA 016F82FA 7746                 ja       0x16f8342
+RVA 012F82FC VA 016F82FC 0fb683e0836f01       movzx    eax, byte ptr [ebx + 0x16f83e0]
+RVA 012F8303 VA 016F8303 ff2485cc836f01       jmp      dword ptr [eax*4 + 0x16f83cc]
+RVA 012F830A VA 016F830A 8d4d0c               lea      ecx, [ebp + 0xc]
+RVA 012F830D VA 016F830D 51                   push     ecx
+RVA 012F830E VA 016F830E 57                   push     edi
+RVA 012F830F VA 016F830F 8bce                 mov      ecx, esi
+RVA 012F8311 VA 016F8311 e8da3d0c01           call     0x27bc0f0
+RVA 012F8316 VA 016F8316 eb36                 jmp      0x16f834e
+RVA 012F8318 VA 016F8318 8d550c               lea      edx, [ebp + 0xc]
+RVA 012F831B VA 016F831B 52                   push     edx
+RVA 012F831C VA 016F831C 57                   push     edi
+RVA 012F831D VA 016F831D 8bce                 mov      ecx, esi
+RVA 012F831F VA 016F831F e83c3e0c01           call     0x27bc160
+RVA 012F8324 VA 016F8324 eb28                 jmp      0x16f834e
+RVA 012F8326 VA 016F8326 8d450c               lea      eax, [ebp + 0xc]
+RVA 012F8329 VA 016F8329 50                   push     eax
+RVA 012F832A VA 016F832A 57                   push     edi
+RVA 012F832B VA 016F832B 8bce                 mov      ecx, esi
+RVA 012F832D VA 016F832D e89e3e0c01           call     0x27bc1d0
+RVA 012F8332 VA 016F8332 eb1a                 jmp      0x16f834e
+RVA 012F8334 VA 016F8334 8d4d0c               lea      ecx, [ebp + 0xc]
+RVA 012F8337 VA 016F8337 51                   push     ecx
+RVA 012F8338 VA 016F8338 57                   push     edi
+RVA 012F8339 VA 016F8339 8bce                 mov      ecx, esi
+RVA 012F833B VA 016F833B e8003f0c01           call     0x27bc240
+RVA 012F8340 VA 016F8340 eb0c                 jmp      0x16f834e
+RVA 012F8342 VA 016F8342 8d550c               lea      edx, [ebp + 0xc]
+RVA 012F8345 VA 016F8345 52                   push     edx
+RVA 012F8346 VA 016F8346 57                   push     edi
+RVA 012F8347 VA 016F8347 8bce                 mov      ecx, esi
+RVA 012F8349 VA 016F8349 e842400c01           call     0x27bc390
+RVA 012F834E VA 016F834E 8b450c               mov      eax, dword ptr [ebp + 0xc]
+RVA 012F8351 VA 016F8351 50                   push     eax
+RVA 012F8352 VA 016F8352 e8f9460501           call     0x274ca50
+RVA 012F8357 VA 016F8357 8bc8                 mov      ecx, eax
+RVA 012F8359 VA 016F8359 e8824f0501           call     0x274d2e0
+RVA 012F835E VA 016F835E e86d630501           call     0x274e6d0
+
+RVA 00D57C64:00D57D39 VA 01157C64
+RVA 00D57C64 VA 01157C64 6a01                 push     1
+RVA 00D57C66 VA 01157C66 50                   push     eax
+RVA 00D57C67 VA 01157C67 889deefbffff         mov      byte ptr [ebp - 0x412], bl
+RVA 00D57C6D VA 01157C6D 889deffbffff         mov      byte ptr [ebp - 0x411], bl
+RVA 00D57C73 VA 01157C73 889de6fbffff         mov      byte ptr [ebp - 0x41a], bl
+RVA 00D57C79 VA 01157C79 889d98fbffff         mov      byte ptr [ebp - 0x468], bl
+RVA 00D57C7F VA 01157C7F 899da8fbffff         mov      dword ptr [ebp - 0x458], ebx
+RVA 00D57C85 VA 01157C85 e8a6d56601           call     0x27c5230
+RVA 00D57C8A VA 01157C8A 8d8deffbffff         lea      ecx, [ebp - 0x411]
+RVA 00D57C90 VA 01157C90 6a01                 push     1
+RVA 00D57C92 VA 01157C92 51                   push     ecx
+RVA 00D57C93 VA 01157C93 e898d56601           call     0x27c5230
+RVA 00D57C98 VA 01157C98 8d9598fbffff         lea      edx, [ebp - 0x468]
+RVA 00D57C9E VA 01157C9E 6a01                 push     1
+RVA 00D57CA0 VA 01157CA0 52                   push     edx
+RVA 00D57CA1 VA 01157CA1 e88ad56601           call     0x27c5230
+RVA 00D57CA6 VA 01157CA6 8d85a8fbffff         lea      eax, [ebp - 0x458]
+RVA 00D57CAC VA 01157CAC 50                   push     eax
+RVA 00D57CAD VA 01157CAD e85ed66601           call     0x27c5310
+RVA 00D57CB2 VA 01157CB2 8b8da8fbffff         mov      ecx, dword ptr [ebp - 0x458]
+RVA 00D57CB8 VA 01157CB8 83c41c               add      esp, 0x1c
+RVA 00D57CBB VA 01157CBB 51                   push     ecx
+RVA 00D57CBC VA 01157CBC 68c05e2403           push     0x3245ec0
+RVA 00D57CC1 VA 01157CC1 e8fa2f6601           call     0x27bacc0
+RVA 00D57CC6 VA 01157CC6 83c404               add      esp, 4
+RVA 00D57CC9 VA 01157CC9 50                   push     eax
+RVA 00D57CCA VA 01157CCA 6826080000           push     0x826
+RVA 00D57CCF VA 01157CCF 68705e2403           push     0x3245e70
+RVA 00D57CD4 VA 01157CD4 e8e72f6601           call     0x27bacc0
+RVA 00D57CD9 VA 01157CD9 83c404               add      esp, 4
+RVA 00D57CDC VA 01157CDC 50                   push     eax
+RVA 00D57CDD VA 01157CDD 68484c2403           push     0x3244c48
+RVA 00D57CE2 VA 01157CE2 e8d92f6601           call     0x27bacc0
+RVA 00D57CE7 VA 01157CE7 83c404               add      esp, 4
+RVA 00D57CEA VA 01157CEA 50                   push     eax
+RVA 00D57CEB VA 01157CEB 53                   push     ebx
+RVA 00D57CEC VA 01157CEC e87f656601           call     0x27be270
+RVA 00D57CF1 VA 01157CF1 6a01                 push     1
+RVA 00D57CF3 VA 01157CF3 68f9c8a503           push     0x3a5c8f9
+RVA 00D57CF8 VA 01157CF8 e833d56601           call     0x27c5230
+RVA 00D57CFD VA 01157CFD 6a01                 push     1
+RVA 00D57CFF VA 01157CFF 68fac8a503           push     0x3a5c8fa
+RVA 00D57D04 VA 01157D04 e827d56601           call     0x27c5230
+RVA 00D57D09 VA 01157D09 8d9550fbffff         lea      edx, [ebp - 0x4b0]
+RVA 00D57D0F VA 01157D0F 52                   push     edx
+RVA 00D57D10 VA 01157D10 e8fbd56601           call     0x27c5310
+RVA 00D57D15 VA 01157D15 8b8550fbffff         mov      eax, dword ptr [ebp - 0x4b0]
+RVA 00D57D1B VA 01157D1B 83c42c               add      esp, 0x2c
+RVA 00D57D1E VA 01157D1E 50                   push     eax
+RVA 00D57D1F VA 01157D1F e8ec870600           call     0x11c0510
+RVA 00D57D24 VA 01157D24 8bc8                 mov      ecx, eax
+RVA 00D57D26 VA 01157D26 e8d5730600           call     0x11bf100
+RVA 00D57D2B VA 01157D2B 8d8de6fbffff         lea      ecx, [ebp - 0x41a]
+RVA 00D57D31 VA 01157D31 6a01                 push     1
+RVA 00D57D33 VA 01157D33 51                   push     ecx
+RVA 00D57D34 VA 01157D34 e8f7d46601           call     0x27c5230

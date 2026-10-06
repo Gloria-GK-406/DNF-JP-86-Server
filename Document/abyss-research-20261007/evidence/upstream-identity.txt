@@ -1,0 +1,20 @@
+captured date: 2026-10-07
+source root:
+E:/Project/DNF/ServerS4A21
+head:
+c20dba5fa52c2faf4b5087a3b477676be8434e8f
+codegraph exists:
+False
+status:
+## master...origin/master
+?? _reference-backup-20260826/
+tracked diff:
+PVF and reader hashes:
+
+Algorithm : SHA256
+Hash      : 03154D18DE43F5A0BCB11B2935AE8BB40BABD22495700657D682E491A24A3543
+Path      : E:\Project\DNF\DNFClient-A21-protocol2\Script.pvf
+
+Algorithm : SHA256
+Hash      : F9C16270454BD9AD7FD3B8F493D59B5CF1117519A8BF556BEF13BF76EC2FC0D1
+Path      : E:\Project\DNF\DNF-JP-86-Server\Tool\PvfProbe\bin\Release\net10.0\PvfProbe.dll

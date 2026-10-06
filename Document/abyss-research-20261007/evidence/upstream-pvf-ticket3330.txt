@@ -1,0 +1,34 @@
+id 3330 -> material/material_3330.stk
+=== stackable/material/material_3330.stk ===
+[name]
+深渊派对邀请函
+[explain]
+深渊派对的入场券。
+    进入的地下城等级不同， 所消耗的邀请函数量也不同。 右键点击该道具， 可以查看各地下城深渊派对所需的物品数量。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/material.img 418
+[field image]
+Item/FieldImage.img 28
+[stackable type]
+[material] 0
+[need material]
+3331 1
+[/need material]
+[move wav]
+PAPER_TOUCH
+[action type]
+[open guide book] 51 2
+[/action type]

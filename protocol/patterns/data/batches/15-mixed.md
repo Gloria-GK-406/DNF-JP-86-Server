@@ -237,18 +237,11 @@
 | (组内 14) | 2 | u16 | unknown |
 | (组内 16) | 2 | u16 | unknown |
 
-## NOTI `0x02A6` `HELL_PARTY_MONSTER_INFO`
+## NOTI `0x02A6` `REAL_ESTATE_REWARD_INFO`
 
 - 文档：`protocol/game/server-to-client/NOTI-0x02A6.md`
-- 上游文件：`Network/Handlers/Dungeon/DungeonMapHandler.cs`
-- 提取状态：`partial`（polymorphic-tail），BodyLength = `4 + n×8`
-
-| offset | size | enc | 当前含义 |
-|---:|---:|---|---|
-| 0 | 4 | u32 | unknown |
-| *重复组1 ×n* | | | |
-| (组内 0) | 4 | u32 | unknown |
-| (组内 4) | 4 | u32 | unknown |
+- 2026-10-07已移除错误的上游深渊关联。该号A21身份为REAL_ESTATE_REWARD_INFO；深渊索引/等级消费属于02A7。
+- 保留客户端既有partial提取：已读下界`1+n×14`，不是总wire长度；各字段业务含义未知，不能套用上游`4+n×8`。
 
 ## NOTI `0x0138` `COMPLETE_CONDITION_PASS_GATE`
 
@@ -281,17 +274,18 @@
 | *重复组1 ×n* | | | |
 | (组内 0) | 2 | u16 | unknown |
 
-## NOTI `0x02A7` `DISCONN_DUNGEON_INFO`
+## NOTI `0x02A7` `HELL_PARTY_MONSTER_INFO`
 
 - 文档：`protocol/game/server-to-client/NOTI-0x02A7.md`
-- 上游文件：`Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs`
-- 提取状态：`partial`（polymorphic-tail），BodyLength = `9`
+- 证据：2026-10-07 A21 b1 SHA256 `CA7ECA4E...388D14`，RVA`00D483C0..00D48453`；`Document/abyss-research-20261007/client.md`。
+- 消费状态：`u32 count + count×(u32 hellIndex,u32 level)`，消费长度`4+8n`；实际wire待采样。
+- 已移除误套的上游重连9B结构；它不能说明A21的此号语义。
 
 | offset | size | enc | 当前含义 |
 |---:|---:|---|---|
-| 0 | 4 | u32 | unknown |
-| 4 | 4 | u32 | unknown |
-| 8 | 1 | u8 | unknown |
+| 0 | 4 | u32 | count |
+| g1:0 | 4 | u32 | hell index；具体映射待确认 |
+| g1:4 | 4 | u32 | level；等级用途待确认 |
 
 ## NOTI `0x02A8` `REJOIN_DUNGEON`
 
@@ -330,4 +324,3 @@
 - 上游文件：`Network/Handlers/Dungeon/DungeonSettlementHandler.cs`
 - 提取状态：`structure-unknown`（polymorphic-payload），BodyLength = `0`
 - **无字段表**：结构未知，本包不要为它编造字段。若上游代码明确给出了 body 结构，只在下方备注里说明，不要写进 TSV。
-

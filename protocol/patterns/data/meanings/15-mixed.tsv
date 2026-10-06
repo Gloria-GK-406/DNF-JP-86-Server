@@ -58,17 +58,14 @@ NOTI	0x0184	g1:13	NAT 类型；上游恒写 0	Hypothesis	上游 DungeonRoomP2pBu
 NOTI	0x0184	g1:14	builder 注释名 extra1；上游恒写 0	Hypothesis	上游 DungeonRoomP2pBuilder.cs:45 w.WriteUInt16(0) 并注释 extra1
 NOTI	0x0184	g1:16	builder 注释名 extra2；上游恒写 0	Hypothesis	上游 DungeonRoomP2pBuilder.cs:46 w.WriteUInt16(0) 并注释 extra2
 NOTI	0x0184	25	其后 18 字节/条重复组的条目数，等于队伍成员数	High	上游 DungeonRoomP2pBuilder.cs:34 w.WriteByte((byte)members.Count) 紧接 :35-47 的 foreach 写 18 字节条目；平坦偏移 25 由提取器把前一个 14 字节条目展开一次得到
-NOTI	0x02A6	0	条目数 count = actorLevels.Count	Confirmed	上游 DungeonNotificationBuilder.cs:82-83 BuildHellPartyMonsterInfo 先算 count 再 WriteInt32(count)
-NOTI	0x02A6	g1:0	该条目的怪物 code	Confirmed	上游 DungeonNotificationBuilder.cs:86 循环写 actorLevels[i].Key；Key 的取值见 Network/Handlers/Dungeon/DungeonMapHandler.cs:754 new KeyValuePair<int,int>(monster.Code, ...)
-NOTI	0x02A6	g1:4	该怪物的等级（上游取 max(1, monster.Level)）	Confirmed	上游 DungeonNotificationBuilder.cs:87 WriteInt32(actorLevels[i].Value)；取值见 DungeonMapHandler.cs:754 Math.Max(1, (int)monster.Level)
 NOTI	0x0138	0	上游恒写常量 0，构造函数无任何参数	Confirmed	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:81-86 BuildCompleteConditionPassGateTrigger 无参，:84 WriteInt32(0)；唯一发包点 Network/Handlers/Dungeon/DungeonMechanismNotificationSender.cs:56-61
 NOTI	0x0138	4	上游恒写常量 0，构造函数无任何参数	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:85 WriteByte(0)；唯一发包点 DungeonMechanismNotificationSender.cs:56-61
 NOTI	0x0015	0	角色等级 level	Confirmed	上游 Network/Builders/Init/QuestListBodyBuilder.cs:61 BuildBody 首字节 WriteByte((byte)level)
 NOTI	0x0015	1	可接任务条数 count = questIds.Count	Confirmed	上游 QuestListBodyBuilder.cs:62 WriteUInt16((ushort)questIds.Count)，其后 :63-64 才写 questId 列表
 NOTI	0x0015	g1:0	一条可接任务的 questId	Confirmed	上游 QuestListBodyBuilder.cs:63-64 循环 WriteUInt16(questId)，questIds 由 :52-58 ComputeAcceptableQuests 按等级/职业/已清标记算出
-NOTI	0x02A7	0	可重连副本所属的队伍 id PartyId	Confirmed	上游 Network/Builders/Dungeon/DungeonRejoinNotificationBuilder.cs:11 WriteInt32(partyId)；调用点 Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs:100-104 传 candidate.PartyId
-NOTI	0x02A7	4	保留字段：上游恒写常量 0，不绑定任何数据	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:12 WriteInt32(reservedInt32)；DungeonRejoinCoordinator.cs:26 const int ReservedInt32 = 0，:103 传该常量
-NOTI	0x02A7	8	重连 UI 初始状态 rejoinUiState；上游投递重连候选时恒写 0	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:13 WriteByte(rejoinUiState)；DungeonRejoinCoordinator.cs:27 const byte InitialRejoinUiState = 0，:104 传该常量
+NOTI	0x02A7	0	深渊索引/等级记录数量count，控制后续循环；不是重连PartyId	Confirmed	ClientStatic：b1 SHA256 CA7ECA4E...388D14；RVA00D483D1读u32、00D483DB比较count、00D48449循环上限；Document/abyss-research-20261007/client.md
+NOTI	0x02A7	g1:0	hell index；具体索引到组/演员的映射尚未确认，不能直接命名monsterId	Confirmed	ClientStatic：RVA00D483EA读第一u32；00D48410引用解密日志hell index(%d) level(%d)；两值传RVA0134B4A0；Document/abyss-research-20261007/client.md
+NOTI	0x02A7	g1:4	level；客户端日志原名，等级缩放和用途尚待追踪	Confirmed	ClientStatic：RVA00D483F3读第二u32、00D48400提交pair；b1 SHA256 CA7ECA4E...388D14；Document/abyss-research-20261007/client.md
 NOTI	0x02A8	0	该可重连副本实例中一名参与者的 UserId；上游对候选实例的每个参与者各发一包	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:105-112 遍历 candidate.ParticipantUserIds
 NOTI	0x02A9	0	被取消重连的参与者 UserId	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:310-314 传 cancelled.ParticipantUserId
 NOTI	0x02AA	0	本次重连请求所针对的队伍 id PartyId	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:24-29 BuildRejoinableDungeon 只写 WriteInt32(partyId)；调用点 DungeonRejoinCoordinator.cs:181-183 与 :243-245 传 request.PartyId

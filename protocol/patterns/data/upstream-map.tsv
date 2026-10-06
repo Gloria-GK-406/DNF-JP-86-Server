@@ -304,8 +304,6 @@ NOTI	0x027B	RAID_MONSTER_HP	symbol	Network/Handlers/RaidHandler.Situation.cs
 NOTI	0x0282	LINKED_DUNGEON_INFO	symbol	Network/Handlers/Dungeon/DungeonSettlementHandler.cs
 NOTI	0x0286	DAILY_CHALLENGE	build	Network/Protocol/GameProtocolHandler.cs
 NOTI	0x0289	HONOR_LEVEL_INFO	build	Game/Accounts/HonorLevelSyncService.cs
-NOTI	0x02A6	HELL_PARTY_MONSTER_INFO	build	Network/Handlers/Dungeon/DungeonMapHandler.cs
-NOTI	0x02A7	DISCONN_DUNGEON_INFO	symbol	Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs
 NOTI	0x02A8	REJOIN_DUNGEON	symbol	Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs
 NOTI	0x02A9	CANCEL_REJOIN_DUNGEON	symbol	Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs
 NOTI	0x02AA	REJOINABLE_DUNGEON	symbol	Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs

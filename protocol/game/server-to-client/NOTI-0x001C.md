@@ -1,5 +1,11 @@
 # NOTI `0x001C` `DUNGEON_INFO`
 
+## 2026-10-07 深渊动态结构的边界
+
+本轮实际阅读RVA`00D51E10`：前缀为u32与四u8，之后两u8、一u8、u8 groupCount；每group再读u8 pairCount与多组u8/u8。其后仍有多类型字段和条件分支。**ClientStatic / Confirmed**说明该消息可变长，不能把普通模式的32B编码样本推广为所有深渊场景固定包长。
+
+坐标/标志的具体深渊含义未在本次沿写入/消费链完整命名，旧上游字段名不能据此升级。绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`；[指令定位](../../../Document/abyss-research-20261007/client.md#地图通知真实前缀)。无新深渊实帧。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**

@@ -1,5 +1,11 @@
 # NOTI `0x001B` `ENTER_SELECT_DUNGEON`
 
+## 2026-10-07 深渊状态相关静态补证
+
+RVA`00D90190`的前两个u32分别写全局`VA03A5CEC0/03A5CEC8`，首个与NOTI00CF共享标量；随后读取两个u8计数，各自对应u16数组。**ClientStatic / Confirmed**仅涵盖读长、顺序与共享状态；不能直接将两个列表命名为深渊任务阻挡/成员权限，也未在本轮重新闭合所有后续分支。
+
+绑定b1 SHA256`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`；见[客户端前缀证据](../../../Document/abyss-research-20261007/client.md#地图通知真实前缀)。当前普通选图实际发送值属于CurrentImplementation，深渊动态投影仍需实测。
+
 <!-- rks:machine:begin -->
 
 > **本区由静态分析自动生成，重新运行会整体覆盖；请勿手工编辑。**
