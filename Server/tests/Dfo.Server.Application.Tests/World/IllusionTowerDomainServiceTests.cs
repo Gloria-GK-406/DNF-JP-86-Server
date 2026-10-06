@@ -589,7 +589,7 @@ public sealed class IllusionTowerDomainServiceTests
     public async Task Apc_kill_pays_each_current_level_once_and_advances_actual_quest_rows()
     {
         using var f = Fixture(new Rules { ActorType = 5, FloorCount = 2, Probabilities = [0, 0, 100] }, rewards: true,
-            configure: s => { s.AddSingleton<IQuestDefinitionDomainService, TowerQuestDefinitions>(); s.AddSingleton<IExperienceBonusDomainService, ForbiddenBonuses>(); });
+            configure: s => { s.AddSingleton<IQuestDefinitionDomainService, TowerQuestDefinitions>(); s.AddSingleton<IQuestContentRuleService, TowerQuestDefinitions>(); s.AddSingleton<IQuestEnemyDropDomainService, NoQuestDrops>(); s.AddSingleton<IExperienceBonusDomainService, ForbiddenBonuses>(); });
         await f.Seed(65, 4183, 1);
         var other = await AddMember(f, 1);
         f.Sql($"UPDATE characters SET level=40,exp={f.ExperienceForLevel(40)} WHERE character_id=3; INSERT INTO character_active_quests VALUES(1,0,64,2),(1,1,65,2),(1,2,999,1);");
@@ -709,7 +709,7 @@ public sealed class IllusionTowerDomainServiceTests
     public async Task Quest_drop_preserves_shared_material_ownership_and_grant_limit()
     {
         using var f = Fixture(new Rules { ActorType = 5, FloorCount = 2, Probabilities = [0, 0, 100] }, rewards: true,
-            configure: services => services.AddSingleton<IQuestEnemyDropDomainService>(new SharedQuestDrop()));
+            configure: services => { services.AddSingleton<IQuestEnemyDropDomainService>(new SharedQuestDrop()); services.AddSingleton<IQuestDefinitionDomainService, TowerQuestDefinitions>(); services.AddSingleton<IQuestContentRuleService, TowerQuestDefinitions>(); });
         await f.Seed(65, 4183, 1);
         await f.SeedShared(3033, 9);
         f.Sql("INSERT INTO character_active_quests VALUES(1,0,950,1);");
@@ -925,6 +925,7 @@ public sealed class IllusionTowerDomainServiceTests
             services.AddSingleton<ICharacterSkillPointDomainService,
                 CharacterSkillPointDomainService>();
             services.AddSingleton<IDungeonEntryIntentDomainService>(intents);
+            RegisterEntryContent(services);
             services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser());
         });
         await f.Seed(65, 4183, 1);
@@ -978,6 +979,7 @@ public sealed class IllusionTowerDomainServiceTests
         {
             services.RemoveAll<ICharacterSkillPointDomainService>();
             services.AddSingleton<ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
+            RegisterEntryContent(services);
             services.AddSingleton<INetworkConnectionCloser>(new RecordingCloser());
         });
         await f.Seed(65, 4183, 2);
@@ -1052,13 +1054,16 @@ public sealed class IllusionTowerDomainServiceTests
         public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(ExperienceOccasion occasion, CancellationToken token)
             => throw new InvalidOperationException("Ordinary bonuses must not be used for tower awards.");
     }
-    private sealed class TowerQuestDefinitions : IQuestDefinitionDomainService
+    private sealed class TowerQuestDefinitions : IQuestDefinitionDomainService, IQuestContentRuleService
     {
         public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken token) => ValueTask.FromResult<QuestDefinition?>(
             id is 64 or 65 ? new(id, "", null, null, null, null, null, null, [], "hunt enemy", "", null, null, null, null, null, null, null,
                 [], [], [], [], HuntEnemyRequirements: [new(11001, -1, 608, HuntEnemyTargetTypes.AiCharacter, 2)])
             : new(id, "", null, null, null, null, null, null, [], "condition under clear", "", null, null, null, null, null, null, null,
                 [], [], [], [], DungeonClearRequirement: new(11001, -1)));
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken token) => ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([]);
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(CancellationToken token) => ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+        public QuestParameters Parameters() => throw new NotSupportedException();
         public QuestParameters RewardParameters() => throw new NotSupportedException();
         public QuestRewardResolution ResolveRewards(QuestDefinition definition, QuestRewardCandidate candidate, ushort selection, ushort count)
             => throw new NotSupportedException();
@@ -1075,6 +1080,21 @@ public sealed class IllusionTowerDomainServiceTests
                     { WorldClass = ItemWorldClass.Equipment },
                 _ => new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 56)),
             });
+    }
+
+    private static void RegisterEntryContent(IServiceCollection services)
+    {
+        var content = new Support.TestCharacterContent();
+        services.AddSingleton<ICharacterStatDefinitionSource>(content);
+        services.AddSingleton<ISkillRuleDefinitionSource>(content);
+        services.AddSingleton<IWorldContentEntryRuleService>(new Support.StubWorldContentEntryRuleService());
+        services.AddSingleton<IEntryPlacementRuleService>(new Support.StubEntryPlacementRuleService());
+    }
+    private sealed class NoQuestDrops : IQuestEnemyDropDomainService
+    {
+        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(QuestEnemyDropRequest request,
+            MonsterDropParticipant participant, CancellationToken token) =>
+            ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
     }
 
     private sealed class SharedQuestDrop : IQuestEnemyDropDomainService

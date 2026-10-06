@@ -9,7 +9,7 @@ namespace Dfo.Server.Host.Tests;
 // archive opt out explicitly; missing local PVF must not turn rollback checks into 500s.
 internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItemPlacementDefinitionSource,
     IItemCatalogSource, IEquipmentDefinitionSource, IEquipmentReinforcementDefinitionSource,
-    IEquipmentOutworldContentSource, IGoldCarryLimitSource
+    IEquipmentOutworldContentSource, IGoldCarryLimitSource, IInventoryExpansionDefinitionSource, IEntryLifecycleContentSource
 {
     private static readonly ItemCatalogEntry[] Items = [
         new(3, "测试消耗品", "consumable", null, 1, 1),
@@ -31,6 +31,9 @@ internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItem
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(content);
         services.AddSingleton<IEquipmentOutworldContentSource>(content);
         services.AddSingleton<IGoldCarryLimitSource>(content);
+        services.AddSingleton<IInventoryExpansionDefinitionSource>(content);
+        services.AddSingleton<IEntryLifecycleContentSource>(content);
+        services.AddSingleton<IDungeonExperienceProgressionPolicySource, Dfo.Server.Application.Tests.Support.TestProgressionSource>();
     }
 
     public ValueTask<ItemCatalogEntry?> FindAsync(int itemId, CancellationToken token) =>
@@ -67,6 +70,11 @@ internal sealed class GmMailTestContent : IPackageOpeningDefinitionSource, IItem
             ? new(itemId, placement, itemId == 27312 ? (ushort)45 : (ushort)0,
                 placement.WorldClass == ItemWorldClass.Equipment, [], itemId == 63022 ? 1 : null, true,
                 DefaultPeriodDays: itemId == 42 ? 1 : 0, PremiumType: itemId == 33 ? 1 : 0) : null);
+
+    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(DateTimeOffset at, CancellationToken token) => ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>([]);
+    public ValueTask<AccountCargoDefinition> AccountCargoAsync(CancellationToken token) => ValueTask.FromResult(new AccountCargoDefinition(60, [new(8, 100000000, -1, 0, 0, -1)]));
+    public ValueTask<InventoryExpansionGrant?> ItemAsync(int id, CancellationToken token) => ValueTask.FromResult<InventoryExpansionGrant?>(null);
+    public ValueTask<InventoryExpansionGrant?> ProductAsync(int product, int item, CancellationToken token) => ValueTask.FromResult<InventoryExpansionGrant?>(null);
 
     public int BaseLimitFor(int characterLevel) => 400_000_000;
     public ValueTask<int> InitializeAsync(CancellationToken token) => ValueTask.FromResult(2);

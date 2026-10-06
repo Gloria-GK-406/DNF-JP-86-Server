@@ -539,6 +539,7 @@ internal sealed class CeraShopFixture : IDisposable
             }
             else
             {
+                services.AddSingleton<IInventoryExpansionDefinitionSource, WarehouseStorageTests.ExpansionContent>();
                 services.AddSingleton<ICeraShopDefinitionSource>(Content);
                 services.AddSingleton<IItemPlacementDefinitionSource>(Content);
             }
