@@ -29,6 +29,14 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         await events.AcquireWriteAsync(ct);
     }
     private async ValueTask<JoustScheduleConfiguration> Schedule(CancellationToken ct)=>await store.ScheduleAsync(ct) ?? new(0,JoustSchedule.Default);
+    public async ValueTask<JoustKnightInfo?> GetKnightInfoAsync(int knightIndex,CancellationToken ct)
+    {
+        var (definition,_)=await rules.DefinitionAsync(ct);
+        if(definition?.Knights.SingleOrDefault(k=>k.Index==knightIndex) is not {} knight)return null;
+        var statistics=(await store.KnightStatisticsAsync(ct)).SingleOrDefault(s=>s.KnightIndex==knightIndex)
+            ?? new(knightIndex,0,0,0);
+        return new(knight.Index,knight.Name,knight.AttackType,statistics);
+    }
     public async ValueTask<JoustSettings> SettingsAsync(CancellationToken ct)
     {
         var s=await Schedule(ct);var (d,error)=await rules.DefinitionAsync(ct);
@@ -106,9 +114,14 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         // A restart inside Result can create the current scheduled round. Include it in
         // this same settlement pass so the next tick cannot announce a recovered result.
         var c=await Configuration(ct) ?? Initial;await EnsureCurrentRoundAsync(c,now,ct);
+        // Upgrade already completed rounds without replaying settlement, mail or notices.
+        // This write belongs to lifecycle recovery, never to any information query.
+        foreach(var saved in await store.UnrecordedStatisticsAsync(ct))
+            await store.RecordStatisticsAsync(saved.RoundId,rules.ResultStatistics(saved),ct);
         foreach(var round in await store.UnsettledAsync(ct))
         {
             if(rules.Phase(round,now).Phase!=JoustPhase.Result)continue;
+            var statistics=rules.ResultStatistics(round);
             var bets=await store.BetsAsync(round.RoundId,ct);var total=bets.Sum(b=>(long)b.Amount);var winner=round.Winners[^1];
             var odds=rules.Odds(total,bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount));
             foreach(var group in bets.GroupBy(b=>b.Character))
@@ -129,18 +142,21 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
             }
             // This marker and every attachment join the same ambient SQLite transaction.
             await store.SaveRoundAsync(round with{Settled=true},ct);
+            await store.RecordStatisticsAsync(round.RoundId,statistics,ct);
             completed.Add(await Project(round,new(0),true,now,ct));
         }
         return new(completed.Count){CompletedRounds=[..completed]};
     }
     public async ValueTask<bool> NeedsAdvanceAsync(DateTimeOffset now,CancellationToken ct)=>
-        Active(await Configuration(ct) ?? Initial,now) || await store.HasUnsettledAsync(ct);
+        Active(await Configuration(ct) ?? Initial,now) || await store.HasUnsettledAsync(ct) || await store.HasUnrecordedStatisticsAsync(ct);
     private async ValueTask<JoustState> Project(JoustRound? r,CharacterId character,bool active,DateTimeOffset now,CancellationToken ct)
     {
         if(r is null)return new(false,now,JoustPhase.Inactive,null,null,null,null,[],[],0,0,0);
         var bets=await store.BetsAsync(r.RoundId,ct);var total=bets.Sum(b=>(long)b.Amount);var phase=rules.Phase(r,now);
+        var statistics=(await store.KnightStatisticsAsync(ct)).ToDictionary(s=>s.KnightIndex);
         var states=r.Knights.Select(k=>{var pool=bets.Where(b=>b.KnightIndex==k.Index).Sum(b=>(long)b.Amount);
-            return new JoustKnightState(k,pool,bets.Where(b=>b.Character==character && b.KnightIndex==k.Index).Sum(b=>b.Amount),rules.Odds(total,pool));}).ToArray();
+            return new JoustKnightState(k,pool,bets.Where(b=>b.Character==character && b.KnightIndex==k.Index).Sum(b=>b.Amount),rules.Odds(total,pool))
+                {Statistics=statistics.GetValueOrDefault(k.Index) ?? new(k.Index,0,0,0)};}).ToArray();
         return new(active,now,phase.Phase,r.RoundId,r.StartsAt,r.EndsAt,phase.Next,states,r.Winners.Take(phase.Revealed).ToArray(),
             bets.Where(b=>b.Character==character).Sum(b=>b.Amount),r.Definition.MaximumBetting,r.Definition.MinimumLevel){DailyRoundNo=RoundNo(r)};
     }

@@ -240,6 +240,13 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS ix_joust_round_time ON event_joust_round(starts_at DESC);
         CREATE TABLE IF NOT EXISTS event_joust_bet(character_id INTEGER NOT NULL,request_id TEXT NOT NULL,round_id TEXT NOT NULL REFERENCES event_joust_round(round_id),input TEXT NOT NULL,PRIMARY KEY(character_id,request_id));
         CREATE INDEX IF NOT EXISTS ix_joust_bet_round ON event_joust_bet(round_id);
+        CREATE TABLE IF NOT EXISTS event_joust_knight_statistics (
+            knight_index INTEGER PRIMARY KEY CHECK(knight_index BETWEEN 0 AND 11),
+            wins INTEGER NOT NULL CHECK(typeof(wins)='integer' AND wins>=0),
+            losses INTEGER NOT NULL CHECK(typeof(losses)='integer' AND losses>=0),
+            championships INTEGER NOT NULL CHECK(typeof(championships)='integer' AND championships>=0));
+        CREATE TABLE IF NOT EXISTS event_joust_statistics_round (
+            round_id TEXT PRIMARY KEY REFERENCES event_joust_round(round_id));
         CREATE TABLE IF NOT EXISTS event_attendance_week(event_id INTEGER NOT NULL,season_id TEXT NOT NULL,account_id INTEGER NOT NULL,week_start INTEGER NOT NULL,clears INTEGER NOT NULL,attendance_no INTEGER NOT NULL,PRIMARY KEY(event_id,season_id,account_id,week_start));
         CREATE UNIQUE INDEX IF NOT EXISTS ux_event_attendance_claim ON event_attendance_week(event_id,season_id,account_id,attendance_no) WHERE attendance_no>0;
         CREATE TABLE IF NOT EXISTS event_consumed_runs(event_id INTEGER NOT NULL,season_id TEXT NOT NULL,account_id INTEGER NOT NULL,run_id TEXT NOT NULL,PRIMARY KEY(event_id,season_id,account_id,run_id));

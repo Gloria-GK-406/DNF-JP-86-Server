@@ -36,6 +36,100 @@ namespace Dfo.Server.Application.Tests.Events;
 
 public sealed class JoustIntegrationTests
 {
+    [PvfFact]
+    public async Task Completed_tournament_updates_each_match_once_and_knight_queries_remain_read_only()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
+        var state=await f.GetState();var store=f.Services.GetRequiredService<IJoustPersistence>();
+        var saved=(await store.RoundAsync(state.RoundId!,default))!;
+        var round=KnownBracket(saved);await f.Run(async()=>{await store.SaveRoundAsync(round,default);return true;});
+        f.Now=round.StartsAt.AddMinutes(100).AddSeconds(400); // Final: all winners generated/revealed, not completed.
+        for(var i=0;i<2;i++)Assert.Equal(0,(await f.KnightInfo(0))!.Statistics.Wins);
+        await f.AdvanceLifecycle();Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        f.Now=f.Now.AddSeconds(200);
+        Assert.Equal(0,(await f.KnightInfo(0))!.Statistics.Wins); // Queries cannot settle at Result either.
+        var completed=await f.AdvanceLifecycle();
+        var expected=new[]{(3L,0L,1L),(0L,1L,0L),(1L,1L,0L),(0L,1L,0L),(2L,1L,0L),(0L,1L,0L),(1L,1L,0L),(0L,1L,0L)};
+        for(var i=0;i<8;i++)
+        {
+            var info=(await f.KnightInfo(i))!;
+            Assert.Equal(round.Knights[i].Name,info.Name);
+            Assert.Equal(new JoustKnightStatistics(i,expected[i].Item1,expected[i].Item2,expected[i].Item3),info.Statistics);
+        }
+        Assert.Equal(100m,(await f.KnightInfo(0))!.Statistics.WinRate);
+        Assert.Equal(200m/3m,(await f.KnightInfo(4))!.Statistics.WinRate);
+        Assert.Equal(0m,(await f.KnightInfo(8))!.Statistics.WinRate);Assert.Null(await f.KnightInfo(99));
+        Assert.Equal(3,Assert.Single(completed.CompletedRounds).Knights.Single(k=>k.Knight.Index==0).Statistics.Wins);
+        await f.AdvanceLifecycle();
+        Assert.Equal(7,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
+        Assert.Equal(7,f.Scalar("SELECT SUM(losses) FROM event_joust_knight_statistics"));
+        Assert.Equal(1,f.Scalar("SELECT SUM(championships) FROM event_joust_knight_statistics"));
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        using var reopened=f.Reopen();await reopened.AdvanceLifecycle();
+        Assert.Equal(new JoustKnightStatistics(0,3,0,1),(await reopened.KnightInfo(0))!.Statistics);
+        await reopened.Run(async()=>{await reopened.Managed.ChangeAsync(new(2365,2,"new-season","马战","马战","","","",f.Now.AddDays(-1),f.Now.AddDays(3)),"test",f.Now,default);return true;});
+        Assert.Equal(new JoustKnightStatistics(0,3,0,1),(await reopened.KnightInfo(0))!.Statistics);
+    }
+
+    [PvfFact]
+    public async Task Statistics_failure_rolls_back_mail_completion_and_accounting_marker_then_retry_counts_once()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+        var state=await f.GetState();Assert.True((await f.Bet("statistics-fault",state.Knights[0].Knight.Index,0,5)).Succeeded);
+        f.Now=f.Now.AddMinutes(110);
+        f.Sql("CREATE TRIGGER fail_joust_statistics BEFORE INSERT ON event_joust_knight_statistics BEGIN SELECT RAISE(ABORT,'statistics fault'); END;");
+        await Assert.ThrowsAsync<SqliteException>(()=>f.AdvanceLifecycle());
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_knight_statistics"));
+        f.Sql("DROP TRIGGER fail_joust_statistics;");await f.AdvanceLifecycle();await f.AdvanceLifecycle();
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(7,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
+        Assert.Equal(7,f.Scalar("SELECT SUM(losses) FROM event_joust_knight_statistics"));
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+    }
+
+    [PvfFact]
+    public async Task Startup_backfills_all_completed_history_beyond_500_without_mail_or_announcements()
+    {
+        using var f=new Fixture();var store=f.Services.GetRequiredService<IJoustPersistence>();
+        var rules=f.Services.GetRequiredService<IJoustRuleService>();var definition=(await rules.DefinitionAsync(default)).Definition!;
+        await f.Run(async()=>
+        {
+            for(var i=0;i<501;i++)
+            {
+                var round=KnownBracket(rules.CreateRound("legacy",DateTimeOffset.Parse("2026-01-01T10:00:00+08:00").AddDays(i),new(0,JoustSchedule.Default),definition));
+                await store.SaveRoundAsync(round with{Settled=true},default);
+            }
+            return true;
+        });
+        Assert.Equal(500,(await f.Joust.GetHistoryAsync(default)).Length);
+        Assert.Equal(0,(await f.KnightInfo(0))!.Statistics.Wins);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        try{await worker.StartAsync(default);}finally{await worker.StopAsync(default);}
+        Assert.Equal(new JoustKnightStatistics(0,1503,0,501),(await f.KnightInfo(0))!.Statistics);
+        Assert.Equal(3507,f.Scalar("SELECT SUM(wins) FROM event_joust_knight_statistics"));
+        Assert.Equal(3507,f.Scalar("SELECT SUM(losses) FROM event_joust_knight_statistics"));
+        Assert.Equal(501,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Empty(f.Events);
+        await f.AdvanceLifecycle();Assert.Equal(1503,(await f.KnightInfo(0))!.Statistics.Wins);
+    }
+
+    [PvfFact]
+    public async Task Invalid_saved_bracket_cannot_commit_statistics_or_a_completed_round()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();var state=await f.GetState();
+        var store=f.Services.GetRequiredService<IJoustPersistence>();var round=KnownBracket((await store.RoundAsync(state.RoundId!,default))!);
+        await f.Run(async()=>{await store.SaveRoundAsync(round with{Winners=[0,2,4,6,1,4,0]},default);return true;});
+        f.Now=f.Now.AddMinutes(110);await Assert.ThrowsAsync<InvalidDataException>(()=>f.AdvanceLifecycle());
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+    }
+
+    private static JoustRound KnownBracket(JoustRound round)=>round with
+        {Knights=round.Definition.Knights.Take(8).ToArray(),Winners=[0,2,4,6,0,4,0]};
     [Theory]
     [InlineData("not-started")]
     [InlineData("expired")]
@@ -526,6 +620,8 @@ public sealed class JoustIntegrationTests
         }
         public async Task<JoustState> GetState()
         {await using var tx=provider.GetRequiredService<DomainTransactionScope>().Begin(readOnly:true);var state=await Joust.GetStateAsync(new(1),Now,default);await tx.CommitAsync(default);return state;}
+        public async Task<JoustKnightInfo?> KnightInfo(int index)
+        {await using var tx=provider.GetRequiredService<DomainTransactionScope>().Begin(readOnly:true);var info=await Joust.GetKnightInfoAsync(index,default);await tx.CommitAsync(default);return info;}
         public Task<JoustLifecycleResult> AdvanceLifecycle()=>Run(()=>Joust.AdvanceLifecycleAsync(Now,default));
         public Task<JoustBetResult> Bet(string request,int knight,int slot,int amount)=>Run(()=>Joust.BetAsync(Session,request,knight,new(BusinessInventorySpace.Material,slot),amount,Now,default));
         public Task<bool> Seed(int slot,int item,int count)=>Run(async()=>

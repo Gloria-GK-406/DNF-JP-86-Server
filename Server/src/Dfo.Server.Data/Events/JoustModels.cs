@@ -28,7 +28,15 @@ public sealed record JoustBet(string RequestId, string RoundId, CharacterId Char
 {
     public BusinessSlot? PreferredSlot { get; init; }
 }
-public sealed record JoustKnightState(JoustKnight Knight, long Pool, int PersonalBet, decimal Odds);
+public sealed record JoustKnightStatistics(int KnightIndex, long Wins, long Losses, long Championships)
+{
+    public decimal WinRate => Wins == 0 && Losses == 0 ? 0m : Wins * 100m / ((decimal)Wins + Losses);
+}
+public sealed record JoustKnightInfo(int Index, string Name, int AttackType, JoustKnightStatistics Statistics);
+public sealed record JoustKnightState(JoustKnight Knight, long Pool, int PersonalBet, decimal Odds)
+{
+    public JoustKnightStatistics Statistics { get; init; } = new(Knight.Index, 0, 0, 0);
+}
 public sealed record JoustState(bool Active, DateTimeOffset ServerTime, JoustPhase Phase, string? RoundId,
     DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, DateTimeOffset? NextTransitionAt, JoustKnightState[] Knights,
     int[] Winners, int PersonalTotal, int MaximumBetting, int MinimumLevel)

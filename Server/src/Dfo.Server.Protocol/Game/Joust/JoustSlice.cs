@@ -32,10 +32,23 @@ internal static class JoustPayloadCodec
         var b=new byte[90];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);
         for(var i=0;i<8;i++)
         { var p=2+i*11;b[p]=255;if(i>=s.Knights.Length)continue;var k=s.Knights[i];b[p]=checked((byte)k.Knight.Index);
-          // Condition and win/loss counters have no current server source; retain zero values.
+          // Condition has no current server source; win/loss come from committed tournament results.
           BinaryPrimitives.WriteSingleLittleEndian(b.AsSpan(p+2),(float)k.Odds);
+          var (wins,losses)=StatisticsCounters(k.Statistics);
+          BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p+6),wins);
+          BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p+8),losses);
           b[p+10]=k.Knight.Index>=8 && s.Phase is JoustPhase.Betting or JoustPhase.Locked ? (byte)1 : (byte)0; }
         return b;
+    }
+    private static (ushort Wins,ushort Losses) StatisticsCounters(JoustKnightStatistics s)
+    {
+        if(s.Wins<0 || s.Losses<0)throw new InvalidDataException("马战胜败计数不能为负数。");
+        var maximum=Math.Max(s.Wins,s.Losses);
+        if(maximum<=ushort.MaxValue)return ((ushort)s.Wins,(ushort)s.Losses);
+        // The native fields are u16. Preserve the ratio for long-lived servers;
+        // the domain service and database retain the full 64-bit counts.
+        ushort Scale(long value)=>(ushort)decimal.Round((decimal)value*ushort.MaxValue/maximum,0,MidpointRounding.AwayFromZero);
+        return (Scale(s.Wins),Scale(s.Losses));
     }
     internal static byte[] Bets(JoustState s)
     {
@@ -84,7 +97,7 @@ internal static class JoustPayloadCodec
     internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleEventKind kind) => kind switch
     {
         JoustLifecycleEventKind.RoundStarted => [new JoustStateMessage(s)],
-        JoustLifecycleEventKind.RoundEnded => [new JoustStateMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleEventKind.RoundEnded => [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)],
         JoustLifecycleEventKind.PhaseChanged when !s.Active || s.Phase==JoustPhase.Locked => [new JoustStateMessage(s)],
         JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.QuarterFinal => [new JoustStateMessage(s),new JoustResultsMessage(s)],
         JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.SemiFinal => [new JoustResultsMessage(s)],

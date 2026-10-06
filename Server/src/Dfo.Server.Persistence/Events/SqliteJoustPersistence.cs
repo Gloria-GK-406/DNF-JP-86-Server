@@ -32,6 +32,32 @@ internal sealed class SqliteJoustPersistence(SqliteDatabase database) : IJoustPe
         "SELECT input FROM event_joust_round WHERE settled=0 ORDER BY starts_at;",_=>{},r=>Read<JoustRound>(r.GetString(0)),ct)];
     public async ValueTask<JoustRound[]> HistoryAsync(CancellationToken ct) => [..await database.ReadAllAsync(
         "SELECT input FROM event_joust_round WHERE settled=1 ORDER BY starts_at DESC LIMIT 500;",_=>{},r=>Read<JoustRound>(r.GetString(0)),ct)];
+    public async ValueTask<bool> HasUnrecordedStatisticsAsync(CancellationToken ct) => await database.ReadFirstAsync(
+        "SELECT 1 FROM event_joust_round r WHERE settled=1 AND NOT EXISTS(SELECT 1 FROM event_joust_statistics_round s WHERE s.round_id=r.round_id) LIMIT 1;",
+        _=>{},_=>new Marker(),ct) is not null;
+    public async ValueTask<JoustRound[]> UnrecordedStatisticsAsync(CancellationToken ct) => [..await database.ReadAllAsync(
+        "SELECT input FROM event_joust_round r WHERE settled=1 AND NOT EXISTS(SELECT 1 FROM event_joust_statistics_round s WHERE s.round_id=r.round_id) ORDER BY starts_at;",
+        _=>{},r=>Read<JoustRound>(r.GetString(0)),ct)];
+    public async ValueTask<JoustKnightStatistics[]> KnightStatisticsAsync(CancellationToken ct) => [..await database.ReadAllAsync(
+        "SELECT knight_index,wins,losses,championships FROM event_joust_knight_statistics ORDER BY knight_index;",
+        _=>{},r=>new JoustKnightStatistics(r.GetInt32(0),r.GetInt64(1),r.GetInt64(2),r.GetInt64(3)),ct)];
+    public async ValueTask<bool> RecordStatisticsAsync(string roundId,IReadOnlyList<JoustKnightStatistics> statistics,CancellationToken ct)
+    {
+        var inserted=await database.ExecuteAsync("""
+            INSERT INTO event_joust_statistics_round(round_id)
+            SELECT round_id FROM event_joust_round WHERE round_id=@id AND settled=1
+            ON CONFLICT(round_id) DO NOTHING;
+            """,p=>p.AddWithValue("@id",roundId),ct);
+        if(inserted==0)return false;
+        foreach(var s in statistics)
+            await database.ExecuteAsync("""
+                INSERT INTO event_joust_knight_statistics(knight_index,wins,losses,championships) VALUES(@knight,@wins,@losses,@titles)
+                ON CONFLICT(knight_index) DO UPDATE SET wins=wins+excluded.wins,losses=losses+excluded.losses,
+                    championships=championships+excluded.championships;
+                """,p=>{p.AddWithValue("@knight",s.KnightIndex);p.AddWithValue("@wins",s.Wins);
+                    p.AddWithValue("@losses",s.Losses);p.AddWithValue("@titles",s.Championships);},ct);
+        return true;
+    }
     public async ValueTask<JoustBet[]> BetsAsync(string id,CancellationToken ct) => [..await database.ReadAllAsync(
         "SELECT input FROM event_joust_bet WHERE round_id=@id;",p=>p.AddWithValue("@id",id),r=>Read<JoustBet>(r.GetString(0)),ct)];
     public ValueTask<JoustBet?> RequestAsync(CharacterId character,string request,CancellationToken ct)=> database.ReadFirstAsync(

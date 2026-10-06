@@ -49,6 +49,32 @@ public sealed class JoustProtocolTests
         var b=JoustPayloadCodec.History(0,[new("saved",DateTimeOffset.UnixEpoch,11,3.4m){DailyRoundNo=3}]);Assert.Equal(3505,b.Length);Assert.Equal(new byte[]{1,0,0,0,0,3,0,11},b[..8]);Assert.Equal(3.4f,BinaryPrimitives.ReadSingleLittleEndian(b.AsSpan(8)));Assert.Equal(0,BinaryPrimitives.ReadUInt16LittleEndian(b.AsSpan(12)));Assert.Equal(new byte[]{1,6,0,0,0},JoustPayloadCodec.Ack(6));Assert.Equal(3505,JoustPayloadCodec.History(6,[]).Length);
     }
     [Theory]
+    [InlineData(3L,0L,3,0)]
+    [InlineData(2L,1L,2,1)]
+    [InlineData(0L,0L,0,0)]
+    [InlineData(65535L,123L,65535,123)]
+    [InlineData(200000L,100000L,65535,32768)]
+    [InlineData(100000L,200000L,32768,65535)]
+    public void Info_encodes_committed_win_loss_counts_and_preserves_ratio_at_native_limit(long wins,long losses,int expectedWins,int expectedLosses)
+    {
+        var state=State();var knight=state.Knights[0];
+        state=state with{Knights=[knight with{Statistics=new(knight.Knight.Index,wins,losses,1)}]};
+        var body=JoustPayloadCodec.Info(state);
+        Assert.Equal(expectedWins,BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(8)));
+        Assert.Equal(expectedLosses,BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(10)));
+        Assert.Equal(2.5f,BinaryPrimitives.ReadSingleLittleEndian(body.AsSpan(4)));
+        Assert.Equal(wins,state.Knights[0].Statistics.Wins);
+        Assert.Equal(losses,state.Knights[0].Statistics.Losses);
+    }
+    [Fact]
+    public void Completed_round_refreshes_shared_statistics_without_overwriting_personal_bets()
+    {
+        var state=State(JoustPhase.Result);
+        var messages=JoustPayloadCodec.Lifecycle(state,JoustLifecycleEventKind.RoundEnded);
+        Assert.Collection(messages,m=>Assert.IsType<JoustStateMessage>(m),m=>Assert.IsType<JoustInfoMessage>(m),m=>Assert.IsType<JoustResultsMessage>(m));
+        Assert.DoesNotContain(messages,m=>m is JoustBetsMessage);
+    }
+    [Theory]
     [InlineData(JoustPhase.Betting)]
     [InlineData(JoustPhase.Locked)]
     [InlineData(JoustPhase.QuarterFinal)]

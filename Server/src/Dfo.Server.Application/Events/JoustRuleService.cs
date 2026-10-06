@@ -57,6 +57,30 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
         return new($"{season}:{start.ToUnixTimeSeconds()}", season, start, start.AddMinutes(schedule.Schedule.RoundIntervalMinutes),
             schedule, d, knights, [..winners], false);
     }
+    public JoustKnightStatistics[] ResultStatistics(JoustRound round)
+    {
+        var entrants=round.Knights.Select(k=>k.Index).ToArray();
+        if(entrants.Length!=8 || entrants.Distinct().Count()!=8 || entrants.Any(i=>i is <0 or >11) || round.Winners.Length!=7)
+            throw new InvalidDataException("马战统计需要八位唯一骑士和七场完整赛果。");
+        var statistics=entrants.ToDictionary(i=>i,i=>new JoustKnightStatistics(i,0,0,0));
+        var offset=0;
+        while(entrants.Length>1)
+        {
+            var next=new int[entrants.Length/2];
+            for(var i=0;i<next.Length;i++)
+            {
+                var left=entrants[i*2];var right=entrants[i*2+1];var winner=round.Winners[offset+i];
+                if(winner!=left && winner!=right)throw new InvalidDataException("马战胜者不属于当前对阵。");
+                var loser=winner==left?right:left;
+                statistics[winner]=statistics[winner] with{Wins=statistics[winner].Wins+1};
+                statistics[loser]=statistics[loser] with{Losses=statistics[loser].Losses+1};
+                next[i]=winner;
+            }
+            offset+=next.Length;entrants=next;
+        }
+        statistics[entrants[0]]=statistics[entrants[0]] with{Championships=1};
+        return statistics.Values.OrderBy(s=>s.KnightIndex).ToArray();
+    }
     public (JoustPhase Phase, DateTimeOffset Next, int Revealed) Phase(JoustRound r, DateTimeOffset now)
     {
         var s = r.Schedule.Schedule; var bet = r.StartsAt.AddMinutes(s.BettingMinutes); var locked = bet.AddMinutes(s.LockMinutes);

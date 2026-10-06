@@ -66,8 +66,14 @@ BodyLength = 未知（字段集合已知不完整）
 
 EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
 
-90B：offset0 u16RoundNo；offset2起8×11B：+0 u8KnightIndex（FF无条目）、+1 u8展示内容选项、+2 f32Odds、+6 u16字段A、+8 u16字段B、+10 u8特殊隐藏flag。A/B参考称WinCount/LossCount，真实含义Unknown，无服务器数据首版0。
+90B：offset0 u16RoundNo；offset2起8×11B：+0 u8KnightIndex（FF无条目）、+1 u8展示内容选项、+2 f32Odds、+6 u16WinCount、+8 u16LossCount、+10 u8特殊隐藏flag。+6/+8 现已由下述资料窗口消费者确认；首版曾为0，当前接入已完成赛果累计。
 
 reader `000D2330` ReadBytes0x5A，11B步长；`000D23B3..C0`将+10传给`000FA090`展示。首版内容选项0；特殊骑士index>=8在Betting/Locked flag1，比赛flag0为ReferenceImplementation/ServerPolicy。
 
 实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。轮号由保存的UTC+8 schedule/start推导每日1..N，不使用当前已修改配置。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。
+
+### 累计胜败接线（2026-10-06）
+
+ClientStatic / High：骑士资料消费者 VA `004F5130`，RVA `000F56F3`、`000F570B`、`000F5734` 读取 +8/+6 计算胜率，文本 ID 12BC7/12BC8 显示胜败与整数百分比。顶部 12BC6“获胜次数”来自历史冠军记录遍历（RVA `000F523B..000F5255`），不从 B9 的胜场字段计算。
+
+CurrentImplementation：Result 后整场统一增加累计胜败，写入上述字段；u16 超界时同比缩放以保留胜率，服务保留完整 64 位计数。客户端实机数值反馈仍待验。详见[统计实现与验证](../../../Document/tasks/event-joust/knight-statistics-result.md)。

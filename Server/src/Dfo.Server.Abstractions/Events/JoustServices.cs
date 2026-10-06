@@ -11,6 +11,7 @@ public interface IJoustRuleService
     void ValidateSchedule(JoustSchedule schedule);
     DateTimeOffset? CurrentStart(JoustSchedule schedule, DateTimeOffset now);
     JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition definition);
+    JoustKnightStatistics[] ResultStatistics(JoustRound round);
     (JoustPhase Phase, DateTimeOffset Next, int Revealed) Phase(JoustRound round, DateTimeOffset now);
     decimal Odds(long total, long pool);
     bool MaterialAllowed(JoustDefinition definition, ItemSnapshot item, DateTimeOffset now);
@@ -20,6 +21,7 @@ public interface IJoustDomainService
     ValueTask<JoustSettings> SettingsAsync(CancellationToken ct);
     ValueTask<JoustSettings> SaveSettingsAsync(JoustSettingsChange change,string actor,DateTimeOffset now,CancellationToken ct);
     ValueTask<JoustState> GetStateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct);
+    ValueTask<JoustKnightInfo?> GetKnightInfoAsync(int knightIndex,CancellationToken ct);
     ValueTask<JoustBetResult> BetAsync(SelectedSessionIdentity session,string requestId,int knightIndex,BusinessSlot preferredSlot,int amount,DateTimeOffset now,CancellationToken ct);
     ValueTask<JoustHistoryEntry[]> GetHistoryAsync(CancellationToken ct);
     ValueTask<JoustLifecycleResult> AdvanceLifecycleAsync(DateTimeOffset now,CancellationToken ct);
@@ -35,6 +37,10 @@ public interface IJoustPersistence
     ValueTask SaveRoundAsync(JoustRound round,CancellationToken ct);
     ValueTask<JoustRound[]> UnsettledAsync(CancellationToken ct);
     ValueTask<JoustRound[]> HistoryAsync(CancellationToken ct);
+    ValueTask<bool> HasUnrecordedStatisticsAsync(CancellationToken ct);
+    ValueTask<JoustRound[]> UnrecordedStatisticsAsync(CancellationToken ct);
+    ValueTask<JoustKnightStatistics[]> KnightStatisticsAsync(CancellationToken ct);
+    ValueTask<bool> RecordStatisticsAsync(string roundId, IReadOnlyList<JoustKnightStatistics> statistics, CancellationToken ct);
     ValueTask<JoustBet[]> BetsAsync(string roundId,CancellationToken ct);
     ValueTask<JoustBet?> RequestAsync(CharacterId character,string requestId,CancellationToken ct);
     ValueTask InsertBetAsync(JoustBet bet,CancellationToken ct);
