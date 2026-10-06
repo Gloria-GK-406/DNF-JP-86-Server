@@ -27,10 +27,6 @@ internal static class JoustPayloadCodec
     { JoustPhase.Betting => 1, JoustPhase.Locked => 3, JoustPhase.Result => 2, _ => 4 });
     internal static byte[] State(JoustState s)
     { var b=new byte[3];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);b[2]=NativeState(s);return b; }
-    // A21 JoustStateSync compatibility extension: update the native manager/UI,
-    // but bypass the reader's announcement branch. Native lifecycle bytes stay unchanged.
-    internal static byte[] StateSnapshot(JoustState s)
-    { var b=State(s);b[2]|=0x80;return b; }
     internal static byte[] Info(JoustState s)
     {
         var b=new byte[90];BinaryPrimitives.WriteUInt16LittleEndian(b,s.DailyRoundNo);
@@ -79,12 +75,12 @@ internal static class JoustPayloadCodec
          BinaryPrimitives.WriteSingleLittleEndian(b.AsSpan(p+3),(float)entry.Odds);}return b;
     }
     // Both 04B8 and terminal 04BB have client announcement side effects.
-    // Query, bet update and replay contain neither. Entry/configuration refresh
-    // additionally initialize state through the explicitly silent compatibility extension.
+    // Query, general event refresh, bet update and replay contain neither. Character
+    // entry initializes the native state once and permits its native announcement.
     internal static GameStateSynchronizationMessage[] Snapshot(JoustState s) =>
         [new JoustBetsMessage(s),new JoustInfoMessage(s)];
-    internal static GameStateSynchronizationMessage[] EntrySnapshot(JoustState s) =>
-        [new JoustStateSnapshotMessage(s),..Snapshot(s)];
+    internal static GameStateSynchronizationMessage[] Initialization(JoustState s) =>
+        [new JoustStateMessage(s),..Snapshot(s)];
     internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleEventKind kind) => kind switch
     {
         JoustLifecycleEventKind.RoundStarted => [new JoustStateMessage(s)],
@@ -99,8 +95,6 @@ internal static class JoustPayloadCodec
 }
 internal sealed record JoustStateMessage(JoustState State):GameStateSynchronizationMessage,IGameNotiMessage
 {internal override ushort Type=>0x04B8;internal override byte[] EncodeBody()=>JoustPayloadCodec.State(State);}
-internal sealed record JoustStateSnapshotMessage(JoustState State):GameStateSynchronizationMessage,IGameNotiMessage
-{internal override ushort Type=>0x04B8;internal override byte[] EncodeBody()=>JoustPayloadCodec.StateSnapshot(State);}
 internal sealed record JoustInfoMessage(JoustState State):GameStateSynchronizationMessage,IGameNotiMessage
 {internal override ushort Type=>0x04B9;internal override byte[] EncodeBody()=>JoustPayloadCodec.Info(State);}
 internal sealed record JoustBetsMessage(JoustState State):GameStateSynchronizationMessage,IGameNotiMessage
@@ -151,7 +145,7 @@ public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICo
         {
             var state=await bus.SendAsync(new QueryJoustStateCommand(session),ct);
             if(!state.Active)await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E6,6),ct);
-            else await sender.SendBatchAsync(c.Connection,JoustPayloadCodec.Snapshot(state),ct);
+            else await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E6,0),..JoustPayloadCodec.Snapshot(state)],ct);
         }
     }
 }

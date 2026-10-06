@@ -313,9 +313,13 @@ public sealed class JoustIntegrationTests
             started.Task.GetAwaiter().GetResult();Assert.False(pending.IsCompleted);
         };
         await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,0x04E6,0,1)),default);
-        Assert.Empty(f.Sender.Messages.OfType<JoustResponse>());
-        Assert.DoesNotContain(f.Sender.Batches.SelectMany(b=>b.Frames),frame=>frame[0]==0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))==0x04B8);
-        Assert.Same(f.Connection,Assert.Single(f.Sender.Batches).Connection);
+        var ack=Assert.Single(f.Sender.Messages.OfType<JoustResponse>());
+        Assert.Equal((ushort)0x04E6,ack.Type);Assert.Equal(0u,ack.Result);
+        var batch=Assert.Single(f.Sender.Batches);Assert.Same(f.Connection,batch.Connection);
+        Assert.Collection(batch.Frames,
+            frame=>{Assert.Equal(1,frame[0]);Assert.Equal(0x04E6,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));Assert.Equal(new byte[]{1,0,0,0,0},frame[15..]);},
+            frame=>{Assert.Equal(0,frame[0]);Assert.Equal(0x04BA,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));},
+            frame=>{Assert.Equal(0,frame[0]);Assert.Equal(0x04B9,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));});
         await using var replacementLease=await pending!;f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session);
     }
     [Fact]

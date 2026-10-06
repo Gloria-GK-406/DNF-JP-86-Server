@@ -30,7 +30,7 @@ public sealed class JoustQueryHandlerTests
             null, null, null, [], [1,2,3,4,1,3,1], 0, 1000, 17);
         var messages = await new JoustDetailsChangedHandler(new Projection(state)).ComposeAsync(new(new(1), new("joust")),
             new(state.ServerTime), default);
-        Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustStateSnapshotMessage or JoustResultsMessage);
+        Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResultsMessage);
         Assert.Single(messages.OfType<JoustBetsMessage>());
         Assert.Single(messages.OfType<JoustInfoMessage>());
     }
@@ -45,10 +45,14 @@ public sealed class JoustQueryHandlerTests
         var replies = await QueryTwice(state);
         foreach (var messages in replies)
         {
-            Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustStateSnapshotMessage or JoustResultsMessage or JoustResponse);
-            Assert.IsType<JoustBetsMessage>(messages[0]);
-            Assert.IsType<JoustInfoMessage>(messages[1]);
-            Assert.Equal(2, messages.Count);
+            Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResultsMessage);
+            var ack=Assert.IsType<JoustResponse>(messages[0]);
+            Assert.Equal((ushort)0x04E6,ack.Type);
+            Assert.Equal(0u,ack.Result);
+            Assert.Null(ack.History);
+            Assert.IsType<JoustBetsMessage>(messages[1]);
+            Assert.IsType<JoustInfoMessage>(messages[2]);
+            Assert.Equal(3, messages.Count);
         }
     }
 
@@ -78,6 +82,30 @@ public sealed class JoustQueryHandlerTests
             Assert.Equal(0u, response.Result);
             Assert.Equal(history, response.History);
         }
+    }
+
+    [Theory]
+    [InlineData(JoustPhase.Betting)]
+    [InlineData(JoustPhase.Result)]
+    public async Task General_event_refresh_does_not_reinitialize_joust_or_reannounce_results(JoustPhase phase)
+    {
+        var state=new JoustState(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
+            [],[1,2,3,4,1,3,1],0,1000,17);
+        var session=SelectedSessionIdentity.Create(new(1),new(1),new("joust-test"),1,10010);
+        var handler=new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),new EventProjection(state));
+        for(var i=0;i<2;i++)
+        {
+            var messages=await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
+            Assert.DoesNotContain(messages,m=>m is JoustStateMessage or JoustResultsMessage);
+            Assert.Single(messages.OfType<JoustBetsMessage>());
+            Assert.Single(messages.OfType<JoustInfoMessage>());
+            Assert.Equal(4,messages.Count);
+        }
+    }
+    private sealed class EventProjection(JoustState state):IEventPlayerProjectionDomainService
+    {
+        public ValueTask<Dfo.Server.Data.Events.EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity session,CancellationToken ct)
+            =>ValueTask.FromResult(new Dfo.Server.Data.Events.EventPlayerSnapshot([],Dfo.Server.Data.Events.WeeklyAttendanceState.Empty,state));
     }
 
     private static async Task<IReadOnlyList<IGameServerMessage>[]> QueryTwice(JoustState state,

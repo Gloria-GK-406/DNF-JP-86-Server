@@ -88,3 +88,10 @@ CurrentImplementation：04B8用于选角同步和后台签名(Active,RoundId,Pha
 
 
 2026-10-06 CurrentImplementation更新：04B8不再用于选角同步或一般快照。后台轮次事件通过IDomainEventBus→INotificationBus广播；开场同轮一次，结束以已提交结算记录为依据一次，启动不补播。查询、登录、重放、投注资料更新均不返回04B8。
+
+
+### 当前实现：恢复原生初始化（2026-10-06）
+
+用户接受初始化公告。选角入场初始化发送原生u16轮号+i8状态0..5；后台实际生命周期变化继续发送原生状态。高位0x80与0190_JoustStateSync已移除。通用活动刷新（含签到领取）/查询/下注资料更新/重复帧重放不发送04B8或04BB。上述较早“登录不发送04B8”及“高位静默扩展”仅是历史实现。
+
+ClientStatic：state1..4直接公告且不比较旧state/round；state0/5无直接公告，state5按已由04BB设置的counter进入scene5/8/11，第三组可能进入scene12并公告冠军。实际原服state5发送时点未知，本服当前不发送5。自动回归不代表ClientVerified。

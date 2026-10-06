@@ -55,19 +55,19 @@ public sealed class JoustProtocolTests
     [InlineData(JoustPhase.SemiFinal)]
     [InlineData(JoustPhase.Final)]
     [InlineData(JoustPhase.Result)]
-    public void Entry_initializes_native_state_silently_without_replaying_results(JoustPhase phase)
+    public void Entry_initializes_native_state_once_without_replaying_results(JoustPhase phase)
     {
         var result=SelectCharacterPayloadTestData.CreateComplete() with{Events=new([],WeeklyAttendanceState.Empty,State(phase))};
-        var messages=SelectedCharacterStateMessageFactory.Create(result);Assert.Empty(messages.OfType<JoustStateMessage>());Assert.Empty(messages.OfType<JoustResultsMessage>());Assert.Single(messages.OfType<JoustInfoMessage>());Assert.Single(messages.OfType<JoustBetsMessage>());
-        var snapshot=Assert.Single(messages.OfType<JoustStateSnapshotMessage>());
-        Assert.Equal(new byte[]{7,0,(byte)(0x80|JoustPayloadCodec.NativeState(State(phase)))},snapshot.EncodeBody());
+        var messages=SelectedCharacterStateMessageFactory.Create(result);Assert.Empty(messages.OfType<JoustResultsMessage>());Assert.Single(messages.OfType<JoustInfoMessage>());Assert.Single(messages.OfType<JoustBetsMessage>());
+        var snapshot=Assert.Single(messages.OfType<JoustStateMessage>());
+        Assert.Equal(new byte[]{7,0,JoustPayloadCodec.NativeState(State(phase))},snapshot.EncodeBody());
         Assert.True(messages.ToList().IndexOf(snapshot)<messages.ToList().IndexOf(Assert.Single(messages.OfType<JoustInfoMessage>())));
     }
-    [Fact] public void Disabled_snapshot_clears_native_state_without_an_announcement()
+    [Fact] public void Disabled_entry_clears_native_state_with_zero()
     {
         var state=State() with{Active=false};
-        var messages=JoustPayloadCodec.EntrySnapshot(state);
-        Assert.Equal(new byte[]{7,0,0x80},Assert.Single(messages.OfType<JoustStateSnapshotMessage>()).EncodeBody());
-        Assert.DoesNotContain(messages,m=>m is JoustStateMessage or JoustResultsMessage);
+        var messages=JoustPayloadCodec.Initialization(state);
+        Assert.Equal(new byte[]{7,0,0},Assert.Single(messages.OfType<JoustStateMessage>()).EncodeBody());
+        Assert.DoesNotContain(messages,m=>m is JoustResultsMessage);
     }
 }

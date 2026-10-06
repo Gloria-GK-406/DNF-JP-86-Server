@@ -138,7 +138,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<JoustBetDecoder>(0x04E7,ClientMessageType.GameJoustBet);
         services.AddGameCmdMessageEncoder<JoustResponse,JoustResponseEncoder>();
         services.AddGameNotiMessageEncoder<JoustStateMessage,GameNotiStateSynchronizationEncoder<JoustStateMessage>>();
-        services.AddGameNotiMessageEncoder<JoustStateSnapshotMessage,GameNotiStateSynchronizationEncoder<JoustStateSnapshotMessage>>();
         services.AddGameNotiMessageEncoder<JoustInfoMessage,GameNotiStateSynchronizationEncoder<JoustInfoMessage>>();
         services.AddGameNotiMessageEncoder<JoustBetsMessage,GameNotiStateSynchronizationEncoder<JoustBetsMessage>>();
         services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
