@@ -34,8 +34,7 @@ public sealed class ReinforceItemHandler(
         EquipmentReinforcementReceipt? receipt = null;
         if (message.Method is not (0 or 1))
             response = new(false, 0x17);
-        else if (!TrySlots(message, out var target, out var material,
-                     out var accountMaterialItemId, out var ticket))
+        else if (!TrySlots(message, out var target, out var material, out var ticket))
             response = new(false, 0x04);
         else
         {
@@ -46,7 +45,7 @@ public sealed class ReinforceItemHandler(
             {
                 var result = await commands.SendAsync(new ReinforceItemCommand(
                     online.OnlineUserId, session, target, message.ExpectedItemId,
-                    material, accountMaterialItemId, ticket, (EquipmentUpgradeKind)message.Method), ct).ConfigureAwait(false);
+                    material, ticket, (EquipmentUpgradeKind)message.Method), ct).ConfigureAwait(false);
                 if (result.Receipt is { } committed)
                 {
                     receipt = committed;
@@ -72,24 +71,21 @@ public sealed class ReinforceItemHandler(
     }
 
     private bool TrySlots(ReinforceItemRequest message, out BusinessSlot target,
-        out BusinessSlot? material, out int? accountMaterialItemId,
+        out BusinessSlot? material,
         out BusinessSlot? ticket)
     {
         target = default;
         material = null;
-        accountMaterialItemId = null;
         ticket = null;
-        if (message.TargetSlot < 0 || message.MaterialSlot < -1
+        if (message.TargetList is not (InventoryContainerType.Main or InventoryContainerType.Equipment)
+            || message.TargetSlot < 0 || message.MaterialSlot < -1
             || message.OptionalTicketSlot < -1)
             return false;
         try
         {
             target = slotMappings.ToBusinessSlot(
-                new(InventoryContainerType.Main, message.TargetSlot));
-            if (message.MaterialSlot is >= 354 and <= 364)
-                accountMaterialItemId = AccountMaterialCatalog.Definitions
-                    .Single(definition => definition.VirtualSlotIndex == message.MaterialSlot).ItemId;
-            else if (message.MaterialSlot >= 0)
+                new(message.TargetList, message.TargetSlot));
+            if (message.MaterialSlot >= 0)
                 material = slotMappings.ToBusinessSlot(
                     new(InventoryContainerType.Main, message.MaterialSlot));
             if (message.OptionalTicketSlot >= 0)
@@ -110,11 +106,9 @@ public sealed class ReinforceItemHandler(
             Outcome: receipt.Outcome,
             NewLevel: receipt.NewLevel,
             TargetSlot: checked((short)slotMappings.ToGameSlot(receipt.TargetSlot).Index),
+            TargetList: slotMappings.ToGameSlot(receipt.TargetSlot).Space,
             DestroyRewards: receipt.DestroyRewards.Select(reward =>
-                new ReinforceItemReward(reward.VirtualSlotIndex is { } virtualSlot
-                        ? new GameSlot(InventoryContainerType.Main, virtualSlot)
-                        : slotMappings.ToGameSlot(reward.Slot
-                            ?? throw new InvalidDataException("A physical reinforcement reward has no slot.")),
+                new ReinforceItemReward(slotMappings.ToGameSlot(reward.Slot),
                     reward.ItemId, reward.Count)).ToArray());
 
     internal static byte ErrorCode(EquipmentReinforcementRejection rejection) => rejection switch

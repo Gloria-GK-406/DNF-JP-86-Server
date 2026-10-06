@@ -5,7 +5,7 @@ namespace Dfo.Server.Abstractions.World;
 
 public sealed record QuestEnemyDropRequest(
     QuestEnemyType EnemyType, int EnemyCode, int InstanceId,
-    int DungeonId, DungeonDifficulty Difficulty, int Seed, MazeCell Cell, int MapId)
+    int DungeonId, DungeonDifficulty Difficulty, int Seed, int PositionX, int PositionY, int MapId)
 {
     public static QuestEnemyDropRequest FromMonster(MonsterDropRequest request) => new(
         request.Context.SourceType switch
@@ -15,7 +15,8 @@ public sealed record QuestEnemyDropRequest(
             _ => throw new ArgumentOutOfRangeException(nameof(request)),
         },
         request.MonsterCode, request.ActorSequence, request.Context.DungeonId,
-        request.Context.Difficulty, request.Context.Seed, request.Context.Cell, request.Context.MapId);
+        request.Context.Difficulty, request.Context.Seed,
+        request.Context.Cell.X, request.Context.Cell.Y, request.Context.MapId);
 }
 
 public interface IQuestEnemyDropDomainService

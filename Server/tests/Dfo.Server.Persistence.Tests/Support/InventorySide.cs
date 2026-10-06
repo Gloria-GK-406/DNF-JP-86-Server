@@ -64,43 +64,54 @@ internal sealed class InventorySide
     public ValueTask<ItemMoveOutcome> MoveAsync(CharacterId characterId,
         BusinessSlot from, BusinessSlot into, int count, CancellationToken cancellationToken)
     {
-        var inventory = new CharacterBusinessInventoryDomainService(this.Containers);
+        var rules = new ItemPlacementRuleService(this.placements, new NoWearables());
+        var inventory = new CharacterBusinessInventoryDomainService(this.Containers, rules);
         var source = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(from.Space))
             .GetContainer(from.Space);
         var destination = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(into.Space))
             .GetContainer(into.Space);
-        var rules = new ItemPlacementRuleService(this.placements, new NoWearables());
         return new ItemMovementDomainService(rules, new ItemSlotRuleService(), new NoWearables())
             .MoveWithinBackingAsync(new(from, source), new(into, destination), count,
                 cancellationToken);
+    }
+
+    public IItemGrantDomainService Grants => new ItemGrantDomainService(
+        new CharacterBusinessInventoryDomainService(Containers,
+            new ItemPlacementRuleService(placements, new NoWearables()),
+            new ItemArrivalRuleService(), lifecycle: Lifecycle),
+        new ItemPlacementRuleService(placements, new NoWearables()), Lifecycle, Store, Scope, new SqliteCharacterTable(database), null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database), new SqliteAccountCargoStateTable(database), new InventoryCapacityRuleService()));
+
+    public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+        AccountId account, CharacterId character, CancellationToken ct)
+    {
+        var source = Scope.Current is null ? (ICharacterInventoryEntryRepository)PerCall : CharacterEntries;
+        var inventory = await new CharacterInventoryEntryDomainService(source).ReadCurrentAsync(account, character, ct);
+        return inventory.Containers.Single(container => container.ContainerType == InventoryContainerType.Main).Items;
     }
 
     public ICharacterInventoryEntryRepository CharacterEntries => this.Assembly;
 
     public IAccountInventoryEntryRepository AccountEntries => this.Assembly;
 
-    public IEntryInventoryLeasePersistence Leases => this.Assembly;
+    public IItemDomainStore Store => new SqliteItemDomainStore(this.databasePath);
 
-    public IEntryInventoryMutationRepository Mutations => new DailyRefillService(
+    public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(
+        Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()));
+
+    public IDailyRefillDomainService Mutations => new DailyRefillDomainService(
         new SqliteCharacterTable(this.database),
-        new SqliteCharacterItemTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
         new DailyRefillRuleService(),
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
-            new ItemArrivalRuleService()),
-        new ItemArrivalRuleService(),
-        new ItemPlacementRuleService(this.placements, new NoWearables()));
+            new ItemArrivalRuleService(), lifecycle: Lifecycle),
+        new ItemArrivalRuleService(), Grants);
 
     /// <summary>
     /// Binds a character to its own main container, as entry does.
     /// </summary>
     /// <remarks>
-    /// The snapshot repository is left out: it answers only the projection the client is shown, and
-    /// nothing reached through here asks for one.
-    ///
-    /// A refill needs no archive -- its band and kind come from its own rule -- but a move does, so
-    /// one is supplied rather than left null. The default treats every item as an ordinary
+    /// Placement rules also validate lifecycle creation. The default treats every item as an ordinary
     /// consumable of the main band, which is what the tests that move things here are about; a test
     /// with something else in mind passes its own.
     /// </remarks>
@@ -125,14 +136,11 @@ internal sealed class InventorySide
         var character = new CharacterId(characterId);
         this.Containers.Register(character, new PersistentItemContainer(
             ContainerId.ForCharacter(character, containerType),
-            character,
             new ContainerShape(containerType, parameter),
             new SqliteItemDomainStore(this.databasePath),
             this.Scope,
-            null!,
             new ItemPlacementRuleService(
                 placements ?? this.placements, new NoWearables()),
-            new ItemArrivalRuleService(),
             new ItemSlotRuleService()));
     }
 
@@ -165,12 +173,11 @@ internal sealed class InventorySide
     public PerCallUseCase PerCall => new(this.Scope, this.Assembly);
 
     /// <summary>The refill, likewise one use case per call.</summary>
-    public IEntryInventoryMutationRepository MutationsPerCall =>
+    public IDailyRefillDomainService MutationsPerCall =>
         new PerCallMutations(this.Scope, this.Mutations);
 
     internal sealed class PerCallUseCase(DomainTransactionScope scope, InventoryEntryAssembly inner)
-        : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository,
-            IEntryInventoryLeasePersistence
+        : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
     {
         public ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
@@ -182,18 +189,11 @@ internal sealed class InventorySide
             Settled(scope, () => inner.LoadAccountAsync(accountId, characterId, cancellationToken),
                 cancellationToken);
 
-        public async ValueTask SaveAsync(
-            EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken) =>
-            await Settled(scope, async () =>
-            {
-                await inner.SaveAsync(lease, cancellationToken).ConfigureAwait(false);
-                return true;
-            }, cancellationToken).ConfigureAwait(false);
     }
 
     private sealed class PerCallMutations(
-        DomainTransactionScope scope, IEntryInventoryMutationRepository inner)
-        : IEntryInventoryMutationRepository
+        DomainTransactionScope scope, IDailyRefillDomainService inner)
+        : IDailyRefillDomainService
     {
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId,
@@ -204,10 +204,6 @@ internal sealed class InventorySide
             Settled(scope, () => inner.ApplyDailyRefillAsync(
                 accountId, characterId, rules, preparedAt, cancellationToken), cancellationToken);
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            Settled(scope, () => inner.ReadMainItemsAsync(characterId, cancellationToken),
-                cancellationToken);
     }
 
     private static async ValueTask<TResult> Settled<TResult>(
@@ -241,11 +237,9 @@ internal sealed class InventorySide
 
     private InventoryEntryAssembly Assembly => new(
         new SqliteCharacterTable(this.database),
-        new AccountMaterialBagDomainService(
-            new SqliteAccountMaterialBagStore(this.databasePath),
-            new AccountMaterialRuleService(),
-            new AmbientStoreAccess(this.Scope)),
-        new AccountMaterialRuleService(),
+        new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(),
+                new ItemPlacementRuleService(this.placements, new NoWearables()), new ItemArrivalRuleService(),
+                items: new SqliteItemDomainStore(this.databasePath), transactions: this.Scope, slotRules: new ItemSlotRuleService()),
         new SqliteCharacterItemTable(this.database),
         new SqliteAccountCargoItemTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
@@ -256,5 +250,5 @@ internal sealed class InventorySide
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
         new SqliteCharacterRentalTable(this.database),
-        new ItemPlacementRuleService(this.placements, new NoWearables()));
+        Store, Scope);
 }

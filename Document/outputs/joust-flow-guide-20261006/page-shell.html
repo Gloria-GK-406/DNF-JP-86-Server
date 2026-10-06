@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A21 马战 · 协议与流程说明</title><style>__CSS__</style></head>
+<body>
+<header class="masthead"><div class="brandmark">J</div><div><div class="eyebrow">A21 CLIENT / PROTOCOL STUDY</div><h1>马战协议与流程说明</h1></div><span class="stamp">2026.10.06 <span>ClientStatic</span></span></header>
+<div class="intro"><p>沿着一组包，观察界面如何变化。</p><div>先看入口与查询，再看投注和三组比赛；将协议消费、客户端动画与服务端业务分开。</div></div>
+<nav class="tabs" aria-label="说明页导航"><button class="active" data-tab="flow">01 · 流程演练</button><button data-tab="catalog">02 · 协议清单 <span>11</span></button><button data-tab="rules">03 · 状态与边界</button></nav>
+<main>
+<section id="flow" class="tab-panel active">
+<div class="workspace">
+<aside class="sidebar"><div class="section-cap">选择一个时间线</div><div id="scenario-list"></div><div class="side-note">T+ 是步骤编号，不是秒数。<br>这些包是合成示例，页面不连接游戏服务。</div></aside>
+<div class="stage">
+<section class="scenario-head"><div class="eyebrow" id="scenario-kind"></div><h2 id="scenario-title"></h2><p id="scenario-description"></p><details class="assumptions"><summary>模拟前提与证据边界</summary><div id="assumptions"></div><p>固定前提：service45存在、前置mode允许、网络ready；初值假定reset后state0。构造初值与登录reset尚未确认。打开动作演示已定位的显示初始化路径，每次真实重开是否重走该路径仍未知。UI是结构示意，不是客户端截图。</p></details></section>
+<div class="playback"><button id="prev" aria-label="上一步">← 上一步</button><button id="next" class="primary">下一步 →</button><button id="play">自动播放</button><button id="reset">回到初始</button><span id="step-counter" aria-live="polite"></span><label class="tick-option"><input type="checkbox" id="hidden-tick"> 假定隐藏时也推进动画</label></div>
+<label class="range-label" for="step-range">时间线进度</label><input id="step-range" type="range" min="-1" max="0" value="-1" aria-label="时间线进度">
+<div class="readouts"><div><span>Manager state</span><strong id="state-value"></strong><small id="state-label"></small></div><div><span>主窗口 scene</span><strong id="scene-value"></strong><small id="scene-label"></small></div><div><span>比赛组 counter</span><strong id="counter-value"></strong><small>构造初值 −1</small></div><div><span>客户端公告次数</span><strong id="notice-value"></strong><small>原生消费者可能重复输出</small></div></div>
+<div class="event-card"><div class="event-head"><span id="event-time" class="time-tag"></span><h3 id="event-label"></h3><span id="event-class" class="pill"></span></div><p id="event-note"></p><div id="effect-list"></div><div id="automatic-requests"></div></div>
+<div class="visual-grid">
+<section class="client-card"><div class="panel-title"><h3>客户端界面结构示意</h3><span id="ui-visibility" class="pill"></span></div><div id="calendar-gate"></div><div class="game-surface"><div class="game-top"><span>骑士马战 · <span id="round-label"></span></span><span id="game-state"></span></div><div id="game-overlay"></div><div id="knight-grid" class="knights"></div><div class="bet-summary"><span>客户端剩余材料 <strong id="inventory-value"></strong></span><span>个人投入 <strong id="bet-value"></strong></span><span id="bet-gate" class="pill"></span></div><div id="selected-knight" class="selected-detail"></div><div id="bracket" class="bracket"></div><p class="micro">骑士 A–H、材料与计数均为模拟资料。condition 来自 B9，attack 图标值来自 PVF；B9 的 raw4 业务含义尚未闭合。</p></div></section>
+<section class="trace-card"><div class="panel-title"><h3>副作用与职责</h3><span class="pill">同一时刻</span></div><div class="domain-summary"><div><span>服务端投注账本</span><strong id="ledger-value"></strong></div><div><span>服务端剩余材料</span><strong id="server-inventory-value"></strong></div><div><span>结算 / 邮件</span><strong id="mail-value"></strong></div></div><p class="micro">这些值只由明确的 DOMAIN 示例步骤改变。查询、状态与赛果通知不会偷偷结算或投递。</p><h4>本步的自动请求 / 公告 / 弹窗</h4><div id="current-side-effects"></div><h4>累计公告</h4><div id="notice-list" class="scroll-list"></div><h4>历史资料</h4><div id="history-list"></div></section>
+</div>
+<section class="diff-card"><h3>本步之前 → 之后</h3><div class="table-scroll"><table><thead><tr><th>观察位置</th><th>之前</th><th>之后</th></tr></thead><tbody id="state-diff"></tbody></table></div></section>
+<details class="packet-card" id="packet-details"><summary>查看这一步的包结构 / 合成 body</summary><div id="packet-content"></div></details>
+<section class="timeline-card"><h3>模拟包时间线 <span class="micro">点击任意一步查看状态</span></h3><div id="timeline-list"></div></section>
+</div></div>
+</section>
+<section id="catalog" class="tab-panel"><div class="wide-head"><div class="eyebrow">DIRECTION + COMMAND + TYPE</div><h2>全部已定位的马战相关协议</h2><p>7 个马战专属 opcode，拆成 10 个方向条目；另有通用活动 NOTI006C。相同编号的 C2S CMD006C 是 REPORT_4_HACK，不能混用。</p></div><div class="catalog-controls"><label>搜索协议或字段 <input id="catalog-search" type="search" placeholder="例如 04BB、raw_state、history"></label><label>方向 <select id="direction-filter"><option value="all">全部方向</option><option value="C2S">客户端 → 服务端</option><option value="S2C">服务端 → 客户端</option></select></label><span id="catalog-count"></span></div><div id="catalog-list"></div><details class="support-card"><summary>共享依赖、邻近候选和陈旧记录</summary><div id="catalog-extra"></div></details></section>
+<section id="rules" class="tab-panel"><div class="wide-head"><div class="eyebrow">STATE ≠ STAGE ≠ SCENE</div><h2>三种状态，三种职责</h2><p>state 是管理器状态；stage 是赛果包的分支输入；scene 是本地画面状态。相同的 BB stage，在不同 scene 会有不同结果。</p></div><div class="rules-grid"><article class="support-card"><h3>04B8 state 消费</h3><div id="state-matrix"></div><p class="micro">状态的业务名称是领域映射。原生没有已确认的 silent 高位标志。state5 依赖已有 counter，不是通用起播。</p></article><article class="support-card"><h3>04BB stage × 当前 scene</h3><div id="stage-matrix"></div><p class="micro">Stage0 消费前 6 槽，Stage1/2/3 消费全部 7 槽；有效填槽数量是另一项服务端策略。</p></article></div>
+<section class="support-card"><h3>本地动画推进</h3><div class="scene-flow"><div><b>第一组</b><span>3 → 4 → <em>5 等待</em></span></div><div><b>第二组</b><span>6 → 7 → <em>8 等待</em></span></div><div><b>第三组</b><span>9 → 10 → 11 → <em>12 冠军</em></span></div></div><p>scene5 / 8 不会由已识别 tick 自动进入6 / 9。起播需要满足 BB 分支条件。计时参数9100已确认，但单位、前置动画长度、隐藏窗口tick仍有未知；这里不把 T+ 步骤写成真实秒数。</p></section>
+<section class="support-card sandbox"><h3>场景条件试验</h3><p>修改收到赛果前的 scene，观察同一 stage 的去向。此试验独立于上方时间线。</p><div class="catalog-controls"><label>收到前 scene <select id="sandbox-scene"></select></label><label>BB stage <select id="sandbox-stage"><option>0</option><option>1</option><option>2</option><option>3</option></select></label><button id="sandbox-run" class="primary">模拟消费</button></div><div id="sandbox-result"></div></section>
+<section class="support-card"><h3>打开、查询与投注</h3><ol class="explain-list"><li><b>入口先看093D。</b>通用活动表有此项才能走结果UI入口；它不会代替马战state初始化。</li><li><b>打开先发04E6，再立即读已有state。</b>已有manager的state0会拒绝，无法靠稍后查询ACK解除这次同步检查。</li><li><b>成功ACK确保对象，显示是另一条路径。</b>投注窗显示初始化会查询04E8；ensure不会自动显示或发送历史查询。</li><li><b>投注请求不等于扣除。</b>04E7确认回调发所选骑士、物理槽、数量；DOMAIN接受与扣除、共享库存投影、ACK刷新、BA个人投入各负其责。</li><li><b>查询不结算。</b>历史ACK更新客户端记录和滚动范围。服务端查询只读与客户端回包无公告是两项独立约束。</li></ol></section>
+<section class="support-card"><h3>公告为什么重复</h3><p>B8 state1–4 的直接公告没有旧状态/轮次去重。scene12的冠军公告也没有去重：重复BB3、在非起播scene收到BB2，以及第三组本地动画结束都可能进入它。窗口已显示主要影响浮动提示，不能据此抑制聊天。</p><p>0190兼容插件只跳过B8直接公告；它没有抑制BB或本地scene12，也没有精确恢复已播放时间的字段。每组先state4的模拟候选可起播，但会重复触发state4公告，不能当作最终生产方案。</p></section>
+<section class="support-card unknowns"><h3>尚未闭合的证据</h3><div id="global-unknowns"></div></section>
+</section>
+</main>
+<footer><strong>说明页只在本地运行</strong><span>ClientStatic ≠ WireCaptured ≠ ClientVerified</span><details><summary>输入身份与可复现资料</summary><div id="identity"></div><p><a href="protocol-catalog.md">协议清单 Markdown</a> · <a href="timeline.md">模拟时间线 Markdown</a> · <a href="README.md">复现与边界</a> · <a href="model-verification.md">模型验证</a></p></details></footer>
+<script>__MODEL__
+const CATALOG=__CATALOG__;
+const SCENARIO_DATA=__SCENARIOS__;
+__APP__
+</script></body></html>

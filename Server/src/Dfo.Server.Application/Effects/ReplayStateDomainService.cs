@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Creatures;
 using Dfo.Server.Application.Characters;
@@ -55,6 +56,14 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         {
             characterInventory = await Get<ICharacterInventoryEntryDomainService>()
                 .ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
+            if (services.GetService<IIllusionTowerDomainService>()?.Find(session) is { DungeonId: 11000 })
+            {
+                var tower = Get<ICharacterContainerDomainService>().GetContainer(session.CharacterId, InventoryContainerType.QuickSlot);
+                var items = await tower.GetAllAsync(ct).ConfigureAwait(false);
+                characterInventory = characterInventory with { Containers = [.. characterInventory.Containers,
+                    new InventoryContainerState(InventoryContainerType.QuickSlot, tower.Shape.Parameter,
+                        items.Select(item => new InventoryItemState(item.ItemUid, item.StorageSlotIndex, item.Snapshot.ToCore())).ToArray())] };
+            }
             if (appearanceNeeded)
                 characterInventory = await SupportCreatureMarkerProjection.CompleteAsync(characterInventory,
                     Get<ICharacterEntryPreparationRuleService>(), at, ct).ConfigureAwait(false);
@@ -141,7 +150,9 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         }
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
-            itemUsage, premiums, premiumUsage, appearance);
+            itemUsage, premiums, premiumUsage, appearance)
+        { Joust = needs.HasFlag(ReplayProjectionNeeds.Joust)
+            ? await Get<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>().ReadAsync(session.CharacterId,at,ct).ConfigureAwait(false) : null };
     }
     private T Get<T>() where T : notnull => services.GetRequiredService<T>();
 }

@@ -23,10 +23,8 @@ public sealed record AccountLotteryRow(int ItemTemplateId, int RewardIndex);
 /// The account itself.
 /// </summary>
 /// <remarks>
-/// One table, and only the things one can do to a row of it: put one there if it is not already,
-/// and read one back. Finding out whether an account exists and creating it when it does not is
-/// two of those in a row, which is a decision -- so it is made by whoever is logging the player
-/// in, not here.
+/// Account reads and balance updates. Credential registration and conditional credential changes
+/// belong to IAuthenticationPersistence.
 /// </remarks>
 public interface IAccountTable
 {
@@ -38,10 +36,6 @@ public interface IAccountTable
     ValueTask<int> TrySetCeraBalancesAsync(AccountId accountId, AccountCeraBalances expected,
         AccountCeraBalances next, CancellationToken cancellationToken) =>
         throw new NotSupportedException("This account table cannot change CERA balances.");
-
-    /// <summary>Adds the account unless that login name already has one.</summary>
-    ValueTask InsertIfAbsentAsync(
-        string loginId, string passwordHash, CancellationToken cancellationToken);
 
     /// <summary>The account with that login name, or nothing when there is none.</summary>
     ValueTask<AccountRecord?> FindByLoginIdAsync(string loginId, CancellationToken cancellationToken);

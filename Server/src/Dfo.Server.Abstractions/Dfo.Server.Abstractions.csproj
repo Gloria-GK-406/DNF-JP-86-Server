@@ -7,4 +7,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Dfo.Server.Data\Dfo.Server.Data.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfo.Server.Persistence" />
+    <InternalsVisibleTo Include="Dfo.Server.Persistence.Tests" />
+    <InternalsVisibleTo Include="Dfo.Server.Application.Tests" />
+    <InternalsVisibleTo Include="Dfo.Server.Protocol.Tests" />
+  </ItemGroup>
 </Project>

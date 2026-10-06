@@ -29,15 +29,20 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var previous = Session(result);
         var next = previous with { ConnectionGeneration = previous.ConnectionGeneration + 1 };
         var loader = new InventoryLoader(result.CharacterInventory);
+        var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader,
-            new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!, null!);
+            new RefillConfiguration(new RefillContent()), new RefillMutation(), loader,
+            containers, new VolatileItemDomainStore(), new DomainTransactionScope(),
+            null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
 
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
 
         Assert.Equal(result.CharacterInventory, updated.CharacterInventory);
         Assert.Equal(1, loader.LoadCount);
+        Assert.Equal(ContainerId.ForAccount(next.AccountId, InventoryContainerType.SharedMaterial),
+            containers.GetContainer(next.CharacterId, InventoryContainerType.SharedMaterial).Id);
+        Assert.DoesNotContain(updated.CharacterInventory.Containers,
+            container => container.ContainerType == InventoryContainerType.SharedMaterial);
     }
 
     [Fact]
@@ -54,9 +59,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 new InventoryContainerState(InventoryContainerType.Avatar, 0, [])]
         };
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
+            new RefillConfiguration(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new CharacterContainerDomainService(),
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -75,9 +80,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var session = Session(result);
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader,
+            new RefillConfiguration(new RefillContent()), new FailingRefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!, null!);
+            null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -161,12 +166,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         // number on purpose: that value is what the wire shows for a creature, it is not the key
         // its condition is kept under, and a revival that went looking by it would find the wrong
         // creature or none.
-        items.SessionIn(accessor.Current!).Write(
-            ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
-            new StoredItem(25, Core(itemKind: 5, itemId: 1, value: 999))
-            {
-                Identity = new ItemIdentity(77),
-            });
+        items.Seed(ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment), 25,
+            ItemSnapshot.FromCore(Core(itemKind: 5, itemId: 1, value: 999), false, new(77),
+                creature: new(0, 0, 0, 0, 0, 1, [], 0)));
         var service = new SelectCharacterPetEntryService(
             characters, items, new AmbientStoreAccess(accessor));
 
@@ -203,9 +205,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         };
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
+            new RefillConfiguration(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), containers,
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
@@ -278,17 +280,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                     new(BusinessInventorySpace.Quest, 0, 55))]);
     }
 
-    private sealed class RefillMutation : IEntryInventoryMutationRepository
+    private sealed class RefillMutation : IDailyRefillDomainService
     {
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture does not read the main inventory.");
-
-
-
-
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
@@ -297,17 +290,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 [new DailyRefillCommittedGrant(new(BusinessInventorySpace.Consumable, 0), 9001, 2, 2)]));
     }
 
-    private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
+    private sealed class FailingRefillMutation : IDailyRefillDomainService
     {
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture does not read the main inventory.");
-
-
-
-
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
@@ -355,6 +339,13 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+    }
+
+    private sealed class RefillConfiguration(IEntryLifecycleContentSource source) : IDailyRefillConfigurationDomainService
+    {
+        public ValueTask<IReadOnlyList<DailyRefillRule>> EffectiveAsync(DateTimeOffset at, CancellationToken ct) => source.GetDailyRefillRulesAsync(at, ct);
+        public ValueTask<DailyRefillList> ListAsync(DateTimeOffset at, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<DailyRefillList> ChangeAsync(DailyRefillChange change, string actor, DateTimeOffset at, CancellationToken ct) => throw new NotSupportedException();
     }
 
 }

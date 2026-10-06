@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Mail;
 using Dfo.Server.Application.Configuration;
@@ -20,6 +21,8 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.World.IllusionTower;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Channel;
@@ -76,6 +79,8 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IDomainEventBus,Dfo.Server.Application.Events.DomainEventBus>();
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<Dfo.Server.Abstractions.Events.IDomainEventHandler<Dfo.Server.Abstractions.Events.JoustLifecycleEvent>,Dfo.Server.Application.Events.JoustLifecycleEventHandler>());
         services.TryAddSingleton(new ChannelListenerOptions(
             configuration.GetSection("Networking:GamePorts")
                 .GetChildren()
@@ -109,7 +114,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<SpiritPotionDomainService>();
         services.TryAddSingleton<ISpiritPotionDomainService>(sp => sp.GetRequiredService<SpiritPotionDomainService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
-        services.TryAddSingleton<ICharacterExperienceDomainService, CharacterExperienceDomainService>();
+        services.TryAddSingleton<IExperienceCapsuleDomainService, ExperienceCapsuleDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
         services.TryAddSingleton<OnlineStateRegistry>();
@@ -148,6 +153,10 @@ public sealed class ApplicationModule : IServerModule
         // What a room declares, and what a run standing in it makes of that: the actor numbering,
         // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
         services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
+        services.TryAddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
+        services.TryAddSingleton<IIllusionTowerRewardRuleService, IllusionTowerRewardRuleService>();
+        services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();
+        services.TryAddSingleton<IIllusionTowerDomainService, IllusionTowerDomainService>();
         services.TryAddSingleton<IObjectDropRuleService, ObjectDropRuleService>();
         services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
@@ -159,22 +168,52 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<CreatureRuntimeDomainService>();
         services.TryAddSingleton<ICreatureRuntimeDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
         services.TryAddSingleton<ICreatureInstanceDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
-        services.TryAddSingleton<ICreatureTransformationDomainService, CreatureTransformationDomainService>();
         services.TryAddSingleton<LegacyWornItemNormalizer>();
         services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
+        services.TryAddSingleton<IInventoryExpansionRuleService, InventoryExpansionRuleService>();
+        services.TryAddSingleton<IInventoryExpansionDomainService, InventoryExpansionDomainService>();
+        services.TryAddSingleton<IInventoryLevelRuleService, InventoryLevelRuleService>();
+        services.TryAddSingleton<IInventoryLevelDomainService, InventoryLevelDomainService>();
+        services.TryAddSingleton<IInventoryCapacityRuleService, InventoryCapacityRuleService>();
+        services.TryAddSingleton<IInventoryCapacityDomainService, InventoryCapacityDomainService>();
+        services.TryAddSingleton<ICargoItemRuleService, CargoItemRuleService>();
+        services.TryAddSingleton<ICargoTransferDomainService, CargoTransferDomainService>();
         // Where an item belongs, which slot it is worn in, and whether it is equipment at all --
         // the one place the archive's item definitions are read for those three answers.
         services.TryAddSingleton<IItemPlacementRuleService, ItemPlacementRuleService>();
         // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
+        services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceRuleService, Dfo.Server.Application.Events.WeeklyAttendanceRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustRuleService, Dfo.Server.Application.Events.JoustRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Events.JoustDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService>(sp=>sp.GetRequiredService<Dfo.Server.Application.Effects.EffectOperationContext>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmJoustDomainService,Dfo.Server.Application.Events.GmJoustDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmJoustSettingsCommand,Dfo.Server.Data.Events.JoustSettings,Dfo.Server.Application.Events.QueryGmJoustSettingsCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmJoustSettingsCommand,Dfo.Server.Data.Events.JoustSettings,Dfo.Server.Application.Events.ChangeGmJoustSettingsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmJoustCurrentRoundCommand,Dfo.Server.Data.Events.JoustCurrentRound,Dfo.Server.Application.Events.QueryGmJoustCurrentRoundCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmJoustChampionCommand,Dfo.Server.Data.Events.JoustCurrentRound,Dfo.Server.Application.Events.ChangeGmJoustChampionCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
+        services.TryAddSingleton<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.WeeklyAttendanceDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventManagementDomainService, Dfo.Server.Application.Events.EventManagementDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPlayerProjectionDomainService,Dfo.Server.Application.Events.EventPlayerProjectionDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmEventsDomainService, Dfo.Server.Application.Events.GmEventsDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.QueryGmEventsCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<Dfo.Server.Application.Events.QueryGmWeeklyAttendanceSettingsCommand, Dfo.Server.Data.Events.WeeklyAttendanceSettings, Dfo.Server.Application.Events.QueryGmWeeklyAttendanceSettingsCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddCommandHandler<Dfo.Server.Application.Events.ChangeGmEventsCommand, Dfo.Server.Data.Events.ManagedEventList, Dfo.Server.Application.Events.ChangeGmEventsCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
 
         // The rules a character's entry turns on, kept out of whatever reads or writes the rows
         // they apply to, so each can be checked without a database in reach.
         services.TryAddSingleton<AmbientStoreAccess>();
         services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
-        services.TryAddSingleton<IAccountMaterialBagDomainService, AccountMaterialBagDomainService>();
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
         // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
@@ -282,6 +321,7 @@ public sealed class ApplicationModule : IServerModule
         // Whether a character may stand where they say, and what a tutorial step declares.
         services.TryAddSingleton<ITownMovementDomainService, TownMovementDomainService>();
         services.TryAddSingleton<ITutorialRewardDomainService, TutorialRewardDomainService>();
+        services.TryAddSingleton<ITutorialCompletionDomainService, TutorialCompletionDomainService>();
         // The seams the command handlers reach the rules through, so that none of them holds a
         // rule service of its own.
         services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
@@ -328,8 +368,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
         services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
         services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
-        services.TryAddSingleton<IEquipmentTransferDomainService, EquipmentTransferDomainService>();
-        services.TryAddSingleton<MailStackTransfers>();
+        services.TryAddSingleton<MailItemTransfers>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
         services.TryAddSingleton<IMailboxQueryDomainService, MailboxQueryDomainService>();
         services.TryAddSingleton<IMailboxDomainService, MailboxDomainService>();
@@ -395,7 +434,14 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ICharacterSkillPointDomainService>(),
                     provider.GetRequiredService<ICharacterStatRuleService>(),
                     provider.GetRequiredService<ICharacterSkillStateDomainService>(),
-                    provider.GetRequiredService<IDungeonRunDomainService>())));
+                    provider.GetRequiredService<IDungeonRunDomainService>(),
+                    () => provider.GetRequiredService<IIllusionTowerDomainService>(),
+                    provider.GetRequiredService<IExperienceRuleService>(),
+                    provider.GetRequiredService<IExperienceCalculationDomainService>(),
+                    provider.GetRequiredService<IExperienceCapsuleDomainService>(),
+                    provider.GetRequiredService<IDomainTransactionAccessor>(),
+                    () => provider.GetRequiredService<IApplyEffectsDomainService>()),
+                () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
@@ -408,12 +454,13 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
         services.TryAddSingleton<IAccountInventoryEntryRepository>(
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
-        services.TryAddSingleton<IEntryInventoryMutationRepository, DailyRefillService>();
+        services.TryAddSingleton<IDailyRefillDomainService, DailyRefillDomainService>();
         // Thirty-three tables: the order they are read in, and everything that makes them one
         // character.
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
-        services.TryAddSingleton<CharacterContainerAddition>();
+        services.TryAddSingleton<ItemGrantDelivery>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
+        services.TryAddSingleton<Dfo.Server.Application.World.IllusionTower.TowerInventoryDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<IQuestTriggerDomainService, QuestTriggerDomainService>();
         services.TryAddSingleton<IQuestProgressDomainService, QuestProgressDomainService>();
@@ -421,9 +468,13 @@ public sealed class ApplicationModule : IServerModule
             ICharacterDarkKnightComboDomainService, CharacterDarkKnightComboDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
-        // What entry has to grant before a character is published. One reader for the daily
-        // refill declarations.
-        services.TryAddSingleton<IInventoryLifecycleRuleService, InventoryLifecycleRuleService>();
+        services.TryAddSingleton<IDailyRefillConfigurationRuleService, DailyRefillConfigurationRuleService>();
+        services.TryAddSingleton<IItemCatalogRuleService, ItemCatalogRuleService>();
+        services.TryAddSingleton<IItemCatalogDomainService, ItemCatalogDomainService>();
+        services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<Dfo.Server.Abstractions.Administration.IGmMailRuleService>());
+        services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationRuleService>());
+        services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<IDailyRefillConfigurationRuleService>());
+        services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
@@ -440,8 +491,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetDoublePotUsageEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInventoryEffectPreviewHandler, SetDoublePotUsageEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SpendGoldEffectHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, ConsumeAccountMaterialEffectHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantAccountMaterialEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantStackableEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, GrantBasicCharacterItemEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetQuestRewardGoldEffectHandler>());
@@ -539,14 +588,15 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAccessDomainService, Dfo.Server.Application.Administration.GmAccessDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAuditDomainService, Dfo.Server.Application.Administration.GmAuditDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraRuleService, Dfo.Server.Application.Administration.GmCeraRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IAccountWalletDomainService, Dfo.Server.Application.Administration.AccountWalletDomainService>();
+        services.TryAddSingleton<IAccountWalletRuleService, AccountWalletRuleService>();
+        services.TryAddSingleton<IAccountWalletDomainService, AccountWalletDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraReminderDomainService, Dfo.Server.Application.Administration.GmCeraReminderDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraDomainService, Dfo.Server.Application.Administration.GmCeraDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmCeraCommand, Dfo.Server.Data.Administration.GmCeraQueryResult, Dfo.Server.Application.Administration.QueryGmCeraCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.GrantGmCeraCommand, Dfo.Server.Data.Administration.GmCeraGrantResult, Dfo.Server.Application.Administration.GrantGmCeraCommandHandler>(CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<Dfo.Server.Application.Administration.RecordGmCeraFailureCommand, bool, Dfo.Server.Application.Administration.RecordGmCeraFailureCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailRuleService, Dfo.Server.Application.Administration.GmMailRuleService>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailEquipmentRuleService, Dfo.Server.Application.Administration.GmMailEquipmentRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IItemEquipmentRuleService, Dfo.Server.Application.Inventory.ItemEquipmentRuleService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmOfficialMailDomainService, Dfo.Server.Application.Administration.GmOfficialMailDomainService>();
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmMailCommand, Dfo.Server.Data.Administration.GmMailQueryResult, Dfo.Server.Application.Administration.QueryGmMailCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.EditGmMailCommand, Dfo.Server.Data.Administration.GmMailDocument, Dfo.Server.Application.Administration.EditGmMailCommandHandler>(CommandExecutionKind.Transactional);
@@ -556,6 +606,22 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandHandler<Dfo.Server.Application.Administration.LoginGmAdministratorCommand, Dfo.Server.Data.Administration.GmLoginResult, Dfo.Server.Application.Administration.LoginGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.LogoutGmAdministratorCommand, bool, Dfo.Server.Application.Administration.LogoutGmAdministratorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmAuditCommand, Dfo.Server.Data.Administration.GmAuditPage, Dfo.Server.Application.Administration.QueryGmAuditCommandHandler>(CommandExecutionKind.Transactional);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmDailyRefillDomainService, Dfo.Server.Application.Administration.GmDailyRefillDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmDailyRefillCommand, Dfo.Server.Data.Inventory.DailyRefillList, Dfo.Server.Application.Administration.QueryGmDailyRefillCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ChangeGmDailyRefillCommand, Dfo.Server.Data.Inventory.DailyRefillList, Dfo.Server.Application.Administration.ChangeGmDailyRefillCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommand, Dfo.Server.Data.Inventory.ItemCatalogPage, Dfo.Server.Application.Administration.SearchGmDailyRefillItemsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommand, Dfo.Server.Data.Inventory.ItemCatalogDetails, Dfo.Server.Application.Administration.ReadGmDailyRefillItemCommandHandler>(CommandExecutionKind.Transactional);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationRuleService, Dfo.Server.Application.Initialization.InitializationRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Initialization.InitializationAssetGrants>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>(p => new Dfo.Server.Application.Initialization.InitializationDomainService(
+            p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationPersistence>(), () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationRuleService>(),
+            () => p.GetRequiredService<Dfo.Server.Application.Initialization.InitializationAssetGrants>(), p.GetRequiredService<IDomainTransactionAccessor>(), p.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmInitializationDomainService, Dfo.Server.Application.Administration.GmInitializationDomainService>();
+        services.AddCommandHandler<Dfo.Server.Application.Administration.QueryGmInitializationCommand, Dfo.Server.Data.Initialization.InitializationView, Dfo.Server.Application.Administration.QueryGmInitializationCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SaveGmAccountInitializationCommand, object, Dfo.Server.Application.Administration.SaveGmAccountInitializationCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SaveGmCharacterInitializationCommand, object, Dfo.Server.Application.Administration.SaveGmCharacterInitializationCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.SearchGmInitializationItemsCommand, Dfo.Server.Data.Inventory.ItemCatalogPage, Dfo.Server.Application.Administration.SearchGmInitializationItemsCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<Dfo.Server.Application.Administration.ReadGmInitializationItemCommand, Dfo.Server.Data.Inventory.ItemCatalogDetails, Dfo.Server.Application.Administration.ReadGmInitializationItemCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));
@@ -563,6 +629,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ILoginSessionDomainService>(provider => provider.GetRequiredService<LoginSessionRegistry>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INetworkConnectionObserver, LoginSessionConnectionObserver>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, LoginSessionMaintenanceService>());
+        services.TryAddSingleton<Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>>(p => () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>());
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
         services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();
         services.AddCommandHandler<RegisterAccountCommand, RegistrationResult, RegisterAccountCommandHandler>(CommandExecutionKind.Transactional);

@@ -73,6 +73,12 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         if (needs.HasFlag(ReplayProjectionNeeds.Inventory))
         {
             if (inventory is null || account is null) throw Missing("Inventory");
+            // A21 draws native tower slots inside Main; the backed-up ordinary quick slots stay hidden until exit.
+            if (inventory.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.QuickSlot) is { } tower)
+                inventory = inventory with { Containers = inventory.Containers.Select(container =>
+                    container.ContainerType == InventoryContainerType.Main
+                        ? container with { Items = [.. container.Items.Where(item => item.SlotIndex is < 3 or > 8), .. tower.Items] }
+                        : container).ToArray() };
             InventoryContainerType[] order = [InventoryContainerType.Main, InventoryContainerType.Avatar,
                 InventoryContainerType.PersonalCargo, InventoryContainerType.Equipment, InventoryContainerType.Pet,
                 InventoryContainerType.AccountCargo];
@@ -87,9 +93,14 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             foreach (var slot in state.Request.TouchedSlots.Distinct())
             {
                 var physical = mapping.ToGameSlot(slot);
+                // A receipt from a finished tower run must not clear the restored ordinary quick slots.
+                if (physical.Space == InventoryContainerType.QuickSlot
+                    && inventory.Containers.All(x => x.ContainerType != InventoryContainerType.QuickSlot)) continue;
                 var container = physical.Space == InventoryContainerType.AccountCargo ? account.Cargo.Container
                     : inventory.Containers.Single(x => x.ContainerType == physical.Space);
-                if (container.Items.All(x => x.SlotIndex != physical.Index))
+                if (slot.Space == BusinessInventorySpace.SharedMaterial
+                    ? account.VirtualResources.All(x => x.SlotIndex != physical.Index || x.Value <= 0)
+                    : container.Items.All(x => x.SlotIndex != physical.Index))
                     messages.Add(GameInventoryDelivery.ClearedSlotNotification(physical.Space, physical.Index, state.At));
             }
         }
@@ -130,6 +141,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
             messages.Add(new CurrentUserStateMessage(appearance.Character(), appearance.Public(), equipment, pets));
             messages.Add(new ExtendedUserStateMessage(appearance.Character(), appearance.Public(), skills, equipment, state.At));
         }
+        if (needs.HasFlag(ReplayProjectionNeeds.Joust))
+            messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(state.Joust ?? throw Missing("Joust")));
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");

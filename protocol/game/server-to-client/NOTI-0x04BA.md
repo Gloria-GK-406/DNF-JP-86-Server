@@ -49,6 +49,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 0.2.2 当前行为与证据（2026-10-06）
+
+CurrentImplementation：46B资料只投影本场个人总投注及八名骑士的个人投注数量。成功04E6按ACK→04BA→04B9返回；下注后的在线资料更新及重放只发送资料，不发送状态/赛果操作消息。查询无任何世界状态写入。轮号映射与04B8/历史一致；布局来源仍为ClientStatic和codec验证，不把没有归档的实帧补记成WireCaptured。
+
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 
@@ -60,3 +65,14 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+
+## 2026-10-06 A21 JOUST 接线（ClientStatic / CurrentImplementation）
+
+EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
+
+46B：offset0 u16RoundNo；offset2 i32PersonalTotal；offset6起8×5B（u8KnightIndex,i32PersonalBet）。
+
+reader `000D23E0` ReadBytes0x2E，5B步长。
+
+实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。2026-10-06 当前实现：轮号改为赛果成功入库时分配的全局累计序号；时间仅为场次字段，查询读取保存的结果。进行中场次使用下一候选序号作原生同步标记，不提前写入历史。详见 [期号与时间 ID](../../../Document/tasks/event-joust/knight-statistics-result.md#期号与时间-id2026-10-06)。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。

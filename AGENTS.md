@@ -105,7 +105,7 @@ TCP 字节
 ### 1) 领域服务编排业务（Application）
 
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
-`Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
+`Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场读取、物品生命周期、每日补货）、
 `Quests/`（按角色取得的任务日志：在做的、已通关的、追踪选择）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场、选中会话、PvP 大厅、专家商店
 四个领域服务，各自把运行态留在私有容器里）、`World/`（出生点策略、世界内容）、`Users/`
@@ -163,6 +163,11 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 ### 角色自己的数，问角色
 
 身份、等级、经验、当前基础属性、已学技能和 SP/TP 账本属于角色，从 `ICharacter` 按 ID 现查。
+经验与等级的唯一修改入口是 `ICharacter.AddExpAsync` / `SetExpAsync` / `SetLevelAsync`。
+`ProgressAsync` 从累计经验和 `IExperienceRuleService.CharacterScale()` 推导等级；86 级经验上限取
+PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一旧数据并装载上限与投影触发器。
+`ExperienceAward.Total` 是封顶存储结果，`NotificationTotal` 是该次回包累计值，不可持久化。
+满级溢出由角色实例调用账号胶囊领域服务，与角色更新同事务。详见 [经验规则](Document/CharacterExperience.md)。
 这些查询不要求角色在线。角色实例只保留 ID 和取数服务，不缓存等级、技能组合或查询结果；
 数据库读取复用当前命令的 SQLite 事务，提交、回滚之后再问仍从当前事实作答。
 
@@ -211,16 +216,11 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 不存在会话物品副本和 `ReplaceExact` 回写。入场时的物品租约缓存及退场保存链路已移除。
 会话与当前视图的边界见 [选角结果与运行期当前视图](Document/SelectedSessionCurrentView.md)。
 
-**疲劳总量已接入配置，消耗仍未记账。** `UnaccountedCharacterFatigueDomainService`
-读取 `Fatigue:BaseTotal`（默认156），加账号增值服务 `GetExtraFatigueAsync` 的结果；
-后者有黑钻资格返回 `Premium:BlackDiamondExtraFatigue`（默认32），无资格返回0。
-登录和队伍投影统一读取该服务，已用量仍为0。`SpendAsync`/`RefundAsync` 仍为空，
-没有跨日消耗记录，也未接入零疲劳入场拒绝。
-**报的那个 `1` 是占位值，且与档案已知冲突**：`SelectDungeonHandler.FatigueAnEntryCosts` 无条件
-报 1，而副本自带 `[no fatigue]` 标记（`DungeonDefinition.ConsumesFatigue`，全仓唯一读者是
-`PvfDungeonDefinitionSourceTests.cs:32` 那条钉解析的判据，它断言教程本 10000 为 `false`）——
-按写下的规则那本进本该扣 0。今天不记账所以无可观察后果，但**真开始记账时，调用点必须先问档案
-这本扣不扣**。规则与出处见 `Docs/DungeonEntryNotes.md` 第八节。
+**疲劳已按日记账。** `CharacterFatigueDomainService` 将配置总量与账号黑钻加成合并，
+按 `IDailyResetRuleService` 的当前周期读取已用量；`SpendAsync`/`RefundAsync` 在命令事务内
+通过条件写入更新，退款不降低当日累计消耗。`DungeonVisitDomainService` 先检查
+`ConsumesFatigue`，需要疲劳的副本拒绝零剩余角色，并在入场事务内扣除 1 点；
+不消耗疲劳的副本跳过这两步。当前实现和自动测试不等同于 A21 实机验收。
 
 **设置与连招今天刻意没有消费方，别当死代码删掉。** 两者都有真实的表、真实的 SQL，判据对着真库
 校验它们答得对；缺的是调用方，而调用方要等改键协议与连招编辑协议做进来。
@@ -468,27 +468,19 @@ if (result.Publication.Audience.Count > 0)
 - **通知类型必须在 `ProtocolModule` 里注册处理器**，且该程序集要 `AddNotificationCatalog`。
   漏注册会在**开始接受连接之前**让服务器起不来（宿主先实例化 hosted service 再启动）。
 
-**做到哪一步，以及没有什么：**
+**当前消费边界：**
 
-- 走人群抽象的扇出**只有两处**：PvP 大厅公示、会话清理的「尽力送旁人」段。第三个候选
-  （`SessionAdjacentEntryDomainService` 里的 `presence.InArea`）经检查**不是扇出**——
-  它给入场者本人算「我周围有谁」，收件人只有一个。
-- **没有周期触发。** 没有调度器、没有时刻表。唯一的循环是重试队列的排空
-  （`NotificationRetryDrainService`），它不驱动任何业务。
-- **没有发布订阅。** 业务用例直接调用通知服务；不存在「发布一件事、由订阅者各自决定反应」的间接层。
-- **其余「回给请求方」的发送都没有走人群抽象。** 实测 37 处 `SendExplicitAsync` 与 7 处
-  `SendNotiAsync`（命令：`grep -rn "SendExplicitAsync" Server/src --include=*.cs` 去掉
-  `INetworkServices.cs` / `GameMessageSemantics.cs` / `TouchSocketNetworkMessageSender.cs` 三个定义处）。
-  它们绝大多数没有旁人收件人，套上人群抽象等于给占绝对多数的情形加一层间接。
-  （数会变，看的是它旁边那句理由，不是这个数。）
-- **频道、全服、组队三种人群没有实现**，因为本仓今天没有它们的真实调用方（队伍这个概念还不存在）。
-  人群是封闭层级，但**它不是真正的联合类型**：C# 要求未密封 record 的复制构造函数至少 protected
-  （`CS8878`），所以外部 record 借它派生得出来。真正的保护是解析器最后一个分支会**指名**没教过的形态。
-- **被迁移的两处扇出，帧逐值不变，收件人集合在竞态窗口里与迁移前不同**——
-  会话被顶替或重连时，旧代码寻址的是「当时记下的会话」，新代码寻址的是「这个角色此刻在哪」。
+- 人群通知用于 PvP 大厅公示、会话清理以及队伍城镇投影等路径；
+  `PartyTownProjectionDelivery` 使用 `TheseSessions` 指定精确会话。
+- `SessionAdjacentEntryDomainService` 给入场者本人计算周围角色，不因此成为多人扇出。
+- 通知总线没有业务周期调度或发布订阅层；`NotificationRetryDrainService` 只排空重试队列。
+- 回给请求方的消息仍可直接投递，不必套上人群抽象。
+- 没有专用的频道、全服或组队 Audience 类型；队伍业务已存在，使用现有精确会话人群。
+  人群 record 层级不能完全阻止外部派生，解析器会明确拒绝未知形态。
 
-**投递失败会被说出来，但不是靠摘要。** 总线把每个收件人的结果放进一份摘要
-（成功 / 弃权 / 人不在了 / 失败），而**读摘要是可选的，今天没有一个调用方读它**。
+**投递结果既有摘要，也有日志。** 总线返回成功、弃权、离线与失败结果；
+`PartyTownProjectionDelivery` 已读取成功和失败集合，用于维护实际送达的受众与后续处理。
+读取摘要仍是可选的，不能依赖每个调用方都读取它来保证可观测性。
 所以总线自己记日志，在还拿得到原因的地方记：
 
 - 投递抛异常 → `Warning` + 异常本身；
@@ -499,127 +491,59 @@ if (result.Publication.Audience.Count > 0)
 
 **弃权与「人不在了」不记**——它们不是出了问题。
 
-### 物品：有身份的东西，和它在哪，是两张表
+### 物品：统一属性、容器内引用与取出记录
 
-**`items` 是世界表，`item_slots` 是位置表。** 世界表说「这件东西是什么、它自己带着哪些可变状态」；
-位置表说「哪个容器的哪一格放着什么、几个、那 82 字节住在世界表的哪一行」。
-移动一件东西不再销毁重建它的世界行——`item_uid` 跨越任何位置变动与任何写入都不变。
+**业务属性只定义在 `ItemSnapshot`。** 模板号、数量、`ItemTraits Type`、PVF 身份分类形成的
+`IsPile`、独立物品 `ItemUid`、全部兼容字段及 Avatar/Creature 细节都在这份数据中。
+`Count` 是数量；`InstanceValue` 是旧编码里的实例值，不能用它代替独立物品 UID。
+`InventoryItemCoreState` 和 `InventoryItemState` 只用于既有数据库、报文和入场投影边界。
 
-`items` 今天 **19 列**（`Schema/CharacterDatabaseSchema.cs` 的 `CREATE TABLE items`，逐列数过）：
+容器的读取、移动、修改与销毁有不同入口：
 
-| 组 | 列数 | 内容 |
-|---|---|---|
-| 身份与 core | 2 | `item_uid`（`INTEGER PRIMARY KEY AUTOINCREMENT`，带一条 CHECK，见下）、`item_core`（`CHECK (length(item_core) = 82)`） |
-| 归属与时间 | 3 | `cargo_character_id`、`created_at`、`updated_at` |
-| 时装 | 6 | `avatar_expire_date`、`_clear_id`、`_jewel_socket`、`_color1`、`_color2`、`_delete_date` |
-| 契约兽 | 8 | `creature_field04`、`_mode_flag`、`_progress_value`、`_mode1_field0a`、`_mode1_field0b`、`_field_after_value`、`_text`、`_tail_flag` |
+- `Get/GetAll` 返回 `ItemReference`，绑定事务、真实槽位和占用代次；它不能直接被 `Put`。
+- `Take(reference, count?)` 返回 detached `ItemRecord`；整件取出腾空槽位，部分取出减少原堆。
+  记录携带完整属性，但没有容器位置。
+- `Put(slot, record)` 接收一次记录；兼容材料可合堆。新物品通过生命周期服务 `Create` 创建。
+- `Update(reference, change)` 对当前占用的最新属性应用变更，不移动物品，不替换 UID。
+  属性修改不使同一占用的其他引用失效；整件 Take 后即使同 UID 放回，旧引用仍失效。
+- 销毁先 `Take`，再 `IItemLifecycleDomainService.DeleteItem(record)`；取出本身不销毁。
+  装备与宠物实例绑定这类引用，移位后须重新取得行为接口，不再按 UID 跟随旧句柄。
 
-**「这一行有没有时装细节」由细节列自己回答，读侧只有一处。** 判定处是
-`InventoryItemTables.cs` 的 `SqliteCharacterItemTable.Avatar(SqliteDataReader, int)`：
-六列的**第一列** `avatar_expire_date` 是不是 NULL，就是这一行是不是时装的全部依据
-（`SqliteWorldItemTable.Read` 也调它，不另判一次）。契约兽那八列同理，第一列是
-`creature_field04`。`items` 上**没有** `avatar_uid`，也**没有** `idx_items_avatar_uid`。
+所有写入处于同一领域事务。`ItemLifecycleScope` 保证 detached 记录只被接收或删除一次，
+未安置记录不能提交；中途读取/Flush 不结束其生命周期。回滚恢复物品、数量、状态和位置。
+邮件附件由同一 item session 接收/取出记录，作为持久托管；同事务材料可在 SQLite 与易失后端间
+转移，独立物品不跨后端。装备交换先取出双方，再分别放入。
 
-「同一个时装 UID 全库至多一行带着它的细节」这条规则**还在**，但它不再是表的键，而是**三条写入
-语句自己的条件，分别是**：`SqliteCharacterItemTable.UpdateOwnAsync` 的 `NOT EXISTS(…)`、
-`SqliteCharacterItemTable.InsertOwnAsync` 的 `INSERT … SELECT … WHERE NOT EXISTS(…)`
-（后者取代了原先的 `ON CONFLICT(avatar_uid) … DO NOTHING`）、以及
-`SqliteItemDomainStore.FillAsync` 的 `INSERT … SELECT … WHERE @expire IS NULL OR NOT EXISTS(…)`。
-前两条共用同一段条件文本 `SqliteCharacterItemTable.CarriesTheAvatar`；第三条**没有**复用它，
-因为它比对的是**待插入的 core** 而不是一个 `@avatarKey` 参数，所以那段文本在它里面是内联的。
-三条都从 **core 里**读 UID（`substr(item_core, 6, 4)`，即 core 偏移 5 起的 4 字节小端），
-不再读一份列副本。**该谓词文本在 `Server/src` 今天出现在 4 处 SQL 里，按成员名分别是**
-`SqliteCharacterItemTable.UpdateOwnAsync` 与 `SqliteCharacterItemTable.InsertOwnAsync`
-（同文件 `InventoryItemTables.cs`，这两处是常量 `SqliteCharacterItemTable.CarriesTheAvatar` 的两个使用点）、
-`SqliteItemDomainStoreSession.CarriedAvatarsAsync` 的检索键（写作 `AND substr(item_core, 6, 4) = @uid`）、
-`SqliteItemDomainStoreSession.FillAsync` 的守卫
-（写作 `AND substr(standing.item_core, 6, 4) = substr(@core, 6, 4)`），后两处在 `SqliteItemDomainStore.cs`。
-计数口径：在 `Server/src` 下按字符串 `item_core, 6, 4` 检索，命中 3 行；其中
-`InventoryItemTables.cs` 那一行是常量声明，被上面点名的两个成员各引用一次，故算 4 处 SQL。
-**按成员名索引，不按行号。** 这一句原先写的是行号，而行号会漂——本仓最便宜的一次自证。
+`items` 继续保存 82 字节兼容 core 及时装六项、宠物八项扩展状态，`item_slots` 保存归属和位置。
+整件 Take 只删位置，Put 保留原 UID，Update 更新原行，显式 Delete 才结束物品行。
+材料的内部 backing 行键不充当业务 UID。`InventoryEntryAssembly` 读取完整引用并投影入场状态，
+已移除旧 EntryLease/整份 Save、StoredItem、ContainerSlotItem、InventoryStorageItem、
+InventorySlotContent、InventoryItemCreationFacts、PutNew/PutTransferred 通路。
 
-`item_slots` **8 列**：`owner_scope`（`character`/`account`）、`owner_id`、`list_type`、`slot_index`、
-`kind`（`world`/`template`）、`id`、`core_uid`、`count`。
-`UNIQUE(owner_scope, owner_id, list_type, slot_index)` 是「一格只放一样东西」；
-三条具名 CHECK 分别是 `count > 0`、世界槽 `count = 1`、世界槽 `core_uid = id`。
-**`core_uid` 上没有唯一性**，所以「一件东西只在一个位置」这条由代码说，两侧各一处：
-`InventoryEntryAssembly` 的 `SaveAsync` 落位前比世界行身份集合的大小，
-`RequireOneNameEach` 在两条入场读取到行之后比同一样东西。
-两处都数世界行而不数 `ItemIdentity`——堆叠物没有身份，按身份数会把它漏掉。
-**两处都够不到称号书。** `ReadByCharacterAsync` 与保存侧的 `DeleteOwnExceptAsync`、
-`ClearOwnPositionsAsync` 都带 `list_type NOT BETWEEN 19 AND 23`，那五个容器由
-`SqliteCharacterTitleBookTable.ReadAsync` 单独读，整个租借往返都不经过这五个容器的位置行。
-于是一条称号书位置行与一条别处的位置行指名同一个世界行时，两侧都看不见。
+新建和落位根据 PVF 校验类型、是否堆叠和目标规则；既存行的身份形态以实际 `item_slots.kind`
+为准。容器 flag 准入统一使用 `ItemAdmissionRule` 的 Allowed/All/Any 匹配，语义见
+[物品准入规则](Document/ItemAdmissionRules.md)。容量、固定槽、堆叠上限及同账号归属仍由对应业务边界检查。容量缩小后的旧堆可取出或减量，
+不能借 Update 增长或改写其他状态。普通补货沿用补货规则决定的数量，与普通发放的堆叠规划不同。
+账号仓库无时装细节的历史行仅保留读取兼容，不放宽新建/重新落位的完整性要求。
+角色 Main/1 的零复活币逻辑数量为 0，位置表的物理 count 保持正数。
 
-**`core_uid` 是这个形状的关键，一个列解掉了两笔债。** 任何一种槽行都指名它那 82 字节住在哪一行
-——堆叠物也有世界行，因为它的 core **不可约到「模板号 + 数量」**
-（`StackableItemCore.Create` 写死 `Marker16 = -1` 与 `RandomOptionChangedIndex = 255`，
-而 `GameInventoryDelivery` 对 `ItemKind == 2` 把 `-1` **原样上线不钳**；
-见 `Docs/ItemWorldModel.md` 的「更正 C-1」）。于是两件事同时成立：孤儿查询收成单条
-`NOT EXISTS (… holder.core_uid = items.item_uid)`，不再需要靠位置列把堆叠物挑出去；
-上一版为躲唯一键冲突而设的「抬起到哨兵槽再落下」整套机制**摘掉**
-（全仓 `LiftAsync` / `NoContainer` **零命中**）。
+`IsDefault` 标记默认绑定角色，每种类型至多一个且不可移除；`IsPersistent` 独立描述存储生命周期。
+`GetContainer(..., isDefault: false)` 使用当前绑定，`true` 显式取默认容器；Find/Get 不补建缺失容器。
+`ReplaceDefault` 事务性替换已有默认容器；离线操作显式使用 `GetPersistentStore` / `IItemGrantDomainService.GrantAllPersistentAsync`。
+容器注册服务只管理绑定；整批物品赋予归属 `IItemGrantDomainService`。钱包、成长和容量的修改入口见
+[资产赋予领域服务](Document/AssetGrantServices.md)。
 
-**分类由档案回答，不由存储里那个种类字节回答。** 唯一实现是
-`ItemPlacementRuleService.ClassifyAsync`，签名**只收模板号**（`int itemId`），
-答 `ItemWorldClass` 四值之一（`Interchangeable` / `Equipment` / `Avatar` / `Creature`）。
-生产侧 6 个调用点（`InventoryEntryAssembly` 两处、`ItemContainers` 两处、
-`CharacterRosterService`、`DailyRefillService`），覆盖每一条写入路径。
-存储里的行说自己是别的种类时，**以档案为准并拒绝**，而不是照存。
+账号注册与创角通过 `IInitializationDomainService` 在创建事务内应用当前配置；GM 中账号、角色各有一份独立版本的生效配置，见 [初始化配置](Document/InitializationSettings.md)。
+每日补给通过配置 / 发放领域服务在角色入场时执行，每日尽可能补给一次，空间不足也记录完成；GM 区分 PVF 与自定义规则，见 [每日补给](Document/DailyRefillSettings.md)。
+选角显式注册空的默认内存类型 29 容器。死亡塔入场换成本局六格，跨层保留，退塔/断线换回空容器；
+Main 与 SharedMaterial 不切换。实现及实机边界见 `Document/TowerQuickSlots-20261005.md`。
 
-#### 今天没有的东西（逐条，不是「大概没有」）
+边界限制：`core_uid` 没有数据库唯一约束，普通写入由记录接收机制限制；入场仍检查重复行身份。
+`items.item_uid` 的 wire 范围 CHECK 不能靠给既存表 ADD COLUMN 补上，编码仍使用 checked 转换。
+物品写入统一通过生命周期接口；数据库结构约束由直接 SQL 测试覆盖。
 
-- **无人引用的世界行只要求可查询**（`ReadUnreferencedAsync`），**没有任何东西清扫它们**。
-- **「存在但不在任何槽里」这个能力没有用起来**：地上掉落、交易托管、拍卖挂单、邮件附件，一条都没接。
-- **没有契约兽领域**：实例动词、喂食、经验、等级、饱食度记账，一个都没有。
-- **契约兽槽位是 24 还是 25 没有裁定**，沿用今天在用的 24；悬案原样留在
-  `Docs/ProtocolScaffoldDissonances.md` 第九节。
-- **`character_condition` 有五个含义未查清的列。**
-- **没有迁移机制**，也没有为旧形状保留的兼容读路径——旧库作废重建。
-- ~~**时装取得下、穿不上。**~~ **2026-09-08 已修**：11 个时装槽名已进 `PvfEquipmentSlots.ByName`，时装能穿上。见下面「时装」一节。
-
-#### 三处「结论对，但撑着它的不是代码」
-
-**不要把它们读成「有代码守着」。**
-
-- **`items` 上那条 `world_identity_fits_the_wire` CHECK（`item_uid BETWEEN 1 AND 2147483647`）
-  只对新建库无条件成立。** 发布版的 `items` 表没有它，而 schema 调和只会
-  `ALTER TABLE … ADD COLUMN`（`CharacterDatabaseSchema.cs` 一处），**补不了 CHECK**。
-  既存库上溢出会落到编码时的 `checked((int))`，抛 `OverflowException`。
-  这与「旧库作废重建」不冲突，**但说法不得省略这个限定**。
-- **「今天不存在能销毁一件有身份物品的生产通路」成立，但其中一条依据不是代码给的。**
-  `ItemContainers.ConsumeAsync` 只有一个生产调用方（`ItemUseEffectDomainService`），
-  而它是否被调用只看 `rule.IsConsumedOnUse`——那是**档案数据**
-  （`PvfItemUseRuleDefinitionSource`）保证的；`ConsumeAsync` 自己**没有任何守卫**
-  拦住一件有身份的东西。
-- **「清空先于填入」这条不变量已经不再承重，且没有任何判据钉住它。**
-  `SqliteItemDomainStore` 的注释**四处**说它（类型级 `<remarks>` 一处，加 `ApplyDecidedWritesAsync`、
-  `FlushAsync`、`EmptyAsync` 各一处 `<remarks>`），但变异实测：逐槽交替 empty/fill、
-  字面违反该注释，**`Dfo.Server.Persistence.Tests` 仍然全绿**。真正扛住换位的是 `spared`——
-  幸存者按名字免删，落点是 `EmptyAsync` 里 `DELETE FROM items` 上追加的
-  `AND item_uid NOT IN (<幸存者>)`。这是一条**只写在注释里的口头不变量**。
-
-#### 已知缺陷与覆盖缺口
-
-- **契约兽的「从槽 24 取下、目标背包格里已有另一只 → 互换」没有判据。**
-- **「同一个时装 UID 全库至多一行」这条规则覆盖三条写入语句，还剩一个写入方不被覆盖。**
-  三处落点见上面的世界表小节，各有判据钉住
-  （`SqliteEntryInventoryMutationRepositoryTests` 两条 ＋
-  `SqliteItemDomainStoreTests.TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding`）。
-  **被拒时的表现**：`FillAsync` 的 `INSERT … SELECT` 落空、`RETURNING` 无行、
-  `ExecuteScalarAsync` 返回 `null`，紧随其后的 `allocated is null` 抛
-  `InvalidOperationException`（消息含 `named no identity`），**回滚，不会静默通过**。
-  **不被覆盖的写入方是 `SqliteWorldItemTable`**（`InsertAsync`／`UpdateAsync`）：它写 `items`
-  的时装列却没有自己的条件，而 `BindAvatarColumns` 在 `avatar is null` 时把六列绑成 NULL，
-  **所以它写得出「kind 8 但六列为空」那个坏形状**。它今天**生产里零调用方、零 DI 注册**
-  （`PersistenceModule` 注册的是 `ICharacterItemTable`、`IAccountCargoItemTable`、
-  `SqliteItemDomainStore`／`IItemDomainStore`，**没有** `IWorldItemTable`），
-  全仓只有 `WorldAndSlotTableTests` 与 `CreatureIdentityFitsTheWireTests` 把它 new 出来。
-  **这个缺口今天到不了生产，是有意留下的**——去补它等于在一个生产无人调用的类上引入新行为。
-  **谁第一次给它接上生产调用方，谁就得同时补守卫与判据。**
-- **一条判据的名字不再描述它证明的东西**：
-  `EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt`
-  的正向断言现在指向新增的 `ON item_slots(core_uid)`。
+设计与回归证据见 `Document/tasks/item-container-lifecycle/`。以上是 CurrentImplementation，
+不代替 A21 实机验收。以下时装小节保留原逆向及历史修复记录，旧调用链以本节为准。
 
 #### 时装：种类已经对齐，穿不上的那一半已于 2026-09-08 修好
 
@@ -759,21 +683,12 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
    **约 68 年对应的是 `int.MaxValue` 本身**（`2147483647 ÷ 31556952 = 68.05`），
    看到它、或一个日期、或客户端拒绝渲染，才是要追的。
 
-#### 一处影响面超出时装的行为变化：普通装备的拖动
+#### 普通装备数量与实例值
 
-**证据类型：代码级读出，未实测也未实机。**
-
-`CharacterRosterService.EquipmentCore` 给起始装备的 `Value` 写的是
-`Random.Shared.Next(1, int.MaxValue)`，`GroundPickupSlice.CarryOverAsync` 给捡来的装备写的是
-`checked((int)found.Instance)`——**两句写进 `Value` 位的都是身份，不是「有几个」**。
-而 `ContainerSlotItem.Count` 曾经是 `=> Core.Value`，无条件读同一位。于是这样一件装备在背包内
-被拖动时，请求里的 `MoveCount`（实机样本是 1）与那个身份不等：目标格空 → 走 `Split`
-把一件装备拆开；目标格有东西 → `PartialSwapNotAllowed` 对调被拒。
-
-`Count => this.IsPile ? Core.Value : 1` 把这条毛病一起消掉了，现在整件移动、整件对调。
-**这是变好，但它不在原本列出的行为变化里**，是修时装那一处强制带出的——要保留旧行为反而
-得给时装开特例，那会让普通装备继续坏着。
-**实机测普通装备时若看到与线上老服不同的拖动行为，那不是新引入的缺陷。**
+独立装备的 `ItemSnapshot.Count` 恒为 1；旧 core.Value 由 `InstanceValue` 保留。
+起始装备和地面掉落的这个兼容值不再参与数量判断，也不等同于 `ItemUid`。
+移动和对调通过 Take/Put 保留原 UID，耐久等属性通过 Update 修改。
+这段描述是实现与自动化回归证据，不宣称新增 ClientVerified。
 
 ### 判据偶发失败：先取身份，再谈别的
 
@@ -810,21 +725,12 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
-- **协议 handler 层普遍没有判据守着。这是个模式，不是个例。** `Dfo.Server.Protocol` 里有 48 个
-  `ClientMessageHandler<>` 子类，其中 **19 个**的类名在 `Server/tests` 全域一次都不出现：
-  `AcceptQuestHandler`、`CheckCharacterNameHandler`、`ConnectionCheckHandler`、
-  `ContentsPlayInfoHandler`、`CreateCharacterHandler`、`DeleteCharacterHandler`、
-  `EnterSelectDungeonHandler`、`GetAccountCharacterRosterHandler`、`GetItemHandler`、
-  `GiveUpGameHandler`、`HiddenCharacterInfoHandler`、`MapEntryReportHandler`、
-  `MercenaryInfoHandler`、`MoveMapHandler`、`SaveGameOption1Handler`、`SecurityStatusHandler`、
-  `SetQuestTriggerHandler`、`StoryPauseHandler`、`UnansweredReportHandler`。
-  缺口长的样子是固定的：**把一个 handler 整段退回读陈值，全量判据仍然全绿**。
-  已经实测撞到过三处，每一处都是先发现缺口、补上一条会红的判据之后才有的红：
-  `MonsterDeathHandler`（`MonsterDeathHandlerTests.cs`）、`SetUserAreaHandler` 与
-  `SetUserPositionHandler`（`TownProjectionHandlerTests.cs`）、`SelectDungeonHandler`
-  （`SelectDungeonHandlerTests.cs`）——后三个 handler 在这些用例之前从未被任何用例构造过。
-  **所以动 handler 之前先查它有没有判据；多半没有，那就先补一条会红的再动它。**
-  「快速开发」那节写的「测试三件套」是规定，不是现状。
+- **修改协议 handler 前检查具体行为覆盖。** 历史的“48 个 handler、19 个无测试”清单已失效；
+  `GetItemHandler`、`MoveMapHandler`、`GiveUpGameHandler` 等已有测试。
+  类名搜索只能定位候选测试，不能证明覆盖充分。重点检查当前事实读取、事务结果、
+  精确会话和发帧行为；有实际回归风险且现有验证不足时，再补能观察该结果的测试。
+  `MonsterDeathHandlerTests`、`TownProjectionHandlerTests`、`SelectDungeonHandlerTests`
+  可作为相应行为的测试入口。
 - `Dfo.Server.Utilities` 是空项目占位。
 
 ## 构建与运行

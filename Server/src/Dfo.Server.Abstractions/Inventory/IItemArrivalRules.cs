@@ -44,16 +44,15 @@ public interface IItemArrivalRuleService
     /// Where a daily refill's grant goes.
     /// </summary>
     /// <remarks>
-    /// A refill tops up the pile the character already has, whatever its size, and only opens a
-    /// slot when they have none. It differs from an ordinary grant, which fills piles up to the
-    /// item's stack limit and spills into a new slot when they are full: a refill's own quantity is
-    /// already bounded by the rule, so it has nothing to spill.
+    /// Fill existing piles up to their stack limit, then use an empty slot in the refill's band.
+    /// Each answer places part of the remaining quantity. The domain service repeats until the
+    /// quota is placed or no room remains; unplaced items are lost for this day.
     /// </remarks>
     ItemArrival ForDailyRefill(
         IReadOnlyList<ItemPile> present,
         int grant,
         BusinessSlotRange destination,
-        IReadOnlySet<BusinessSlot> occupiedSlots);
+        IReadOnlySet<BusinessSlot> occupiedSlots, int stackLimit = 0);
 
     /// <summary>Where an item the game hands the character goes.</summary>
     ItemArrival ForGrant(

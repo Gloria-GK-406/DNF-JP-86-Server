@@ -8,9 +8,9 @@ internal sealed class MaterialConsumptionRuleService : IMaterialConsumptionRuleS
 {
     public bool IsValidRequest(IReadOnlyList<MaterialCost> costs) =>
         costs.Count > 0 && costs.All(x => x.Count > 0 && x.ItemId > 0)
-        && costs.Select(x => x.Location).Distinct().Count() == costs.Count;
+        && costs.Select(x => x.Slot).Distinct().Count() == costs.Count;
 
-    public bool IsConsumable(ContainerSlotItem item, int expectedItemId) =>
+    public bool IsConsumable(ItemReference item, int expectedItemId) =>
         item.ItemId == expectedItemId && item.IsPile
-        && item.WorldClass == ItemWorldClass.Interchangeable && item.Core.EquipmentLockId == 0;
+        && item.IsPile && item.Snapshot.EquipmentLockId == 0;
 }

@@ -12,32 +12,8 @@ internal sealed class ItemDiscardDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
-    IItemDiscardRuleService rules, IAccountMaterialBagDomainService materials, IAccountMaterialRuleService materialRules,
-    ILogger<ItemDiscardDomainService> logger) : IItemDiscardDomainService
+    IItemDiscardRuleService rules, IItemLifecycleDomainService lifecycle) : IItemDiscardDomainService
 {
-    public async ValueTask<AccountMaterialChange?> DiscardMaterialAsync(SelectedSessionIdentity session,
-        AccountMaterialKind kind, int itemId, int count, byte entryCount, ushort operationType, CancellationToken ct)
-    {
-        onlineUsers.TryGetByConnection(session.ConnectionId, out var online);
-        var reason = sessions.Find(session.AccountId) != session ? "StaleSession"
-            : online is not { State: OnlineUserState.CharacterActive } ? "NoActiveCharacter"
-            : online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId ? "IdentityMismatch"
-            : entryCount != 1 ? "EntryCount"
-            : operationType != 1 ? "OperationType"
-            : count <= 0 ? "Count"
-            : materialRules.Get(kind).ItemId != itemId ? "ItemMismatch" : null;
-        if (reason is not null)
-        {
-            logger.LogWarning("Material consumption rejected character={CharacterId} reason={Reason} entries={Entries} operation={Operation} item={Item} count={Count}",
-                session.CharacterId, reason, entryCount, operationType, itemId, count);
-            return null;
-        }
-        var change = await materials.Get(session.AccountId).ConsumeAsync(kind, count, ct);
-        if (change is null)
-            logger.LogWarning("Material consumption rejected character={CharacterId} reason=InsufficientBalance item={Item} count={Count}", session.CharacterId, itemId, count);
-        return change;
-    }
-
     public async ValueTask<ItemDiscardResult> DiscardAsync(
         SelectedSessionIdentity session,
         BusinessSlot slot,
@@ -63,7 +39,7 @@ internal sealed class ItemDiscardDomainService(
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null
             ? null
-            : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         if (item is null)
             return new(ItemDiscardRejection.ItemUnavailable);
 
@@ -71,13 +47,9 @@ internal sealed class ItemDiscardDomainService(
         if (itemRejection != ItemDiscardRejection.None)
             return new(itemRejection);
 
-        InventoryItemCoreState? remaining = item.Count == count
-            ? null
-            : item.Core with { Value = item.Count - count };
-        if (remaining is null)
-            await bound!.Container.ClearAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
-        else
-            await bound!.Container.PutAsync(bound.Slot.Index, remaining, cancellationToken).ConfigureAwait(false);
+        var remaining = item.Count == count ? null : (item.Snapshot with { Count = item.Count - count }).ToCore();
+        var taken = await bound!.Container.TakeAsync(item, count, cancellationToken).ConfigureAwait(false);
+        await lifecycle.DeleteItemAsync(taken, cancellationToken).ConfigureAwait(false);
 
         return new(ItemDiscardRejection.None,
             new(session, slot, item.ItemId, count, remaining, now));

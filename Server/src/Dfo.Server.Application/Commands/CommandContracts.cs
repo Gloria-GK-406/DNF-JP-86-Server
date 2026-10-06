@@ -9,6 +9,7 @@ public enum CommandExecutionKind
     Direct = 0,
     Transactional = 1,
     Workflow = 2,
+    ReadOnly = 3,
 }
 
 public enum UserAccessMode

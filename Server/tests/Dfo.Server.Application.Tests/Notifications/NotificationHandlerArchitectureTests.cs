@@ -32,7 +32,9 @@ public sealed class NotificationHandlerArchitectureTests
     /// <summary>
     /// Types that are not domain services and are still allowed, each with the reason.
     /// </summary>
-    private static readonly IReadOnlyDictionary<Type, string> Exempt = new Dictionary<Type, string>();
+    private static readonly IReadOnlyDictionary<Type, string> Exempt = new Dictionary<Type, string>
+    {
+    };
 
     private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;
 

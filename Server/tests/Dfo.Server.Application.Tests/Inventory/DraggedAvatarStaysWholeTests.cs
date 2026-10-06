@@ -90,9 +90,9 @@ public sealed class DraggedAvatarStaysWholeTests
             var bag = Bag(side);
             var landed = await GrantAsync(side, AvatarItemId);
             var before = await side.InUseCaseAsync(
-                token => bag.ReadSlotAsync(landed.SlotIndex, token));
+                token => bag.GetAsync(landed.SlotIndex, token));
             Assert.NotNull(before);
-            var identity = before!.Core.Value;
+            var identity = before!.Snapshot.ToCore().Value;
 
             var target = await FreeSlotBesideAsync(side, content, AvatarItemId, landed.SlotIndex);
             var moved = await side.InUseCaseAsync(
@@ -103,17 +103,17 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.Equal(new ItemMoveOutcome.Moved(1, AvatarItemId), moved);
 
             var (source, destination) = await side.InUseCaseAsync(async token => (
-                await bag.ReadSlotAsync(landed.SlotIndex, token).ConfigureAwait(false),
-                await bag.ReadSlotAsync(target, token).ConfigureAwait(false)));
+                await bag.GetAsync(landed.SlotIndex, token).ConfigureAwait(false),
+                await bag.GetAsync(target, token).ConfigureAwait(false)));
 
             // Nothing stayed behind. A division would have left the identity less one here.
             Assert.Null(source);
 
             // And the thing that arrived is the thing that left, under its own name.
             Assert.NotNull(destination);
-            Assert.Equal(AvatarItemId, destination!.Core.ItemId);
-            Assert.Equal(KindStorageJudgesAnAvatarBy, destination.Core.ItemKind);
-            Assert.Equal(identity, destination.Core.Value);
+            Assert.Equal(AvatarItemId, destination!.Snapshot.ToCore().ItemId);
+            Assert.Equal(KindStorageJudgesAnAvatarBy, destination.Snapshot.ToCore().ItemKind);
+            Assert.Equal(identity, destination.Snapshot.ToCore().Value);
 
             // What the container says the slot holds, which is the question the drag turned on.
             Assert.Equal(1, destination.Count);
@@ -198,8 +198,8 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.NotEqual(first.SlotIndex, second.SlotIndex);
 
             var (wasFirst, wasSecond) = await side.InUseCaseAsync(async token => (
-                await bag.ReadSlotAsync(first.SlotIndex, token).ConfigureAwait(false),
-                await bag.ReadSlotAsync(second.SlotIndex, token).ConfigureAwait(false)));
+                await bag.GetAsync(first.SlotIndex, token).ConfigureAwait(false),
+                await bag.GetAsync(second.SlotIndex, token).ConfigureAwait(false)));
             Assert.NotNull(wasFirst);
             Assert.NotNull(wasSecond);
 
@@ -211,17 +211,17 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.Equal(new ItemMoveOutcome.Moved(1, AvatarItemId), moved);
 
             var (nowFirst, nowSecond) = await side.InUseCaseAsync(async token => (
-                await bag.ReadSlotAsync(first.SlotIndex, token).ConfigureAwait(false),
-                await bag.ReadSlotAsync(second.SlotIndex, token).ConfigureAwait(false)));
+                await bag.GetAsync(first.SlotIndex, token).ConfigureAwait(false),
+                await bag.GetAsync(second.SlotIndex, token).ConfigureAwait(false)));
 
             Assert.NotNull(nowFirst);
             Assert.NotNull(nowSecond);
             Assert.Equal(
-                (OtherAvatarItemId, wasSecond!.Core.Value),
-                (nowFirst!.Core.ItemId, nowFirst.Core.Value));
+                (OtherAvatarItemId, wasSecond!.Snapshot.ToCore().Value),
+                (nowFirst!.Snapshot.ToCore().ItemId, nowFirst.Snapshot.ToCore().Value));
             Assert.Equal(
-                (AvatarItemId, wasFirst!.Core.Value),
-                (nowSecond!.Core.ItemId, nowSecond.Core.Value));
+                (AvatarItemId, wasFirst!.Snapshot.ToCore().Value),
+                (nowSecond!.Snapshot.ToCore().ItemId, nowSecond.Snapshot.ToCore().Value));
 
             // Both are still avatars the entry load will serve, which a trade that dropped their
             // facts would not leave true.
@@ -260,8 +260,11 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.True(placement!.StackLimit >= 2, "The archive no longer stacks this template.");
 
             var landed = await side.InUseCaseAsync(
-                token => bag.AddAsync(PileItemId, 2, token));
-            var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(landed);
+                token => side.Grants.GrantAsync(new AccountId(Account), new CharacterId(Character),
+                    side.Containers, PileItemId, 2, token));
+            var local = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(landed.Placement);
+            var opened = local with { SlotIndex = LegacyInventoryStorageCoordinates.ToStorage(
+                new BusinessSlot(landed.Container.Space, local.SlotIndex)).Index };
 
             var target = await FreeSlotBesideAsync(side, content, PileItemId, opened.SlotIndex);
             var moved = await side.InUseCaseAsync(
@@ -272,13 +275,13 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.Equal(new ItemMoveOutcome.Moved(1, PileItemId), moved);
 
             var (source, destination) = await side.InUseCaseAsync(async token => (
-                await bag.ReadSlotAsync(opened.SlotIndex, token).ConfigureAwait(false),
-                await bag.ReadSlotAsync(target, token).ConfigureAwait(false)));
+                await bag.GetAsync(opened.SlotIndex, token).ConfigureAwait(false),
+                await bag.GetAsync(target, token).ConfigureAwait(false)));
 
             Assert.NotNull(source);
             Assert.NotNull(destination);
-            Assert.Equal((PileItemId, 1), (source!.Core.ItemId, source.Count));
-            Assert.Equal((PileItemId, 1), (destination!.Core.ItemId, destination.Count));
+            Assert.Equal((PileItemId, 1), (source!.Snapshot.ToCore().ItemId, source.Count));
+            Assert.Equal((PileItemId, 1), (destination!.Snapshot.ToCore().ItemId, destination.Count));
         });
     }
 
@@ -293,8 +296,9 @@ public sealed class DraggedAvatarStaysWholeTests
         InventorySide side, int itemId)
     {
         var granted = await side.InUseCaseAsync(
-            token => Bag(side).AddAsync(itemId, 1, token));
-        return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted);
+            token => side.Grants.GrantAsync(new AccountId(Account), new CharacterId(Character),
+                side.Containers, itemId, 1, token));
+        return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
     }
 
     /// <summary>
@@ -313,7 +317,7 @@ public sealed class DraggedAvatarStaysWholeTests
         Assert.NotNull(placement);
 
         var bag = itemId == PileItemId ? MainBag(side) : Bag(side);
-        var taken = (await side.InUseCaseAsync(token => bag.ReadAllAsync(token)))
+        var taken = (await side.InUseCaseAsync(token => bag.GetAllAsync(token)))
             .Select(item => item.SlotIndex)
             .ToHashSet();
         var mappings = new InventorySlotMappingRuleService();

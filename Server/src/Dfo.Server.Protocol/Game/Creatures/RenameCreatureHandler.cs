@@ -65,7 +65,7 @@ internal sealed class RenameCreatureHandler(
         var sourceUpdate = receipt.RemainingSourceCore is { } remaining
             ? GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(
                 InventoryContainerType.Pet,
-                [new InventoryItemState(null, request.Slot, remaining)], clock.GetUtcNow()))
+                [new InventoryItemState(null, request.Slot, remaining.ToCore())], clock.GetUtcNow()))
             : GameInventoryDelivery.ClearedSlotNotification(
                 InventoryContainerType.Pet, request.Slot, clock.GetUtcNow());
         var owner = session!;

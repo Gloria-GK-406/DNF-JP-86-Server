@@ -32,10 +32,10 @@ public sealed class EquipmentEnchantCompletedHandler(
         var bead = inventory.Find(receipt.Session.CharacterId, receipt.BeadSlot);
         var target = inventory.Find(receipt.Session.CharacterId, receipt.TargetSlot);
         if (bead is null || target is null) return [];
-        var beadCore = (await bead.Container.ReadSlotAsync(bead.Slot.Index, ct)
-            .ConfigureAwait(false))?.Core;
-        var targetCore = (await target.Container.ReadSlotAsync(target.Slot.Index, ct)
-            .ConfigureAwait(false))?.Core;
+        var beadCore = (await bead.Container.GetAsync(bead.Slot.Index, ct)
+            .ConfigureAwait(false) )?.Snapshot.ToCore();
+        var targetCore = (await target.Container.GetAsync(target.Slot.Index, ct)
+            .ConfigureAwait(false) )?.Snapshot.ToCore();
 
         var messages = new List<IServerNetworkMessage>();
         AddSlot(messages, receipt.BeadSlot, beadCore, receipt.PreparedAt);

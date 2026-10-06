@@ -84,7 +84,7 @@ internal static partial class StateSynchronizationPayloadCodec
         // the field AckCharSlotIndex; the name is its own misnomer and the value is what matters.
         writer.Write(townId);
         writer.Write((byte)0);
-        if (character.Progression.Level <= 1)
+        if (character.Progression.Level <= 1 && !character.TutorialCompleted)
             writer.Write((byte)0);
         else
         {
@@ -96,7 +96,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write((byte)0); // observed no trade punishment
         writer.Write((ushort)0); // observed 86JP compatibility field
         writer.Write(new byte[8]);
-        writer.Write((byte)0); // observed tutorial-skippable state
+        writer.Write((byte)(character.TutorialCompleted ? 1 : 0));
         writer.Write((ushort)0);
         writer.Write(new byte[22]);
         return stream.ToArray();

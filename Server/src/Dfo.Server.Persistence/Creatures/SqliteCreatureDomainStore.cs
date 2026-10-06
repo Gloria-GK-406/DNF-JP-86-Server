@@ -1,241 +1,153 @@
-using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Creatures;
 
-internal sealed class SqliteCreatureDomainStore : ICreatureDomainStore
+internal sealed class SqliteCreatureDomainStore(string databasePath) : ICreatureDomainStore
 {
-    private readonly string connectionString;
-
-    public SqliteCreatureDomainStore(string databasePath)
-    {
-        this.connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = Path.GetFullPath(databasePath)
-        }.ToString();
-    }
-
-    public object StoreIdentity => this.connectionString;
+    private readonly string connectionString = new SqliteConnectionStringBuilder
+        { DataSource = Path.GetFullPath(databasePath) }.ToString();
+    public object StoreIdentity => connectionString;
     public bool IsDurable => true;
-
     public ICreatureDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
-        ArgumentNullException.ThrowIfNull(transaction);
-        var database = transaction.Enlist(this.StoreIdentity,
-            () => new SqliteDatabaseParticipant(this.connectionString));
-        return SqliteCreatureDomainStoreSession.In(database);
+        var scope = ItemLifecycleScope.In(transaction);
+        var database = transaction.Enlist(StoreIdentity, () => new SqliteDatabaseParticipant(connectionString));
+        return SqliteCreatureDomainStoreSession.In(database, scope);
     }
 }
 
-internal sealed class SqliteCreatureDomainStoreSession(SqliteDatabaseParticipant owner)
-    : ICreatureDomainStoreSession, ISqliteStoreFacet
+/// <summary>Creature projections and the entry guard share the item's one state writer.</summary>
+internal sealed class SqliteCreatureDomainStoreSession(SqliteDatabaseParticipant owner,
+    IItemDomainStoreSession items, ItemLifecycleScope scope) : ICreatureDomainStoreSession, ISqliteStoreFacet
 {
-    private static readonly object FacetKey = typeof(SqliteCreatureDomainStoreSession);
-    private readonly Dictionary<(CharacterId Owner, int Uid), CreatureState> staged = [];
     private readonly Dictionary<(CharacterId Owner, int Uid), (int? AccountId, int Stomach,
-        bool OnlyWhenAtMostZero)> conditionWrites = [];
+        bool OnlyWhenAtMostZero)> conditions = [];
 
-    internal static SqliteCreatureDomainStoreSession In(SqliteDatabaseParticipant owner) =>
-        owner.Facet(FacetKey, static database => new SqliteCreatureDomainStoreSession(database));
-
-    public bool HasStagedWork => this.staged.Count > 0 || this.conditionWrites.Count > 0;
-
-    public async ValueTask<CreatureState?> ReadAsync(
-        CharacterId characterId, int itemUid, CancellationToken cancellationToken)
+    internal static SqliteCreatureDomainStoreSession In(SqliteDatabaseParticipant owner, ItemLifecycleScope scope)
     {
-        await this.ApplyPendingItemPositionsAsync(cancellationToken).ConfigureAwait(false);
-        if (this.staged.TryGetValue((characterId, itemUid), out var staged))
-            return Copy(staged);
+        // Acquire before prepare: a transaction may not enlist another participant during settlement.
+        var items = SqliteItemDomainStoreSession.In(owner, scope);
+        return owner.Facet(typeof(SqliteCreatureDomainStoreSession), db => new SqliteCreatureDomainStoreSession(db, items, scope));
+    }
+    public bool HasStagedWork => conditions.Count > 0;
 
-        var value = (await this.ReadRowsAsync(characterId, itemUid, false, cancellationToken)
-            .ConfigureAwait(false)).SingleOrDefault();
-        return value is null ? null : ApplyCondition(characterId, value);
+    public async ValueTask<ItemReference?> FindItemAsync(CharacterId character, int uid, CancellationToken ct) =>
+        (await FindItemsAsync(character, uid, false, ct).ConfigureAwait(false)).SingleOrDefault();
+
+    public async ValueTask<ItemReference> ReadItemAsync(ItemReference reference, CancellationToken ct)
+    {
+        var current = await items.GetAsync(reference.ContainerId, reference.StorageSlotIndex, ct).ConfigureAwait(false);
+        if (current is null || !current.SameOccupancyAs(reference))
+            throw new InvalidOperationException("The creature reference no longer identifies this occupancy.");
+        _ = CreatureState.FromItem(current.Snapshot);
+        return reference.BusinessSlot is { } slot ? current.WithBusinessSlot(slot) : current;
     }
 
-    public async ValueTask<IReadOnlyList<CreatureState>> ReadAllAsync(
-        CharacterId characterId, CancellationToken cancellationToken)
+    public async ValueTask<CreatureState?> ReadAsync(CharacterId character, int uid, CancellationToken ct)
     {
-        await this.ApplyPendingItemPositionsAsync(cancellationToken).ConfigureAwait(false);
-        var rows = (await this.ReadRowsAsync(characterId, null, false, cancellationToken)
-            .ConfigureAwait(false)).ToDictionary(row => row.ItemUid, row => ApplyCondition(characterId, row));
-        foreach (var ((ownerId, uid), value) in this.staged)
-            if (ownerId == characterId && rows.ContainsKey(uid)) rows[uid] = Copy(value);
-        return [.. rows.Values.OrderBy(row => row.ItemUid)];
+        var item = await FindItemAsync(character, uid, ct).ConfigureAwait(false);
+        return item is null ? null : Project(character, item);
+    }
+    public async ValueTask<IReadOnlyList<CreatureState>> ReadAllAsync(CharacterId character, CancellationToken ct) =>
+        (await FindItemsAsync(character, null, false, ct).ConfigureAwait(false)).Select(item => Project(character, item)).ToArray();
+    public async ValueTask<CreatureState?> ReadCurrentAsync(CharacterId character, CancellationToken ct)
+    {
+        var item = (await FindItemsAsync(character, null, true, ct).ConfigureAwait(false)).SingleOrDefault();
+        return item is null ? null : Project(character, item);
     }
 
-    public async ValueTask<CreatureState?> ReadCurrentAsync(
-        CharacterId characterId, CancellationToken cancellationToken)
-    {
-        await this.ApplyPendingItemPositionsAsync(cancellationToken).ConfigureAwait(false);
-        var value = (await this.ReadRowsAsync(characterId, null, true, cancellationToken)
-            .ConfigureAwait(false)).SingleOrDefault();
-        if (value is null) return null;
-        return this.staged.TryGetValue((characterId, value.ItemUid), out var staged)
-            ? Copy(staged) : ApplyCondition(characterId, value);
-    }
-
-    public void Write(CharacterId characterId, CreatureState creature)
+    public async ValueTask<ItemReference> WriteAsync(ItemReference reference, CreatureState creature,
+        int? expiration, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(creature);
-        if (creature.ItemUid <= 0 || creature.ItemTemplateId <= 0
-            || creature.Stomach is < 0 or > byte.MaxValue || creature.Experience < 0
-            || creature.Level is < 0 or > byte.MaxValue || creature.NameBytes is null
+        if (creature.ItemUid <= 0 || creature.ItemTemplateId <= 0 || creature.Stomach is < 0 or > byte.MaxValue
+            || creature.Experience < 0 || creature.Level is < 0 or > byte.MaxValue || creature.NameBytes is null
             || creature.NameBytes.Length > 4096 || creature.ModeFlag is < 0 or > byte.MaxValue
-            || creature.Mode1Field0A is < 0 or > byte.MaxValue
-            || creature.Mode1Field0B is < 0 or > byte.MaxValue
+            || creature.Mode1Field0A is < 0 or > byte.MaxValue || creature.Mode1Field0B is < 0 or > byte.MaxValue
             || creature.TailFlag is < 0 or > byte.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(creature), "Invalid creature state.");
-        if (this.conditionWrites.ContainsKey((characterId, creature.ItemUid)))
-            throw new InvalidOperationException("Creature condition is already staged by the entry adapter.");
-        this.staged[(characterId, creature.ItemUid)] = Copy(creature);
-    }
-
-    internal void WriteCondition(OwnedCharacterId place, long itemUid, int stomach,
-        bool onlyWhenAtMostZero)
-    {
-        var uid = checked((int)itemUid);
-        if (uid <= 0 || stomach is < 0 or > byte.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(stomach));
-        if (this.staged.ContainsKey((place.Character, uid)))
-            throw new InvalidOperationException("Creature state is already staged by its domain store.");
-        this.conditionWrites[(place.Character, uid)] = (place.Account.Value, stomach, onlyWhenAtMostZero);
-    }
-
-    public void ReviveIfEmpty(CharacterId characterId, int itemUid)
-    {
-        if (itemUid <= 0) throw new ArgumentOutOfRangeException(nameof(itemUid));
-        if (this.staged.ContainsKey((characterId, itemUid)))
-            throw new InvalidOperationException("Creature state is already staged by its domain store.");
-        this.conditionWrites[(characterId, itemUid)] = (null, 1, true);
-    }
-
-    public async ValueTask FlushAsync(CancellationToken cancellationToken)
-    {
-        await this.ApplyPendingItemPositionsAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var ((characterId, uid), value) in this.staged)
+            throw new ArgumentOutOfRangeException(nameof(creature));
+        var current = await ReadItemAsync(reference, ct).ConfigureAwait(false);
+        if (current.ItemUid?.Value != creature.ItemUid)
+            throw new InvalidOperationException("Creature identity cannot be replaced.");
+        return await items.UpdateAsync(current, item => item with
         {
-            await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-            command.CommandText = """
-                UPDATE items SET creature_field04=@stomach, creature_mode_flag=@mode,
-                    creature_progress_value=@experience, creature_mode1_field0a=@mode1a,
-                    creature_mode1_field0b=@mode1b, creature_field_after_value=@level,
-                    creature_text=@name, creature_tail_flag=@tail
-                WHERE item_uid=@uid AND creature_field04 IS NOT NULL
-                  AND substr(item_core, 1, 1)=X'05'
-                  AND substr(item_core, 2, 4)=@template
-                  AND substr(item_core, 6, 4)=@identity
-                  AND EXISTS (SELECT 1 FROM item_slots place
-                      WHERE place.owner_scope='character' AND place.owner_id=@owner
-                        AND place.core_uid=@uid);
-                """;
-            command.Parameters.AddWithValue("@uid", uid);
-            command.Parameters.AddWithValue("@owner", characterId.Value);
-            command.Parameters.AddWithValue("@template", TemplateBytes(value.ItemTemplateId));
-            command.Parameters.AddWithValue("@identity", TemplateBytes(uid));
-            command.Parameters.AddWithValue("@stomach", value.Stomach);
-            command.Parameters.AddWithValue("@experience", value.Experience);
-            command.Parameters.AddWithValue("@level", value.Level);
-            command.Parameters.AddWithValue("@name", value.NameBytes);
-            command.Parameters.AddWithValue("@mode", value.ModeFlag);
-            command.Parameters.AddWithValue("@mode1a", value.Mode1Field0A);
-            command.Parameters.AddWithValue("@mode1b", value.Mode1Field0B);
-            command.Parameters.AddWithValue("@tail", value.TailFlag);
-            if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
-                throw new InvalidDataException("Creature identity, template or owner changed.");
-        }
+            ItemId = creature.ItemTemplateId, CreatureDetail = creature.ToDetail(),
+            ExpireTime = expiration ?? item.ExpireTime
+        }, ct).ConfigureAwait(false);
+    }
 
-        foreach (var ((characterId, uid), (accountId, stomach, onlyWhenAtMostZero)) in this.conditionWrites)
+    internal void WriteCondition(OwnedCharacterId place, long uid, int stomach, bool onlyWhenAtMostZero) =>
+        StageCondition(place.Character, checked((int)uid), place.Account.Value, stomach, onlyWhenAtMostZero);
+    public void ReviveIfEmpty(CharacterId character, int uid) => StageCondition(character, uid, null, 1, true);
+    private void StageCondition(CharacterId character, int uid, int? account, int stomach, bool onlyDead)
+    {
+        scope.EnsureActive();
+        if (uid <= 0 || stomach is < 0 or > byte.MaxValue) throw new ArgumentOutOfRangeException(nameof(uid));
+        conditions[(character, uid)] = (account, stomach, onlyDead);
+    }
+
+    public async ValueTask FlushAsync(CancellationToken ct)
+    {
+        foreach (var ((character, uid), (account, stomach, onlyDead)) in conditions)
         {
-            await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-            command.CommandText = """
-                UPDATE items SET creature_field04=@stomach
-                WHERE item_uid=@uid AND creature_field04 IS NOT NULL
-                  AND (@onlyDead=0 OR creature_field04<=0)
-                  AND EXISTS (SELECT 1 FROM item_slots slot
-                      JOIN characters character ON character.character_id=slot.owner_id
-                      WHERE slot.owner_scope='character' AND slot.owner_id=@owner
-                        AND slot.core_uid=@uid AND (@account IS NULL OR character.account_id=@account)
-                        AND character.delete_flag=0);
-                """;
-            command.Parameters.AddWithValue("@stomach", stomach);
-            command.Parameters.AddWithValue("@uid", uid);
-            command.Parameters.AddWithValue("@owner", characterId.Value);
-            command.Parameters.AddWithValue("@account", accountId is null ? DBNull.Value : accountId.Value);
-            command.Parameters.AddWithValue("@onlyDead", onlyWhenAtMostZero ? 1 : 0);
-            if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            await using var command = await owner.CommandAsync(ct).ConfigureAwait(false);
+            command.CommandText = "SELECT 1 FROM characters WHERE character_id=@owner AND (@account IS NULL OR account_id=@account) AND delete_flag=0";
+            command.Parameters.AddWithValue("@owner", character.Value);
+            command.Parameters.AddWithValue("@account", account is null ? DBNull.Value : account.Value);
+            if (await command.ExecuteScalarAsync(ct).ConfigureAwait(false) is null)
+                throw new InvalidDataException("Equipped creature revival owner changed.");
+            var reference = await FindItemAsync(character, uid, ct).ConfigureAwait(false);
+            if (reference is null || (onlyDead && reference.Snapshot.CreatureDetail!.Field04 > 0))
                 throw new InvalidDataException("Equipped creature revival changed concurrently.");
+            await items.UpdateAsync(reference, item => item with
+            { CreatureDetail = item.CreatureDetail! with { Field04 = stomach } }, ct).ConfigureAwait(false);
         }
+        conditions.Clear();
     }
+    public void Discard() => conditions.Clear();
 
-    public void Discard()
+    private CreatureState Project(CharacterId character, ItemReference item)
     {
-        this.staged.Clear();
-        this.conditionWrites.Clear();
+        var state = CreatureState.FromItem(item.Snapshot);
+        return conditions.TryGetValue((character, state.ItemUid), out var condition)
+            ? state with { Stomach = condition.Stomach, ExactStomach = condition.Stomach } : state;
     }
-
-    // A pending move changes ownership/current selection; materialize it inside this same
-    // uncommitted database transaction before asking the item_slots table for creature state.
-    private ValueTask ApplyPendingItemPositionsAsync(CancellationToken cancellationToken) =>
-        SqliteItemDomainStoreSession.ExistingIn(owner)?.ApplyDecidedWritesAsync(cancellationToken)
-        ?? ValueTask.CompletedTask;
-
-    private async ValueTask<IReadOnlyList<CreatureState>> ReadRowsAsync(
-        CharacterId characterId, int? itemUid, bool currentOnly, CancellationToken cancellationToken)
+    private async ValueTask<IReadOnlyList<ItemReference>> FindItemsAsync(CharacterId character, int? uid,
+        bool currentOnly, CancellationToken ct)
     {
-        await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText = """
-            SELECT held.item_uid, held.item_core, held.creature_field04,
-                   held.creature_progress_value, held.creature_field_after_value,
-                   held.creature_text, held.creature_mode_flag,
-                   held.creature_mode1_field0a, held.creature_mode1_field0b,
-                   held.creature_tail_flag
-            FROM items held
-            JOIN item_slots place ON place.core_uid=held.item_uid
-            WHERE place.owner_scope='character' AND place.owner_id=@owner
-              AND held.creature_field04 IS NOT NULL
-              AND (@uid IS NULL OR held.item_uid=@uid)
-              AND (@current=0 OR (place.list_type=3 AND place.slot_index=25));
-            """;
-        command.Parameters.AddWithValue("@owner", characterId.Value);
-        command.Parameters.AddWithValue("@uid", itemUid is null ? DBNull.Value : itemUid.Value);
-        command.Parameters.AddWithValue("@current", currentOnly ? 1 : 0);
-        var rows = new List<CreatureState>();
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        scope.EnsureActive();
+        var locations = new List<(InventoryContainerType Type, int Slot)>();
+        await using (var command = await owner.CommandAsync(ct).ConfigureAwait(false))
         {
-            var core = reader.GetFieldValue<byte[]>(1);
-            if (core.Length != 82 || core[0] != 5
-                || BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(1, 4)) <= 0)
-                throw new InvalidDataException("Creature detail has no matching creature item kind and template.");
-            var name = reader.IsDBNull(5) ? [] : reader.GetFieldValue<byte[]>(5);
-            if (name.Length > 4096) throw new InvalidDataException("Creature name is too large.");
-            rows.Add(new CreatureState(reader.GetInt32(0),
-                BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(1, 4)),
-                reader.GetInt32(2), reader.GetInt32(3), reader.GetInt32(4),
-                [.. name], reader.GetInt32(6), reader.GetInt32(7),
-                reader.GetInt32(8), reader.GetInt32(9)));
+            command.CommandText = """
+                SELECT place.list_type, place.slot_index FROM item_slots place JOIN items held ON held.item_uid=place.core_uid
+                WHERE place.owner_scope='character' AND place.owner_id=@owner AND held.creature_field04 IS NOT NULL
+                AND (@uid IS NULL OR held.item_uid=@uid)
+                AND (@current=0 OR (place.list_type=3 AND place.slot_index=25)) ORDER BY held.item_uid
+                """;
+            command.Parameters.AddWithValue("@owner", character.Value);
+            command.Parameters.AddWithValue("@uid", uid is null ? DBNull.Value : uid.Value);
+            command.Parameters.AddWithValue("@current", currentOnly ? 1 : 0);
+            await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+                locations.Add(((InventoryContainerType)reader.GetInt32(0), reader.GetInt32(1)));
         }
-        return rows;
-    }
-
-    private CreatureState ApplyCondition(CharacterId ownerId, CreatureState value) =>
-        this.conditionWrites.TryGetValue((ownerId, value.ItemUid), out var condition)
-            ? value with { Stomach = condition.Stomach, ExactStomach = condition.Stomach }
-            : value;
-
-    private static CreatureState Copy(CreatureState value) =>
-        value with { NameBytes = [.. value.NameBytes] };
-
-    private static byte[] TemplateBytes(int templateId)
-    {
-        var bytes = new byte[4];
-        BinaryPrimitives.WriteInt32LittleEndian(bytes, templateId);
-        return bytes;
+        var result = new List<ItemReference>();
+        foreach (var (type, slot) in locations)
+        {
+            var item = await items.GetAsync(ContainerId.ForCharacter(character, type), slot, ct).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Creature location disappeared.");
+            if (item.Snapshot.LegacyKind != 5) throw new InvalidDataException("Creature detail has no matching item kind.");
+            result.Add(item);
+        }
+        return result;
     }
 }

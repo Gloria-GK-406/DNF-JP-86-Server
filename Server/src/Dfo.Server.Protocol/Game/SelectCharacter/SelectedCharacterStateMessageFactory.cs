@@ -75,7 +75,13 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new DailyChallengeStateMessage(result.CharacterEntry.Progression));
         messages.Add(new AccountGameOptionsMessage(result.Account.Settings));
         messages.Add(new HotkeyStateMessage(result.Account.Settings, result.CharacterEntry.Settings));
-        messages.Add(new ServerEventBaselineMessage());
+        if (result.Events is { } events)
+        {
+            messages.Add(new Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage(events.Information));
+            messages.Add(new Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage(events.Attendance));
+            if (events.Joust is { } joust) messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Initialization(joust));
+        }
+        else messages.Add(new ServerEventBaselineMessage());
         messages.Add(new CharacterOptionStateMessage(result.CharacterEntry.Settings.OptionBitmap));
         messages.Add(new SecondaryNoticeStateMessage(result.CharacterEntry.Settings.SeenNotices));
         messages.Add(new SkillPointSlotStateMessage(result.CharacterEntry.Skills.SkillPointSlots));

@@ -54,20 +54,20 @@ internal sealed class EquipmentOutworldDomainService(
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null)
             return new(EquipmentOutworldRejection.ItemUnavailable);
-        if (target.Core.ItemId != expectedTargetItemId)
+        if (target.Snapshot.ItemId != expectedTargetItemId)
             return new(EquipmentOutworldRejection.WrongItem);
-        if (target.Core.ExpireTime > 0
-            && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.ExpireTime > 0
+            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentOutworldRejection.ItemUnavailable);
-        if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
+        if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentOutworldRejection.Locked);
-        var material = await materialBound.Container.ReadSlotAsync(materialBound.Slot.Index, ct)
+        var material = await materialBound.Container.GetAsync(materialBound.Slot.Index, ct)
             .ConfigureAwait(false);
-        if (material is not { IsPile: true, WorldClass: ItemWorldClass.Interchangeable, Count: > 0 }
+        if (material is not { IsPile: true, Count: > 0 }
             || material.ItemId != expectedMaterialItemId
-            || material.Core.EquipmentLockId != 0 || material.Core.SortLockFlag != 0
-            || material.Core.ExpireTime > 0
-                && material.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+            || material.Snapshot.EquipmentLockId != 0 || material.Snapshot.SortLockFlag != 0
+            || material.Snapshot.ExpireTime > 0
+                && material.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentOutworldRejection.MaterialUnavailable);
 
         var plan = await rules.OutworldAsync(target, action, materialSlot, material.ItemId, selectedOption, seeds.NextSeed(), ct)
@@ -81,10 +81,10 @@ internal sealed class EquipmentOutworldDomainService(
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentOutworldRejection.MaterialUnavailable);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
-        var changed = applied.Changes<EquipmentEffectChange>().Single().After!.Core;
-        var remaining = await materialBound.Container.ReadSlotAsync(materialSlot.Index, ct).ConfigureAwait(false);
+        var changed = applied.Changes<EquipmentEffectChange>().Single().After!;
+        var remaining = await materialBound.Container.GetAsync(materialSlot.Index, ct).ConfigureAwait(false);
         return new(EquipmentOutworldRejection.None,
-            new(session, action, targetSlot, target.Core.ItemId, materialSlot, material.ItemId,
+            new(session, action, targetSlot, target.Snapshot.ItemId, materialSlot, material.ItemId,
                 remaining?.Count ?? 0, changed,
                 decision.Cleared, decision.Seed, context.At));
     }

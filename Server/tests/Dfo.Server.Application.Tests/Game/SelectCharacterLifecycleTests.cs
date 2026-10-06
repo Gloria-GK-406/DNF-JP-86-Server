@@ -743,11 +743,10 @@ public sealed partial class SelectCharacterLifecycleTests
                     },
                 };
             var ledger = new List<string>();
-            var users = new UserDomainServices(() => new AccountRepository(accountId));
+            var users = new UserDomainServices(accountId);
             var registered = users.RegisterConnection(new NetworkConnectionContext(
                 connectionId, NetworkEndpointKind.Game, StubChannelEntryPolicy.GeneralChannel.ListenerPort));
-            await users.LoginAsync(
-                registered.OnlineUserId, "lifecycle", "hash", CancellationToken.None);
+            await users.AuthenticateForTestAsync(registered.OnlineUserId);
             var authenticated = users.GetRequired(registered.OnlineUserId);
             var directory = new SelectedSessionDomainService();
             var active = new RecordingActive(users, ledger);
@@ -953,13 +952,6 @@ public sealed partial class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class AccountRepository(AccountId accountId) : IAccountRepository
-    {
-        public ValueTask<AccountRecord> GetOrCreateAsync(
-            string loginId, string passwordHash, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new AccountRecord(
-                accountId, loginId, passwordHash, DateTimeOffset.UnixEpoch));
-    }
 
     private sealed class Preparation(
         SelectCharacterResult result, List<string> ledger, bool failPreparation,

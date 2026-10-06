@@ -147,7 +147,7 @@ public sealed class EquipmentEnchantDomainTests
     {
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, slot);
-        return (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core;
+        return (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore();
     }
 
     private static async ValueTask<EquipmentEnchantResult> Enchant(ShopFixture shop, BusinessSlot target)

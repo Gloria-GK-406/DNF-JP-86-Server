@@ -1,0 +1,15 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run --no-file-parallelism src/events/JoustSettings.test.tsx src/Events.test.tsx
+
+
+ RUN  v5.0.3 E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin
+
+
+ Test Files  2 passed (2)
+      Tests  49 passed (49)
+   Start at  03:07:35
+   Duration  14.64s (tests 64%, import 23%, environment 10%, setup 2%, transform 2%)
+
+    Isolate  2 workers spawned · ~801ms startup each (spawn + environment, per file)
+             at least ~801ms faster with isolate: false — reuses workers across files instead of one per file

@@ -313,7 +313,12 @@ internal static class GameInventoryDelivery
     public static IGameServerMessage Notification(CommittedInventoryUpdateState update)
     {
         ArgumentNullException.ThrowIfNull(update);
-        return new InventoryDeltaMessage(update.ContainerType, update.Items, update.PreparedAt);
+        var items = update.ContainerType == InventoryContainerType.Main
+            ? update.Items.Select(item => item.SlotIndex is >= 354 and <= 364
+                ? new InventoryItemState(null, item.SlotIndex, VirtualResourceCore(item.Core.ItemId, item.Core.Value))
+                : item).ToArray()
+            : update.Items;
+        return new InventoryDeltaMessage(update.ContainerType, items, update.PreparedAt);
     }
 
     public static IGameServerMessage ClearedSlotNotification(
@@ -431,6 +436,7 @@ internal static class GameInventoryDelivery
     {
         services.AddGameNotiMessageEncoder<InventoryDeltaMessage, InventoryDeltaEncoder>();
         services.AddGameNotiMessageEncoder<InventoryFullSnapshotMessage, InventoryFullSnapshotEncoder>();
+        services.AddGameCmdMessageEncoder<CargoCapacityUpgradeMessage, CargoCapacityUpgradeEncoder>();
         services.AddGameNotiMessageEncoder<InventoryLocksMessage, InventoryLocksEncoder>();
     }
 }

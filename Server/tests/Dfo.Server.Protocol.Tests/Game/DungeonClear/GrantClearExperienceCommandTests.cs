@@ -207,17 +207,13 @@ public sealed class GrantClearExperienceCommandTests
     /// irrelevant here and is passed as such: unlike a kill, nothing about a clear's worth depends
     /// on who cleared it.
     /// </remarks>
-    private sealed class PricingGrant(IExperienceCalculationDomainService calculation) : ICharacterExperienceDomainService
+    private sealed class PricingGrant(IExperienceCalculationDomainService calculation) : ExperienceCharacters
     {
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        /// <summary>Pricing stand-ins never set progress outright; the tutorial is the only path that does.</summary>
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
             var breakdown = await calculation.CalculateAsync(source, 1, cancellationToken);
             return new ExperienceAward(breakdown, 1, breakdown.Total, LeveledUp: false);

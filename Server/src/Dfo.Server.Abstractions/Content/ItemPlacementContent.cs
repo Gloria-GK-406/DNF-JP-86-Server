@@ -70,6 +70,11 @@ public sealed record ItemPlacement(
     /// undeclared template gets.
     /// </remarks>
     public ItemWorldClass WorldClass { get; init; }
+
+    /// <summary>The queried template, independent of the destination used for this placement.</summary>
+    public int ItemId { get; init; }
+
+    public ItemTraits Traits => ItemTraitClassification.For(ItemKind, ItemId);
 }
 
 /// <summary>Answers where an item goes, from the archive's own item definition.</summary>

@@ -1,3 +1,5 @@
+using Dfo.Server.Protocol.Game.Joust;
+using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Creatures;
@@ -8,6 +10,7 @@ using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
@@ -71,6 +74,12 @@ using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.IllusionTowerStage;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
@@ -121,14 +130,37 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustInfo);
+        services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustHistory);
+        services.RegisterMessageHandler<JoustBetHandler>(ClientMessageType.GameJoustBet);
+        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E6,ClientMessageType.GameJoustInfo);
+        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E8,ClientMessageType.GameJoustHistory);
+        services.AddGameCmdMessageDecoder<JoustBetDecoder>(0x04E7,ClientMessageType.GameJoustBet);
+        services.AddGameCmdMessageEncoder<JoustResponse,JoustResponseEncoder>();
+        services.AddGameNotiMessageEncoder<JoustStateMessage,GameNotiStateSynchronizationEncoder<JoustStateMessage>>();
+        services.AddGameNotiMessageEncoder<JoustInfoMessage,GameNotiStateSynchronizationEncoder<JoustInfoMessage>>();
+        services.AddGameNotiMessageEncoder<JoustBetsMessage,GameNotiStateSynchronizationEncoder<JoustBetsMessage>>();
+        services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustDetailsChanged,JoustDetailsChangedHandler>(retryLimit:0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustLifecycleNotification,JoustLifecycleNotificationHandler>(retryLimit:0);
+        services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly,accountAccessMode:UserAccessMode.Exclusive);
+        services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional,UserAccessMode.Exclusive,UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler>(ClientMessageType.GameWeeklyAttendance);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>(retryLimit:0);
+        services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>(retryLimit:0);
+        services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional,accountAccessMode:UserAccessMode.Exclusive);
         services.AddSingleton<MailboxDelivery>();
         services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSend);
         services.RegisterMessageHandler<MailboxSendHandler>(ClientMessageType.GameMailboxSendMulti);
         services.AddGameCmdMessageDecoder<MailboxSendDecoder>(0x005E, ClientMessageType.GameMailboxSend);
         services.AddGameCmdMessageDecoder<MailboxSendMultiDecoder>(0x013B, ClientMessageType.GameMailboxSendMulti);
         services.AddGameCmdMessageEncoder<MailboxSendResponse, MailboxSendEncoder>();
-        services.AddNotificationHandler<MailboxArrived, MailboxArrivedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailboxChanged, MailboxChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>(retryLimit: 0);
         services.AddCommandHandler<MailboxCommand, MailboxResult, MailboxCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<MailboxClaimHandler>(ClientMessageType.GameMailboxClaim);
@@ -206,11 +238,12 @@ public sealed class ProtocolModule : IServerModule
         // check is only worth having while something says which assemblies it covers, and this
         // line is that something.
         services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
-        services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailboxChanged).Assembly);
+        services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>(retryLimit: 0);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Administration.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
+        services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>(retryLimit: 1);
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
@@ -308,7 +341,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult, ApplyMonsterKillCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
-            CommandExecutionKind.Transactional);
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
             CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
@@ -395,7 +428,7 @@ public sealed class ProtocolModule : IServerModule
         // it afterwards would leave a window in which a move was several writes with nothing to
         // settle them together -- a window every test would pass through green.
         services.AddCommandHandler<MoveItemSpaceCommand, ItemMoveResult, MoveItemSpaceCommandHandler>(
-            CommandExecutionKind.Transactional);
+            CommandExecutionKind.Transactional, UserAccessMode.Unscoped, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<HatchCreatureCommand, HatchCreatureResult, HatchCreatureCommandHandler>(
@@ -448,12 +481,13 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<WarehouseCommand, InventoryExpansionResult, WarehouseCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SortItemCommand, SortItemResult, SortItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<DiscardAccountMaterialCommand, DiscardAccountMaterialResult, DiscardAccountMaterialCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<ConsumeSkillMaterialsCommand, MaterialConsumptionResult, ConsumeSkillMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<ConsumeEffectMaterialsCommand, MaterialConsumptionResult, ConsumeEffectMaterialsCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -594,6 +628,37 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.TryAddSingleton<IllusionTowerProjectionGate>();
+        services.TryAddSingleton<IllusionTowerEntryGate>();
+        services.TryAddSingleton<IllusionTowerProjectionDelivery>();
+        services.TryAddSingleton<IllusionTowerPartyCoordinator>();
+        services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IIllusionTowerDepartureSink,
+            IllusionTowerDepartureProjectionSink>());
+        services.TryAddSingleton<IllusionTowerReturnSweepService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
+            provider.GetRequiredService<IllusionTowerReturnSweepService>());
+        services.AddCommandHandler<EnterIllusionTowerCommand, TowerEntryResult,
+            EnterIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LoadIllusionTowerCommand, TowerActionResult,
+            LoadIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<StartIllusionTowerCommand, TowerActionResult,
+            StartIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<PickupTowerItemCommand, TowerPickupResult,
+            PickupTowerItemCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<KillIllusionTowerActorCommand, TowerActionResult,
+            KillIllusionTowerActorCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<AdvanceIllusionTowerCommand, TowerActionResult,
+            AdvanceIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<DieInIllusionTowerCommand, TowerActionResult,
+            DieInIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,
+            LeaveIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SynchronizeIllusionTowerLeaderCommand, TowerActionResult,
+            SynchronizeIllusionTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SelectIllusionTowerReturnCommand, TowerActionResult,
+            SelectIllusionTowerReturnCommandHandler>(CommandExecutionKind.Transactional);
+        services.RegisterMessageHandler<IllusionTowerStageHandler>(ClientMessageType.GameIllusionTowerStage);
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
@@ -613,6 +678,18 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortLock);
         services.RegisterMessageHandler<SortLockHandler>(ClientMessageType.GameSortUnlock);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameCreateAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0131, ClientMessageType.GameCreateAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0132, ClientMessageType.GameUpgradeAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameDepositAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0133, ClientMessageType.GameDepositAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameWithdrawAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0134, ClientMessageType.GameWithdrawAccountCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0198, ClientMessageType.GameUpgradeCargo);
+        services.RegisterMessageHandler<WarehouseHandler>(ClientMessageType.GameUpgradeInventory);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
         services.RegisterMessageHandler<SortItemHandler>(ClientMessageType.GameSortItem);
         services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
@@ -720,6 +797,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerInfoNotification, IllusionTowerInfoEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerMapNotification, IllusionTowerMapEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerRankingNotification, IllusionTowerRankingEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerRewardNotification, IllusionTowerRewardEncoder>();
+        services.AddGameNotiMessageEncoder<IllusionTowerContinueNotification, IllusionTowerContinueEncoder>();
         services.AddGameCmdMessageDecoder<PremiumServiceUsageReportDecoder>(0x036F, ClientMessageType.GamePremiumServiceUsageReport);
         services.AddGameCmdMessageDecoder<RecoverStaminaDecoder>(0x0009, ClientMessageType.GameRecoverStamina);
         services.AddGameCmdMessageEncoder<RecoverStaminaResponse, RecoverStaminaEncoder>();
@@ -794,6 +876,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<CharacterDeathDecoder>(GameProtocol.CharacterDeathType, ClientMessageType.GameCharacterDeath);
         services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
             GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
+        services.AddGameCmdMessageDecoder<IllusionTowerStageDecoder>(
+            GameProtocol.IllusionTowerStageType, ClientMessageType.GameIllusionTowerStage);
         services.AddGameCmdMessageDecoder<GetItemDecoder>(
             GameProtocol.GetItemType, ClientMessageType.GameGetItem);
         services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(
@@ -1000,6 +1084,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<InvestAmplifyOptionResponse, InvestAmplifyOptionEncoder>();
         services.AddGameCmdMessageEncoder<ForgingResponse, ForgingEncoder>();
         services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
+        services.AddGameCmdMessageEncoder<WarehouseResponse, WarehouseResponseEncoder>();
         services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();

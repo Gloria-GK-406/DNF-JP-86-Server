@@ -19,7 +19,7 @@ internal sealed class QuestMaterialRequirementDomainService(
         if (carried.Count == 0) return FrozenSet<int>.Empty;
         var bag = containers.FindContainer(characterId, InventoryContainerType.Main)
             ?? throw new InvalidOperationException($"Missing inventory for quest material query: {characterId}.");
-        var held = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        var held = (await bag.GetAllAsync(cancellationToken).ConfigureAwait(false))
             .Where(item => item.ItemId > 0).GroupBy(item => item.ItemId)
             .ToDictionary(group => group.Key, group => group.Sum(item => (long)item.Count));
         var result = new HashSet<int>();

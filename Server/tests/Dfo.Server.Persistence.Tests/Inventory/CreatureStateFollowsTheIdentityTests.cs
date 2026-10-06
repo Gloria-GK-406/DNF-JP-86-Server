@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Transactions;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -116,10 +117,10 @@ public sealed class CreatureStateFollowsTheIdentityTests
                          (Equipment, 24, Main, 13),
                      })
             {
-                await SettleItemsAsync(path, session =>
+                await SettleItemsAsync(path, async session =>
                 {
-                    session.Clear(from, fromSlot);
-                    session.Write(to, Placed(toSlot, which: 2));
+                    var item = await session.TakeAsync((await session.GetAsync(from, fromSlot, default))!, null, default);
+                    await session.PutAsync(to, toSlot, item, default);
                 });
 
                 // The one that moved is still the same row, so the list cannot have gained or lost
@@ -150,10 +151,10 @@ public sealed class CreatureStateFollowsTheIdentityTests
 
             var before = Assert.Single(await CreaturesAsync(side));
 
-            await SettleItemsAsync(path, session =>
+            await SettleItemsAsync(path, async session =>
             {
-                session.Clear(Main, 12);
-                session.Write(Equipment, Placed(24, which: 1));
+                var item = await session.TakeAsync((await session.GetAsync(Main, 12, default))!, null, default);
+                await session.PutAsync(Equipment, 24, item, default);
             });
 
             Assert.Equal(9L, await IdentityAtAsync(path, Equipment, 24));
@@ -199,10 +200,12 @@ public sealed class CreatureStateFollowsTheIdentityTests
             await InsertCreatureAsync(path, identity: 4, listType: 0, slot: 12, which: 1);
             await InsertCreatureAsync(path, identity: 5, listType: 0, slot: 13, which: 2);
 
-            await SettleItemsAsync(path, session =>
+            await SettleItemsAsync(path, async session =>
             {
-                session.Write(Main, Placed(12, which: 2));
-                session.Write(Main, Placed(13, which: 1));
+                var first = await session.TakeAsync((await session.GetAsync(Main, 12, default))!, null, default);
+                var second = await session.TakeAsync((await session.GetAsync(Main, 13, default))!, null, default);
+                await session.PutAsync(Main, 13, first, default);
+                await session.PutAsync(Main, 12, second, default);
             });
 
             // The identities have traded positions...
@@ -328,21 +331,7 @@ public sealed class CreatureStateFollowsTheIdentityTests
         return (int)containerType;
     }
 
-    private static StoredItem Placed(int slotIndex, int which) =>
-        new(slotIndex, InventoryItemCore.Decode(CoreBytes(which)))
-        {
-            WorldClass = ItemWorldClass.Creature,
-        };
-
-    /// <summary>
-    /// The same eighty-two bytes the seeding writes, so a move recognises the row it is moving.
-    /// </summary>
-    /// <remarks>
-    /// A template of its own for each creature, because settlement pairs what it is putting down
-    /// with what it lifted by those bytes. Two creatures with the same bytes would be
-    /// interchangeable to it, and a swap of two such rows would be indistinguishable from no swap
-    /// at all -- which would leave the test that turns on one proving nothing.
-    /// </remarks>
+    /// <summary>Historical creature core encoded by the SQL seed.</summary>
     private static byte[] CoreBytes(int which)
     {
         var core = new byte[82];
@@ -351,19 +340,20 @@ public sealed class CreatureStateFollowsTheIdentityTests
         return core;
     }
 
-    private static async Task SettleItemsAsync(string path, Action<IItemDomainStoreSession> work)
+    private static async Task SettleItemsAsync(string path, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var transaction = new StubTransaction();
-        work(new SqliteItemDomainStore(path).SessionIn(transaction));
-        await transaction.SettleAsync();
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
+        await transaction.CommitAsync(CancellationToken.None);
     }
 
-    private static async Task SettleCreaturesAsync(
-        string path, Action<ICharacterDomainStoreSession> work)
+    private static async Task SettleCreaturesAsync(string path, Action<ICharacterDomainStoreSession> work)
     {
-        var transaction = new StubTransaction();
-        work(new SqliteCharacterDomainStore(path).SessionIn(transaction));
-        await transaction.SettleAsync();
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        work(new SqliteCharacterDomainStore(path).SessionIn(scope.Current!));
+        await transaction.CommitAsync(CancellationToken.None);
     }
 
     private static async Task InsertCreatureAsync(
@@ -458,35 +448,4 @@ public sealed class CreatureStateFollowsTheIdentityTests
         }
     }
 
-    /// <summary>Stands in for the coordinator, as the store's own tests do.</summary>
-    private sealed class StubTransaction : IDomainTransaction
-    {
-        private readonly Dictionary<object, ITransactionParticipant> enlisted = [];
-
-        public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
-            where TParticipant : ITransactionParticipant
-        {
-            if (this.enlisted.TryGetValue(identity, out var existing))
-            {
-                return (TParticipant)existing;
-            }
-
-            var participant = create();
-            this.enlisted.Add(identity, participant);
-            return participant;
-        }
-
-        public async Task SettleAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.PrepareAsync(CancellationToken.None);
-            }
-
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.CommitAsync(CancellationToken.None);
-            }
-        }
-    }
 }

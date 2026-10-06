@@ -188,13 +188,13 @@ public sealed class PickedUpAvatarStaysWholeTests
             // would let the refusal answer for the comparison and leave what the two cores
             // actually carry untested.
             var (one, other) = await side.InUseCaseAsync(async token => (
-                await Bag(side).ReadSlotAsync(earlier.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side).ReadSlotAsync(later.SlotIndex, token).ConfigureAwait(false)));
+                await Bag(side).GetAsync(earlier.SlotIndex, token).ConfigureAwait(false),
+                await Bag(side).GetAsync(later.SlotIndex, token).ConfigureAwait(false)));
             Assert.NotNull(one);
             Assert.NotNull(other);
 
             // Not each other. One announced value written into both cores would fail here.
-            Assert.NotEqual(one!.Core.Value, other!.Core.Value);
+            Assert.NotEqual(one!.Snapshot.ToCore().Value, other!.Snapshot.ToCore().Value);
 
             // And both are still things the load serves, which is the half above.
             Assert.NotNull((await OneItemAsync(side, earlier.SlotIndex)).AvatarDetail);
@@ -242,24 +242,24 @@ public sealed class PickedUpAvatarStaysWholeTests
             Assert.Equal(GroundPickupStatus.PickedUp, third.Status);
 
             var (one, other, apart) = await side.InUseCaseAsync(async token => (
-                await Bag(side, InventoryContainerType.Main).ReadSlotAsync(first.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side, InventoryContainerType.Main).ReadSlotAsync(second.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side, InventoryContainerType.Main).ReadSlotAsync(third.SlotIndex, token).ConfigureAwait(false)));
+                await Bag(side, InventoryContainerType.Main).GetAsync(first.SlotIndex, token).ConfigureAwait(false),
+                await Bag(side, InventoryContainerType.Main).GetAsync(second.SlotIndex, token).ConfigureAwait(false),
+                await Bag(side, InventoryContainerType.Main).GetAsync(third.SlotIndex, token).ConfigureAwait(false)));
             Assert.NotNull(one);
             Assert.NotNull(other);
             Assert.NotNull(apart);
 
             // One kill, one value.
-            Assert.Equal(one!.Core.Value, other!.Core.Value);
+            Assert.Equal(one!.Snapshot.ToCore().Value, other!.Snapshot.ToCore().Value);
 
             // Another kill, another value -- and neither is the count the bag opened the slot with.
-            Assert.NotEqual(one.Core.Value, apart!.Core.Value);
-            Assert.NotEqual(one.Count, one.Core.Value);
+            Assert.NotEqual(one.Snapshot.ToCore().Value, apart!.Snapshot.ToCore().Value);
+            Assert.NotEqual(one.Count, one.Snapshot.ToCore().Value);
 
             // Not broken, on all three.
-            Assert.Equal(AnnouncedDurability, one.Core.Durability);
-            Assert.Equal(AnnouncedDurability, other.Core.Durability);
-            Assert.Equal(AnnouncedDurability, apart.Core.Durability);
+            Assert.Equal(AnnouncedDurability, one.Snapshot.ToCore().Durability);
+            Assert.Equal(AnnouncedDurability, other.Snapshot.ToCore().Durability);
+            Assert.Equal(AnnouncedDurability, apart.Snapshot.ToCore().Durability);
         });
     }
 
@@ -375,7 +375,7 @@ public sealed class PickedUpAvatarStaysWholeTests
                 new NoQuestProgress(),
                 new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(
                     new ItemPlacementRuleService(placements,
-                        content.GetRequiredService<IEquipmentSlotDefinitionSource>())));
+                        content.GetRequiredService<IEquipmentSlotDefinitionSource>()), side.Lifecycle));
 
             await body(side, handler, runs);
         }

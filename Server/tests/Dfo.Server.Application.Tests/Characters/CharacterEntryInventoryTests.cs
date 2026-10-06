@@ -517,7 +517,7 @@ public sealed class CharacterEntryInventoryTests
         Assert.Equal(0, active.PublishCount);
     }
 
-    private static InventoryStorageItem StorageItem(
+    private static ItemReference StorageItem(
         int identity,
         InventoryOwnerType ownerType,
         int ownerId,
@@ -526,14 +526,10 @@ public sealed class CharacterEntryInventoryTests
         int slot,
         int itemId,
         int value = 1) =>
-        new(
-            new ItemIdentity(identity),
-            ownerType,
-            ownerId,
-            characterId,
-            containerType,
-            slot,
-            Core(itemId, value));
+        new(new object(), ownerType == InventoryOwnerType.Character
+                ? ContainerId.ForCharacter(new(ownerId), containerType)
+                : ContainerId.ForAccount(new(ownerId), containerType), slot, 0,
+            ItemSnapshot.FromCore(Core(itemId, value), false, new(identity)));
 
     private static InventoryItemCoreState Core(int itemId, int value, byte itemKind = 1) => new(
         itemKind,

@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Empty, Space, Tag, Typography } from 'antd';
-import { MailAttachmentPicker } from './MailAttachmentPicker';
-import { equipmentSummary, itemCategories, mergeMailItem, type MailItem, type MailItemDetails } from './mail';
+import { Button, Empty, Space, Tag, Typography } from 'antd';
+import { ItemPicker } from './ItemPicker';
+import { equipmentSummary, itemCategories, type ItemInput, type ItemCatalogDetails } from './items';
+import { mergeMailItem } from './mail';
 import { useGmRead } from './useGmRead';
+import { NotiHint, useNotiBar } from './NotiBar';
 
 type AccessCallbacks = { onExpired: () => void; onDenied: () => void };
 
 export function MailAttachments({ items, onChange, locked, onExpired, onDenied }: AccessCallbacks & {
-  items: MailItem[]; onChange: (items: MailItem[]) => void; locked: boolean;
+  items: ItemInput[]; onChange: (items: ItemInput[]) => void; locked: boolean;
 }) {
+  const noti = useNotiBar();
   const [editing, setEditing] = useState<number | 'new' | null>(null);
-  const [known, setKnown] = useState<Record<number, MailItemDetails>>({});
-  const remember = useCallback((details: MailItemDetails) => setKnown(old => old[details.item.itemId] === details ? old : { ...old, [details.item.itemId]: details }), []);
-  const expanded = (values: MailItem[], metadata: Record<number, MailItemDetails>) => values.reduce((total, item) => total + (metadata[item.itemId]?.kind === 'equipment' ? item.count : 1), 0);
+  const [known, setKnown] = useState<Record<number, ItemCatalogDetails>>({});
+  const remember = useCallback((details: ItemCatalogDetails) => setKnown(old => old[details.item.itemId] === details ? old : { ...old, [details.item.itemId]: details }), []);
+  const expanded = (values: ItemInput[], metadata: Record<number, ItemCatalogDetails>) => values.reduce((total, item) => total + (metadata[item.itemId]?.kind === 'equipment' ? item.count : 1), 0);
   const allKnown = items.every(item => known[item.itemId]);
   return <section className="mail-attachments" aria-label="邮件物品附件">
     <div className="mail-attachments-heading"><div><Typography.Text strong>物品附件</Typography.Text>
@@ -24,15 +27,15 @@ export function MailAttachments({ items, onChange, locked, onExpired, onDenied }
         <Button size="small" disabled={locked} onClick={() => setEditing(index)}>编辑附件 {index + 1}</Button>
         <Button size="small" danger disabled={locked} onClick={() => onChange(items.filter((_, row) => row !== index))}>移除附件 {index + 1}</Button>
       </Space>} />)}
-    {allKnown && expanded(items, known) > 10 && <Alert type="error" title="每人最多 10 个展开物品附件，请减少装备数量。" />}
-    {editing !== null && !locked && <MailAttachmentPicker initial={editing === 'new' ? undefined : items[editing]}
+    {allKnown && expanded(items, known) > 10 && <NotiHint type="error" noticeKey="attachment-capacity" title="每人最多 10 个展开物品附件，请减少装备数量。" />}
+    {editing !== null && !locked && <ItemPicker purpose="mail" initial={editing === 'new' ? undefined : items[editing]}
       onExpired={onExpired} onDenied={onDenied} onClose={() => setEditing(null)} onChoose={(item, details) => {
         try {
           const updated = mergeMailItem(items, item, editing === 'new' ? undefined : editing);
           const metadata = { ...known, [item.itemId]: details };
           if (updated.length > 10 || updated.every(row => metadata[row.itemId]) && expanded(updated, metadata) > 10)
             return '每人最多 10 个展开物品附件；每件装备单独占一个附件位。';
-          remember(details); onChange(updated); setEditing(null);
+          remember(details); onChange(updated); setEditing(null); noti.success(editing === 'new' ? '物品附件已添加。' : '附件配置已保存。');
           return undefined;
         } catch (failure) { return (failure as Error).message; }
       }} />}
@@ -40,9 +43,9 @@ export function MailAttachments({ items, onChange, locked, onExpired, onDenied }
 }
 
 function AttachmentRow({ item, index, known, remember, actions, onExpired, onDenied }: AccessCallbacks & {
-  item: MailItem; index: number; known?: MailItemDetails; remember?: (details: MailItemDetails) => void; actions?: React.ReactNode;
+  item: ItemInput; index: number; known?: ItemCatalogDetails; remember?: (details: ItemCatalogDetails) => void; actions?: React.ReactNode;
 }) {
-  const loaded = useGmRead<MailItemDetails>(known ? null : `mail/items/${item.itemId}`, onExpired, onDenied);
+  const loaded = useGmRead<ItemCatalogDetails>(known ? null : `mail/items/${item.itemId}`, onExpired, onDenied);
   const details = known ?? loaded.data;
   useEffect(() => { if (loaded.data) remember?.(loaded.data); }, [loaded.data, remember]);
   return <div className="mail-attachment-row">
@@ -50,11 +53,10 @@ function AttachmentRow({ item, index, known, remember, actions, onExpired, onDen
       <Space wrap><Typography.Text strong>{details?.item.name ?? `物品 ${item.itemId}`}</Typography.Text><Tag>× {item.count} / 人</Tag>
         {details && <Tag>{itemCategories[details.item.category]}</Tag>}</Space>
       <div className="mail-item-id">ID {item.itemId}{details?.kind === 'equipment' || item.equipment ? ` · ${equipmentSummary(item.equipment)}` : ''}</div>
-      {loaded.error && <Typography.Text type="warning">{loaded.error}（已保留原附件配置）</Typography.Text>}
     </div>{actions}
   </div>;
 }
 
-export function MailAttachmentSummary({ items, onExpired, onDenied }: AccessCallbacks & { items: MailItem[] }) {
+export function MailAttachmentSummary({ items, onExpired, onDenied }: AccessCallbacks & { items: ItemInput[] }) {
   return <>{items.map((item, index) => <AttachmentRow key={`${index}:${item.itemId}`} item={item} index={index} onExpired={onExpired} onDenied={onDenied} />)}</>;
 }

@@ -102,7 +102,7 @@ internal sealed class CharacterRow : ICharacterTable
     public ValueTask<CharacterProgressRow?> FindProgressAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         ValueTask.FromResult(
-            this.level is { } standing ? new CharacterProgressRow(standing, Experience) : null);
+            this.level is { } standing ? new CharacterProgressRow(standing, (standing - 1) * 100) : null);
 
     public ValueTask<CharacterStandingRow?> FindStandingAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>

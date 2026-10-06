@@ -6,7 +6,7 @@ namespace Dfo.Server.Abstractions.Mail;
 
 public sealed record MailboxInventoryUpdate(BusinessSlot Slot, ItemIdentity? Identity, InventoryItemCoreState Core);
 public sealed record MailboxAssetProjection(IReadOnlyList<MailboxInventoryUpdate> Updates,
-    IReadOnlyList<BusinessSlot> Cleared, IReadOnlyList<InventoryRuntimeValueState> Materials,
+    IReadOnlyList<BusinessSlot> Cleared,
     int? Gold, DateTimeOffset PreparedAt);
 public interface IMailboxAssetDomainService
 {

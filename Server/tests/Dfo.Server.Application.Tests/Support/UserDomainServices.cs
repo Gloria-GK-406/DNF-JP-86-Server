@@ -1,4 +1,3 @@
-using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Users;
@@ -17,41 +16,34 @@ namespace Dfo.Server.Application.Tests;
 /// <remarks>
 /// Production composes these three separately; this fixture exists because these tests exercise the
 /// account, online-user and active-character responsibilities of one connection together, and
-/// holding three references at every call site would obscure what each test is asserting. It adds
-/// no behavior: every member forwards to the same service the container would have injected, and
-/// all three share one registry, so the tests still exercise the real cross-responsibility path.
+/// holding three references at every call site would obscure what each test is asserting.
+/// Online operations forward to production services sharing one registry. AuthenticateForTestAsync
+/// explicitly seeds the identity that real ticket redemption publishes; it does not test authentication.
 /// </remarks>
 internal sealed class UserDomainServices
     : IOnlineUserDomainService, IActiveCharacterDomainService, IGameSessionEndpointDomainService
 {
-    private readonly Func<IAccountRepository> accountRepository;
+    private readonly AccountId accountId;
     private readonly OnlineStateRegistry state;
     private readonly OnlineUserDomainService online;
     private readonly ActiveCharacterDomainService active;
     private readonly GameSessionEndpointDomainService endpoints;
 
-    public UserDomainServices(Func<IAccountRepository> accountRepository)
+    public UserDomainServices(AccountId accountId)
     {
         var state = new OnlineStateRegistry(new DomainTransactionScope());
-        this.accountRepository = accountRepository;
+        this.accountId = accountId;
         this.state = state;
         online = new OnlineUserDomainService(state);
         active = new ActiveCharacterDomainService(state);
         endpoints = new GameSessionEndpointDomainService(state);
     }
 
-    public async ValueTask<AccountId> LoginAsync(
-        OnlineUserId onlineUserId,
-        string loginId,
-        string passwordHash,
-        CancellationToken cancellationToken)
+    /// <summary>Seeds the identity that successful ticket redemption would publish.</summary>
+    public ValueTask<AccountId> AuthenticateForTestAsync(OnlineUserId onlineUserId)
     {
-        var account = await this.accountRepository().GetOrCreateAsync(
-            loginId,
-            passwordHash,
-            cancellationToken);
-        this.state.Authenticate(onlineUserId, account.AccountId);
-        return account.AccountId;
+        this.state.Authenticate(onlineUserId, this.accountId);
+        return ValueTask.FromResult(this.accountId);
     }
 
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection) =>

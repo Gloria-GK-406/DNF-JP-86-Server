@@ -15,25 +15,25 @@ internal sealed class LegacyWornItemNormalizer(
     public async ValueTask NormalizeAsync(CharacterId character, CancellationToken ct)
     {
         var container = ContainerId.ForCharacter(character, InventoryContainerType.Equipment);
-        var held = await stores.ReadAsync(items, session => session.ReadAllAsync(container, ct))
+        var held = await stores.ReadAsync(items, session => session.GetAllAsync(container, ct))
             .ConfigureAwait(false);
-        var moves = new List<(StoredItem Item, int Target, ItemWorldClass Class)>();
-        foreach (var item in held.Where(value => value.Core.ItemKind is 5 or 6))
+        var moves = new List<(ItemReference Item, int Target)>();
+        foreach (var item in held.Where(value => value.Snapshot.LegacyKind is 5 or 6))
         {
-            var worldClass = await placements.ClassifyAsync(item.Core.ItemId, ct).ConfigureAwait(false);
-            if (item.Core.ItemKind == 5 && worldClass != ItemWorldClass.Creature
-                || item.Core.ItemKind == 6 && worldClass != ItemWorldClass.Equipment)
-                throw new InvalidDataException($"Worn item {item.Core.ItemId} has a mismatched template and kind.");
-            var worn = await placements.WornSlotForAsync(item.Core.ItemId, ct).ConfigureAwait(false)
-                ?? throw new InvalidDataException($"Worn item {item.Core.ItemId} has no template slot.");
-            if (item.Core.ItemKind == 5 && worn.Space != BusinessInventorySpace.WornCreature
-                || item.Core.ItemKind == 6 && worn.Space != BusinessInventorySpace.WornCreatureEquipment)
-                throw new InvalidDataException($"Worn item {item.Core.ItemId} has an incompatible template slot.");
+            var worldClass = await placements.ClassifyAsync(item.ItemId, ct).ConfigureAwait(false);
+            if (item.Snapshot.LegacyKind == 5 && worldClass != ItemWorldClass.Creature
+                || item.Snapshot.LegacyKind == 6 && worldClass != ItemWorldClass.Equipment)
+                throw new InvalidDataException($"Worn item {item.ItemId} has a mismatched template and kind.");
+            var worn = await placements.WornSlotForAsync(item.ItemId, ct).ConfigureAwait(false)
+                ?? throw new InvalidDataException($"Worn item {item.ItemId} has no template slot.");
+            if (item.Snapshot.LegacyKind == 5 && worn.Space != BusinessInventorySpace.WornCreature
+                || item.Snapshot.LegacyKind == 6 && worn.Space != BusinessInventorySpace.WornCreatureEquipment)
+                throw new InvalidDataException($"Worn item {item.ItemId} has an incompatible template slot.");
             var target = LegacyInventoryStorageCoordinates.ToStorage(worn);
             if (target.List != InventoryContainerType.Equipment)
                 throw new InvalidDataException("Worn item target does not belong to the equipment list.");
             if (item.SlotIndex != target.Index)
-                moves.Add((item, target.Index, worldClass));
+                moves.Add((item, target.Index));
         }
         if (moves.Count == 0) return;
 
@@ -46,14 +46,11 @@ internal sealed class LegacyWornItemNormalizer(
 
         await stores.ChangeAsync(items, async session =>
         {
+            var records = new List<(ItemRecord Record, int Target)>();
             foreach (var move in moves)
-                session.Clear(container, move.Item.SlotIndex);
-            foreach (var move in moves)
-                session.Write(container, new StoredItem(move.Target, move.Item.Core)
-                {
-                    WorldClass = move.Class,
-                    TransferFrom = new ItemTransferSource(container, move.Item.SlotIndex),
-                });
+                records.Add((await session.TakeAsync(move.Item, null, ct).ConfigureAwait(false), move.Target));
+            foreach (var move in records)
+                await session.PutAsync(container, move.Target, move.Record, ct).ConfigureAwait(false);
             await session.ApplyDecidedWritesAsync(ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }

@@ -47,8 +47,12 @@ internal static class EffectRequestTransport
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         switch (request)
         {
+            case Dfo.Server.Protocol.Game.Warehouse.WarehouseRequest x:
+                if (x.Metadata.Type is 0x0133 or 0x0134) writer.Write(x.Value);
+                else if (x.Metadata.Type is 0x0198 or 0x01AF) writer.Write(checked((ushort)x.Value));
+                break;
             case ReinforceItemRequest x:
-                writer.Write(x.Method); writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId);
+                writer.Write(checked((byte)x.Method)); writer.Write((byte)x.TargetList); writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId);
                 writer.Write(x.MaterialSlot); writer.Write(x.OptionalTicketSlot); writer.Write(x.ReportedItemNameBytes.Length); writer.Write(x.ReportedItemNameBytes); break;
             case DisjointItemRequest x:
                 writer.Write(checked((short)x.TargetSlot.Index)); writer.Write((byte)x.TargetSlot.Space);

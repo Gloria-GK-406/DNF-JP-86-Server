@@ -13,7 +13,7 @@ internal sealed partial class EquipmentUpgradeRuleService(
     ILogger<EquipmentUpgradeRuleService> logger) : IEquipmentUpgradeRuleService
 {
     public async ValueTask<EquipmentAmplificationEligibility> CheckAmplificationAsync(
-        InventoryItemCoreState core, CancellationToken ct)
+        ItemSnapshot core, CancellationToken ct)
     {
         var equipment = await equipmentDefinitions.GetEquipmentAsync(core.ItemId, ct).ConfigureAwait(false);
         if (equipment is null || WeightIndex(equipment.EquipmentType) is null or 1 || equipment.Rarity < 2)

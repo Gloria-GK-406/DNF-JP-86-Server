@@ -10,7 +10,8 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
-    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals) : ICeraShopRuleService
+    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals, IAccountWalletRuleService wallets,
+    IInventoryExpansionDefinitionSource? expansionContent = null) : ICeraShopRuleService
 {
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -21,6 +22,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         var products = ImmutableArray.CreateBuilder<int>();
         var charges = ImmutableArray.CreateBuilder<CeraShopCharge>();
         var grants = ImmutableArray.CreateBuilder<CeraShopGrant>();
+        var expansions = ImmutableArray.CreateBuilder<InventoryExpansionGrant>();
         var subscriptions = ImmutableArray.CreateBuilder<CeraShopSubscriptionGrant>();
         var restrictions = ImmutableArray.CreateBuilder<CeraShopPurchaseRestrictionDeclaration>();
         try
@@ -49,7 +51,11 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     if (!entry.AvatarChoices.IsEmpty || !entry.Selections.IsEmpty
                         || entry.Attribute is not (0 or 255) || entry.Variant is not (0 or 255))
                         throw Refuse(CeraShopRejection.InvalidChoice, "Unexpected subscription options.");
-                    if (product.Category == "[premium]" && product.Count == 1
+                    var expansion = expansionContent is null ? null : await expansionContent.ProductAsync(
+                        product.ProductId, product.ItemId, cancellationToken).ConfigureAwait(false);
+                    if (expansion is not null && product.Count == 1 && price.Period == 0)
+                        expansions.Add(expansion);
+                    else if (product.Category == "[premium]" && product.Count == 1
                         && product.Premium is { PremiumType: 22 or 27 or 84 or 97 } contract && contract.Duration > TimeSpan.Zero)
                     {
                         subscriptions.Add(new((PremiumServiceType)contract.PremiumType, contract.Duration));
@@ -89,7 +95,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         ? CeraShopPaymentMode.PointsOnly : CeraShopPaymentMode.Ordinary));
             }
             return new(CeraShopRejection.None, new(products.ToImmutable(), charges.ToImmutable(), grants.ToImmutable())
-                { Subscriptions = subscriptions.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
+                { Expansions = expansions.ToImmutable(), Subscriptions = subscriptions.ToImmutable(), Restrictions = restrictions.ToImmutable() }, null);
         }
         catch (QuoteRefusal failure) { return new(failure.Reason, null, failure.Message); }
         catch (OverflowException) { return new(CeraShopRejection.UnsupportedProduct, null, "Purchase quantity or expiration cannot be represented."); }
@@ -124,7 +130,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
     }
 
     public CeraShopPlanningResult Plan(CeraShopQuote quote,
-        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> held,
+        IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held,
         int gold, AccountCeraBalances balances, int identitySeed)
     {
         if (balances.Cera < 0 || balances.TokenCera < 0 || balances.HappyTokenCera < 0 || gold < 0)
@@ -140,7 +146,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 return new(CeraShopRejection.InsufficientFunds, null, $"Insufficient funds for product {charge.ProductId}.");
         }
 
-        var standing = held.ToDictionary(pair => pair.Key, pair => pair.Value.ToDictionary(item => item.SlotIndex));
+        var standing = held.ToDictionary(pair => pair.Key, pair => pair.Value.ToDictionary(item => item.SlotIndex, item => item.Snapshot));
         var writes = new Dictionary<BusinessSlot, CeraShopSlotWrite>();
         var serial = 0L;
         foreach (var grant in quote.Grants)
@@ -149,9 +155,10 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
             if (!standing.TryGetValue(placement.Destination.Space, out _))
                 return new(CeraShopRejection.NoSession, null,
                     $"Container {placement.Destination.Space} is not bound.");
-            var baseline = StackableItemCore.Create(placement.ItemKind, grant.Item.ItemId, 0) with
+            var baseline = new ItemSnapshot
             {
-                Attribute = grant.Ability,
+                ItemId = grant.Item.ItemId, Count = 0, Type = placement.Traits, LegacyKind = placement.ItemKind,
+                IsPile = placement.WorldClass == ItemWorldClass.Interchangeable, Attribute = grant.Ability,
                 Durability = grant.Item.Durability,
                 SealFlag = grant.Item.Kind == CeraShopItemKind.Creature ? (byte)0 : grant.Item.Sealed ? (byte)1 : (byte)0,
                 ExpireTime = grant.Item.Kind == CeraShopItemKind.Avatar ? 0 : grant.ExpireDate,
@@ -166,20 +173,19 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     .Where(slot => standing[slot.Space].TryGetValue(slot.Index, out var item)
                         && item.IsPile
                         && item.ItemId == grant.Item.ItemId
-                        && item.Core with { Value = 0 } == baseline)
+                        && item.CanStackWith(baseline))
                     .Select(slot => new ItemPile(slot, standing[slot.Space][slot.Index].Count)).ToArray();
                 var arrival = arrivals.ForGrant(businessPiles, outstanding, placement,
                     candidates.Where(slot => standing[slot.Space].ContainsKey(slot.Index))
                         .ToHashSet());
                 BusinessSlot slot;
                 int added;
-                InventoryItemCoreState core;
-                InventoryItemCreationFacts? facts = null;
+                ItemSnapshot core;
                 if (arrival is ItemArrival.OntoExistingPile pile)
                 {
                     slot = pile.Slot;
                     added = pile.Added;
-                    core = standing[slot.Space][slot.Index].Core with { Value = pile.Total };
+                    core = standing[slot.Space][slot.Index] with { Count = pile.Total };
                 }
                 else if (arrival is ItemArrival.IntoEmptySlot empty)
                 {
@@ -187,15 +193,15 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     added = empty.Count;
                     var value = placement.WorldClass == ItemWorldClass.Interchangeable ? added
                         : (int)(((long)(uint)identitySeed + serial++) % (int.MaxValue - 1)) + 1;
-                    core = baseline with { Value = value };
-                    facts = grant.Item.Kind switch
+                    core = baseline with { Count = baseline.IsPile ? added : 1, InstanceValue = baseline.IsPile ? 0 : value };
+                    core = grant.Item.Kind switch
                     {
-                        CeraShopItemKind.Avatar => new(new(grant.ExpireDate,
-                            0, new byte[30], 0, 0, 0)),
+                        CeraShopItemKind.Avatar => core with { AvatarDetail = new(grant.ExpireDate,
+                            0, new byte[30], 0, 0, 0) },
                         // Initial satiety and flags follow the reference creation policy; level is PVF data.
-                        CeraShopItemKind.Creature => new(Creature: new(100, 0, 0, 0, 0,
-                            grant.Item.Creature!.StartLevel, [], 0)),
-                        _ => null,
+                        CeraShopItemKind.Creature => core with { CreatureDetail = new(100, 0, 0, 0, 0,
+                            grant.Item.Creature!.StartLevel, [], 0) },
+                        _ => core,
                     };
                 }
                 else return new(CeraShopRejection.NoRoom, null,
@@ -203,8 +209,8 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 if (added <= 0 || added > outstanding)
                     throw new InvalidOperationException("A CERA grant did not consume a positive bounded quantity.");
                 outstanding -= added;
-                standing[slot.Space][slot.Index] = new(slot.Index, core, placement.WorldClass);
-                writes[slot] = new(slot, core, facts);
+                standing[slot.Space][slot.Index] = core;
+                writes[slot] = new(slot, core);
             }
         }
         return new(CeraShopRejection.None, new(after, checked((int)goldCost),
@@ -284,26 +290,31 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 placement.Destination.FirstIndex,
                 placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
-        return ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind)
+        return placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(placement)
             ? own.Concat(Enumerable.Range(0, 6)
                 .Select(index => new BusinessSlot(BusinessInventorySpace.QuickSlot, index)))
             : own;
     }
 
-    private static bool TryPay(AccountCeraBalances before, int cost, CeraShopPaymentMode mode, out AccountCeraBalances after)
+    private bool TryPay(AccountCeraBalances before, int cost, CeraShopPaymentMode mode, out AccountCeraBalances after)
     {
-        var cera = before.Cera; var token = before.TokenCera; var happy = before.HappyTokenCera;
+        after = before;
         var remaining = cost;
         if (mode != CeraShopPaymentMode.CeraOnly)
         {
-            var take = Math.Min(remaining, happy); happy -= take; remaining -= take;
-            take = Math.Min(remaining, token); token -= take; remaining -= take;
+            var take = Math.Min(remaining, after.HappyTokenCera);
+            if (take > 0) after = wallets.Spend(after, AccountCurrency.HappyTokenCera, take);
+            remaining -= take;
+            take = Math.Min(remaining, after.TokenCera);
+            if (take > 0) after = wallets.Spend(after, AccountCurrency.TokenCera, take);
+            remaining -= take;
         }
         if (mode != CeraShopPaymentMode.PointsOnly)
         {
-            var take = Math.Min(remaining, cera); cera -= take; remaining -= take;
+            var take = Math.Min(remaining, after.Cera);
+            if (take > 0) after = wallets.Spend(after, AccountCurrency.Cera, take);
+            remaining -= take;
         }
-        after = new(cera, token, happy);
         return remaining == 0;
     }
 

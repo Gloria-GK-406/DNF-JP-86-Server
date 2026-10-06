@@ -40,7 +40,7 @@ public sealed class EquipmentReinforcementHandlerTests
             Assert.Equal(100000, shop.Gold);
             Assert.Equal(draw < 90000 ? (byte)0xAC : (byte)0xA3, shop.StoredCore(9)[9]);
         };
-        await Send(shop, 70, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        await Send(shop, 70, method: amplification ? (byte)1 : (byte)0, materialSlot: 101);
         var response = Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.True(response.Success); // Request accepted; outcome independently conveys the probability result.
         Assert.Equal(draw < 90000 ? EquipmentReinforcementOutcome.Succeeded : EquipmentReinforcementOutcome.Retained, response.Outcome);
@@ -49,12 +49,12 @@ public sealed class EquipmentReinforcementHandlerTests
         Assert.Equal(1, BitConverter.ToInt32(coupon, 6));
         if (draw < 90000)
             Assert.Equal((byte)0xAC, Assert.Single(DeltaEntries(shop), entry => BitConverter.ToInt16(entry, 0) == 9)[0x0A]);
-        await Send(shop, 70, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        await Send(shop, 70, method: amplification ? (byte)1 : (byte)0, materialSlot: 101);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.Equal(1, rolls.Calls);
         Assert.Equal(1, shop.Count(itemId));
         shop.Sender.BeforeSend = null;
-        await Send(shop, 71, method: amplification ? (ushort)1 : (ushort)0, materialSlot: 101);
+        await Send(shop, 71, method: amplification ? (byte)1 : (byte)0, materialSlot: 101);
         Assert.Equal(2, rolls.Calls);
         Assert.Equal(0, shop.Count(itemId));
         Assert.Equal(100000, shop.Gold);
@@ -192,14 +192,14 @@ public sealed class EquipmentReinforcementHandlerTests
         using var shop = Fixture();
         await shop.SeedCore(9, Piece());
         await shop.Seed(121, 1000, 20, 3);
-        shop.Sql("UPDATE accounts SET cube_black=20 WHERE account_id=1");
+        await shop.SeedShared(3033, 20, 1);
 
         await Send(shop, 7, materialSlot: 354);
 
         var reply = Assert.IsType<ReinforceItemResponse>(Assert.Single(shop.Sender.Messages));
         Assert.False(reply.Success);
         Assert.Equal(20, shop.Count(1000));
-        Assert.Equal(20, shop.Scalar("SELECT cube_black FROM accounts WHERE account_id=1"));
+        Assert.Equal(20, shop.SharedCount(3033, 1));
         Assert.Equal(100_000, shop.Gold);
     }
 
@@ -327,9 +327,7 @@ public sealed class EquipmentReinforcementHandlerTests
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
         await using (var seed = scope.Begin())
         {
-            await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>()
-                .Get(shop.Session.AccountId).AddAsync(
-                    new Dictionary<AccountMaterialKind, int> { [AccountMaterialKind.ClearCube] = 20 }, default);
+            await shop.PutShared(3037, 20);
             await seed.CommitAsync(default);
         }
 
@@ -341,7 +339,7 @@ public sealed class EquipmentReinforcementHandlerTests
         var cube = Assert.Single(DeltaEntries(shop), entry => BitConverter.ToInt16(entry, 0) == 358);
         Assert.Equal(3037, BitConverter.ToInt32(cube, 2));
         Assert.Equal(10, BitConverter.ToInt32(cube, 6));
-        Assert.Equal(10, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(10, shop.SharedCount(3037, 1));
         Assert.Equal(1, shop.Count(ticketId));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -402,13 +400,12 @@ public sealed class EquipmentReinforcementHandlerTests
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
         await using (var seed = scope.Begin())
         {
-            await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>().Get(shop.Session.AccountId)
-                .AddAsync(new Dictionary<AccountMaterialKind, int> { [AccountMaterialKind.ClearCube] = 20 }, default);
+            await shop.PutShared(3037, 20);
             await seed.CommitAsync(default);
         }
         shop.Sender.BeforeSend = () =>
         {
-            Assert.Equal(43, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+            Assert.Equal(43, shop.SharedCount(3037, 1));
             Assert.Equal(99_900, shop.Gold);
             Assert.Equal(0, shop.Count(3000));
         };
@@ -430,7 +427,7 @@ public sealed class EquipmentReinforcementHandlerTests
         Assert.Equal(afterFirst + 7, shop.Sender.Messages.Count);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.Equal(43, EffectRequestTransport.MainValue(shop, 358));
-        Assert.Equal(43, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(43, shop.SharedCount(3037, 1));
         Assert.Equal(99_900, shop.Gold);
         var snapshot = await ReloadSnapshot(shop);
         var entries = Entries(snapshot, 15 + 5, BitConverter.ToUInt16(snapshot, 15 + 3)).ToArray();
@@ -450,14 +447,14 @@ public sealed class EquipmentReinforcementHandlerTests
         await Assert.ThrowsAsync<SqliteException>(() => Send(shop, 7).AsTask());
         Assert.Empty(shop.Sender.Messages);
         Assert.Equal(before, shop.StoredCore(9));
-        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0, shop.SharedCount(3037, 1));
         Assert.Equal(20, shop.Count(1000));
         Assert.Equal(100_000, shop.Gold);
         shop.Sql("DROP TRIGGER refuse_destroy_gold;");
         await Send(shop, 7);
         Assert.Equal(EquipmentReinforcementOutcome.Destroyed,
             Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Outcome);
-        Assert.Equal(33, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(33, shop.SharedCount(3037, 1));
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -507,7 +504,7 @@ public sealed class EquipmentReinforcementHandlerTests
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = 45 };
 
-    private static ValueTask Send(ShopFixture shop, ushort sequence, ushort method = 0,
+    private static ValueTask Send(ShopFixture shop, ushort sequence, byte method = 0,
         int expectedItemId = 3000, short materialSlot = 121) =>
         EffectRequestTransport.Send(shop,
             new ReinforceItemRequest(new(1, 0x0050, 0, sequence), method,

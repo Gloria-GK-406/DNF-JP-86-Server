@@ -19,6 +19,17 @@ public sealed class CeraShopPurchaseCompletedHandler(ISelectedSessionDomainServi
             || sessions.Find(receipt.Session.AccountId) != receipt.Session)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
+        // The purchase-success handler derives the next offer from the current cargo capacity.
+        // Refresh the upgrade state and inventory before it runs, while the window is still open.
+        if (receipt.ExpandedCharacterInventory is { } character && receipt.ExpandedAccountInventory is { } account)
+            foreach (var type in receipt.ExpandedContainers)
+            {
+                if (type is InventoryContainerType.AccountCargo or InventoryContainerType.PersonalCargo)
+                    messages.Add(new CargoCapacityUpgradeMessage(type));
+                messages.Add(new InventoryFullSnapshotMessage(type == InventoryContainerType.AccountCargo
+                    ? account.Cargo.Container : character.Containers.Single(c => c.ContainerType == type),
+                    character, account, receipt.PreparedAt));
+            }
         foreach (var product in receipt.ProductIds) messages.Add(new CeraShopPurchaseResponse(product));
         messages.Add(GameInstanceDelivery.Wallet(receipt.Balances));
         if (receipt.GoldSpent) messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));

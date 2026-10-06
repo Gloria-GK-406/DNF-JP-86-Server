@@ -25,7 +25,7 @@ internal sealed class EffectOperationEntry(SelectedSessionIdentity session, long
 }
 
 /// <summary>The synchronous flow frame connects the one primary command to its preallocated ledger entry.</summary>
-internal sealed class EffectOperationContext
+internal sealed class EffectOperationContext : IRequestReplayProjectionDomainService
 {
     private readonly AsyncLocal<Frame?> current = new();
     private readonly AsyncLocal<Execution?> execution = new();
@@ -112,6 +112,14 @@ internal sealed class EffectOperationContext
         frame.Entry.State = uncertain ? EffectOperationState.Blocked
             : frame.RollbackConfirmed ? EffectOperationState.ConfirmedRollback : EffectOperationState.Rejected;
     }
+    public void RecordInventorySlots(SelectedSessionIdentity session,IReadOnlyList<BusinessSlot> slots)
+    {
+        var frame=Current;if(frame is null)return;
+        if(execution.Value is not {IsMain:true,Closed:false} || frame.Frozen || !frame.TransactionStarted || frame.Recipient.Session!=session)
+            throw new InvalidOperationException("Inventory footprint requires the captured primary transaction.");
+        frame.Needs|=ReplayProjectionNeeds.Inventory;
+        foreach(var slot in slots)frame.Slots.Add(slot);
+    }
     public void Record(EffectExecutionContext owner, IReadOnlyList<AppliedEffect> applied)
     {
         var frame = Current;
@@ -130,7 +138,7 @@ internal sealed class EffectOperationContext
                 case (ConsumeFromContainerEffect, ContainerConsumptionChange change): Physical(change.Slot); break;
                 case (SetEquipmentUpgradeEffect or SetEquipmentEnchantmentEffect or SetEquipmentDimensionalEffect
                     or SetEquipmentMagicSealEffect or SetEquipmentForgingEffect or DestroyEquipmentEffect, EquipmentEffectChange change):
-                    Physical(change.Before.Slot); break;
+                    Physical(change.Slot); break;
                 case (GrantStackableEffect, StackableGrantEffectChange change):
                     frame.Needs |= ReplayProjectionNeeds.Inventory;
                     foreach (var addition in change.Additions) Physical(addition.Slot);
@@ -146,7 +154,6 @@ internal sealed class EffectOperationContext
                     foreach (var addition in change.Additions) Physical(addition.Slot);
                     if (grant.Placement.ItemKind == 5) frame.Needs |= ReplayProjectionNeeds.Pets;
                     break;
-                case (ConsumeAccountMaterialEffect or GrantAccountMaterialEffect, AccountMaterialEffectChange):
                 case (SpendGoldEffect, GoldEffectChange):
                 case (SetQuestRewardGoldEffect, QuestRewardGoldChange):
                 case (GrantOpeningVirtualEffect, OpeningVirtualChange): frame.Needs |= ReplayProjectionNeeds.Inventory; break;

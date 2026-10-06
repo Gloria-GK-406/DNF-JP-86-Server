@@ -7,6 +7,18 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfEntryLifecycleContentSourceTests
 {
+    [SkippableTheory]
+    [InlineData(2600026)] // Fatigue potion.
+    [InlineData(7110)] // Upgradable legacy package.
+    public async Task Potions_and_packages_share_the_consumable_admission_category(int itemId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var placement = await new PvfItemPlacementDefinitionSource(provider).GetAsync(itemId, default);
+        Assert.NotNull(placement);
+        Assert.Equal(ItemTraits.Consumable, placement.Traits);
+    }
+
     private static readonly DateTimeOffset PreparedAt =
         new(2026, 8, 4, 6, 0, 0, TimeSpan.FromHours(8));
 

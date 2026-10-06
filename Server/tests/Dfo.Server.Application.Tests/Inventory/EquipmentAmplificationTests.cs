@@ -58,8 +58,8 @@ public sealed class EquipmentAmplificationTests
         var reloaded = await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)
             .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default);
         Assert.NotNull(reloaded);
-        Assert.Equal((byte)1, (await reloaded.ReadAsync(default)).Core.ReinforcementLevel);
-        Assert.Equal((ushort)5, (await reloaded.ReadAsync(default)).Core.AmplifyValue);
+        Assert.Equal((byte)1, (await reloaded.ReadAsync(default)).Snapshot.ToCore().ReinforcementLevel);
+        Assert.Equal((ushort)5, (await reloaded.ReadAsync(default)).Snapshot.ToCore().AmplifyValue);
     }
 
     [Theory]
@@ -94,7 +94,7 @@ public sealed class EquipmentAmplificationTests
         if (outcome == EquipmentReinforcementOutcome.Destroyed)
         {
             Assert.Equal(0, f.Count(3000)); Assert.NotEmpty(ack.DestroyRewards!);
-            Assert.True(f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1") > 0);
+            Assert.True(f.SharedCount(3037, 1) > 0);
             if (oldLevel == 11) Assert.Contains(ack.DestroyRewards!, reward => reward.ItemId == 3244 && reward.Count > 0);
         }
         else Assert.Equal(newLevel, f.StoredCore(9)[9]);
@@ -149,7 +149,7 @@ public sealed class EquipmentAmplificationTests
     { await f.SeedCore(9, core); await f.Seed(121, 3242, 20, 3); }
     private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1234)
         with { Durability = 45, AmplifyType = 4, AmplifyValue = 5 };
-    private static ValueTask Send(ShopFixture f, ushort sequence, ushort method = 1) =>
+    private static ValueTask Send(ShopFixture f, ushort sequence, byte method = 1) =>
         EffectRequestTransport.Send(f,
             new ReinforceItemRequest(new(1, 0x50, 0, sequence), method, 9, 3000, 121, -1, []));
     private static IEnumerable<byte[]> DeltaEntries(ShopFixture f)

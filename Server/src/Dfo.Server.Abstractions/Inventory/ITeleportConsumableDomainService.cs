@@ -20,7 +20,7 @@ public interface ITeleportConsumableRuleService
 {
     ValueTask<TeleportConsumableRule?> RuleForAsync(int itemId, CancellationToken ct);
     ValueTask<TeleportConsumablePlan> BuildAsync(TeleportConsumableRule rule, BusinessSlot source,
-        ContainerSlotItem item, ItemUseCandidate facts, CharacterPositionState standing,
+        ItemReference item, ItemUseCandidate facts, CharacterPositionState standing,
         byte townId, ChannelEntryIdentity channel, TownAreaKey sourceArea, DateTimeOffset at, CancellationToken ct);
 }
 public sealed record MoveToTownEffect(CharacterPositionState Expected, CharacterPositionState Destination,
@@ -28,7 +28,7 @@ public sealed record MoveToTownEffect(CharacterPositionState Expected, Character
 public sealed record TownPositionChange(CharacterPositionState Before, CharacterPositionState After) : EffectChange;
 public sealed record TeleportConsumableReceipt(SelectedSessionIdentity Session, BusinessSlot Source,
     int ItemId, int Remaining, CharacterPositionState Position, TimeSpan Cooldown, DateTimeOffset At,
-    InventoryItemCoreState? RemainingCore, ItemIdentity? Identity);
+    ItemSnapshot? RemainingCore, ItemIdentity? Identity);
 public sealed record TeleportConsumableResult(ItemUsability Status, TeleportConsumableReceipt? Receipt = null);
 public interface ITeleportConsumableDomainService
 {

@@ -36,33 +36,6 @@ public sealed class DeleteItemHandler(
                 new DeleteItemResponse(message.Slot, ErrorCode: DeleteItemResponse.CannotDelete), cancellationToken);
             return;
         }
-        // Account-wide virtual materials deliberately have no ordinary character-bag mapping.
-        var material = message.Slot.Space == InventoryContainerType.Main
-            ? AccountMaterialCatalog.Definitions.SingleOrDefault(d => d.VirtualSlotIndex == message.Slot.Index) : null;
-        if (material is not null)
-        {
-            logger.LogInformation("Material request slot={Slot} item={Item} count={Count} entries={Entries} operation={Operation} reserved={Reserved} safeMode={SafeMode}",
-                message.Slot.Index, message.ItemId, message.DeleteCount, message.EntryCount, message.OperationType, message.ReservedZero, message.SafeModeSkipIndex);
-            var selected = sessions.FindByConnection(context.Connection.ConnectionId);
-            AccountMaterialChange? change = null;
-            if (selected is not null && message.ReservedZero == 0
-                && onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var owner) && owner is not null)
-                change = (await commands.SendAsync(new DiscardAccountMaterialCommand(owner.OnlineUserId, selected,
-                    material.Kind, message.ItemId, message.DeleteCount, message.EntryCount, message.OperationType), cancellationToken)).Change;
-            if (selected is not null && sessions.Find(selected.AccountId) != selected) return;
-            logger.LogInformation("Material consumption slot={Slot} item={ItemId} count={Count} success={Success} remaining={Remaining}",
-                message.Slot.Index, message.ItemId, message.DeleteCount, change is not null, change?.FinalCount);
-            // Keep the native ACK, then reconcile with the committed absolute balance.
-            await sender.SendCmdAsync(context.Connection.ConnectionId,
-                new DeleteItemResponse(message.Slot, change is null ? 0 : message.DeleteCount,
-                    Success: change is not null, ErrorCode: DeleteItemResponse.CannotDelete), cancellationToken);
-            if (change is not null)
-                await sender.SendExplicitAsync(context.Connection.ConnectionId,
-                    new GameExplicitMessageDelivery([GameInventoryDelivery.VirtualResourceNotification(
-                        [new InventoryRuntimeValueState(change.VirtualSlotIndex, change.ItemId, change.FinalCount)],
-                        DateTimeOffset.UtcNow)], []), cancellationToken);
-            return;
-        }
         BusinessSlot slot;
         try { slot = slotMappings.ToBusinessSlot(message.Slot); }
         catch (InventorySlotMappingException)
@@ -120,21 +93,15 @@ public sealed class DeleteItemHandler(
         if (session is not null && message.EntryCount == 1 && message.ReservedZero == 0
             && onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) && online is not null)
         {
-            var material = message.Slot.Space == InventoryContainerType.Main
-                ? AccountMaterialCatalog.Definitions.SingleOrDefault(x => x.VirtualSlotIndex == message.Slot.Index) : null;
-            MaterialLocation? location = null;
-            if (material is not null) location = new MaterialLocation.Account(material.Kind);
-            else
-            {
-                try { location = new MaterialLocation.Carried(slotMappings.ToBusinessSlot(message.Slot)); }
-                catch (InventorySlotMappingException) { result = new("UnmappedSlot", []); }
-            }
+            BusinessSlot? location = null;
+            try { location = slotMappings.ToBusinessSlot(message.Slot); }
+            catch (InventorySlotMappingException) { result = new("UnmappedSlot", []); }
             if (location is not null)
                 result = message.OperationType == 2
                     ? await commands.SendAsync(new ConsumeSkillMaterialsCommand(online.OnlineUserId, session,
-                        [new(location, message.ItemId, message.DeleteCount)]), ct)
+                        [new(location.Value, message.ItemId, message.DeleteCount)]), ct)
                     : await commands.SendAsync(new ConsumeEffectMaterialsCommand(online.OnlineUserId, session,
-                        [new(location, message.ItemId, message.DeleteCount)]), ct);
+                        [new(location.Value, message.ItemId, message.DeleteCount)]), ct);
         }
         logger.LogInformation("Material consumption operation={Operation} character={CharacterId} slot={Slot} item={Item} count={Count} success={Success} reason={Reason}",
             message.OperationType, session?.CharacterId, message.Slot, message.ItemId, message.DeleteCount, result.Success, result.Rejection);

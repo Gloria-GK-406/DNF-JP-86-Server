@@ -3,18 +3,47 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Mail;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Mailbox;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Mail;
 
 public sealed class MailboxProtocolIntegrationTests
 {
+    [Fact]
+    public async Task System_and_prepared_delivery_refresh_only_the_online_recipient_after_commit()
+    {
+        using var shop = CreateShop();
+        var scope = shop.Services.GetRequiredService<DomainTransactionScope>();
+        shop.Sender.BeforeSend = () =>
+        {
+            Assert.Null(scope.Current);
+            Assert.Equal(2, shop.Scalar("SELECT count(*) FROM mailbox_messages WHERE receiver_character_id=1"));
+        };
+        await using (var tx = scope.Begin())
+        {
+            await Mail(shop).SendAsync(MailBuilder.FromSystem(new(1)).Build());
+            await Mail(shop).SendPreparedAsync(MailBuilder.FromSystem(new(1)).Build(), []);
+            await Mail(shop).SendAsync(MailBuilder.FromSystem(new(2)).Build());
+            Assert.Empty(shop.Sender.Messages);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal((ushort)2, Assert.IsType<MailboxAlarm>(Assert.Single(shop.Sender.Messages)).Count);
+        shop.Sender.BeforeSend = null;
+        shop.Sender.Messages.Clear();
+        await using (scope.Begin())
+            await Mail(shop).SendAsync(MailBuilder.FromSystem(new(1)).Build());
+        Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(2, (await Mail(shop).InboxAsync(new(1))).Count);
+    }
+
     [Fact]
     public async Task Player_send_rejects_a_temporary_binding_without_reading_it_as_persistent_storage()
     {
@@ -42,21 +71,12 @@ public sealed class MailboxProtocolIntegrationTests
         public InventoryContainerType Type => InventoryContainerType.Main;
         public ContainerShape Shape => backing.Shape;
         public bool IsRemovable => true;
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken ct) =>
-            backing.ReadSlotAsync(index, ct);
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int first, int second, CancellationToken ct) =>
-            backing.ReadSlotsAsync(first, second, ct);
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken ct) =>
-            backing.ReadAllAsync(ct);
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken ct) =>
-            backing.SnapshotAsync(ct);
-        public ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken ct) =>
-            throw new NotSupportedException();
-        public ValueTask ClearAsync(int index, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<ItemPlacementOutcome> AddAsync(int item, int count, CancellationToken ct) =>
-            throw new NotSupportedException();
-        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken ct) =>
-            throw new NotSupportedException();
+        public ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct) => backing.GetAsync(index, ct);
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => backing.GetAllAsync(ct);
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => backing.TakeAsync(reference, count, ct);
+        public ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct) => backing.PutAsync(index, record, ct);
+        public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => backing.UpdateAsync(reference, change, ct);
+        public ValueTask FlushAsync(CancellationToken ct) => backing.FlushAsync(ct);
     }
 
     [Fact]
@@ -214,6 +234,7 @@ public sealed class MailboxProtocolIntegrationTests
         var gold = Assert.Single(row.GoldAttachments);
         Assert.Equal(17, gold.Amount);
         Assert.NotEqual(item.AttachmentId, gold.AttachmentId);
+        shop.Sender.Messages.Clear();
 
         await shop.Services.GetRequiredService<MailboxOpenHandler>().HandleAsync(
             new(shop.Connection), new MailboxOpenRequest(GameMessageMetadata.Empty), default);
@@ -230,6 +251,7 @@ public sealed class MailboxProtocolIntegrationTests
             .WithText("coins", "take these").AddGold(17).Build());
         var gold = Assert.Single(Assert.Single((await Command(shop, MailboxOperation.Open)).Inbox!.Messages).GoldAttachments);
         var wire = checked(0x40000000u + (uint)gold.AttachmentId);
+        shop.Sender.Messages.Clear();
         shop.Sender.BeforeSend = () =>
         {
             Assert.Equal(100017, shop.Gold);
@@ -261,6 +283,7 @@ public sealed class MailboxProtocolIntegrationTests
         var attachment = Assert.Single(Assert.Single(await Mail(shop).InboxAsync(new(1))).Attachments).Id;
         var wire = checked(0x40000000u + (uint)attachment);
         shop.Select(2);
+        shop.Sender.Messages.Clear();
 
         await shop.Services.GetRequiredService<MailboxClaimHandler>().HandleAsync(
             new(shop.Connection), new MailboxClaimRequest(GameMessageMetadata.Empty, wire), default);
@@ -281,6 +304,7 @@ public sealed class MailboxProtocolIntegrationTests
             .WithText("kept", "until claim").AddGold(3).Build());
         var attachment = Assert.Single(Assert.Single(await Mail(shop).InboxAsync(new(1))).Attachments).Id;
         var actions = shop.Services.GetRequiredService<MailboxActionHandler>();
+        shop.Sender.Messages.Clear();
 
         await actions.HandleAsync(new(shop.Connection), new MailboxActionRequest(GameMessageMetadata.Empty, (uint)receipt.MailId, 3), default);
         Assert.NotEqual(0, Assert.IsType<MailboxActionResponse>(Assert.Single(shop.Sender.Messages)).Error);

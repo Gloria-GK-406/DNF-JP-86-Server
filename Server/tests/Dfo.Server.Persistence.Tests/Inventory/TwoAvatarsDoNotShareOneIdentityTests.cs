@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Transactions;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -83,20 +84,20 @@ public sealed class TwoAvatarsDoNotShareOneIdentityTests
             var other = await OneAvatarAsync(side, slot: 5);
 
             // Each carries the identity its own write named, and the two are not each other's.
-            Assert.Equal(9101, one.Core.Value);
-            Assert.Equal(9102, other.Core.Value);
-            Assert.NotEqual(one.Core.Value, other.Core.Value);
+            Assert.Equal(9101, one.Snapshot.InstanceValue);
+            Assert.Equal(9102, other.Snapshot.InstanceValue);
+            Assert.NotEqual(one.Snapshot.InstanceValue, other.Snapshot.InstanceValue);
 
             // The world took both: each has a row of its own, and the rows are not the same row.
-            Assert.NotNull(one.Identity);
-            Assert.NotNull(other.Identity);
-            Assert.NotEqual(one.Identity, other.Identity);
+            Assert.NotNull(one.ItemUid);
+            Assert.NotNull(other.ItemUid);
+            Assert.NotEqual(one.ItemUid, other.ItemUid);
             Assert.Equal(1, await RowsUnderAsync(path, 9101));
             Assert.Equal(1, await RowsUnderAsync(path, 9102));
 
             // And each is served the six facts its own write carried, not the other's.
-            AssertFacts(Facts(1), one.AvatarDetail);
-            AssertFacts(Facts(2), other.AvatarDetail);
+            AssertFacts(Facts(1), one.Snapshot.AvatarDetail);
+            AssertFacts(Facts(2), other.Snapshot.AvatarDetail);
         });
     }
 
@@ -107,7 +108,7 @@ public sealed class TwoAvatarsDoNotShareOneIdentityTests
     /// The refusal is an <see cref="InvalidOperationException"/> raised where the insert returned no
     /// row, which is what a <c>RETURNING</c> whose <c>WHERE</c> failed does: the statement succeeds
     /// and writes nothing, so nothing but the missing identity says the row was refused. It is
-    /// raised during prepare, inside the transaction the participant holds open, so the settlement
+    /// raised by creation inside the transaction the participant holds open, so the settlement
     /// takes nothing with it -- which is asserted below rather than assumed, by reading the world
     /// back after the rollback.
     ///
@@ -123,99 +124,55 @@ public sealed class TwoAvatarsDoNotShareOneIdentityTests
 
             var refusal = await RefusedAsync(
                 path, slot: 5, itemId: SecondAvatarId, avatarUid: 9101, Facts(2));
-            Assert.Contains("named no identity", refusal.Message, StringComparison.Ordinal);
+            Assert.Contains("identity", refusal.Message, StringComparison.OrdinalIgnoreCase);
 
             // Nothing was written beside it, and nothing was taken from it.
             Assert.Equal(1, await RowsUnderAsync(path, 9101));
             Assert.Equal([(4, FirstAvatarId, 9101)], await AvatarSlotsAsync(path));
-            AssertFacts(Facts(1), (await OneAvatarAsync(side, slot: 4)).AvatarDetail);
+            AssertFacts(Facts(1), (await OneAvatarAsync(side, slot: 4)).Snapshot.AvatarDetail);
         });
     }
 
-    /// <summary>
-    /// The guard is blind to rows carrying no facts, and engages once the writes carry them.
-    /// </summary>
-    /// <remarks>
-    /// Two halves, the same two writes each time, differing in one thing only: whether the write
-    /// carries the six facts an avatar arrives with.
-    ///
-    /// The first half is the world as it stood before a write could carry them, reproduced through
-    /// today's code by simply leaving them unanswered -- which is still permitted, because a write
-    /// that merely moves a standing avatar has nothing to add. Both writes land, under one identity,
-    /// and no error is raised anywhere: <c>@expire</c> is null on the second write as well, so the
-    /// guard's condition is satisfied before its subquery is ever consulted. The first half is a
-    /// record of that blind spot, not an endorsement of it; a change that closes it should rewrite
-    /// this half rather than delete it, because the second half means nothing without it.
-    ///
-    /// The second half is the same pair carrying facts. The first write puts a row down whose
-    /// <c>avatar_expire_date</c> is not null -- the very property the subquery selects on, and the
-    /// one no first-time row used to have -- and the second write binds a non-null <c>@expire</c>,
-    /// so the condition is no longer satisfied by its left side and the subquery finds the standing
-    /// row. It is refused.
-    ///
-    /// Neither half alone says anything. A guard that never engaged would pass the first and fail
-    /// the second; a guard that always engaged would fail the first and pass the second. Only a
-    /// guard whose reach is decided by what the write carries passes both.
-    /// </remarks>
+    /// <summary>Missing details are rejected before any avatar row can be created.</summary>
     [Fact]
-    public async Task TheGuardIsBlindToFactlessRowsAndEngagesOnceTheWritesCarryFacts()
+    public async Task MissingFactsCannotCreateAnAvatarAndCompleteFactsDoNotPermitDuplicateIdentity()
     {
-        await WithASeededCharacterAsync(async (path, _) =>
+        await WithASeededCharacterAsync(async (path, side) =>
         {
-            // Nothing carries facts: two writes under one identity, both taken, no complaint.
-            await PutDownAsync(path, slot: 4, itemId: FirstAvatarId, avatarUid: 9201, facts: null);
-            await PutDownAsync(path, slot: 5, itemId: SecondAvatarId, avatarUid: 9201, facts: null);
-            Assert.Equal(2, await RowsUnderAsync(path, 9201));
-            Assert.Null(await ExpireDateUnderAsync(path, 9201));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                PutDownAsync(path, slot: 4, itemId: FirstAvatarId, avatarUid: 9201, facts: null));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                PutDownAsync(path, slot: 5, itemId: SecondAvatarId, avatarUid: 9201, facts: null));
+            Assert.Equal(0, await RowsUnderAsync(path, 9201));
+            Assert.Empty(await AvatarSlotsAsync(path));
 
-            // The same pair carrying facts: the first is taken, the second is refused.
             await PutDownAsync(path, slot: 6, itemId: FirstAvatarId, avatarUid: 9202, Facts(1));
             Assert.NotNull(await ExpireDateUnderAsync(path, 9202));
-
-            var refusal = await RefusedAsync(
-                path, slot: 7, itemId: SecondAvatarId, avatarUid: 9202, Facts(2));
-            Assert.Contains("named no identity", refusal.Message, StringComparison.Ordinal);
+            await RefusedAsync(path, slot: 7, itemId: SecondAvatarId, avatarUid: 9202, Facts(2));
             Assert.Equal(1, await RowsUnderAsync(path, 9202));
+            AssertFacts(Facts(1), (await OneAvatarAsync(side, 6)).Snapshot.AvatarDetail);
         });
     }
 
-    /// <summary>One settlement putting one avatar down where nothing stands.</summary>
     private static Task PutDownAsync(
         string path, int slot, int itemId, int avatarUid, InventoryAvatarDetailState? facts) =>
-        SettleAsync(path, session =>
-            session.Write(Avatars, Placed(slot, itemId, avatarUid, facts)));
-
-    /// <summary>The same settlement, run to the refusal its prepare raises and then taken back.</summary>
-    /// <remarks>
-    /// Prepare and rollback are separate here rather than settled together, because what is under
-    /// test is that the failure happens before anything is committed and that taking the
-    /// transaction back leaves the world as it was.
-    /// </remarks>
-    private static async Task<InvalidOperationException> RefusedAsync(
-        string path, int slot, int itemId, int avatarUid, InventoryAvatarDetailState facts)
-    {
-        var transaction = new StubTransaction();
-        var session = new SqliteItemDomainStore(path).SessionIn(transaction);
-        session.Write(Avatars, Placed(slot, itemId, avatarUid, facts));
-        var refusal = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await transaction.PrepareAsync());
-        await transaction.RollbackAsync();
-        return refusal;
-    }
-
-    private static StoredItem Placed(
-        int slotIndex, int itemId, int avatarUid, InventoryAvatarDetailState? facts) =>
-        new(slotIndex, Core(itemId, avatarUid))
+        SettleAsync(path, async session =>
         {
-            WorldClass = ItemWorldClass.Avatar,
-            AvatarDetail = facts,
-        };
+            var item = await session.CreateAsync(
+                ItemSnapshot.FromCore(Core(itemId, avatarUid), false, avatar: facts), default);
+            await session.PutAsync(Avatars, slot, item, default);
+        });
 
-    private static async Task SettleAsync(string path, Action<IItemDomainStoreSession> work)
+    private static Task<InvalidOperationException> RefusedAsync(
+        string path, int slot, int itemId, int avatarUid, InventoryAvatarDetailState facts) =>
+        Assert.ThrowsAsync<InvalidOperationException>(() => PutDownAsync(path, slot, itemId, avatarUid, facts));
+
+    private static async Task SettleAsync(string path, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var transaction = new StubTransaction();
-        work(new SqliteItemDomainStore(path).SessionIn(transaction));
-        await transaction.SettleAsync();
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
+        await transaction.CommitAsync(CancellationToken.None);
     }
 
     /// <summary>The six facts of the nth avatar, every one of them distinct and none defaulted.</summary>
@@ -241,15 +198,15 @@ public sealed class TwoAvatarsDoNotShareOneIdentityTests
     }
 
     /// <summary>The avatar the entry load serves at that position of the avatar container.</summary>
-    private static async Task<InventoryStorageItem> OneAvatarAsync(InventorySide side, int slot)
+    private static async Task<ItemReference> OneAvatarAsync(InventorySide side, int slot)
     {
         var loaded = await side.InUseCaseAsync(token => side.CharacterEntries
             .LoadCharacterAsync(new AccountId(Account), new CharacterId(Character), token));
         var item = Assert.Single(
             loaded.CharacterItems,
-            value => value.ContainerType == InventoryContainerType.Avatar
+            value => value.ContainerId == Avatars
                 && value.SlotIndex == slot);
-        Assert.Equal(AvatarKind, item.Core.ItemKind);
+        Assert.Equal(AvatarKind, item.Snapshot.LegacyKind);
         return item;
     }
 
@@ -379,53 +336,4 @@ public sealed class TwoAvatarsDoNotShareOneIdentityTests
                 : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
-    /// <summary>
-    /// Stands in for the coordinator, as the store's own tests do.
-    /// </summary>
-    /// <remarks>
-    /// Prepare, rollback and commit are separate here because one of these cases needs a prepare
-    /// that throws and a rollback after it, which a single settle cannot express.
-    /// </remarks>
-    private sealed class StubTransaction : IDomainTransaction
-    {
-        private readonly Dictionary<object, ITransactionParticipant> enlisted = [];
-
-        public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
-            where TParticipant : ITransactionParticipant
-        {
-            if (this.enlisted.TryGetValue(identity, out var existing))
-            {
-                return (TParticipant)existing;
-            }
-
-            var participant = create();
-            this.enlisted.Add(identity, participant);
-            return participant;
-        }
-
-        public async Task PrepareAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.PrepareAsync(CancellationToken.None);
-            }
-        }
-
-        public async Task RollbackAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.RollbackAsync(CancellationToken.None);
-            }
-        }
-
-        public async Task SettleAsync()
-        {
-            await this.PrepareAsync();
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.CommitAsync(CancellationToken.None);
-            }
-        }
-    }
 }

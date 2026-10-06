@@ -89,13 +89,13 @@ public sealed class RemainingSkillPointTests
         var (character, _) = Ledger(row);
 
         Assert.Equal(
-            new CharacterProgressionState(3, MovableCharacterRow.Experience),
+            new CharacterProgressionState(3, 200),
             await character.ProgressAsync(CancellationToken.None));
 
         row.Level = 6;
 
         Assert.Equal(
-            new CharacterProgressionState(6, MovableCharacterRow.Experience),
+            new CharacterProgressionState(6, 500),
             await character.ProgressAsync(CancellationToken.None));
     }
 
@@ -146,7 +146,7 @@ public sealed class RemainingSkillPointTests
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(), new BuildTable()),
+            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(), new BuildTable(), null!, null!),
             archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(
@@ -157,7 +157,7 @@ public sealed class RemainingSkillPointTests
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
                 row,
-                points, null!, null!),
+                points, null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()),
             archive);
     }
 
@@ -185,7 +185,7 @@ public sealed class RemainingSkillPointTests
         public ValueTask<CharacterProgressRow?> FindProgressAsync(
             CharacterId characterId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
-                this.Exists ? new CharacterProgressRow(this.Level, Experience) : null);
+                this.Exists ? new CharacterProgressRow(this.Level, (this.Level - 1) * 100) : null);
 
         public ValueTask<CharacterIdentityRow?> FindIdentityAsync(
             CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();

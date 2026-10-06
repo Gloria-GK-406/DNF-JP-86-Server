@@ -1,0 +1,3 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0198	0	个人仓库升级道具在主背包中的槽位	High	ClientStatic RVA0167A2F0调用012EF580查找物品索引后写u16；Document/outputs/warehouse-storage-20261002/a21-capacity-and-upgrade.asm.txt；70Reference按槽消费
+CMD	0x01AF	0	背包升级道具在主背包中的槽位	High	ClientStatic RVA011BB43E传参011B93E0写u16；70Reference Dispatcher_UpgradeInventory按槽取道具；Document/WarehouseStorageDesign-20261002.md

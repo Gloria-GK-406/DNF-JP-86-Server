@@ -49,6 +49,13 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 0.2.2 当前行为与证据（2026-10-06）
+
+CurrentImplementation：31B结果消息只由比赛生命周期发送，不能作为04E6回复、登录或重放快照。淘汰记录按当前已揭示阶段编码，赢家/输家属于各自真实对阵；用户对修正后的胜败图反馈“没问题了”（仅该观察行为ClientVerified）。完整终局七场结果保留在领域，不能把各轮获胜记录解释为八人最终都仍获胜。
+
+Stage2在非起播场景可能直接进入scene12并公告冠军；Stage3无条件进入scene12，均为ClientStatic。当前策略发送Stage0/1和结束事件Stage3一次，暂不发送Stage2。本地三组动画、缺Stage2的展示效果、state5推进与中途恢复仍未完整验收，不能把无公告刷屏解释为全部动画已正确。原生时序未取得WireCaptured；见 [重分析](../../../Document/outputs/joust-client-reanalysis-20261006/report.md) 和 [验收边界](../../../Document/closeout-0.2.2-20261006.md)。
+
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 
@@ -60,3 +67,21 @@ BodyLength = 未知（字段集合已知不完整）
 ## 逆向工作日志
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+
+## 2026-10-06 A21 JOUST 接线（ClientStatic / CurrentImplementation）
+
+EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
+
+31B：offset0 u16RoundNo；offset2 u8Stage；offset3起7×4B：+0 u8WinnerKnightIndex，+1 u8WinnerAuxIndex，+2 u8LoserKnightIndex，+3 u8LoserAuxIndex。绝不能写成两u16或padding。阶段0/1/2/3累计4/6/7/7个结果；尚未提供结果用KnightFF/Aux0占位（ServerPolicy，未来槽读取未实机确认）。
+
+reader `000D24A0` ReadBytes0x1F；consumer `000FCCA0/000F7A70`取+0/+1赢家、+2/+3输家，对方aux存对象+8。`016182F0`→`024FDC00`按Knight/Aux查Win/Loss表（+78/+8C），`024FD925/024FDA02`加载[win]/[loss]。PVF每表实际28整数=4×7，loader容量5选项不等于实际35整数。Aux0有效首项；真实原服选择策略Unknown。Stage3最终文本/scene12跳转仍Unknown。
+
+实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。2026-10-06 当前实现：轮号改为赛果成功入库时分配的全局累计序号；时间仅为场次字段，查询读取保存的结果。进行中场次使用下一候选序号作原生同步标记，不提前写入历史。详见 [期号与时间 ID](../../../Document/tasks/event-joust/knight-statistics-result.md#期号与时间-id2026-10-06)。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。
+
+
+### 2026-10-06 冠军公告的客户端副作用
+
+ClientStatic（Confirmed调用链；仍非WireCaptured）：本轮重新校验上述dump SHA256一致。RVA000D2512调用000FCCA0；Stage跳表RVA000FD438四项分别为000FCCFF/000FCE32/000FD036/000FD236。Stage2分支000FD1E2比较当前scene，除13/9外直接进入scene12；Stage3在000FD40E–000FD412无条件调用000FA1B0(scene12)。scene12入口000FB369；窗口打开分支000FB6C3–000FB742取冠军名字，000FB70C读取字符串12BBF，000FB73B→000FB742进入聊天输出。此路径无旧轮号/旧冠军去重检查。用户“打开赛马就再次出现获胜者”截图与该路径High关联，12BBF文本资源未单独导出。
+
+CurrentImplementation：04BB已从所有普通快照中删除。后台八进四/半决赛事件可推Stage0/1；不再推Stage2终局预览，避免提前进入scene12。结束事件使用结算事务捕获的旧轮完整赛果，仅推Stage3一次；通知重试数0，启动恢复不补播。终局动画兼容性及中途进入后的显示仍需ClientVerified，不能把服务器单测当作原生界面证明。

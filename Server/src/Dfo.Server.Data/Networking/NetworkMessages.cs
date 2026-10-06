@@ -2,6 +2,13 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameIllusionTowerStage = 0x0001_009F,
+    GameCreateAccountCargo = 0x0001_0131,
+    GameUpgradeAccountCargo = 0x0001_0132,
+    GameDepositAccountCargo = 0x0001_0133,
+    GameWithdrawAccountCargo = 0x0001_0134,
+    GameUpgradeCargo = 0x0001_0198,
+    GameUpgradeInventory = 0x0001_01AF,
     GameMailboxSend = 0x0001_005E,
     GameMailboxSendMulti = 0x0001_013B,
     GameMailboxClaim = 0x0001_005F,
@@ -66,6 +73,10 @@ public enum ClientMessageType
     GameMercenaryInfo = 0x0001_01BA,
     GameHiddenCharacterInfo = 0x0001_0286,
     GameSaveCharacterOption = 0x0001_01C0,
+    GameJoustInfo = 0x0001_04E6,
+    GameJoustBet = 0x0001_04E7,
+    GameJoustHistory = 0x0001_04E8,
+    GameWeeklyAttendance = 0x0001_0441,
     GameSaveGameOption1 = 0x0001_00C5,
     GameContentsPlayInfo = 0x0001_02C1,
 
@@ -185,6 +196,17 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameIllusionTowerInfo = 0x0000_008E,
+    GameIllusionTowerMap = 0x0000_008F,
+    GameIllusionTowerRanking = 0x0000_0090,
+    GameIllusionTowerReward = 0x0000_0091,
+    GameIllusionTowerContinue = 0x0000_0092,
+    GameCreateAccountCargo = 0x0001_0131,
+    GameUpgradeAccountCargo = 0x0001_0132,
+    GameDepositAccountCargo = 0x0001_0133,
+    GameWithdrawAccountCargo = 0x0001_0134,
+    GameUpgradeCargo = 0x0001_0198,
+
     GameMailboxSend = 0x0001_005E,
     GameMailboxSendMulti = 0x0001_013B,
     GameMailboxClaim = 0x0001_005F,

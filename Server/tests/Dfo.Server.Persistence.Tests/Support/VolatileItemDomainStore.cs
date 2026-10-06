@@ -1,259 +1,193 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Persistence.Tests.Support;
 
-/// <summary>
-/// A store whose items do not outlive the process, for the tests that need one.
-/// </summary>
-/// <remarks>
-/// It used to be production, kept against the day a dungeon would hand the player an inventory of
-/// its own. No dungeon ever did, and nothing ever asked for it, so it is no longer part of the
-/// server. It is still here because two rules the server really has are about stores that are not
-/// durable -- a change to one is allowed outside a use case, and any number of them may settle
-/// beside the single durable one -- and every store the server actually has is durable. Without
-/// one of these, neither rule could be tested at all.
-///
-/// Because nothing is written anywhere, its session commits by swapping state it already holds,
-/// which cannot fail.
-///
-/// It keeps things rather than rows, so it hands back exactly what it was given -- including the
-/// identity a write carried, where the durable store answers with the one the position names. A
-/// test whose subject is which thing was found therefore says so when it writes.
-/// </remarks>
+/// <summary>Test backend with the same transaction custody and occupancy rules as SQLite.</summary>
 internal sealed class VolatileItemDomainStore : IItemDomainStore
 {
-    private readonly Dictionary<ContainerId, Dictionary<int, StoredItem>> containers = [];
-
-    private readonly object sync = new();
-
+    private readonly State state = new();
+    public void Seed(ContainerId container, int slot, ItemSnapshot item)
+    {
+        state.Items.Add((container, slot), item.DeepCopy());
+        state.NextUid = Math.Max(state.NextUid, (item.ItemUid?.Value ?? 0) + 1);
+    }
     public object StoreIdentity => this;
-
     public bool IsDurable => false;
-
     public IItemDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
-        ArgumentNullException.ThrowIfNull(transaction);
-        return transaction.Enlist(
-            this.StoreIdentity,
-            () => new VolatileItemDomainStoreSession(this.containers, this.sync));
+        var scope = ItemLifecycleScope.In(transaction);
+        return transaction.Enlist(StoreIdentity, () => new Session(state, scope));
     }
-}
-
-/// <summary>One use case's reads and writes against items held in memory.</summary>
-/// <remarks>
-/// The held writes are turned into the containers' replacement contents while preparing, so that
-/// committing is one assignment per touched container and has nothing left in it that could fail.
-/// That is what lets any number of these sit beside the single participant whose commit still can.
-/// </remarks>
-internal sealed class VolatileItemDomainStoreSession(
-    Dictionary<ContainerId, Dictionary<int, StoredItem>> containers,
-    object sync) : IItemDomainStoreSession, ITransactionParticipant
-{
-    /// <summary>What each named slot will hold, or null where it will be left empty.</summary>
-    private readonly Dictionary<ContainerId, Dictionary<int, StoredItem>> staged = [];
-
-    private readonly HashSet<(ContainerId Container, int Slot)> emptied = [];
-
-    /// <summary>Each touched container's whole replacement contents, built while preparing.</summary>
-    private Dictionary<ContainerId, Dictionary<int, StoredItem>>? prepared;
-
-    public bool CommitCanFail => false;
-
-    /// <remarks>
-    /// Nothing reads what this store holds by any other route -- there are no tables behind it --
-    /// so there is nobody for whom the decided writes are not already visible.
-    /// </remarks>
-    public ValueTask ApplyDecidedWritesAsync(CancellationToken cancellationToken)
+    private sealed class State
     {
-        _ = cancellationToken;
-        return ValueTask.CompletedTask;
+        public Dictionary<(ContainerId, int), ItemSnapshot> Items = [];
+        public long Version;
+        public int NextUid = 1;
     }
-
-    public ValueTask<IReadOnlyList<StoredItem>> ReadAllAsync(
-        ContainerId containerId, CancellationToken cancellationToken)
+    private sealed class Session : IItemDomainStoreSession, ITransactionParticipant
     {
-        _ = cancellationToken;
-        var items = new SortedDictionary<int, StoredItem>();
-        lock (sync)
+        private readonly State state;
+        private readonly ItemLifecycleScope scope;
+        private readonly object identity = new();
+        private readonly Dictionary<(ContainerId, int), long> generations = [];
+        private readonly Dictionary<(ContainerId, int), ItemSnapshot> working;
+        private readonly HashSet<ItemRecord> issued = new(ReferenceEqualityComparer.Instance);
+        private readonly long version;
+        private int nextUid;
+        private bool changed;
+        private bool closed;
+        private bool prepared;
+        public Session(State state, ItemLifecycleScope scope)
         {
-            if (containers.TryGetValue(containerId, out var held))
+            this.state = state; this.scope = scope;
+            lock (state)
             {
-                foreach (var (slot, item) in held)
-                {
-                    items[slot] = item;
-                }
+                version = state.Version; nextUid = state.NextUid;
+                working = state.Items.ToDictionary(x => x.Key, x => x.Value.DeepCopy());
             }
         }
-
-        foreach (var (slot, item) in this.Overlay(containerId))
+        public bool CommitCanFail => false;
+        private void Active(CancellationToken ct)
         {
-            if (item is null)
+            ct.ThrowIfCancellationRequested(); scope.EnsureActive();
+            if (closed) throw new InvalidOperationException("The item session has ended.");
+        }
+        private long Generation(ContainerId c, int slot) => generations.GetValueOrDefault((c, slot));
+        private ItemReference Reference(ContainerId c, int slot) => new(identity, c, slot, Generation(c, slot), working[(c, slot)]);
+        private ItemSnapshot Resolve(ItemReference reference, CancellationToken ct)
+        {
+            Active(ct);
+            if (!reference.BelongsTo(identity) || reference.Generation != Generation(reference.ContainerId, reference.StorageSlotIndex)
+                || !working.TryGetValue((reference.ContainerId, reference.StorageSlotIndex), out var item))
+                throw new InvalidOperationException("The item reference no longer identifies this occupancy.");
+            return item;
+        }
+        public ValueTask<ItemReference?> GetAsync(ContainerId c, int slot, CancellationToken ct)
+        {
+            Active(ct); CheckSlot(slot);
+            return ValueTask.FromResult(working.ContainsKey((c, slot)) ? Reference(c, slot) : null);
+        }
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(ContainerId c, CancellationToken ct)
+        {
+            Active(ct);
+            return ValueTask.FromResult<IReadOnlyList<ItemReference>>([.. working.Keys.Where(k => k.Item1 == c).OrderBy(k => k.Item2).Select(k => Reference(c, k.Item2))]);
+        }
+        public ValueTask<ItemRecord> CreateAsync(ItemSnapshot snapshot, CancellationToken ct)
+        {
+            Active(ct); Validate(snapshot);
+            if (snapshot.ItemUid is not null) throw new InvalidOperationException("Creation cannot supply an existing identity.");
+            if (!snapshot.IsPile)
             {
-                items.Remove(slot);
+                var uid = checked(nextUid++); snapshot = snapshot with { ItemUid = new ItemIdentity(uid) };
+                if (snapshot.CreatureDetail is not null) snapshot = snapshot with { InstanceValue = uid };
             }
-            else
+            changed = true;
+            return ValueTask.FromResult(Issue(snapshot));
+        }
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct)
+        {
+            var old = Resolve(reference, ct); var amount = count ?? old.Count;
+            if (amount <= 0 || amount > old.Count || (!old.IsPile && amount != 1)) throw new ArgumentOutOfRangeException(nameof(count));
+            var key = (reference.ContainerId, reference.StorageSlotIndex);
+            if (amount == old.Count) { working.Remove(key); generations[key] = checked(Generation(key.Item1, key.Item2) + 1); }
+            else working[key] = old with { Count = old.Count - amount };
+            changed = true;
+            return ValueTask.FromResult(Issue(old with { Count = amount }));
+        }
+        public async ValueTask<ItemReference> PutAsync(ContainerId c, int slot, ItemRecord record, CancellationToken ct)
+        {
+            Active(ct); CheckSlot(slot);
+            var foreign = scope.IsForeign(record, identity);
+            if (!foreign && !issued.Contains(record)) throw new InvalidOperationException("The record was not issued by this store.");
+            var snapshot = record.Snapshot;
+            ValidatePosition(c, slot, snapshot);
+            var key = (c, slot);
+            if (working.TryGetValue(key, out var held))
             {
-                items[slot] = item;
+                if (!held.CanStackWith(snapshot)) throw new InvalidOperationException("The destination does not accept this item.");
+                snapshot = held with { Count = checked(held.Count + snapshot.Count) };
             }
+            else generations[key] = checked(Generation(c, slot) + 1);
+            // If source release fails the surrounding use case must roll back all participants.
+            await scope.AcceptAsync(record, identity, ct).ConfigureAwait(false);
+            working[key] = snapshot.DeepCopy(); issued.Remove(record); changed = true;
+            return Reference(c, slot);
         }
-
-        return ValueTask.FromResult<IReadOnlyList<StoredItem>>([.. items.Values]);
-    }
-
-    public ValueTask<StoredItem?> ReadAsync(
-        ContainerId containerId, int slotIndex, CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        if (this.staged.TryGetValue(containerId, out var written)
-            && written.TryGetValue(slotIndex, out var item))
+        public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
         {
-            return ValueTask.FromResult<StoredItem?>(item);
+            var old = Resolve(reference, ct); var next = change(old.DeepCopy()).DeepCopy(); Validate(next);
+            ValidatePosition(reference.ContainerId, reference.StorageSlotIndex, next);
+            if (next.ItemUid != old.ItemUid || next.IsPile != old.IsPile || next.Type != old.Type || next.LegacyKind != old.LegacyKind
+                || (next.ItemId != old.ItemId && (next.IsPile || next.Type != ItemTraits.Creature || next.LegacyKind != 5))
+                || (!next.IsPile && next.Type is ItemTraits.Avatar or ItemTraits.Creature && next.InstanceValue != old.InstanceValue)) throw new InvalidOperationException("Update changed identity shape.");
+            working[(reference.ContainerId, reference.StorageSlotIndex)] = next; changed = true;
+            var result = Reference(reference.ContainerId, reference.StorageSlotIndex);
+            return ValueTask.FromResult(reference.BusinessSlot is { } business ? result.WithBusinessSlot(business) : result);
         }
-
-        if (this.emptied.Contains((containerId, slotIndex)))
+        public ValueTask DeleteItemAsync(ItemRecord record, CancellationToken ct)
         {
-            return ValueTask.FromResult<StoredItem?>(null);
+            Active(ct);
+            if (!issued.Contains(record)) throw new InvalidOperationException("The record was not issued by this store.");
+            return scope.DeleteItemAsync(record, ct);
         }
-
-        lock (sync)
+        private ItemRecord Issue(ItemSnapshot snapshot)
         {
-            return ValueTask.FromResult(
-                containers.TryGetValue(containerId, out var held)
-                    && held.TryGetValue(slotIndex, out var stored)
-                    ? stored
-                    : null);
-        }
-    }
-
-    public void Write(ContainerId containerId, StoredItem item)
-    {
-        ArgumentNullException.ThrowIfNull(item);
-        ValidateSlot(item.SlotIndex);
-        this.emptied.Remove((containerId, item.SlotIndex));
-        if (!this.staged.TryGetValue(containerId, out var written))
-        {
-            written = [];
-            this.staged.Add(containerId, written);
-        }
-
-        written[item.SlotIndex] = item;
-    }
-
-    public void Clear(ContainerId containerId, int slotIndex)
-    {
-        ValidateSlot(slotIndex);
-        if (this.staged.TryGetValue(containerId, out var written))
-        {
-            written.Remove(slotIndex);
-        }
-
-        this.emptied.Add((containerId, slotIndex));
-    }
-
-    public ValueTask PrepareAsync(CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        var touched = this.staged.Keys.Concat(this.emptied.Select(slot => slot.Container)).ToHashSet();
-        var replacement = new Dictionary<ContainerId, Dictionary<int, StoredItem>>();
-        lock (sync)
-        {
-            foreach (var containerId in touched)
+            ItemRecord? record = null;
+            record = scope.Issue(snapshot, identity, ct =>
             {
-                var contents = containers.TryGetValue(containerId, out var held)
-                    ? new Dictionary<int, StoredItem>(held)
-                    : [];
-                foreach (var (slot, item) in this.Overlay(containerId))
-                {
-                    if (item is null)
-                    {
-                        contents.Remove(slot);
-                    }
-                    else
-                    {
-                        contents[slot] = item;
-                    }
-                }
-
-                replacement.Add(containerId, contents);
-            }
-        }
-
-        this.prepared = replacement;
-        return ValueTask.CompletedTask;
-    }
-
-    /// <remarks>
-    /// A commit reached without a prepare is refused rather than working the contents out here.
-    /// Doing that would put allocation back into the one act this participant promises cannot fail,
-    /// and dropping the changes instead would surface as lost items rather than as an exception.
-    /// </remarks>
-    public ValueTask CommitAsync(CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        if (this.prepared is null)
-        {
-            var unprepared = this.staged.Count > 0 || this.emptied.Count > 0;
-            this.Discard();
-            return unprepared
-                ? ValueTask.FromException(new InvalidOperationException(
-                    "The item store was committed before it was prepared, so it changed nothing."))
-                : ValueTask.CompletedTask;
-        }
-
-        lock (sync)
-        {
-            foreach (var (containerId, contents) in this.prepared)
+                Active(ct); issued.Remove(record!); changed = true; return ValueTask.CompletedTask;
+            }, async (count, ct) =>
             {
-                containers[containerId] = contents;
-            }
+                Active(ct);
+                await scope.AcceptAsync(record!, identity, ct).ConfigureAwait(false);
+                issued.Remove(record!);
+                return (Issue(snapshot with { Count = count }), Issue(snapshot with { Count = snapshot.Count - count }));
+            });
+            issued.Add(record); return record;
         }
-
-        this.Discard();
-        return ValueTask.CompletedTask;
-    }
-
-    public ValueTask RollbackAsync(CancellationToken cancellationToken)
-    {
-        _ = cancellationToken;
-        this.Discard();
-        return ValueTask.CompletedTask;
-    }
-
-    private void Discard()
-    {
-        this.prepared = null;
-        this.staged.Clear();
-        this.emptied.Clear();
-    }
-
-    /// <summary>The slot numbers a container has, which are the same ones the tables accept.</summary>
-    private static void ValidateSlot(int slotIndex)
-    {
-        if (slotIndex < 0)
+        public ValueTask ApplyDecidedWritesAsync(CancellationToken ct) { Active(ct); return ValueTask.CompletedTask; }
+        public ValueTask PrepareAsync(CancellationToken ct)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(slotIndex), slotIndex, "A slot of a container is never negative.");
+            Active(ct); scope.ValidateForCommit();
+            lock (state)
+                if (changed && state.Version != version) throw new InvalidOperationException("The volatile store changed concurrently.");
+            prepared = true; return ValueTask.CompletedTask;
         }
-    }
-
-    /// <summary>This session's own changes to one container, as slot to item or to nothing.</summary>
-    private IEnumerable<(int Slot, StoredItem? Item)> Overlay(ContainerId containerId)
-    {
-        foreach (var slot in this.emptied)
+        public ValueTask CommitAsync(CancellationToken ct)
         {
-            if (slot.Container == containerId)
-            {
-                yield return (slot.Slot, null);
-            }
+            if (!prepared) throw new InvalidOperationException("Prepare is required.");
+            lock (state)
+                if (changed) { state.Items = working; state.NextUid = nextUid; state.Version++; }
+            Close(); return ValueTask.CompletedTask;
         }
-
-        if (this.staged.TryGetValue(containerId, out var written))
+        public ValueTask RollbackAsync(CancellationToken ct) { Close(); return ValueTask.CompletedTask; }
+        private void Close() { closed = true; issued.Clear(); generations.Clear(); }
+        private static void CheckSlot(int slot) { if (slot < 0) throw new ArgumentOutOfRangeException(nameof(slot)); }
+        private static bool IsRevivalCounter(ItemSnapshot item) =>
+            item is { IsPile: true, LegacyKind: 0, ItemId: 1, Type: ItemTraits.None };
+        private static void ValidatePosition(ContainerId container, int slot, ItemSnapshot item)
         {
-            foreach (var (slot, item) in written)
-            {
-                yield return (slot, item);
-            }
+            if (item.Count == 0 && (!IsRevivalCounter(item) || slot != 1
+                || !container.TryGetCharacterOwner(out _, out var type) || type != InventoryContainerType.Main))
+                throw new InvalidDataException("A zero counter can only occupy the character revival slot.");
+        }
+        private static void Validate(ItemSnapshot item)
+        {
+            if (item.Type != ItemTraitClassification.For(item.LegacyKind, item.ItemId))
+                throw new InvalidDataException("Item type disagrees with its legacy encoding.");
+            if (item.ItemId <= 0 || (item.Count < 0 || item.Count == 0 && !IsRevivalCounter(item)) || (!item.IsPile && item.Count != 1) || (item.IsPile && item.ItemUid is not null))
+                throw new InvalidDataException("Invalid item identity or quantity.");
+            if ((!item.IsPile && item.Type == ItemTraits.Avatar) != (item.AvatarDetail is not null)
+                || (!item.IsPile && item.Type == ItemTraits.Creature) != (item.CreatureDetail is not null))
+                throw new InvalidDataException("Instance details do not match the item type.");
+            if (!item.IsPile && item.Type == ItemTraits.Avatar && item.InstanceValue <= 0)
+                throw new InvalidDataException("An avatar requires a positive legacy identity.");
+            if (item.AvatarDetail is { JewelSocket.Length: not 30 }) throw new InvalidDataException("Invalid avatar socket size.");
+            if (item.CreatureDetail is { } pet && (pet.CreatureText.Length > 4096 || pet.Field04 is < 0 or > 255 || pet.ProgressValue < 0
+                || pet.FieldAfterValue is < 0 or > 255 || pet.Mode1Field0A is < 0 or > 255 || pet.Mode1Field0B is < 0 or > 255))
+                throw new InvalidDataException("Invalid creature details.");
         }
     }
 }

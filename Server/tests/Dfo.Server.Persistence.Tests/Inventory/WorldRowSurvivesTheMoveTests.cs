@@ -38,111 +38,75 @@ public sealed class WorldRowSurvivesTheMoveTests
     private static readonly ContainerId Equipment =
         ContainerId.ForCharacter(Owner, InventoryContainerType.Equipment);
 
-    /// <summary>
-    /// A worn piece moved, put on and taken off again is the same piece each time.
-    /// </summary>
-    /// <remarks>
-    /// Three moves, one of them across containers, and the identity is read back out of the
-    /// database after each one rather than remembered from the write. The high-water mark is
-    /// asserted alongside it: were the row being replaced, the identity read back would be a
-    /// larger number and this would say which of the two had happened.
-    /// </remarks>
     [Fact]
     public async Task AWornPieceKeepsOneIdentityThroughAMoveAWearAndATakeOff()
     {
         await using var store = await NewStoreAsync();
         var sword = Sword(enchant: 7);
-        await SettleAsync(store, session => session.Write(Main, Worn(65, sword)));
-
+        await SettleAsync(store, async session =>
+        {
+            await session.PutAsync(Main, 65, await session.CreateAsync(Worn(sword), default), default);
+        });
         var identity = await IdentityAtAsync(store.Path, Main, 65);
         var allocated = await HighWaterMarkAsync(store.Path);
-
         foreach (var (from, fromSlot, to, toSlot) in new[]
-                 {
-                     (Main, 65, Main, 3),
-                     (Main, 3, Equipment, 5),
-                     (Equipment, 5, Main, 70),
-                 })
+                 { (Main, 65, Main, 3), (Main, 3, Equipment, 5), (Equipment, 5, Main, 70) })
         {
-            await SettleAsync(store, session =>
+            await SettleAsync(store, async session =>
             {
-                session.Clear(from, fromSlot);
-                session.Write(to, Worn(toSlot, sword));
+                var moving = await session.TakeAsync((await session.GetAsync(from, fromSlot, default))!, null, default);
+                await session.PutAsync(to, toSlot, moving, default);
             });
-
             Assert.Null(await IdentityAtAsync(store.Path, from, fromSlot));
             Assert.Equal(identity, await IdentityAtAsync(store.Path, to, toSlot));
             Assert.Equal(allocated, await HighWaterMarkAsync(store.Path));
-            Assert.Equal(
-                new SlotRow("world", identity!.Value, 1),
-                await SlotAtAsync(store.Path, to, toSlot));
+            Assert.Equal(new SlotRow("world", identity!.Value, 1), await SlotAtAsync(store.Path, to, toSlot));
             Assert.Null(await SlotAtAsync(store.Path, from, fromSlot));
         }
-
         Assert.Equal(sword, await CoreAtAsync(store.Path, Main, 70));
     }
 
-    /// <summary>
-    /// A move deletes no world row and builds none, which is what the check asks in so many words.
-    /// </summary>
-    /// <remarks>
-    /// Said as the whole set of identities before and after rather than as one of them, so a move
-    /// that quietly rebuilt some other character's row -- or left the old row behind beside the new
-    /// one -- would be caught here as well.
-    /// </remarks>
     [Fact]
     public async Task AMoveNeitherDeletesNorBuildsAWorldRow()
     {
         await using var store = await NewStoreAsync();
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Write(Main, Worn(65, Sword(enchant: 3)));
-            session.Write(Main, Worn(66, Ring()));
+            await session.PutAsync(Main, 65, await session.CreateAsync(Worn(Sword(enchant: 3)), default), default);
+            await session.PutAsync(Main, 66, await session.CreateAsync(Worn(Ring()), default), default);
         });
-
         var before = await IdentitiesAsync(store.Path);
         var allocated = await HighWaterMarkAsync(store.Path);
-
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Clear(Main, 65);
-            session.Write(Equipment, Worn(2, Sword(enchant: 3)));
+            var moving = await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default);
+            await session.PutAsync(Equipment, 2, moving, default);
         });
-
         Assert.Equal(before, await IdentitiesAsync(store.Path));
         Assert.Equal(allocated, await HighWaterMarkAsync(store.Path));
     }
 
-    /// <summary>
-    /// Two worn pieces exchanging positions keep an identity each, and keep the right one.
-    /// </summary>
-    /// <remarks>
-    /// The swap is the case the whole batch is shaped around: each row's destination is the other
-    /// row's position, so neither can be written straight across while the other is still standing
-    /// there. Both are lifted out before either is put down.
-    /// </remarks>
     [Fact]
     public async Task TwoWornPiecesSwappingPositionsEachKeepTheirOwnIdentity()
     {
         await using var store = await NewStoreAsync();
         var sword = Sword(enchant: 4);
         var ring = Ring();
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Write(Main, Worn(10, sword));
-            session.Write(Main, Worn(11, ring));
+            await session.PutAsync(Main, 10, await session.CreateAsync(Worn(sword), default), default);
+            await session.PutAsync(Main, 11, await session.CreateAsync(Worn(ring), default), default);
         });
-
         var swordIdentity = await IdentityAtAsync(store.Path, Main, 10);
         var ringIdentity = await IdentityAtAsync(store.Path, Main, 11);
         var allocated = await HighWaterMarkAsync(store.Path);
-
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Write(Main, Worn(11, sword));
-            session.Write(Main, Worn(10, ring));
+            var first = await session.TakeAsync((await session.GetAsync(Main, 10, default))!, null, default);
+            var second = await session.TakeAsync((await session.GetAsync(Main, 11, default))!, null, default);
+            await session.PutAsync(Main, 11, first, default);
+            await session.PutAsync(Main, 10, second, default);
         });
-
         Assert.Equal(swordIdentity, await IdentityAtAsync(store.Path, Main, 11));
         Assert.Equal(ringIdentity, await IdentityAtAsync(store.Path, Main, 10));
         Assert.Equal(allocated, await HighWaterMarkAsync(store.Path));
@@ -150,154 +114,114 @@ public sealed class WorldRowSurvivesTheMoveTests
         Assert.Equal(ring, await CoreAtAsync(store.Path, Main, 10));
     }
 
-    /// <summary>
-    /// A contract creature taken off into the bag is the same creature, instance state and all.
-    /// </summary>
-    /// <remarks>
-    /// The eight columns are put on the row after it exists, which is what a creature's own state
-    /// will be once it lives there. Nothing in the store writes them, and that is the point: the
-    /// move must not touch them, and a move that replaced the row would take every one of them
-    /// with it.
-    /// </remarks>
     [Fact]
     public async Task AContractCreatureTakenOffIntoTheBagIsStillTheSameCreature()
     {
         await using var store = await NewStoreAsync();
-        var creature = Core(5, CreatureItemId, 0);
-        await SettleAsync(store, session => session.Write(
-            Equipment, new StoredItem(24, creature) { WorldClass = ItemWorldClass.Creature }));
-
+        var creature = ItemSnapshot.FromCore(Core(5, CreatureItemId, 0), false,
+            creature: new InventoryCreatureDetailState(0, 0, 0, 0, 0, 0, [], 0));
+        await SettleAsync(store, async session =>
+        {
+            await session.PutAsync(Equipment, 24, await session.CreateAsync(creature, default), default);
+        });
         var identity = await IdentityAtAsync(store.Path, Equipment, 24);
         Assert.NotNull(identity);
         await SetCreatureStateAsync(store.Path, identity.Value, progress: 4242);
-
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Clear(Equipment, 24);
-            session.Write(
-                Main, new StoredItem(80, creature) { WorldClass = ItemWorldClass.Creature });
+            var moving = await session.TakeAsync((await session.GetAsync(Equipment, 24, default))!, null, default);
+            await session.PutAsync(Main, 80, moving, default);
         });
-
         Assert.Equal(identity, await IdentityAtAsync(store.Path, Main, 80));
         Assert.Equal(4242, await CreatureStateAsync(store.Path, identity.Value));
+        Assert.Equal(identity.Value, (await CoreAtAsync(store.Path, Main, 80))!.Value);
     }
 
-    /// <summary>
-    /// An avatar's own columns stay on its row, because nothing takes the row away.
-    /// </summary>
-    /// <remarks>
-    /// The store used to read these back and write them on again, because the row they sat on was
-    /// about to be deleted. It no longer is, so they are simply never touched -- which is the
-    /// difference between state that follows the thing and state that has to be carried after it.
-    /// </remarks>
     [Fact]
     public async Task AnAvatarsOwnColumnsStayWhereTheyAreThroughAMove()
     {
         await using var store = await NewStoreAsync();
-        var avatar = Core(AvatarKind, AvatarItemId, AvatarUid);
-        await SettleAsync(store, session => session.Write(
-            Main, new StoredItem(9, avatar) { WorldClass = ItemWorldClass.Avatar }));
-
+        var avatar = ItemSnapshot.FromCore(Core(AvatarKind, AvatarItemId, AvatarUid), false,
+            avatar: new InventoryAvatarDetailState(0, 0, new byte[30], 0, 0, 0));
+        await SettleAsync(store, async session =>
+        {
+            await session.PutAsync(Main, 9, await session.CreateAsync(avatar, default), default);
+        });
         var identity = await IdentityAtAsync(store.Path, Main, 9);
         Assert.NotNull(identity);
         await SetAvatarColourAsync(store.Path, identity.Value, colour: 321);
-
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Clear(Main, 9);
-            session.Write(
-                Main, new StoredItem(10, avatar) { WorldClass = ItemWorldClass.Avatar });
+            var moving = await session.TakeAsync((await session.GetAsync(Main, 9, default))!, null, default);
+            await session.PutAsync(Main, 10, moving, default);
         });
-
         Assert.Equal(identity, await IdentityAtAsync(store.Path, Main, 10));
         Assert.Equal(321, await AvatarColourAsync(store.Path, identity.Value));
     }
 
-    /// <summary>
-    /// A worn piece rewritten where it stands with a changed payload is still that piece.
-    /// </summary>
-    /// <remarks>
-    /// A move is not the only thing that reaches a slot: a use case that changed something about a
-    /// piece would write it back to the position it is already in. That must not be a new thing
-    /// either, so a position rewritten with the same template, kind and value keeps the row it had.
-    /// </remarks>
     [Fact]
-    public async Task AWornPieceRewrittenWhereItStandsKeepsItsIdentity()
+    public async Task AWornPieceUpdatedWhereItStandsKeepsItsIdentity()
     {
         await using var store = await NewStoreAsync();
-        await SettleAsync(store, session => session.Write(Main, Worn(12, Sword(enchant: 2))));
-
+        await SettleAsync(store, async session =>
+        {
+            await session.PutAsync(Main, 12, await session.CreateAsync(Worn(Sword(enchant: 2)), default), default);
+        });
         var identity = await IdentityAtAsync(store.Path, Main, 12);
         var allocated = await HighWaterMarkAsync(store.Path);
-
-        await SettleAsync(store, session => session.Write(Main, Worn(12, Sword(enchant: 9))));
-
+        await SettleAsync(store, async session =>
+        {
+            await session.UpdateAsync((await session.GetAsync(Main, 12, default))!,
+                snapshot => snapshot with { EnchantUpgradeCount = 9 }, default);
+        });
         Assert.Equal(identity, await IdentityAtAsync(store.Path, Main, 12));
         Assert.Equal(allocated, await HighWaterMarkAsync(store.Path));
         Assert.Equal(Sword(enchant: 9), await CoreAtAsync(store.Path, Main, 12));
     }
 
-    /// <summary>
-    /// One shape for both kinds of content, differing only in what its three columns say.
-    /// </summary>
-    /// <remarks>
-    /// The worn piece's position names the world row and holds one of it; the pile's names a
-    /// template and holds as many as the pile does. Neither position knows anything else about what
-    /// it holds, which is what lets a position be rebuilt without losing something.
-    /// </remarks>
     [Fact]
     public async Task APositionSaysWhichOfTheTwoItHoldsAndHowMany()
     {
         await using var store = await NewStoreAsync();
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Write(Main, Worn(20, Sword(enchant: 1)));
-            session.Write(Main, Pile(21, Potion(5)));
+            await session.PutAsync(Main, 20, await session.CreateAsync(Worn(Sword(enchant: 1)), default), default);
+            await session.PutAsync(Main, 21, await session.CreateAsync(Pile(Potion(5)), default), default);
         });
-
         var identity = await IdentityAtAsync(store.Path, Main, 20);
-
-        Assert.Equal(
-            new SlotRow("world", identity!.Value, 1), await SlotAtAsync(store.Path, Main, 20));
+        Assert.Equal(new SlotRow("world", identity!.Value, 1), await SlotAtAsync(store.Path, Main, 20));
         Assert.Equal(new SlotRow("template", PotionId, 5), await SlotAtAsync(store.Path, Main, 21));
     }
 
-    /// <summary>
-    /// A pile is given no identity, on the way in or on the way anywhere else.
-    /// </summary>
-    /// <remarks>
-    /// Its row is still replaced whenever it moves, exactly as every row used to be, and its
-    /// position goes on naming the template rather than the row. Two of it are the same thing, so
-    /// there is nothing about the row worth keeping and nothing that could tell that it changed.
-    /// </remarks>
     [Fact]
     public async Task APileIsNamedByItsTemplateAndNotByAnyIdentityOfItsOwn()
     {
         await using var store = await NewStoreAsync();
-        await SettleAsync(store, session => session.Write(Main, Pile(65, Potion(5))));
-
-        await SettleAsync(store, session =>
+        await SettleAsync(store, async session =>
         {
-            session.Clear(Main, 65);
-            session.Write(Main, Pile(66, Potion(5)));
+            var item = await session.PutAsync(Main, 65, await session.CreateAsync(Pile(Potion(5)), default), default);
+            Assert.Null(item.ItemUid);
         });
-
+        await SettleAsync(store, async session =>
+        {
+            var moving = await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default);
+            Assert.Null(moving.ItemUid);
+            var item = await session.PutAsync(Main, 66, moving, default);
+            Assert.Null(item.ItemUid);
+        });
         Assert.Equal(new SlotRow("template", PotionId, 5), await SlotAtAsync(store.Path, Main, 66));
         Assert.Null(await SlotAtAsync(store.Path, Main, 65));
     }
 
-    /// <remarks>
-    /// Settlement reads the class off the write and has nothing else to read it off, so a write
-    /// that does not say is refused where it is made rather than guessed at where it lands.
-    /// </remarks>
     [Fact]
-    public async Task AWriteThatDoesNotSayWhatTheArchiveMakesOfItIsRefused()
+    public async Task ACreationWhoseTraitsDisagreeWithItsLegacyKindIsRefused()
     {
         await using var store = await NewStoreAsync();
-        var session = store.Value.SessionIn(new StubTransaction());
-
-        Assert.Throws<ArgumentException>(
-            () => session.Write(Main, new StoredItem(65, Potion(1))));
+        await Assert.ThrowsAsync<InvalidDataException>(() => SettleAsync(store, async session =>
+        {
+            _ = await session.CreateAsync(Pile(Potion(1)) with { Type = ItemTraits.Avatar }, default);
+        }));
+        Assert.Empty(await IdentitiesAsync(store.Path));
     }
 
     private const int PotionId = 1000;
@@ -314,11 +238,9 @@ public sealed class WorldRowSurvivesTheMoveTests
 
     private const byte AvatarKind = 8;
 
-    private static StoredItem Worn(int slotIndex, InventoryItemCoreState core) =>
-        new(slotIndex, core) { WorldClass = ItemWorldClass.Equipment };
+    private static ItemSnapshot Worn(InventoryItemCoreState core) => ItemSnapshot.FromCore(core, false);
 
-    private static StoredItem Pile(int slotIndex, InventoryItemCoreState core) =>
-        new(slotIndex, core) { WorldClass = ItemWorldClass.Interchangeable };
+    private static ItemSnapshot Pile(InventoryItemCoreState core) => ItemSnapshot.FromCore(core, true);
 
     private static InventoryItemCoreState Potion(int count) => Core(6, PotionId, count);
 
@@ -340,11 +262,12 @@ public sealed class WorldRowSurvivesTheMoveTests
     private sealed record SlotRow(string Kind, int Id, int Count);
 
     private static async Task SettleAsync(
-        StoreUnderTest store, Action<IItemDomainStoreSession> work)
+        StoreUnderTest store, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var transaction = new StubTransaction();
-        work(store.Value.SessionIn(transaction));
-        await transaction.SettleAsync();
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        await work(store.Value.SessionIn(scope.Current!));
+        await transaction.CommitAsync(CancellationToken.None);
     }
 
     private static async Task<int?> IdentityAtAsync(
@@ -520,35 +443,4 @@ public sealed class WorldRowSurvivesTheMoveTests
         }
     }
 
-    /// <summary>Stands in for the coordinator, as the store's own tests do.</summary>
-    private sealed class StubTransaction : IDomainTransaction
-    {
-        private readonly Dictionary<object, ITransactionParticipant> enlisted = [];
-
-        public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
-            where TParticipant : ITransactionParticipant
-        {
-            if (this.enlisted.TryGetValue(identity, out var existing))
-            {
-                return (TParticipant)existing;
-            }
-
-            var participant = create();
-            this.enlisted.Add(identity, participant);
-            return participant;
-        }
-
-        public async Task SettleAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.PrepareAsync(CancellationToken.None);
-            }
-
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.CommitAsync(CancellationToken.None);
-            }
-        }
-    }
 }

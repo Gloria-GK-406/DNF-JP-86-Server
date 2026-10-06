@@ -66,8 +66,8 @@ public sealed class UseStackableCodecTests
     }
 
     /// <remarks>
-    /// Twelve bytes, and no remaining count: the client decrements its own pile by one before the
-    /// answer arrives, so the acknowledgement only has to say that it may keep that decrement.
+    /// Twelve bytes, and no remaining count. The handler publishes the final slot separately
+    /// through NOTI 000E; the acknowledgement itself preserves the observed layout.
     /// </remarks>
     [Fact]
     public void A_success_names_the_slot_it_came_from()

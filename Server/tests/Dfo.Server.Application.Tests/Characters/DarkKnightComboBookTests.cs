@@ -282,7 +282,8 @@ public sealed class DarkKnightComboBookTests
         _ = new SqliteQuestDomainStore(fixture.Path).SessionIn(transaction);
         _ = fixture.Store.SessionIn(transaction);
 
-        Assert.Single(transaction.Participants);
+        Assert.Single(transaction.Participants, x => x.CommitCanFail);
+        Assert.Single(transaction.Participants.OfType<Dfo.Server.Abstractions.Inventory.ItemLifecycleScope>());
     }
 
     /// <summary>One database, wired the way the server wires this book.</summary>

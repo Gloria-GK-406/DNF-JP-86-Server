@@ -32,11 +32,15 @@ public sealed class ItemDiscardCompletedHandler(
         // The A21 client applies this deletion from the success acknowledgement; never replay it.
         var response = new DeleteItemResponse(
             slotProjection.Project(receipt.Slot), receipt.AppliedCount, Success: true);
+        var resources = receipt.Slot.Space == BusinessInventorySpace.SharedMaterial && receipt.RemainingCore is { } remaining
+            ? AccountMaterialNotifications.Compose([new(slotProjection.Project(receipt.Slot).Index, remaining.ItemId, remaining.Value)], receipt.PreparedAt)
+            : [];
         if (notification.QuestProgress is not { } progress)
-            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([response]);
+            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([response, .. resources]);
 
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
             response,
+            .. resources,
             new AcceptedQuestProgressMessage(
                 [.. progress.Quests.OrderBy(quest => quest.Slot)
                     .Select(quest => new AcceptedQuestProgressState(

@@ -449,6 +449,12 @@ public sealed class PaidCardFlipCostTests
         {
             public CharacterId Id => Character;
 
+    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<CharacterProgressionState> SetExpAsync(long experience, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<bool> TrySetExpAsync(CharacterProgressionState expected, long experience, CancellationToken ct) => throw new NotSupportedException();
+
     public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
@@ -568,7 +574,7 @@ public sealed class PaidCardFlipCostTests
     }
 
     /// <summary>A bag that takes whatever it is offered and remembers the last of it.</summary>
-    private sealed class RecordingBag : IItemContainer
+    private sealed class RecordingBag : IItemContainer, Dfo.Server.Application.Tests.Support.IItemGrantStub
     {
         private const int Slot = 3;
 
@@ -582,7 +588,7 @@ public sealed class PaidCardFlipCostTests
 
         public bool IsRemovable => false;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
             this.Landed = StackableItemCore.Create(2, itemId, count);
@@ -590,51 +596,42 @@ public sealed class PaidCardFlipCostTests
                 new ItemPlacementOutcome.PutInEmptySlot(Slot, count));
         }
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+
+        public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Landed is { } core
-                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
+                    ? new ItemReference(this, Id, slotIndex, 0, ItemSnapshot.FromCore(core, true))
                     : null);
 
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
+
+
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
         {
-            this.Landed = core;
-            return ValueTask.CompletedTask;
+            var current = await GetAsync(reference.StorageSlotIndex, ct) ?? throw new InvalidOperationException();
+            if (!current.SameOccupancyAs(reference)) throw new InvalidOperationException();
+            Landed = change(current.Snapshot).ToCore();
+            return (await GetAsync(reference.StorageSlotIndex, ct))!;
         }
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
     }
 
     /// <summary>A character bound to that one bag.</summary>
     private sealed class OneBag(IItemContainer bag) : ICharacterContainerDomainService
     {
         public IItemContainer? FindContainer(
-            CharacterId characterId, InventoryContainerType type) => bag;
+            CharacterId characterId, InventoryContainerType type, bool isDefault = false) => bag;
 
-        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type) =>
+        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false) =>
             bag;
 
         public IReadOnlyList<IItemContainer> GetContainers(

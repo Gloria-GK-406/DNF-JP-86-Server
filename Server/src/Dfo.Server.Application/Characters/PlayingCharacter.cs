@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -20,7 +21,7 @@ namespace Dfo.Server.Application.Characters;
 /// stands, and whether it is waiting on a cooldown. What the judgement does with those is the
 /// archive's business and lives in a service that could not find a character if it wanted to.
 /// </remarks>
-internal sealed class PlayingCharacter(
+internal sealed partial class PlayingCharacter(
     CharacterId characterId,
     IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns,
@@ -31,7 +32,13 @@ internal sealed class PlayingCharacter(
     ICharacterSkillPointDomainService skillPoints,
     ICharacterStatRuleService statRules,
     ICharacterSkillStateDomainService skillState,
-    IDungeonRunDomainService? dungeonRuns = null) : ICharacter
+    IDungeonRunDomainService? dungeonRuns = null,
+    Func<IIllusionTowerDomainService>? towers = null,
+    IExperienceRuleService? experienceRules = null,
+    IExperienceCalculationDomainService? experienceCalculation = null,
+    IExperienceCapsuleDomainService? capsules = null,
+    Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null,
+    Func<Dfo.Server.Abstractions.Effects.IApplyEffectsDomainService>? experienceEffects = null) : ICharacter
 {
     public CharacterId Id => characterId;
 
@@ -40,7 +47,7 @@ internal sealed class PlayingCharacter(
         if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
             return null;
         await statRules.InitializeAsync(cancellationToken).ConfigureAwait(false);
-        return statRules.GetStats(CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)), standing.Level);
+        return statRules.GetStats(CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)), (await ProgressAsync(cancellationToken).ConfigureAwait(false))!.Level);
     }
 
     public async ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) =>
@@ -76,23 +83,15 @@ internal sealed class PlayingCharacter(
             : null;
 
     /// <remarks>
-    /// The row, not the session. A session carries a copy of the character's standing and every
-    /// path that moves it has to remember to correct that copy; the row is what those paths write
-    /// to, so it is the one answer that cannot be a level behind.
-    /// <para>
-    /// Read straight off the table rather than through the service that awards experience. That
-    /// service publishes no read: what it offers is the award itself, and adding a plain read to it
-    /// would put a second door on this row without putting a rule behind it. Reaching the table is
-    /// what this class already does for gold, and for the same reason.
-    /// </para>
+    /// Experience is read for every question and clamped to the playable range. Level is derived
+    /// from that experience and the archive's cumulative thresholds; the stored level column is
+    /// only a compatibility projection for SQL readers, never another source of progression.
     /// </remarks>
     public async ValueTask<CharacterProgressionState?> ProgressAsync(
         CancellationToken cancellationToken) =>
         await characters.FindProgressAsync(characterId, cancellationToken).ConfigureAwait(false)
             is { } progress
-            ? new CharacterProgressionState(
-                checked((byte)Math.Clamp(progress.Level, 1, byte.MaxValue)),
-                checked((uint)Math.Max(0, progress.Experience)))
+            ? ExperienceRules.CharacterScale().ProgressFor(progress.Experience)
             : null;
 
     /// <remarks>
@@ -164,6 +163,7 @@ internal sealed class PlayingCharacter(
     public async ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken)
     {
         if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null
+            && towers?.Invoke().IsInTower(characterId) != true
             || await IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity
             || await ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
             return null;
@@ -190,7 +190,7 @@ internal sealed class PlayingCharacter(
     /// </para>
     /// </remarks>
     private ItemUsePlace Place() =>
-        dungeonRuns?.Find(characterId) is not null
+        dungeonRuns?.Find(characterId) is not null || towers?.Invoke().IsInTower(characterId) == true
             ? ItemUsePlace.Dungeon
             : ItemUsePlace.Village;
 }

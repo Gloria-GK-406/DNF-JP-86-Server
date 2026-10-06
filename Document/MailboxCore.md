@@ -1,5 +1,13 @@
 # 邮箱核心服务
 
+> 历史行为说明，正文保留 `8923ea26` 时的接口与落地边界。
+> 当前已接入 A21 邮箱协议处理链，进度及证据见
+> [邮箱协议实现状态](tasks/mailbox-protocol/implementation-status.md)；不能从服务实现推断实机验收。
+> 物品流转已采用 `ItemReference` → `Take` → `ItemRecord` → `Put`，销毁使用显式 `DeleteItem`；
+> 下文旧 `Clear` 及共享材料账本描述不再是现行接口。当前材料走业务容器，
+> 见 [物品生命周期规格](tasks/item-container-lifecycle/spec.md) 与
+> [槽位坐标边界](inventory-slot-coordinate-boundaries.md)。
+
 2026-09-24；实现基线 `8923ea26`。这是服务级行为说明，新增邮件操作尚未接入 A21 CMD/NOTI，也未做客户端验收。
 
 ## 调用

@@ -3,7 +3,8 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class ExperienceCalculationDomainService(
-    IExperienceValuationDomainService valuation, IExperienceBonusDomainService bonuses)
+    IExperienceValuationDomainService valuation, IExperienceBonusDomainService bonuses,
+    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService? tower = null)
     : IExperienceCalculationDomainService
 {
     public async ValueTask<ExperienceBreakdown> CalculateAsync(ExperienceCalculationContext context,
@@ -15,6 +16,8 @@ internal sealed class ExperienceCalculationDomainService(
         {
             KillExperienceContext => ExperienceEvent.MonsterKill,
             ClearExperienceContext => ExperienceEvent.DungeonClear,
+            TowerKillExperienceContext => ExperienceEvent.TowerKill,
+            TowerClearExperienceContext => ExperienceEvent.TowerClear,
             QuestExperienceContext => ExperienceEvent.QuestCompletion,
             _ => throw new ArgumentOutOfRangeException(nameof(context)),
         };
@@ -45,6 +48,12 @@ internal sealed class ExperienceCalculationDomainService(
                 }
                 _ = settlement.Total;
                 return settlement;
+            case TowerKillExperienceContext kill:
+                return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
+                    .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken, kill.Occasion.DungeonId).ConfigureAwait(false));
+            case TowerClearExperienceContext clear:
+                return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
+                    .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken, clear.Occasion.DungeonId).ConfigureAwait(false));
             case QuestExperienceContext quest:
                 return new(Base: quest.Base);
             default:

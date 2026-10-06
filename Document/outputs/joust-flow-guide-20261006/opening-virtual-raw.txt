@@ -1,0 +1,44 @@
+dump E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin sha256 6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+
+VA 023B8440:023B84B0
+023B8440 55                   push     ebp
+023B8441 8bec                 mov      ebp, esp
+023B8443 53                   push     ebx
+023B8444 56                   push     esi
+023B8445 8bf1                 mov      esi, ecx
+023B8447 8b4604               mov      eax, dword ptr [esi + 4]
+023B844A 57                   push     edi
+023B844B 8b7d08               mov      edi, dword ptr [ebp + 8]
+023B844E 897840               mov      dword ptr [eax + 0x40], edi
+023B8451 8b4604               mov      eax, dword ptr [esi + 4]
+023B8454 8b4828               mov      ecx, dword ptr [eax + 0x28]
+023B8457 8b16                 mov      edx, dword ptr [esi]
+023B8459 8b4024               mov      eax, dword ptr [eax + 0x24]
+023B845C 8b524c               mov      edx, dword ptr [edx + 0x4c]
+023B845F 51                   push     ecx
+023B8460 50                   push     eax
+023B8461 8bce                 mov      ecx, esi
+023B8463 ffd2                 call     edx
+023B8465 83ff0f               cmp      edi, 0xf
+023B8468 0f87dd020000         ja       0x23b874b
+023B846E 0fb687e0873b02       movzx    eax, byte ptr [edi + 0x23b87e0]
+023B8475 ff2485c8873b02       jmp      dword ptr [eax*4 + 0x23b87c8]
+023B847C 6a00                 push     0
+023B847E 6a00                 push     0
+023B8480 6a2d                 push     0x2d
+023B8482 6a2c                 push     0x2c
+023B8484 6a2b                 push     0x2b
+023B8486 6a2a                 push     0x2a
+023B8488 83ec08               sub      esp, 8
+023B848B 8bcc                 mov      ecx, esp
+023B848D 8d5640               lea      edx, [esi + 0x40]
+023B8490 896508               mov      dword ptr [ebp + 8], esp
+023B8493 52                   push     edx
+023B8494 c70100000000         mov      dword ptr [ecx], 0
+023B849A c7410400000000       mov      dword ptr [ecx + 4], 0
+023B84A1 e8ca54e6fe           call     0x121d970
+023B84A6 8b4e50               mov      ecx, dword ptr [esi + 0x50]
+023B84A9 e8929d4300           call     0x27f2240
+
+REF 004F6050
+absolute 0x306bc04

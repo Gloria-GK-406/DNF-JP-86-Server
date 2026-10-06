@@ -47,6 +47,7 @@
          is the one description of how the server wires it. -->
     <Compile Include="..\Dfo.Server.Persistence.Tests\Support\InventorySide.cs"
              Link="Support\InventorySide.cs" />
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\VolatileItemDomainStore.cs" Link="Support\VolatileItemDomainStore.cs" />
     <Compile Include="..\Dfo.Server.Persistence.Tests\Support\CharacterSide.cs"
              Link="Support\CharacterSide.cs" />
   </ItemGroup>

@@ -18,6 +18,14 @@ public sealed class ItemSlotRuleServiceTests
         new(2, 100, new(BusinessInventorySpace.Consumable, 0, 55));
 
     [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)12)]
+    [InlineData(byte.MaxValue)]
+    public void A_quick_slot_refuses_unclassified_items(byte kind) =>
+        Assert.False(Rules.CanOccupySlot(new(BusinessInventorySpace.QuickSlot, 0),
+            new ItemPlacement(kind, 1, new(BusinessInventorySpace.Consumable, 0, 55))));
+
+    [Theory]
     [InlineData(65)]
     [InlineData(90)]
     [InlineData(120)]

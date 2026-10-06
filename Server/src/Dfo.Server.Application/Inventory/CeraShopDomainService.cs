@@ -20,11 +20,12 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
-    ICharacterTable characterRows, IAccountTable accounts, ICharacterBusinessInventoryDomainService stores,
-    ICeraShopRuleService rules, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
+    ICharacterTable characterRows, IAccountWalletDomainService wallets, ICharacterBusinessInventoryDomainService stores,
+    ICeraShopRuleService rules, IItemGrantDomainService grants, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
-    ICreatureDomainService? creatureDomains = null) : ICeraShopDomainService
+    ICreatureDomainService? creatureDomains = null, IInventoryExpansionDomainService? expansion = null,
+    IInventoryCapacityRuleService? capacityRules = null) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
 
         var character = characters.Get(session.CharacterId);
         var progress = await character.ProgressAsync(cancellationToken).ConfigureAwait(false);
-        var wallet = await accounts.FindWalletAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
+        var wallet = await wallets.ReadAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
         if (progress is null || wallet is null)
             return CeraShopPurchaseResult.Refused(CeraShopRejection.NoSession);
         var quoted = await rules.QuoteAsync(input, progress.Level, now, cancellationToken).ConfigureAwait(false);
@@ -56,10 +57,17 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             restrictionEffects = restrictionPlan.Effects;
         }
 
+        IReadOnlyList<InventoryExpansionChange> capacityChanges = [];
+        if (!quote.Expansions.IsEmpty)
+        {
+            var changes = expansion is null ? null : await expansion.PlanPurchaseAsync(session, quote.Expansions, cancellationToken).ConfigureAwait(false);
+            if (changes is null) return CeraShopPurchaseResult.Refused(CeraShopRejection.StateChanged, "Expansion stage is unavailable.");
+            capacityChanges = changes;
+        }
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
-        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>();
         var spaces = quote.Grants.Select(grant => grant.Placement.Destination.Space)
-            .Concat(quote.Grants.Where(grant => ItemSlotRuleService.AllowsQuickSlot(grant.Placement.ItemKind))
+            .Concat(quote.Grants.Where(grant => grant.Placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(grant.Placement))
                 .Select(_ => BusinessInventorySpace.QuickSlot)).Distinct();
         foreach (var space in spaces)
         {
@@ -67,17 +75,34 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                 .FindContainer(space);
             if (bag is null) continue;
             bags.Add(space, bag);
-            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+            held.Add(space, await bag.GetAllAsync(cancellationToken).ConfigureAwait(false));
         }
+        var boundedGrants = ImmutableArray.CreateBuilder<CeraShopGrant>();
+        foreach (var grant in quote.Grants)
+        {
+            if (!bags.TryGetValue(grant.Placement.Destination.Space, out var bag))
+                return CeraShopPurchaseResult.Refused(CeraShopRejection.NoRoom);
+            var space = grant.Placement.Destination.Space;
+            var open = await bag.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false);
+            var kind = space == BusinessInventorySpace.Avatar ? Dfo.Server.Abstractions.Content.InventoryExpansionKind.Avatar
+                : Dfo.Server.Abstractions.Content.InventoryExpansionKind.Main;
+            var changedCapacity = capacityChanges.LastOrDefault(c => c.Kind == kind);
+            if (changedCapacity is not null && capacityRules is not null)
+                open = capacityRules.OpenSlotCount(space, changedCapacity.Parameter);
+            var placement = InventoryCapacityPlacement.Limit(grant.Placement, open);
+            if (placement is null) return CeraShopPurchaseResult.Refused(CeraShopRejection.NoRoom);
+            boundedGrants.Add(grant with { Placement = placement });
+        }
+        quote = quote with { Grants = boundedGrants.ToImmutable() };
         var gold = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
-        var before = new AccountCeraBalances(checked((int)wallet.Cera), checked((int)wallet.TokenCera), checked((int)wallet.HappyTokenCera));
+        var before = wallet;
         var planned = rules.Plan(quote, held, gold, before, Random.Shared.Next(1, int.MaxValue));
         if (planned.Plan is not { } plan)
             return CeraShopPurchaseResult.Refused(planned.Rejection, planned.Detail);
 
         // From the first write onwards, every refusal must unwind the shared transaction.
-        if (before != plan.Balances && await accounts.TrySetCeraBalancesAsync(session.AccountId, before, plan.Balances,
-                cancellationToken).ConfigureAwait(false) != 1)
+        if (before != plan.Balances && !await wallets.TryApplyAsync(session.AccountId, before, plan.Balances,
+                cancellationToken).ConfigureAwait(false))
             throw new CeraShopPurchaseRejectedException(CeraShopRejection.StateChanged, "Account balances changed before settlement.");
         if (plan.GoldCost > 0)
             gold = await character.TrySpendGoldAsync(plan.GoldCost, cancellationToken).ConfigureAwait(false)
@@ -85,6 +110,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         if (restrictionEffects.Count > 0)
             await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, session), restrictionEffects,
                 cancellationToken).ConfigureAwait(false);
+        if (capacityChanges.Count > 0)
+            await expansion!.ApplyPurchaseAsync(session, capacityChanges, cancellationToken).ConfigureAwait(false);
         foreach (var subscription in quote.Subscriptions)
             await premiums.For(session.AccountId).ExtendAsync(subscription.Service, subscription.Duration,
                 cancellationToken).ConfigureAwait(false);
@@ -92,9 +119,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             await premiumUsage.RenewDoublePotAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         foreach (var write in plan.Writes)
         {
-            if (write.CreationFacts is { } facts)
-                await bags[write.Slot.Space].PutNewAsync(write.Slot.Index, write.Core, facts, cancellationToken).ConfigureAwait(false);
-            else await bags[write.Slot.Space].PutAsync(write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
+            var bag = bags[write.Slot.Space];
+            await grants.ApplyPlannedAsync(bag, write.Slot.Index, write.Core, cancellationToken).ConfigureAwait(false);
         }
         await itemStore.SessionIn(transaction).ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -113,7 +139,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                 throw new InvalidDataException("A committed CERA grant is absent from its inventory projection.");
             updates.Add(new(group.Key, items, now));
         }
-        var hasCreatures = plan.Writes.Any(write => write.CreationFacts?.Creature is not null);
+        var hasCreatures = plan.Writes.Any(write => write.Core.CreatureDetail is not null);
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (hasCreatures)
         {
@@ -142,9 +168,19 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             entitlements = new(await premiums.For(session.AccountId).ReadAsync(cancellationToken).ConfigureAwait(false));
             usage = await premiumUsage.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
         }
+        var expandedInventory = capacityChanges.Count == 0 ? null
+            : await expansion!.SnapshotAsync(session, now, cancellationToken).ConfigureAwait(false);
         return new(CeraShopRejection.None, new(session, quote.ProductIds, plan.Balances, gold, plan.GoldCost > 0,
             updates.ToImmutable(), pets, hasCreatures, now)
-            { PremiumEntitlements = entitlements, PremiumUsageSlots = usage,
+            { ExpandedCharacterInventory = expandedInventory?.Character, ExpandedAccountInventory = expandedInventory?.Account,
+                ExpandedContainers = capacityChanges.Select(c => c.Kind switch
+                {
+                    Dfo.Server.Abstractions.Content.InventoryExpansionKind.Main => InventoryContainerType.Main,
+                    Dfo.Server.Abstractions.Content.InventoryExpansionKind.Avatar => InventoryContainerType.Avatar,
+                    Dfo.Server.Abstractions.Content.InventoryExpansionKind.PersonalCargo => InventoryContainerType.PersonalCargo,
+                    _ => InventoryContainerType.AccountCargo,
+                }).Distinct().ToArray(),
+                PremiumEntitlements = entitlements, PremiumUsageSlots = usage,
                 PurchaseRestrictions = quote.Restrictions.IsEmpty ? null
                     : (await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false)).Entries,
                 GrantedPremiums = entitlements?.Premiums.Where(p => p.PremiumType is 22 or 27 or 84 or 97

@@ -11,8 +11,8 @@ CMD	0x001A	3	分解机（分解道具）所在槽位 DisjointItemSlotIndex，i16
 CMD	0x0100	0	待合成的纹章条目数 count；上游校验 2 <= count <= 5 且 body 长度须严格等于 1 + count*6，据此循环解析后续重复组	Confirmed	上游 Network/Parsers/Inventory/EmblemCompoundRequestParser.cs:14 var count = body[0]，:15 校验区间与总长，:19-21 以 offset = 1 + index*6 循环
 CMD	0x0100	g1:0	该纹章的物品模板 ID ItemTemplateId，i32，上游要求 > 0	Confirmed	上游 Network/Parsers/Inventory/EmblemCompoundRequestParser.cs:22 BitConverter.ToInt32(body, offset) 作 ItemTemplateId，:24 校验 > 0
 CMD	0x0100	g1:4	该纹章所在背包槽位 SlotIndex，i16，上游要求 >= 0	Confirmed	上游 Network/Parsers/Inventory/EmblemCompoundRequestParser.cs:23 BitConverter.ToInt16(body, offset + 4) 作 SlotIndex，:24 校验 >= 0
-CMD	0x0050	0	强化方式 ItemUpgradeMethod 的低字节；上游按 u16 读 body[0..1]，值 > AdvancedReinforce 直接拒收，等于 Amplify 时整包转为增幅模式	High	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:23 BitConverter.ToUInt16(body, 0) 作 rawMethod，:24-25 上限校验，:33-36 定 Method/Mode（本字段宽度 1，上游按 2 字节整体读，需一步推导）
-CMD	0x0050	1	同一个 ItemUpgradeMethod u16 的高字节；上游的 ToUInt16(body, 0) 覆盖 body[0..1]，本字节即其 MSB	High	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:23 BitConverter.ToUInt16(body, 0) 覆盖 body[0] 与 body[1]（提取的字段边界把这 2 字节切成两个 u8，需一步推导）
+CMD	0x0050	0	强化方式 method，独立 u8；本服支持 0 强化、1 增幅	Confirmed	ClientStatic A21 VA 016FD5EE-016FD5F9 将参数 [ebp+0x10] 经 WriteU8(0274D2E0) 写出；不是 u16 的低字节
+CMD	0x0050	1	目标容器 targetList，独立 u8：0 主背包、3 穿戴装备；另一路构包写38公会勋章（本服拒绝）	Confirmed	ClientStatic A21 VA 016FD0F5 默认0，016FD10D 非主背包查找改3，016FD609 经 WriteU8 写出；016FD95A-016FD963 独立写38。旧上游 u16 method 推断被否定
 CMD	0x0050	2	被强化的目标装备槽位 TargetSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:37 BitConverter.ToInt16(body, 2) 作 TargetSlotIndex
 CMD	0x0050	4	目标装备物品模板 ID TargetItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:38 BitConverter.ToInt32(body, 4) 作 TargetItemTemplateId
 CMD	0x0050	8	强化材料所在槽位 MaterialSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:39 BitConverter.ToInt16(body, 8) 作 MaterialSlotIndex

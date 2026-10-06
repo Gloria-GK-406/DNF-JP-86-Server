@@ -4,6 +4,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -11,17 +12,17 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class SelectCharacterEntryInventoryDomainService(
-    IInventoryLifecycleRuleService lifecycleRules,
-    IEntryInventoryMutationRepository mutations,
+    IDailyRefillConfigurationDomainService configuration,
+    IDailyRefillDomainService mutations,
     ICharacterInventoryEntryDomainService inventories,
     ICharacterContainerDomainService containers,
     IItemDomainStore itemStore,
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
-    IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules,
     ICharacterEntryPreparationRuleService preparationRules,
-    IInventorySlotMappingRuleService? slotMappings = null) : ISelectCharacterEntryInventoryDomainService
+    IInventorySlotMappingRuleService? slotMappings = null, IInventoryCapacityDomainService? capacities = null,
+    ITransientItemDomainStoreFactory? transientStores = null) : ISelectCharacterEntryInventoryDomainService
 {
     private readonly IInventorySlotMappingRuleService slotMappings = slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
@@ -31,7 +32,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         reloaded = await SupportCreatureMarkerProjection.CompleteAsync(
             reloaded, preparationRules, result.World.PreparedAt, cancellationToken).ConfigureAwait(false);
-        BindContainers(session.CharacterId, reloaded);
+        BindContainers(session.AccountId, session.CharacterId, reloaded, result.AccountInventory.Cargo.Container);
         return result with { CharacterInventory = reloaded };
     }
 
@@ -49,7 +50,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     /// a character that got past here unbound would be shown a full inventory whose every drag came
     /// back refused -- with an error code a dozen legitimate refusals also use.
     /// </remarks>
-    private void BindContainers(CharacterId characterId, CharacterInventoryEntryState inventory)
+    private void BindContainers(AccountId accountId, CharacterId characterId, CharacterInventoryEntryState inventory,
+        InventoryContainerState accountCargo)
     {
         var main = inventory.Containers.SingleOrDefault(
                 value => value.ContainerType == InventoryContainerType.Main)
@@ -76,21 +78,26 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             ?? throw new InvalidDataException(
                 "Entry inventory has no avatar container to bind the character to.");
 
+        var transient = (transientStores ?? throw new InvalidOperationException("Memory inventory storage is not configured.")).Create();
         containers.Clear(characterId);
         foreach (var container in ((InventoryContainerState[])[main, equipment, avatar])
-            .Concat(inventory.Containers.Where(value => value.ContainerType == InventoryContainerType.Pet)))
+            .Concat(inventory.Containers.Where(value => value.ContainerType is InventoryContainerType.Pet
+                or InventoryContainerType.PersonalCargo)).Append(accountCargo)
+            .Append(new InventoryContainerState(InventoryContainerType.SharedMaterial, 11, [])))
         {
             containers.Register(characterId, new PersistentItemContainer(
-                ContainerId.ForCharacter(characterId, container.ContainerType),
-                characterId,
+                container.ContainerType is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial
+                    ? ContainerId.ForAccount(accountId, container.ContainerType)
+                    : ContainerId.ForCharacter(characterId, container.ContainerType),
                 new ContainerShape(container.ContainerType, container.Parameter),
                 itemStore,
                 transactions,
-                mutations,
                 placementRules,
-                arrivals,
-                slotRules));
+                slotRules, capacities));
         }
+        containers.Register(characterId, new MemoryItemContainer(
+            new ContainerId($"tower:empty:{characterId.Value}:{Guid.NewGuid():N}"), new(InventoryContainerType.QuickSlot, 6),
+            transient, transactions, placementRules, slotRules));
     }
 
     public async ValueTask<EntryInventoryPreparation> ApplyDailyRefillAsync(
@@ -100,7 +107,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             || result.Account.AccountId != session.AccountId)
             throw new InvalidDataException("Entry inventory owner does not match selected session.");
 
-        var rules = await lifecycleRules.DailyRefillsAsync(result.World.PreparedAt, cancellationToken)
+        var rules = await configuration.EffectiveAsync(result.World.PreparedAt, cancellationToken)
             .ConfigureAwait(false);
         var committed = await mutations.ApplyDailyRefillAsync(
                 session.AccountId, session.CharacterId, rules, result.World.PreparedAt, cancellationToken)

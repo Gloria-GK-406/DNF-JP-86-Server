@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Characters;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
@@ -28,14 +31,29 @@ internal static class StorageRecordDump
     public static string Of(object? value)
     {
         var lines = new StringBuilder();
-        Write(lines, string.Empty, value);
+        Write(lines, string.Empty, value, value?.GetType().GetProperty("CharacterId")?.GetValue(value) is CharacterId id ? id : default);
         return lines.ToString();
     }
 
-    private static void Write(StringBuilder lines, string path, object? value)
+    private static void Write(StringBuilder lines, string path, object? value, CharacterId character)
     {
         switch (value)
         {
+            case ItemReference item:
+                if (!item.ContainerId.TryGetOwner(out var owner, out var container))
+                    throw new InvalidOperationException("Expected a durable container.");
+                Write(lines, path + ".Identity", item.ItemUid, character);
+                Write(lines, path + ".OwnerType", owner.Scope, character);
+                Write(lines, path + ".OwnerId", owner.Value, character);
+                Write(lines, path + ".CharacterId", character, character);
+                Write(lines, path + ".ContainerType", container, character);
+                Write(lines, path + ".SlotIndex", item.SlotIndex, character);
+                Write(lines, path + ".Core", item.Snapshot.ToCore(), character);
+                Write(lines, path + ".AvatarDetail", item.Snapshot.AvatarDetail, character);
+                Write(lines, path + ".CreatureDetail", item.Snapshot.CreatureDetail, character);
+                Write(lines, path + ".Count", item.Snapshot.Count, character);
+                Write(lines, path + ".IsPile", item.Snapshot.IsPile, character);
+                return;
             case null:
                 lines.Append(path).Append(" = null").Append('\n');
                 return;
@@ -57,7 +75,7 @@ internal static class StorageRecordDump
                 var index = 0;
                 foreach (var item in items)
                 {
-                    Write(lines, $"{path}[{index}]", item);
+                    Write(lines, $"{path}[{index}]", item, character);
                     index++;
                 }
 
@@ -94,7 +112,7 @@ internal static class StorageRecordDump
         foreach (var member in members)
         {
             var child = path.Length == 0 ? member.Name : $"{path}.{member.Name}";
-            Write(lines, child, member.Read(value));
+            Write(lines, child, member.Read(value), character);
         }
     }
 }

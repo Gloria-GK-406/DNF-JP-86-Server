@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -43,7 +44,8 @@ public sealed class FinishQuestHandler(
     TimeProvider clock,
     ILogger<FinishQuestHandler> logger,
     ITownAreaDomainService townAreas, IDungeonRunDomainService dungeonRuns,
-    WeaknessProjectionDelivery weaknessProjection, DungeonRunDeliveryRegistry runGenerations) : ClientMessageHandler<FinishQuestRequest>
+    WeaknessProjectionDelivery weaknessProjection, DungeonRunDeliveryRegistry runGenerations,
+    IIllusionTowerDomainService? towers = null) : ClientMessageHandler<FinishQuestRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -180,15 +182,15 @@ public sealed class FinishQuestHandler(
         {
             frames.Add(GameInventoryDelivery.VirtualResourceNotification(
                 [.. accountMaterials.Select(material => new InventoryRuntimeValueState(
-                    material.VirtualSlotIndex,
+                    material.SlotIndex,
                     material.ItemId,
-                    material.FinalCount))],
+                    material.Value))],
                 clock.GetUtcNow()));
         }
         if (mirror is not null)
         {
             frames.Add(new ExperienceNotification(
-                outcome.NewLevel, outcome.NewExperience, mirror, AccountHonorLevel.Initial,
+                outcome.NewLevel, outcome.NotificationExperience, mirror, AccountHonorLevel.Initial,
                 // A quest pays its own table's figure and nothing on top, so there is no named
                 // line to declare. The client draws the whole gain as the base, which is what it
                 // is.
@@ -218,19 +220,32 @@ public sealed class FinishQuestHandler(
             var audience = new HashSet<SelectedSessionIdentity>();
             if (selectedSessions.FindByCharacter(session.CharacterId) == session)
             {
-                if (townAreas.Find(session.CharacterId) is { } own && session.Owns(own)
-                    && townAreas.Find(own.Area) is { } area)
-                    foreach (var member in area.VisibleTo(session.CharacterId))
-                        if (selectedSessions.FindByCharacter(member.CharacterId) is { } peer && peer.Owns(member))
-                            audience.Add(peer);
-                if (dungeonRuns.Find(session.CharacterId) is { } run)
+                if (towers?.Find(session) is { } tower)
                 {
-                    var admitted = runGenerations.Find(run.RunId);
-                    if (admitted.Contains(session))
-                        foreach (var peer in admitted)
-                            if (selectedSessions.FindByCharacter(peer.CharacterId) == peer
-                                && dungeonRuns.Find(peer.CharacterId)?.RunId == run.RunId)
+                    foreach (var member in tower.Members)
+                    {
+                        var peer = member.Session;
+                        if (selectedSessions.FindByCharacter(peer.CharacterId) == peer
+                            && towers.Find(peer)?.RunId == tower.RunId)
+                            audience.Add(peer);
+                    }
+                }
+                else
+                {
+                    if (townAreas.Find(session.CharacterId) is { } own && session.Owns(own)
+                        && townAreas.Find(own.Area) is { } area)
+                        foreach (var member in area.VisibleTo(session.CharacterId))
+                            if (selectedSessions.FindByCharacter(member.CharacterId) is { } peer && peer.Owns(member))
                                 audience.Add(peer);
+                    if (dungeonRuns.Find(session.CharacterId) is { } run)
+                    {
+                        var admitted = runGenerations.Find(run.RunId);
+                        if (admitted.Contains(session))
+                            foreach (var peer in admitted)
+                                if (selectedSessions.FindByCharacter(peer.CharacterId) == peer
+                                    && dungeonRuns.Find(peer.CharacterId)?.RunId == run.RunId)
+                                    audience.Add(peer);
+                    }
                 }
             }
             foreach (var peer in audience.Where(peer => peer != session))

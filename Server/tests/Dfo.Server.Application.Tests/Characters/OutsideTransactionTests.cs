@@ -73,18 +73,17 @@ public sealed class OutsideTransactionTests
 
         await access.ChangeAsync(
             run,
-            held =>
+            async held =>
             {
-                held.Write(dungeon, new StoredItem(0, Potion()));
-                return ValueTask.CompletedTask;
+                await held.PutAsync(dungeon, 0, await held.CreateAsync(ItemSnapshot.FromCore(Potion(), true), default), default);
             },
             CancellationToken.None);
 
         // Allowed is not the same as effective. A boundary opened here has to be settled here
         // too, or the write is staged and then dropped with nothing to show for it.
         var kept = await access.ReadAsync(
-            run, held => held.ReadAsync(dungeon, 0, CancellationToken.None));
-        Assert.Equal(PotionId, kept!.Core.ItemId);
+            run, held => held.GetAsync(dungeon, 0, CancellationToken.None));
+        Assert.Equal(PotionId, kept!.ItemId);
     }
 
     private const int PotionId = 1000;

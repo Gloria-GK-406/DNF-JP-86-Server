@@ -78,18 +78,15 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                 new CharacterId(Character), InventoryContainerType.Pet);
             var container = new PersistentItemContainer(
                 pet,
-                new CharacterId(Character),
                 new ContainerShape(InventoryContainerType.Pet, 0),
                 store,
                 scope,
-                null!,
                 rules,
-                new ItemArrivalRuleService(),
                 new ItemSlotRuleService());
             var registered = new CharacterContainerDomainService();
             registered.Register(new CharacterId(Character), container);
             var business = new CharacterBusinessInventoryDomainService(registered, rules,
-                new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>())
+                new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>(), lifecycle: new ItemLifecycleDomainService(store, scope, rules))
                 .GetStore(new CharacterId(Character), BusinessInventoryStoreKind.Creature)
                 .GetContainer(BusinessInventorySpace.CreatureInventory);
 
@@ -100,12 +97,12 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
 
             // What storage holds for the same template.
             var stored = await store.SessionIn(scope.Current!)
-                .ReadAsync(pet, landed.SlotIndex, CancellationToken.None);
+                .GetAsync(pet, landed.SlotIndex, CancellationToken.None);
             Assert.NotNull(stored);
-            Assert.Equal(ContractCreatureItemId, stored!.Core.ItemId);
+            Assert.Equal(ContractCreatureItemId, stored!.Snapshot.ToCore().ItemId);
 
-            Assert.Equal(fromTheArchive!.ItemKind, stored.Core.ItemKind);
-            Assert.True(stored.Core.Value > 0);
+            Assert.Equal(fromTheArchive!.ItemKind, stored.Snapshot.ToCore().ItemKind);
+            Assert.True(stored.Snapshot.ToCore().Value > 0);
             await lease.CommitAsync(CancellationToken.None);
             using (var database = new Microsoft.Data.Sqlite.SqliteConnection(
                 new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path }.ToString()))
@@ -113,14 +110,14 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                 database.Open();
                 using var command = database.CreateCommand();
                 command.CommandText = "SELECT creature_field04 FROM items WHERE item_uid=@identity";
-                command.Parameters.AddWithValue("@identity", stored.Identity!.Value.Value);
+                command.Parameters.AddWithValue("@identity", stored.ItemUid!.Value.Value);
                 Assert.Equal(100L, (long)command.ExecuteScalar()!);
             }
 
             // And the number the two agree on is the one the entry path reads a creature by.
             Assert.Equal(
                 ContractCreatureItemId,
-                new EquippedCreatureQuery().GetItemId(WornInTheCreatureSlot(stored.Core)));
+                new EquippedCreatureQuery().GetItemId(WornInTheCreatureSlot(stored.Snapshot.ToCore())));
         }
         finally
         {

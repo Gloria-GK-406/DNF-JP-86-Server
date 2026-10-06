@@ -37,7 +37,7 @@ public sealed class UserServiceTests
         var cleanup = new ClearingCleanup(users);
         var connection = new NetworkConnectionContext(new("Game:replace-waiting"), NetworkEndpointKind.Game, 10011);
         var online = users.RegisterConnection(connection);
-        await users.LoginAsync(online.OnlineUserId, "login-109", "hash", default);
+        await users.AuthenticateForTestAsync(online.OnlineUserId);
         var original = SelectedSessionIdentity.Create(account, new(1009), connection.ConnectionId,
             users.GetRequired(online.OnlineUserId).Generation, 10011);
         sessions.Select(original);
@@ -73,7 +73,7 @@ public sealed class UserServiceTests
         var selected = new SelectedSessionDomainService();
         var connection = new NetworkConnectionContext(new("Game:lock-order"), NetworkEndpointKind.Game, 10011);
         var online = users.RegisterConnection(connection);
-        await users.LoginAsync(online.OnlineUserId, "login-108", "hash", default);
+        await users.AuthenticateForTestAsync(online.OnlineUserId);
         var authenticated = users.GetRequired(online.OnlineUserId);
         selected.Select(SelectedSessionIdentity.Create(accountId, new(1008), connection.ConnectionId,
             authenticated.Generation, 10011));
@@ -129,8 +129,7 @@ public sealed class UserServiceTests
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:endpoint-owner"), NetworkEndpointKind.Game, 10011);
         var connected = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            connected.OnlineUserId, "endpoint-owner", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(connected.OnlineUserId);
         var authenticated = service.GetRequired(connected.OnlineUserId);
         var endpoint = Endpoint(30_976);
 
@@ -157,15 +156,13 @@ public sealed class UserServiceTests
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:reused-endpoint"), NetworkEndpointKind.Game, 10011);
         var oldConnected = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            oldConnected.OnlineUserId, "old-endpoint", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(oldConnected.OnlineUserId);
         var oldSession = service.GetRequired(oldConnected.OnlineUserId).SessionIdentity;
         Assert.True(service.TryObserve(oldSession, Endpoint(30_976)));
 
         Assert.True(service.TryDisconnectConnection(connection.ConnectionId));
         var replacement = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            replacement.OnlineUserId, "replacement-endpoint", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(replacement.OnlineUserId);
 
         Assert.Null(service.Find(oldSession));
         Assert.False(service.TryObserve(oldSession, Endpoint(36_624)));
@@ -294,11 +291,7 @@ public sealed class UserServiceTests
             10011);
         var registered = service.RegisterConnection(connection);
 
-        await service.LoginAsync(
-            registered.OnlineUserId,
-            "login-42",
-            "hash",
-            CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
 
         Assert.Equal(OnlineUserState.Authenticated, authenticated.State);
@@ -315,11 +308,7 @@ public sealed class UserServiceTests
             NetworkEndpointKind.Game,
             10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            registered.OnlineUserId,
-            "login-99",
-            "hash",
-            CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
 
         Assert.False(service.TryDisconnect(
@@ -346,11 +335,7 @@ public sealed class UserServiceTests
             NetworkEndpointKind.Game,
             10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            registered.OnlineUserId,
-            "login-101",
-            "hash",
-            CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
         var session = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1001), connection.ConnectionId,
@@ -387,11 +372,7 @@ public sealed class UserServiceTests
             NetworkEndpointKind.Game,
             10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            registered.OnlineUserId,
-            "login-102",
-            "hash",
-            CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
         var session = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1002), connection.ConnectionId,
@@ -425,7 +406,7 @@ public sealed class UserServiceTests
         var firstConnection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:old"), NetworkEndpointKind.Game, 10011);
         var first = service.RegisterConnection(firstConnection);
-        await service.LoginAsync(first.OnlineUserId, "old", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(first.OnlineUserId);
         var firstAuthenticated = service.GetRequired(first.OnlineUserId);
         var firstSession = SelectedSessionIdentity.Create(accountId, new CharacterId(1101),
             firstConnection.ConnectionId, firstAuthenticated.Generation, 10011);
@@ -434,7 +415,7 @@ public sealed class UserServiceTests
         var secondConnection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:new"), NetworkEndpointKind.Game, 10011);
         var second = service.RegisterConnection(secondConnection);
-        await service.LoginAsync(second.OnlineUserId, "new", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(second.OnlineUserId);
         var secondAuthenticated = service.GetRequired(second.OnlineUserId);
         var replacement = SelectedSessionIdentity.Create(accountId, new CharacterId(1102),
             secondConnection.ConnectionId, secondAuthenticated.Generation, 10011);
@@ -460,11 +441,7 @@ public sealed class UserServiceTests
             NetworkEndpointKind.Game,
             10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            registered.OnlineUserId,
-            "login-103",
-            "hash",
-            CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
         var previous = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1003), connection.ConnectionId,
@@ -509,11 +486,7 @@ public sealed class UserServiceTests
         var disconnect = observer.DisconnectedAsync(connection, CancellationToken.None).AsTask();
         await Task.Yield();
         Assert.False(disconnect.IsCompleted);
-        await service.LoginAsync(
-            registered.OnlineUserId,
-            "login-100",
-            "hash",
-            CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
         await identityTransition.DisposeAsync();
         await disconnect;
@@ -538,7 +511,7 @@ public sealed class UserServiceTests
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(registered.OnlineUserId, "login-104", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var beforeBind = service.GetRequired(registered.OnlineUserId);
         var selected = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1004), connection.ConnectionId, beforeBind.Generation, 10011);
@@ -560,8 +533,7 @@ public sealed class UserServiceTests
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:cleanup-failure"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            registered.OnlineUserId, "login-106", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         var authenticated = service.GetRequired(registered.OnlineUserId);
         var selected = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1006), connection.ConnectionId,
@@ -615,8 +587,7 @@ public sealed class UserServiceTests
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
-        await service.LoginAsync(
-            registered.OnlineUserId, "login-105", "hash", CancellationToken.None);
+        await service.AuthenticateForTestAsync(registered.OnlineUserId);
         await using var blocker = await lifecycleGate.AcquireAsync(
             new AccountId(105), UserAccessMode.Exclusive, CancellationToken.None);
 
@@ -628,9 +599,9 @@ public sealed class UserServiceTests
 
     private static UserDomainServices CreateService(AccountId accountId = default)
     {
-        var repository = new StubAccountRepository(
+        var account = (
             accountId == default ? new AccountId(1) : accountId);
-        return new UserDomainServices(() => repository);
+        return new UserDomainServices(account);
     }
 
     private static SessionEndpoint Endpoint(ushort port) => new(
@@ -727,18 +698,6 @@ public sealed class UserServiceTests
         public override DateTimeOffset GetUtcNow() => value;
     }
 
-    private sealed class StubAccountRepository(AccountId accountId) : IAccountRepository
-    {
-        public ValueTask<AccountRecord> GetOrCreateAsync(
-            string loginId,
-            string passwordHash,
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new AccountRecord(
-                accountId,
-                loginId,
-                passwordHash,
-                DateTimeOffset.UtcNow));
-    }
 
     private sealed class EmptySelectedSessions : ISelectedSessionDomainService
     {

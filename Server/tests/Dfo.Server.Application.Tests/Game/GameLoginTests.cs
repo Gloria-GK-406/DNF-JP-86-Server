@@ -46,8 +46,8 @@ public sealed class GameLoginTests
     [Fact]
     public async Task MessageHandler_ResolvesConnectionAndSendsSuccessToSameConnection()
     {
-        var repository = new FixedAccountRepository(new AccountId(7));
-        var onlineUsers = new UserDomainServices(() => repository);
+        var account = new AccountId(7);
+        var onlineUsers = new UserDomainServices(account);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:login-message"),
             NetworkEndpointKind.Game,
@@ -110,8 +110,7 @@ public sealed class GameLoginTests
     [Fact]
     public async Task MessageHandler_CommandFailureSendsNoSuccessAndRemovesTheAnonymousConnection()
     {
-        var onlineUsers = new UserDomainServices(
-            () => new FixedAccountRepository(new AccountId(7)));
+        var onlineUsers = new UserDomainServices(new AccountId(7));
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:login-refused"),
             NetworkEndpointKind.Game,
@@ -141,8 +140,7 @@ public sealed class GameLoginTests
     [Fact]
     public async Task MessageHandler_InvalidTicketSendsNothingClosesAndDoesNotAuthenticate()
     {
-        var onlineUsers = new UserDomainServices(
-            () => new FixedAccountRepository(new AccountId(7)));
+        var onlineUsers = new UserDomainServices(new AccountId(7));
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:invalid-ticket"),
             NetworkEndpointKind.Game,
@@ -178,8 +176,7 @@ public sealed class GameLoginTests
     [Fact]
     public async Task MessageHandler_SendFailureConsumesTheSuccessButRemovesItsPublishedIdentity()
     {
-        var onlineUsers = new UserDomainServices(
-            () => new FixedAccountRepository(new AccountId(7)));
+        var onlineUsers = new UserDomainServices(new AccountId(7));
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:send-failure"),
             NetworkEndpointKind.Game,
@@ -210,8 +207,7 @@ public sealed class GameLoginTests
     [Fact]
     public async Task MessageHandler_DoesNotSendWhenCommandReturnsWithoutPublishedIdentity()
     {
-        var onlineUsers = new UserDomainServices(
-            () => new FixedAccountRepository(new AccountId(7)));
+        var onlineUsers = new UserDomainServices(new AccountId(7));
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:publication-missing"),
             NetworkEndpointKind.Game,
@@ -260,19 +256,6 @@ public sealed class GameLoginTests
         }
     }
 
-    private sealed class FixedAccountRepository(AccountId accountId) : IAccountRepository
-    {
-        public ValueTask<AccountRecord> GetOrCreateAsync(
-            string loginId,
-            string passwordHash,
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new AccountRecord(
-                accountId,
-                loginId,
-                passwordHash,
-                DateTimeOffset.UtcNow));
-    }
-
     private sealed class PublishingRecordingCommandBus(
         UserDomainServices onlineUsers,
         AccountId accountId) : ICommandBus
@@ -286,11 +269,7 @@ public sealed class GameLoginTests
         {
             Command = command;
             var login = Assert.IsType<RedeemGameLoginCommand>(command);
-            await onlineUsers.LoginAsync(
-                login.OnlineUserId,
-                login.MId,
-                "test-only",
-                cancellationToken);
+            await onlineUsers.AuthenticateForTestAsync(login.OnlineUserId);
             return (TResult)(object)new RedeemGameLoginResult(accountId);
         }
     }

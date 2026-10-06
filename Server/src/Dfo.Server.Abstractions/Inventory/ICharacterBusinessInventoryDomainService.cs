@@ -9,12 +9,12 @@ public static class BusinessInventoryOwnership
 {
     public static BusinessInventoryStoreKind StoreOf(BusinessInventorySpace space) => space switch
     {
-        BusinessInventorySpace.QuickSlot or BusinessInventorySpace.CarriedEquipment
+        BusinessInventorySpace.QuickSlot or BusinessInventorySpace.TowerQuickSlot or BusinessInventorySpace.CarriedEquipment
             or BusinessInventorySpace.Consumable or BusinessInventorySpace.Material
             or BusinessInventorySpace.Quest or BusinessInventorySpace.ExpertMaterial
             or BusinessInventorySpace.PersonalCargo
             or BusinessInventorySpace.WornEquipment or BusinessInventorySpace.WornEquipmentExtension
-            or BusinessInventorySpace.AccountCargo => BusinessInventoryStoreKind.Item,
+            or BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial => BusinessInventoryStoreKind.Item,
         BusinessInventorySpace.Avatar or BusinessInventorySpace.AvatarEmblem
             or BusinessInventorySpace.WornAvatar => BusinessInventoryStoreKind.Avatar,
         BusinessInventorySpace.CreatureInventory or BusinessInventorySpace.CreatureEquipment
@@ -28,28 +28,34 @@ public static class BusinessInventoryOwnership
 public interface ICharacterBusinessInventoryDomainService
 {
     IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind);
+    /// <summary>Explicit persistent access for offline delivery and entry loading; does not register an online container.</summary>
+    IBusinessInventoryStore GetPersistentStore(ContainerOwner owner, BusinessInventoryStoreKind kind) =>
+        throw new NotSupportedException("This inventory provider does not support explicit persistent access.");
 }
 
 public interface IBusinessInventoryStore
 {
     BusinessInventoryStoreKind Kind { get; }
-    IBusinessItemContainer? FindContainer(BusinessInventorySpace space);
-    IBusinessItemContainer GetContainer(BusinessInventorySpace space);
+    IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false);
+    IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false);
 }
 
 public interface IBusinessItemContainer
 {
     BusinessContainerId Id { get; }
     ContainerId StorageId { get; }
+    bool IsDefault => true;
+    bool IsPersistent => true;
     BusinessInventorySpace Space { get; }
-    ValueTask<ContainerSlotItem?> ReadSlotAsync(int index, CancellationToken cancellationToken);
-    ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken);
-    ValueTask PutAsync(int index, InventoryItemCoreState core, CancellationToken cancellationToken);
-    ValueTask PutTransferredAsync(int index, InventoryItemCoreState core,
-        IBusinessItemContainer source, int sourceIndex, CancellationToken cancellationToken);
-    ValueTask PutNewAsync(int index, InventoryItemCoreState core, InventoryItemCreationFacts facts,
-        CancellationToken cancellationToken);
-    ValueTask ClearAsync(int index, CancellationToken cancellationToken);
+    ItemAdmissionRule Admission => ItemContainerAdmission.For(Space);
+    ValueTask<int> OpenSlotCountAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(int.MaxValue);
+    ValueTask<IEquipmentInstance?> GetEquipmentAsync(int index, CancellationToken ct);
+    ValueTask<ItemReference?> GetAsync(int index, CancellationToken ct);
+    ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct);
+    ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct);
+    ValueTask<ItemReference> PutAsync(int index, ItemRecord record, CancellationToken ct);
+    ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct);
     ValueTask FlushAsync(CancellationToken cancellationToken);
     ValueTask<BusinessItemAdditionResult> AddAsync(int itemId, int count, CancellationToken cancellationToken);
 }

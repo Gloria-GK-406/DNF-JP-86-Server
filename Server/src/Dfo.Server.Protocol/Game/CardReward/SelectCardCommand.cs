@@ -105,10 +105,10 @@ public sealed record SelectCardResult(
     int GoldCarried = 0,
     DungeonCardSelectionChange? StaticChange = null,
     DungeonCardSelectionCommit? SelectionCommit = null,
-    AccountMaterialChange? AccountMaterial = null)
+    InventoryRuntimeValueState? AccountMaterial = null)
 {
     public CommittedInventoryUpdateState? BlackDiamondDelivered { get; init; }
-    public AccountMaterialChange? BlackDiamondAccountMaterial { get; init; }
+    public InventoryRuntimeValueState? BlackDiamondAccountMaterial { get; init; }
     public AccountEntitlementEntryState Entitlements { get; init; } = new([]);
     public IReadOnlyList<CharacterPremiumUsageSlotState> Usage { get; init; } = [];
     public DungeonCardSelectionChange? Change => this.SelectionCommit?.Change ?? this.StaticChange;
@@ -319,26 +319,23 @@ public sealed class SelectCardCommandHandler(
                 accountId, characterId, containers, piece.ItemId, piece.Quantity, cancellationToken)
             .ConfigureAwait(false);
         int slotIndex;
-        ItemGrantOutcome.CharacterItem? delivered = null;
+        BusinessItemAdditionResult? delivered = null;
         var opensASlot = false;
         switch (granted)
         {
-            case ItemGrantOutcome.AccountMaterial account:
-                return new CardItemDelivery(null, account.Change);
-
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                 slotIndex = topped.SlotIndex;
                 delivered = character;
                 break;
 
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                 slotIndex = opened.SlotIndex;
                 delivered = character;
                 opensASlot = true;
                 break;
 
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
-            case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
+            case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
                 return null;
 
             default:
@@ -348,19 +345,21 @@ public sealed class SelectCardCommandHandler(
                     nameof(piece), granted, "No reading was decided for this outcome.");
         }
 
-        var landed = await delivered!.Container.ReadSlotAsync(slotIndex, cancellationToken)
+        var landed = await delivered!.Container.GetAsync(slotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (landed is null)
             return null;
 
-        var core = landed.Core;
+        if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared)
+            return new CardItemDelivery(null, shared);
+        var core = landed.Snapshot.ToCore();
         if (opensASlot)
         {
             // A slot the bag opens carries no durability, and a piece created at zero durability is
             // a broken one. What it should carry was decided when the face was fixed and travels on
             // the card for exactly this moment; a pile it joined already carries one of its own.
             core = core with { Durability = piece.Durability };
-            await delivered.Container.PutAsync(slotIndex, core, cancellationToken).ConfigureAwait(false);
+            await delivered.Container.UpdateAsync(landed, current => current with { Durability = piece.Durability }, cancellationToken).ConfigureAwait(false);
         }
 
         // Built from what was just written rather than re-read through the entry projection: that
@@ -378,5 +377,5 @@ public sealed class SelectCardCommandHandler(
 
     private sealed record CardItemDelivery(
         CommittedInventoryUpdateState? CharacterItem,
-        AccountMaterialChange? AccountMaterial);
+        InventoryRuntimeValueState? AccountMaterial);
 }

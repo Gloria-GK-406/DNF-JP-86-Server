@@ -25,5 +25,5 @@ public interface IMailItemRuleService
 {
     /// <param name="sameAccount">A verified account relationship, not a caller-supplied claim.</param>
     ValueTask<MailItemSendDecision> CanSendAsync(
-        InventoryItemCoreState core, bool sameAccount, CancellationToken cancellationToken);
+        ItemSnapshot core, bool sameAccount, CancellationToken cancellationToken);
 }

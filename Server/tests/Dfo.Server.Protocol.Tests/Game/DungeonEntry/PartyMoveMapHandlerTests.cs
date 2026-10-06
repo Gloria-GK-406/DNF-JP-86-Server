@@ -238,7 +238,7 @@ public sealed class PartyMoveMapHandlerTests
             CurrentCellState: DungeonCellSeed.CompleteEmpty(
                 layout.StartCell, layout.StartRoomMapId).Snapshot());
 
-        public bool DefersSelectionState(byte characterLevel) => false;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => false;
         public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId characterId, DungeonRunState current, MazeCell target, CancellationToken cancellationToken)
         {

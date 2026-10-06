@@ -41,10 +41,6 @@ public sealed class EquipmentDisjointCompletedHandler(
             [
                 .. receipt.Materials.Select(material => new DisjointItemMaterial(
                     slotProjection.Project(material.Slot), material.ItemId, material.Count)),
-                .. receipt.AccountMaterials.Select(material => new DisjointItemMaterial(
-                    new GameSlot(InventoryContainerType.Main, material.VirtualSlotIndex),
-                    material.ItemId,
-                    material.AddedCount)),
             ]));
 
         var projected = receipt.InventoryChanges
@@ -65,7 +61,7 @@ public sealed class EquipmentDisjointCompletedHandler(
                 .Where(change => change.Core is not null)
                 .OrderBy(change => change.Slot.Index)
                 .Select(change => new InventoryItemState(
-                    null, change.Slot.Index, change.Core!))
+                    null, change.Slot.Index, change.Core!.ToCore()))
                 .ToArray();
             if (occupied.Length > 0)
             {
@@ -73,16 +69,6 @@ public sealed class EquipmentDisjointCompletedHandler(
                     new CommittedInventoryUpdateState(
                         container.Key, occupied, receipt.PreparedAt)));
             }
-        }
-
-        if (receipt.AccountMaterials.Count > 0)
-        {
-            messages.Add(GameInventoryDelivery.VirtualResourceNotification(
-                [.. receipt.AccountMaterials.Select(material => new InventoryRuntimeValueState(
-                    material.VirtualSlotIndex,
-                    material.ItemId,
-                    material.FinalCount))],
-                receipt.PreparedAt));
         }
 
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);

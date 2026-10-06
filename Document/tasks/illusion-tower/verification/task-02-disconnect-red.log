@@ -1,0 +1,28 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.61]     Dfo.Server.Application.Tests.World.IllusionTowerDomainServiceTests.Two_disconnected_members_can_both_be_cleaned_up [FAIL]
+  失败 Dfo.Server.Application.Tests.World.IllusionTowerDomainServiceTests.Two_disconnected_members_can_both_be_cleaned_up [234 ms]
+  错误消息:
+   System.InvalidOperationException : Tower admission/session changed before commit.
+  堆栈跟踪:
+     at Dfo.Server.Application.World.IllusionTower.IllusionTowerDomainService.Changes.PrepareAsync(CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\World\IllusionTower\IllusionTowerDomainService.cs:line 246
+   at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 82
+   at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95
+   at Dfo.Server.Application.World.IllusionTower.IllusionTowerDomainService.Execute[T](Func`1 action, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\World\IllusionTower\IllusionTowerDomainService.cs:line 48
+   at Dfo.Server.Application.World.IllusionTower.IllusionTowerDomainService.Execute[T](Func`1 action, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\World\IllusionTower\IllusionTowerDomainService.cs:line 49
+   at Dfo.Server.Application.World.IllusionTower.IllusionTowerDomainService.Execute[T](Func`1 action, CancellationToken token) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\src\Dfo.Server.Application\World\IllusionTower\IllusionTowerDomainService.cs:line 49
+   at Dfo.Server.Application.Tests.World.IllusionTowerDomainServiceTests.Two_disconnected_members_can_both_be_cleaned_up() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\warehouse-storage\Server\tests\Dfo.Server.Application.Tests\World\IllusionTowerDomainServiceTests.cs:line 295
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     1，通过:     0，已跳过:     0，总计:     1，持续时间: 249 ms - Dfo.Server.Application.Tests.dll (net10.0)

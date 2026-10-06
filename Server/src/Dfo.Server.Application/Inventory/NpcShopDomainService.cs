@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -16,11 +17,11 @@ internal sealed class NpcShopDomainService(
     IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas,
     ICharacterDomainService characters,
-    IAccountTable accounts,
+    IAccountWalletDomainService wallets,
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases) : INpcShopDomainService
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -41,27 +42,31 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(priced.Rejection);
 
         var spaces = new HashSet<BusinessInventorySpace> { quote.Placement.Destination.Space };
-        if (ItemSlotRuleService.AllowsQuickSlot(quote.Placement.ItemKind))
+        if (quote.Placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(quote.Placement))
             spaces.Add(BusinessInventorySpace.QuickSlot);
         foreach (var cost in quote.Materials)
         {
             var material = await placements.PlacementForAsync(cost.ItemId, cancellationToken).ConfigureAwait(false);
             if (material is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.UnsupportedItem);
             spaces.Add(material.Destination.Space);
-            if (ItemSlotRuleService.AllowsQuickSlot(material.ItemKind))
+            if (material.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(material))
                 spaces.Add(BusinessInventorySpace.QuickSlot);
         }
         var bags = new Dictionary<BusinessInventorySpace, IBusinessItemContainer>();
-        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>();
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>();
         foreach (var space in spaces)
         {
             var bag = inventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space))
                 .FindContainer(space);
             if (bag is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.NoRoom);
             bags.Add(space, bag);
-            held.Add(space, await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false));
+            held.Add(space, await bag.GetAllAsync(cancellationToken).ConfigureAwait(false));
         }
 
+        var boundedPlacement = InventoryCapacityPlacement.Limit(quote.Placement,
+            await bags[quote.Placement.Destination.Space].OpenSlotCountAsync(cancellationToken).ConfigureAwait(false));
+        if (boundedPlacement is null) return NpcShopPurchaseResult.Refused(NpcShopRejection.NoRoom);
+        quote = quote with { Placement = boundedPlacement };
         NpcShopPurchaseKey? purchaseKey = null;
         if (quote.Definition.Limit is { } limit)
         {
@@ -79,7 +84,7 @@ internal sealed class NpcShopDomainService(
         var skillPoints = await character.RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         if (skillPoints is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
-        var wallet = await accounts.FindWalletAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
+        var wallet = await wallets.ReadAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
         if (wallet is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var cera = checked((int)wallet.Cera);
@@ -89,13 +94,16 @@ internal sealed class NpcShopDomainService(
                 ?? throw new NpcShopPurchaseRejectedException(NpcShopRejection.InsufficientGold);
         foreach (var change in plan.MaterialChanges)
         {
-            if (change.Core is null)
-                await bags[change.Slot.Space].ClearAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false);
-            else
-                await bags[change.Slot.Space].PutAsync(change.Slot.Index, change.Core, cancellationToken).ConfigureAwait(false);
+            var bag = bags[change.Slot.Space];
+            var existing = await bag.GetAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Shop material disappeared after planning.");
+            await ItemContainerOperations.ConsumeAsync(bag, existing, existing.Count - (change.Core?.Count ?? 0), lifecycle, cancellationToken).ConfigureAwait(false);
         }
         foreach (var grant in plan.GrantedSlots)
-            await bags[grant.Slot.Space].PutAsync(grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
+        {
+            var bag = bags[grant.Slot.Space];
+            await grants.ApplyPlannedAsync(bag, grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
+        }
         if (purchaseKey is not null
             && !await purchases.TryAddAsync(purchaseKey, quote.Count, quote.Definition.Limit!.Count, cancellationToken)
                 .ConfigureAwait(false))

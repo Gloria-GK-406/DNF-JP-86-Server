@@ -108,7 +108,7 @@ public sealed class CharacterContainerDomainServiceTests
         {
             var parameters = handler.GetConstructors().Single().GetParameters();
             Assert.DoesNotContain(
-                parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
+                parameters, value => value.ParameterType == typeof(IDailyRefillDomainService));
             Assert.Contains(
                 parameters, value => value.ParameterType == typeof(IBusinessInventorySlotDomainService));
         }
@@ -121,7 +121,7 @@ public sealed class CharacterContainerDomainServiceTests
         {
             var parameters = handler.GetConstructors().Single().GetParameters();
             Assert.DoesNotContain(
-                parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
+                parameters, value => value.ParameterType == typeof(IDailyRefillDomainService));
             Assert.DoesNotContain(
                 parameters, value => value.ParameterType == typeof(ICharacterContainerDomainService));
             Assert.Contains(parameters, value => value.ParameterType == typeof(ICommandBus));
@@ -156,6 +156,82 @@ public sealed class CharacterContainerDomainServiceTests
         Assert.Equal(businessIndex, projected.Slot.Index);
     }
 
+    [Fact]
+    public void Default_lookup_does_not_follow_current_switch_and_duplicate_defaults_are_rejected()
+    {
+        var registry = new CharacterContainerDomainService();
+        var temporary = Container("temporary");
+        var permanent = Container("permanent", removable: false);
+        registry.Register(Character, temporary);
+        registry.Register(Character, permanent);
+        Assert.Same(temporary, registry.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Same(permanent, registry.GetContainer(Character, InventoryContainerType.Main, isDefault: true));
+        Assert.Throws<InvalidOperationException>(() => registry.Register(Character, Container("duplicate", removable: false)));
+        registry.Remove(Character, temporary.Id);
+        Assert.Same(permanent, registry.GetContainer(Character, InventoryContainerType.Main));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Replacing_default_preserves_selection_and_rollback(bool separateCurrent)
+    {
+        var scope = new DomainTransactionScope();
+        ICharacterContainerDomainService registry = new CharacterContainerDomainService(transactions: scope);
+        var original = Container("original", removable: false);
+        var replacement = Container("replacement", removable: false);
+        var temporary = Container("temporary");
+        registry.Register(Character, original);
+        if (separateCurrent)
+        {
+            registry.Register(Character, temporary);
+            registry.UseContainer(Character, temporary.Id);
+        }
+        await using (var tx = scope.Begin())
+        {
+            registry.ReplaceDefault(Character, original.Id, replacement);
+            Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main, true));
+            Assert.Same(separateCurrent ? temporary : replacement, registry.GetContainer(Character, InventoryContainerType.Main));
+        }
+        Assert.Same(original, registry.GetContainer(Character, InventoryContainerType.Main, true));
+        await using (var tx = scope.Begin())
+        {
+            registry.ReplaceDefault(Character, original.Id, replacement);
+            await tx.CommitAsync(default);
+        }
+        if (separateCurrent) registry.Remove(Character, temporary.Id);
+        Assert.Same(replacement, registry.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal([replacement], registry.GetContainers(Character, InventoryContainerType.Main));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("current")]
+    [InlineData("duplicate")]
+    [InlineData("wrong-type")]
+    [InlineData("non-default")]
+    public void Invalid_default_replacement_keeps_both_bindings(string scenario)
+    {
+        ICharacterContainerDomainService registry = new CharacterContainerDomainService();
+        var original = Container("original", removable: false);
+        var current = Container("current");
+        registry.Register(Character, original);
+        registry.Register(Character, current);
+        registry.UseContainer(Character, current.Id);
+        var expected = scenario is "missing" or "current" ? new ContainerId(scenario) : original.Id;
+        var replacement = scenario switch
+        {
+            "duplicate" => Container("current", removable: false),
+            "wrong-type" => Container("new", InventoryContainerType.Avatar),
+            "non-default" => Container("new"),
+            _ => Container("new", removable: false),
+        };
+        Assert.Throws<InvalidOperationException>(() => registry.ReplaceDefault(Character, expected, replacement));
+        Assert.Same(original, registry.GetContainer(Character, InventoryContainerType.Main, true));
+        Assert.Same(current, registry.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal([original, current], registry.GetContainers(Character, InventoryContainerType.Main));
+    }
+
     private static IItemContainer Container(string id, bool removable = true) =>
         new StandInContainer(
             new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0), removable);
@@ -182,39 +258,14 @@ public sealed class CharacterContainerDomainServiceTests
 
         public bool IsRemovable => removable;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This container holds nothing.");
 
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This container holds nothing.");
 
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This container holds nothing.");
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ContainerSlotItem?>(null);
-
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ContainerSlotPair(null, null));
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<InventoryItemState>>([]);
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>([]);
-
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
-            ValueTask.CompletedTask;
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.CompletedTask;
+        public ValueTask<ItemReference?> GetAsync(int slot, CancellationToken ct) => ValueTask.FromResult<ItemReference?>(null);
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<ItemReference>>([]);
+        public ValueTask<ItemReference> PutAsync(int slot, ItemRecord item, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemRecord> TakeAsync(ItemReference item, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference> UpdateAsync(ItemReference item, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
     }
 }

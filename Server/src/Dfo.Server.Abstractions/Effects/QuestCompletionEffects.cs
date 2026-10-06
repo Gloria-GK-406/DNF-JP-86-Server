@@ -23,7 +23,7 @@ public sealed record SkillBuildsMaterializedChange : EffectChange;
 public sealed record GrantBasicCharacterItemEffect(int ItemId, int Count, ItemPlacement Placement) : InventoryEffect;
 public sealed record BasicCharacterItemChange(ImmutableArray<ContainerItemAddition> Additions) : EffectChange;
 public sealed record QuestCompletionFacts(CharacterIdentityState Identity, CharacterProgressionState Progress,
-    QuestStateFacts Quests, IReadOnlyList<ContainerSlotItem> Main, CarriedGoldRow Gold,
+    QuestStateFacts Quests, IReadOnlyList<ItemReference> Main, CarriedGoldRow Gold,
     CharacterSkillFacts? Skills, CharacterSkillBuilds? Builds);
 public sealed record QuestCompletionPlan(ushort QuestId, ImmutableArray<DomainEffect> Effects,
     ExperienceAward Award, QuestProgressSnapshot? Projection, byte? GrowType);
@@ -38,7 +38,7 @@ public interface IQuestCompletionEffectRuleService
 {
     ValueTask<QuestDefinition?> DefinitionAsync(int id, CancellationToken ct);
     QuestRewardResolution Rewards(QuestDefinition definition, QuestCompletionFacts facts, ushort selection, ushort count);
-    ValueTask<ImmutableArray<CarriedQuest>> EffectiveAsync(QuestStateFacts quests, IReadOnlyList<ContainerSlotItem> main, int gold, CancellationToken ct);
+    ValueTask<ImmutableArray<CarriedQuest>> EffectiveAsync(QuestStateFacts quests, IEnumerable<ItemSnapshot> main, int gold, CancellationToken ct);
     ValueTask<ImmutableArray<DomainEffect>> RewardsAsync(QuestCompletionRewardPlan reward, QuestCompletionFacts facts, CancellationToken ct);
     ValueTask<QuestCompletionPlan> CompleteAsync(ushort questId, QuestCompletionRewardPlan reward,
         QuestCompletionFacts facts, ImmutableArray<DomainEffect> rewards, InventoryEffectHoldingsSnapshot after, CancellationToken ct);

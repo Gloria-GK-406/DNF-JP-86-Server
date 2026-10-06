@@ -139,6 +139,28 @@ public sealed class MonsterDeathHandlerTests
     }
 
     [Fact]
+    public async Task MaxLevelKillProjectsTheTemporaryCumulativeValue()
+    {
+        const uint maximum = 1046561640;
+        var award = new ExperienceAward(new(Base: 14), 86, maximum, false)
+            { NotificationTotal = maximum + 14, Overflow = 14 };
+        var sent = await Kill(bus: new FixedKillAward(false, overrideAward: award));
+        var notice = Assert.Single(sent.OfType<ExperienceNotification>());
+        Assert.Equal(86, notice.Level);
+        Assert.Equal(maximum + 14, notice.TotalExperience);
+        Assert.Equal(maximum, award.Total);
+    }
+
+    [Fact]
+    public async Task ADeathWithNoNewRewardAtCapReportsOnlyTheCap()
+    {
+        const uint maximum = 1046561640;
+        var ledger = new SkillPointLedger { Progress = new(86, maximum) };
+        var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
+        Assert.Equal(maximum, Assert.Single(sent.OfType<ExperienceNotification>()).TotalExperience);
+    }
+
+    [Fact]
     public async Task A_kill_without_an_award_reports_current_progress_instead_of_the_entry_copy()
     {
         var ledger = new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) };
@@ -922,7 +944,7 @@ public sealed class MonsterDeathHandlerTests
         bool awarded = true,
         int failuresBeforeSuccess = 0,
         CommittedInventoryUpdateState? questItems = null,
-        QuestProgressSnapshot? questProgress = null) : ICommandBus
+        QuestProgressSnapshot? questProgress = null, ExperienceAward? overrideAward = null) : ICommandBus
     {
         private int _remainingFailures = failuresBeforeSuccess;
 
@@ -945,7 +967,7 @@ public sealed class MonsterDeathHandlerTests
             if (this._remainingFailures-- > 0)
                 throw new InvalidOperationException("injected durable kill failure");
             var result = new ApplyMonsterKillResult(
-                awarded ? new ExperienceAward(
+                awarded ? overrideAward ?? new ExperienceAward(
                     Breakdown: new ExperienceBreakdown(Base: KillGain),
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
                     Total: StartingExperience + KillGain,

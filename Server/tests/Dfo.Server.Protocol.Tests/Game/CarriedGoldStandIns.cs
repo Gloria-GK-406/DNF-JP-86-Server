@@ -16,9 +16,15 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// changes cannot race, is asserted against real SQLite in the persistence tests. The refusal is
 /// modelled the same way here so that a slice which stopped reading it would fail here too.
 /// </remarks>
-internal sealed class CarriedGold(int total) : ICharacter
+internal class CarriedGold(int total) : ICharacter
 {
     public CharacterId Id => new(60);
+
+    public virtual ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<CharacterProgressionState> SetExpAsync(long experience, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<bool> TrySetExpAsync(CharacterProgressionState expected, long experience, CancellationToken ct) => throw new NotSupportedException();
 
     public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
@@ -69,9 +75,9 @@ internal sealed class CarriedGold(int total) : ICharacter
 }
 
 /// <summary>The one character these cases play, reached the way business reaches one.</summary>
-internal sealed class OnePlayingCharacter(ICharacter character) : ICharacterDomainService
+internal class OnePlayingCharacter(ICharacter character) : ICharacterDomainService
 {
-    public ICharacter Get(CharacterId characterId) => character;
+    public virtual ICharacter Get(CharacterId characterId) => character;
 
     public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
         AccountId accountId, CancellationToken cancellationToken) => throw Unused();

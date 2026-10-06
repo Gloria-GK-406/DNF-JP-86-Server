@@ -37,9 +37,11 @@ public sealed record QuestFinishOutcome(
     uint NewExperience,
     QuestFinishRefusal? Refusal = null,
     QuestProgressSnapshot? QuestProgress = null,
-    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null,
+    IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null,
     byte? GrowType = null)
 {
+    public uint NotificationExperience { get; init; } = NewExperience;
+
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>
         new(false, questId, 0, 0, [], 0, 0, QuestFinishRefusal.Unusable, questProgress);
@@ -90,7 +92,8 @@ public sealed class QuestFinishRejectedException : Exception
 /// disposes without committing and rolls every enlisted store back. The package handler catches that
 /// dedicated failure outside the boundary and maps it to the reference server's wire code 22.
 /// </remarks>
-public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQuestCompletionDomainService completion)
+public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQuestCompletionDomainService completion,
+    IBusinessInventorySlotDomainService inventorySlots)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(CommandExecutionContext context, FinishQuestCommand command,
@@ -105,24 +108,27 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
             if (!result.Finished) return QuestFinishOutcome.Refuse(command.QuestId, result.Projection);
             var slots = new InventorySlotMappingRuleService();
             var items = new List<FinishedQuestItem>();
-            var account = new List<AccountMaterialChange>();
+            var account = new List<InventoryRuntimeValueState>();
             foreach (var applied in result.Applied!.Applied)
                 switch (applied.Change)
                 {
                     case Dfo.Server.Abstractions.Effects.BasicCharacterItemChange basic:
                         items.AddRange(basic.Additions.Select(x => new FinishedQuestItem(checked((ushort)slots.ToGameSlot(x.Slot).Index),
                             (uint)((Dfo.Server.Abstractions.Effects.GrantBasicCharacterItemEffect)applied.Effect).ItemId, checked((uint)x.Count))));
-                        break;
-                    case Dfo.Server.Abstractions.Effects.AccountMaterialEffectChange material:
-                        account.Add(material.Change);
-                        items.Add(new(checked((ushort)material.Change.VirtualSlotIndex), checked((uint)material.Change.ItemId), checked((uint)material.Change.AddedCount)));
+                        foreach (var addition in basic.Additions.Where(x => x.Slot.Space == BusinessInventorySpace.SharedMaterial))
+                        {
+                            var bound = inventorySlots.Find(command.CharacterId, addition.Slot)!;
+                            var held = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false)
+                                ?? throw new InvalidDataException("Shared reward disappeared before commit.");
+                            account.Add(new(slots.ToGameSlot(addition.Slot).Index, held.ItemId, held.Count));
+                        }
                         break;
                     case Dfo.Server.Abstractions.Effects.QuestRewardGoldChange gold when gold.After > gold.Before:
                         items.Add(new(0, 0, checked((uint)(gold.After - gold.Before))));
                         break;
                 }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
-                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType);
+                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType) { NotificationExperience = result.Award.NotificationTotal };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {

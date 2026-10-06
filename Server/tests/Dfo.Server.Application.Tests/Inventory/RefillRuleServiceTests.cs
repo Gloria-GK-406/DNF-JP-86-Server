@@ -94,10 +94,10 @@ public sealed class RefillRuleServiceTests
     [InlineData(DailyRefillMode.RefillToTarget, 5, 100, 3, 2)]
     [InlineData(DailyRefillMode.RefillToTarget, 5, 100, 5, 0)]
     [InlineData(DailyRefillMode.RefillToTarget, 5, 100, 9, 0)]
-    [InlineData(DailyRefillMode.RefillToTarget, 500, 100, 0, 100)]
-    [InlineData(DailyRefillMode.AddUpToStackLimit, 5, 100, 0, 5)]
-    [InlineData(DailyRefillMode.AddUpToStackLimit, 5, 100, 97, 3)]
-    [InlineData(DailyRefillMode.AddUpToStackLimit, 5, 100, 100, 0)]
+    [InlineData(DailyRefillMode.RefillToTarget, 500, 100, 0, 500)]
+    [InlineData(DailyRefillMode.Add, 5, 100, 0, 5)]
+    [InlineData(DailyRefillMode.Add, 5, 100, 97, 5)]
+    [InlineData(DailyRefillMode.Add, 5, 100, 100, 5)]
     public void TheGrantFollowsTheRulesOwnMode(
         DailyRefillMode mode, int quantity, int stackLimit, int current, int expected)
     {
@@ -109,13 +109,13 @@ public sealed class RefillRuleServiceTests
     }
 
     [Fact]
-    public void AnItemThatDoesNotStackGrantsNothing()
+    public void AnUndeclaredStackLimitDoesNotSuppressTheRefill()
     {
         var rule = new DailyRefillRule(
             1234, 5, DateTimeOffset.MaxValue, DailyRefillMode.RefillToTarget, 0, 2,
             new(BusinessInventorySpace.Consumable, 0, 55));
 
-        Assert.Equal(0, Refill.GrantFor(rule, 0));
+        Assert.Equal(5, Refill.GrantFor(rule, 0));
     }
 
     // ---------------------------------------------------------------- onto a pile, or a new slot
@@ -183,7 +183,7 @@ public sealed class RefillRuleServiceTests
     // ---------------------------------------------------------------- an ordinary grant
 
     /// <remarks>
-    /// A grant differs from a refill: it fills existing piles only as far as the stack limit, and
+    /// An arrival fills existing piles only as far as the stack limit, and
     /// what will not fit opens a slot. The player who picks up a sixth potion of five expects the
     /// pile to read five and a second pile to appear, not a pile of six.
     /// </remarks>

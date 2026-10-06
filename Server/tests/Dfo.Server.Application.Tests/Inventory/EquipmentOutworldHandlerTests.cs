@@ -145,7 +145,7 @@ public sealed class EquipmentOutworldHandlerTests
         Assert.Equal(2, shop.Count(materialId));
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
-        Assert.Equal(original, (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+        Assert.Equal(original, (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore());
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class EquipmentOutworldHandlerTests
         Assert.Equal(3, shop.Sender.Messages.Count);
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
-        Assert.Equal(Piece(3), (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+        Assert.Equal(Piece(3), (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore());
     }
 
     [Theory]
@@ -189,7 +189,7 @@ public sealed class EquipmentOutworldHandlerTests
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
         Assert.Equal(original with { AmplifyType = 3, AmplifyValue = 5 },
-            (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+            (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore());
     }
 
     private sealed class FixedEquipment(EquipmentDefinition definition) : IEquipmentDefinitionSource
@@ -222,7 +222,7 @@ public sealed class EquipmentOutworldHandlerTests
         Assert.Equal(bytes, shop.StoredCore(9));
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
-        Assert.Equal(original, (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core);
+        Assert.Equal(original, (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore());
         // Internal content failures are not memoized as a normal business rejection.
         await Assert.ThrowsAsync<InvalidDataException>(
             () => Send(shop, 7, false, 0, 1286, 3).AsTask());

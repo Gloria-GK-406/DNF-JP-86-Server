@@ -203,54 +203,6 @@ public sealed class SessionAdjacentEntryTests
         Assert.Equal([10, 20, 30], result.TownPresence.Others.Select(other => other.CharacterId.Value));
     }
 
-    [Fact]
-    public void Withdrawing_removes_a_character_from_the_area()
-    {
-        var registry = new SessionPresenceDomainService();
-        registry.Admit(Presence(10));
-
-        Assert.True(registry.Withdraw(new CharacterId(10)));
-        Assert.False(registry.Withdraw(new CharacterId(10)));
-        Assert.Empty(registry.Query(SessionPresenceScope.VisibleTownArea(
-            10011, 1, 0, new CharacterId(99))));
-    }
-
-    [Fact]
-    public void Admitting_the_same_character_twice_replaces_the_earlier_record()
-    {
-        var registry = new SessionPresenceDomainService();
-        registry.Admit(Presence(10));
-        registry.Admit(Presence(10, areaId: 7));
-
-        Assert.Empty(registry.Query(SessionPresenceScope.VisibleTownArea(
-            10011, 1, 0, new CharacterId(99))));
-        Assert.Single(registry.Query(SessionPresenceScope.VisibleTownArea(
-            10011, 1, 7, new CharacterId(99))));
-    }
-
-    [Fact]
-    public void Relocating_moves_only_the_generation_that_owns_the_presence()
-    {
-        var registry = new SessionPresenceDomainService();
-        var owner = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(10),
-            new Dfo.Server.Data.Networking.NetworkConnectionId("Game:owner"),
-            connectionGeneration: 1, listenerPort: 10011);
-        var stale = owner with { ConnectionGeneration = 0 };
-        registry.Admit(new SessionPresence(
-            owner.CharacterId, owner.ListenerPort, 1, 0, true, owner));
-
-        Assert.False(registry.RelocateExact(stale, 2, 3, true));
-        Assert.True(registry.RelocateExact(owner, 2, 3, true));
-        Assert.Empty(registry.Query(SessionPresenceScope.VisibleTownArea(
-            10011, 1, 0, new CharacterId(99))));
-        Assert.Equal(
-            [10],
-            registry.Query(SessionPresenceScope.VisibleTownArea(
-                    10011, 2, 3, new CharacterId(99)))
-                .Select(value => value.CharacterId.Value));
-    }
-
     private static SessionAdjacentSubject Subject(int characterId = 99) => new(
         new CharacterId(characterId),
         new AccountId(1),

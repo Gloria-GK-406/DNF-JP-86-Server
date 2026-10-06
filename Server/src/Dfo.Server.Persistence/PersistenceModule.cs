@@ -43,6 +43,8 @@ public sealed class PersistenceModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPersistence, Dfo.Server.Persistence.Events.SqliteEventPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustPersistence, Dfo.Server.Persistence.Events.SqliteJoustPersistence>();
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
         var databasePath = Path.IsPathRooted(configuredDatabasePath)
             ? configuredDatabasePath
@@ -51,16 +53,18 @@ public sealed class PersistenceModule : IServerModule
         // puts the file in shape.
         services.TryAddSingleton(provider => new SqliteDatabase(
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<ICharacterExperienceStoragePolicy, Dfo.Server.Persistence.Schema.CharacterExperienceStoragePolicy>();
         services.TryAddSingleton<INoticeStateTable, Dfo.Server.Persistence.Notices.NoticeStateTable>();
         services.TryAddSingleton<IAccountTable>(
             provider => new SqliteAccountTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IAccountPurchaseRestrictionTable, SqliteAccountPurchaseRestrictionTable>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IDailyRefillSettingsPersistence, Dfo.Server.Persistence.Inventory.SqliteDailyRefillSettingsPersistence>();
         services.TryAddSingleton<IAuthenticationPersistence, SqliteAuthenticationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmAdministrationPersistence, Dfo.Server.Persistence.Administration.SqliteGmAdministrationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmPlayerDirectoryPersistence, Dfo.Server.Persistence.Administration.SqliteGmPlayerDirectoryPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailPersistence, Dfo.Server.Persistence.Administration.SqliteGmMailPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationPersistence, Dfo.Server.Persistence.Initialization.SqliteInitializationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraPersistence, Dfo.Server.Persistence.Administration.SqliteGmCeraPersistence>();
-        services.TryAddSingleton<IWorldItemTable, SqliteWorldItemTable>();
         services.TryAddSingleton<IAccountSettingsTable>(
             provider => new SqliteAccountSettingsTable(
                 provider.GetRequiredService<SqliteDatabase>()));
@@ -72,6 +76,7 @@ public sealed class PersistenceModule : IServerModule
                 provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterTable>(
             provider => new SqliteCharacterTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterTutorialRepository>(provider => (ICharacterTutorialRepository)provider.GetRequiredService<ICharacterTable>());
         services.TryAddSingleton<ICharacterSkillBuildTable, SqliteCharacterSkillBuildTable>();
         services.TryAddSingleton<ICharacterSkillTable>(
             provider => new SqliteCharacterSkillTable(
@@ -91,6 +96,7 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteAccountCargoItemTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterContainerStateTable>(
             provider => new SqliteCharacterContainerStateTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IInventoryExpansionStateTable, SqliteInventoryExpansionStateTable>();
         services.TryAddSingleton<IAccountCargoStateTable>(
             provider => new SqliteAccountCargoStateTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterConditionTable>(
@@ -165,9 +171,6 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterPvpMissionTable>(
             provider => new SqliteCharacterPvpMissionTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxRepository, SqliteMailboxRepository>();
-        services.TryAddSingleton<IEquipmentTransferDomainStore>(_ => new SqliteEquipmentTransferDomainStore(databasePath));
-        services.TryAddSingleton<IMailboxRecipientTable>(
-            provider => new SqliteMailboxRecipientTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxMessageTable>(
             provider => new SqliteMailboxMessageTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IMailboxAttachmentTable>(
@@ -176,8 +179,7 @@ public sealed class PersistenceModule : IServerModule
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.
         services.TryAddSingleton(_ => new SqliteItemDomainStore(databasePath));
-        services.TryAddSingleton<IAccountMaterialBagStore>(
-            _ => new SqliteAccountMaterialBagStore(databasePath));
+        services.TryAddSingleton<ITransientItemDomainStoreFactory, Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory>();
         // The character's own rows, kept in the same database and therefore settled by the same
         // participant as the items it owns.
         services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));

@@ -58,13 +58,13 @@ internal sealed class CeraShopTestContent : ICeraShopDefinitionSource, IItemPlac
             _ => new(2, 10, new(BusinessInventorySpace.Consumable, 0, 1)),
         };
     }
-    public CeraShopRuleService Rules() => new(this, new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService());
+    public CeraShopRuleService Rules() => new(this, new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new Dfo.Server.Application.Accounts.AccountWalletRuleService());
     public ValueTask<CeraShopProductDefinition?> GetProductAsync(int id, CancellationToken ct) => ValueTask.FromResult(Products.GetValueOrDefault(id));
     public ValueTask<CeraShopItemDefinition?> GetItemAsync(int id, CancellationToken ct) => ValueTask.FromResult(Items.GetValueOrDefault(id));
     public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Placements.GetValueOrDefault(id));
     public static CeraShopPurchaseEntry Entry(int product = 110000, byte ability = 255) => new(0, ability, 255, product, [], []);
     public static CeraShopPurchaseInput Input(params CeraShopPurchaseEntry[] entries) => new(0, 0, 0, entries.ToImmutableArray());
-    public static Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>> EmptyStock() => new()
+    public static Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> EmptyStock() => new()
     {
         [BusinessInventorySpace.QuickSlot] = [], [BusinessInventorySpace.Consumable] = [],
         [BusinessInventorySpace.CarriedEquipment] = [], [BusinessInventorySpace.Avatar] = [],

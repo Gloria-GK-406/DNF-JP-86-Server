@@ -16,24 +16,19 @@ internal sealed class RecipeCraftRuleService(IRecipeContentSource content) : IRe
 
 internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService inventory,
     IRecipeCraftRuleService rules, IPackageOpeningRuleService rewards,
-    ICharacterBusinessInventoryDomainService bags, IAccountMaterialRuleService accountRules,
-    IAccountMaterialBagDomainService accountBags, ICharacterInventoryEntryDomainService entries, IOpeningEffectPlanRuleService plans) : IRecipeCraftDomainService
+    ICharacterBusinessInventoryDomainService bags, IBusinessInventorySlotDomainService slots, IOpeningEffectPlanRuleService plans) : IRecipeCraftDomainService
 {
     public async ValueTask<RecipeCraftReceipt> RefreshAsync(RecipeCraftReceipt receipt, CancellationToken ct)
     {
         var session = receipt.Inventory.Session;
-        var snapshot = await entries.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var updated = ImmutableArray.CreateBuilder<OpeningInventoryUpdate>();
         var cleared = ImmutableArray.CreateBuilder<BusinessSlot>();
         foreach (var slot in receipt.Inventory.Updates.Select(x => x.Slot).Concat(receipt.Inventory.Cleared).Distinct())
         {
-            var storage = LegacyInventoryStorageCoordinates.ToStorage(slot);
-            var item = snapshot.Containers.Single(x => x.ContainerType == storage.List).Items.SingleOrDefault(x => x.SlotIndex == storage.Index);
-            if (item is null) cleared.Add(slot); else updated.Add(new(slot, item.Identity, item.Core));
+            var item = await slots.Get(session.CharacterId, slot).Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
+            if (item is null) cleared.Add(slot); else updated.Add(new(slot, item.ItemUid, item.Snapshot));
         }
-        var balances = await accountBags.Get(session.AccountId).SnapshotAsync(ct).ConfigureAwait(false);
-        return receipt with { Inventory = receipt.Inventory with { Updates = updated.ToImmutable(), Cleared = cleared.ToImmutable() },
-            AccountMaterials = receipt.AccountMaterials.Select(x => x with { FinalCount = balances.Count(x.Kind) }).ToImmutableArray() };
+        return receipt with { Inventory = receipt.Inventory with { Updates = updated.ToImmutable(), Cleared = cleared.ToImmutable() } };
     }
 
     public async ValueTask<RecipeCraftReceipt> CraftAsync(SelectedSessionIdentity session, BusinessSlot drawing,
@@ -48,34 +43,32 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
         if (plan.Required.IsDefaultOrEmpty || plan.Produced.IsDefaultOrEmpty
             || plan.Required.Length > 64 || plan.Produced.Length > 64
             || plan.Required.Concat(plan.Produced).Any(x => x.ItemId <= 0 || x.Count <= 0)
-            || source.Core.EquipmentLockId != 0)
+            || source.Snapshot.EquipmentLockId != 0)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Invalid or locked recipe.");
-        var balance = await accountBags.Get(session.AccountId).SnapshotAsync(ct).ConfigureAwait(false);
         // Prefer the selected drawing; otherwise consuming another pile could leave the selected drawing untouched.
         var standing = new List<OpeningHeldItem> { new(drawing, source) };
         foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable,
-            BusinessInventorySpace.Material, BusinessInventorySpace.ExpertMaterial })
+            BusinessInventorySpace.Material, BusinessInventorySpace.ExpertMaterial, BusinessInventorySpace.SharedMaterial })
         {
             var bag = bags.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item).FindContainer(space);
             if (bag is null) continue;
-            standing.AddRange((await bag.ReadAllAsync(ct).ConfigureAwait(false))
+            standing.AddRange((await bag.GetAllAsync(ct).ConfigureAwait(false))
                 .Where(x => new BusinessSlot(space, x.SlotIndex) != drawing)
                 .Select(x => new OpeningHeldItem(new BusinessSlot(space, x.SlotIndex), x)));
         }
-        var costs = plans.RecipeCosts(plan, source.ItemId, useRule, quantity, standing, balance, now);
+        var costs = plans.RecipeCosts(plan, source.ItemId, useRule, quantity, standing, now);
         var outputs = plan.Produced.GroupBy(x => x.ItemId)
             .Select(g => new OpeningReward(g.Key, checked((int)(g.Sum(x => (long)x.Count) * quantity)))).ToArray();
         var grants = await rewards.PrepareAsync(outputs, now, ct).ConfigureAwait(false);
-        if (grants.Any(g => g.Item.PremiumType != 0 || accountRules.TryGetByItemId(g.Reward.ItemId, out _)
+        if (grants.Any(g => g.Item.PremiumType != 0 || g.Item.Placement.Destination.Space == BusinessInventorySpace.SharedMaterial
             || g.Item.Placement.WorldClass is ItemWorldClass.Avatar or ItemWorldClass.Creature
             || g.Item.Placement.Destination.Space == BusinessInventorySpace.VirtualResource))
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Unsupported crafting output family.");
-        var effects = plans.Build(source.ItemId, useRule, costs.Items, grants, [], now, accountCosts: costs.Accounts);
+        var effects = plans.Build(source.ItemId, useRule, costs.Items, grants, [], now);
         var applied = await inventory.ApplyAsync(session, effects, now, ct).ConfigureAwait(false);
         var receipt = applied.Inventory;
-        var changed = applied.Applied.Changes<AccountMaterialEffectChange>().Select(x => x.Change).ToImmutableArray();
-        if (costs.Items.Length + changed.Length > byte.MaxValue || receipt.Rewards.Length > byte.MaxValue)
+        if (costs.Items.Length > byte.MaxValue || receipt.Rewards.Length > byte.MaxValue)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Crafting receipt exceeds the wire limit.");
-        return new(receipt, costs.Items, changed);
+        return new(receipt, costs.Items);
     }
 }

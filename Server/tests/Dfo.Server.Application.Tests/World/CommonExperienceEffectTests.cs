@@ -257,17 +257,19 @@ public sealed class CommonExperienceEffectTests
     }
 
     [Fact]
-    public void All_twenty_four_effect_commands_have_session_marker_and_transactional_registration()
+    public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
     {
-        string[] expected = ["UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
+        string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand"];
+        string[] expected = ["ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
             "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
-            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand"];
+            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand"];
         var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
-        Assert.Equal(expected.Order(),actual.Select(x => x.Name).Order());
+        Assert.Equal(expected.Concat(readOnly).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());
         var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
-        Assert.All(actual, type => Assert.Equal(CommandExecutionKind.Transactional,registry.GetRegistration(type).ExecutionKind));
+        Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:CommandExecutionKind.Transactional,
+            registry.GetRegistration(type).ExecutionKind));
         Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 45);
         Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 58);
     }

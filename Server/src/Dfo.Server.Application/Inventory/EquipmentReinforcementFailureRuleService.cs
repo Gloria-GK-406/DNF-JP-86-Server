@@ -11,21 +11,21 @@ internal sealed class EquipmentReinforcementFailureRuleService(
     IEquipmentDisjointDefinitionSource disjoint,
     ILogger<EquipmentReinforcementFailureRuleService> logger) : IEquipmentReinforcementFailureRuleService
 {
-    public async ValueTask<EquipmentReinforcementFailureResult> GetResultAsync(EquipmentInstanceFacts equipment,
+    public async ValueTask<EquipmentReinforcementFailureResult> GetResultAsync(ItemReference equipment,
         EquipmentReinforcementFailureContext context, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(equipment);
         ArgumentNullException.ThrowIfNull(context);
         ValidateDraw(context.AdditionalItemDraw);
         ValidateDraw(context.GreatDraw);
-        var definition = await equipmentDefinitions.GetEquipmentAsync(equipment.Core.ItemId, ct).ConfigureAwait(false);
+        var definition = await equipmentDefinitions.GetEquipmentAsync(equipment.Snapshot.ItemId, ct).ConfigureAwait(false);
         var table = context.Kind switch
         {
             EquipmentUpgradeKind.Reinforcement => await reinforcement.GetNormalTableAsync(ct).ConfigureAwait(false),
             EquipmentUpgradeKind.Amplification => await reinforcement.GetAmplificationTableAsync(ct).ConfigureAwait(false),
             _ => throw new ArgumentOutOfRangeException(nameof(context)),
         };
-        var oldLevel = equipment.Core.ReinforcementLevel;
+        var oldLevel = equipment.Snapshot.ReinforcementLevel;
         var row = table?.Rows.FirstOrDefault(candidate => candidate.TargetLevel == oldLevel + 1);
         if (definition is null || table is null || row is null
             || row.PenaltyType is < 1 or > 3 || row.PenaltyValue < 0)
@@ -39,7 +39,7 @@ internal sealed class EquipmentReinforcementFailureRuleService(
             : ResolvePenalty(oldLevel, penalty, row.PenaltyValue, context.Protection);
         if (result.Outcome == EquipmentReinforcementOutcome.Destroyed)
         {
-            var source = await disjoint.GetDestructionEquipmentAsync(equipment.Core.ItemId, ct).ConfigureAwait(false);
+            var source = await disjoint.GetDestructionEquipmentAsync(equipment.Snapshot.ItemId, ct).ConfigureAwait(false);
             var disjointTable = await disjoint.GetSystemTableAsync(ct).ConfigureAwait(false);
             var rewards = new List<EquipmentReinforcementFailureReward>();
             if (source is null || disjointTable is null || source.Rarity != definition.Rarity
@@ -51,7 +51,7 @@ internal sealed class EquipmentReinforcementFailureRuleService(
         }
         logger.LogInformation(
             "REINFORCEMENT_FAILURE kind={Kind} item={ItemId} old={OldLevel} penalty={PenaltyType} calculatedOutcome={Outcome} calculatedLevel={NewLevel} consumeProtection={ConsumeProtection} rewardKinds={RewardKinds}",
-            context.Kind, equipment.Core.ItemId, oldLevel, penalty, result.Outcome, result.NewLevel,
+            context.Kind, equipment.Snapshot.ItemId, oldLevel, penalty, result.Outcome, result.NewLevel,
             result.ConsumeProtection, result.Rewards.Count);
         return result;
     }

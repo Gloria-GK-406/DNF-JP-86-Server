@@ -92,19 +92,6 @@ public sealed record QuestAdvance(QuestAdvanceVerdict Verdict, QuestTrigger Trig
         new(QuestAdvanceVerdict.Refused, new QuestTrigger(0));
 }
 
-/// <summary>What became of one attempt to hand a quest in.</summary>
-public enum QuestFinishVerdict
-{
-    /// <summary>It was handed in: it stopped being carried and started being cleared.</summary>
-    Finished,
-
-    /// <summary>The character is not carrying it.</summary>
-    NotCarried,
-
-    /// <summary>It is carried, but what it asked for has not been done yet.</summary>
-    ObjectiveUnmet,
-}
-
 /// <summary>
 /// Everything one character's quests amount to: what is being carried, what has been finished,
 /// and what may be done to either.

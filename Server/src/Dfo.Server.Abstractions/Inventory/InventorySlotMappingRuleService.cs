@@ -7,6 +7,7 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
 {
     public BusinessSlot ToBusinessSlot(GameSlot source) => source.Space switch
     {
+        InventoryContainerType.QuickSlot when In(source.Index, 3, 8) => Business(BusinessInventorySpace.TowerQuickSlot, source.Index, 3),
         InventoryContainerType.Main when In(source.Index, 3, 8) => Business(BusinessInventorySpace.QuickSlot, source.Index, 3),
         InventoryContainerType.Main when In(source.Index, 9, 64) => Business(BusinessInventorySpace.CarriedEquipment, source.Index, 9),
         InventoryContainerType.Main when In(source.Index, 65, 120) => Business(BusinessInventorySpace.Consumable, source.Index, 65),
@@ -14,8 +15,9 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         InventoryContainerType.Main when In(source.Index, 177, 232) => Business(BusinessInventorySpace.Quest, source.Index, 177),
         InventoryContainerType.Main when In(source.Index, 233, 288) => Business(BusinessInventorySpace.ExpertMaterial, source.Index, 233),
         InventoryContainerType.Main when In(source.Index, 289, 351) => Business(BusinessInventorySpace.AvatarEmblem, source.Index, 289),
+        InventoryContainerType.Main when In(source.Index, 354, 364) => Business(BusinessInventorySpace.SharedMaterial, source.Index, 354),
         InventoryContainerType.Avatar when In(source.Index, 0, 209) => Business(BusinessInventorySpace.Avatar, source.Index, 0),
-        InventoryContainerType.PersonalCargo when In(source.Index, 0, 151) => Business(BusinessInventorySpace.PersonalCargo, source.Index, 0),
+        InventoryContainerType.PersonalCargo when In(source.Index, 0, 199) => Business(BusinessInventorySpace.PersonalCargo, source.Index, 0),
         InventoryContainerType.Equipment when In(source.Index, 0, 11) => Business(BusinessInventorySpace.WornAvatar, source.Index, 0),
         InventoryContainerType.Equipment when In(source.Index, 12, 24) => Business(BusinessInventorySpace.WornEquipment, source.Index, 12),
         InventoryContainerType.Equipment when source.Index == 25 => new(BusinessInventorySpace.WornCreature, 0),
@@ -24,7 +26,7 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         InventoryContainerType.Pet when In(source.Index, 0, 139) => Business(BusinessInventorySpace.CreatureInventory, source.Index, 0),
         InventoryContainerType.Pet when In(source.Index, 140, 188) => Business(BusinessInventorySpace.CreatureEquipment, source.Index, 140),
         InventoryContainerType.Pet when In(source.Index, 189, 239) => Business(BusinessInventorySpace.CreatureConsumable, source.Index, 189),
-        InventoryContainerType.AccountCargo when In(source.Index, 0, 63) => Business(BusinessInventorySpace.AccountCargo, source.Index, 0),
+        InventoryContainerType.AccountCargo when In(source.Index, 0, 119) => Business(BusinessInventorySpace.AccountCargo, source.Index, 0),
         InventoryContainerType.GuildMedal when In(source.Index, 0, 48) => Business(BusinessInventorySpace.GuildMedal, source.Index, 0),
         InventoryContainerType.GuildMedal when In(source.Index, 49, 97) => Business(BusinessInventorySpace.GuardianGem, source.Index, 49),
         _ => throw new InventorySlotMappingException(source),
@@ -32,6 +34,7 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
 
     public GameSlot ToGameSlot(BusinessSlot source) => source.Space switch
     {
+        BusinessInventorySpace.TowerQuickSlot => Game(source, InventoryContainerType.QuickSlot, 3, 5),
         BusinessInventorySpace.QuickSlot => Game(source, InventoryContainerType.Main, 3, 5),
         BusinessInventorySpace.CarriedEquipment => Game(source, InventoryContainerType.Main, 9, 55),
         BusinessInventorySpace.Consumable => Game(source, InventoryContainerType.Main, 65, 55),
@@ -39,8 +42,9 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         BusinessInventorySpace.Quest => Game(source, InventoryContainerType.Main, 177, 55),
         BusinessInventorySpace.ExpertMaterial => Game(source, InventoryContainerType.Main, 233, 55),
         BusinessInventorySpace.AvatarEmblem => Game(source, InventoryContainerType.Main, 289, 62),
+        BusinessInventorySpace.SharedMaterial => Game(source, InventoryContainerType.Main, 354, 10),
         BusinessInventorySpace.Avatar => Game(source, InventoryContainerType.Avatar, 0, 209),
-        BusinessInventorySpace.PersonalCargo => Game(source, InventoryContainerType.PersonalCargo, 0, 151),
+        BusinessInventorySpace.PersonalCargo => Game(source, InventoryContainerType.PersonalCargo, 0, 199),
         BusinessInventorySpace.WornAvatar => Game(source, InventoryContainerType.Equipment, 0, 11),
         BusinessInventorySpace.WornEquipment => Game(source, InventoryContainerType.Equipment, 12, 12),
         BusinessInventorySpace.WornCreature => Game(source, InventoryContainerType.Equipment, 25, 0),
@@ -49,7 +53,7 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         BusinessInventorySpace.CreatureInventory => Game(source, InventoryContainerType.Pet, 0, 139),
         BusinessInventorySpace.CreatureEquipment => Game(source, InventoryContainerType.Pet, 140, 48),
         BusinessInventorySpace.CreatureConsumable => Game(source, InventoryContainerType.Pet, 189, 50),
-        BusinessInventorySpace.AccountCargo => Game(source, InventoryContainerType.AccountCargo, 0, 63),
+        BusinessInventorySpace.AccountCargo => Game(source, InventoryContainerType.AccountCargo, 0, 119),
         BusinessInventorySpace.GuildMedal => Game(source, InventoryContainerType.GuildMedal, 0, 48),
         BusinessInventorySpace.GuardianGem => Game(source, InventoryContainerType.GuildMedal, 49, 48),
         _ => throw new InventorySlotMappingException(source),

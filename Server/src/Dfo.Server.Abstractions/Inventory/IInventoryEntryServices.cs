@@ -6,22 +6,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-/// <summary>One stored row of an inventory, as the load reads it.</summary>
-/// <remarks>
-/// <see cref="Identity"/> is the name of the thing on the row, answered by the classification the
-/// load asks of the archive -- not the key of the row itself. A pile has no name, so it arrives
-/// here with none, and nothing downstream can tell two piles of one template apart.
-/// </remarks>
-public sealed record InventoryStorageItem(
-    ItemIdentity? Identity,
-    InventoryOwnerType OwnerType,
-    int OwnerId,
-    CharacterId? CharacterId,
-    InventoryContainerType ContainerType,
-    int SlotIndex,
-    InventoryItemCoreState Core,
-    InventoryAvatarDetailState? AvatarDetail = null);
-
 public sealed record InventoryContainerParameter(
     CharacterId CharacterId,
     InventoryContainerType ContainerType,
@@ -61,7 +45,7 @@ public sealed record CharacterRentalStorageRecord(
 public sealed record CharacterInventoryEntryStorageRecord(
     AccountId AccountId,
     CharacterId CharacterId,
-    IReadOnlyList<InventoryStorageItem> CharacterItems,
+    IReadOnlyList<ItemReference> CharacterItems,
     IReadOnlyList<InventoryContainerParameter> CharacterContainerParameters,
     IReadOnlyList<InventoryRuntimeValueState> CharacterVirtualResources,
     IReadOnlyList<InventoryItemValueStorageRecord> CharacterItemValues,
@@ -72,7 +56,7 @@ public sealed record CharacterInventoryEntryStorageRecord(
 public sealed record AccountInventoryEntryStorageRecord(
     AccountId AccountId,
     CharacterId CharacterId,
-    IReadOnlyList<InventoryStorageItem> AccountCargoItems,
+    IReadOnlyList<ItemReference> AccountCargoItems,
     AccountCargoStorageState AccountCargoState,
     IReadOnlyList<InventoryRuntimeValueState> AccountVirtualResources,
     IReadOnlyList<InventoryEquipmentLockStorageRecord> EquipmentLocks);
@@ -128,14 +112,8 @@ public sealed record DailyRefillCommittedGrant(
 public sealed record DailyRefillMutationResult(
     IReadOnlyList<DailyRefillCommittedGrant> Grants);
 
-
-public interface IEntryInventoryMutationRepository
+public interface IDailyRefillDomainService
 {
-    /// <summary>Every occupied slot of the character's main inventory, in the order it is drawn.</summary>
-    ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-        CharacterId characterId,
-        CancellationToken cancellationToken);
-
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
         AccountId accountId,
         CharacterId characterId,
@@ -160,23 +138,4 @@ public interface ISelectCharacterEntryInventoryDomainService
         SelectCharacterResult result,
         CancellationToken cancellationToken);
 
-}
-
-/// <summary>
-/// Legacy persistence input for direct reconciliation tests. The selected-session lifecycle no
-/// longer holds or writes this shape; current item state is read from the item domain store.
-/// </summary>
-public sealed record CharacterItemLeaseState(
-    CharacterId CharacterId,
-    IReadOnlyList<InventoryContainerState> Containers);
-
-public sealed record EntryInventoryLeaseSnapshot(
-    SelectedSessionIdentity Session,
-    CharacterItemLeaseState Inventory,
-    long Version,
-    bool IsDirty);
-
-public interface IEntryInventoryLeasePersistence
-{
-    ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken);
 }

@@ -1,0 +1,193 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Events;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Joust;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Dfo.Server.Protocol.Tests.Game.Joust;
+
+public sealed class JoustQueryHandlerTests
+{
+    [Theory]
+    [InlineData(JoustPhase.Betting)]
+    [InlineData(JoustPhase.Final)]
+    [InlineData(JoustPhase.Result)]
+    public async Task Bet_updates_always_publish_silent_data(JoustPhase phase)
+    {
+        var state = new JoustState(true, DateTimeOffset.UnixEpoch, phase, "round",
+            null, null, null, [], [1,2,3,4,1,3,1], 0, 1000, 17);
+        var messages = await new JoustDetailsChangedHandler(new Projection(state)).ComposeAsync(new(new(1), new("joust")),
+            new(state.ServerTime), default);
+        Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResultsMessage);
+        Assert.Single(messages.OfType<JoustBetsMessage>());
+        Assert.Single(messages.OfType<JoustInfoMessage>());
+    }
+
+    [Theory]
+    [InlineData(JoustPhase.Betting)]
+    [InlineData(JoustPhase.Result)]
+    public async Task Repeated_info_queries_return_details_without_reannouncing_the_phase(JoustPhase phase)
+    {
+        var state = new JoustState(true, DateTimeOffset.UnixEpoch, phase, "round", null, null, null,
+            [], phase == JoustPhase.Result ? [1, 2, 3, 4, 1, 3, 1] : [], 0, 1000, 17);
+        var replies = await QueryTwice(state);
+        foreach (var messages in replies)
+        {
+            Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResultsMessage);
+            var ack=Assert.IsType<JoustResponse>(messages[0]);
+            Assert.Equal((ushort)0x04E6,ack.Type);
+            Assert.Equal(0u,ack.Result);
+            Assert.Null(ack.History);
+            Assert.IsType<JoustBetsMessage>(messages[1]);
+            Assert.IsType<JoustInfoMessage>(messages[2]);
+            Assert.Equal(3, messages.Count);
+        }
+    }
+
+    [Fact]
+    public async Task Closed_info_query_returns_only_the_refusal_without_empty_phase_notifications()
+    {
+        var state = new JoustState(false, DateTimeOffset.UnixEpoch, JoustPhase.Inactive, null,
+            null, null, null, [], [], 0, 0, 0);
+        foreach (var messages in await QueryTwice(state))
+            Assert.Equal(6u, Assert.IsType<JoustResponse>(Assert.Single(messages)).Result);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Repeated_history_queries_return_only_history_without_mail_or_phase_notifications(bool hasHistory)
+    {
+        var state = new JoustState(true, DateTimeOffset.UnixEpoch, JoustPhase.Result, "round",
+            null, null, null, [], [], 0, 1000, 17);
+        JoustHistoryEntry[] history = hasHistory
+            ? [new("saved", DateTimeOffset.UnixEpoch, 3, 2.5m) { RoundNo = 7 }]
+            : [];
+        foreach (var messages in await QueryTwice(state, 0x04E8, history))
+        {
+            var response = Assert.IsType<JoustResponse>(Assert.Single(messages));
+            Assert.Equal((ushort)0x04E8, response.Type);
+            Assert.Equal(0u, response.Result);
+            Assert.Equal(history, response.History);
+        }
+    }
+
+    [Theory]
+    [InlineData(JoustPhase.Betting)]
+    [InlineData(JoustPhase.Result)]
+    public async Task General_event_refresh_does_not_reinitialize_joust_or_reannounce_results(JoustPhase phase)
+    {
+        var state=new JoustState(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
+            [],[1,2,3,4,1,3,1],0,1000,17);
+        var session=SelectedSessionIdentity.Create(new(1),new(1),new("joust-test"),1,10010);
+        var handler=new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),new EventProjection(state));
+        for(var i=0;i<2;i++)
+        {
+            var messages=await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
+            Assert.DoesNotContain(messages,m=>m is JoustStateMessage or JoustResultsMessage);
+            Assert.Single(messages.OfType<JoustBetsMessage>());
+            Assert.Single(messages.OfType<JoustInfoMessage>());
+            Assert.Equal(4,messages.Count);
+        }
+    }
+    private sealed class EventProjection(JoustState state):IEventPlayerProjectionDomainService
+    {
+        public ValueTask<Dfo.Server.Data.Events.EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity session,CancellationToken ct)
+            =>ValueTask.FromResult(new Dfo.Server.Data.Events.EventPlayerSnapshot([],Dfo.Server.Data.Events.WeeklyAttendanceState.Empty,state));
+    }
+
+    private static async Task<IReadOnlyList<IGameServerMessage>[]> QueryTwice(JoustState state,
+        ushort type = 0x04E6, JoustHistoryEntry[]? history = null)
+    {
+        var connection = new NetworkConnectionContext(new("joust-test"), NetworkEndpointKind.Game, 10010);
+        var session = SelectedSessionIdentity.Create(new(1), new(1), connection.ConnectionId, 1, 10010);
+        var sessions = new Sessions(session);
+        var transitions = new SelectedSessionTransitionGate();
+        var sender = new Sender();
+        using var services = new ServiceCollection()
+            .AddSingleton<ISelectedSessionDomainService>(sessions)
+            .AddSingleton<ISelectedSessionSnapshotQuery>(sessions)
+            .AddSingleton<IOnlineUserQueryDomainService>(new Users(new(OnlineUserId.New(), connection,
+                session.AccountId, session.CharacterId, OnlineUserState.CharacterActive, 1)))
+            .AddSingleton<ICommandBus>(new Commands(state, history ?? []))
+            .AddSingleton<IGameMessageSender>(sender)
+            .AddSingleton<INotificationBus>(new Notices())
+            .AddSingleton(transitions)
+            .AddSingleton(sp => new SelectedSessionSafety(sp, transitions, NullLogger<SelectedSessionSafety>.Instance))
+            .BuildServiceProvider();
+        var handler = ActivatorUtilities.CreateInstance<JoustQueryHandler>(services);
+        var replies = new List<IReadOnlyList<IGameServerMessage>>();
+        for (var i = 0; i < 2; i++)
+        {
+            sender.Sent.Clear();
+            await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, type, 0, 1)), default);
+            replies.Add(sender.Sent.ToArray());
+        }
+        return [.. replies];
+    }
+
+    private sealed class Commands(JoustState state, JoustHistoryEntry[] history) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull
+        {
+            object result = command switch
+            {
+                QueryJoustStateCommand => state,
+                QueryJoustHistoryCommand => history,
+                _ => throw new InvalidOperationException("Unexpected query command."),
+            };
+            return ValueTask.FromResult((TResult)result);
+        }
+    }
+    private sealed class Sessions(SelectedSessionIdentity session) : ISelectedSessionDomainService, ISelectedSessionSnapshotQuery
+    {
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity value) => throw new NotSupportedException();
+        public bool ReleaseExact(SelectedSessionIdentity value) => throw new NotSupportedException();
+        public SelectedSessionIdentity? Find(AccountId id) => id == session.AccountId ? session : null;
+        public SelectedSessionIdentity? FindByCharacter(CharacterId id) => id == session.CharacterId ? session : null;
+        public SelectedSessionIdentity? FindByWireUserId(ushort id) => id == session.WireUserId ? session : null;
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId id) => id == session.ConnectionId ? session : null;
+        public IReadOnlyList<SelectedSessionIdentity> Snapshot() => [session];
+    }
+    private sealed class Projection(JoustState state) : IJoustProjectionDomainService
+    {
+        public ValueTask<JoustState> ReadAsync(CharacterId character, DateTimeOffset now, CancellationToken ct)
+            => ValueTask.FromResult(state);
+    }
+    private sealed class Users(OnlineUserSnapshot user) : IOnlineUserQueryDomainService
+    {
+        public OnlineUserSnapshot GetRequired(OnlineUserId id) => user;
+        public bool TryGetByConnection(NetworkConnectionId id, out OnlineUserSnapshot? found)
+        { found = id == user.Connection.ConnectionId ? user : null; return found is not null; }
+    }
+    private sealed class Notices : INotificationBus
+    {
+        public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notice, CancellationToken ct)
+            where T : class, INotification<T> => throw new InvalidOperationException("A query must not publish notifications.");
+    }
+    private sealed class Sender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+        public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct)
+        { Sent.AddRange(messages); return ValueTask.CompletedTask; }
+        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct)
+        { Sent.Add(message); return ValueTask.CompletedTask; }
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct)
+        { Sent.Add(message); return ValueTask.CompletedTask; }
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct)
+            => throw new NotSupportedException();
+    }
+}

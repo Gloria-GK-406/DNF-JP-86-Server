@@ -58,10 +58,6 @@ public sealed record PvpMissionRow(int SortOrder, int MissionId, int ProgressVal
 /// <summary>The two bonus point columns of <c>characters</c>.</summary>
 public sealed record BonusPointRow(int BonusSp, int BonusTp);
 
-/// <summary>One of a character's inbox rows in <c>mailbox_recipients</c>.</summary>
-public sealed record MailboxRecipientRow(
-    long MessageId, int ReadFlag, int SavedFlag, int ReceivedGoldFlag);
-
 /// <summary>
 /// One row of <c>mailbox_messages</c>, with the two values only the database can work out.
 /// </summary>
@@ -237,33 +233,12 @@ public interface ICharacterPvpMissionTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>mailbox_recipients</c> table.</summary>
-public interface IMailboxRecipientTable
-{
-    /// <summary>The character's inbox: not saved, not deleted, folder zero.</summary>
-    ValueTask<IReadOnlyList<MailboxRecipientRow>> ReadInboxAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
 /// <summary>The <c>mailbox_messages</c> table.</summary>
 public interface IMailboxMessageTable
 {
-    /// <summary>
-    /// Just enough of each of them to say which are still live and which order they came in.
-    /// </summary>
-    /// <remarks>
-    /// Separate from the read below so that a character with a large inbox does not have every
-    /// letter's text fetched to show twenty of them.
-    /// </remarks>
-    ValueTask<IReadOnlyList<MailboxHeaderRow>> ReadHeadersAsync(
-        IReadOnlyList<long> messageIds, CancellationToken cancellationToken);
-
     ValueTask<IReadOnlyList<MailboxMessageRow>> ReadAsync(
         IReadOnlyList<long> messageIds, CancellationToken cancellationToken);
 }
-
-/// <summary>When a message arrived, and whether it is still worth showing.</summary>
-public sealed record MailboxHeaderRow(long MessageId, int CreatedAtUnixSeconds, bool Live);
 
 /// <summary>The <c>mailbox_attachments</c> table.</summary>
 public interface IMailboxAttachmentTable

@@ -12,6 +12,7 @@ namespace Dfo.Server.Abstractions.Transactions;
 /// </remarks>
 public interface ITransactionParticipant
 {
+    bool SupportsReadOnly => false;
     /// <summary>
     /// Whether this participant's <see cref="CommitAsync"/> can still fail. A transaction
     /// admits at most one such participant, because a commit that already succeeded cannot be
@@ -37,6 +38,15 @@ public interface ITransactionParticipant
 /// <summary>One use case's transaction. Participants join it; it decides their common outcome.</summary>
 public interface IDomainTransaction
 {
+    bool IsReadOnly => false;
+
+    /// <summary>
+    /// Registers a best-effort effect after the entire transaction commits. A repeated key
+    /// replaces the effect. Publication failure is logged without changing the committed outcome.
+    /// Read-only transactions reject effects.
+    /// </summary>
+    void RegisterAfterCommit(object key, Func<CancellationToken, ValueTask> callback) =>
+        throw new NotSupportedException("This transaction does not support post-commit effects.");
     /// <summary>
     /// The participant registered under <paramref name="identity"/>, creating and enlisting one
     /// on first use.

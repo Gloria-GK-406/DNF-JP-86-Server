@@ -21,7 +21,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         rewards.Resolve(definition, quests.Parameters(), new(facts.Identity.Job, facts.Identity.GrowType, facts.Progress.Level), selection, count);
 
     public async ValueTask<ImmutableArray<CarriedQuest>> EffectiveAsync(QuestStateFacts state,
-        IReadOnlyList<ContainerSlotItem> main, int carriedGold, CancellationToken ct)
+        IEnumerable<ItemSnapshot> main, int carriedGold, CancellationToken ct)
     {
         var counts = main.Where(x => x.ItemId > 0 && !accounts.TryGetByItemId(x.ItemId, out _))
             .GroupBy(x => x.ItemId).ToDictionary(x => x.Key, x => x.Sum(y => (long)y.Count));
@@ -47,9 +47,6 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         var effects = ImmutableArray.CreateBuilder<DomainEffect>();
         foreach (var item in reward.Items)
         {
-            if (accounts.TryGetByItemId(item.ItemId, out var account))
-                effects.Add(new GrantAccountMaterialEffect(account.Kind, item.ItemId, item.Count));
-            else
             {
                 var placement = await placements.PlacementForAsync(item.ItemId, ct).ConfigureAwait(false)
                     ?? throw new InventoryEffectException(InventoryEffectRejection.UnsupportedItem);
@@ -107,7 +104,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
             }
         }
         var remaining = facts.Quests with { Carried = [.. facts.Quests.Carried.Where(x => x.Slot != target.Slot)] };
-        var projected = await EffectiveAsync(remaining, after.Main, after.Gold, ct).ConfigureAwait(false);
+        var projected = await EffectiveAsync(remaining, after.Main.Values, after.Gold, ct).ConfigureAwait(false);
         var cleared = facts.Quests.Cleared.Where(x => x.Mark != 0).Select(x => x.QuestId).Append((int)questId).ToHashSet();
         var final = ImmutableArray.CreateBuilder<CarriedQuest>();
         foreach (var row in projected)

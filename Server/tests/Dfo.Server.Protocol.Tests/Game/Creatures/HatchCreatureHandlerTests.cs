@@ -26,7 +26,8 @@ public sealed class HatchCreatureHandlerTests
     {
         var before = new CreatureState(959, 63022, 100, 0, 1, [], 0, 0, 0, 0);
         var after = before with { ItemTemplateId = 63023 };
-        var core = StackableItemCore.Create(5, 63023, 959);
+        var core = ItemSnapshot.FromCore(StackableItemCore.Create(5, 63023, 959), false, new ItemIdentity(959),
+            creature: new InventoryCreatureDetailState(100, 0, 0, 1, 0, 0, [], 0));
         var bus = new Bus(new(before, after, new(BusinessInventorySpace.CreatureInventory, 0), core));
         var sender = new Sender(bus);
         var handler = Create(bus, sender);

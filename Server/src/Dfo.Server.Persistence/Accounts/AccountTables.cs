@@ -43,27 +43,6 @@ internal sealed class SqliteAccountTable(SqliteDatabase database) : IAccountTabl
                 parameters.AddWithValue("@oldHappy", expected.HappyTokenCera);
             }, cancellationToken);
 
-    public ValueTask InsertIfAbsentAsync(
-        string loginId, string passwordHash, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(loginId);
-        ArgumentNullException.ThrowIfNull(passwordHash);
-        return Ignore(database.ExecuteAsync(
-            """
-            INSERT INTO accounts (m_id, password_hash)
-            VALUES (@loginId, @passwordHash)
-            ON CONFLICT(m_id) DO NOTHING;
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@loginId", loginId);
-                parameters.AddWithValue("@passwordHash", passwordHash);
-            },
-            cancellationToken));
-
-        static async ValueTask Ignore(ValueTask<int> touched) => _ = await touched;
-    }
-
     public ValueTask<AccountRecord?> FindByLoginIdAsync(
         string loginId, CancellationToken cancellationToken)
     {

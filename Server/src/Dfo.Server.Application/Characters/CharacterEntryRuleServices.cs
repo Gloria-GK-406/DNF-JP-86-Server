@@ -91,12 +91,6 @@ internal sealed class DungeonEffectRuleService : IDungeonEffectRuleService
     /// <summary>The only payload version this server knows how to read.</summary>
     private const int KnownPayloadVersion = 1;
 
-    /// <summary>The level at and above which nothing is ordinary experience any more.</summary>
-    private const int LastLevel = 86;
-
-    /// <summary>Where the last level's threshold sits in the recorded progression.</summary>
-    private const int LastLevelThresholdIndex = 84;
-
     public bool CanCarryOut(
         int payloadVersion,
         int recordedAccountId,
@@ -139,32 +133,14 @@ internal sealed class DungeonEffectRuleService : IDungeonEffectRuleService
     {
         ArgumentNullException.ThrowIfNull(settlement);
         ArgumentNullException.ThrowIfNull(policy);
-        var settlementLevel = settlement.PreviousLevel;
-        var settlementExp = settlement.PreviousExp;
-        var maxEntry = policy.LevelThresholds[LastLevelThresholdIndex];
-        var saturated = Math.Min(uint.MaxValue, (ulong)settlementExp + settlement.RawGain);
-        var honor = settlementLevel >= LastLevel ? settlement.RawGain
-            : saturated <= maxEntry ? 0U
-            : checked((uint)(saturated - Math.Max((ulong)settlementExp, maxEntry)));
-        var normal = settlement.RawGain - honor;
-        var newExp = Math.Min(uint.MaxValue, (ulong)settlementExp + normal);
-        if (settlementLevel >= LastLevel && settlement.NormalizeMaxLevelExp)
-        {
-            newExp = maxEntry;
-        }
-
-        var normalizedMaximum = settlementLevel >= LastLevel
-            && settlement.NormalizeMaxLevelExp && settlementExp != maxEntry;
-        var newLevel = (int)settlementLevel;
-        while (newLevel < LastLevel && newLevel <= policy.LevelThresholds.Count
-               && newExp >= policy.LevelThresholds[newLevel - 1])
-        {
-            newLevel++;
-        }
-
-        return new DungeonExperienceSplit(
-            honor, normal, newLevel, newExp, normalizedMaximum,
-            Persisted: normal > 0 || newLevel != settlementLevel || normalizedMaximum);
+        var scale = new Dfo.Server.Abstractions.World.CharacterExperienceScale(policy.LevelThresholds);
+        var before = scale.ProgressFor(settlement.PreviousExp);
+        var total = (ulong)before.Experience + settlement.RawGain;
+        var next = scale.ProgressFor(checked((long)total));
+        var honor = checked((uint)(total - next.Experience));
+        var normalized = settlement.PreviousExp > scale.MaximumExperience;
+        return new DungeonExperienceSplit(honor, settlement.RawGain - honor, next.Level, next.Experience,
+            normalized, next.Level != settlement.PreviousLevel || next.Experience != settlement.PreviousExp);
     }
 
     /// <remarks>
@@ -178,11 +154,11 @@ internal sealed class DungeonEffectRuleService : IDungeonEffectRuleService
         DungeonExperienceProgressionPolicy policy)
     {
         ArgumentNullException.ThrowIfNull(policy);
-        var totalHonor = Math.Min(policy.MaximumHonorExperience, oldHonor + honorGain);
+        var totalHonor = Math.Min(policy.MaximumHonorExperience, Math.Min(oldHonor, policy.MaximumHonorExperience) + honorGain);
         var capsuleGain = checked((uint)Math.Min(uint.MaxValue,
             Math.Max(honorGain > 0 && policy.GrowthCapsuleRatePercent > 0 ? 1UL : 0UL,
                 (ulong)honorGain * (uint)policy.GrowthCapsuleRatePercent / 100UL)));
-        var totalCapsule = Math.Min(policy.GrowthCapsuleMaximum, checked(oldCapsule + capsuleGain));
+        var totalCapsule = checked((uint)Math.Min(policy.GrowthCapsuleMaximum, (ulong)oldCapsule + capsuleGain));
         return new DungeonHonourOutcome(
             totalHonor, totalCapsule, totalCapsule - Math.Min(oldCapsule, policy.GrowthCapsuleMaximum));
     }

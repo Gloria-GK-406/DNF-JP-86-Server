@@ -126,10 +126,10 @@ internal sealed class SelectCharacterPetEntryService(
             var equipment = ContainerId.ForCharacter(
                 session.CharacterId, InventoryContainerType.Equipment);
             var equipped = await stores.ReadAsync(
-                items, held => held.ReadAsync(equipment, EquippedCreatureSlot, cancellationToken))
+                items, held => held.GetAsync(equipment, EquippedCreatureSlot, cancellationToken))
                 .ConfigureAwait(false);
-            if (equipped?.Core is not { ItemKind: CreatureItemKind } core || core.Value <= 0) return null;
-            if (equipped.Identity is not { } worn) return null;
+            if (equipped?.Snapshot is not { LegacyKind: CreatureItemKind, ItemUid: not null }) return null;
+            if (equipped.ItemUid is not { } worn) return null;
             creatureKey = worn.Value;
             var creature = await stores.ReadAsync(
                 characters, rows => rows.Creatures.ReadAsync(place, creatureKey, cancellationToken))

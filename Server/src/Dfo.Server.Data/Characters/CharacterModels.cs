@@ -192,7 +192,10 @@ public sealed record ActiveCharacterState(
     CharacterProgressionState Progression,
     CharacterFatigueState Fatigue,
     CharacterPositionState Position,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt)
+{
+    public bool TutorialCompleted { get; init; }
+}
 
 public sealed record CharacterAppearanceCompatibilityState(
     byte FormatVersion,

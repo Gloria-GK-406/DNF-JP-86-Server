@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Hosting;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -250,12 +251,13 @@ public sealed class GmPlayerDirectoryHttpTests
 
     internal static async Task SeedAsync(GmTestHost host)
     {
+        var maximumExperience = host.Services.GetRequiredService<IExperienceRuleService>().CharacterScale().MaximumExperience;
         var sql = new StringBuilder();
         for (var id = 1; id <= 45; id++)
         {
             sql.Append($"INSERT INTO accounts(account_id,m_id,password_hash,cera,token_cera,happy_token_cera,last_login_ip) VALUES({id},'player{id:D2}','secret-player',{(id == 45 ? int.MaxValue : id)},0,12,'192.0.2.1');");
             if (id < 45)
-                sql.Append($"INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,town_id,area_id,pos_x,pos_y,direction) VALUES({id},{id},'wrong-name',X'{Convert.ToHexString(Encoding.UTF8.GetBytes($"角色{id:D2}"))}',1,2,86,1,2,10,20,5);");
+                sql.Append($"INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,exp,town_id,area_id,pos_x,pos_y,direction) VALUES({id},{id},'wrong-name',X'{Convert.ToHexString(Encoding.UTF8.GetBytes($"角色{id:D2}"))}',1,2,86,{maximumExperience},1,2,10,20,5);");
         }
         sql.Append("INSERT INTO characters(character_id,account_id,name,name_bytes,delete_flag) VALUES(46,1,'wrong-name',X'E4B8ADE69687255F27203C623E',1),(47,1,'fallback-forbidden',NULL,0),(48,1,'fallback-forbidden',X'FFFE',0);");
         await host.ExecuteAsync(sql.ToString());

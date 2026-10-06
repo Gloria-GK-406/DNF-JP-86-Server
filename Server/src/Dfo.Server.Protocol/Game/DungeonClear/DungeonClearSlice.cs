@@ -165,7 +165,9 @@ public sealed class GiveUpGameHandler(
     ITownAreaDomainService? townAreas = null,
     ICommandBus? commands = null,
     PartyNotificationDelivery? partyNotifications = null,
-    DungeonCardPresentationCoordinator? cardPresentation = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null,
+    IllusionTowerProjectionDelivery? illusionTower = null,
+    IllusionTowerPartyCoordinator? towerParties = null)
     : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -173,11 +175,10 @@ public sealed class GiveUpGameHandler(
         GiveUpGameRequest message,
         CancellationToken cancellationToken)
     {
+        if (IllusionTowerProjectionDelivery.Stale(message.Metadata))
+            return;
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        var result = session is null ? null
-            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
-        if (session is null || result is null
-            || positions.Find(session.CharacterId) is not { } position)
+        if (session is null)
         {
             logger.LogWarning(
                 "Give up game {ConnectionId}: no published session, ignoring",
@@ -185,53 +186,105 @@ public sealed class GiveUpGameHandler(
             return;
         }
 
-        var ended = false;
-        PartyCommandExecution? partyExecution = null;
-        await using (var transition = await transitionGate.AcquireAsync(
-            session.AccountId, UserAccessMode.Exclusive, cancellationToken)
-            .ConfigureAwait(false))
+        for (var attempt = 0; ; attempt++)
         {
-            if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
-                return;
-
-            var currentRun = runs.Find(session.CharacterId);
-            if (currentRun is not null)
-                cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
-            ended = currentRun is not null && await runs.EndAsync(session.CharacterId, currentRun.RunId).ConfigureAwait(false);
-            if (ended && currentRun is not null)
-                deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
-            if (ended && townAreas is not null && commands is not null)
+            if (towerParties is not null)
             {
-                var partyResult = await commands.SendAsync(
-                    new LeavePartyCommand(session.CharacterId),
-                    cancellationToken).ConfigureAwait(false);
-                partyExecution = new PartyCommandExecution(
-                    partyResult,
-                    PartyNotificationRecipientCapture.Capture(
-                        partyResult.Notifications, selectedSessions, townAreas));
+                var towerAttempt = await towerParties.TryLeaveAsync(
+                    session, allowVirtual: true, new GiveUpGameResponse(), cancellationToken)
+                    .ConfigureAwait(false);
+                if (towerAttempt.Handled)
+                {
+                    logger.LogInformation(
+                        "Give up game {ConnectionId} character={CharacterId}: tower ended={Ended}",
+                        context.Connection.ConnectionId, session.CharacterId.Value,
+                        towerAttempt.Result.Succeeded);
+                    return;
+                }
             }
-        }
+            else if (illusionTower is not null
+                && await illusionTower.LeaveAndReturnAsync(
+                    context.Connection.ConnectionId, message.Metadata,
+                    new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
 
-        if (partyExecution is { Result.Succeeded: true } && partyNotifications is not null)
-        {
-            await partyNotifications.DeliverAsync(
-                partyExecution.Result.Notifications,
-                partyExecution.Recipients,
+            var result = await currentViews.TryLoadAsync(session, cancellationToken)
+                .ConfigureAwait(false);
+            if (result is null || positions.Find(session.CharacterId) is not { } position)
+            {
+                logger.LogWarning(
+                    "Give up game {ConnectionId}: no published session, ignoring",
+                    context.Connection.ConnectionId);
+                return;
+            }
+
+            var ended = false;
+            var reroute = false;
+            PartyCommandExecution? partyExecution = null;
+            await using (var transition = await transitionGate.AcquireAsync(
+                session.AccountId, UserAccessMode.Exclusive, cancellationToken)
+                .ConfigureAwait(false))
+            {
+                if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
+                    return;
+                if (towerParties?.HasInvolvedTower(session) == true)
+                {
+                    reroute = true;
+                }
+                else
+                {
+                    var currentRun = runs.Find(session.CharacterId);
+                    if (currentRun is not null)
+                        cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
+                    ended = currentRun is not null
+                        && await runs.EndAsync(session.CharacterId, currentRun.RunId)
+                            .ConfigureAwait(false);
+                    if (ended && currentRun is not null)
+                        deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+                    if (ended && townAreas is not null && commands is not null)
+                    {
+                        var partyResult = await commands.SendAsync(
+                            new LeavePartyCommand(session.CharacterId),
+                            cancellationToken).ConfigureAwait(false);
+                        partyExecution = new PartyCommandExecution(
+                            partyResult,
+                            PartyNotificationRecipientCapture.Capture(
+                                partyResult.Notifications, selectedSessions, townAreas));
+                    }
+                }
+            }
+
+            if (reroute)
+            {
+                if (attempt >= 7)
+                    return;
+                continue;
+            }
+
+            if (partyExecution is { Result.Succeeded: true } && partyNotifications is not null)
+            {
+                await partyNotifications.DeliverAsync(
+                    partyExecution.Result.Notifications,
+                    partyExecution.Recipients,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            logger.LogInformation(
+                "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value,
+                ended);
+
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
                 cancellationToken).ConfigureAwait(false);
+            await townAreaProjection.EnterAsync(
+                [new TownAreaEntry(session, result, position)],
+                cancellationToken).ConfigureAwait(false);
+            return;
         }
-        logger.LogInformation(
-            "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
-            context.Connection.ConnectionId,
-            session.CharacterId.Value,
-            ended);
-
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
-            cancellationToken).ConfigureAwait(false);
-        await townAreaProjection.EnterAsync(
-            [new TownAreaEntry(session, result, position)],
-            cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -700,7 +753,8 @@ public sealed class SetPlayResultHandler(
     IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger,
-    DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null, SelectedSessionSafety? safety = null,
+    Dfo.Server.Abstractions.Notifications.INotificationBus? eventNotices = null)
     : ClientMessageHandler<SetPlayResultRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -881,7 +935,8 @@ public sealed class SetPlayResultHandler(
                         run.Layout.BasisLevel,
                         run.Difficulty,
                         run.Layout.ExperienceWeight,
-                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount), Session: session),
+                        message.ClientRankPoint, run.KillSummary.Total, run.PartyMemberCount), Session: session,
+                    RunId:run.RunId.Value,SettlementLevel:clearProgress.Level),
                 cancellationToken).ConfigureAwait(false));
 
             durableCommitted = true;
@@ -917,6 +972,9 @@ public sealed class SetPlayResultHandler(
                     "The dungeon settlement claim was no longer current after its durable award.");
             }
             settlementCommitted = true;
+            if (paid.AttendanceChanged && eventNotices is not null)
+                await eventNotices.PublishAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
+                    new Dfo.Server.Abstractions.Events.EventsChanged(),cancellationToken);
             var level = currentProgress.Level;
             var total = currentProgress.Experience;
             if (award is not null)
@@ -967,7 +1025,7 @@ public sealed class SetPlayResultHandler(
                     settlement.QuestMaze),
                 new ExperienceNotification(
                     level,
-                    total,
+                    award?.NotificationTotal ?? total,
                     mirror,
                     AccountHonorLevel.Initial,
                     ExperienceBonusLines.Of(award)),

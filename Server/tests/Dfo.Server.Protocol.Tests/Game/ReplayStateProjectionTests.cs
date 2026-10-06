@@ -18,6 +18,52 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class ReplayStateProjectionTests
 {
+    [Theory]
+    [InlineData(Dfo.Server.Data.Events.JoustPhase.Betting)]
+    [InlineData(Dfo.Server.Data.Events.JoustPhase.Result)]
+    public void Joust_replay_refreshes_details_without_reannouncing_the_phase_or_winner(Dfo.Server.Data.Events.JoustPhase phase)
+    {
+        var state = State(ReplayProjectionNeeds.Joust) with
+        {
+            Joust = new(true, DateTimeOffset.UnixEpoch, phase,
+                "round", null, null, null, [], [1,2,3,4,1,3,1], 0, 1000, 17),
+        };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        Assert.DoesNotContain(messages, m => m is Dfo.Server.Protocol.Game.Joust.JoustStateMessage or Dfo.Server.Protocol.Game.Joust.JoustResultsMessage);
+        Assert.Collection(messages,
+            m => Assert.IsType<Dfo.Server.Protocol.Game.Joust.JoustBetsMessage>(m),
+            m => Assert.IsType<Dfo.Server.Protocol.Game.Joust.JoustInfoMessage>(m));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Tower_replay_uses_current_memory_slots_and_late_replay_preserves_restored_slots(bool inTower)
+    {
+        var state = State(ReplayProjectionNeeds.Inventory);
+        var inventory = state.Inventory!.Character();
+        var ordinary = inventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Main);
+        if (inTower)
+            inventory = inventory with { Containers = [.. inventory.Containers,
+                new InventoryContainerState(InventoryContainerType.QuickSlot, 6,
+                    [new InventoryItemState(null, 4, StackableItemCore.Create(2, 6521, 2))])] };
+        state = state with { Inventory = new(inventory, state.Inventory.Account()),
+            Request = new(ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.TowerQuickSlot, 0)]) };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        var main = messages.OfType<InventorySnapshotMessage>().Single(x => x.Container.ContainerType == InventoryContainerType.Main).Container;
+        if (inTower)
+        {
+            Assert.DoesNotContain(main.Items, x => x.SlotIndex == 3);
+            Assert.Equal(6521, Assert.Single(main.Items, x => x.SlotIndex == 4).Core.ItemId);
+            Assert.Equal(InventoryContainerType.QuickSlot, Assert.Single(messages.OfType<InventoryDeltaMessage>()).ContainerType);
+        }
+        else
+        {
+            Assert.Equal(ordinary.Items, main.Items);
+            Assert.Empty(messages.OfType<InventoryDeltaMessage>());
+        }
+    }
+
     [Fact]
     public void Current_inventory_has_six_tables_zero_virtual_balances_and_explicit_empty_physical_slots()
     {
@@ -43,6 +89,40 @@ public sealed class ReplayStateProjectionTests
         Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(clear[1..]));
         Assert.Equal(4, BinaryPrimitives.ReadInt16LittleEndian(clear[3..]));
         Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(clear[5..]));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    public void Touched_shared_material_uses_the_current_account_count_to_decide_whether_to_clear(int count)
+    {
+        var state = State(ReplayProjectionNeeds.Inventory);
+        var account = state.Inventory!.Account() with { VirtualResources = [new(359, 3262, count)] };
+        state = state with
+        {
+            Inventory = new(state.Inventory.Character(), account),
+            Request = new(ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.SharedMaterial, 5)]),
+        };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        Assert.Equal(count > 0 ? 6 : 7, messages.Length);
+        var deltas = messages.OfType<InventoryDeltaMessage>().ToArray();
+        if (count > 0) Assert.Empty(deltas);
+        else
+        {
+            var clear = Assert.Single(Assert.Single(deltas).Items);
+            Assert.Equal(359, clear.SlotIndex);
+            Assert.Equal(-1, clear.Core.ItemId);
+        }
+        var body = Encode(messages[0]).AsSpan(15);
+        var rows = BinaryPrimitives.ReadUInt16LittleEndian(body[3..]);
+        var matches = new List<int>();
+        for (var i = 0; i < rows; i++)
+        {
+            var offset = 5 + i * 101;
+            if (BinaryPrimitives.ReadInt16LittleEndian(body[offset..]) == 359)
+                matches.Add(BinaryPrimitives.ReadInt32LittleEndian(body[(offset + 6)..]));
+        }
+        Assert.Equal(count, Assert.Single(matches));
     }
 
     [Theory]

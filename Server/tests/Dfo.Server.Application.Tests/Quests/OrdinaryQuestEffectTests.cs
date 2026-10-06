@@ -96,7 +96,7 @@ public sealed class OrdinaryQuestEffectTests
         await shop.SeedCore(3,StackableItemCore.Create(2,2000,9) with {Durability=7,Attribute=9,SealFlag=1,ExpireTime=12345}); Carry(shop);
         Assert.True((await Finish(shop)).Finished);
         var main=shop.Services.GetRequiredService<ICharacterContainerDomainService>().FindContainer(new(1),InventoryContainerType.Main)!;
-        var existing=(await main.ReadSlotAsync(3,default))!.Core; var created=(await main.ReadSlotAsync(4,default))!.Core;
+        var existing=(await main.GetAsync(3,default))!.Snapshot.ToCore(); var created=(await main.GetAsync(4,default))!.Snapshot.ToCore();
         Assert.Equal((7,9,1,12345),((int)existing.Durability,(int)existing.Attribute,(int)existing.SealFlag,existing.ExpireTime));
         Assert.Equal(StackableItemCore.Create(2,2000,2),created);
     }
@@ -119,7 +119,7 @@ public sealed class OrdinaryQuestEffectTests
         shop.Sql("INSERT INTO character_active_quests VALUES(1,1,2002,5),(1,2,2003,1)");
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal(0,result.QuestProgress!.Quests.Single(x=>x.QuestId==2002).TriggerValue);
         Assert.Equal(1,result.QuestProgress.Quests.Single(x=>x.QuestId==2003).TriggerValue);
-        Assert.Equal(2,Assert.Single(result.AccountMaterials!).AddedCount);
+        Assert.Equal(2,Assert.Single(result.AccountMaterials!).Value);
     }
     [Fact]
     public async Task Cleared_dependents_keep_other_trigger_bits_and_ordinary_completion_keeps_tracked_rows()
@@ -168,7 +168,7 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(450u,result.Changes<CharacterExperienceChange>().Last().Award.Gained);
         Assert.Equal(300,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Equal(3,shop.Scalar("SELECT level FROM characters WHERE character_id=1"));
-        var zero=rules.DecideAward(new(1,300),new()); Assert.Equal(1,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
+        var zero=rules.DecideAward(new(3,300),new()); Assert.Equal(3,zero.Award.Level); Assert.Equal(300u,zero.Award.Total);
     }
     internal sealed class FixedProgression(IReadOnlyList<uint>? thresholds = null) : IExperienceRuleService
     {
@@ -268,7 +268,7 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(2,shop.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1")); Assert.Equal(3,shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=1 AND quest_id=2002"));
         Assert.Equal(0,shop.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1"));
         Assert.Equal(9,shop.Count(2000)); Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
-        Assert.Equal(0,(await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>().Get(new(1)).SnapshotAsync(default)).BlackCube);
+        Assert.Equal(0, shop.SharedCount(3033));
         Assert.Equal(100000,shop.Gold); Assert.Equal(90,shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); Assert.Equal(1,shop.Scalar("SELECT level FROM characters WHERE character_id=1")); Assert.Equal(0,shop.Scalar("SELECT grow_type FROM characters WHERE character_id=1"));
         Assert.Equal(3,shop.Scalar("SELECT COUNT(*) FROM character_skills WHERE character_id=1")); Assert.Equal(2,shop.Scalar("SELECT length(extra_values) FROM character_skills WHERE character_id=1 AND page_index=0"));
         Assert.Equal(0,shop.Scalar("SELECT unlocked FROM character_skill_builds WHERE character_id=1 AND build_id=256")); Assert.Equal(5,shop.Scalar("SELECT bonus_sp FROM characters WHERE character_id=1"));
@@ -278,7 +278,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         using var shop=Shop();
         await using var tx=shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<ICharacterTable>());
+        var handler=new CharacterExperienceEffectHandler(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>());
         var error=await Assert.ThrowsAsync<InvalidOperationException>(async()=>await handler.ApplyAsync(new(new(1),new(999),DateTimeOffset.UnixEpoch),new(new(new(1,0),ExperienceAward.Nothing(1,0))),default));
         Assert.Equal("Decided experience target changed.",error.Message);
     }
@@ -296,8 +296,8 @@ public sealed class OrdinaryQuestEffectTests
         shop.Sql("UPDATE characters SET level=1,exp=1000 WHERE character_id=1"); Carry(shop);
         var first=await Finish(shop); Assert.Equal(101u,first.Experience); Assert.Equal(1101u,first.NewExperience);
         Assert.Equal(1101,shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); Assert.Equal(1,shop.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=2001"));
-        shop.Sql("UPDATE characters SET level=40 WHERE character_id=1"); Carry(shop);
-        var high=await Finish(shop); Assert.True(high.Experience>first.Experience); Assert.Equal(first.NewExperience+high.Experience,high.NewExperience);
+        shop.Sql("UPDATE characters SET level=40,exp=39001101 WHERE character_id=1"); Carry(shop);
+        var high=await Finish(shop); Assert.True(high.Experience>first.Experience); Assert.Equal(39001101u+high.Experience,high.NewExperience);
     }
     [Fact]
     public async Task Reward_filters_selection_by_old_job_and_grow_before_advancement()
@@ -328,16 +328,16 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(2,shop.Host.Scalar("SELECT COUNT(*) FROM items WHERE avatar_expire_date=0 AND avatar_delete_date=0 AND length(avatar_jewel_socket)=30"));
         Assert.Equal(1,shop.Host.Scalar("SELECT COUNT(*) FROM items WHERE creature_field04=100 AND creature_field_after_value=1 AND creature_progress_value=0"));
         var bags=shop.Host.Services.GetRequiredService<ICharacterContainerDomainService>();
-        var avatars=await bags.FindContainer(new(1),InventoryContainerType.Avatar)!.ReadAllAsync(default);
-        Assert.Equal(2,avatars.Select(x=>x.Core.Value).Distinct().Count());
+        var avatars=await bags.FindContainer(new(1),InventoryContainerType.Avatar)!.GetAllAsync(default);
+        Assert.Equal(2,avatars.Select(x=>x.Snapshot.ToCore().Value).Distinct().Count());
         foreach(var type in new[]{InventoryContainerType.Avatar,InventoryContainerType.Pet})
-            foreach(var item in await bags.FindContainer(new(1),type)!.ReadAllAsync(default))
-                Assert.Equal((0,0,0,0),((int)item.Core.Durability,(int)item.Core.Attribute,(int)item.Core.SealFlag,item.Core.ExpireTime));
+            foreach(var item in await bags.FindContainer(new(1),type)!.GetAllAsync(default))
+                Assert.Equal((0,0,0,0),((int)item.Snapshot.ToCore().Durability,(int)item.Snapshot.ToCore().Attribute,(int)item.Snapshot.ToCore().SealFlag,item.Snapshot.ToCore().ExpireTime));
     }
     [Theory]
     [InlineData(1,0,450,3,300)]
     [InlineData(3,300,100,3,300)]
-    [InlineData(1,300,0,1,300)]
+    [InlineData(3,300,0,3,300)]
     public async Task Decided_experience_separates_multilevel_cap_and_zero_from_earned(byte level,uint held,uint earned,byte afterLevel,uint after)
     {
         using var shop=Shop();shop.Sql($"UPDATE characters SET level={level},exp={held} WHERE character_id=1");

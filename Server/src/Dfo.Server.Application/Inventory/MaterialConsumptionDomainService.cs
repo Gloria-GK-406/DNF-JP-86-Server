@@ -9,8 +9,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class MaterialConsumptionDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IBusinessInventorySlotDomainService slots, IAccountMaterialBagDomainService materials,
-    IAccountMaterialRuleService materialRules, IMaterialConsumptionRuleService rules) : IMaterialConsumptionDomainService
+    IBusinessInventorySlotDomainService slots, IMaterialConsumptionRuleService rules, IItemLifecycleDomainService lifecycle) : IMaterialConsumptionDomainService
 {
     public async ValueTask<MaterialConsumptionResult> ConsumeAsync(SelectedSessionIdentity session,
         IReadOnlyList<MaterialCost> costs, CancellationToken ct)
@@ -20,42 +19,25 @@ internal sealed class MaterialConsumptionDomainService(
             || online is not { State: OnlineUserState.CharacterActive }
             || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
             return new("NoSession", []);
-        if (!rules.IsValidRequest(costs))
-            return new("InvalidRequest", []);
+        if (!rules.IsValidRequest(costs)) return new("InvalidRequest", []);
 
-        // Validate the whole batch before staging any debit. The command owns the transaction.
-        var pending = new List<(MaterialCost Cost, BoundInventorySlot? Bound, InventoryItemCoreState? Remaining)>();
+        // Validate every source before staging any debit; the command owns their transaction.
+        var pending = new List<(MaterialCost Cost, BoundInventorySlot Bound, ItemReference Item)>();
         foreach (var cost in costs)
         {
-            if (cost.Location is MaterialLocation.Account account)
-            {
-                if (materialRules.Get(account.Kind).ItemId != cost.ItemId)
-                    return new("ItemMismatch", []);
-                if ((await materials.Get(session.AccountId).SnapshotAsync(ct)).Count(account.Kind) < cost.Count)
-                    return new("InsufficientBalance", []);
-                pending.Add((cost, null, null));
-            }
-            else if (cost.Location is MaterialLocation.Carried carried && carried.Slot.Space.IsCarriedItemSpace())
-            {
-                var bound = slots.Find(session.CharacterId, carried.Slot);
-                var item = bound is null ? null : await bound.Container.ReadSlotAsync(bound.Slot.Index, ct);
-                if (item is null || !rules.IsConsumable(item, cost.ItemId))
-                    return new("InvalidMaterial", []);
-                if (item.Count < cost.Count) return new("InsufficientBalance", []);
-                pending.Add((cost, bound, item.Count == cost.Count ? null : item.Core with { Value = item.Count - cost.Count }));
-            }
-            else return new("InvalidLocation", []);
+            if (!(cost.Slot.Space.IsCarriedItemSpace() || cost.Slot.Space == BusinessInventorySpace.SharedMaterial))
+                return new("InvalidLocation", []);
+            var bound = slots.Find(session.CharacterId, cost.Slot);
+            var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct);
+            if (item is null || !rules.IsConsumable(item, cost.ItemId)) return new("InvalidMaterial", []);
+            if (item.Count < cost.Count) return new("InsufficientBalance", []);
+            pending.Add((cost, bound!, item));
         }
         var debits = new List<MaterialDebit>();
-        foreach (var (cost, bound, remaining) in pending)
+        foreach (var (cost, bound, item) in pending)
         {
-            AccountMaterialChange? change = null;
-            if (cost.Location is MaterialLocation.Account account)
-                change = await materials.Get(session.AccountId).ConsumeAsync(account.Kind, cost.Count, ct)
-                    ?? throw new InvalidOperationException("Validated material balance changed during consumption.");
-            else if (remaining is null) await bound!.Container.ClearAsync(bound.Slot.Index, ct);
-            else await bound!.Container.PutAsync(bound.Slot.Index, remaining, ct);
-            debits.Add(new(cost, remaining, change));
+            var remaining = await ItemContainerOperations.ConsumeAsync(bound.Container, item, cost.Count, lifecycle, ct);
+            debits.Add(new(cost, remaining == 0 ? null : (item.Snapshot with { Count = remaining }).ToCore()));
         }
         return new(null, debits);
     }

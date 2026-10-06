@@ -37,10 +37,9 @@ public enum EquipmentReinforcementOutcome : byte
 /// <summary>A final slot state from the committed operation; null means empty.</summary>
 public sealed record EquipmentReinforcementSlotChange(
     BusinessSlot Slot,
-    InventoryItemCoreState? Core);
+    ItemSnapshot? Core);
 
-public sealed record EquipmentReinforcementReward(BusinessSlot? Slot, int ItemId, int Count,
-    int? VirtualSlotIndex = null);
+public sealed record EquipmentReinforcementReward(BusinessSlot Slot, int ItemId, int Count);
 
 /// <summary>Authoritative post-settlement values projected by the protocol after commit.</summary>
 public sealed record EquipmentReinforcementReceipt(
@@ -55,7 +54,6 @@ public sealed record EquipmentReinforcementReceipt(
     int Gold,
     IReadOnlyList<EquipmentReinforcementSlotChange> Changes,
     IReadOnlyList<EquipmentReinforcementReward> DestroyRewards,
-    IReadOnlyList<AccountMaterialChange> AccountMaterials,
     DateTimeOffset PreparedAt);
 
 public sealed record EquipmentReinforcementResult(

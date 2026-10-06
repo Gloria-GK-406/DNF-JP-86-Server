@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
@@ -11,7 +13,8 @@ using Microsoft.Data.Sqlite;
 namespace Dfo.Server.Persistence.Mail;
 
 /// <summary>Mailbox rows share the current use case's SQLite transaction with item and gold stores.</summary>
-internal sealed class SqliteMailboxRepository(SqliteDatabase database) : IMailboxRepository
+internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDomainStore? items = null,
+    IDomainTransactionAccessor? transactions = null) : IMailboxRepository
 {
     private const string Visible = "r.character_id=@recipient AND r.folder=0 AND r.saved_flag=0 AND r.deleted_flag=0";
 
@@ -72,38 +75,49 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database) : IMailbo
         for (var ordinal = 0; ordinal < attachments.Count; ordinal++)
         {
             var prepared = attachments[ordinal];
-            if (prepared.Asset is not MailAsset.Gold && prepared.Core is null)
-                throw new MailException(MailFailure.InvalidMail, "Item mail requires an item core.");
+            var records = prepared.Items;
+            if (prepared.Asset is MailAsset.Gold ? records.Count != 0 : records.Count == 0)
+                throw new MailException(MailFailure.InvalidMail, "An item attachment requires detached records; gold does not.");
+            var snapshot = records.Count == 0 ? null : records[0].Snapshot;
             var (kind, uid, itemId, count, amount) = prepared.Asset switch
             {
-                MailAsset.Equipment e => ("equipment", e.Identity.Value, prepared.Core?.ItemId ?? 0, 1, 0),
-                MailAsset.Stackable s => ("stackable", 0, s.ItemId, s.Count, 0),
-                MailAsset.Gold g => ("gold", 0, 0, 1, g.Amount),
-                _ => throw new MailException(MailFailure.InvalidMail, "Unknown mail asset.")
+                MailAsset.Equipment e when records.Count == 1 && !records[0].IsPile
+                    && records[0].ItemUid == e.Identity => ("equipment", e.Identity.Value, records[0].ItemId, 1, 0),
+                MailAsset.Stackable stack when records.All(record => record.IsPile && record.ItemId == stack.ItemId)
+                    && records.Sum(record => (long)record.Count) == stack.Count => ("stackable", 0, stack.ItemId, stack.Count, 0),
+                MailAsset.Gold money => ("gold", 0, 0, 1, money.Amount),
+                _ => throw new MailException(MailFailure.InvalidMail, "Prepared records differ from the attachment descriptor.")
             };
-            await database.ExecuteAsync("""
-                INSERT INTO mailbox_attachments(message_id,ordinal,item_template_id,source_item_uid,
-                    item_count,item_core,item_kind,item_type,instance_value,durability,seal_flag,
-                    expire_time,marker_16,asset_kind,gold_amount,claimed_flag)
-                VALUES(@message,@ordinal,@item,@uid,@count,@core,@kind,@type,@instance,@durability,
-                    @seal,@expire,@marker,@kind,@gold,0)
-                """, p =>
+            var core = snapshot is null ? null : (snapshot with { Count = count }).ToCore();
+            long attachmentId = 0;
+            await database.WriteAsync(async (command, token) =>
             {
+                command.CommandText = """
+                    INSERT INTO mailbox_attachments(message_id,ordinal,item_template_id,source_item_uid,
+                        item_count,item_core,item_kind,item_type,instance_value,durability,seal_flag,
+                        expire_time,marker_16,asset_kind,gold_amount,claimed_flag)
+                    VALUES(@message,@ordinal,@item,@uid,@count,@core,@kind,@type,@instance,@durability,
+                        @seal,@expire,@marker,@kind,@gold,0) RETURNING attachment_id;
+                    """;
+                var p = command.Parameters;
                 p.AddWithValue("@message", id);
                 p.AddWithValue("@ordinal", ordinal);
                 p.AddWithValue("@item", itemId);
                 p.AddWithValue("@uid", uid);
                 p.AddWithValue("@count", count);
-                p.AddWithValue("@core", prepared.Core is { } core ? InventoryItemCore.Encode(core) : DBNull.Value);
+                p.AddWithValue("@core", core is not null ? InventoryItemCore.Encode(core) : DBNull.Value);
                 p.AddWithValue("@kind", kind);
-                p.AddWithValue("@type", prepared.Core?.ItemKind ?? 0);
-                p.AddWithValue("@instance", prepared.Core?.Value ?? 0);
-                p.AddWithValue("@durability", prepared.Core?.Durability ?? 0);
-                p.AddWithValue("@seal", prepared.Core?.SealFlag ?? 0);
-                p.AddWithValue("@expire", prepared.Core?.ExpireTime ?? 0);
-                p.AddWithValue("@marker", prepared.Core?.Marker16 ?? -1);
+                p.AddWithValue("@type", core?.ItemKind ?? 0);
+                p.AddWithValue("@instance", core?.Value ?? 0);
+                p.AddWithValue("@durability", core?.Durability ?? 0);
+                p.AddWithValue("@seal", core?.SealFlag ?? 0);
+                p.AddWithValue("@expire", core?.ExpireTime ?? 0);
+                p.AddWithValue("@marker", core?.Marker16 ?? -1);
                 p.AddWithValue("@gold", amount);
+                attachmentId = Convert.ToInt64(await command.ExecuteScalarAsync(token).ConfigureAwait(false));
             }, cancellationToken).ConfigureAwait(false);
+            if (records.Count != 0)
+                await Custody().AcceptMailAttachmentAsync(attachmentId, records, cancellationToken).ConfigureAwait(false);
         }
 
         return id;
@@ -160,6 +174,14 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database) : IMailbo
         return ids.Count != 0;
     }
 
+    public ValueTask<IReadOnlyList<ItemRecord>> TakeItemAsync(CharacterId recipient, long attachmentId,
+        DateTimeOffset now, CancellationToken cancellationToken) =>
+        Custody().TakeMailAttachmentAsync(recipient, attachmentId, now, cancellationToken);
+
+    private IMailItemCustodySession Custody() =>
+        items?.SessionIn(transactions?.Current ?? throw new InvalidOperationException("Mail custody requires the item transaction."))
+            as IMailItemCustodySession ?? throw new InvalidOperationException("This mailbox has no transactional item custody adapter.");
+
     public async ValueTask MarkReadAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken)
     {
         await database.ExecuteAsync("""
@@ -173,7 +195,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database) : IMailbo
     {
         var count = await database.ExecuteAsync("""
             UPDATE mailbox_attachments SET claimed_flag=1
-            WHERE attachment_id=@id AND claimed_flag=0 AND asset_kind<>'legacy'
+            WHERE attachment_id=@id AND claimed_flag=0 AND asset_kind='gold'
             """, p => p.AddWithValue("@id", attachmentId), cancellationToken).ConfigureAwait(false);
         if (count != 1) return false;
         await database.ExecuteAsync("""

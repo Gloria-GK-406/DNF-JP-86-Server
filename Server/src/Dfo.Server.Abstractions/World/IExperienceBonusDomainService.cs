@@ -15,6 +15,8 @@ public enum ExperienceEvent
     MonsterKill,
     DungeonClear,
     QuestCompletion,
+    TowerKill,
+    TowerClear,
 }
 
 /// <summary>Who an award is for and what brought it about.</summary>

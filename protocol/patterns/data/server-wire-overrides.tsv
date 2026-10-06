@@ -20,3 +20,15 @@ NOTI	ExpertStoreClosedMessage	0x021C	Game/StateSynchronization/SupplementalSynch
 NOTI	TownDepartureMessage	0x0006	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
 CMD	SortLockResponse	0x02CA	Game/InventorySort/SortLockMessages.cs	Locked conditional emits SortLockType when true
 CMD	SortLockResponse	0x02CB	Game/InventorySort/SortLockMessages.cs	Locked conditional emits SortUnlockType when false
+CMD	MailboxSendResponse	0x005E	Game/Mailbox/MailboxSendWire.cs	Multi false branch emits single-mail response
+CMD	MailboxSendResponse	0x013B	Game/Mailbox/MailboxSendWire.cs	Multi true branch emits multi-mail response
+CMD	WarehouseResponse	0x0131	Game/Warehouse/WarehouseMessages.cs	EncodeBody admits this dynamic response type
+CMD	WarehouseResponse	0x0132	Game/Warehouse/WarehouseMessages.cs	EncodeBody admits this dynamic response type
+CMD	WarehouseResponse	0x0133	Game/Warehouse/WarehouseMessages.cs	EncodeBody admits this dynamic response type
+CMD	WarehouseResponse	0x0134	Game/Warehouse/WarehouseMessages.cs	EncodeBody admits this dynamic response type
+CMD	WarehouseResponse	0x0198	Game/Warehouse/WarehouseMessages.cs	EncodeBody admits this dynamic response type
+CMD	CargoCapacityUpgradeMessage	0x0198	Game/GameInventorySnapshotDelivery.cs	WireType selects PersonalCargo capacity-upgrade acknowledgement
+CMD	CargoCapacityUpgradeMessage	0x0132	Game/GameInventorySnapshotDelivery.cs	WireType selects AccountCargo capacity-upgrade acknowledgement
+CMD	JoustResponse	0x04E6	Game/Joust/JoustSlice.cs	JoustQueryHandler passes info response type to dynamic encoder
+CMD	JoustResponse	0x04E7	Game/Joust/JoustSlice.cs	JoustBetHandler passes bet response type to dynamic encoder
+CMD	JoustResponse	0x04E8	Game/Joust/JoustSlice.cs	JoustQueryHandler passes history response type to dynamic encoder

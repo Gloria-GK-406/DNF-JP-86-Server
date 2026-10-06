@@ -81,8 +81,8 @@ public sealed class EquipmentUpgradeRuleServiceTests
             .CheckAmplificationAsync(Piece() with { AmplifyType = type }, default)).Rejection);
     }
 
-    private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1000)
-        with { Durability = 45, AmplifyValue = 5 };
+    private static ItemSnapshot Piece() => ItemSnapshot.FromCore(StackableItemCore.Create(1, 3000, 1000)
+        with { Durability = 45, AmplifyValue = 5 }, false);
 
     private static EquipmentUpgradeRuleService Rules(EquipmentDefinition definition)
     {

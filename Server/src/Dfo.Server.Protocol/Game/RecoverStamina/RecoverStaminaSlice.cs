@@ -14,6 +14,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Protocol.Game.Weakness;
 using Microsoft.Extensions.Logging;
 
@@ -67,7 +68,8 @@ public sealed record RecoverStaminaResult(byte ErrorCode, int Gold = 0, int Cost
 public sealed class RecoverStaminaCommandHandler(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     IDungeonRunDomainService runs, IWeaknessDomainService weakness, ICharacterDomainService characters,
-    IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage)
+    IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
+    IIllusionTowerDomainService? towers = null)
     : ICommandHandler<RecoverStaminaCommand, RecoverStaminaResult>
 {
     public async ValueTask<RecoverStaminaResult> HandleAsync(CommandExecutionContext context,
@@ -80,7 +82,8 @@ public sealed class RecoverStaminaCommandHandler(
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
             || online is not { State: OnlineUserState.CharacterActive }
             || online.OnlineUserId != command.OnlineUserId || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId || runs.Find(session.CharacterId) is not null)
+            || online.CurrentCharacterId != session.CharacterId || runs.Find(session.CharacterId) is not null
+            || towers?.IsInTower(session.CharacterId) == true)
             return new(4);
 
         var state = weakness.For(session.CharacterId);

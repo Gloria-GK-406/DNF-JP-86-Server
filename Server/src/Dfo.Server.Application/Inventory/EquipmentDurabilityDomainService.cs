@@ -30,6 +30,6 @@ internal sealed class EquipmentDurabilityDomainService(
         var equipment = await equipments.Of(session.CharacterId).FindAtAsync(slot, cancellationToken).ConfigureAwait(false);
         if (equipment is null) return new(EquipmentDurabilityRejection.ItemUnavailable);
         var changed = await equipment.DecreaseDurabilityAsync(1, cancellationToken).ConfigureAwait(false);
-        return new(EquipmentDurabilityRejection.None, new(session, changed.Slot, changed.Core.Durability));
+        return new(EquipmentDurabilityRejection.None, new(session, changed.BusinessSlot!.Value, changed.Snapshot.Durability));
     }
 }

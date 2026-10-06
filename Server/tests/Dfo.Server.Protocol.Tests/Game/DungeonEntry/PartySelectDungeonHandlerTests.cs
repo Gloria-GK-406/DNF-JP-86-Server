@@ -808,7 +808,7 @@ public sealed class PartySelectDungeonHandlerTests
     private sealed class RefusedVisits : IDungeonVisitDomainService
     {
         public int Attempts { get; private set; }
-        public bool DefersSelectionState(byte level) => false;
+        public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => false;
         public ValueTask<DungeonEntryAttempt> TryEnterPartyAsync(IReadOnlyList<DungeonRunParticipant> members, int dungeon, DungeonEntryFacts facts, CancellationToken token)
         {
             Attempts++;
@@ -836,7 +836,7 @@ public sealed class PartySelectDungeonHandlerTests
         public IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits { get; private set; } =
             new Dictionary<CharacterId, DungeonRoomVisit>();
 
-        public bool DefersSelectionState(byte characterLevel) => false;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => false;
         public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<DungeonPartyEntry?> EnterPartyAsync(IReadOnlyList<DungeonRunParticipant> participants, int dungeonId, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken)
         {

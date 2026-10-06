@@ -28,17 +28,17 @@ public sealed record PetNameChange(CreatureState Creature) : EffectChange;
 public sealed record QuestCouponPlan(ImmutableArray<int> Completed, ImmutableArray<DomainEffect> Effects);
 public sealed record RefundSkillPlan(CharacterSkillLearningRejection Rejection,
     ImmutableArray<CharacterSkillState> Changed, CharacterSkillPointLedger? Ledger);
-public sealed record FatiguePotionFacts(BusinessSlot Source, ContainerSlotItem Item, byte Level, bool InTown,
+public sealed record FatiguePotionFacts(BusinessSlot Source, ItemReference Item, byte Level, bool InTown,
     FatigueStateFacts Fatigue, ConsumableUsageRow? Usage, DateTimeOffset At);
-public sealed record PetNameFacts(BusinessSlot Source, ContainerSlotItem? Card, ContainerSlotItem? Worn,
+public sealed record PetNameFacts(BusinessSlot Source, ItemReference? Card, ItemReference? Worn,
     CreatureState? Current, ImmutableArray<byte> Name, DateTimeOffset At);
 
 public interface ISpecialConsumableEffectPlanRuleService
 {
     ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts facts, CancellationToken ct);
-    ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ContainerSlotItem item, QuestStateFacts state,
+    ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,
         IReadOnlyList<int> selected, DateTimeOffset at, CancellationToken ct);
-    ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ContainerSlotItem water, int page,
+    ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, int page,
         IReadOnlyList<CharacterSkillState> before, IReadOnlyList<CharacterSkillState> changed, CancellationToken ct);
     RefundSkillPlan RefundSkills(CharacterSkillFacts facts, int page, IReadOnlyList<CharacterSkillLearningChange> changes, int learningLevel);
     ImmutableArray<DomainEffect> Rename(PetNameFacts facts);

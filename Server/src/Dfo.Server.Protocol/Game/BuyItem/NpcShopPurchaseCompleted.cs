@@ -30,7 +30,7 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
             var wire = slots.ToGameSlot(change.Slot);
             messages.Add(change.Core is { } core
                 ? GameInventoryDelivery.Notification(new(wire.Space,
-                    [new InventoryItemState(null, wire.Index, core)], receipt.PreparedAt))
+                    [new InventoryItemState(null, wire.Index, core.ToCore())], receipt.PreparedAt))
                 : GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
         }
         messages.Add(new BuyItemResponse(receipt));
@@ -39,7 +39,7 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
         foreach (var group in receipt.GrantedSlots.GroupBy(grant => slots.ToGameSlot(grant.Slot).Space))
             messages.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
                 group.Select(grant => new InventoryItemState(null, slots.ToGameSlot(grant.Slot).Index,
-                    grant.Core)).ToArray(), receipt.PreparedAt)));
+                    grant.Core.ToCore())).ToArray(), receipt.PreparedAt)));
         if (notification.QuestProgress is { } progress)
         {
             messages.Add(new AcceptedQuestProgressMessage(

@@ -1234,8 +1234,6 @@ internal static partial class StateSynchronizationPayloadCodec
         return true;
     }
 
-    private static void WriteChronicleDynamic(BinaryWriter writer, ChronicleOptionState value) { writer.Write(value.Id); writer.Write(value.CharacterJob); writer.Write(value.FirstGrowType); writer.Write(value.EquipmentType); writer.Write(value.OptionNumber); }
-    private static void WriteRandomDynamic(BinaryWriter writer, RandomOptionState value) { writer.Write(value.Type); writer.Write(value.Value1); writer.Write(value.Value2); }
     private static void WriteBlob(BinaryWriter writer, byte[] value) { writer.Write(value.Length); writer.Write(value); }
     /// <summary>
     /// The skill-tree index as the client's one-byte field carries it.

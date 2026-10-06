@@ -15,7 +15,7 @@ public enum MailboxOperation { Open, Claim, Read, Delete, Query, Send }
 public sealed record MailboxCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, MailboxOperation Operation,
     long Id = 0, byte[]? Name = null, PlayerMailRequest? Send = null) : ICommand<MailboxResult>, IOnlineUserCommand, IAccountCommand
 { public AccountId AccountId => Session.AccountId; }
-public sealed record MailboxResult(CharacterMailboxEntryState? Inbox = null, MailboxAssetProjection? Assets = null, MailRecipient? Recipient = null, CharacterId? SentTo = null, int MailCount = 0);
+public sealed record MailboxResult(CharacterMailboxEntryState? Inbox = null, MailboxAssetProjection? Assets = null, MailRecipient? Recipient = null);
 public sealed class MailboxCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     IMailboxDomainService mailbox, IMailboxQueryDomainService query, IMailboxAssetDomainService assets, IMailboxSendDomainService sending, ICharacterDomainService characters) : ICommandHandler<MailboxCommand, MailboxResult>
 {
@@ -33,8 +33,7 @@ public sealed class MailboxCommandHandler(ISelectedSessionDomainService sessions
                 var projection = await assets.PrepareAsync(s.CharacterId, sent.Mail.Changes, token);
                 // Always correct local send-state estimates, even when no gold is attached.
                 projection = projection with { Gold = await characters.Get(s.CharacterId).GoldAsync(token) };
-                return new(Assets: projection, SentTo: sent.Recipient,
-                    MailCount: (await query.PageAsync(sent.Recipient, 1, token)).TotalCount);
+                return new(Assets: projection);
             case MailboxOperation.Query:
                 var recipient = await query.FindRecipientAsync(command.Name ?? [], token);
                 if (recipient?.CharacterId == s.CharacterId) throw new MailException(MailFailure.InvalidMail, "Cannot send to self.");

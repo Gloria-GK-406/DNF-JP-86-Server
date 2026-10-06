@@ -1157,6 +1157,7 @@ public sealed class CardRewardTests
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
+        new Dfo.Server.Networking.NetworkingModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
         using var provider = services.BuildServiceProvider();
         var registry = provider.GetRequiredService<MessageHandlerRegistry>();
@@ -1603,7 +1604,7 @@ public sealed class CardRewardTests
     /// use one: the persistent container refuses a write with no transaction open, and what is under
     /// test here is what this slice hands it, not how a row reaches SQLite.
     /// </remarks>
-    private sealed class Bag(BagAnswer answer) : IItemContainer
+    private sealed class Bag(BagAnswer answer) : IItemContainer, Dfo.Server.Protocol.Tests.Support.IItemGrantStub
     {
         public bool FailNextAdd { get; set; }
         public int AddCalls { get; private set; }
@@ -1615,8 +1616,10 @@ public sealed class CardRewardTests
         /// <summary>What that pile carries before anything joins it.</summary>
         public const ushort PileDurability = 11;
 
-        /// <summary>The slot an opened one takes, chosen so it cannot be confused with the pile's.</summary>
-        public const int OpenedSlot = 12;
+        /// <summary>A consumable slot, matching this fixture's kind 2 items and distinct from the pile's.</summary>
+        public const int OpenedSlot = 65;
+
+        private readonly Dictionary<int, long> generations = [];
 
         public Dictionary<int, InventoryItemCoreState> Slots { get; } =
             answer == BagAnswer.JoinsAPile
@@ -1635,7 +1638,7 @@ public sealed class CardRewardTests
 
         public bool IsRemovable => false;
 
-        public ValueTask<ItemPlacementOutcome> AddAsync(
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
             this.AddCalls++;
@@ -1671,52 +1674,49 @@ public sealed class CardRewardTests
             }
         }
 
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+
+        public ValueTask<ItemReference?> GetAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Slots.TryGetValue(slotIndex, out var core)
-                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
+                    ? new ItemReference(this, Id, slotIndex, generations.GetValueOrDefault(slotIndex), ItemSnapshot.FromCore(core, true))
                     : null);
 
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
+
+
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public async ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
         {
-            this.Slots[slotIndex] = core;
-            return ValueTask.CompletedTask;
+            ct.ThrowIfCancellationRequested();
+            if (!reference.BelongsTo(this) || reference.ContainerId != Id
+                || reference.Generation != generations.GetValueOrDefault(reference.StorageSlotIndex)
+                || !Slots.ContainsKey(reference.StorageSlotIndex))
+                throw new InvalidOperationException("The fixture reference is stale or foreign.");
+            var next = change((await GetAsync(reference.StorageSlotIndex, ct))!.Snapshot);
+            if (next.ItemId != reference.ItemId || next.ItemUid != reference.ItemUid
+                || next.IsPile != reference.IsPile || next.Type != reference.Type)
+                throw new InvalidOperationException("The fixture update cannot replace item identity.");
+            Slots[reference.StorageSlotIndex] = next.ToCore();
+            return (await GetAsync(reference.StorageSlotIndex, ct))!;
         }
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
 
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException(
-                "The delta is built from what was written, not from the entry projection.");
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
-
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture is only added to and read back.");
     }
 
     /// <summary>A character bound to one bag, or to none.</summary>
     private sealed class StubContainers(IItemContainer? bag) : ICharacterContainerDomainService
     {
         public IItemContainer? FindContainer(
-            CharacterId characterId, InventoryContainerType type) => bag;
+            CharacterId characterId, InventoryContainerType type, bool isDefault = false) => bag;
 
-        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type) =>
+        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false) =>
             bag ?? throw new InvalidOperationException("This character has no bag.");
 
         public IReadOnlyList<IItemContainer> GetContainers(

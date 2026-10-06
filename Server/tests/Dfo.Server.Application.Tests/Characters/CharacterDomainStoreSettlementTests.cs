@@ -38,7 +38,8 @@ public sealed class CharacterDomainStoreSettlementTests
         await using var fixture = await Fixture.CreateAsync();
         var transaction = new DomainTransaction();
 
-        fixture.Items.SessionIn(transaction).Write(Main, new StoredItem(66, Potion(3)) { WorldClass = ItemWorldClass.Interchangeable });
+        var items = fixture.Items.SessionIn(transaction);
+        await items.PutAsync(Main, 66, await items.CreateAsync(ItemSnapshot.FromCore(Potion(3), true), default), default);
         fixture.Quests.SessionIn(transaction).Carried.Write(
             Owned, new StoredActiveQuest(2, 200, 9, ExpectedTriggerValue: 6));
         await transaction.CommitAsync(CancellationToken.None);
@@ -59,7 +60,8 @@ public sealed class CharacterDomainStoreSettlementTests
         await using var fixture = await Fixture.CreateAsync();
         var transaction = new DomainTransaction();
 
-        fixture.Items.SessionIn(transaction).Write(Main, new StoredItem(66, Potion(3)) { WorldClass = ItemWorldClass.Interchangeable });
+        var items = fixture.Items.SessionIn(transaction);
+        await items.PutAsync(Main, 66, await items.CreateAsync(ItemSnapshot.FromCore(Potion(3), true), default), default);
         fixture.Quests.SessionIn(transaction).Carried.Write(
             Owned, new StoredActiveQuest(2, 200, 9, ExpectedTriggerValue: 1234));
 

@@ -1,4 +1,5 @@
 using System.Text;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Characters;
@@ -67,7 +68,7 @@ public sealed class SqliteCharacterLifecycleTests
             Assert.Equal(1, record.Profile.Level);
 
             var coins = Assert.Single(
-                await new CharacterSide(databasePath).Items.ReadMainAsync(id, CancellationToken.None),
+                await new InventorySide(databasePath).ReadMainItemsAsync(Account, id, CancellationToken.None),
                 item => item.SlotIndex == 1);
             Assert.Equal(1, coins.Core.ItemId);
             Assert.Equal(10, coins.Core.Value);
@@ -454,41 +455,11 @@ public sealed class SqliteCharacterLifecycleTests
             CharacterId characterId, CancellationToken cancellationToken) =>
             inner.ReadByCharacterAsync(characterId, cancellationToken);
 
-        public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            inner.ReadMainAsync(characterId, cancellationToken);
-
         public ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
             AccountId accountId, CancellationToken cancellationToken) =>
             throw new InvalidDataException("What this account wears cannot be read.");
 
-        public ValueTask<int> DeleteOwnExceptAsync(
-            CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken) =>
-            inner.DeleteOwnExceptAsync(characterId, keep, cancellationToken);
 
-        public ValueTask<int> DeleteOwnByUidsAsync(
-            CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken) =>
-            inner.DeleteOwnByUidsAsync(characterId, itemUids, cancellationToken);
-
-        public ValueTask<int> UpdateOwnAsync(
-            long itemUid, CharacterId characterId, InventoryItemCoreState core,
-            InventoryAvatarDetailState? avatarDetail, CancellationToken cancellationToken) =>
-            inner.UpdateOwnAsync(itemUid, characterId, core, avatarDetail, cancellationToken);
-
-        public ValueTask<long?> InsertOwnAsync(
-            InventoryItemCoreState core, InventoryAvatarDetailState? avatarDetail,
-            CancellationToken cancellationToken) =>
-            inner.InsertOwnAsync(core, avatarDetail, cancellationToken);
-
-        public ValueTask<int> ClearOwnPositionsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            inner.ClearOwnPositionsAsync(characterId, cancellationToken);
-
-        public ValueTask<int> HoldOwnAsync(
-            CharacterId characterId, int listType, int slotIndex, ItemSlotKind kind,
-            int id, int coreUid, int count, CancellationToken cancellationToken) =>
-            inner.HoldOwnAsync(
-                characterId, listType, slotIndex, kind, id, coreUid, count, cancellationToken);
     }
 
     /// <summary>The parts one character is drawn as, refusing a listing that worked none out.</summary>
@@ -514,29 +485,32 @@ public sealed class SqliteCharacterLifecycleTests
     private static Task<int> Wear(CharacterSide side, CharacterId character, int slot, int itemId) =>
         side.InUseCaseAsync(async token =>
         {
-            var identity = await side.Items.InsertOwnAsync(
-                StackableItemCore.Create(EquipmentKind, itemId, 1) with
-                {
-                    Durability = 50,
-                    Attribute = 5,
-                    AmplifyType = 2,
-                    EnchantUpgradeCount = 9,
-                },
-                null,
-                token);
-            var worn = checked((int)identity!.Value);
-            Assert.Equal(1, await side.Items.HoldOwnAsync(
-                character, (int)InventoryContainerType.Equipment, slot,
-                ItemSlotKind.World, worn, worn, 1, token));
+            var session = side.ItemStore.SessionIn(side.Scope.Current!);
+            var core = StackableItemCore.Create(EquipmentKind, itemId, 1) with
+            {
+                Durability = 50, Attribute = 5, AmplifyType = 2, EnchantUpgradeCount = 9,
+            };
+            var record = await session.CreateAsync(ItemSnapshot.FromCore(core, false), token);
+            var placed = await session.PutAsync(ContainerId.ForCharacter(character,
+                InventoryContainerType.Equipment), slot, record, token);
+            var worn = placed.ItemUid!.Value.Value;
             return worn;
         });
 
     /// <summary>Empties one worn position, leaving the thing that was in it.</summary>
     private static Task<int> TakeOff(CharacterSide side, CharacterId character, int slot) =>
-        side.InUseCaseAsync(token => side.Slots.ClearAsync(
-            new ItemPlace(
-                "character", character.Value, (int)InventoryContainerType.Equipment, slot),
-            token));
+        side.InUseCaseAsync(async token =>
+        {
+            var session = side.ItemStore.SessionIn(side.Scope.Current!);
+            var worn = await session.GetAsync(ContainerId.ForCharacter(character,
+                InventoryContainerType.Equipment), slot, token);
+            if (worn is null) return 0;
+            var bag = ContainerId.ForCharacter(character, InventoryContainerType.Main);
+            var occupied = (await session.GetAllAsync(bag, token)).Select(item => item.SlotIndex).ToHashSet();
+            var target = Enumerable.Range(9, 56).First(index => !occupied.Contains(index));
+            await session.PutAsync(bag, target, await session.TakeAsync(worn, null, token), token);
+            return 1;
+        });
 
     private static async Task RunAndCleanUpAsync(string directory, Func<Task> body)
     {

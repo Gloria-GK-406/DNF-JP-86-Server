@@ -39,11 +39,11 @@ public sealed class CreatureRuntimeDomainServiceTests
         food.Seed(3, 24, 2);
         var slots = new BusinessInventorySlotDomainService(food.Containers(), new InventorySlotMappingRuleService());
         var source = new BusinessSlot(BusinessInventorySpace.QuickSlot, 0);
-        var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots),
+        var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots, food.Lifecycle),
             new AddPetStomachEffectHandler(f.Runtime)], f.Scope, new SqliteCharacterDomainStore(f.Path), f.Sessions, ConsumptionEffectPreflight.For(slots));
         await using (var tx = f.Scope.Begin())
         {
-            var item = (await slots.Get(f.Session.CharacterId, source).Container.ReadSlotAsync(0, default))!;
+            var item = (await slots.Get(f.Session.CharacterId, source).Container.GetAsync(0, default))!;
             var pet = (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!;
             var rules = new ItemUseEffectRuleService(new ItemUseJudgementService(new FakeItemUseRules()));
             var plan = rules.Build(ItemUseRules.Potion(0), source, item,

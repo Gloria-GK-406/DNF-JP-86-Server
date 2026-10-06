@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -7,7 +8,7 @@ using Dfo.Server.Data.Administration;
 
 namespace Dfo.Server.Application.Administration;
 
-internal sealed class GmCeraRuleService : IGmCeraRuleService
+internal sealed class GmCeraRuleService(IAccountWalletRuleService wallets) : IGmCeraRuleService
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
     public GmCeraInput Normalize(GmCeraInput input)
@@ -25,12 +26,12 @@ internal sealed class GmCeraRuleService : IGmCeraRuleService
     public string PayloadHash(GmCeraInput input) => Convert.ToHexString(SHA256.HashData(Utf8.GetBytes(JsonSerializer.Serialize(input))));
     public GmCeraDecision Decide(AccountCeraBalances before, GmCeraInput input)
     {
-        if (before.Cera < 0 || before.TokenCera < 0 || before.HappyTokenCera < 0) throw Invalid("账号钱包数据异常。");
-        long current = input.Currency switch { "Cera" => before.Cera, "TokenCera" => before.TokenCera, "HappyTokenCera" => before.HappyTokenCera, _ => throw Invalid("币种无效。") };
-        var next = current + input.Amount;
-        if (input.Amount <= 0 || next > int.MaxValue) throw Invalid("发放后余额超过 2147483647，请重新核对。");
-        var after = input.Currency switch { "Cera" => before with { Cera = (int)next }, "TokenCera" => before with { TokenCera = (int)next }, _ => before with { HappyTokenCera = (int)next } };
-        return new(before, after);
+        if (input.Currency is not ("Cera" or "TokenCera" or "HappyTokenCera")) throw Invalid("币种无效。");
+        try { return new(before, wallets.Add(before, Enum.Parse<AccountCurrency>(input.Currency), input.Amount)); }
+        catch (WalletException error) when (error.Rejection == WalletRejection.BalanceLimit)
+        { throw Invalid("发放后余额超过 2147483647，请重新核对。"); }
+        catch (Exception error) when (error is WalletException or InvalidDataException or ArgumentException)
+        { throw Invalid("币种、增量或发放后的余额无效，请重新核对。"); }
     }
     private static GmCeraException Invalid(string message) => new(GmCeraRefusal.Invalid, message);
 }

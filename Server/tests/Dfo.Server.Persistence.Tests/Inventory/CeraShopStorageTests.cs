@@ -43,8 +43,9 @@ public sealed class CeraShopStorageTests
         var facts = new InventoryCreatureDetailState(100, 1, 123, 4, 5, 6, [65, 66], 7);
         await using (var transaction = fixture.Scope.Begin())
         {
-            fixture.Items.Write(fixture.Pets, new StoredItem(0, StackableItemCore.Create(5, 63022, 99001))
-                { WorldClass = ItemWorldClass.Creature, CreatureDetail = facts });
+            var created = await fixture.Items.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(5, 63022, 0), false, creature: facts), default);
+            await fixture.Items.PutAsync(fixture.Pets, 0, created, default);
             await transaction.CommitAsync(default);
         }
 
@@ -58,8 +59,8 @@ public sealed class CeraShopStorageTests
 
         await using (var transaction = fixture.Scope.Begin())
         {
-            fixture.Items.Clear(fixture.Pets, 0);
-            fixture.Items.Write(fixture.Pets, new StoredItem(10, item.Core) { WorldClass = ItemWorldClass.Creature });
+            var moving = await fixture.Items.TakeAsync((await fixture.Items.GetAsync(fixture.Pets, 0, default))!, null, default);
+            await fixture.Items.PutAsync(fixture.Pets, 10, moving, default);
             await transaction.CommitAsync(default);
         }
         var moved = Assert.Single(await new SqliteCharacterCreatureTable(fixture.Database).ReadAsync(new(1), default));
@@ -96,11 +97,12 @@ public sealed class CeraShopStorageTests
             await using var transaction = fixture.Scope.Begin();
             Assert.Equal(1, await new SqliteAccountTable(fixture.Database).TrySetCeraBalancesAsync(
                 new(1), new(100000, 20, 30), new(96400, 0, 0), default));
-            fixture.Items.Write(ContainerId.ForCharacter(new(1), InventoryContainerType.Main),
-                new StoredItem(65, StackableItemCore.Create(2, 3, 1)) { WorldClass = ItemWorldClass.Interchangeable });
+            await fixture.Items.PutAsync(ContainerId.ForCharacter(new(1), InventoryContainerType.Main), 65,
+                await fixture.Items.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(2, 3, 1), true), default), default);
             await fixture.Items.ApplyDecidedWritesAsync(default);
-            fixture.Items.Write(fixture.Pets, new StoredItem(0, StackableItemCore.Create(5, 63022, 99001))
-                { WorldClass = ItemWorldClass.Creature, CreatureDetail = new(100, 0, 0, 0, 0, 1, [], 0) });
+            await fixture.Items.PutAsync(fixture.Pets, 0, await fixture.Items.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(5, 63022, 0), false,
+                creature: new InventoryCreatureDetailState(100, 0, 0, 0, 0, 1, [], 0)), default), default);
             await fixture.Items.ApplyDecidedWritesAsync(default);
             await transaction.CommitAsync(default);
         });

@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
@@ -42,7 +42,7 @@ public sealed class CreatureIdentityFitsTheWireTests
     /// </summary>
     /// <remarks>
     /// Allocated rather than chosen: the sequence is wound forward and the row is inserted through
-    /// the world table, so the number under test is the one the column handed out. It is then read
+    /// the lifecycle store, so the number under test is the one the column handed out. It is then read
     /// back through the creature list and projected exactly as entry projects it, so nothing
     /// between the allocation and the four bytes on the wire is stubbed.
     /// </remarks>
@@ -52,28 +52,15 @@ public sealed class CreatureIdentityFitsTheWireTests
         await WithADatabaseAsync(async (path, database, scope) =>
         {
             await WindTheSequenceToAsync(path, LargestSayable - 1);
-            var world = new SqliteWorldItemTable(database);
-
-            var slots = new SqliteItemSlotTable(database);
+            var store = new SqliteItemDomainStore(path);
             var identity = await InUseCaseAsync(scope, async token =>
             {
-                var made = await world.InsertAsync(
-                    Core(),
-                    null,
-                    new CreatureDetailRow(1, 1, 4321, 7, 9, 11, [1, 2, 3], 13),
-                    token);
-
-                // The position is what says whose creature it is, so the read below finds nothing
-                // without it. It goes in with the thing, exactly as settlement puts the two down.
-                await slots.InsertAsync(
-                    new ItemSlotRow(
-                        new ItemPlace("character", Character, 3, 24),
-                        ItemSlotKind.World,
-                        made,
-                        made,
-                        1),
-                    token);
-                return made;
+                var session = store.SessionIn(scope.Current!);
+                var record = await session.CreateAsync(ItemSnapshot.FromCore(Core(), false,
+                    creature: new InventoryCreatureDetailState(1, 1, 4321, 7, 9, 11, [1, 2, 3], 13)), token);
+                var placed = await session.PutAsync(ContainerId.ForCharacter(new CharacterId(Character),
+                    InventoryContainerType.Equipment), 24, record, token);
+                return placed.ItemUid!.Value.Value;
             });
 
             Assert.Equal(LargestSayable, identity);
@@ -104,16 +91,17 @@ public sealed class CreatureIdentityFitsTheWireTests
         await WithADatabaseAsync(async (path, database, scope) =>
         {
             await WindTheSequenceToAsync(path, LargestSayable);
-            var world = new SqliteWorldItemTable(database);
-
-            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => InUseCaseAsync(scope, token => world.InsertAsync(
-                    Core(),
-                    null,
-                    new CreatureDetailRow(1, 0, 0, 0, 0, 0, [], 0),
-                    token)));
-
-            Assert.Contains("world identity", refusal.Message, StringComparison.Ordinal);
+            var store = new SqliteItemDomainStore(path);
+            var refusal = await Assert.ThrowsAsync<SqliteException>(
+                () => InUseCaseAsync(scope, token => store.SessionIn(scope.Current!).CreateAsync(
+                    ItemSnapshot.FromCore(Core(), false,
+                        creature: new InventoryCreatureDetailState(1, 0, 0, 0, 0, 0, [], 0)), token)));
+            Assert.Equal(19, refusal.SqliteErrorCode);
+            await using var connection = new SqliteConnection(database.ConnectionString);
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT count(*) FROM items";
+            Assert.Equal(0L, await command.ExecuteScalarAsync());
         });
     }
 

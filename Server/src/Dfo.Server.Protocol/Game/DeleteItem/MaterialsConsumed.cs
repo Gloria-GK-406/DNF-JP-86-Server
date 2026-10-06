@@ -21,25 +21,17 @@ public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessi
             || sessions.Find(notification.Session.AccountId) != notification.Session)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var debit = notification.Debit;
-        GameSlot slot;
-        IGameServerMessage update;
-        if (debit.AccountChange is { } change)
+        var slot = projection.Project(debit.Cost.Slot);
+        var messages = new List<IServerNetworkMessage> { new DeleteItemResponse(slot, debit.Cost.Count, Success: true) };
+        if (debit.Cost.Slot.Space == BusinessInventorySpace.SharedMaterial)
         {
-            slot = new(InventoryContainerType.Main, change.VirtualSlotIndex);
-            return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
-                new DeleteItemResponse(slot, debit.Cost.Count, Success: true),
-                .. AccountMaterialNotifications.Compose(
-                    [new(change.VirtualSlotIndex, change.ItemId, change.FinalCount)], notification.PreparedAt)]);
+            if (debit.Remaining is { } shared)
+                messages.AddRange(AccountMaterialNotifications.Compose([new(slot.Index, shared.ItemId, shared.Value)], notification.PreparedAt));
         }
-        else
-        {
-            slot = projection.Project(((MaterialLocation.Carried)debit.Cost.Location).Slot);
-            update = debit.Remaining is null
-                ? GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, notification.PreparedAt)
-                : GameInventoryDelivery.Notification(new(slot.Space,
-                    [new InventoryItemState(null, slot.Index, debit.Remaining)], notification.PreparedAt));
-        }
-        return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
-            new DeleteItemResponse(slot, debit.Cost.Count, Success: true), update]);
+        else messages.Add(debit.Remaining is null
+            ? GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, notification.PreparedAt)
+            : GameInventoryDelivery.Notification(new(slot.Space,
+                [new InventoryItemState(null, slot.Index, debit.Remaining)], notification.PreparedAt)));
+        return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }
 }

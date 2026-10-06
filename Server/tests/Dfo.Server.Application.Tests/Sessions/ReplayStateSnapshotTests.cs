@@ -109,14 +109,14 @@ public sealed class ReplayStateSnapshotTests
             INSERT INTO character_expert_job(character_id) VALUES(71);
             """);
         var store = fixture.Services.GetRequiredService<IItemDomainStore>();
-        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment),
-            fixture.Session.CharacterId, new(InventoryContainerType.Equipment, 0), store, fixture.Scope, null!,
-            fixture.Services.GetRequiredService<IItemPlacementRuleService>(), fixture.Services.GetRequiredService<IItemArrivalRuleService>(),
+        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
+            fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
         {
-            await equipment.PutNewAsync(25, StackableItemCore.Create(5, 63000, 1),
-                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(50, 1, 0, 0, 0, 1, [65], 0)), default);
+            var session = store.SessionIn(fixture.Scope.Current!);
+            await session.PutAsync(equipment.Id, 25, await session.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
             await tx.CommitAsync(default);
         }
         var before = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25");
@@ -163,7 +163,7 @@ public sealed class ReplayStateSnapshotTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(
             new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))));
         await Assert.ThrowsAsync<InvalidDataException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(fixture.Session, new((ReplayProjectionNeeds)1024, []))));
+            new ReadReplayStateCommand(fixture.Session, new((ReplayProjectionNeeds)2048, []))));
         await Assert.ThrowsAsync<InventorySlotMappingException>(async () => await bus.SendAsync(
             new ReadReplayStateCommand(fixture.Session, new(ReplayProjectionNeeds.Inventory,
                 [new(BusinessInventorySpace.VirtualResource, 0)]))));
@@ -212,7 +212,8 @@ public sealed class ReplayStateSnapshotTests
         await barriers.Read.Task.WaitAsync(TimeSpan.FromSeconds(5));
         try
         {
-            fixture.Sql("UPDATE character_stats SET carried_gold=200000 WHERE character_id=1; UPDATE accounts SET cube_gold=7 WHERE account_id=1");
+            fixture.Sql("UPDATE character_stats SET carried_gold=200000 WHERE character_id=1");
+            await fixture.SeedShared(3262, 7);
             barriers.Release.TrySetResult();
             var snapshot = await read.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(100000, snapshot.Inventory!.Character().VirtualResources.Single(x => x.SlotIndex == 0).Value);
@@ -285,14 +286,14 @@ public sealed class ReplayStateSnapshotTests
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is unavailable.");
         await using var fixture = new LearningFixture(useArchive: true); await fixture.SeedAsync();
         var store = fixture.Services.GetRequiredService<IItemDomainStore>();
-        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment),
-            fixture.Session.CharacterId, new(InventoryContainerType.Equipment, 0), store, fixture.Scope, null!,
-            fixture.Services.GetRequiredService<IItemPlacementRuleService>(), fixture.Services.GetRequiredService<IItemArrivalRuleService>(),
+        var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
+            fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
         await using (var tx = fixture.Scope.Begin())
         {
-            await equipment.PutNewAsync(24, StackableItemCore.Create(5, 63000, 1),
-                new InventoryItemCreationFacts(Creature: new InventoryCreatureDetailState(50, 1, 0, 0, 0, 1, [65], 0)), default);
+            var session = store.SessionIn(fixture.Scope.Current!);
+            await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
             await tx.CommitAsync(default);
         }
         var identity = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24");

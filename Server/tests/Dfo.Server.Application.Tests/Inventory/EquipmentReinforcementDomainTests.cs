@@ -386,7 +386,7 @@ public sealed class EquipmentReinforcementDomainTests
         Assert.Null(await Target(shop));
         Assert.Equal(1, shop.Count(3243));
         Assert.Equal(5, shop.Count(3166));
-        Assert.Equal(1, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(1, shop.SharedCount(3037, 1));
         Assert.Equal(new[] { 3037, 3166, 3243 }, result.Receipt.DestroyRewards.Select(reward => reward.ItemId));
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
@@ -401,10 +401,10 @@ public sealed class EquipmentReinforcementDomainTests
         var result = await Reinforce(shop);
         Assert.Equal(EquipmentReinforcementOutcome.Destroyed, result.Receipt!.Outcome);
         Assert.Null(await Target(shop));
-        Assert.Equal(33, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(33, shop.SharedCount(3037, 1));
         Assert.Equal(0, shop.Count(3243));
-        Assert.Equal(0, shop.Scalar("SELECT soul_common FROM accounts WHERE account_id=1"));
-        Assert.Contains(result.Receipt.AccountMaterials, change => change.ItemId == 3037 && change.AddedCount > 0);
+        Assert.Equal(0, shop.SharedCount(10100115, 1));
+        Assert.Contains(result.Receipt.DestroyRewards, change => change.ItemId == 3037 && change.Count > 0);
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -738,10 +738,7 @@ public sealed class EquipmentReinforcementDomainTests
             Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
         await using (var seed = scope.Begin())
         {
-            await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>()
-                .Get(shop.Session.AccountId)
-                .AddAsync(new Dictionary<AccountMaterialKind, int>
-                    { [AccountMaterialKind.ClearCube] = 20 }, default);
+            await shop.PutShared(3037, 20);
             await seed.CommitAsync(default);
         }
 
@@ -749,7 +746,7 @@ public sealed class EquipmentReinforcementDomainTests
 
         Assert.Equal(EquipmentReinforcementRejection.None, result.Rejection);
         Assert.Equal(10, result.Receipt!.MaterialRemaining);
-        Assert.Equal(10, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(10, shop.SharedCount(3037, 1));
         Assert.Equal(0, shop.Count(3037));
         Assert.Equal((byte)1, (await Target(shop))!.ReinforcementLevel);
     }
@@ -763,17 +760,14 @@ public sealed class EquipmentReinforcementDomainTests
             Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
         await using (var seed = scope.Begin())
         {
-            await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>()
-                .Get(shop.Session.AccountId)
-                .AddAsync(new Dictionary<AccountMaterialKind, int>
-                    { [AccountMaterialKind.ClearCube] = 20 }, default);
+            await shop.PutShared(3037, 20);
             await seed.CommitAsync(default);
         }
 
         var result = await Reinforce(shop, accountMaterialItemId: 3033);
 
         Assert.Equal(EquipmentReinforcementRejection.InsufficientMaterial, result.Rejection);
-        Assert.Equal(20, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(20, shop.SharedCount(3037, 1));
         Assert.Equal((byte)0, (await Target(shop))!.ReinforcementLevel);
         Assert.Equal(100_000, shop.Gold);
     }
@@ -792,7 +786,7 @@ public sealed class EquipmentReinforcementDomainTests
         Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
         Assert.Equal(0, shop.Count(3166));
         Assert.Equal(0, shop.Count(3243));
-        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0, shop.SharedCount(3037, 1));
         Assert.Equal(20, shop.Count(1000));
         Assert.Equal(100_000, shop.Gold);
     }
@@ -809,7 +803,7 @@ public sealed class EquipmentReinforcementDomainTests
         await SeedClearCubes(shop, initial);
         var result = await Reinforce(shop, accountMaterialItemId: 3037);
         Assert.Equal(rejected ? EquipmentReinforcementRejection.NoRoom : EquipmentReinforcementRejection.None, result.Rejection);
-        Assert.Equal(expected, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(expected, shop.SharedCount(3037, 1));
         Assert.Equal(rejected ? 100_000 : 99_900, shop.Gold);
         if (rejected) Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
         else
@@ -845,7 +839,7 @@ public sealed class EquipmentReinforcementDomainTests
         await Assert.ThrowsAsync<ContainerAdditionException>(() => Reinforce(shop).AsTask());
         Assert.Equal((byte)11, (await Target(shop))!.ReinforcementLevel);
         Assert.Equal(uid, EquipmentUid(shop));
-        Assert.Equal(0, shop.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0, shop.SharedCount(3037, 1));
         Assert.Equal(0, shop.Count(3166));
         Assert.Equal(0, shop.Count(3243));
         Assert.Equal(20, shop.Count(1000));
@@ -866,7 +860,7 @@ public sealed class EquipmentReinforcementDomainTests
         var result = await shop.Services.GetRequiredService<IEquipmentReinforcementFailureRuleService>()
             .GetResultAsync(instance!, new(null, 0, 0), default);
         Assert.Equal(1, Assert.Single(result.Rewards, reward => reward.ItemId == 3243).Count);
-        Assert.Equal((byte)11, (await instance!.ReadAsync(default)).Core.ReinforcementLevel);
+        Assert.Equal((byte)11, (await instance!.ReadAsync(default)).Snapshot.ToCore().ReinforcementLevel);
         Assert.Equal(before, shop.StoredCore(9));
         Assert.Equal(20, shop.Count(1000));
         Assert.Equal(100_000, shop.Gold);
@@ -886,18 +880,18 @@ public sealed class EquipmentReinforcementDomainTests
         var instance = (await shop.Services.GetRequiredService<IEquipmentDomainService>().Of(shop.Session.CharacterId)
             .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default))!;
         var target = await instance.ReadAsync(default);
-        var rule = (await shop.Services.GetRequiredService<IEquipmentUpgradeRuleService>().QuoteReinforcementAsync(target.Core, default)).Rule!;
+        var rule = (await shop.Services.GetRequiredService<IEquipmentUpgradeRuleService>().QuoteReinforcementAsync(target.Snapshot, default)).Rule!;
         var protection = await rule.ProtectionAsync(10007840, default);
         var plan = await shop.Services.GetRequiredService<IEquipmentEffectPlanRuleService>().ReinforcementAsync(target, rule,
-            new(new MaterialLocation.Carried(new(BusinessInventorySpace.Material, 0)), 1000, 10),
-            new(new MaterialLocation.Carried(new(BusinessInventorySpace.QuickSlot, 0)), 10007840, 1),
+            new(new(BusinessInventorySpace.Material, 0), 1000, 10),
+            new(new(BusinessInventorySpace.QuickSlot, 0), 10007840, 1),
             new(protection, 0, 0), succeeded, default);
         Assert.Equal(succeeded ? 1 : 2, plan.Effects.OfType<ConsumeFromContainerEffect>().Count());
         Assert.Equal(100, Assert.Single(plan.Effects.OfType<SpendGoldEffect>()).Amount);
         Assert.Equal(succeeded ? (byte)12 : (byte)10, Assert.Single(plan.Effects.OfType<SetEquipmentUpgradeEffect>()).Level);
         Assert.Empty(plan.Effects.OfType<DestroyEquipmentEffect>());
         Assert.Empty(plan.Effects.OfType<GrantStackableEffect>());
-        Assert.Empty(plan.Effects.OfType<GrantAccountMaterialEffect>());
+        Assert.Empty(plan.Effects.OfType<GrantStackableEffect>());
         Assert.Equal(original, shop.StoredCore(9));
         Assert.Equal(20, shop.Count(1000));
         Assert.Equal(100000, shop.Gold);
@@ -907,8 +901,7 @@ public sealed class EquipmentReinforcementDomainTests
     {
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
         await using var seed = scope.Begin();
-        await shop.Services.GetRequiredService<IAccountMaterialBagDomainService>().Get(shop.Session.AccountId)
-            .AddAsync(new Dictionary<AccountMaterialKind, int> { [AccountMaterialKind.ClearCube] = count }, default);
+        await shop.PutShared(3037, count);
         await seed.CommitAsync(default);
     }
 
@@ -925,8 +918,8 @@ public sealed class EquipmentReinforcementDomainTests
         public async ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct)
         {
             if (itemId == 3243 && transactions.Current is { } transaction
-                && (await store.SessionIn(transaction).ReadAllAsync(ContainerId.ForCharacter(new(1), InventoryContainerType.Main), ct))
-                    .Any(item => item.Core.ItemId == 3166)) return null;
+                && (await store.SessionIn(transaction).GetAllAsync(ContainerId.ForCharacter(new(1), InventoryContainerType.Main), ct))
+                    .Any(item => item.Snapshot.ToCore().ItemId == 3166)) return null;
             return await inner.GetAsync(itemId, ct);
         }
     }
@@ -959,7 +952,7 @@ public sealed class EquipmentReinforcementDomainTests
     {
         var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Get(shop.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0));
-        return (await bound.Container.ReadSlotAsync(bound.Slot.Index, default))?.Core;
+        return (await bound.Container.GetAsync(bound.Slot.Index, default))?.Snapshot.ToCore();
     }
 
     private static async ValueTask<EquipmentReinforcementResult> Reinforce(
@@ -971,8 +964,9 @@ public sealed class EquipmentReinforcementDomainTests
         await using var transaction = scope.Begin();
         var result = await shop.Services.GetRequiredService<IEquipmentReinforcementDomainService>()
             .ReinforceAsync(shop.Session, new(BusinessInventorySpace.CarriedEquipment, 0), 3000,
-                accountMaterialItemId is null ? material ?? new(BusinessInventorySpace.Material, 0) : null,
-                accountMaterialItemId, protection, default, kind);
+                accountMaterialItemId is null ? material ?? new(BusinessInventorySpace.Material, 0)
+                    : new(BusinessInventorySpace.SharedMaterial, AccountMaterialCatalog.Definitions.ToList().FindIndex(x => x.ItemId == accountMaterialItemId)),
+                protection, default, kind);
         if (result.Rejection == EquipmentReinforcementRejection.None)
             await transaction.CommitAsync(default);
         return result;

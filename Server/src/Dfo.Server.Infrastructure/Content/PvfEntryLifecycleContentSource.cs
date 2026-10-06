@@ -59,9 +59,11 @@ internal sealed class PvfEntryLifecycleContentSource(
     /// </summary>
     private const string AvatarEquipmentSuffix = "avatar]";
 
-    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
+    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDeclaredDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => ReadRules(at, ct, true);
+    public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => ReadRules(at, ct, false);
+    private ValueTask<IReadOnlyList<DailyRefillRule>> ReadRules(
         DateTimeOffset preparedAt,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool includeInactive)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var archive = provider.Archive;
@@ -69,7 +71,7 @@ internal sealed class PvfEntryLifecycleContentSource(
         var stackables = PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
         var equipment = ReadEquipmentPaths(archive);
         var parsed = Parse(values, preparedAt,
-            id => ResolveItemMetadata(archive, id, stackables, equipment), slotMappings);
+            id => ResolveItemMetadata(archive, id, stackables, equipment), slotMappings, includeInactive);
         return ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(parsed);
     }
 
@@ -100,7 +102,7 @@ internal sealed class PvfEntryLifecycleContentSource(
         IReadOnlyList<string> values,
         DateTimeOffset preparedAt,
         Func<int, RefillItemMetadata> metadata,
-        IInventorySlotMappingRuleService? slotMappings = null)
+        IInventorySlotMappingRuleService? slotMappings = null, bool includeInactive = false)
     {
         slotMappings ??= new InventorySlotMappingRuleService();
         if (values.Count % 4 != 0)
@@ -117,9 +119,9 @@ internal sealed class PvfEntryLifecycleContentSource(
                 || !int.TryParse(values[index + 3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var modeValue))
                 continue;
             var expiresAt = new DateTimeOffset(DateTime.SpecifyKind(expiresLocal, DateTimeKind.Unspecified), TimeSpan.FromHours(8));
-            if (itemId <= 0 || quantity <= 0 || expiresAt <= nowBeijing
+            if (itemId <= 0 || quantity < 0 || (!includeInactive && (quantity == 0 || expiresAt <= nowBeijing))
                 || modeValue is < (int)DailyRefillMode.RefillToTarget
-                    or > (int)DailyRefillMode.AddUpToStackLimit)
+                    or > (int)DailyRefillMode.Add)
                 continue;
             var item = metadata(itemId);
             if (item.SlotEnd < item.SlotStart)
@@ -228,25 +230,6 @@ internal sealed class PvfEntryLifecycleContentSource(
         return new(1, kind, 9, 64, worldClass);
     }
 
-    /// <summary>
-    /// Which sort of individual piece a template is, out of its own <c>[equipment type]</c>.
-    /// </summary>
-    /// <remarks>
-    /// The same tag <see cref="PvfEquipmentSlotDefinitionSource"/> reads to find the slot a piece
-    /// is worn in, read here for the coarser question of what the piece is. One tag, one reading
-    /// of it: the eleven names ending in <c>avatar</c> are the avatar slots, <c>[creature]</c> is
-    /// the contract creature, and every other name -- weapon, coat, ring, title, artifact,
-    /// charm, flag, name tag -- is ordinary worn gear.
-    /// <para>
-    /// A file that does not resolve, or declares no equipment type, is still an individual piece:
-    /// it is in the equipment index, which is what says two of it can be told apart. Answering
-    /// <see cref="ItemWorldClass.Interchangeable"/> there would turn a piece of gear into a pile
-    /// on the strength of a tag being missing.
-    /// </para>
-    /// </remarks>
-    private static ItemWorldClass ResolveWorldClass(PvfArchive archive, string relativePath)
-        => ClassifyEquipmentType(ReadEquipmentType(archive, relativePath));
-
     private static string? ReadEquipmentType(PvfArchive archive, string relativePath)
     {
         var fileIndex = archive.FindFile(EquipmentDirectory + "/" + relativePath);
@@ -329,7 +312,7 @@ internal sealed class PvfEntryLifecycleContentSource(
         if (normalized == "avatar emblem") return 9;
         if (normalized == "material expert job") return 10;
         if (normalized == "quest") return 4;
-        if (normalized == "material")
+        if (normalized is "material" or "material instant item")
             return itemId is 3033 or 3034 or 3035 or 3036 or 3037 or 3262 ? (byte)11 : (byte)3;
         return 2;
     }

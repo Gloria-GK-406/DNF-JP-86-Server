@@ -8,7 +8,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
-public sealed class SqliteEquipmentTransferDomainStoreTests
+public sealed class SqliteItemPositionTransferTests
 {
     private static readonly CharacterId Sender = new(60);
     private static readonly CharacterId Receiver = new(61);
@@ -20,24 +20,16 @@ public sealed class SqliteEquipmentTransferDomainStoreTests
         var path = await SeedAsync();
         try
         {
-            var store = new SqliteEquipmentTransferDomainStore(path);
+            var store = new SqliteItemDomainStore(path);
             var before = await WorldRowAsync(path);
             var take = new DomainTransaction();
             var session = store.SessionIn(take);
-            var owned = await session.ReadOwnedAsync(Sender, Identity, CancellationToken.None);
+            var owned = await session.GetAsync(ContainerId.ForCharacter(Sender, InventoryContainerType.Main), 9, default);
             Assert.NotNull(owned);
-            Assert.True(await session.TakeAsync(Sender, owned, CancellationToken.None));
-            Assert.NotNull(await session.ReadDetachedAsync(Identity, CancellationToken.None));
-            await take.CommitAsync(CancellationToken.None);
-
+            var record = await session.TakeAsync(owned, null, default);
+            await session.PutAsync(ContainerId.ForCharacter(Receiver, InventoryContainerType.Main), 9, record, default);
+            await take.CommitAsync(default);
             Assert.Null(await SlotAsync(path, Sender));
-            Assert.Equal(before, await WorldRowAsync(path));
-
-            var grant = new DomainTransaction();
-            var receiving = store.SessionIn(grant);
-            Assert.True(await receiving.GrantAsync(Receiver, Identity,
-                new LegacyInventoryStorageCoordinate(InventoryContainerType.Main, 9), CancellationToken.None));
-            await grant.CommitAsync(CancellationToken.None);
 
             Assert.Equal(Identity.Value, await SlotAsync(path, Receiver));
             Assert.Equal(before, await WorldRowAsync(path));
@@ -51,15 +43,15 @@ public sealed class SqliteEquipmentTransferDomainStoreTests
         var path = await SeedAsync(occupiedReceiver: true);
         try
         {
-            var store = new SqliteEquipmentTransferDomainStore(path);
+            var store = new SqliteItemDomainStore(path);
             var before = await WorldRowAsync(path);
             var rollback = new DomainTransaction();
             var session = store.SessionIn(rollback);
-            var owned = await session.ReadOwnedAsync(Sender, Identity, CancellationToken.None);
+            var owned = await session.GetAsync(ContainerId.ForCharacter(Sender, InventoryContainerType.Main), 9, default);
             Assert.NotNull(owned);
-            Assert.True(await session.TakeAsync(Sender, owned, CancellationToken.None));
-            Assert.False(await session.GrantAsync(Receiver, Identity,
-                new LegacyInventoryStorageCoordinate(InventoryContainerType.Main, 9), CancellationToken.None));
+            var record = await session.TakeAsync(owned, null, default);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => session.PutAsync(
+                ContainerId.ForCharacter(Receiver, InventoryContainerType.Main), 9, record, default).AsTask());
             await rollback.RollbackAsync();
 
             Assert.Equal(Identity.Value, await SlotAsync(path, Sender));

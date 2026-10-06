@@ -174,9 +174,11 @@ public sealed class ItemPathFrameTests
                 item.CommandText =
                     "INSERT INTO items(item_core) VALUES(@core);"
                     + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-                    + "VALUES('character',60,0,@slot,'world',last_insert_rowid(),"
-                    + "last_insert_rowid(),1)";
+                    + "VALUES('character',60,0,@slot,'template',@template,"
+                    + "last_insert_rowid(),@count)";
                 item.Parameters.AddWithValue("@slot", slot);
+                item.Parameters.AddWithValue("@template", itemId);
+                item.Parameters.AddWithValue("@count", count);
                 item.Parameters.AddWithValue(
                     "@core", InventoryItemCore.Encode(Core(itemId, count)));
                 await item.ExecuteNonQueryAsync();
@@ -190,13 +192,10 @@ public sealed class ItemPathFrameTests
             var containers = new CharacterContainerDomainService();
             containers.Register(Character, new PersistentItemContainer(
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
-                Character,
                 new ContainerShape(InventoryContainerType.Main, 0),
                 new SqliteItemDomainStore(this.Path),
                 this.Scope,
-                null!,
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                new ItemArrivalRuleService(),
                 new ItemSlotRuleService()));
             return containers;
         }

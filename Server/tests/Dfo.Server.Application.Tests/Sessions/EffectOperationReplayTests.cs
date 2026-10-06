@@ -85,7 +85,7 @@ public sealed class EffectOperationReplayTests
     public async Task Confirmed_SQL_abort_retries_the_exact_same_fingerprint()
     {
         using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
-        f.Sql("CREATE TRIGGER fail_use BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'late use'); END;");
+        f.Sql("CREATE TRIGGER fail_use BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'late use'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Dispatch(f, stream.Request(1)));
         Assert.Equal(3, f.Count(1000)); f.Sql("DROP TRIGGER fail_use;");
         await Dispatch(f, stream.Request(1)); Assert.Equal(2, f.Count(1000));
@@ -195,7 +195,7 @@ public sealed class EffectOperationReplayTests
         });
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry,
-            f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), (ReplayProjectionNeeds)1024);
+            f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), (ReplayProjectionNeeds)2048);
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
         Assert.Equal(100000, f.Gold); Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);

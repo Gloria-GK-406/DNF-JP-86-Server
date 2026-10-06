@@ -125,7 +125,7 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(1, shop.Count(3000));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
         var item = Assert.Single(receipt.GrantedSlots);
-        Assert.True(item.Core.Value > 0);
+        Assert.True(item.Core.ToCore().Value > 0);
         Assert.Equal(45, item.Core.Durability);
         Assert.Equal(1, receipt.Count);
         Assert.IsType<BuyItemResponse>(shop.Sender.Messages[0]);
@@ -145,7 +145,7 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(12, shop.Count(5000));
         var receipt = Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt!;
         Assert.Equal(new[] { (BusinessInventorySpace.QuickSlot, 0, 10, 1), (BusinessInventorySpace.QuickSlot, 1, 2, 2) }, receipt.GrantedSlots
-            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.Value, slot.AddedCount)));
+            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.ToCore().Value, slot.AddedCount)));
         Assert.All(receipt.MaterialChanges, change => Assert.Null(change.Core));
         Assert.Equal(5, shop.Sender.Messages.Count);
     }
@@ -307,11 +307,12 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());
         services.AddSingleton<INetworkMessageSender>(Sender);
         services.AddSingleton<TimeProvider>(Clock);
+        services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
         Sender.Services = provider;
         _ = provider.GetRequiredService<SqliteDatabase>();
-        Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,2,0),(2,1,'shop2',12,2,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
+        Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,1,0),(2,1,'shop2',12,1,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
         onlineUser = registry.RegisterConnection(connection).OnlineUserId;
         registry.Authenticate(onlineUser, new AccountId(1));
@@ -331,16 +332,20 @@ internal sealed class ShopFixture : IDisposable
             new TownAreaKey(1, 0, 0),
             new CharacterPositionState(0, 0, 0, 0, 0),
             true));
-        bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main),
-            session.CharacterId, new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
-            provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(),
-            provider.GetRequiredService<IItemArrivalRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+        bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
+            provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, bag);
-        equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment),
-            session.CharacterId, new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
-            provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(),
-            provider.GetRequiredService<IItemArrivalRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
+            new MemoryItemContainer(new ContainerId($"tower:empty:{character}:fixture"), new(InventoryContainerType.QuickSlot, 6),
+                provider.GetRequiredService<ITransientItemDomainStoreFactory>().Create(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(),
+                provider.GetRequiredService<IItemSlotRuleService>()));
+        equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
+            provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
+        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
+            new PersistentItemContainer(ContainerId.ForAccount(session.AccountId, InventoryContainerType.SharedMaterial), new(InventoryContainerType.SharedMaterial, 11), provider.GetRequiredService<IItemDomainStore>(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>()));
     }
 
     public async Task Seed(int slot, int item, int count, byte kind = 2)
@@ -350,9 +355,48 @@ internal sealed class ShopFixture : IDisposable
         InventoryContainerType container = InventoryContainerType.Main)
     {
         await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await (container == InventoryContainerType.Equipment ? equipment : bag).PutAsync(slot, core, default);
+        // Fixture setup represents existing stored rows, including malformed/legacy admission cases.
+        // Use actual storage custody while leaving business admission to the operation under test.
+        var session = provider.GetRequiredService<IItemDomainStore>().SessionIn(
+            provider.GetRequiredService<IDomainTransactionAccessor>().Current!);
+        var id = ContainerId.ForCharacter(this.session.CharacterId, container);
+        if (await session.GetAsync(id, slot, default) is { } previous)
+            await session.DeleteItemAsync(await session.TakeAsync(previous, null, default), default);
+        var worldClass = await provider.GetRequiredService<IItemPlacementRuleService>().ClassifyAsync(core.ItemId, default);
+        if (worldClass == ItemWorldClass.Interchangeable && core.Value == 0 && core.ItemKind != 0)
+        {
+            await tx.CommitAsync(default);
+            return;
+        }
+        var snapshot = ItemSnapshot.FromCore(core, worldClass == ItemWorldClass.Interchangeable,
+            avatar: worldClass == ItemWorldClass.Avatar ? new(0, 0, new byte[30], 0, 0, 0) : null,
+            creature: worldClass == ItemWorldClass.Creature ? new(100, 0, 0, 0, 0, 1, [], 0) : null);
+        await session.PutAsync(id, slot, await session.CreateAsync(snapshot, default), default);
         await tx.CommitAsync(default);
     }
+
+    public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+        .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
+        .GetContainer(BusinessInventorySpace.SharedMaterial);
+
+    public async Task SeedShared(int item, int count, int account = 1)
+    {
+        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+        await PutShared(item, count, account);
+        await tx.CommitAsync(default);
+    }
+    public async Task PutShared(int item, int count, int account = 1)
+    {
+        Assert.True(AccountMaterialCatalog.TryGetSlotIndex(item, out var slot));
+        var target = Shared(account);
+        var lifecycle = provider.GetRequiredService<IItemLifecycleDomainService>();
+        if (await target.GetAsync(slot, default) is { } previous)
+            await lifecycle.DeleteItemAsync(await target.TakeAsync(previous, null, default), default);
+        if (count > 0)
+            await target.PutAsync(slot, await lifecycle.CreateAsync(ItemSnapshot.FromCore(
+                StackableItemCore.Create(AccountMaterialCatalog.Definitions[slot].ItemKind, item, count), true), default), default);
+    }
+    public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
     public ValueTask Buy(int item, int count) => provider.GetRequiredService<BuyItemHandler>().HandleAsync(new(connection),
         new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default);
@@ -364,8 +408,13 @@ internal sealed class ShopFixture : IDisposable
         _ = await provider.GetRequiredService<INotificationBus>().PublishAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new NpcShopPurchaseCompleted(receipt), default);
     public int Gold => Scalar($"SELECT carried_gold FROM character_stats WHERE character_id={session.CharacterId.Value}");
-    public async ValueTask<ushort?> Durability(InventoryContainerType container, int slot) =>
-        (await (container == InventoryContainerType.Equipment ? equipment : bag).ReadSlotAsync(slot, default))?.Core.Durability;
+    public async ValueTask<ushort?> Durability(InventoryContainerType container, int slot)
+    {
+        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+        return (await provider.GetRequiredService<IItemDomainStore>().SessionIn(
+            provider.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(
+                ContainerId.ForCharacter(session.CharacterId, container), slot, default))?.Snapshot.Durability;
+    }
     public int Count(int item) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='character' AND s.owner_id={session.CharacterId.Value} AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
     public int Scalar(string sql)
     {
@@ -388,6 +437,9 @@ internal sealed class ShopFixture : IDisposable
         return (byte[])command.ExecuteScalar()!;
     }
 
+    public uint ExperienceForLevel(byte level) => provider.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(level);
+    public void SetLevel(byte level, int? character = null) => Sql($"UPDATE characters SET level={level},exp={ExperienceForLevel(level)}" + (character is { } id ? $" WHERE character_id={id}" : ""));
+
     public void Sql(string sql)
     {
         using var db = new SqliteConnection(ConnectionString);
@@ -399,7 +451,11 @@ internal sealed class ShopFixture : IDisposable
     public void Dispose()
     {
         provider.Dispose();
-        SqliteConnection.ClearAllPools();
+        using var poolKey = new SqliteConnection(ConnectionString);
+        SqliteConnection.ClearPool(poolKey);
+        using var readOnly = new SqliteConnection(new SqliteConnectionStringBuilder(ConnectionString)
+            { Mode = SqliteOpenMode.ReadOnly }.ToString());
+        SqliteConnection.ClearPool(readOnly);
         Directory.Delete(directory, true);
     }
 

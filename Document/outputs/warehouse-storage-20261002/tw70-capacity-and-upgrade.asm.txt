@@ -1,0 +1,896 @@
+70Reference only; layouts and limits differ from A21.
+ELF SHA256 cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## _ZN23Dispatcher_UpgradeCargo12dispatch_sigEP5CUserR9PacketBuf; VA 0822A0A4, size 1048
+VA 0822A0A4 55                       push    ebp
+VA 0822A0A5 89 e5                    mov     ebp, esp
+VA 0822A0A7 56                       push    esi
+VA 0822A0A8 53                       push    ebx
+VA 0822A0A9 83 c4 80                 add     esp, -0x80
+VA 0822A0AC 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A0AF 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A0B2 e8 d5 02 eb ff           call    0x80da38c _ZN5CUser9get_stateEv
+VA 0822A0B7 83 f8 03                 cmp     eax, 3
+VA 0822A0BA 75 0f                    jne     0x822a0cb
+VA 0822A0BC 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A0BF 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A0C2 e8 6b 63 ef ff           call    0x8120432 _ZNK15CUserCharacInfo13getCurCharacREv
+VA 0822A0C7 85 c0                    test    eax, eax
+VA 0822A0C9 75 07                    jne     0x822a0d2
+VA 0822A0CB b8 01 00 00 00           mov     eax, 1
+VA 0822A0D0 eb 05                    jmp     0x822a0d7
+VA 0822A0D2 b8 00 00 00 00           mov     eax, 0
+VA 0822A0D7 84 c0                    test    al, al
+VA 0822A0D9 74 2b                    je      0x822a106
+VA 0822A0DB c7 44 24 0c 00 00 00 00  mov     dword ptr [esp + 0xc], 0
+VA 0822A0E3 c7 44 24 08 00 00 00 00  mov     dword ptr [esp + 8], 0
+VA 0822A0EB c7 44 24 04 a0 be bc 08  mov     dword ptr [esp + 4], 0x8bcbea0
+VA 0822A0F3 c7 04 24 d8 e7 00 00     mov     dword ptr [esp], 0xe7d8
+VA 0822A0FA e8 d8 67 36 00           call    0x85908d7 _Z8LineFunciPKcij
+VA 0822A0FF 89 c3                    mov     ebx, eax
+VA 0822A101 e9 aa 03 00 00           jmp     0x822a4b0
+VA 0822A106 a1 cc f7 41 09           mov     eax, dword ptr [0x941f7cc]
+VA 0822A10B c7 44 24 08 1d 00 00 00  mov     dword ptr [esp + 8], 0x1d
+VA 0822A113 8b 55 0c                 mov     edx, dword ptr [ebp + 0xc]
+VA 0822A116 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 0822A11A 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A11D e8 e0 e8 05 00           call    0x8288a02 _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+VA 0822A122 89 45 f0                 mov     dword ptr [ebp - 0x10], eax
+VA 0822A125 83 7d f0 00              cmp     dword ptr [ebp - 0x10], 0
+VA 0822A129 74 27                    je      0x822a152
+VA 0822A12B 8b 45 f0                 mov     eax, dword ptr [ebp - 0x10]
+VA 0822A12E 0f b6 c0                 movzx   eax, al
+VA 0822A131 89 44 24 08              mov     dword ptr [esp + 8], eax
+VA 0822A135 c7 44 24 04 98 01 00 00  mov     dword ptr [esp + 4], 0x198
+VA 0822A13D 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A140 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A143 e8 fa 1d 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A148 bb 00 00 00 00           mov     ebx, 0
+VA 0822A14D e9 5e 03 00 00           jmp     0x822a4b0
+VA 0822A152 66 c7 45 ee 00 00        mov     word ptr [ebp - 0x12], 0
+VA 0822A158 8d 45 ee                 lea     eax, [ebp - 0x12]
+VA 0822A15B 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A15F 8b 45 10                 mov     eax, dword ptr [ebp + 0x10]
+VA 0822A162 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A165 e8 56 2e 36 00           call    0x858cfc0 _ZN9PacketBuf9get_shortERs
+VA 0822A16A 83 f0 01                 xor     eax, 1
+VA 0822A16D 84 c0                    test    al, al
+VA 0822A16F 74 2b                    je      0x822a19c
+VA 0822A171 c7 44 24 0c 00 00 00 00  mov     dword ptr [esp + 0xc], 0
+VA 0822A179 c7 44 24 08 00 00 00 00  mov     dword ptr [esp + 8], 0
+VA 0822A181 c7 44 24 04 a0 be bc 08  mov     dword ptr [esp + 4], 0x8bcbea0
+VA 0822A189 c7 04 24 e2 e7 00 00     mov     dword ptr [esp], 0xe7e2
+VA 0822A190 e8 42 67 36 00           call    0x85908d7 _Z8LineFunciPKcij
+VA 0822A195 89 c3                    mov     ebx, eax
+VA 0822A197 e9 14 03 00 00           jmp     0x822a4b0
+VA 0822A19C 0f b7 45 ee              movzx   eax, word ptr [ebp - 0x12]
+VA 0822A1A0 0f bf d8                 movsx   ebx, ax
+VA 0822A1A3 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A1A6 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A1A9 e8 d0 00 eb ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A1AE 8d 55 a3                 lea     edx, [ebp - 0x5d]
+VA 0822A1B1 89 5c 24 0c              mov     dword ptr [esp + 0xc], ebx
+VA 0822A1B5 c7 44 24 08 01 00 00 00  mov     dword ptr [esp + 8], 1
+VA 0822A1BD 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A1C1 89 14 24                 mov     dword ptr [esp], edx
+VA 0822A1C4 e8 4f 17 2d 00           call    0x84fb918 _ZNK10CInventory12GetInvenSlotEii
+VA 0822A1C9 83 ec 04                 sub     esp, 4
+VA 0822A1CC 8b 45 aa                 mov     eax, dword ptr [ebp - 0x56]
+VA 0822A1CF 85 c0                    test    eax, eax
+VA 0822A1D1 7f 25                    jg      0x822a1f8
+VA 0822A1D3 c7 44 24 08 11 00 00 00  mov     dword ptr [esp + 8], 0x11
+VA 0822A1DB c7 44 24 04 98 01 00 00  mov     dword ptr [esp + 4], 0x198
+VA 0822A1E3 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A1E6 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A1E9 e8 54 1d 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A1EE bb 00 00 00 00           mov     ebx, 0
+VA 0822A1F3 e9 b8 02 00 00           jmp     0x822a4b0
+VA 0822A1F8 8b 45 a5                 mov     eax, dword ptr [ebp - 0x5b]
+VA 0822A1FB 89 44 24 08              mov     dword ptr [esp + 8], eax
+VA 0822A1FF c7 44 24 04 2b 00 00 00  mov     dword ptr [esp + 4], 0x2b
+VA 0822A207 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A20A 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A20D e8 aa 54 46 00           call    0x868f6bc _ZN5CUser30verifyStackableItemActionPlaceEN15StackableAction4TypeEj
+VA 0822A212 83 f0 01                 xor     eax, 1
+VA 0822A215 84 c0                    test    al, al
+VA 0822A217 74 25                    je      0x822a23e
+VA 0822A219 c7 44 24 08 11 00 00 00  mov     dword ptr [esp + 8], 0x11
+VA 0822A221 c7 44 24 04 98 01 00 00  mov     dword ptr [esp + 4], 0x198
+VA 0822A229 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A22C 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A22F e8 0e 1d 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A234 bb 00 00 00 00           mov     ebx, 0
+VA 0822A239 e9 72 02 00 00           jmp     0x822a4b0
+VA 0822A23E c7 45 f4 10 00 00 00     mov     dword ptr [ebp - 0xc], 0x10
+VA 0822A245 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A248 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A24B e8 34 78 f2 ff           call    0x8151a84 _ZNK15CUserCharacInfo18getCurCharacCargoREv
+VA 0822A250 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A253 e8 b0 34 00 00           call    0x822d708 _ZNK6CCargo11GetCapacityEv
+VA 0822A258 89 c3                    mov     ebx, eax
+VA 0822A25A 03 5d f4                 add     ebx, dword ptr [ebp - 0xc]
+VA 0822A25D 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A260 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A263 e8 1c 78 f2 ff           call    0x8151a84 _ZNK15CUserCharacInfo18getCurCharacCargoREv
+VA 0822A268 89 5c 24 04              mov     dword ptr [esp + 4], ebx
+VA 0822A26C 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A26F e8 24 24 2e 00           call    0x850c698 _ZNK6CCargo12isUpgradableEi
+VA 0822A274 83 f0 01                 xor     eax, 1
+VA 0822A277 84 c0                    test    al, al
+VA 0822A279 74 25                    je      0x822a2a0
+VA 0822A27B c7 44 24 08 13 00 00 00  mov     dword ptr [esp + 8], 0x13
+VA 0822A283 c7 44 24 04 98 01 00 00  mov     dword ptr [esp + 4], 0x198
+VA 0822A28B 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A28E 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A291 e8 ac 1c 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A296 bb 00 00 00 00           mov     ebx, 0
+VA 0822A29B e9 10 02 00 00           jmp     0x822a4b0
+VA 0822A2A0 0f b7 45 ee              movzx   eax, word ptr [ebp - 0x12]
+VA 0822A2A4 0f bf d8                 movsx   ebx, ax
+VA 0822A2A7 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A2AA 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A2AD e8 dc ff ea ff           call    0x80da28e _ZN15CUserCharacInfo18getCurCharacInvenWEv
+VA 0822A2B2 c7 44 24 14 01 00 00 00  mov     dword ptr [esp + 0x14], 1
+VA 0822A2BA c7 44 24 10 03 00 00 00  mov     dword ptr [esp + 0x10], 3
+VA 0822A2C2 c7 44 24 0c 01 00 00 00  mov     dword ptr [esp + 0xc], 1
+VA 0822A2CA 89 5c 24 08              mov     dword ptr [esp + 8], ebx
+VA 0822A2CE c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A2D6 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A2D9 e8 2e 9d 2d 00           call    0x850400c _ZN10CInventory11delete_itemE10INVEN_TYPEii14eItemDelReasonb
+VA 0822A2DE 83 f0 01                 xor     eax, 1
+VA 0822A2E1 84 c0                    test    al, al
+VA 0822A2E3 74 25                    je      0x822a30a
+VA 0822A2E5 c7 44 24 08 11 00 00 00  mov     dword ptr [esp + 8], 0x11
+VA 0822A2ED c7 44 24 04 98 01 00 00  mov     dword ptr [esp + 4], 0x198
+VA 0822A2F5 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A2F8 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A2FB e8 42 1c 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A300 bb 00 00 00 00           mov     ebx, 0
+VA 0822A305 e9 a6 01 00 00           jmp     0x822a4b0
+VA 0822A30A 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A30D 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A310 e8 37 3a 36 00           call    0x858dd4c _ZN11PacketGuardC2Ev
+VA 0822A315 c7 44 24 08 0e 00 00 00  mov     dword ptr [esp + 8], 0xe
+VA 0822A31D c7 44 24 04 00 00 00 00  mov     dword ptr [esp + 4], 0
+VA 0822A325 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A328 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A32B e8 cc 15 ea ff           call    0x80cb8fc _ZN18InterfacePacketBuf10put_headerEii
+VA 0822A330 c7 44 24 04 00 00 00 00  mov     dword ptr [esp + 4], 0
+VA 0822A338 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A33B 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A33E e8 dd 15 ea ff           call    0x80cb920 _ZN18InterfacePacketBuf8put_byteEi
+VA 0822A343 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A34B 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A34E 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A351 e8 4e fb ea ff           call    0x80d9ea4 _ZN18InterfacePacketBuf9put_shortEi
+VA 0822A356 0f b7 45 ee              movzx   eax, word ptr [ebp - 0x12]
+VA 0822A35A 0f bf d8                 movsx   ebx, ax
+VA 0822A35D 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A360 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A363 e8 16 ff ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A368 8d 55 e0                 lea     edx, [ebp - 0x20]
+VA 0822A36B 89 54 24 0c              mov     dword ptr [esp + 0xc], edx
+VA 0822A36F 89 5c 24 08              mov     dword ptr [esp + 8], ebx
+VA 0822A373 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A37B 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A37E e8 39 23 2d 00           call    0x84fc6bc _ZNK10CInventory14MakeItemPacketE10INVEN_TYPEiR11PacketGuard
+VA 0822A383 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A38B 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A38E 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A391 e8 c2 15 ea ff           call    0x80cb958 _ZN18InterfacePacketBuf8finalizeEb
+VA 0822A396 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A399 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A39D 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A3A0 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A3A3 e8 12 e2 41 00           call    0x86485ba _ZN5CUser4SendER11PacketGuard
+VA 0822A3A8 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A3AB 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A3AE e8 d1 76 f2 ff           call    0x8151a84 _ZNK15CUserCharacInfo18getCurCharacCargoREv
+VA 0822A3B3 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A3B6 e8 4d 33 00 00           call    0x822d708 _ZNK6CCargo11GetCapacityEv
+VA 0822A3BB 89 c3                    mov     ebx, eax
+VA 0822A3BD 03 5d f4                 add     ebx, dword ptr [ebp - 0xc]
+VA 0822A3C0 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A3C3 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A3C6 e8 c9 76 f2 ff           call    0x8151a94 _ZN15CUserCharacInfo18getCurCharacCargoWEv
+VA 0822A3CB 89 5c 24 04              mov     dword ptr [esp + 4], ebx
+VA 0822A3CF 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A3D2 e8 7f 22 2e 00           call    0x850c656 _ZN6CCargo12UpgradeCargoEi
+VA 0822A3D7 83 f0 01                 xor     eax, 1
+VA 0822A3DA 84 c0                    test    al, al
+VA 0822A3DC 74 25                    je      0x822a403
+VA 0822A3DE c7 44 24 08 13 00 00 00  mov     dword ptr [esp + 8], 0x13
+VA 0822A3E6 c7 44 24 04 98 01 00 00  mov     dword ptr [esp + 4], 0x198
+VA 0822A3EE 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A3F1 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A3F4 e8 49 1b 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A3F9 bb 00 00 00 00           mov     ebx, 0
+VA 0822A3FE e9 a2 00 00 00           jmp     0x822a4a5
+VA 0822A403 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A406 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A409 e8 d8 14 ea ff           call    0x80cb8e6 _ZN18InterfacePacketBuf5clearEv
+VA 0822A40E c7 44 24 08 42 00 00 00  mov     dword ptr [esp + 8], 0x42
+VA 0822A416 c7 44 24 04 00 00 00 00  mov     dword ptr [esp + 4], 0
+VA 0822A41E 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A421 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A424 e8 d3 14 ea ff           call    0x80cb8fc _ZN18InterfacePacketBuf10put_headerEii
+VA 0822A429 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A431 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A434 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A437 e8 68 fa ea ff           call    0x80d9ea4 _ZN18InterfacePacketBuf9put_shortEi
+VA 0822A43C 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A43F 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A442 e8 3d 76 f2 ff           call    0x8151a84 _ZNK15CUserCharacInfo18getCurCharacCargoREv
+VA 0822A447 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A44A e8 b9 32 00 00           call    0x822d708 _ZNK6CCargo11GetCapacityEv
+VA 0822A44F 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A453 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A456 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A459 e8 46 fa ea ff           call    0x80d9ea4 _ZN18InterfacePacketBuf9put_shortEi
+VA 0822A45E c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A466 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A469 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A46C e8 e7 14 ea ff           call    0x80cb958 _ZN18InterfacePacketBuf8finalizeEb
+VA 0822A471 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A474 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A478 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A47B 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A47E e8 37 e1 41 00           call    0x86485ba _ZN5CUser4SendER11PacketGuard
+VA 0822A483 bb 00 00 00 00           mov     ebx, 0
+VA 0822A488 eb 1b                    jmp     0x822a4a5
+VA 0822A48A 89 d3                    mov     ebx, edx
+VA 0822A48C 89 c6                    mov     esi, eax
+VA 0822A48E 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A491 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A494 e8 e7 39 36 00           call    0x858de80 _ZN11PacketGuardD1Ev
+VA 0822A499 89 f0                    mov     eax, esi
+VA 0822A49B 89 da                    mov     edx, ebx
+VA 0822A49D 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A4A0 e8 ab 92 8b 00           call    0x8ae3750 _Unwind_Resume
+VA 0822A4A5 8d 45 e0                 lea     eax, [ebp - 0x20]
+VA 0822A4A8 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A4AB e8 d0 39 36 00           call    0x858de80 _ZN11PacketGuardD1Ev
+VA 0822A4B0 89 d8                    mov     eax, ebx
+VA 0822A4B2 8d 65 f8                 lea     esp, [ebp - 8]
+VA 0822A4B5 83 c4 00                 add     esp, 0
+VA 0822A4B8 5b                       pop     ebx
+VA 0822A4B9 5e                       pop     esi
+VA 0822A4BA 5d                       pop     ebp
+VA 0822A4BB c3                       ret
+
+## _ZN27Dispatcher_UpgradeInventory12dispatch_sigEP5CUserR9PacketBuf; VA 0822A4BC, size 1114
+VA 0822A4BC 55                       push    ebp
+VA 0822A4BD 89 e5                    mov     ebp, esp
+VA 0822A4BF 57                       push    edi
+VA 0822A4C0 56                       push    esi
+VA 0822A4C1 53                       push    ebx
+VA 0822A4C2 81 ec 8c 00 00 00        sub     esp, 0x8c
+VA 0822A4C8 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A4CB 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A4CE e8 b9 fe ea ff           call    0x80da38c _ZN5CUser9get_stateEv
+VA 0822A4D3 83 f8 03                 cmp     eax, 3
+VA 0822A4D6 75 0f                    jne     0x822a4e7
+VA 0822A4D8 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A4DB 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A4DE e8 4f 5f ef ff           call    0x8120432 _ZNK15CUserCharacInfo13getCurCharacREv
+VA 0822A4E3 85 c0                    test    eax, eax
+VA 0822A4E5 75 07                    jne     0x822a4ee
+VA 0822A4E7 b8 01 00 00 00           mov     eax, 1
+VA 0822A4EC eb 05                    jmp     0x822a4f3
+VA 0822A4EE b8 00 00 00 00           mov     eax, 0
+VA 0822A4F3 84 c0                    test    al, al
+VA 0822A4F5 74 2b                    je      0x822a522
+VA 0822A4F7 c7 44 24 0c 00 00 00 00  mov     dword ptr [esp + 0xc], 0
+VA 0822A4FF c7 44 24 08 00 00 00 00  mov     dword ptr [esp + 8], 0
+VA 0822A507 c7 44 24 04 40 be bc 08  mov     dword ptr [esp + 4], 0x8bcbe40
+VA 0822A50F c7 04 24 28 e8 00 00     mov     dword ptr [esp], 0xe828
+VA 0822A516 e8 bc 63 36 00           call    0x85908d7 _Z8LineFunciPKcij
+VA 0822A51B 89 c3                    mov     ebx, eax
+VA 0822A51D e9 e7 03 00 00           jmp     0x822a909
+VA 0822A522 a1 cc f7 41 09           mov     eax, dword ptr [0x941f7cc]
+VA 0822A527 c7 44 24 08 1d 00 00 00  mov     dword ptr [esp + 8], 0x1d
+VA 0822A52F 8b 55 0c                 mov     edx, dword ptr [ebp + 0xc]
+VA 0822A532 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 0822A536 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A539 e8 c4 e4 05 00           call    0x8288a02 _ZN21CSecu_ProtectionField5CheckEP5CUser18SECURITY_PROTCTION
+VA 0822A53E 89 45 e4                 mov     dword ptr [ebp - 0x1c], eax
+VA 0822A541 83 7d e4 00              cmp     dword ptr [ebp - 0x1c], 0
+VA 0822A545 74 27                    je      0x822a56e
+VA 0822A547 8b 45 e4                 mov     eax, dword ptr [ebp - 0x1c]
+VA 0822A54A 0f b6 c0                 movzx   eax, al
+VA 0822A54D 89 44 24 08              mov     dword ptr [esp + 8], eax
+VA 0822A551 c7 44 24 04 af 01 00 00  mov     dword ptr [esp + 4], 0x1af
+VA 0822A559 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A55C 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A55F e8 de 19 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A564 bb 00 00 00 00           mov     ebx, 0
+VA 0822A569 e9 9b 03 00 00           jmp     0x822a909
+VA 0822A56E 66 c7 45 e2 00 00        mov     word ptr [ebp - 0x1e], 0
+VA 0822A574 8d 45 e2                 lea     eax, [ebp - 0x1e]
+VA 0822A577 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A57B 8b 45 10                 mov     eax, dword ptr [ebp + 0x10]
+VA 0822A57E 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A581 e8 3a 2a 36 00           call    0x858cfc0 _ZN9PacketBuf9get_shortERs
+VA 0822A586 83 f0 01                 xor     eax, 1
+VA 0822A589 84 c0                    test    al, al
+VA 0822A58B 74 2b                    je      0x822a5b8
+VA 0822A58D c7 44 24 0c 00 00 00 00  mov     dword ptr [esp + 0xc], 0
+VA 0822A595 c7 44 24 08 00 00 00 00  mov     dword ptr [esp + 8], 0
+VA 0822A59D c7 44 24 04 40 be bc 08  mov     dword ptr [esp + 4], 0x8bcbe40
+VA 0822A5A5 c7 04 24 32 e8 00 00     mov     dword ptr [esp], 0xe832
+VA 0822A5AC e8 26 63 36 00           call    0x85908d7 _Z8LineFunciPKcij
+VA 0822A5B1 89 c3                    mov     ebx, eax
+VA 0822A5B3 e9 51 03 00 00           jmp     0x822a909
+VA 0822A5B8 0f b7 45 e2              movzx   eax, word ptr [ebp - 0x1e]
+VA 0822A5BC 0f bf d8                 movsx   ebx, ax
+VA 0822A5BF 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A5C2 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A5C5 e8 b4 fc ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A5CA 8d 55 97                 lea     edx, [ebp - 0x69]
+VA 0822A5CD 89 5c 24 0c              mov     dword ptr [esp + 0xc], ebx
+VA 0822A5D1 c7 44 24 08 01 00 00 00  mov     dword ptr [esp + 8], 1
+VA 0822A5D9 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A5DD 89 14 24                 mov     dword ptr [esp], edx
+VA 0822A5E0 e8 33 13 2d 00           call    0x84fb918 _ZNK10CInventory12GetInvenSlotEii
+VA 0822A5E5 83 ec 04                 sub     esp, 4
+VA 0822A5E8 8b 45 9e                 mov     eax, dword ptr [ebp - 0x62]
+VA 0822A5EB 85 c0                    test    eax, eax
+VA 0822A5ED 7f 25                    jg      0x822a614
+VA 0822A5EF c7 44 24 08 11 00 00 00  mov     dword ptr [esp + 8], 0x11
+VA 0822A5F7 c7 44 24 04 af 01 00 00  mov     dword ptr [esp + 4], 0x1af
+VA 0822A5FF 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A602 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A605 e8 38 19 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A60A bb 00 00 00 00           mov     ebx, 0
+VA 0822A60F e9 f5 02 00 00           jmp     0x822a909
+VA 0822A614 8b 45 99                 mov     eax, dword ptr [ebp - 0x67]
+VA 0822A617 3d ca 97 28 00           cmp     eax, 0x2897ca
+VA 0822A61C 74 2f                    je      0x822a64d
+VA 0822A61E 8b 45 99                 mov     eax, dword ptr [ebp - 0x67]
+VA 0822A621 3d 3b 20 00 00           cmp     eax, 0x203b
+VA 0822A626 74 25                    je      0x822a64d
+VA 0822A628 c7 44 24 08 11 00 00 00  mov     dword ptr [esp + 8], 0x11
+VA 0822A630 c7 44 24 04 af 01 00 00  mov     dword ptr [esp + 4], 0x1af
+VA 0822A638 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A63B 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A63E e8 ff 18 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A643 bb 00 00 00 00           mov     ebx, 0
+VA 0822A648 e9 bc 02 00 00           jmp     0x822a909
+VA 0822A64D 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A650 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A653 e8 26 fc ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A658 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A65B e8 9c 30 00 00           call    0x822d6fc _ZNK10CInventory22get_inventory_capacityEv
+VA 0822A660 83 f8 0f                 cmp     eax, 0xf
+VA 0822A663 0f 9f c0                 setg    al
+VA 0822A666 84 c0                    test    al, al
+VA 0822A668 74 25                    je      0x822a68f
+VA 0822A66A c7 44 24 08 13 00 00 00  mov     dword ptr [esp + 8], 0x13
+VA 0822A672 c7 44 24 04 af 01 00 00  mov     dword ptr [esp + 4], 0x1af
+VA 0822A67A 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A67D 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A680 e8 bd 18 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A685 bb 00 00 00 00           mov     ebx, 0
+VA 0822A68A e9 7a 02 00 00           jmp     0x822a909
+VA 0822A68F 0f b7 45 e2              movzx   eax, word ptr [ebp - 0x1e]
+VA 0822A693 0f bf d8                 movsx   ebx, ax
+VA 0822A696 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A699 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A69C e8 ed fb ea ff           call    0x80da28e _ZN15CUserCharacInfo18getCurCharacInvenWEv
+VA 0822A6A1 c7 44 24 14 01 00 00 00  mov     dword ptr [esp + 0x14], 1
+VA 0822A6A9 c7 44 24 10 03 00 00 00  mov     dword ptr [esp + 0x10], 3
+VA 0822A6B1 c7 44 24 0c 01 00 00 00  mov     dword ptr [esp + 0xc], 1
+VA 0822A6B9 89 5c 24 08              mov     dword ptr [esp + 8], ebx
+VA 0822A6BD c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A6C5 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A6C8 e8 3f 99 2d 00           call    0x850400c _ZN10CInventory11delete_itemE10INVEN_TYPEii14eItemDelReasonb
+VA 0822A6CD 83 f0 01                 xor     eax, 1
+VA 0822A6D0 84 c0                    test    al, al
+VA 0822A6D2 74 25                    je      0x822a6f9
+VA 0822A6D4 c7 44 24 08 11 00 00 00  mov     dword ptr [esp + 8], 0x11
+VA 0822A6DC c7 44 24 04 af 01 00 00  mov     dword ptr [esp + 4], 0x1af
+VA 0822A6E4 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A6E7 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A6EA e8 53 18 45 00           call    0x867bf42 _ZN5CUser18SendCmdErrorPacketE14ENUM_CMDPACKETh
+VA 0822A6EF bb 00 00 00 00           mov     ebx, 0
+VA 0822A6F4 e9 10 02 00 00           jmp     0x822a909
+VA 0822A6F9 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A6FC 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A6FF e8 48 36 36 00           call    0x858dd4c _ZN11PacketGuardC2Ev
+VA 0822A704 c7 44 24 08 0e 00 00 00  mov     dword ptr [esp + 8], 0xe
+VA 0822A70C c7 44 24 04 00 00 00 00  mov     dword ptr [esp + 4], 0
+VA 0822A714 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A717 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A71A e8 dd 11 ea ff           call    0x80cb8fc _ZN18InterfacePacketBuf10put_headerEii
+VA 0822A71F c7 44 24 04 00 00 00 00  mov     dword ptr [esp + 4], 0
+VA 0822A727 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A72A 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A72D e8 ee 11 ea ff           call    0x80cb920 _ZN18InterfacePacketBuf8put_byteEi
+VA 0822A732 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A73A 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A73D 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A740 e8 5f f7 ea ff           call    0x80d9ea4 _ZN18InterfacePacketBuf9put_shortEi
+VA 0822A745 0f b7 45 e2              movzx   eax, word ptr [ebp - 0x1e]
+VA 0822A749 0f bf d8                 movsx   ebx, ax
+VA 0822A74C 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A74F 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A752 e8 27 fb ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A757 8d 55 d4                 lea     edx, [ebp - 0x2c]
+VA 0822A75A 89 54 24 0c              mov     dword ptr [esp + 0xc], edx
+VA 0822A75E 89 5c 24 08              mov     dword ptr [esp + 8], ebx
+VA 0822A762 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A76A 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A76D e8 4a 1f 2d 00           call    0x84fc6bc _ZNK10CInventory14MakeItemPacketE10INVEN_TYPEiR11PacketGuard
+VA 0822A772 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A77A 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A77D 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A780 e8 d3 11 ea ff           call    0x80cb958 _ZN18InterfacePacketBuf8finalizeEb
+VA 0822A785 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A788 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A78C 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A78F 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A792 e8 23 de 41 00           call    0x86485ba _ZN5CUser4SendER11PacketGuard
+VA 0822A797 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A79A 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A79D e8 dc fa ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A7A2 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A7A5 e8 52 2f 00 00           call    0x822d6fc _ZNK10CInventory22get_inventory_capacityEv
+VA 0822A7AA 8d 58 08                 lea     ebx, [eax + 8]
+VA 0822A7AD 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A7B0 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A7B3 e8 c6 fa ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A7B8 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A7BB e8 3c 2f 00 00           call    0x822d6fc _ZNK10CInventory22get_inventory_capacityEv
+VA 0822A7C0 8b 55 0c                 mov     edx, dword ptr [ebp + 0xc]
+VA 0822A7C3 81 c2 00 97 07 00        add     edx, 0x79700
+VA 0822A7C9 c7 44 24 0c 01 00 00 00  mov     dword ptr [esp + 0xc], 1
+VA 0822A7D1 89 5c 24 08              mov     dword ptr [esp + 8], ebx
+VA 0822A7D5 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A7D9 89 14 24                 mov     dword ptr [esp], edx
+VA 0822A7DC e8 db 94 45 00           call    0x8683cbc _ZN15cUserHistoryLog15ExpandInventoryEiii
+VA 0822A7E1 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A7E4 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A7E7 e8 92 fa ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A7EC 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A7EF e8 08 2f 00 00           call    0x822d6fc _ZNK10CInventory22get_inventory_capacityEv
+VA 0822A7F4 8d 58 08                 lea     ebx, [eax + 8]
+VA 0822A7F7 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A7FA 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A7FD e8 7c fa ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A802 89 5c 24 04              mov     dword ptr [esp + 4], ebx
+VA 0822A806 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A809 e8 e0 2e 00 00           call    0x822d6ee _ZN10CInventory22set_inventory_capacityEi
+VA 0822A80E 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A811 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A814 e8 65 fa ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A819 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A81C e8 db 2e 00 00           call    0x822d6fc _ZNK10CInventory22get_inventory_capacityEv
+VA 0822A821 89 c7                    mov     edi, eax
+VA 0822A823 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A826 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A829 e8 20 14 ea ff           call    0x80cbc4e _ZNK15CUserCharacInfo14getCurCharacNoEv
+VA 0822A82E 89 c6                    mov     esi, eax
+VA 0822A830 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A833 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A836 e8 5b e4 e9 ff           call    0x80c8c96 _ZNK5CUser6GetUIDEv
+VA 0822A83B 89 c3                    mov     ebx, eax
+VA 0822A83D 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A840 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A843 e8 48 14 ea ff           call    0x80cbc90 _ZNK5CUser14GetServerGroupEv
+VA 0822A848 89 7c 24 0c              mov     dword ptr [esp + 0xc], edi
+VA 0822A84C 89 74 24 08              mov     dword ptr [esp + 8], esi
+VA 0822A850 89 5c 24 04              mov     dword ptr [esp + 4], ebx
+VA 0822A854 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A857 e8 b6 a4 21 00           call    0x8444d12 _ZN26DB_UpdateInventoryCapacity11makeRequestE17ENUM_SERVER_GROUPiji
+VA 0822A85C 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A85F 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A862 e8 7f 10 ea ff           call    0x80cb8e6 _ZN18InterfacePacketBuf5clearEv
+VA 0822A867 c7 44 24 08 42 00 00 00  mov     dword ptr [esp + 8], 0x42
+VA 0822A86F c7 44 24 04 00 00 00 00  mov     dword ptr [esp + 4], 0
+VA 0822A877 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A87A 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A87D e8 7a 10 ea ff           call    0x80cb8fc _ZN18InterfacePacketBuf10put_headerEii
+VA 0822A882 c7 44 24 04 0b 00 00 00  mov     dword ptr [esp + 4], 0xb
+VA 0822A88A 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A88D 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A890 e8 0f f6 ea ff           call    0x80d9ea4 _ZN18InterfacePacketBuf9put_shortEi
+VA 0822A895 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A898 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A89B e8 de f9 ea ff           call    0x80da27e _ZNK15CUserCharacInfo18getCurCharacInvenREv
+VA 0822A8A0 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A8A3 e8 54 2e 00 00           call    0x822d6fc _ZNK10CInventory22get_inventory_capacityEv
+VA 0822A8A8 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A8AC 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A8AF 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A8B2 e8 ed f5 ea ff           call    0x80d9ea4 _ZN18InterfacePacketBuf9put_shortEi
+VA 0822A8B7 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 0822A8BF 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A8C2 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A8C5 e8 8e 10 ea ff           call    0x80cb958 _ZN18InterfacePacketBuf8finalizeEb
+VA 0822A8CA 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A8CD 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 0822A8D1 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 0822A8D4 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A8D7 e8 de dc 41 00           call    0x86485ba _ZN5CUser4SendER11PacketGuard
+VA 0822A8DC bb 00 00 00 00           mov     ebx, 0
+VA 0822A8E1 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A8E4 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A8E7 e8 94 35 36 00           call    0x858de80 _ZN11PacketGuardD1Ev
+VA 0822A8EC eb 1b                    jmp     0x822a909
+VA 0822A8EE 89 d3                    mov     ebx, edx
+VA 0822A8F0 89 c6                    mov     esi, eax
+VA 0822A8F2 8d 45 d4                 lea     eax, [ebp - 0x2c]
+VA 0822A8F5 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A8F8 e8 83 35 36 00           call    0x858de80 _ZN11PacketGuardD1Ev
+VA 0822A8FD 89 f0                    mov     eax, esi
+VA 0822A8FF 89 da                    mov     edx, ebx
+VA 0822A901 89 04 24                 mov     dword ptr [esp], eax
+VA 0822A904 e8 47 8e 8b 00           call    0x8ae3750 _Unwind_Resume
+VA 0822A909 89 d8                    mov     eax, ebx
+VA 0822A90B 8d 65 f4                 lea     esp, [ebp - 0xc]
+VA 0822A90E 83 c4 00                 add     esp, 0
+VA 0822A911 5b                       pop     ebx
+VA 0822A912 5e                       pop     esi
+VA 0822A913 5f                       pop     edi
+VA 0822A914 5d                       pop     ebp
+VA 0822A915 c3                       ret
+
+## _ZN6CCargo12UpgradeCargoEi; VA 0850C656, size 65
+VA 0850C656 55                       push    ebp
+VA 0850C657 89 e5                    mov     ebp, esp
+VA 0850C659 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C65C 8b 40 0c                 mov     eax, dword ptr [eax + 0xc]
+VA 0850C65F 85 c0                    test    eax, eax
+VA 0850C661 74 0b                    je      0x850c66e
+VA 0850C663 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C666 8b 40 0c                 mov     eax, dword ptr [eax + 0xc]
+VA 0850C669 3b 45 0c                 cmp     eax, dword ptr [ebp + 0xc]
+VA 0850C66C 7e 07                    jle     0x850c675
+VA 0850C66E b8 00 00 00 00           mov     eax, 0
+VA 0850C673 eb 20                    jmp     0x850c695
+VA 0850C675 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C678 8b 40 0c                 mov     eax, dword ptr [eax + 0xc]
+VA 0850C67B 3b 45 0c                 cmp     eax, dword ptr [ebp + 0xc]
+VA 0850C67E 7c 07                    jl      0x850c687
+VA 0850C680 b8 00 00 00 00           mov     eax, 0
+VA 0850C685 eb 0e                    jmp     0x850c695
+VA 0850C687 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C68A 8b 55 0c                 mov     edx, dword ptr [ebp + 0xc]
+VA 0850C68D 89 50 0c                 mov     dword ptr [eax + 0xc], edx
+VA 0850C690 b8 01 00 00 00           mov     eax, 1
+VA 0850C695 5d                       pop     ebp
+VA 0850C696 c3                       ret
+
+## _ZNK6CCargo12isUpgradableEi; VA 0850C698, size 72
+VA 0850C698 55                       push    ebp
+VA 0850C699 89 e5                    mov     ebp, esp
+VA 0850C69B 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C69E 8b 40 0c                 mov     eax, dword ptr [eax + 0xc]
+VA 0850C6A1 85 c0                    test    eax, eax
+VA 0850C6A3 74 0b                    je      0x850c6b0
+VA 0850C6A5 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C6A8 8b 40 0c                 mov     eax, dword ptr [eax + 0xc]
+VA 0850C6AB 3b 45 0c                 cmp     eax, dword ptr [ebp + 0xc]
+VA 0850C6AE 7e 07                    jle     0x850c6b7
+VA 0850C6B0 b8 00 00 00 00           mov     eax, 0
+VA 0850C6B5 eb 27                    jmp     0x850c6de
+VA 0850C6B7 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0850C6BA 8b 40 0c                 mov     eax, dword ptr [eax + 0xc]
+VA 0850C6BD 3b 45 0c                 cmp     eax, dword ptr [ebp + 0xc]
+VA 0850C6C0 7c 07                    jl      0x850c6c9
+VA 0850C6C2 b8 00 00 00 00           mov     eax, 0
+VA 0850C6C7 eb 15                    jmp     0x850c6de
+VA 0850C6C9 81 7d 0c 98 00 00 00     cmp     dword ptr [ebp + 0xc], 0x98
+VA 0850C6D0 7e 07                    jle     0x850c6d9
+VA 0850C6D2 b8 00 00 00 00           mov     eax, 0
+VA 0850C6D7 eb 05                    jmp     0x850c6de
+VA 0850C6D9 b8 01 00 00 00           mov     eax, 1
+VA 0850C6DE 5d                       pop     ebp
+VA 0850C6DF c3                       ret
+
+## _Z24importAccountCargoScriptP18AccountCargoScriptPKc; VA 088C7E80, size 470
+VA 088C7E80 55                       push    ebp
+VA 088C7E81 89 e5                    mov     ebp, esp
+VA 088C7E83 56                       push    esi
+VA 088C7E84 53                       push    ebx
+VA 088C7E85 83 ec 60                 sub     esp, 0x60
+VA 088C7E88 8b 45 0c                 mov     eax, dword ptr [ebp + 0xc]
+VA 088C7E8B 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C7E8F c7 04 24 60 93 e0 08     mov     dword ptr [esp], 0x8e09360
+VA 088C7E96 e8 8e 3e ff ff           call    0x88bbd29 _Z18loadRDARScriptFilePKcS0_
+VA 088C7E9B 83 f0 01                 xor     eax, 1
+VA 088C7E9E 84 c0                    test    al, al
+VA 088C7EA0 74 0a                    je      0x88c7eac
+VA 088C7EA2 bb 00 00 00 00           mov     ebx, 0
+VA 088C7EA7 e9 9e 01 00 00           jmp     0x88c804a
+VA 088C7EAC 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C7EAF 89 45 f0                 mov     dword ptr [ebp - 0x10], eax
+VA 088C7EB2 8b 45 f0                 mov     eax, dword ptr [ebp - 0x10]
+VA 088C7EB5 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7EB8 e8 85 a5 aa ff           call    0x8372442 _ZN18AccountCargoScript5clearEv
+VA 088C7EBD 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C7EC0 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7EC3 e8 08 e7 e3 ff           call    0x87065d0 _ZNSsC1Ev
+VA 088C7EC8 c7 45 f4 00 00 00 00     mov     dword ptr [ebp - 0xc], 0
+VA 088C7ECF c6 45 bb 00              mov     byte ptr [ebp - 0x45], 0
+VA 088C7ED3 eb 01                    jmp     0x88c7ed6
+VA 088C7ED5 90                       nop
+VA 088C7ED6 c7 44 24 04 01 00 00 00  mov     dword ptr [esp + 4], 1
+VA 088C7EDE 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C7EE1 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7EE4 e8 76 49 ff ff           call    0x88bc85f _Z8ScanTypeRSsb
+VA 088C7EE9 83 f0 01                 xor     eax, 1
+VA 088C7EEC 84 c0                    test    al, al
+VA 088C7EEE 0f 85 29 01 00 00        jne     0x88c801d
+VA 088C7EF4 c7 44 24 04 61 93 e0 08  mov     dword ptr [esp + 4], 0x8e09361
+VA 088C7EFC 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C7EFF 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7F02 e8 9a 8a 7b ff           call    0x80809a1 _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+VA 088C7F07 84 c0                    test    al, al
+VA 088C7F09 74 13                    je      0x88c7f1e
+VA 088C7F0B c7 04 24 00 00 00 00     mov     dword ptr [esp], 0
+VA 088C7F12 e8 64 44 ff ff           call    0x88bc37b _Z7ScanIntPb
+VA 088C7F17 8b 55 f0                 mov     edx, dword ptr [ebp - 0x10]
+VA 088C7F1A 89 02                    mov     dword ptr [edx], eax
+VA 088C7F1C eb b8                    jmp     0x88c7ed6
+VA 088C7F1E c7 44 24 04 72 93 e0 08  mov     dword ptr [esp + 4], 0x8e09372
+VA 088C7F26 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C7F29 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7F2C e8 70 8a 7b ff           call    0x80809a1 _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+VA 088C7F31 84 c0                    test    al, al
+VA 088C7F33 74 14                    je      0x88c7f49
+VA 088C7F35 c7 04 24 00 00 00 00     mov     dword ptr [esp], 0
+VA 088C7F3C e8 3a 44 ff ff           call    0x88bc37b _Z7ScanIntPb
+VA 088C7F41 8b 55 f0                 mov     edx, dword ptr [ebp - 0x10]
+VA 088C7F44 89 42 04                 mov     dword ptr [edx + 4], eax
+VA 088C7F47 eb 8d                    jmp     0x88c7ed6
+VA 088C7F49 c7 44 24 04 82 93 e0 08  mov     dword ptr [esp + 4], 0x8e09382
+VA 088C7F51 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C7F54 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7F57 e8 45 8a 7b ff           call    0x80809a1 _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+VA 088C7F5C 84 c0                    test    al, al
+VA 088C7F5E 0f 84 98 00 00 00        je      0x88c7ffc
+VA 088C7F64 8d 45 bb                 lea     eax, [ebp - 0x45]
+VA 088C7F67 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7F6A e8 0c 44 ff ff           call    0x88bc37b _Z7ScanIntPb
+VA 088C7F6F 89 45 a8                 mov     dword ptr [ebp - 0x58], eax
+VA 088C7F72 0f b6 45 bb              movzx   eax, byte ptr [ebp - 0x45]
+VA 088C7F76 83 f0 01                 xor     eax, 1
+VA 088C7F79 84 c0                    test    al, al
+VA 088C7F7B 74 06                    je      0x88c7f83
+VA 088C7F7D 90                       nop
+VA 088C7F7E e9 53 ff ff ff           jmp     0x88c7ed6
+VA 088C7F83 8d 45 bb                 lea     eax, [ebp - 0x45]
+VA 088C7F86 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7F89 e8 ed 43 ff ff           call    0x88bc37b _Z7ScanIntPb
+VA 088C7F8E 89 45 ac                 mov     dword ptr [ebp - 0x54], eax
+VA 088C7F91 8d 45 bb                 lea     eax, [ebp - 0x45]
+VA 088C7F94 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7F97 e8 df 43 ff ff           call    0x88bc37b _Z7ScanIntPb
+VA 088C7F9C 89 45 b0                 mov     dword ptr [ebp - 0x50], eax
+VA 088C7F9F 8d 45 bb                 lea     eax, [ebp - 0x45]
+VA 088C7FA2 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7FA5 e8 d1 43 ff ff           call    0x88bc37b _Z7ScanIntPb
+VA 088C7FAA 89 45 b4                 mov     dword ptr [ebp - 0x4c], eax
+VA 088C7FAD 8d 45 a8                 lea     eax, [ebp - 0x58]
+VA 088C7FB0 89 44 24 08              mov     dword ptr [esp + 8], eax
+VA 088C7FB4 8d 45 a8                 lea     eax, [ebp - 0x58]
+VA 088C7FB7 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C7FBB 8d 45 dc                 lea     eax, [ebp - 0x24]
+VA 088C7FBE 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7FC1 e8 6a 02 00 00           call    0x88c8230 _ZNSt4pairIi11UpgradeInfoEC2IRiRS0_EEOT_OT0_
+VA 088C7FC6 8d 45 dc                 lea     eax, [ebp - 0x24]
+VA 088C7FC9 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C7FCD 8d 45 c8                 lea     eax, [ebp - 0x38]
+VA 088C7FD0 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7FD3 e8 98 02 00 00           call    0x88c8270 _ZNSt4pairIKi11UpgradeInfoEC1IiS1_EEOS_IT_T0_E
+VA 088C7FD8 8b 45 f0                 mov     eax, dword ptr [ebp - 0x10]
+VA 088C7FDB 8d 48 08                 lea     ecx, [eax + 8]
+VA 088C7FDE 8d 45 c0                 lea     eax, [ebp - 0x40]
+VA 088C7FE1 8d 55 c8                 lea     edx, [ebp - 0x38]
+VA 088C7FE4 89 54 24 08              mov     dword ptr [esp + 8], edx
+VA 088C7FE8 89 4c 24 04              mov     dword ptr [esp + 4], ecx
+VA 088C7FEC 89 04 24                 mov     dword ptr [esp], eax
+VA 088C7FEF e8 be 02 00 00           call    0x88c82b2 _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE6insertERKS5_
+VA 088C7FF4 83 ec 04                 sub     esp, 4
+VA 088C7FF7 e9 68 ff ff ff           jmp     0x88c7f64
+VA 088C7FFC c7 44 24 04 91 93 e0 08  mov     dword ptr [esp + 4], 0x8e09391
+VA 088C8004 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C8007 89 04 24                 mov     dword ptr [esp], eax
+VA 088C800A e8 92 89 7b ff           call    0x80809a1 _ZSteqIcSt11char_traitsIcESaIcEEbRKSbIT_T0_T1_EPKS3_
+VA 088C800F 84 c0                    test    al, al
+VA 088C8011 0f 84 be fe ff ff        je      0x88c7ed5
+VA 088C8017 c6 45 bb 01              mov     byte ptr [ebp - 0x45], 1
+VA 088C801B eb 01                    jmp     0x88c801e
+VA 088C801D 90                       nop
+VA 088C801E 0f b6 5d bb              movzx   ebx, byte ptr [ebp - 0x45]
+VA 088C8022 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C8025 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8028 e8 b3 fb e3 ff           call    0x8707be0 _ZNSsD2Ev
+VA 088C802D eb 1b                    jmp     0x88c804a
+VA 088C802F 89 d3                    mov     ebx, edx
+VA 088C8031 89 c6                    mov     esi, eax
+VA 088C8033 8d 45 bc                 lea     eax, [ebp - 0x44]
+VA 088C8036 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8039 e8 a2 fb e3 ff           call    0x8707be0 _ZNSsD2Ev
+VA 088C803E 89 f0                    mov     eax, esi
+VA 088C8040 89 da                    mov     edx, ebx
+VA 088C8042 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8045 e8 06 b7 21 00           call    0x8ae3750 _Unwind_Resume
+VA 088C804A 89 d8                    mov     eax, ebx
+VA 088C804C 8d 65 f8                 lea     esp, [ebp - 8]
+VA 088C804F 83 c4 00                 add     esp, 0
+VA 088C8052 5b                       pop     ebx
+VA 088C8053 5e                       pop     esi
+VA 088C8054 5d                       pop     ebp
+VA 088C8055 c3                       ret
+
+## _ZN18AccountCargoScript13GetCreateInfoEv; VA 088C8056, size 99
+VA 088C8056 55                       push    ebp
+VA 088C8057 89 e5                    mov     ebp, esp
+VA 088C8059 83 ec 28                 sub     esp, 0x28
+VA 088C805C 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C805F 8d 50 08                 lea     edx, [eax + 8]
+VA 088C8062 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C8065 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 088C8069 89 04 24                 mov     dword ptr [esp], eax
+VA 088C806C e8 6d 02 00 00           call    0x88c82de _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE5beginEv
+VA 088C8071 83 ec 04                 sub     esp, 4
+VA 088C8074 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C8077 8d 50 08                 lea     edx, [eax + 8]
+VA 088C807A 8d 45 f4                 lea     eax, [ebp - 0xc]
+VA 088C807D 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 088C8081 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8084 e8 7b 02 00 00           call    0x88c8304 _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE3endEv
+VA 088C8089 83 ec 04                 sub     esp, 4
+VA 088C808C 8d 45 f4                 lea     eax, [ebp - 0xc]
+VA 088C808F 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C8093 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C8096 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8099 e8 8c 02 00 00           call    0x88c832a _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEneERKS4_
+VA 088C809E 84 c0                    test    al, al
+VA 088C80A0 74 10                    je      0x88c80b2
+VA 088C80A2 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C80A5 89 04 24                 mov     dword ptr [esp], eax
+VA 088C80A8 e8 91 02 00 00           call    0x88c833e _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEptEv
+VA 088C80AD 83 c0 04                 add     eax, 4
+VA 088C80B0 eb 05                    jmp     0x88c80b7
+VA 088C80B2 b8 00 00 00 00           mov     eax, 0
+VA 088C80B7 c9                       leave
+VA 088C80B8 c3                       ret
+
+## _ZN18AccountCargoScript18GetCurrUpgradeInfoEi; VA 088C80BA, size 106
+VA 088C80BA 55                       push    ebp
+VA 088C80BB 89 e5                    mov     ebp, esp
+VA 088C80BD 83 ec 28                 sub     esp, 0x28
+VA 088C80C0 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C80C3 8d 48 08                 lea     ecx, [eax + 8]
+VA 088C80C6 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C80C9 8d 55 0c                 lea     edx, [ebp + 0xc]
+VA 088C80CC 89 54 24 08              mov     dword ptr [esp + 8], edx
+VA 088C80D0 89 4c 24 04              mov     dword ptr [esp + 4], ecx
+VA 088C80D4 89 04 24                 mov     dword ptr [esp], eax
+VA 088C80D7 e8 70 02 00 00           call    0x88c834c _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE4findERS4_
+VA 088C80DC 83 ec 04                 sub     esp, 4
+VA 088C80DF 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C80E2 8d 50 08                 lea     edx, [eax + 8]
+VA 088C80E5 8d 45 f4                 lea     eax, [ebp - 0xc]
+VA 088C80E8 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 088C80EC 89 04 24                 mov     dword ptr [esp], eax
+VA 088C80EF e8 10 02 00 00           call    0x88c8304 _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE3endEv
+VA 088C80F4 83 ec 04                 sub     esp, 4
+VA 088C80F7 8d 45 f4                 lea     eax, [ebp - 0xc]
+VA 088C80FA 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C80FE 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C8101 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8104 e8 21 02 00 00           call    0x88c832a _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEneERKS4_
+VA 088C8109 84 c0                    test    al, al
+VA 088C810B 74 10                    je      0x88c811d
+VA 088C810D 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C8110 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8113 e8 26 02 00 00           call    0x88c833e _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEptEv
+VA 088C8118 83 c0 04                 add     eax, 4
+VA 088C811B eb 05                    jmp     0x88c8122
+VA 088C811D b8 00 00 00 00           mov     eax, 0
+VA 088C8122 c9                       leave
+VA 088C8123 c3                       ret
+
+## _ZN18AccountCargoScript18GetNextUpgradeInfoEi; VA 088C8124, size 176
+VA 088C8124 55                       push    ebp
+VA 088C8125 89 e5                    mov     ebp, esp
+VA 088C8127 83 ec 28                 sub     esp, 0x28
+VA 088C812A 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C812D 8d 48 08                 lea     ecx, [eax + 8]
+VA 088C8130 8d 45 ec                 lea     eax, [ebp - 0x14]
+VA 088C8133 8d 55 0c                 lea     edx, [ebp + 0xc]
+VA 088C8136 89 54 24 08              mov     dword ptr [esp + 8], edx
+VA 088C813A 89 4c 24 04              mov     dword ptr [esp + 4], ecx
+VA 088C813E 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8141 e8 06 02 00 00           call    0x88c834c _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE4findERS4_
+VA 088C8146 83 ec 04                 sub     esp, 4
+VA 088C8149 8b 45 ec                 mov     eax, dword ptr [ebp - 0x14]
+VA 088C814C 89 45 e8                 mov     dword ptr [ebp - 0x18], eax
+VA 088C814F 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C8152 8d 50 08                 lea     edx, [eax + 8]
+VA 088C8155 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C8158 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 088C815C 89 04 24                 mov     dword ptr [esp], eax
+VA 088C815F e8 a0 01 00 00           call    0x88c8304 _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE3endEv
+VA 088C8164 83 ec 04                 sub     esp, 4
+VA 088C8167 8d 45 f0                 lea     eax, [ebp - 0x10]
+VA 088C816A 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C816E 8d 45 ec                 lea     eax, [ebp - 0x14]
+VA 088C8171 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8174 e8 b1 01 00 00           call    0x88c832a _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEneERKS4_
+VA 088C8179 84 c0                    test    al, al
+VA 088C817B 74 50                    je      0x88c81cd
+VA 088C817D 8d 45 e8                 lea     eax, [ebp - 0x18]
+VA 088C8180 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8183 e8 f0 01 00 00           call    0x88c8378 _ZNSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEppEv
+VA 088C8188 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 088C818B 8d 50 08                 lea     edx, [eax + 8]
+VA 088C818E 8d 45 f4                 lea     eax, [ebp - 0xc]
+VA 088C8191 89 54 24 04              mov     dword ptr [esp + 4], edx
+VA 088C8195 89 04 24                 mov     dword ptr [esp], eax
+VA 088C8198 e8 67 01 00 00           call    0x88c8304 _ZNSt3mapIi11UpgradeInfoSt4lessIiESaISt4pairIKiS0_EEE3endEv
+VA 088C819D 83 ec 04                 sub     esp, 4
+VA 088C81A0 8d 45 f4                 lea     eax, [ebp - 0xc]
+VA 088C81A3 89 44 24 04              mov     dword ptr [esp + 4], eax
+VA 088C81A7 8d 45 e8                 lea     eax, [ebp - 0x18]
+VA 088C81AA 89 04 24                 mov     dword ptr [esp], eax
+VA 088C81AD e8 78 01 00 00           call    0x88c832a _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEneERKS4_
+VA 088C81B2 84 c0                    test    al, al
+VA 088C81B4 74 10                    je      0x88c81c6
+VA 088C81B6 8d 45 e8                 lea     eax, [ebp - 0x18]
+VA 088C81B9 89 04 24                 mov     dword ptr [esp], eax
+VA 088C81BC e8 7d 01 00 00           call    0x88c833e _ZNKSt17_Rb_tree_iteratorISt4pairIKi11UpgradeInfoEEptEv
+VA 088C81C1 83 c0 04                 add     eax, 4
+VA 088C81C4 eb 0c                    jmp     0x88c81d2
+VA 088C81C6 b8 00 00 00 00           mov     eax, 0
+VA 088C81CB eb 05                    jmp     0x88c81d2
+VA 088C81CD b8 00 00 00 00           mov     eax, 0
+VA 088C81D2 c9                       leave
+VA 088C81D3 c3                       ret
+
+## _ZN13CAccountCargo15CheckMoneyLimitEj; VA 0828A4CA, size 137
+VA 0828A4CA 55                       push    ebp
+VA 0828A4CB 89 e5                    mov     ebp, esp
+VA 0828A4CD 53                       push    ebx
+VA 0828A4CE 83 ec 24                 sub     esp, 0x24
+VA 0828A4D1 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0828A4D4 8b 80 60 0d 00 00        mov     eax, dword ptr [eax + 0xd60]
+VA 0828A4DA 89 c3                    mov     ebx, eax
+VA 0828A4DC e8 ba 1c e4 ff           call    0x80cc19b _Z14G_CDataManagerv
+VA 0828A4E1 05 e0 a7 00 00           add     eax, 0xa7e0
+VA 0828A4E6 89 5c 24 04              mov     dword ptr [esp + 4], ebx
+VA 0828A4EA 89 04 24                 mov     dword ptr [esp], eax
+VA 0828A4ED e8 c8 db 63 00           call    0x88c80ba _ZN18AccountCargoScript18GetCurrUpgradeInfoEi
+VA 0828A4F2 89 45 ec                 mov     dword ptr [ebp - 0x14], eax
+VA 0828A4F5 83 7d ec 00              cmp     dword ptr [ebp - 0x14], 0
+VA 0828A4F9 75 07                    jne     0x828a502
+VA 0828A4FB b8 00 00 00 00           mov     eax, 0
+VA 0828A500 eb 4b                    jmp     0x828a54d
+VA 0828A502 c7 45 f0 00 00 00 00     mov     dword ptr [ebp - 0x10], 0
+VA 0828A509 c7 45 f4 00 00 00 00     mov     dword ptr [ebp - 0xc], 0
+VA 0828A510 8b 45 08                 mov     eax, dword ptr [ebp + 8]
+VA 0828A513 8b 80 5c 0d 00 00        mov     eax, dword ptr [eax + 0xd5c]
+VA 0828A519 03 45 0c                 add     eax, dword ptr [ebp + 0xc]
+VA 0828A51C ba 00 00 00 00           mov     edx, 0
+VA 0828A521 89 45 f0                 mov     dword ptr [ebp - 0x10], eax
+VA 0828A524 89 55 f4                 mov     dword ptr [ebp - 0xc], edx
+VA 0828A527 8b 45 ec                 mov     eax, dword ptr [ebp - 0x14]
+VA 0828A52A 8b 40 04                 mov     eax, dword ptr [eax + 4]
+VA 0828A52D ba 00 00 00 00           mov     edx, 0
+VA 0828A532 3b 55 f4                 cmp     edx, dword ptr [ebp - 0xc]
+VA 0828A535 77 11                    ja      0x828a548
+VA 0828A537 3b 55 f4                 cmp     edx, dword ptr [ebp - 0xc]
+VA 0828A53A 72 05                    jb      0x828a541
+VA 0828A53C 3b 45 f0                 cmp     eax, dword ptr [ebp - 0x10]
+VA 0828A53F 73 07                    jae     0x828a548
+VA 0828A541 b8 00 00 00 00           mov     eax, 0
+VA 0828A546 eb 05                    jmp     0x828a54d
+VA 0828A548 b8 01 00 00 00           mov     eax, 1
+VA 0828A54D 83 c4 24                 add     esp, 0x24
+VA 0828A550 5b                       pop     ebx
+VA 0828A551 5d                       pop     ebp
+VA 0828A552 c3                       ret

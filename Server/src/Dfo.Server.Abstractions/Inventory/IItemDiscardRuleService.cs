@@ -11,5 +11,5 @@ public interface IItemDiscardRuleService
         int itemId,
         int count);
 
-    ItemDiscardRejection ValidateItem(ContainerSlotItem item, int itemId, int count);
+    ItemDiscardRejection ValidateItem(ItemReference item, int itemId, int count);
 }

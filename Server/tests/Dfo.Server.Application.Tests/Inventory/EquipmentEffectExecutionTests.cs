@@ -36,43 +36,43 @@ public sealed class EquipmentEffectExecutionTests
         var result = await Apply(f, [new SetEquipmentUpgradeEffect(target, 12),
             new SetEquipmentEnchantmentEffect(target, 7654), new SetEquipmentDimensionalEffect(target, 2, 25)]);
         var final = result.Changes<EquipmentEffectChange>().Last().After!;
-        Assert.Equal(target.Identity.Value, final.ItemUid);
-        Assert.Equal((byte)0xAC, final.Core.Attribute);
-        Assert.Equal(7654, final.Core.EnchantCardId);
-        Assert.Equal((byte)2, final.Core.AmplifyType);
-        Assert.Equal((ushort)25, final.Core.AmplifyValue);
-        Assert.Equal((byte)7, final.Core.EnchantUpgradeCount);
-        Assert.Equal((ushort)20, final.Core.Durability);
+        Assert.Equal(target.Reference.ItemUid, final.ItemUid);
+        Assert.Equal((byte)0xAC, final.Attribute);
+        Assert.Equal(7654, final.EnchantCardId);
+        Assert.Equal((byte)2, final.AmplifyType);
+        Assert.Equal((ushort)25, final.AmplifyValue);
+        Assert.Equal((byte)7, final.EnchantUpgradeCount);
+        Assert.Equal((ushort)20, final.Durability);
         await tx.CommitAsync(default);
         Assert.Equal(core, (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
-            .Get(f.Session.CharacterId, TargetSlot with { Index = 1 }).Container.ReadSlotAsync(1, default))!.Core);
+            .Get(f.Session.CharacterId, TargetSlot with { Index = 1 }).Container.GetAsync(1, default))!.Snapshot.ToCore());
     }
 
     [Fact]
     public async Task Account_material_preview_uses_cumulative_debits_and_rewards()
     {
         using var f = new ShopFixture();
-        f.Sql("UPDATE accounts SET cube_clear=2147483647 WHERE account_id=1");
+        await f.SeedShared(3037, 2147483647, 1);
         await using var tx = Scope(f).Begin();
-        var result = await Apply(f, [new ConsumeAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 20),
-            new GrantAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 10),
-            new GrantAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 10)]);
-        Assert.Equal(int.MaxValue, result.Changes<AccountMaterialEffectChange>().Last().Change.FinalCount);
+        var result = await Apply(f, [new ConsumeFromContainerEffect(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 20),
+            new GrantStackableEffect(3037, 10),
+            new GrantStackableEffect(3037, 10)]);
+        Assert.Equal(int.MaxValue, (await f.Shared().GetAsync(4, default))!.Count);
         await tx.CommitAsync(default);
-        Assert.Equal(int.MaxValue, f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(int.MaxValue, f.SharedCount(3037, 1));
     }
 
     [Fact]
     public async Task Combined_account_consumption_is_rejected_before_any_write_even_when_caller_commits()
     {
         using var f = new ShopFixture();
-        f.Sql("UPDATE accounts SET cube_clear=5 WHERE account_id=1");
+        await f.SeedShared(3037, 5, 1);
         await using var tx = Scope(f).Begin();
         await Assert.ThrowsAsync<InventoryEffectException>(() => Apply(f, [
-            new ConsumeAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 3),
-            new ConsumeAccountMaterialEffect(AccountMaterialKind.ClearCube, 3037, 3)]).AsTask());
+            new ConsumeFromContainerEffect(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 3),
+            new ConsumeFromContainerEffect(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 3)]).AsTask());
         await tx.CommitAsync(default);
-        Assert.Equal(5, f.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(5, f.SharedCount(3037, 1));
     }
 
     [Fact]
@@ -82,15 +82,18 @@ public sealed class EquipmentEffectExecutionTests
         await f.SeedCore(9, StackableItemCore.Create(1, 3000, 1234));
         await f.Seed(65, 2000, 5);
         var original = f.StoredCore(9);
-        f.Sql("CREATE TRIGGER refuse_effect_equipment BEFORE UPDATE ON items WHEN OLD.kind=1 "
+        f.Sql("CREATE TRIGGER refuse_effect_equipment BEFORE UPDATE ON items WHEN substr(OLD.item_core,1,1)=X'01' "
             + "BEGIN SELECT RAISE(ABORT,'forced equipment effects failure'); END;");
         await using (var tx = Scope(f).Begin())
         {
             var target = await Target(f);
-            await Apply(f, [new SpendGoldEffect(100),
-                new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable, 0), 2000, 2),
-                new SetEquipmentUpgradeEffect(target, 12), new SetEquipmentEnchantmentEffect(target, 7654)]);
-            await Assert.ThrowsAsync<SqliteException>(() => tx.CommitAsync(default).AsTask());
+            await Assert.ThrowsAsync<SqliteException>(async () =>
+            {
+                await Apply(f, [new SpendGoldEffect(100),
+                    new ConsumeFromContainerEffect(new(BusinessInventorySpace.Consumable, 0), 2000, 2),
+                    new SetEquipmentUpgradeEffect(target, 12), new SetEquipmentEnchantmentEffect(target, 7654)]);
+                await tx.CommitAsync(default);
+            });
         }
         Assert.Equal(original, f.StoredCore(9));
         Assert.Equal(100000, f.Gold);
@@ -108,7 +111,7 @@ public sealed class EquipmentEffectExecutionTests
         await using var tx = Scope(f).Begin();
         var instance = (await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)
             .FindAtAsync(new(BusinessInventorySpace.QuickSlot, 0), default))!;
-        var target = new EquipmentEffectTarget(new(instance.ItemUid), 3000);
+        var target = new EquipmentEffectTarget(instance.Reference, 3000);
         await Assert.ThrowsAsync<InventoryEffectException>(() => Apply(f,
             [new DestroyEquipmentEffect(target), new GrantStackableEffect(1000, 12),
                 new SetEquipmentUpgradeEffect(target, 12)]).AsTask());
@@ -125,7 +128,7 @@ public sealed class EquipmentEffectExecutionTests
     {
         var instance = (await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)
             .FindAtAsync(TargetSlot, default))!;
-        return new(new(instance.ItemUid), 3000);
+        return new(instance.Reference, 3000);
     }
     private sealed record UnpreviewedEffect : InventoryEffect;
     private sealed class UnpreviewedHandler : EffectHandler<UnpreviewedEffect>

@@ -10,12 +10,12 @@ internal sealed class ExpiredCharacterItemCleanupDomainService(
     ICharacterTable characters,
     ICharacterItemTable items,
     IDomainTransactionAccessor transactions,
-    TimeProvider clock) : IExpiredCharacterItemCleanupDomainService
+    TimeProvider clock, IItemDomainStore store) : IExpiredCharacterItemCleanupDomainService
 {
     public async ValueTask<bool> CleanupAsync(
         AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
     {
-        _ = transactions.Current ?? throw new InvalidOperationException(
+        var transaction = transactions.Current ?? throw new InvalidOperationException(
             "Expired-item cleanup requires a transaction.");
         if (!await characters.BelongsToAsync(characterId, accountId, cancellationToken)
                 .ConfigureAwait(false))
@@ -24,17 +24,20 @@ internal sealed class ExpiredCharacterItemCleanupDomainService(
         var now = clock.GetUtcNow().ToUnixTimeSeconds();
         var held = await items.ReadByCharacterAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        var expired = held.Where(item => IsExpired(item, now)).Select(item => item.ItemUid).ToArray();
-        if (expired.Length == 0)
-            return true;
-
-        // The table checks character ownership again at deletion time. A mismatch must roll back
-        // this command, rather than return false after a partial write and commit the transaction.
-        var removed = await items.DeleteOwnByUidsAsync(characterId, expired, cancellationToken)
-            .ConfigureAwait(false);
-        if (removed != expired.Length)
-            throw new InvalidOperationException(
-                $"Expired-item cleanup removed {removed} of {expired.Length} items for {characterId}.");
+        var itemSession = store.SessionIn(transaction);
+        foreach (var row in held.Where(item => IsExpired(item, now)))
+        {
+            if (row.OwnerScope != "character" || row.OwnerId != characterId.Value)
+                throw new InvalidDataException("Expired item belongs to a different character.");
+            var container = ContainerId.ForCharacter(characterId, (Dfo.Server.Data.Inventory.InventoryContainerType)row.ListType);
+            var item = await itemSession.GetAsync(container, row.SlotIndex, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Expired item disappeared during cleanup.");
+            var expires = item.Snapshot.AvatarDetail?.ExpireDate ?? item.Snapshot.ExpireTime;
+            if (expires <= 0 || expires == int.MaxValue || expires > now)
+                throw new InvalidDataException("Expired item changed during cleanup.");
+            await itemSession.DeleteItemAsync(await itemSession.TakeAsync(item, null, cancellationToken).ConfigureAwait(false),
+                cancellationToken).ConfigureAwait(false);
+        }
         return true;
     }
 

@@ -37,7 +37,7 @@ public sealed class SpecialConsumableEffectTests
             await tx.CommitAsync(default);
             Assert.Equal(1,f.Count(2000));
             Assert.Equal(actual,(await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Get(f.Session.CharacterId,
-                new(BusinessInventorySpace.Consumable,0)).Container.ReadSlotAsync(0,default))!.Core.EquipmentLockId);
+                new(BusinessInventorySpace.Consumable,0)).Container.GetAsync(0,default))!.Snapshot.ToCore().EquipmentLockId);
         }
         else
         {
@@ -90,7 +90,7 @@ public sealed class SpecialConsumableEffectTests
         var rules=new SpecialConsumableEffectPlanRuleService(new ActionSource(),new UsageSource(86400000),
             f.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>(),
             new ItemUseJudgementService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!);
-        var item=new ContainerSlotItem(0,StackableItemCore.Create(2,2000,2),ItemWorldClass.Interchangeable);
+        var item=TestItemReferences.FromCore(0,StackableItemCore.Create(2,2000,2),ItemWorldClass.Interchangeable);
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,
             raw with { Raw=new(100,110,at) },usage,at),default).AsTask());
         Assert.Equal(100,f.Scalar("SELECT used FROM character_fatigue WHERE character_id=71"));
@@ -159,7 +159,7 @@ public sealed class SpecialConsumableEffectTests
     {
         var rule = ItemUseRules.Potion(0);
         var plans = new ItemUseEffectRuleService(new ItemUseJudgementService(new FakeItemUseRules((8474, rule))));
-        var item = new ContainerSlotItem(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = int.MaxValue },
+        var item = TestItemReferences.FromCore(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = int.MaxValue },
             ItemWorldClass.Interchangeable);
         var result = plans.Build(rule, new(BusinessInventorySpace.QuickSlot, 0), item,
             new ItemUseCandidate(60, QuestJobRequirement.Swordman, ItemUsePlace.Village, false), null,

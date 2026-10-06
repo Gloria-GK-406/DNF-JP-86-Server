@@ -23,11 +23,11 @@ internal sealed class CreatureDomainService(
     {
         public BusinessInventoryStoreKind Kind => inventory.Kind;
 
-        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space) =>
-            inventory.FindContainer(space);
+        public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) =>
+            inventory.FindContainer(space, isDefault);
 
-        public IBusinessItemContainer GetContainer(BusinessInventorySpace space) =>
-            inventory.GetContainer(space);
+        public IBusinessItemContainer GetContainer(BusinessInventorySpace space, bool isDefault = false) =>
+            inventory.GetContainer(space, isDefault);
 
         public ValueTask<CreatureState?> FindAsync(int itemUid, CancellationToken cancellationToken) =>
             this.Session().ReadAsync(characterId, itemUid, cancellationToken);

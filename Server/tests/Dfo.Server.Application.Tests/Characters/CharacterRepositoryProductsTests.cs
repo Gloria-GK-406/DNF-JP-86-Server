@@ -100,7 +100,7 @@ public sealed class CharacterRepositoryProductsTests
             characterId => new PlayingCharacter(
                 characterId, judgement, cooldowns, presence, new NoCarriedGold(),
                 new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
-                new NoSkillPointLedger(), null!, null!));
+                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()), null!);
     }
 
     /// <summary>A table holding a row for character 60 and for nobody else.</summary>
@@ -126,7 +126,7 @@ public sealed class CharacterRepositoryProductsTests
         public ValueTask<CharacterProgressRow?> FindProgressAsync(
             CharacterId characterId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
-                Has(characterId) ? new CharacterProgressRow(Level, 0) : null);
+                Has(characterId) ? new CharacterProgressRow(Level, (Level - 1) * 100) : null);
 
         public ValueTask<CharacterStandingRow?> FindStandingAsync(
             CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();

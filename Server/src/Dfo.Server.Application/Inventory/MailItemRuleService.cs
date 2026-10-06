@@ -7,7 +7,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class MailItemRuleService(IMailItemDefinitionSource definitions) : IMailItemRuleService
 {
     public async ValueTask<MailItemSendDecision> CanSendAsync(
-        InventoryItemCoreState core, bool sameAccount, CancellationToken cancellationToken)
+        ItemSnapshot core, bool sameAccount, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(core);
         if (core.ItemId <= 0)

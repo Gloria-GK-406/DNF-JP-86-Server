@@ -44,6 +44,8 @@ public sealed class InventorySlotMappingRuleServiceTests
 
     public static TheoryData<GameSlot, BusinessSlot> Boundaries => new()
     {
+        { new(InventoryContainerType.QuickSlot, 3), new(BusinessInventorySpace.TowerQuickSlot, 0) },
+        { new(InventoryContainerType.QuickSlot, 8), new(BusinessInventorySpace.TowerQuickSlot, 5) },
         { new(InventoryContainerType.Main, 3), new(BusinessInventorySpace.QuickSlot, 0) },
         { new(InventoryContainerType.Main, 8), new(BusinessInventorySpace.QuickSlot, 5) },
         { new(InventoryContainerType.Main, 9), new(BusinessInventorySpace.CarriedEquipment, 0) },
@@ -58,6 +60,8 @@ public sealed class InventorySlotMappingRuleServiceTests
         { new(InventoryContainerType.Main, 288), new(BusinessInventorySpace.ExpertMaterial, 55) },
         { new(InventoryContainerType.Main, 289), new(BusinessInventorySpace.AvatarEmblem, 0) },
         { new(InventoryContainerType.Main, 351), new(BusinessInventorySpace.AvatarEmblem, 62) },
+        { new(InventoryContainerType.Main, 354), new(BusinessInventorySpace.SharedMaterial, 0) },
+        { new(InventoryContainerType.Main, 364), new(BusinessInventorySpace.SharedMaterial, 10) },
         { new(InventoryContainerType.Avatar, 0), new(BusinessInventorySpace.Avatar, 0) },
         { new(InventoryContainerType.Avatar, 209), new(BusinessInventorySpace.Avatar, 209) },
         { new(InventoryContainerType.PersonalCargo, 0), new(BusinessInventorySpace.PersonalCargo, 0) },
@@ -97,7 +101,8 @@ public sealed class InventorySlotMappingRuleServiceTests
         new(InventoryContainerType.Main, 0),
         new(InventoryContainerType.Main, 2),
         new(InventoryContainerType.Main, 352),
-        new(InventoryContainerType.Main, 359),
+        new(InventoryContainerType.Main, 365),
+        new(InventoryContainerType.SharedMaterial, 0),
         new(InventoryContainerType.Equipment, 32),
         new(InventoryContainerType.QuickSlot, 0),
         new((InventoryContainerType)255, 0),
@@ -121,6 +126,7 @@ public sealed class InventorySlotMappingRuleServiceTests
         new(BusinessInventorySpace.Avatar, 210),
         new(BusinessInventorySpace.Consumable, -1),
         new(BusinessInventorySpace.VirtualResource, 0),
+        new(BusinessInventorySpace.SharedMaterial, 11),
         new((BusinessInventorySpace)999, 0),
     };
 

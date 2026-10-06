@@ -31,14 +31,14 @@ public interface IItemUseEffectRuleService
 {
     ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken);
     ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule);
-    ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ContainerSlotItem item,
+    ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
         ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at);
 }
 
 public interface IItemUseEffectDomainService
 {
     ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        ContainerSlotItem item, CancellationToken cancellationToken);
+        ItemReference item, CancellationToken cancellationToken);
 }
 
 public interface ICharacterItemCooldownDomainService

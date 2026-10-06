@@ -42,7 +42,7 @@ public sealed record EquipmentOutworldReceipt(
     BusinessSlot MaterialSlot,
     int MaterialItemId,
     int MaterialRemaining,
-    InventoryItemCoreState UpdatedCore,
+    ItemSnapshot UpdatedCore,
     bool Cleared,
     int Seed,
     DateTimeOffset CommittedAt);

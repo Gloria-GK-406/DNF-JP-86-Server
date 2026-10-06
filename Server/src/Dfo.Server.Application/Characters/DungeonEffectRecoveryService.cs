@@ -28,7 +28,7 @@ internal sealed class DungeonEffectRecoveryService(
     IAccountTable accounts,
     ICharacterTable characters,
     IExperienceRuleService experienceRules,
-    IDungeonEffectRuleService rules) : IDungeonPersistentEffectRecoveryRepository
+    IDungeonEffectRuleService rules, ICharacterDomainService characterInstances) : IDungeonPersistentEffectRecoveryRepository
 {
     /// <summary>How long a claim holds before another recovery may take the effect.</summary>
     private static readonly TimeSpan Lease = TimeSpan.FromMinutes(1);
@@ -139,8 +139,8 @@ internal sealed class DungeonEffectRecoveryService(
         var stored = await characters.FindProgressAsync(characterId, cancellationToken)
             .ConfigureAwait(false)
             ?? throw new InvalidDataException("Dungeon experience character is unavailable.");
-        if (stored.Level != payload.ExpectedDatabaseLevel
-            || stored.Experience != payload.ExpectedDatabaseExp)
+        if (experienceRules.CharacterScale().ProgressFor(stored.Experience)
+            != experienceRules.CharacterScale().ProgressFor(payload.ExpectedDatabaseExp))
         {
             throw new InvalidDataException(
                 "Dungeon experience expected progress does not match persisted progress.");
@@ -156,49 +156,27 @@ internal sealed class DungeonEffectRecoveryService(
                 payload.NormalizeMaxLevelExp),
             policy);
 
-        ulong oldHonour = 0;
-        uint oldCapsule = 0;
-        if (split.HonorGain > 0)
-        {
-            // Resolve every required owner before the first write, so a permanent validation
-            // failure can be dead-lettered without a partial change having been accepted.
-            var totals = await accounts.FindExperienceAsync(accountId, cancellationToken)
-                .ConfigureAwait(false)
-                ?? throw new InvalidDataException("Dungeon experience account is unavailable.");
-            oldHonour = checked((ulong)Math.Max(0, totals.HonourExperience));
-            oldCapsule = checked((uint)Math.Max(0, totals.GrowthCapsuleExperience));
-        }
-
-        if (await characters.SetProgressAsync(
-                characterId, split.NewLevel, (long)split.NewExp, cancellationToken)
-                .ConfigureAwait(false) != 1)
-        {
-            throw new InvalidDataException("Dungeon experience character is unavailable.");
-        }
-
-        ulong totalHonour = 0;
-        uint totalCapsule = 0;
-        uint appliedCapsule = 0;
-        if (split.HonorGain > 0)
-        {
-            var accrued = rules.AccumulateHonour(split.HonorGain, oldHonour, oldCapsule, policy);
-            totalHonour = accrued.TotalHonor;
-            totalCapsule = accrued.TotalCapsule;
-            appliedCapsule = accrued.AppliedCapsule;
-            RequireExactOwner(await accounts.SetExperienceAsync(
-                accountId, checked((long)totalHonour), totalCapsule, cancellationToken)
-                .ConfigureAwait(false));
-        }
+        var character = characterInstances.Get(characterId);
+        var expected = experienceRules.CharacterScale().ProgressFor(stored.Experience);
+        if (!await character.TrySetExpAsync(expected, payload.PreviousExp, cancellationToken).ConfigureAwait(false))
+            throw new InvalidOperationException("Dungeon experience progress changed during recovery.");
+        var oldCapsule = (await accounts.FindExperienceAsync(accountId, cancellationToken).ConfigureAwait(false))?.GrowthCapsuleExperience ?? 0;
+        var award = await character.AddExpAsync(new(Base: payload.RawGain), null, cancellationToken).ConfigureAwait(false);
+        var totals = await accounts.FindExperienceAsync(accountId, cancellationToken).ConfigureAwait(false);
+        var totalHonour = totals?.HonourExperience ?? 0;
+        var totalCapsule = totals?.GrowthCapsuleExperience ?? 0;
+        // The applied capsule increment is limited by the account's remaining capsule capacity.
+        var appliedCapsule = Math.Max(0, totalCapsule - oldCapsule);
 
         return JsonSerializer.Serialize(new
         {
             rawGain = payload.RawGain,
-            honorExpGain = split.HonorGain,
-            normalExpGain = split.NormalGain,
+            honorExpGain = award.Overflow,
+            normalExpGain = award.Gained - award.Overflow,
             previousLevel = payload.PreviousLevel,
             previousExp = payload.PreviousExp,
-            newLevel = split.NewLevel,
-            newExp = split.NewExp,
+            newLevel = award.Level,
+            newExp = award.Total,
             normalizedMaxLevelExp = split.NormalizedMaxLevelExp,
             persisted = split.Persisted,
             growthCapsuleExpGain = appliedCapsule,

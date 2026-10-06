@@ -21,7 +21,7 @@ public sealed class MailItemRuleServiceTests
     {
         var rule = new MailItemRuleService(new DefinitionSource(attach));
         var core = StackableItemCore.Create(1, 10018, 1) with { SealFlag = sealFlag };
-        var result = await rule.CanSendAsync(core, sameAccount, CancellationToken.None);
+        var result = await rule.CanSendAsync(ItemSnapshot.FromCore(core, false), sameAccount, CancellationToken.None);
         Assert.Equal(expected, result.Refusal);
     }
 
@@ -31,7 +31,7 @@ public sealed class MailItemRuleServiceTests
         var rule = new MailItemRuleService(new DefinitionSource(MailItemAttachType.Free));
         var core = StackableItemCore.Create(1, 10018, 1) with { TradeRestriction = 1 };
         Assert.Equal(MailItemSendRefusal.InstanceTradeRestricted,
-            (await rule.CanSendAsync(core, true, CancellationToken.None)).Refusal);
+            (await rule.CanSendAsync(ItemSnapshot.FromCore(core, false), true, CancellationToken.None)).Refusal);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class MailItemRuleServiceTests
         var rule = new MailItemRuleService(new DefinitionSource(MailItemAttachType.Free));
         var core = StackableItemCore.Create(1, 10018, 1) with { EquipmentLockId = 7 };
         Assert.Equal(MailItemSendRefusal.InstanceLocked,
-            (await rule.CanSendAsync(core, true, CancellationToken.None)).Refusal);
+            (await rule.CanSendAsync(ItemSnapshot.FromCore(core, false), true, CancellationToken.None)).Refusal);
     }
 
     private sealed class DefinitionSource(MailItemAttachType attach) : IMailItemDefinitionSource

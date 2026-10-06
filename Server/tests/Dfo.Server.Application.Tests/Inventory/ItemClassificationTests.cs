@@ -91,52 +91,23 @@ public sealed class ItemClassificationTests
         }
     }
 
-    /// <summary>
-    /// An item whose stored kind disagrees with the archive is classified as the archive reads it.
-    /// </summary>
-    /// <remarks>
-    /// Two writes, and each one's kind byte points away from the archive's answer: the creature is
-    /// written carrying an ordinary consumable's kind, and the pile is written carrying the kind
-    /// the equipment index hands out. A classification that read the row would answer
-    /// interchangeable for the first and equipment for the second, which is the opposite of both.
-    /// </remarks>
     [SkippableFact]
-    public async Task A_write_classifies_the_template_the_archive_declares_not_the_kind_the_row_carries()
+    public async Task Creation_rejects_kind_bytes_that_disagree_with_the_archive()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         var rules = ArchiveRules(out var content);
         using (content)
         {
-            var path = Path.Combine(
-                Path.GetTempPath(), $"dfo-classification-{Guid.NewGuid():N}.db");
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
             var scope = new DomainTransactionScope();
-            var store = new SqliteItemDomainStore(path);
-            var container = new PersistentItemContainer(
-                Main,
-                new CharacterId(77),
-                new ContainerShape(InventoryContainerType.Main, 0),
-                store,
-                scope,
-                null!,
-                rules,
-                null!,
-                null!);
-
-            await using var lease = scope.Begin();
-            await container.PutAsync(
-                65, Core(ConsumableKindByte, ContractCreatureItemId), CancellationToken.None);
-            await container.PutAsync(
-                66, Core(EquipmentKindByte, StackableItemId), CancellationToken.None);
-
-            var session = store.SessionIn(scope.Current!);
-            var creature = await session.ReadAsync(Main, 65, CancellationToken.None);
-            var pile = await session.ReadAsync(Main, 66, CancellationToken.None);
-
-            Assert.Equal(ConsumableKindByte, creature!.Core.ItemKind);
-            Assert.Equal(ItemWorldClass.Creature, creature.WorldClass);
-            Assert.Equal(EquipmentKindByte, pile!.Core.ItemKind);
-            Assert.Equal(ItemWorldClass.Interchangeable, pile.WorldClass);
+            var store = new Dfo.Server.Persistence.Tests.Support.VolatileItemDomainStore();
+            var lifecycle = new ItemLifecycleDomainService(store, scope, rules);
+            await using var tx = scope.Begin();
+            await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
+                ItemSnapshot.FromCore(Core(ConsumableKindByte, ContractCreatureItemId), true), default).AsTask());
+            await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
+                ItemSnapshot.FromCore(Core(EquipmentKindByte, StackableItemId), false), default).AsTask());
+            Assert.Empty(await store.SessionIn(scope.Current!).GetAllAsync(Main, default));
+            await tx.CommitAsync(default);
         }
     }
 

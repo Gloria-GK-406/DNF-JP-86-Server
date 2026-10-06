@@ -12,6 +12,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -197,7 +198,8 @@ public sealed class BackToVillageHandler(
     ILogger<BackToVillageHandler> logger,
     SelectedSessionTransitionGate transitionGate,
     IPartyService parties,
-    IDungeonEntryIntentDomainService? entryIntents = null)
+    IDungeonEntryIntentDomainService? entryIntents = null,
+    IllusionTowerProjectionDelivery? illusionTower = null)
     : ClientMessageHandler<BackToVillageRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -206,6 +208,11 @@ public sealed class BackToVillageHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is not null && illusionTower is not null
+            && await illusionTower.LeaveAndReturnAsync(
+                context.Connection.ConnectionId, message.Metadata,
+                new BackToVillageResponse(), cancellationToken).ConfigureAwait(false))
+            return;
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
         // with the published session, so this conjunct admits exactly the connections the two
         // before it do.
@@ -665,7 +672,7 @@ public sealed class EnterSelectDungeonHandler(
                 new UserStateNotification(member.Session.WireUserId, 0x01),
                 new UdpHostNotification(),
             ];
-            if (!visits.DefersSelectionState(refreshed.Character.Progression.Level))
+            if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
                 notifications.Add(new EnterSelectDungeonNotification(wireUserIds));

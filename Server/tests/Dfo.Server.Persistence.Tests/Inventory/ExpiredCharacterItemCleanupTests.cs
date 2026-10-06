@@ -22,7 +22,7 @@ public sealed class ExpiredCharacterItemCleanupTests
             var database = new SqliteDatabase(path, scope);
             var cleanup = new ExpiredCharacterItemCleanupDomainService(
                 new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
-                scope, TimeProvider.System);
+                scope, TimeProvider.System, new SqliteItemDomainStore(path));
             await SeedAsync(path);
 
             await using (var transaction = scope.Begin())
@@ -62,7 +62,7 @@ public sealed class ExpiredCharacterItemCleanupTests
             var database = new SqliteDatabase(path, scope);
             var cleanup = new ExpiredCharacterItemCleanupDomainService(
                 new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
-                scope, TimeProvider.System);
+                scope, TimeProvider.System, new SqliteItemDomainStore(path));
             await SeedAsync(path);
 
             await using (var transaction = scope.Begin())

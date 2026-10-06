@@ -161,17 +161,13 @@ public sealed class GrantKillExperienceCommandTests
     /// the monster one or two levels above them, which is the band the level-gap rate of 1.12
     /// covers. Where the award lands afterwards belongs to the grant's own tests.
     /// </remarks>
-    private sealed class PricingGrant(IExperienceCalculationDomainService calculation, byte characterLevel) : ICharacterExperienceDomainService
+    private sealed class PricingGrant(IExperienceCalculationDomainService calculation, byte characterLevel) : ExperienceCharacters
     {
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        /// <summary>Pricing stand-ins never set progress outright; the tutorial is the only path that does.</summary>
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
-        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
             var breakdown = await calculation.CalculateAsync(source, characterLevel, cancellationToken);
             return new ExperienceAward(breakdown, characterLevel, breakdown.Total, LeveledUp: false);

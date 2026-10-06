@@ -42,7 +42,8 @@ public sealed class OneDatabaseOneParticipantTests
         _ = fixture.Items.SessionIn(transaction);
         _ = fixture.Marks.SessionIn(transaction);
 
-        Assert.Single(transaction.Participants);
+        Assert.Single(transaction.Participants, x => x.CommitCanFail);
+        Assert.Single(transaction.Participants.OfType<Dfo.Server.Abstractions.Inventory.ItemLifecycleScope>());
     }
 
     [Fact]
@@ -51,7 +52,8 @@ public sealed class OneDatabaseOneParticipantTests
         await using var fixture = await Fixture.CreateAsync();
         var transaction = new DomainTransaction();
 
-        fixture.Items.SessionIn(transaction).Write(Main, new StoredItem(66, Potion(3)) { WorldClass = ItemWorldClass.Interchangeable });
+        var items = fixture.Items.SessionIn(transaction);
+        await items.PutAsync(Main, 66, await items.CreateAsync(ItemSnapshot.FromCore(Potion(3), true), default), default);
         fixture.Marks.SessionIn(transaction).Mark(7);
         await transaction.CommitAsync(CancellationToken.None);
 
@@ -69,7 +71,8 @@ public sealed class OneDatabaseOneParticipantTests
         await using var fixture = await Fixture.CreateAsync();
         var transaction = new DomainTransaction();
 
-        fixture.Items.SessionIn(transaction).Write(Main, new StoredItem(66, Potion(3)) { WorldClass = ItemWorldClass.Interchangeable });
+        var items = fixture.Items.SessionIn(transaction);
+        await items.PutAsync(Main, 66, await items.CreateAsync(ItemSnapshot.FromCore(Potion(3), true), default), default);
         var marks = fixture.Marks.SessionIn(transaction);
         marks.Mark(7);
         marks.FailWhileWriting();

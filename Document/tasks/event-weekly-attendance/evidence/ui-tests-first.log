@@ -1,0 +1,364 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run src/Events.test.tsx src/DailyRefill.test.tsx src/Initialization.test.tsx src/AdminApp.test.tsx
+
+
+ RUN  v5.0.3 E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin
+
+stderr | src/Events.test.tsx > 修改后取消须确认放弃，继续编辑保留字段且不会提交
+Warning: [antd: Spin] `tip` is deprecated. Please use `description` instead.
+
+ ❯ src/Events.test.tsx (19 tests | 1 failed) 4933ms
+   × 修改后取消须确认放弃，继续编辑保留字段且不会提交 1144ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/Events.test.tsx > 修改后取消须确认放弃，继续编辑保留字段且不会提交
+TestingLibraryElementError: Found multiple elements with the text: 放弃尚未保存的修改？
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<div
+  class="ant-modal-title"
+  id="test-id"
+>
+  放弃尚未保存的修改？
+</div>
+
+Ignored nodes: comments, script, style
+<span
+  class="ant-modal-confirm-title"
+>
+  放弃尚未保存的修改？
+</span>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="css-dev-only-do-not-override-oc1rc0 ant-app css-var-_r_5i_"
+    >
+      <div
+        class="ant-layout ant-layout-has-sider shell css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_"
+      >
+        <aside
+          class="ant-layout-sider ant-layout-sider-light sidebar css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_"
+          style="flex: 0 0 216px; max-width: 216px; min-width: 216px; width: 216px;"
+        >
+          <div
+            class="ant-layout-sider-children"
+          >
+            <div
+              class="brand"
+            >
+              DNF 
+              <span>
+                GM 控制台
+              </span>
+            </div>
+            <ul
+              class="ant-menu ant-menu-root ant-menu-vertical ant-menu-light css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_ ant-menu-css-var"
+              data-menu-list="true"
+              role="menu"
+              tabindex="0"
+            >
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/"
+                permission="QueryPlayers"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  服务概览
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/characters"
+                permission="QueryPlayers"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  账号与角色
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/mail"
+                permission="SendMail"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  官方邮件
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/wallet"
+                permission="GrantCera"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  点券发放
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/initialization"
+                permission="All"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  初始化配置
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/daily-refill"
+                permission="All"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  每日补给
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-selected ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/events"
+                permission="All"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  活动管理
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/operations"
+                permission="ViewAudit"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  操作记录
+                </span>
+              </li>
+            </ul>
+            <div
+              aria-hidden="true"
+              style="display: none;"
+            />
+            <div
+              class="sidebar-footer"
+            >
+              <button
+                class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined ant-btn-block"
+                type="button"
+              >
+                <span>
+                  退出登录
+                </span>
+              </button>
+            </div>
+          </div>
+        </aside>
+        <di...
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="css-dev-only-do-not-override-oc1rc0 ant-app css-var-_r_5i_"
+    >
+      <div
+        class="ant-layout ant-layout-has-sider shell css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_"
+      >
+        <aside
+          class="ant-layout-sider ant-layout-sider-light sidebar css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_"
+          style="flex: 0 0 216px; max-width: 216px; min-width: 216px; width: 216px;"
+        >
+          <div
+            class="ant-layout-sider-children"
+          >
+            <div
+              class="brand"
+            >
+              DNF 
+              <span>
+                GM 控制台
+              </span>
+            </div>
+            <ul
+              class="ant-menu ant-menu-root ant-menu-vertical ant-menu-light css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_ ant-menu-css-var"
+              data-menu-list="true"
+              role="menu"
+              tabindex="0"
+            >
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/"
+                permission="QueryPlayers"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  服务概览
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/characters"
+                permission="QueryPlayers"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  账号与角色
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/mail"
+                permission="SendMail"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  官方邮件
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/wallet"
+                permission="GrantCera"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  点券发放
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/initialization"
+                permission="All"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  初始化配置
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/daily-refill"
+                permission="All"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  每日补给
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-selected ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/events"
+                permission="All"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  活动管理
+                </span>
+              </li>
+              <li
+                class="ant-menu-item ant-menu-item-only-child"
+                data-menu-id="rc-menu-uuid-test-id-/operations"
+                permission="ViewAudit"
+                role="menuitem"
+                tabindex="-1"
+              >
+                <span
+                  class="ant-menu-title-content"
+                >
+                  操作记录
+                </span>
+              </li>
+            </ul>
+            <div
+              aria-hidden="true"
+              style="display: none;"
+            />
+            <div
+              class="sidebar-footer"
+            >
+              <button
+                class="ant-btn css-dev-only-do-not-override-oc1rc0 css-var-_r_5i_ ant-btn-default ant-btn-color-default ant-btn-variant-outlined ant-btn-block"
+                type="button"
+              >
+                <span>
+                  退出登录
+                </span>
+              </button>
+            </div>
+          </div>
+        </aside>
+        <di...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/Events.test.tsx:91:16
+     89|   open(); const editor = await edit(); fireEvent.change(screen.getByLa…
+     90|   fireEvent.click(within(editor).getByRole('button', { name: /取\s*消/ }…
+     91|   await screen.findByText('放弃尚未保存的修改？'); fireEvent.click(screen.getByR…
+       |                ^
+     92|   await waitFor(() => expect(screen.queryByText('放弃尚未保存的修改？')).toBeNul…
+     93|   expect((screen.getByLabelText('活动标题') as HTMLInputElement).value).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 41 passed (42)
+   Start at  21:59:06
+   Duration  8.05s (tests 46%, import 33%, environment 14%, transform 4%, setup 3%)
+

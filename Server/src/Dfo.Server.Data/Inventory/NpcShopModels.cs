@@ -16,9 +16,9 @@ public enum NpcShopRejection
     PurchaseLimitReached,
 }
 
-public sealed record NpcShopSlotChange(BusinessSlot Slot, InventoryItemCoreState? Core);
+public sealed record NpcShopSlotChange(BusinessSlot Slot, ItemSnapshot? Core);
 
-public sealed record NpcShopGrantedSlot(BusinessSlot Slot, InventoryItemCoreState Core, int AddedCount);
+public sealed record NpcShopGrantedSlot(BusinessSlot Slot, ItemSnapshot Core, int AddedCount);
 
 public sealed record NpcShopPurchaseReceipt(
     SelectedSessionIdentity Session,

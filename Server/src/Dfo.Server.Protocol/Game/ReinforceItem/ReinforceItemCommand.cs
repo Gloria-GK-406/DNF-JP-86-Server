@@ -13,7 +13,6 @@ public sealed record ReinforceItemCommand(
     BusinessSlot TargetSlot,
     int ExpectedItemId,
     BusinessSlot? MaterialSlot,
-    int? AccountMaterialItemId,
     BusinessSlot? ProtectionSlot,
     EquipmentUpgradeKind Kind = EquipmentUpgradeKind.Reinforcement)
     : ICommand<EquipmentReinforcementResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
@@ -28,7 +27,7 @@ public sealed class ReinforceItemCommandHandler(IEquipmentReinforcementDomainSer
         CommandExecutionContext context, ReinforceItemCommand command,
         CancellationToken cancellationToken) =>
         reinforcement.ReinforceAsync(command.Session, command.TargetSlot,
-            command.ExpectedItemId, command.MaterialSlot, command.AccountMaterialItemId,
+            command.ExpectedItemId, command.MaterialSlot,
             command.ProtectionSlot,
             cancellationToken, command.Kind);
 }

@@ -158,7 +158,7 @@ public sealed class DungeonPickupTransactionTests
         IDomainTransactionAccessor transactions)
         : ICommandHandler<StaleQuestPickupCommand, PickupReceipt>
     {
-        public ValueTask<PickupReceipt> HandleAsync(
+        public async ValueTask<PickupReceipt> HandleAsync(
             CommandExecutionContext context,
             StaleQuestPickupCommand command,
             CancellationToken cancellationToken)
@@ -171,13 +171,12 @@ public sealed class DungeonPickupTransactionTests
 
             var transaction = transactions.Current
                 ?? throw new InvalidOperationException("transaction missing");
-            items.SessionIn(transaction).Write(
-                Main,
-                new StoredItem(0, QuestItem()) { WorldClass = ItemWorldClass.Interchangeable });
+            var session = items.SessionIn(transaction);
+            await session.PutAsync(Main, 0, await session.CreateAsync(ItemSnapshot.FromCore(QuestItem(), true), cancellationToken), cancellationToken);
             quests.SessionIn(transaction).Carried.Write(
                 new OwnedCharacterId(Account, Character),
                 new StoredActiveQuest(0, 1779, 14, ExpectedTriggerValue: 15));
-            return ValueTask.FromResult(new PickupReceipt(commit));
+            return new PickupReceipt(commit);
         }
     }
 }

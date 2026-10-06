@@ -1,0 +1,13 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run src/Events.test.tsx src/DailyRefill.test.tsx src/Initialization.test.tsx src/AdminApp.test.tsx
+
+
+ RUN  v5.0.3 E:/Project/DNF/DNF-JP-86-Server/.worktrees/warehouse-storage/Web/gm-admin
+
+
+ Test Files  4 passed (4)
+      Tests  44 passed (44)
+   Start at  22:02:18
+   Duration  7.35s (tests 45%, import 34%, environment 14%, transform 4%, setup 3%)
+

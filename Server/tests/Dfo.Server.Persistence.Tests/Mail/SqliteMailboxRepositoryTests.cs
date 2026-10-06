@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -18,21 +19,20 @@ public sealed class SqliteMailboxRepositoryTests
         using var fixture = new MailboxFixture();
         var recipient = new CharacterId(27);
         var now = new DateTimeOffset(2026, 9, 24, 1, 2, 3, TimeSpan.Zero);
-        var mail = new MailBuilder(MailSource.FromSystem(), recipient)
-            .WithText("Reward", "Body")
-            .ExpiresAt(now.AddDays(3))
-            .AddEquipment(new ItemIdentity(1001))
-            .AddStackable(2002, 7)
-            .AddGold(345)
-            .Build();
         long id;
+        ItemIdentity equipmentUid;
         await using (var lease = fixture.Scope.Begin())
         {
             await fixture.Repository.AcquireWriteAsync(default);
+            var items = fixture.Items.SessionIn(fixture.Scope.Current!);
+            var equipment = await items.CreateAsync(ItemSnapshot.FromCore(Core(1, 5000, 1), false), default);
+            var stack = await items.CreateAsync(ItemSnapshot.FromCore(Core(2, 2002, 7), true), default);
+            equipmentUid = equipment.ItemUid!.Value;
+            var mail = new MailBuilder(MailSource.FromSystem(), recipient)
+                .WithText("Reward", "Body").ExpiresAt(now.AddDays(3))
+                .AddEquipment(equipmentUid).AddStackable(2002, 7).AddGold(345).Build();
             id = await fixture.Repository.InsertAsync(mail, "system", now,
-                [new(mail.Attachments[0], Core(4, 5000, 1)),
-                 new(mail.Attachments[1], Core(2, 2002, 7)),
-                 new(mail.Attachments[2])], default);
+                [new(mail.Attachments[0], [equipment]), new(mail.Attachments[1], [stack]), new(mail.Attachments[2])], default);
             await lease.CommitAsync(default);
         }
 
@@ -45,8 +45,8 @@ public sealed class SqliteMailboxRepositoryTests
         Assert.Equal(3, found.Attachments.Length);
         Assert.Equal(3, found.Attachments.Select(x => x.Id).Distinct().Count());
         Assert.IsType<MailAsset.Equipment>(found.Attachments[0].Asset);
-        Assert.Equal(new ItemIdentity(1001), ((MailAsset.Equipment)found.Attachments[0].Asset).Identity);
-        Assert.True(await reopened.Repository.HoldsEquipmentAsync(new ItemIdentity(1001), default));
+        Assert.Equal(equipmentUid, ((MailAsset.Equipment)found.Attachments[0].Asset).Identity);
+        Assert.True(await reopened.Repository.HoldsEquipmentAsync(equipmentUid, default));
         var goldAttachment = found.Attachments[2].Id;
         Assert.NotEqual(id, goldAttachment);
         Assert.Equal(345, ((MailAsset.Gold)found.Attachments[2].Asset).Amount);
@@ -196,16 +196,18 @@ public sealed class SqliteMailboxRepositoryTests
             Directory.CreateDirectory(directory);
             path = Path.Combine(directory, "mail.db");
             Scope = new DomainTransactionScope();
-            Repository = new SqliteMailboxRepository(new SqliteDatabase(path, Scope));
+            Items = new SqliteItemDomainStore(path);
+            Repository = new SqliteMailboxRepository(new SqliteDatabase(path, Scope), Items, Scope);
         }
 
+        public SqliteItemDomainStore Items { get; }
         public DomainTransactionScope Scope { get; }
         public SqliteMailboxRepository Repository { get; }
 
         public (DomainTransactionScope Scope, SqliteMailboxRepository Repository) Reopen()
         {
             var scope = new DomainTransactionScope();
-            return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope)));
+            return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope), new SqliteItemDomainStore(path), scope));
         }
 
         public void Execute(string sql)

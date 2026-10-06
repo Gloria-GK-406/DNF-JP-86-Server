@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -389,9 +390,10 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
-        var bag = new SlotBook(InventoryContainerType.Main, character);
-        var avatars = new SlotBook(InventoryContainerType.Avatar, character);
-        var worn = new SlotBook(InventoryContainerType.Equipment, character);
+        var fixture = new MoveItemFixture();
+        var bag = new SlotBook(InventoryContainerType.Main, character, fixture);
+        var avatars = new SlotBook(InventoryContainerType.Avatar, character, fixture);
+        var worn = new SlotBook(InventoryContainerType.Equipment, character, fixture);
         if (inBagAt is { } bagSlot)
             bag.Seed(bagSlot, Costume);
         if (inAvatarAt is { } avatarSlot)
@@ -420,9 +422,9 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                 new OneSession(),
                 currentViews,
                 mappings,
-                new DirectMoveBus(commandHandler),
+                new DirectMoveBus(commandHandler, fixture),
                 sender,
-                logger),
+                logger, null!, null!, TimeProvider.System),
             sender,
             runtime,
             currentViews,
@@ -499,7 +501,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
         {
             Loads++;
-            var items = await worn.ReadAllAsync(cancellationToken);
+            var items = await worn.ReadProjectionAsync(cancellationToken);
             var shape = SelectCharacterPayloadTestData.CreateComplete().CharacterInventory;
             return shape with
             {
@@ -512,7 +514,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                         InventoryContainerType.Equipment,
                         0,
                         [.. items.Select(item => new InventoryItemState(
-                            new ItemIdentity(item.SlotIndex + 1), item.SlotIndex, item.Core))]),
+                            item.Identity, item.SlotIndex, item.Core))]),
                 ],
             };
         }
@@ -592,80 +594,14 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         }
     }
 
-    private sealed class SlotBook(InventoryContainerType type, CharacterId character) : IItemContainer
+    private sealed class SlotBook(InventoryContainerType type, CharacterId character, MoveItemFixture fixture)
+        : LifecycleTestContainer(type, character, fixture)
     {
-        private readonly Dictionary<int, ContainerSlotItem> bySlot = [];
-
-        public ContainerId Id { get; } = ContainerId.ForCharacter(character, type);
-
-        public InventoryContainerType Type => type;
-
-        public ContainerShape Shape { get; } = new(type, 0);
-
-        public bool IsRemovable => false;
-
-        public void Seed(int slotIndex, int itemId) =>
-            this.bySlot[slotIndex] = new ContainerSlotItem(
-                slotIndex, StackableItemCore.Create(8, itemId, 1), ItemWorldClass.Avatar);
-
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(this.bySlot.GetValueOrDefault(slotIndex));
-
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
-            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ContainerSlotPair(
-                this.bySlot.GetValueOrDefault(firstSlotIndex),
-                this.bySlot.GetValueOrDefault(secondSlotIndex)));
-
-        public ValueTask PutAsync(
-            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
-        {
-            this.bySlot[slotIndex] = new ContainerSlotItem(slotIndex, core, ItemWorldClass.Avatar);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken)
-        {
-            this.bySlot.Remove(slotIndex);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask<ItemMoveOutcome> MoveToAsync(
-            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken)
-        {
-            var moving = this.bySlot.GetValueOrDefault(fromSlotIndex);
-            if (moving is null)
-                return ValueTask.FromResult<ItemMoveOutcome>(
-                    new ItemMoveOutcome.Refused(ItemMoveRefusal.BothSlotsEmpty));
-
-            this.bySlot.Remove(fromSlotIndex);
-            this.bySlot[toSlotIndex] = new ContainerSlotItem(
-                toSlotIndex, moving.Core, ItemWorldClass.Avatar);
-            return ValueTask.FromResult<ItemMoveOutcome>(
-                new ItemMoveOutcome.Moved(count, moving.ItemId));
-        }
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(
-                [.. this.bySlot.Values.OrderBy(item => item.SlotIndex)]);
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> AddAsync(
-            int itemId, int count, CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask<ItemPlacementOutcome> RefillAsync(
-            ItemRefill refill, CancellationToken cancellationToken) => throw Unused();
-
-        private static NotSupportedException Unused() =>
-            new("This container answers slot reads, writes, moves and a full read.");
+        public void Seed(int slotIndex, int itemId) => SeedItem(slotIndex, itemId, 8);
     }
 
     private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move) : ICommandBus
+        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
     {
         public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
@@ -674,8 +610,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             var context = new CommandExecutionContext(
                 Guid.Empty, command.GetType(), typeof(DirectMoveBus),
                 CommandExecutionKind.Transactional);
-            var result = await move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken);
+            var result = await fixture.RunAsync(() => move.HandleAsync(
+                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
             return (TResult)(object)result;
         }
     }
@@ -694,7 +630,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
     private sealed class SelectionVisits : IDungeonVisitDomainService
     {
-        public bool DefersSelectionState(byte characterLevel) => characterLevel <= 1;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => characterLevel <= 1 && !tutorialCompleted;
         public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
             DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

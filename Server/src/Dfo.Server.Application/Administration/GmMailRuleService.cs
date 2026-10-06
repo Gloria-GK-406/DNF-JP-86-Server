@@ -11,8 +11,10 @@ using Dfo.Server.Application.Inventory;
 namespace Dfo.Server.Application.Administration;
 
 internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openings, IItemPlacementRuleService placements,
-    IGmMailEquipmentRuleService equipmentRules, IGmMailItemCatalogSource catalog, TimeProvider clock) : IGmMailRuleService
+    IItemEquipmentRuleService equipmentRules, IItemCatalogRuleService catalog) : IGmMailRuleService
 {
+    public string SelectionKey => "mail";
+    public bool Allows(ItemCatalogDefinition definition) => PermanentOrdinaryItemRules.Allows(definition);
     private static readonly UTF8Encoding Utf8 = new(false, true);
     public GmMailInput Normalize(GmMailInput input, bool sending)
     {
@@ -21,12 +23,13 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             || input.Items.Any(x => x is null || x.ItemId <= 0 || x.Count <= 0) || input.Gold < 0)
             throw Invalid("邮件字段、收件人或附件数量无效。");
         var title = Text(input.Title); var body = Text(input.Body);
+        if (sending && string.IsNullOrWhiteSpace(body)) body = "此为官方邮件，无需回复。";
         var items = input.Items.Select(item => item with { Equipment = NormalizeOptions(item.Equipment) }).ToArray();
         if (items.Select(item => (item.ItemId, item.Equipment)).Distinct().Count() != items.Length)
             throw Invalid("相同物品和配置请合并数量；不同装备配置可以分别添加。");
         var result = new GmMailInput(title, body, input.RecipientIds.Distinct().Order().ToArray(), items, input.Gold);
-        if (sending && (result.RecipientIds.Length == 0 || string.IsNullOrWhiteSpace(body) || Utf8.GetByteCount(DisplayText(result)) > 511))
-            throw Invalid("请选择收件人并填写正文，实际显示内容最多 511 个 UTF-8 字节。");
+        if (sending && (result.RecipientIds.Length == 0 || Utf8.GetByteCount(DisplayText(result)) > 511))
+            throw Invalid("请选择收件人，实际显示内容最多 511 个 UTF-8 字节（含留空正文的默认文案）。");
         return result;
     }
     public string DisplayText(GmMailInput input) => input.Title.Length == 0 || input.Title == input.Body ? input.Body : input.Title + "\n" + input.Body;
@@ -55,14 +58,20 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             var equipment = placement.WorldClass == ItemWorldClass.Equipment;
             expanded = checked(expanded + (equipment ? Math.Min(requested.Count, 11) : 1));
             if (equipment && requested.Count > 10 || expanded > 10) throw Invalid("每人最多 10 个展开物品附件。");
-            var core = StackableItemCore.Create(placement.ItemKind, requested.ItemId, equipment ? 0 : requested.Count) with
-            { Durability = declaration.Durability, SealFlag = declaration.Sealed ? (byte)1 : (byte)0 };
+            var core = new ItemSnapshot
+            {
+                ItemId = requested.ItemId, Count = equipment ? 1 : requested.Count, IsPile = !equipment,
+                Type = placement.Traits, LegacyKind = placement.ItemKind, Marker16 = -1,
+                RandomOptionChangedIndex = byte.MaxValue,
+                Durability = declaration.Durability, SealFlag = declaration.Sealed ? (byte)1 : (byte)0
+            };
             if (requested.Equipment is { } options)
             {
                 if (!equipment) throw Invalid($"物品 {requested.ItemId} 是堆叠物，不能配置装备属性。");
-                core = await equipmentRules.ConfigureAsync(core, options, token);
+                try { core = await equipmentRules.ConfigureAsync(core, options, token); }
+                catch (ArgumentException e) { throw Invalid(e.Message); }
             }
-            var name = (await catalog.FindAsync(requested.ItemId, token))?.Name;
+            var name = await catalog.ItemNameAsync(requested.ItemId, token);
             output.Add(new(requested, new(requested.ItemId, requested.Count, equipment ? "equipment" : "stackable",
                 core.Durability, core.SealFlag != 0, name, core.ReinforcementLevel, core.AmplifyType, core.AmplifyValue), core));
         }
@@ -76,7 +85,7 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
         catch (EncoderFallbackException) { throw Invalid("邮件文字包含无效字符。"); }
         return text;
     }
-    private static GmMailEquipmentOptions? NormalizeOptions(GmMailEquipmentOptions? options)
+    private static ItemEquipmentOptions? NormalizeOptions(ItemEquipmentOptions? options)
     {
         if (options is null) return null;
         if (options.Seal is not ("default" or "unsealed") || options.Growth is not ("none" or "reinforcement" or "amplification")
@@ -85,7 +94,7 @@ internal sealed partial class GmMailRuleService(IPackageOpeningRuleService openi
             || (options.Growth == "amplification" ? options.AmplifyType is < 1 or > 4 : options.AmplifyType != 0))
             throw Invalid("装备封装、成长模式、等级或异次元属性组合无效。");
         // Omitting the default configuration preserves the exact JSON/hash of pre-extension mail.
-        return options == new GmMailEquipmentOptions() ? null : options;
+        return options == new ItemEquipmentOptions() ? null : options;
     }
     private static GmMailException Invalid(string text) => new(GmMailRefusal.Invalid, text);
 }

@@ -16,20 +16,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 
-/// <summary>
-/// The inventory the client is told about, taken from the container instead of from the loader.
-/// </summary>
-/// <remarks>
-/// Two readers of the same rows: the entry loader, which is where the projection's content came
-/// from before, and the container, which is where it comes from once a dungeon can replace it.
-/// Changing the source is only safe if the frame does not move, so this compares encoded bytes
-/// rather than objects -- the container is a new road to the same place, and the client must not be
-/// able to tell which road was taken.
-///
-/// The rows are seeded out of slot order, and one of them sits in another list, so a container that
-/// read them in a different order or forgot which list it was would part company with the loader
-/// here rather than in front of a player.
-/// </remarks>
+/// <summary>Entry projections preserve stored rows and agree with deltas built from current references.</summary>
 public sealed class ContainerInventoryProjectionTests
 {
     private static readonly DateTimeOffset PreparedAt =
@@ -40,7 +27,7 @@ public sealed class ContainerInventoryProjectionTests
     private static readonly CharacterId Character = new(60);
 
     [Fact]
-    public async Task A_container_supplied_snapshot_encodes_to_the_bytes_the_loader_produces()
+    public async Task EntrySnapshotPreservesMainRowsInSlotOrderAndExcludesOtherLists()
     {
         await using var storage = await SqliteStorage.CreateAsync();
         await storage.SeedAsync(listType: 0, slot: 121, itemId: 3001, count: 1, itemKind: 3);
@@ -49,19 +36,14 @@ public sealed class ContainerInventoryProjectionTests
         await storage.SeedAsync(listType: 2, slot: 0, itemId: 7777, count: 4, itemKind: 2);
 
         var fromLoader = await storage.LoadContainerAsync(InventoryContainerType.Main);
-        var container = storage.OpenContainer(fromLoader.Parameter);
-
-        var containerState = new InventoryContainerState(
-            container.Type,
-            container.Shape.Parameter,
-            await container.SnapshotAsync(CancellationToken.None));
-
-        Assert.Equal(Encode(fromLoader), Encode(containerState));
-        Assert.Equal(3, containerState.Items.Count);
+        var expected = new InventoryContainerState(InventoryContainerType.Main, fromLoader.Parameter,
+            [new(null, 3, Core(8474, 2, 2)), new(null, 65, Core(8475, 99, 2)), new(null, 121, Core(3001, 1, 3))]);
+        Assert.Equal(Encode(expected), Encode(fromLoader));
+        Assert.Equal([3, 65, 121], fromLoader.Items.Select(item => item.SlotIndex));
     }
 
     [Fact]
-    public async Task A_container_supplied_delta_encodes_to_the_bytes_the_loader_produces()
+    public async Task CurrentReferenceDeltaMatchesEntryProjection()
     {
         await using var storage = await SqliteStorage.CreateAsync();
         await storage.SeedAsync(listType: 0, slot: 65, itemId: 8475, count: 99, itemKind: 2);
@@ -69,19 +51,26 @@ public sealed class ContainerInventoryProjectionTests
 
         var fromLoader = await storage.LoadContainerAsync(InventoryContainerType.Main);
         var container = storage.OpenContainer(fromLoader.Parameter);
-        var moved = await container.ReadSlotAsync(3, CancellationToken.None);
-
-        var fromContainer = new InventoryDeltaMessage(
-            container.Type,
-            [.. (await container.SnapshotAsync(CancellationToken.None))
-                .Where(item => item.SlotIndex == moved!.SlotIndex)],
-            PreparedAt).EncodeBody();
+        var moved = Assert.IsType<ItemReference>(await container.GetAsync(3, CancellationToken.None));
+        var fromContainer = new InventoryDeltaMessage(container.Type,
+            [new InventoryItemState(moved.ItemUid, moved.SlotIndex, moved.Snapshot.ToCore())], PreparedAt).EncodeBody();
         var expected = new InventoryDeltaMessage(
             InventoryContainerType.Main,
             [.. fromLoader.Items.Where(item => item.SlotIndex == 3)],
             PreparedAt).EncodeBody();
 
         Assert.Equal(expected, fromContainer);
+    }
+
+    private static InventoryItemCoreState Core(int itemId, int count, byte kind)
+    {
+        var bytes = new byte[82];
+        bytes[0] = kind;
+        bytes[66] = byte.MaxValue;
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(1), itemId);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(5), count);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(21), -1);
+        return InventoryItemCore.Decode(bytes);
     }
 
     private static byte[] Encode(InventoryContainerState container) =>
@@ -94,14 +83,11 @@ public sealed class ContainerInventoryProjectionTests
             Path = path;
             var side = new InventorySide(path);
             Entries = side.PerCall;
-            Mutations = side.MutationsPerCall;
         }
 
         public string Path { get; }
 
         private ICharacterInventoryEntryRepository Entries { get; }
-
-        private IEntryInventoryMutationRepository Mutations { get; }
 
         public static async Task<SqliteStorage> CreateAsync()
         {
@@ -121,17 +107,10 @@ public sealed class ContainerInventoryProjectionTests
         public IItemContainer OpenContainer(ushort parameter) =>
             new PersistentItemContainer(
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
-                Character,
                 new ContainerShape(InventoryContainerType.Main, parameter),
                 new SqliteItemDomainStore(Path),
                 new DomainTransactionScope(),
-                Mutations,
-                // A read now asks the archive what sort of thing each slot holds, the same
-                // question a write of that slot asks, so a rules service is supplied rather than
-                // left null. Nothing here is declared, which is the answer an undeclared template
-                // gets anyway: an ordinary pile.
                 new ItemPlacementRuleService(new NothingDeclared(), new NoWearables()),
-                null!,
                 null!);
 
         private sealed class NothingDeclared : IItemPlacementDefinitionSource
@@ -157,22 +136,19 @@ public sealed class ContainerInventoryProjectionTests
 
         public async Task SeedAsync(int listType, int slot, int itemId, int count, byte itemKind)
         {
-            var core = new byte[82];
-            core[0] = itemKind;
-            core[66] = byte.MaxValue;
-            BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1, 4), itemId);
-            BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(5, 4), count);
-            BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21, 4), -1);
+            var core = InventoryItemCore.Encode(Core(itemId, count, itemKind));
             await using var connection = Open(Path);
             await using var command = connection.CreateCommand();
             command.CommandText =
                 "INSERT INTO items(item_core) VALUES(@core);"
                 + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-                + "VALUES('character',60,@list,@slot,'world',last_insert_rowid(),"
-                + "last_insert_rowid(),1)";
+                + "VALUES('character',60,@list,@slot,'template',@item,"
+                + "last_insert_rowid(),@count)";
             command.Parameters.AddWithValue("@list", listType);
             command.Parameters.AddWithValue("@slot", slot);
             command.Parameters.AddWithValue("@core", core);
+            command.Parameters.AddWithValue("@item", itemId);
+            command.Parameters.AddWithValue("@count", count);
             await command.ExecuteNonQueryAsync();
         }
 

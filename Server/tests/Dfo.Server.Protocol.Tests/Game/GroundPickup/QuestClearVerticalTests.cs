@@ -79,13 +79,10 @@ public sealed class QuestClearVerticalTests
                 var containers = new CharacterContainerDomainService();
                 containers.Register(Leader, new PersistentItemContainer(
                     Main,
-                    Leader,
                     new ContainerShape(InventoryContainerType.Main, 56),
                     itemStore,
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
-                    null!,
                     PlacementRules(),
-                    new ItemArrivalRuleService(),
                     new ItemSlotRuleService()));
                 return containers;
             });
@@ -99,8 +96,10 @@ public sealed class QuestClearVerticalTests
                 new SeekingFactAdapter(
                     provider.GetRequiredService<ISeekingQuestProgressDomainService>()));
             services.AddSingleton<IGroundPickupDomainService>(new GroundPickupDomainService());
-            services.AddSingleton<IItemGrantDomainService>(
-                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService());
+            services.AddSingleton<IItemGrantDomainService>(provider =>
+                new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(PlacementRules(),
+                    new ItemLifecycleDomainService(itemStore,
+                        provider.GetRequiredService<IDomainTransactionAccessor>(), PlacementRules())));
             services.AddCommandHandler<
                 PickUpGroundDropCommand,
                 GroundPickupResult,
@@ -247,21 +246,18 @@ public sealed class QuestClearVerticalTests
     private static async Task SeedItemsAsync(SqliteItemDomainStore store)
     {
         var transaction = new DomainTransaction();
-        store.SessionIn(transaction).Write(
-            Main,
-            new StoredItem(9, QuestItem(14))
-            {
-                WorldClass = ItemWorldClass.Interchangeable,
-            });
+        var session = store.SessionIn(transaction);
+        var item = await session.CreateAsync(ItemSnapshot.FromCore(QuestItem(14), true), default);
+        await session.PutAsync(Main, 9, item, default);
         await transaction.CommitAsync(CancellationToken.None);
     }
 
     private static async Task<int> StoredQuantityAsync(SqliteItemDomainStore store)
     {
         var transaction = new DomainTransaction();
-        var stored = await store.SessionIn(transaction).ReadAsync(Main, 9, default);
+        var stored = await store.SessionIn(transaction).GetAsync(Main, 9, default);
         await transaction.CommitAsync(CancellationToken.None);
-        return stored!.Core.Value;
+        return stored!.Snapshot.Count;
     }
 
     private static async Task<int> TriggerAsync(string path)

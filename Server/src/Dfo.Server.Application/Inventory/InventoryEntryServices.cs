@@ -6,7 +6,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEntryRepository repository,
-    LegacyWornItemNormalizer? wornNormalizer = null)
+    LegacyWornItemNormalizer? wornNormalizer = null, ICharacterContainerDomainService? containers = null)
     : ICharacterInventoryEntryDomainService
 {
     public async ValueTask<CharacterInventoryEntryState> LoadAsync(
@@ -24,11 +24,21 @@ internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEn
     {
         var stored = await repository.LoadCharacterAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
-        return InventoryEntryProjection.ProjectCharacter(stored, accountId, characterId);
+        var result = InventoryEntryProjection.ProjectCharacter(stored, accountId, characterId);
+        if (containers?.FindContainer(characterId, InventoryContainerType.Main) is { IsPersistent: false } current)
+        {
+            var items = await current.GetAllAsync(cancellationToken).ConfigureAwait(false);
+            result = result with { Containers = result.Containers.Select(value => value.ContainerType == InventoryContainerType.Main
+                ? new InventoryContainerState(value.ContainerType, current.Shape.Parameter,
+                    items.Select(item => new InventoryItemState(item.ItemUid, item.StorageSlotIndex, item.Snapshot.ToCore())).ToArray())
+                : value).ToArray() };
+        }
+        return result;
     }
 }
 
-internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryRepository repository)
+internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryRepository repository,
+    ICharacterContainerDomainService? containers = null)
     : IAccountInventoryEntryDomainService
 {
     public async ValueTask<AccountInventoryEntryState> LoadAsync(
@@ -38,7 +48,15 @@ internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryR
     {
         var stored = await repository.LoadAccountAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
-        return InventoryEntryProjection.ProjectAccount(stored, accountId, characterId);
+        var result = InventoryEntryProjection.ProjectAccount(stored, accountId, characterId);
+        if (containers?.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { IsPersistent: false } current)
+        {
+            var contents = await current.GetAllAsync(cancellationToken).ConfigureAwait(false);
+            var counts = contents.ToDictionary(item => item.StorageSlotIndex, item => item.Count);
+            result = result with { VirtualResources = AccountMaterialCatalog.Definitions.Select((material, index) =>
+                new InventoryRuntimeValueState(material.VirtualSlotIndex, material.ItemId, counts.GetValueOrDefault(index))).ToArray() };
+        }
+        return result;
     }
 }
 
@@ -157,18 +175,16 @@ internal static class InventoryEntryProjection
 
     private static IReadOnlyDictionary<InventoryContainerType, IReadOnlyList<InventoryItemState>>
         NormalizeCharacterItems(
-            IReadOnlyList<InventoryStorageItem> source,
+            IReadOnlyList<ItemReference> source,
             CharacterId characterId)
     {
         ValidateItems(
             source,
-            item => item.OwnerType == InventoryOwnerType.Character
-                && item.OwnerId == characterId.Value
-                && item.CharacterId == characterId
-                && CharacterContainerOrder.Contains(item.ContainerType),
+            item => item.ContainerId.TryGetCharacterOwner(out var owner, out var type)
+                && owner == characterId && CharacterContainerOrder.Contains(type),
             "character inventory");
         return source
-            .GroupBy(item => item.ContainerType)
+            .GroupBy(StorageType)
             .ToDictionary(
                 group => group.Key,
                 group => (IReadOnlyList<InventoryItemState>)group
@@ -178,14 +194,12 @@ internal static class InventoryEntryProjection
     }
 
     private static IReadOnlyList<InventoryItemState> NormalizeAccountCargoItems(
-        IReadOnlyList<InventoryStorageItem> source,
+        IReadOnlyList<ItemReference> source,
         AccountId accountId)
     {
         ValidateItems(
             source,
-            item => item.OwnerType == InventoryOwnerType.Account
-                && item.OwnerId == accountId.Value
-                && item.ContainerType == InventoryContainerType.AccountCargo,
+            item => item.ContainerId.TryGetAccountCargoOwner(out var owner) && owner == accountId,
             "account cargo");
         return source
             .OrderBy(item => item.SlotIndex)
@@ -194,22 +208,22 @@ internal static class InventoryEntryProjection
     }
 
     private static void ValidateItems(
-        IReadOnlyList<InventoryStorageItem> source,
-        Func<InventoryStorageItem, bool> ownsItem,
+        IReadOnlyList<ItemReference> source,
+        Func<ItemReference, bool> ownsItem,
         string sourceName)
     {
         var slots = new HashSet<(InventoryContainerType ContainerType, int SlotIndex)>();
         foreach (var item in source)
         {
-            if (!ownsItem(item) || item.SlotIndex < 0 || item.Core is null)
+            if (!ownsItem(item) || item.SlotIndex < 0 || item.Snapshot is null)
             {
                 throw new InvalidDataException($"The {sourceName} contains an invalid item.");
             }
 
-            if (!slots.Add((item.ContainerType, item.SlotIndex)))
+            if (!slots.Add((StorageType(item), item.SlotIndex)))
             {
                 throw new InvalidDataException(
-                    $"The {sourceName} contains duplicate slot {item.ContainerType}/{item.SlotIndex}.");
+                    $"The {sourceName} contains duplicate slot {StorageType(item)}/{item.SlotIndex}.");
             }
         }
     }
@@ -219,8 +233,12 @@ internal static class InventoryEntryProjection
     /// key, which was a tie that cannot happen -- <see cref="ValidateItems"/> has already refused
     /// two items in one container's slot -- and which asked a pile for a mark it does not have.
     /// </remarks>
-    private static InventoryItemState ToItemState(InventoryStorageItem item) =>
-        new(item.Identity, item.SlotIndex, item.Core, item.AvatarDetail);
+    private static InventoryContainerType StorageType(ItemReference item) =>
+        item.ContainerId.TryGetOwner(out _, out var type) ? type
+            : throw new InvalidDataException("Inventory item has an invalid container.");
+
+    private static InventoryItemState ToItemState(ItemReference item) =>
+        new(item.ItemUid, item.SlotIndex, item.Snapshot.ToCore(), item.Snapshot.AvatarDetail);
 
     private static IReadOnlyList<InventoryRuntimeValueState> NormalizeRuntimeValues(
         IReadOnlyList<InventoryRuntimeValueState> source)

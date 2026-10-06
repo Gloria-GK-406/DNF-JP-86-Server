@@ -28,9 +28,9 @@ public sealed class ForgingCompletedHandler(
         var targetBound = inventory.Find(receipt.Session.CharacterId, receipt.TargetSlot);
         var materialBound = inventory.Find(receipt.Session.CharacterId, receipt.MaterialSlot);
         if (targetBound is null || materialBound is null) return [];
-        var target = await targetBound.Container.ReadSlotAsync(targetBound.Slot.Index, ct)
+        var target = await targetBound.Container.GetAsync(targetBound.Slot.Index, ct)
             .ConfigureAwait(false);
-        var material = await materialBound.Container.ReadSlotAsync(materialBound.Slot.Index, ct)
+        var material = await materialBound.Container.GetAsync(materialBound.Slot.Index, ct)
             .ConfigureAwait(false);
         var targetGame = slots.Project(receipt.TargetSlot);
         var materialGame = slots.Project(receipt.MaterialSlot);
@@ -43,8 +43,8 @@ public sealed class ForgingCompletedHandler(
                 TargetListType: (byte)targetGame.Space,
                 TargetSlot: checked((short)targetGame.Index)),
         };
-        AddSlot(messages, receipt.TargetSlot, target?.Core, receipt.CommittedAt);
-        AddSlot(messages, receipt.MaterialSlot, material?.Core, receipt.CommittedAt);
+        AddSlot(messages, receipt.TargetSlot, target?.Snapshot.ToCore(), receipt.CommittedAt);
+        AddSlot(messages, receipt.MaterialSlot, material?.Snapshot.ToCore(), receipt.CommittedAt);
         return messages;
     }
 

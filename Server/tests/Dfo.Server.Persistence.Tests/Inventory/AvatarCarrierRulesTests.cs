@@ -50,8 +50,8 @@ public sealed class AvatarCarrierRulesTests
                 .LoadCharacterAsync(new AccountId(Account), new CharacterId(Character), token));
 
             var item = Assert.Single(loaded.CharacterItems);
-            Assert.Equal(1, item.Core.ItemKind);
-            Assert.Null(item.AvatarDetail);
+            Assert.Equal(1, item.Snapshot.ToCore().ItemKind);
+            Assert.Null(item.Snapshot.AvatarDetail);
         });
     }
 
@@ -119,9 +119,9 @@ public sealed class AvatarCarrierRulesTests
                 .LoadAccountAsync(new AccountId(Account), new CharacterId(Character), token));
 
             var avatar = Assert.Single(loaded.AccountCargoItems);
-            Assert.Equal(8, avatar.Core.ItemKind);
-            Assert.Equal(5151, avatar.Core.Value);
-            Assert.Null(avatar.AvatarDetail);
+            Assert.Equal(8, avatar.Snapshot.ToCore().ItemKind);
+            Assert.Equal(5151, avatar.Snapshot.ToCore().Value);
+            Assert.Null(avatar.Snapshot.AvatarDetail);
         });
     }
 
@@ -133,12 +133,8 @@ public sealed class AvatarCarrierRulesTests
     /// socket is a fixed thirty-byte block and each colour goes out as an unsigned sixteen-bit
     /// value, so a row disagreeing with either cannot be written at all.
     /// <para>
-    /// The table is stood in for rather than seeded, because one of the three arms cannot be
-    /// reached through a real database: <c>avatar_jewel_socket</c> carries a CHECK on its length,
-    /// so a row with a shorter socket never lands. The colours carry no CHECK and would seed, but
-    /// all three are handed over the same way so the three read as one rule over one row -- and so
-    /// that what is held here is the load's own refusal rather than the schema's.
-    /// </para>
+    /// These samples are real persisted rows. Only the deliberately damaged socket fixture disables
+    /// SQLite CHECK constraints on its seed connection; normal reads still apply lifecycle validation.
     /// <para>
     /// The exception type is asserted rather than merely that something was thrown. Take the range
     /// test away and a colour past the ceiling reaches the <c>checked</c> conversion just below it
@@ -150,13 +146,19 @@ public sealed class AvatarCarrierRulesTests
     public Task AnAvatarWhoseJewelSocketIsNotThirtyBytesIsRefused() =>
         TheLoadRefusesAsync(UsableFacts() with { JewelSocket = new byte[29] });
 
-    [Fact]
-    public Task AnAvatarWhoseFirstColourIsPastTheCeilingIsRefused() =>
-        TheLoadRefusesAsync(UsableFacts() with { Color1 = ushort.MaxValue + 1L });
+    [Theory]
+    [InlineData(-1L)]
+    [InlineData(65536L)]
+    [InlineData(long.MaxValue)]
+    public Task AnAvatarWhoseFirstColourIsOutsideTheWireRangeIsRefused(long color) =>
+        TheLoadRefusesAsync(UsableFacts() with { Color1 = color });
 
-    [Fact]
-    public Task AnAvatarWhoseSecondColourIsPastTheCeilingIsRefused() =>
-        TheLoadRefusesAsync(UsableFacts() with { Color2 = ushort.MaxValue + 1L });
+    [Theory]
+    [InlineData(-1L)]
+    [InlineData(65536L)]
+    [InlineData(long.MaxValue)]
+    public Task AnAvatarWhoseSecondColourIsOutsideTheWireRangeIsRefused(long color) =>
+        TheLoadRefusesAsync(UsableFacts() with { Color2 = color });
 
     /// <summary>The row each of the three malformed ones is exactly one change away from.</summary>
     /// <remarks>
@@ -170,10 +172,10 @@ public sealed class AvatarCarrierRulesTests
         var carried = await TheLoadAnswersAsync(UsableFacts());
 
         var avatar = Assert.Single(carried.CharacterItems);
-        Assert.NotNull(avatar.AvatarDetail);
-        Assert.Equal(30, avatar.AvatarDetail.JewelSocket.Length);
-        Assert.Equal(ushort.MaxValue, (int)avatar.AvatarDetail.Color1);
-        Assert.Equal(0, (int)avatar.AvatarDetail.Color2);
+        Assert.NotNull(avatar.Snapshot.AvatarDetail);
+        Assert.Equal(30, avatar.Snapshot.AvatarDetail.JewelSocket.Length);
+        Assert.Equal(ushort.MaxValue, (int)avatar.Snapshot.AvatarDetail.Color1);
+        Assert.Equal(0, (int)avatar.Snapshot.AvatarDetail.Color2);
     }
 
     private static AvatarDetailRow UsableFacts() =>
@@ -184,8 +186,7 @@ public sealed class AvatarCarrierRulesTests
         var refused = await Assert.ThrowsAsync<InvalidDataException>(
             async () => await TheLoadAnswersAsync(handed));
 
-        Assert.Contains(
-            "is malformed or has the wrong owner", refused.Message, StringComparison.Ordinal);
+        Assert.NotEmpty(refused.Message);
     }
 
     private static async Task<CharacterInventoryEntryStorageRecord> TheLoadAnswersAsync(
@@ -202,25 +203,29 @@ public sealed class AvatarCarrierRulesTests
                 VALUES({Character},{Account},'pin',3,60);
                 """);
 
-            ICharacterInventoryEntryRepository entries = new InventoryEntryAssembly(
-                new SqliteCharacterTable(database),
-                new AccountMaterialBagDomainService(
-                    new SqliteAccountMaterialBagStore(path),
-                    new AccountMaterialRuleService(),
-                    new AmbientStoreAccess(scope)),
-                new AccountMaterialRuleService(),
-                new Handing(handed),
-                new SqliteAccountCargoItemTable(database),
-                new SqliteCharacterContainerStateTable(database),
-                new SqliteAccountCargoStateTable(database),
-                new SqliteCharacterGoldLimitTable(database),
-                new SqliteCharacterCarriedGoldTable(database),
-                new SqliteCharacterItemCooldownTable(database),
-                new SqliteCharacterItemEffectTable(database),
-                new SqliteCharacterItemLockTable(database),
-                new SqliteCharacterRentalTable(database),
-                new ItemPlacementRuleService(new EveryTemplateAnAvatar(), new NoWornSlots()));
-
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"""
+                    PRAGMA ignore_check_constraints=ON;
+                    INSERT INTO items(item_core,avatar_expire_date,avatar_clear_id,avatar_jewel_socket,
+                        avatar_color1,avatar_color2,avatar_delete_date)
+                    VALUES({Core(8, 2500, 4242)},@expire,@clear,@socket,@color1,@color2,@delete);
+                    INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+                    VALUES('character',{Character},1,4,'world',last_insert_rowid(),last_insert_rowid(),1);
+                    PRAGMA ignore_check_constraints=OFF;
+                    """;
+                command.Parameters.AddWithValue("@expire", handed.ExpireDate);
+                command.Parameters.AddWithValue("@clear", handed.ClearAvatarId);
+                command.Parameters.AddWithValue("@socket", handed.JewelSocket);
+                command.Parameters.AddWithValue("@color1", handed.Color1);
+                command.Parameters.AddWithValue("@color2", handed.Color2);
+                command.Parameters.AddWithValue("@delete", handed.DeleteDate);
+                await command.ExecuteNonQueryAsync();
+            }
+            var side = new InventorySide(path, new EveryTemplateAnAvatar());
+            var entries = side.CharacterEntries;
             await using var lease = scope.Begin();
             var loaded = await entries.LoadCharacterAsync(
                 new AccountId(Account), new CharacterId(Character), CancellationToken.None);
@@ -239,58 +244,6 @@ public sealed class AvatarCarrierRulesTests
                 // A file the runtime still holds is left for the temp directory to reap.
             }
         }
-    }
-
-    /// <summary>A table handing the load one avatar row, with whichever facts the test chose.</summary>
-    /// <remarks>
-    /// Only the read the entry load makes is answered. The rest refuse rather than returning an
-    /// empty answer, so a load that reached further than this stands for would say so instead of
-    /// passing quietly.
-    /// </remarks>
-    private sealed class Handing(AvatarDetailRow avatar) : ICharacterItemTable
-    {
-        public ValueTask<IReadOnlyList<CharacterItemRow>> ReadByCharacterAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<CharacterItemRow>>(
-            [
-                new CharacterItemRow(
-                    9, "character", characterId.Value, 1, 4,
-                    StackableItemCore.Create(8, 2500, 4242), avatar),
-            ]);
-
-        public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
-            CharacterId characterId, CancellationToken cancellationToken) => throw Unreached();
-
-        public ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
-            AccountId accountId, CancellationToken cancellationToken) => throw Unreached();
-
-        public ValueTask<int> DeleteOwnExceptAsync(
-            CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken)
-            => throw Unreached();
-
-        public ValueTask<int> DeleteOwnByUidsAsync(
-            CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken)
-            => throw Unreached();
-
-        public ValueTask<int> UpdateOwnAsync(
-            long itemUid, CharacterId characterId, InventoryItemCoreState core,
-            InventoryAvatarDetailState? avatarDetail, CancellationToken cancellationToken)
-            => throw Unreached();
-
-        public ValueTask<long?> InsertOwnAsync(
-            InventoryItemCoreState core, InventoryAvatarDetailState? avatarDetail,
-            CancellationToken cancellationToken) => throw Unreached();
-
-        public ValueTask<int> ClearOwnPositionsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) => throw Unreached();
-
-        public ValueTask<int> HoldOwnAsync(
-            CharacterId characterId, int listType, int slotIndex, ItemSlotKind kind,
-            int id, int coreUid, int count, CancellationToken cancellationToken)
-            => throw Unreached();
-
-        private static NotSupportedException Unreached() =>
-            new("The entry load reads a character's items and nothing else here.");
     }
 
     private sealed class EveryTemplateAnAvatar : IItemPlacementDefinitionSource

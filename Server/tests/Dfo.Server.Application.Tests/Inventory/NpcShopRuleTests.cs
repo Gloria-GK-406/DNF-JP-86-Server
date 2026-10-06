@@ -44,7 +44,7 @@ public sealed class NpcShopRuleTests
     {
         var rules = new NpcShopTestContent().Rules();
         var quote = (await rules.QuoteAsync(2, 15, 12, 5000, 3, default)).Quote!;
-        var plan = rules.Plan(quote, new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+        var plan = rules.Plan(quote, new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>
         {
             [BusinessInventorySpace.Material] = [Pile(0, 1000, 7, 3), Pile(1, 1000, 8, 3)],
             [BusinessInventorySpace.QuickSlot] = [Pile(0, 5000, 9)],
@@ -54,7 +54,7 @@ public sealed class NpcShopRuleTests
         Assert.Equal(new[] { new BusinessSlot(BusinessInventorySpace.Material, 0), new BusinessSlot(BusinessInventorySpace.Material, 1) }, plan.Plan!.MaterialChanges.Select(change => change.Slot));
         Assert.All(plan.Plan.MaterialChanges, change => Assert.Null(change.Core));
         Assert.Equal(new[] { (BusinessInventorySpace.QuickSlot, 0, 10, 1), (BusinessInventorySpace.QuickSlot, 1, 2, 2) }, plan.Plan.GrantedSlots
-            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.Value, slot.AddedCount)));
+            .Select(slot => (slot.Slot.Space, slot.Slot.Index, slot.Core.ToCore().Value, slot.AddedCount)));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class NpcShopRuleTests
     {
         var rules = new NpcShopTestContent().Rules();
         var quote = (await rules.QuoteAsync(2, 15, 12, 5000, 1, default)).Quote!;
-        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+        var held = new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>
         {
             [BusinessInventorySpace.QuickSlot] = Enumerable.Range(0, 6).Select(slot => Pile(slot, 5000, 10)).ToArray(),
             [BusinessInventorySpace.Consumable] = [Pile(0, 5000, 10), Pile(1, 5000, 10)],
@@ -80,9 +80,9 @@ public sealed class NpcShopRuleTests
         var rules = new NpcShopTestContent().Rules();
         var quote = (await rules.QuoteAsync(2, 15, 12, 5000, 1, default)).Quote!;
         Assert.Equal(NpcShopRejection.InsufficientGold, rules.Plan(quote,
-            new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>(), 99, 42).Rejection);
+            new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>(), 99, 42).Rejection);
         Assert.Equal(NpcShopRejection.InsufficientMaterials, rules.Plan(quote,
-            new Dictionary<BusinessInventorySpace, IReadOnlyList<ContainerSlotItem>>
+            new Dictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>>
             { [BusinessInventorySpace.Material] = [Pile(0, 1000, 4, 3)] }, 100, 42).Rejection);
     }
 
@@ -97,8 +97,8 @@ public sealed class NpcShopRuleTests
             rules.PurchasePeriod(limit with { ResetsDaily = true }, now.AddDays(1)));
     }
 
-    internal static ContainerSlotItem Pile(int slot, int item, int count, byte kind = 2) =>
-        new(slot, StackableItemCore.Create(kind, item, count), ItemWorldClass.Interchangeable);
+    internal static ItemReference Pile(int slot, int item, int count, byte kind = 2) =>
+        TestItemReferences.FromCore(slot, StackableItemCore.Create(kind, item, count), ItemWorldClass.Interchangeable);
 }
 
 internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacementDefinitionSource
@@ -123,6 +123,7 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
     public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>
         ValueTask.FromResult<ItemPlacement?>(itemId switch
         {
+            _ when AccountMaterialCatalog.TryGetSlotIndex(itemId, out var material) => new(AccountMaterialCatalog.Definitions[material].ItemKind, 1000, new(BusinessInventorySpace.Material, 0, 55)),
             1000 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
             >= 3257 and <= 3260 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
             3000 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 1))

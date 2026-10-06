@@ -111,7 +111,7 @@ public sealed record GrantTutorialLevelCommand(CharacterId CharacterId)
 /// so reaching level two means holding the first entry.
 /// </para>
 /// </remarks>
-public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainService grant, ICharacterDomainService characters)
+public sealed class GrantTutorialLevelCommandHandler(ICharacterDomainService characters)
     : ICommandHandler<GrantTutorialLevelCommand, TutorialLevelUpResult>
 {
     /// <summary>Where the tutorial leaves a character, as the reference server names it.</summary>
@@ -129,15 +129,8 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainS
         if (progress.Level >= TargetLevel)
             return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.AlreadyPast);
 
-        if (grant.ThresholdForLevel(TargetLevel) is not { } target)
-            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NoThreshold);
-        if (!await grant.TrySetProgressAsync(
-                command.CharacterId, TargetLevel, target, cancellationToken).ConfigureAwait(false))
-        {
-            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NotPersisted);
-        }
-
-        return new TutorialLevelUpResult(TutorialLevelUpStatus.Granted, TargetLevel, target);
+        var next = await characters.Get(command.CharacterId).SetLevelAsync(TargetLevel, cancellationToken).ConfigureAwait(false);
+        return new TutorialLevelUpResult(TutorialLevelUpStatus.Granted, next.Level, next.Experience);
     }
 }
 

@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Inventory;
@@ -23,6 +24,98 @@ public sealed partial class MailboxCoreIntegrationTests
     private static readonly CharacterId Sender = new(1);
     private static readonly CharacterId Recipient = new(2);
     private static readonly CharacterId Stranger = new(3);
+
+    [Fact]
+    public async Task Delivery_notifies_only_committed_recipients_once_per_transaction()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        var observed = new List<(bool Settled, int RecipientCount, int StrangerCount)>();
+        notices.BeforePublish = () => observed.Add((scope.Current is null, fixture.InboxRows(Recipient), fixture.InboxRows(Stranger)));
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).WithText("first", "body").Build());
+            await fixture.Mail.SendPreparedAsync(MailBuilder.FromSystem(Recipient).WithText("second", "body").Build(), []);
+            await fixture.Mail.SendAsync(MailBuilder.FromCharacter(Sender, Stranger).WithText("third", "body").Build());
+            Assert.Empty(notices.Recipients);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(new[] { Recipient, Stranger }, notices.Recipients);
+        Assert.Equal(new[] { (true, 2, 1), (true, 2, 1) }, observed);
+    }
+
+    [Fact]
+    public async Task Rolled_back_or_failed_mail_never_notifies_and_delivery_errors_do_not_undo_commit()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        await using (scope.Begin())
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        Assert.Empty(notices.Recipients);
+        Assert.Equal(0, fixture.InboxRows(Recipient));
+        fixture.Sql("CREATE TRIGGER fail_delivery BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'mail failed'); END");
+        await Assert.ThrowsAsync<SqliteException>(() => fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build()).AsTask());
+        Assert.Empty(notices.Recipients);
+        fixture.Sql("DROP TRIGGER fail_delivery");
+        notices.BeforePublish = () => throw new InvalidOperationException("notification transport unavailable");
+        var sent = await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+        Assert.True(sent.MailId > 0);
+        Assert.Equal(1, fixture.InboxRows(Recipient));
+        Assert.Single(notices.Recipients);
+    }
+
+    [Fact]
+    public async Task Mail_notifications_wait_for_every_participant_to_commit()
+    {
+        var notices = new RecordingMailNotifications();
+        using var fixture = new MailFixture(services => services.AddSingleton<INotificationBus>(notices));
+        var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+        var participant = new MailDeliveryParticipant();
+        notices.BeforePublish = () => participant.NotifiedAfterCommit = participant.Committed;
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+            scope.Current!.Enlist(participant, () => participant);
+            await tx.CommitAsync(default);
+        }
+        Assert.True(participant.NotifiedAfterCommit);
+        notices.Recipients.Clear();
+        await using (var tx = scope.Begin())
+        {
+            await fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).Build());
+            scope.Current!.Enlist(new object(), () => new MailDeliveryParticipant { RefusePrepare = true });
+            await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
+        }
+        Assert.Empty(notices.Recipients);
+        Assert.Equal(1, fixture.InboxRows(Recipient));
+    }
+
+    private sealed class MailDeliveryParticipant : ITransactionParticipant
+    {
+        public bool CommitCanFail => false;
+        public bool RefusePrepare { get; init; }
+        public bool Committed { get; private set; }
+        public bool NotifiedAfterCommit { get; set; }
+        public ValueTask PrepareAsync(CancellationToken ct) => RefusePrepare
+            ? ValueTask.FromException(new InvalidOperationException("refused participant")) : ValueTask.CompletedTask;
+        public ValueTask CommitAsync(CancellationToken ct) { Committed = true; return ValueTask.CompletedTask; }
+        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
+    }
+
+    private sealed class RecordingMailNotifications : INotificationBus
+    {
+        public List<CharacterId> Recipients { get; } = [];
+        public Action? BeforePublish { get; set; }
+        public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notification, CancellationToken ct)
+            where T : class, INotification<T>
+        {
+            Recipients.AddRange(Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+            BeforePublish?.Invoke();
+            return ValueTask.FromResult(new NotificationDelivery([]));
+        }
+    }
 
     [Fact]
     public async Task EquipmentRetainsUidAndCoreWhileDetachedAndAfterClaim()
@@ -227,22 +320,22 @@ public sealed partial class MailboxCoreIntegrationTests
     public async Task AccountMaterialAttachmentsUseAccountBalanceAndRollbackWithMail()
     {
         using var fixture = new MailFixture();
-        fixture.Sql("UPDATE accounts SET cube_clear=10 WHERE account_id=1");
+        await fixture.SeedShared(3037, 10, 1);
         var sent = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromCharacter(Sender), Recipient)
             .AddStackable(3037, 3).Build());
-        Assert.Equal(7, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
-        Assert.NotNull(Assert.Single(sent.Changes).AccountMaterial);
+        Assert.Equal(7, fixture.SharedCount(3037, 1));
+        Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(sent.Changes).Slot!.Value.Space);
         var attachment = Assert.Single((await fixture.Mail.ReadAsync(Recipient, sent.MailId)).Attachments);
         var claimed = await fixture.Mail.ClaimAsync(Recipient, attachment.Id);
-        Assert.NotNull(Assert.Single(claimed.Changes).AccountMaterial);
-        Assert.Equal(10, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(BusinessInventorySpace.SharedMaterial, Assert.Single(claimed.Changes).Slot!.Value.Space);
+        Assert.Equal(10, fixture.SharedCount(3037, 1));
         Assert.Equal(0, await fixture.TotalStackAsync(3037));
         await AssertMailFailureAsync(MailFailure.InsufficientAssets, () => fixture.Mail.SendAsync(
             new MailBuilder(MailSource.FromCharacter(Sender), Recipient).AddStackable(3037, 2).AddGold(1001).Build()).AsTask());
-        Assert.Equal(10, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(10, fixture.SharedCount(3037, 1));
         var reward = await fixture.Mail.SendAsync(new MailBuilder(MailSource.FromSystem(), Recipient).AddStackable(3037, 4).Build());
         await fixture.Mail.ClaimAsync(Recipient, Assert.Single((await fixture.Mail.ReadAsync(Recipient, reward.MailId)).Attachments).Id);
-        Assert.Equal(14, fixture.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(14, fixture.SharedCount(3037, 1));
         Assert.Equal(0, await fixture.TotalStackAsync(3037));
     }
 
@@ -321,6 +414,7 @@ public sealed partial class MailboxCoreIntegrationTests
             new InfrastructureModule().ConfigureServices(services, config);
             new PersistenceModule().ConfigureServices(services, config);
             new ApplicationModule().ConfigureServices(services, config);
+            services.AddSingleton<INotificationBus>(new RecordingMailNotifications());
             services.AddSingleton<IItemPlacementDefinitionSource>(new MailPlacements());
             services.AddSingleton<IMailItemDefinitionSource>(new MailDefinitions());
             services.AddSingleton<IGoldCarryLimitSource>(new FixedGoldCarryLimit());
@@ -339,6 +433,28 @@ public sealed partial class MailboxCoreIntegrationTests
             await Assert.ThrowsAsync<InvalidOperationException>(() => tx.CommitAsync(default).AsTask());
         }
 
+    public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+        .GetPersistentStore(new ContainerOwner(InventoryOwnerType.Account, account), BusinessInventoryStoreKind.Item)
+        .GetContainer(BusinessInventorySpace.SharedMaterial);
+
+    public async Task SeedShared(int item, int count, int account = 1)
+    {
+        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+        await PutShared(item, count, account);
+        await tx.CommitAsync(default);
+    }
+    public async Task PutShared(int item, int count, int account = 1)
+    {
+        Assert.True(AccountMaterialCatalog.TryGetSlotIndex(item, out var slot));
+        var target = Shared(account);
+        var lifecycle = provider.GetRequiredService<IItemLifecycleDomainService>();
+        if (await target.GetAsync(slot, default) is { } old)
+            await lifecycle.DeleteItemAsync(await target.TakeAsync(old, null, default), default);
+        if (count > 0) await target.PutAsync(slot, await lifecycle.CreateAsync(
+            ItemSnapshot.FromCore(StackableItemCore.Create(AccountMaterialCatalog.Definitions[slot].ItemKind, item, count), true), default), default);
+    }
+    public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
+
         public MailFixture Reopen() => new(directory, Clock, false, configure);
 
         public async Task SeedStackAsync(CharacterId owner, int slot, int itemId, int count, byte kind,
@@ -347,9 +463,11 @@ public sealed partial class MailboxCoreIntegrationTests
             var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
             await using var transaction = scope.Begin();
             var store = provider.GetRequiredService<IItemDomainStore>();
-            store.SessionIn(scope.Current!).Write(ContainerId.ForCharacter(owner, container),
-                new StoredItem(slot, StackableItemCore.Create(kind, itemId, count))
-                    { WorldClass = ItemWorldClass.Interchangeable });
+            var session = store.SessionIn(scope.Current!);
+            var id = ContainerId.ForCharacter(owner, container);
+            if (await session.GetAsync(id, slot, default) is { } old)
+                await session.DeleteItemAsync(await session.TakeAsync(old, null, default), default);
+            await session.PutAsync(id, slot, await session.CreateAsync(ItemSnapshot.FromCore(StackableItemCore.Create(kind, itemId, count), true), default), default);
             await transaction.CommitAsync(default);
         }
 
@@ -394,8 +512,8 @@ public sealed partial class MailboxCoreIntegrationTests
             var tx = new DomainTransaction();
             try
             {
-                var rows = await store.SessionIn(tx).ReadAllAsync(ContainerId.ForCharacter(owner, InventoryContainerType.Main), default);
-                return rows.Where(x => x.Core.ItemId == itemId).Sum(x => x.Core.Value);
+                var rows = await store.SessionIn(tx).GetAllAsync(ContainerId.ForCharacter(owner, InventoryContainerType.Main), default);
+                return rows.Where(x => x.ItemId == itemId).Sum(x => x.Count);
             }
             finally { await tx.RollbackAsync(); }
         }
@@ -440,7 +558,7 @@ public sealed partial class MailboxCoreIntegrationTests
                 ? ValueTask.FromResult<ItemPlacement?>(null) : itemId == 1001
                 ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 55)))
                 : itemId == 3037
-                ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 1)))
+                ? ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(11, 1000, new BusinessSlotRange(BusinessInventorySpace.Material, 0, 1)))
                 : new NpcShopTestContent().GetAsync(itemId, ct);
         }
 

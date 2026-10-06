@@ -16,10 +16,13 @@ public enum InventoryContainerType : byte
     TitleBookPvp = 21,
     TitleBookDespair = 22,
     TitleBookEvent = 23,
+    // Native tower quick slots; their wire indexes remain 3..8.
     QuickSlot = 29,
     KnightShieldEquipped = 33,
     KnightShieldCatalog = 34,
     GuildMedal = 38,
+    // Server storage only; A21 represents these as Main slots 354..364.
+    SharedMaterial = 240,
 }
 
 /// <summary>An indivisible slot address as the A21 game protocol expresses it.</summary>
@@ -56,12 +59,15 @@ public enum BusinessInventorySpace
     AccountCargo,
     GuildMedal,
     GuardianGem,
+    SharedMaterial,
+    TowerQuickSlot,
 }
 
 public static class BusinessInventorySpaceRules
 {
     public static bool IsCarriedItemSpace(this BusinessInventorySpace space) => space is
         BusinessInventorySpace.QuickSlot
+        or BusinessInventorySpace.TowerQuickSlot
         or BusinessInventorySpace.CarriedEquipment
         or BusinessInventorySpace.Consumable
         or BusinessInventorySpace.Material
@@ -145,33 +151,6 @@ public enum InventoryOwnerType : byte
 /// </remarks>
 public readonly record struct ItemIdentity(int Value);
 
-/// <summary>What kind of thing a slot's id names.</summary>
-public enum ItemSlotKind
-{
-    /// <summary>One thing in the world, of which there is exactly one.</summary>
-    World,
-
-    /// <summary>An archive template: a pile of interchangeable things, of which there are several.</summary>
-    Template,
-}
-
-/// <summary>
-/// What one position holds, said the same way whichever of the two it is.
-/// </summary>
-/// <remarks>
-/// Three facts and no branch: which kind the id names, the id, and how many. A position holding a
-/// sword and one holding a stack of potions differ only in what those three say -- the sword's id
-/// is its identity and there is one of it, the potions' id is their template and there are as many
-/// as the pile holds. It is the same three the stored position carries, so nothing has to be
-/// translated between what a slot is and what a slot row says.
-/// </remarks>
-public sealed record InventorySlotContent(ItemSlotKind Kind, int Id, int Count)
-{
-    /// <summary>The name of the thing here, or nothing when this position holds a pile.</summary>
-    public ItemIdentity? Identity =>
-        this.Kind is ItemSlotKind.World ? new ItemIdentity(this.Id) : null;
-}
-
 public sealed record ChronicleOptionState(
     int Id,
     byte CharacterJob,
@@ -218,6 +197,9 @@ public sealed record InventoryItemCoreState(
     byte SortLockFlag,
     byte EquipmentLockId)
 {
+    /// <summary>Derived display of template features; writes still use authoritative placement.</summary>
+    public ItemTraits Traits => ItemTraitClassification.For(ItemKind, ItemId);
+
     public byte ReinforcementLevel => (byte)(Attribute & 0x1F);
 }
 
@@ -237,18 +219,7 @@ public sealed record InventoryItemState(
     int SlotIndex,
     InventoryItemCoreState Core,
     InventoryAvatarDetailState? AvatarDetail = null,
-    uint? Noti2CreatureMarker = null)
-{
-    /// <summary>This position said in the one shape both kinds of content use.</summary>
-    /// <remarks>
-    /// Derived rather than stored, so it cannot drift from the identity beside it. A pile's count
-    /// is what its core carries; a thing with a name is one of itself.
-    /// </remarks>
-    public InventorySlotContent Holds => this.Identity is { } identity
-        ? new InventorySlotContent(ItemSlotKind.World, identity.Value, 1)
-        : new InventorySlotContent(
-            ItemSlotKind.Template, this.Core.ItemId, Math.Max(this.Core.Value, 1));
-}
+    uint? Noti2CreatureMarker = null);
 
 /// <summary>
 /// Avatar-instance facts stored beside an inventory item. A null value means the item is

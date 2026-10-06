@@ -34,7 +34,7 @@ public sealed class RealConsumableIntegrationTests
         {
             await using var tx = f.Scope.Begin();
             var source = (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
-                .Get(f.Session.CharacterId, PetSource).Container.ReadSlotAsync(0, default))!;
+                .Get(f.Session.CharacterId, PetSource).Container.GetAsync(0, default))!;
             var applied = await f.Services.GetRequiredService<IItemUseEffectDomainService>().UseAsync(f.Session, PetSource, source, default);
             Assert.Equal(ItemUsability.Allowed, applied.Status);
             Assert.Equal(80, Assert.Single(applied.Applied!.Changes<PetStomachChange>()).Change.After.Stomach);
@@ -74,7 +74,7 @@ public sealed class RealConsumableIntegrationTests
             await using var tx = f.Scope.Begin();
             var receipt = await f.Services.GetRequiredService<ICreatureNamingDomainService>()
                 .RenameAsync(f.Session, PetSource, [0x82, 0xA0], default);
-            Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.Value);
+            Assert.NotNull(receipt); Assert.Equal(1, receipt.RemainingSourceCore!.ToCore().Value);
             var database = f.Services.GetRequiredService<SqliteDatabase>();
             var participant = f.Scope.Current!.Enlist<SqliteDatabaseParticipant>(database.ConnectionString, () => throw new InvalidOperationException("Expected existing SQL participant."));
             if (lateFailure) f.Scope.Current!.Enlist(new object(), () => new AfterFlush(async () => {
@@ -131,7 +131,7 @@ public sealed class RealConsumableIntegrationTests
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=71 AND slot_index=101"));
         Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
     }
 
     [Theory]
@@ -202,9 +202,9 @@ public sealed class RealConsumableIntegrationTests
 
     private static PersistentItemContainer Register(LearningFixture f, InventoryContainerType type)
     {
-        var container = new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, type), f.Session.CharacterId,
-            new(type, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope, null,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemArrivalRuleService>(),
+        var container = new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, type),
+            new(type, 0), f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
+            f.Services.GetRequiredService<IItemPlacementRuleService>(),
             f.Services.GetRequiredService<IItemSlotRuleService>());
         f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId, container);
         return container;
@@ -212,7 +212,8 @@ public sealed class RealConsumableIntegrationTests
     private static async Task SeedSource(LearningFixture f, int item, InventoryContainerType type, int wire)
     {
         var container = Register(f, type); await using var tx = f.Scope.Begin();
-        await container.PutAsync(wire, StackableItemCore.Create(type == InventoryContainerType.Pet ? (byte)7 : (byte)2, item, 2), default);
+        await container.PutAsync(wire, await f.Services.GetRequiredService<IItemLifecycleDomainService>().CreateAsync(
+            ItemSnapshot.FromCore(StackableItemCore.Create(type == InventoryContainerType.Pet ? (byte)7 : (byte)2, item, 2), true), default), default);
         await tx.CommitAsync(default);
     }
     private static void SeedPet(LearningFixture f)

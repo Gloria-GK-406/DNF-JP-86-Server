@@ -129,9 +129,9 @@ public sealed class OneThingInTwoPositionsIsRefusedOnLoadTests
                 .LoadAccountAsync(new AccountId(Account), new CharacterId(Character), token));
 
             Assert.Equal([(3, 2001, 11), (4, 2002, 22)], carried.CharacterItems
-                .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)));
+                .Select(item => (item.SlotIndex, item.Snapshot.ToCore().ItemId, item.Snapshot.ToCore().Value)));
             Assert.Equal([(5, 2600, 33)], cargo.AccountCargoItems
-                .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)));
+                .Select(item => (item.SlotIndex, item.Snapshot.ToCore().ItemId, item.Snapshot.ToCore().Value)));
         });
     }
 

@@ -1,4 +1,6 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
@@ -55,9 +57,13 @@ public sealed class InfrastructureModule : IServerModule
                 : 0,
         });
         services.TryAddSingleton<PvfArchiveProvider>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDefinitionSource, PvfWeeklyAttendanceDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDefinitionSource, PvfJoustDefinitionSource>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
-        services.TryAddSingleton<IGmMailItemCatalogSource, PvfGmMailItemCatalogSource>();
+        services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
+        services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
+        services.TryAddSingleton<IItemCatalogSource, PvfItemCatalogSource>();
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();
@@ -73,6 +79,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInitialEquipmentDefinitionSource,
             PvfInitialEquipmentDefinitionSource>();
         services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
+        services.TryAddSingleton<IIllusionTowerContentSource, PvfIllusionTowerContentSource>();
         services.TryAddSingleton<PvfDungeonRoomDropSource>();
         services.TryAddSingleton<IDungeonRoomDropSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());
         services.TryAddSingleton<IDungeonRoomObjectSource>(sp => sp.GetRequiredService<PvfDungeonRoomDropSource>());

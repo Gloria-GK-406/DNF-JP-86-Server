@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
@@ -16,13 +17,14 @@ public sealed record PlacedRewardItem(int SlotIndex, int ItemId, int Count);
 /// <summary>Everything one tutorial step managed to hand over.</summary>
 public sealed record TutorialRewardResult(
     IReadOnlyList<PlacedRewardItem> Placed,
-    IReadOnlyList<AccountMaterialChange>? AccountMaterials = null);
+    IReadOnlyList<InventoryRuntimeValueState>? AccountMaterials = null);
 
 /// <summary>One character receiving what a tutorial step declared.</summary>
 public sealed record GrantTutorialRewardCommand(
     CharacterId CharacterId,
     IReadOnlyList<DeclaredRewardItem> Declared,
-    AccountId AccountId) : ICommand<TutorialRewardResult>;
+    AccountId AccountId,
+    bool CompleteTutorial = false) : ICommand<TutorialRewardResult>;
 
 /// <summary>
 /// Puts a tutorial step's items into the character's inventory.
@@ -41,7 +43,8 @@ public sealed record GrantTutorialRewardCommand(
 /// </remarks>
 public sealed class GrantTutorialRewardCommandHandler(
     ICharacterContainerDomainService containers,
-    IItemGrantDomainService itemGrants)
+    IItemGrantDomainService itemGrants,
+    ITutorialCompletionDomainService tutorial)
     : ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>
 {
     public async ValueTask<TutorialRewardResult> HandleAsync(
@@ -51,12 +54,17 @@ public sealed class GrantTutorialRewardCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        // Completion and any reward commit together; a repeated completion grants nothing.
+        if (command.CompleteTutorial && !await tutorial.CompleteOnceAsync(
+                new(command.AccountId, command.CharacterId), cancellationToken).ConfigureAwait(false))
+            return new TutorialRewardResult([], []);
+
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
             return new TutorialRewardResult([], []);
 
         var placed = new List<PlacedRewardItem>(command.Declared.Count);
-        var accountChanges = new List<AccountMaterialChange>();
+        var accountChanges = new List<InventoryRuntimeValueState>();
         foreach (var declared in command.Declared)
         {
             var granted = await itemGrants.GrantAsync(
@@ -65,26 +73,18 @@ public sealed class GrantTutorialRewardCommandHandler(
                 .ConfigureAwait(false);
             switch (granted)
             {
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.AddedToPile topped } character:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.AddedToPile topped } character:
                     placed.Add(new PlacedRewardItem(
                         ItemGrantWireProjection.Index(character, topped.SlotIndex), declared.ItemId, topped.Added));
                     break;
 
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.PutInEmptySlot opened } character:
                     placed.Add(new PlacedRewardItem(
                         ItemGrantWireProjection.Index(character, opened.SlotIndex), declared.ItemId, opened.Count));
                     break;
 
-                case ItemGrantOutcome.AccountMaterial account:
-                    accountChanges.Add(account.Change);
-                    placed.Add(new PlacedRewardItem(
-                        account.Change.VirtualSlotIndex,
-                        declared.ItemId,
-                        account.Change.AddedCount));
-                    break;
-
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.NoRoom }:
-                case ItemGrantOutcome.CharacterItem { Placement: ItemPlacementOutcome.UnknownItem }:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.NoRoom }:
+                case BusinessItemAdditionResult { Placement: ItemPlacementOutcome.UnknownItem }:
                     // Left out of the acknowledgement, which is what the caller reports and logs.
                     break;
 
@@ -94,6 +94,7 @@ public sealed class GrantTutorialRewardCommandHandler(
                     throw new ArgumentOutOfRangeException(
                         nameof(command), granted, "No reading was decided for this outcome.");
             }
+            if (await ItemGrantWireProjection.SharedAsync(granted, cancellationToken).ConfigureAwait(false) is { } shared) accountChanges.Add(shared);
         }
 
         return new TutorialRewardResult(placed, accountChanges);

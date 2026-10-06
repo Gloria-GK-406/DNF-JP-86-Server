@@ -7,7 +7,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed partial class EquipmentUpgradeRuleService
 {
-    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(InventoryItemCoreState core, CancellationToken ct,
+    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(ItemSnapshot core, CancellationToken ct,
         EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
         if (kind is not (EquipmentUpgradeKind.Reinforcement or EquipmentUpgradeKind.Amplification))

@@ -7,24 +7,15 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// Which containers a character holds, and which one of each type it is currently using.
 /// </summary>
 /// <remarks>
-/// Callers ask for the current container and get one; they never learn whether it is persistent,
-/// transient, or something composed of both. That is the whole point of the seam: a dungeon run
-/// registers its own container and uses it, and the rules for moving and using items carry on
-/// unchanged.
-///
-/// Registration is how a container enters the picture, including the character's own. The first
-/// one registered for a type becomes that type's current container, so ordinary entry needs no
-/// separate "make this the default" step.
+/// Ordinary operations use the current binding; isDefault=true selects its declared fallback.
+/// Default is a binding role, not a storage lifetime. Each type has at most one default.
+/// Registration, replacement, binding changes and removal join the ambient domain transaction.
 ///
 /// The registry is per character and does not survive the character leaving: this game has no
 /// reconnect, so a disconnect is a clean reset rather than a state to be resumed.
 /// </remarks>
 public interface ICharacterContainerDomainService
 {
-    /// <summary>Adds the whole quantity, resolves the destination internally, or throws without partial delivery.</summary>
-    ValueTask<ContainerAddition> AddAsync(CharacterId characterId, int itemId, int count,
-        CancellationToken cancellationToken) => throw new NotSupportedException("This container registry cannot add items.");
-
     /// <summary>Adds a container to the character. The first of its type becomes the current one.</summary>
     /// <exception cref="InvalidOperationException">
     /// The character already holds a container under that identifier. Two containers answering to
@@ -32,8 +23,12 @@ public interface ICharacterContainerDomainService
     /// </exception>
     void Register(CharacterId characterId, IItemContainer container);
 
+    /// <summary>Atomically replaces an existing default; keeps a separately selected current container.</summary>
+    void ReplaceDefault(CharacterId characterId, ContainerId expectedDefaultId, IItemContainer replacement) =>
+        throw new NotSupportedException();
+
     /// <summary>
-    /// Removes a container, falling back to the first non-removable one of its type when the
+    /// Removes a container, falling back to its type's declared default when the
     /// removed container was current.
     /// </summary>
     /// <returns>False when the character held no such container.</returns>
@@ -47,12 +42,12 @@ public interface ICharacterContainerDomainService
     /// <summary>Every container the character holds of that type, in registration order.</summary>
     IReadOnlyList<IItemContainer> GetContainers(CharacterId characterId, InventoryContainerType type);
 
-    /// <summary>The container the character is currently using for that type.</summary>
+    /// <summary>The current container, or the declared default when isDefault is true.</summary>
     /// <exception cref="InvalidOperationException">The character has no container of that type.</exception>
-    IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type);
+    IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false);
 
-    /// <summary>The container the character is currently using, or null when it holds none.</summary>
-    IItemContainer? FindContainer(CharacterId characterId, InventoryContainerType type);
+    /// <summary>The selected current/default container, or null when none is registered.</summary>
+    IItemContainer? FindContainer(CharacterId characterId, InventoryContainerType type, bool isDefault = false);
 
     /// <summary>Makes an already-registered container the current one for its type.</summary>
     /// <returns>False when the character holds no such container.</returns>
@@ -63,7 +58,7 @@ public interface ICharacterContainerDomainService
 }
 
 public sealed record ContainerItemAddition(BusinessContainerId Container, BusinessSlot Slot, int Count);
-public sealed record ContainerAddition(IReadOnlyList<ContainerItemAddition> Items, AccountMaterialChange? AccountMaterial = null);
+public sealed record ContainerAddition(IReadOnlyList<ContainerItemAddition> Items);
 public enum ContainerAdditionFailure { UnknownItem, NoRoom, CharacterNotFound }
 public sealed class ContainerAdditionException(ContainerAdditionFailure reason)
     : InvalidOperationException($"Container addition refused: {reason}.")

@@ -53,13 +53,13 @@ internal sealed class EquipmentDisjointDomainService(
             return new(EquipmentDisjointRejection.InvalidRequest);
 
         BoundInventorySlot? toolBound = null;
-        ContainerSlotItem? tool = null;
+        ItemReference? tool = null;
         if (portableMachine is { Slot: var portableSlot })
         {
             toolBound = slots.Find(session.CharacterId, portableSlot);
             tool = toolBound is null
                 ? null
-                : await toolBound.Container.ReadSlotAsync(
+                : await toolBound.Container.GetAsync(
                     toolBound.Slot.Index, cancellationToken).ConfigureAwait(false);
             if (tool is not { IsPile: true, Count: > 0 })
                 return new(EquipmentDisjointRejection.ItemUnavailable);
@@ -77,7 +77,7 @@ internal sealed class EquipmentDisjointDomainService(
         var bound = slots.Find(session.CharacterId, targetSlot);
         var equipment = bound is null
             ? null
-            : await bound.Container.ReadSlotAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+            : await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
         if (equipment is null)
             return new(EquipmentDisjointRejection.ItemUnavailable);
         var placement = await placements.PlacementForAsync(equipment.ItemId, cancellationToken)
@@ -94,7 +94,7 @@ internal sealed class EquipmentDisjointDomainService(
 
         var facts = await instance.ReadAsync(cancellationToken).ConfigureAwait(false);
         var plan = await rules.DisjointAsync(facts, portableMachine is not null
-            ? new MaterialCost(new MaterialLocation.Carried(portableMachine.Slot), tool!.ItemId, 1) : null,
+            ? new MaterialCost(portableMachine.Slot, tool!.ItemId, 1) : null,
             Random.Shared.Next(), cancellationToken).ConfigureAwait(false);
         if (plan.Decision.Rejection != EquipmentDisjointRejection.None) return new(plan.Decision.Rejection);
         var context = new EffectExecutionContext(session.AccountId, session.CharacterId, timeProvider.GetUtcNow(), session);
@@ -106,16 +106,14 @@ internal sealed class EquipmentDisjointDomainService(
             InventoryEffectRejection.InvalidTarget or InventoryEffectRejection.InsufficientAssets => EquipmentDisjointRejection.ItemUnavailable,
             _ => throw new ArgumentOutOfRangeException(nameof(preview), preview.Rejection, "Unknown disjoint preview rejection."),
         });
-        if (preview.PhysicalRewardEntries + preview.AccountRewardKinds > byte.MaxValue)
+        if (preview.RewardEntries > byte.MaxValue)
             return new(EquipmentDisjointRejection.CannotDisjoint);
         var applied = await effects.ApplyAsync(context, plan.Effects, cancellationToken).ConfigureAwait(false);
         var final = await EquipmentEffectReceiptProjection.FinalSlotsAsync(session.CharacterId, applied, slots, cancellationToken)
             .ConfigureAwait(false);
-        var physical = EquipmentEffectReceiptProjection.PhysicalRewards(applied)
+        var physical = EquipmentEffectReceiptProjection.Rewards(applied)
             .Select(reward => new EquipmentDisjointMaterialReceipt(reward.Slot, reward.ItemId, reward.Count)).ToArray();
-        var accounts = EquipmentEffectReceiptProjection.AccountChanges(applied).GroupBy(change => change.Kind)
-            .Select(group => group.Last() with { AddedCount = group.Sum(change => change.AddedCount) }).ToArray();
-        return new(EquipmentDisjointRejection.None, new(session, targetSlot, physical, accounts,
+        return new(EquipmentDisjointRejection.None, new(session, targetSlot, physical,
             final.Select(change => new EquipmentDisjointSlotChange(change.Slot, change.Core)).ToArray(),
             context.At, portableMachine?.Slot));
     }

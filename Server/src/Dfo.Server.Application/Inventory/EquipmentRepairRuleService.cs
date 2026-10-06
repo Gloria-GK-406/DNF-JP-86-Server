@@ -12,7 +12,7 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
         return rates is { } value ? new Rule(definitions, value) : null;
     }
 
-    public async ValueTask<ushort?> AutoRepairDurabilityAsync(InventoryItemCoreState core, CancellationToken ct)
+    public async ValueTask<ushort?> AutoRepairDurabilityAsync(ItemSnapshot core, CancellationToken ct)
     {
         var definition = await definitions.GetAsync(core.ItemId, ct).ConfigureAwait(false);
         if (definition is null) return null;
@@ -23,7 +23,7 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
     private sealed class Rule(IEquipmentRepairDefinitionSource definitions,
         (float CostRate, IReadOnlyList<float> UpgradeRates) rates) : IEquipmentRepairRule
     {
-        public async ValueTask<EquipmentRepairQuote?> QuoteAsync(InventoryItemCoreState core, CancellationToken ct)
+        public async ValueTask<EquipmentRepairQuote?> QuoteAsync(ItemSnapshot core, CancellationToken ct)
         {
             var definition = await definitions.GetAsync(core.ItemId, ct).ConfigureAwait(false);
             if (definition is null) return null;

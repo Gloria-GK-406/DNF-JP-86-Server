@@ -30,7 +30,7 @@ public sealed class QuestClearCouponDomainServiceTests
         Assert.Equal((0x05040303 & ~0x1FF) | 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71 AND quest_id=2003"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM character_quest_notify_selections WHERE character_id=71"));
         Assert.Equal(9, f.Scalar("SELECT slot_index FROM character_quest_notify_selections WHERE character_id=71"));
-        Assert.Equal(0, f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
+        Assert.Equal((int)f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85), f.Scalar("SELECT exp FROM characters WHERE character_id=71"));
     }
 
     [Theory]
@@ -106,8 +106,8 @@ public sealed class QuestClearCouponDomainServiceTests
     // Payment is a same-database scalar stand-in; quest state and its effects are production SQLite.
     private sealed class PaymentInventory(SqliteDatabase db,IApplyEffectsDomainService effects,int itemId) : IOpeningInventoryDomainService
     {
-        public ValueTask<ContainerSlotItem> SourceAsync(SelectedSessionIdentity s,BusinessSlot slot,DateTimeOffset at,CancellationToken ct) =>
-            ValueTask.FromResult(new ContainerSlotItem(slot.Index,StackableItemCore.Create(2,itemId,2),ItemWorldClass.Interchangeable));
+        public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity s,BusinessSlot slot,DateTimeOffset at,CancellationToken ct) =>
+            ValueTask.FromResult(TestItemReferences.FromCore(slot.Index,StackableItemCore.Create(2,itemId,2),ItemWorldClass.Interchangeable));
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity s,CancellationToken ct) => throw new NotSupportedException();
         public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s,IReadOnlyList<DomainEffect> plan,DateTimeOffset at,CancellationToken ct)
         {

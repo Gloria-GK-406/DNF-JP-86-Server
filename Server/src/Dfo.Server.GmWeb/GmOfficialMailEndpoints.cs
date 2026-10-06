@@ -1,13 +1,11 @@
+using Dfo.Server.Data.Inventory;
 using System.Globalization;
 using System.Text.Json;
-using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Administration;
-using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
-using Dfo.Server.Data.Characters;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -48,7 +46,7 @@ internal static class GmOfficialMailEndpoints
     private static GmRequiredPermission Permission => new(GmPermission.SendMail);
     private static async Task<IResult> Query(HttpContext context, ICommandBus commands, GmMailQuery kind, Guid id = default) =>
         Results.Ok((await commands.SendAsync(new QueryGmMailCommand(Secret(context), kind, Filter(context), id), context.RequestAborted)).Value);
-    private static async Task<IResult> Send(HttpContext context, ICommandBus commands, INotificationBus notifications)
+    private static async Task<IResult> Send(HttpContext context, ICommandBus commands)
     {
         GmMailEditorRequest? input = null; var executing = false;
         try
@@ -57,18 +55,8 @@ internal static class GmOfficialMailEndpoints
             var prepared = (GmMailPreparation)(await commands.SendAsync(new QueryGmMailCommand(Secret(context), GmMailQuery.Prepare, id: input.RequestId, input: Input(input)), context.RequestAborted)).Value;
             executing = true;
             var sent = await commands.SendAsync(new SendGmMailCommand(Secret(context), prepared), context.RequestAborted);
-            var reminder = "attempted";
-            try
-            {
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                foreach (var recipient in sent.Receipt.Recipients)
-                {
-                    var character = new CharacterId(recipient.Character.CharacterId);
-                    var delivery = await notifications.PublishAsync(new NotificationAudience.TheseCharacters([character]), new MailboxChanged(character), timeout.Token);
-                    if (delivery.Attempts.Any(x => x.Outcome is NotificationOutcome.Failed or NotificationOutcome.Gone)) reminder = "unconfirmed";
-                }
-            }
-            catch (Exception error) { Log(context, error, "GM committed mail reminder failed."); reminder = "unconfirmed"; }
+            // Mail delivery owns arrival notifications; this HTTP result confirms durable sending only.
+            const string reminder = "unconfirmed";
             return Results.Ok(new { sent.Receipt, sent.Replayed, reminder });
         }
         catch (Exception error)
@@ -90,6 +78,8 @@ internal static class GmOfficialMailEndpoints
     { try { return await action(); } catch (Exception error) when (error is not OperationCanceledException) { return Failure(context, error); } }
     private static IResult Failure(HttpContext context, Exception error, string? outcome = null)
     {
+        if (error is KeyNotFoundException) return Error(404, error.Message, outcome);
+        if (error is ArgumentException) return Error(400, error.Message, outcome);
         if (error is GmMailException mail) return Error(mail.Reason switch { GmMailRefusal.Unauthorized => 401, GmMailRefusal.Forbidden => 403, GmMailRefusal.NotFound => 404, GmMailRefusal.Conflict or GmMailRefusal.Changed => 409, _ => 400 }, mail.Message, outcome);
         if (error is JsonException or BadHttpRequestException or NotSupportedException) return Error(400, "邮件请求字段无效或超过 32 KiB。", outcome);
         Log(context, error, "GM mail request failed.");
@@ -115,7 +105,7 @@ internal static class GmOfficialMailEndpoints
         var q = query["q"].ToString(); if (q.Length > 128) throw new GmMailException(GmMailRefusal.Invalid, "搜索最多 128 个字符。");
         return new(Parse("page", 1), Parse("pageSize", 20), CharacterId: query.ContainsKey("characterId") ? Parse("characterId", 0) : null, Q: string.IsNullOrWhiteSpace(q) ? null : q.Trim());
     }
-    private static GmMailItemFilter ItemFilter(HttpContext context)
+    private static ItemCatalogFilter ItemFilter(HttpContext context)
     {
         var query = context.Request.Query;
         foreach (var name in new[] { "q", "itemId", "category", "equipmentType", "minimumLevel", "maximumLevel", "rarity", "page", "pageSize" })

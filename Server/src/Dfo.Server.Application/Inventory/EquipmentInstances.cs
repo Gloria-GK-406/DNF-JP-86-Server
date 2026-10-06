@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -14,130 +13,77 @@ internal sealed class EquipmentDomainService(ICharacterBusinessInventoryDomainSe
         if (owner.Value <= 0) throw new ArgumentOutOfRangeException(nameof(owner));
         var transaction = transactions.Current
             ?? throw new InvalidOperationException("Equipment instances require an open domain transaction.");
-        return new EquipmentCollection(new(owner, inventories, transactions, transaction));
+        return new EquipmentCollection(owner, inventories, transactions, transaction);
     }
 }
 
-internal sealed class EquipmentInstanceContext(CharacterId owner, ICharacterBusinessInventoryDomainService inventories,
-    IDomainTransactionAccessor transactions, IDomainTransaction transaction)
+internal sealed class EquipmentCollection(CharacterId owner, ICharacterBusinessInventoryDomainService inventories,
+    IDomainTransactionAccessor transactions, IDomainTransaction transaction) : IEquipmentCollection
 {
-    private readonly EquipmentDestructionState destruction = transaction.Enlist(
-        typeof(EquipmentDestructionState), () => new EquipmentDestructionState());
-    private static readonly BusinessInventorySpace[] Spaces =
-    [
-        BusinessInventorySpace.QuickSlot, BusinessInventorySpace.CarriedEquipment,
-        BusinessInventorySpace.Consumable, BusinessInventorySpace.Material,
-        BusinessInventorySpace.Quest, BusinessInventorySpace.ExpertMaterial,
-        BusinessInventorySpace.AvatarEmblem, BusinessInventorySpace.WornAvatar,
-        BusinessInventorySpace.WornCreature,
-        BusinessInventorySpace.WornEquipment, BusinessInventorySpace.WornEquipmentExtension,
-        BusinessInventorySpace.PersonalCargo, BusinessInventorySpace.CreatureEquipment,
-        BusinessInventorySpace.WornCreatureEquipment,
-    ];
-
-    public CharacterId Owner => owner;
-
-    public void EnsureActive()
+    private void EnsureActive()
     {
         if (!ReferenceEquals(transactions.Current, transaction))
-            throw new InvalidOperationException("Obtain a new equipment instance for the current transaction.");
+            throw new InvalidOperationException("Obtain a new equipment collection for the current transaction.");
     }
-
-    public async ValueTask<EquipmentLocation?> AtAsync(BusinessSlot slot, CancellationToken ct)
+    public async ValueTask<IEquipmentInstance?> FindAsync(int uid, CancellationToken ct)
     {
         EnsureActive();
-        ct.ThrowIfCancellationRequested();
-        if (!Spaces.Contains(slot.Space)) return null;
-        _ = LegacyInventoryStorageCoordinates.ToStorage(slot);
-        var container = Container(slot.Space);
-        var item = container is null ? null : await container.ReadSlotAsync(slot.Index, ct).ConfigureAwait(false);
-        EnsureActive();
-        return item is { WorldClass: ItemWorldClass.Equipment, Identity: { Value: > 0 } identity }
-            && !destruction.Destroyed.Contains(identity.Value)
-            ? new(container!, slot, item) : null;
-    }
-
-    public async ValueTask<EquipmentLocation?> LocateAsync(int uid, CancellationToken ct)
-    {
-        EnsureActive();
-        ct.ThrowIfCancellationRequested();
-        if (uid <= 0 || destruction.Destroyed.Contains(uid)) return null;
-        foreach (var space in Spaces)
+        if (uid <= 0) return null;
+        foreach (var space in Enum.GetValues<BusinessInventorySpace>())
         {
-            var container = Container(space);
+            if (space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial
+                || ItemContainerAdmission.For(space).Allowed == ItemTraits.None) continue;
+            var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
             if (container is null) continue;
-            foreach (var item in await container.ReadAllAsync(ct).ConfigureAwait(false))
-                if (item is { WorldClass: ItemWorldClass.Equipment } && item.Identity?.Value == uid)
-                {
-                    EnsureActive();
-                    return new(container, new(space, item.SlotIndex), item);
-                }
+            foreach (var item in await container.GetAllAsync(ct).ConfigureAwait(false))
+                if (!item.IsPile && item.Type.HasFlag(ItemTraits.Equipment) && item.ItemUid?.Value == uid)
+                    return await container.GetEquipmentAsync(item.SlotIndex, ct).ConfigureAwait(false);
         }
-        EnsureActive();
         return null;
     }
-
-    public async ValueTask<EquipmentLocation> RequireAsync(int uid, CancellationToken ct) =>
-        await LocateAsync(uid, ct).ConfigureAwait(false)
-        ?? throw new InvalidOperationException($"Equipment {uid} is no longer owned by character {owner.Value}.");
-
-    private IBusinessItemContainer? Container(BusinessInventorySpace space) =>
-        inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
-
-    public void MarkDestroyed(int uid) => destruction.Destroyed.Add(uid);
-
-    private sealed class EquipmentDestructionState : ITransactionParticipant
+    public ValueTask<IEquipmentInstance?> FindAtAsync(BusinessSlot slot, CancellationToken ct)
     {
-        public HashSet<int> Destroyed { get; } = [];
-        public bool CommitCanFail => false;
-        public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask CommitAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
+        EnsureActive();
+        if (slot.Space is BusinessInventorySpace.AccountCargo or BusinessInventorySpace.SharedMaterial
+            || ItemContainerAdmission.For(slot.Space).Allowed == ItemTraits.None)
+            return ValueTask.FromResult<IEquipmentInstance?>(null);
+        var container = inventories.GetStore(owner, BusinessInventoryOwnership.StoreOf(slot.Space)).FindContainer(slot.Space);
+        return container is null ? ValueTask.FromResult<IEquipmentInstance?>(null) : container.GetEquipmentAsync(slot.Index, ct);
     }
 }
 
-internal sealed record EquipmentLocation(IBusinessItemContainer Container, BusinessSlot Slot, ContainerSlotItem Item);
-
-internal sealed class EquipmentCollection(EquipmentInstanceContext context) : IEquipmentCollection
+internal sealed class EquipmentInstance(IBusinessItemContainer container, ItemReference reference,
+    IItemLifecycleDomainService lifecycle) : IEquipmentInstance
 {
-    public async ValueTask<IEquipmentInstance?> FindAsync(int uid, CancellationToken ct) =>
-        await context.LocateAsync(uid, ct).ConfigureAwait(false) is null
-            ? null : new EquipmentInstance(uid, context);
-
-    public async ValueTask<IEquipmentInstance?> FindAtAsync(BusinessSlot slot, CancellationToken ct)
+    public ItemReference Reference => reference;
+    public int ItemUid => reference.ItemUid!.Value.Value;
+    public async ValueTask<ItemReference> ReadAsync(CancellationToken ct)
     {
-        var location = await context.AtAsync(slot, ct).ConfigureAwait(false);
-        return location is null ? null : new EquipmentInstance(location.Item.Identity!.Value.Value, context);
+        var current = await container.GetAsync(reference.SlotIndex, ct).ConfigureAwait(false);
+        if (current is null || !reference.SameOccupancyAs(current)
+            || current.IsPile || !current.Type.HasFlag(ItemTraits.Equipment))
+            throw new InvalidOperationException("Equipment reference no longer occupies its original slot.");
+        return current;
     }
-}
-
-internal sealed class EquipmentInstance(int uid, EquipmentInstanceContext context) : IEquipmentInstance
-{
-    public CharacterId Owner => context.Owner;
-    public int ItemUid => uid;
-
-    public async ValueTask<EquipmentInstanceFacts> ReadAsync(CancellationToken ct) =>
-        Facts(await context.RequireAsync(uid, ct).ConfigureAwait(false));
-
-    public ValueTask<EquipmentInstanceFacts> SetReinforcementLevelAsync(byte level, CancellationToken ct)
+    public ValueTask<ItemReference> SetReinforcementLevelAsync(byte level, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(level, (byte)31);
         return ChangeAsync(core => core with { Attribute = (byte)((core.Attribute & 0xE0) | level) }, ct);
     }
 
-    public ValueTask<EquipmentInstanceFacts> SetEnchantmentAsync(int cardId, CancellationToken ct)
+    public ValueTask<ItemReference> SetEnchantmentAsync(int cardId, CancellationToken ct)
     {
         if (cardId < 0) throw new ArgumentOutOfRangeException(nameof(cardId));
         return ChangeAsync(core => core with { EnchantCardId = cardId }, ct);
     }
 
-    public ValueTask<EquipmentInstanceFacts> SetForgingLevelAsync(byte level, CancellationToken ct) =>
+    public ValueTask<ItemReference> SetForgingLevelAsync(byte level, CancellationToken ct) =>
         ChangeAsync(core => core with { GenuineUpgrade = level }, ct);
 
-    public ValueTask<EquipmentInstanceFacts> SetDimensionalAttributeAsync(byte type, ushort value, CancellationToken ct) =>
+    public ValueTask<ItemReference> SetDimensionalAttributeAsync(byte type, ushort value, CancellationToken ct) =>
         ChangeAsync(core => core with { AmplifyType = type, AmplifyValue = value }, ct);
 
-    public ValueTask<EquipmentInstanceFacts> SetMagicSealOptionsAsync(IReadOnlyList<RandomOptionState> options,
+    public ValueTask<ItemReference> SetMagicSealOptionsAsync(IReadOnlyList<RandomOptionState> options,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -156,33 +102,27 @@ internal sealed class EquipmentInstance(int uid, EquipmentInstanceContext contex
         }, ct);
     }
 
-    public ValueTask<EquipmentInstanceFacts> SetDurabilityAsync(ushort value, CancellationToken ct) =>
+    public ValueTask<ItemReference> SetDurabilityAsync(ushort value, CancellationToken ct) =>
         ChangeAsync(core => core with { Durability = value }, ct);
 
-    public ValueTask<EquipmentInstanceFacts> DecreaseDurabilityAsync(ushort amount, CancellationToken ct)
+    public async ValueTask<ItemReference> DecreaseDurabilityAsync(ushort amount, CancellationToken ct)
     {
         if (amount == 0) throw new ArgumentOutOfRangeException(nameof(amount));
-        return ChangeAsync(core => core with { Durability = (ushort)Math.Max(0, core.Durability - amount) }, ct);
+        var current = await ReadAsync(ct).ConfigureAwait(false);
+        if (current.Snapshot.Durability == 0) return current;
+        return await container.UpdateAsync(reference,
+            core => core with { Durability = (ushort)Math.Max(0, core.Durability - amount) }, ct).ConfigureAwait(false);
     }
 
-    public async ValueTask<EquipmentInstanceFacts> DestroyAsync(CancellationToken ct)
+    public async ValueTask<ItemReference> DestroyAsync(CancellationToken ct)
     {
-        var location = await context.RequireAsync(uid, ct).ConfigureAwait(false);
-        await location.Container.ClearAsync(location.Slot.Index, ct).ConfigureAwait(false);
-        context.MarkDestroyed(uid);
-        return Facts(location);
+        var before = await ReadAsync(ct).ConfigureAwait(false);
+        await lifecycle.DeleteItemAsync(await container.TakeAsync(reference, null, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        return before;
     }
-
-    private async ValueTask<EquipmentInstanceFacts> ChangeAsync(
-        Func<InventoryItemCoreState, InventoryItemCoreState> change, CancellationToken ct)
+    private async ValueTask<ItemReference> ChangeAsync(Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct)
     {
-        var location = await context.RequireAsync(uid, ct).ConfigureAwait(false);
-        var core = change(location.Item.Core);
-        if (core != location.Item.Core)
-            await location.Container.PutAsync(location.Slot.Index, core, ct).ConfigureAwait(false);
-        return new(Owner, uid, location.Slot, core);
+        _ = await ReadAsync(ct).ConfigureAwait(false);
+        return await container.UpdateAsync(reference, change, ct).ConfigureAwait(false);
     }
-
-    private EquipmentInstanceFacts Facts(EquipmentLocation location) =>
-        new(Owner, uid, location.Slot, location.Item.Core);
 }

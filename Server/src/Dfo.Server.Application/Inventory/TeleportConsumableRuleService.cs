@@ -20,14 +20,14 @@ internal sealed class TeleportConsumableRuleService(ITeleportConsumableDefinitio
         return destination is not null && use is { IsReadable: true } ? new(destination, use) : null;
     }
     public async ValueTask<TeleportConsumablePlan> BuildAsync(TeleportConsumableRule rule, BusinessSlot source,
-        ContainerSlotItem item, ItemUseCandidate facts, CharacterPositionState standing,
+        ItemReference item, ItemUseCandidate facts, CharacterPositionState standing,
         byte townId, ChannelEntryIdentity channel, TownAreaKey sourceArea, DateTimeOffset at, CancellationToken ct)
     {
         var status = judgement.Judge(rule.Use, facts);
         if (status != ItemUsability.Allowed) return new(status, []);
         if (!item.IsPile || item.Count < 1 || source.Space is not (BusinessInventorySpace.Consumable or BusinessInventorySpace.QuickSlot)
-            || !rule.Use.IsConsumedOnUse || item.Core.EquipmentLockId != 0
-            || item.Core.ExpireTime is > 0 and < int.MaxValue && item.Core.ExpireTime <= at.ToUnixTimeSeconds())
+            || !rule.Use.IsConsumedOnUse || item.Snapshot.EquipmentLockId != 0
+            || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds())
             return new(ItemUsability.NotAUsableItem, []);
         if (!rule.Destination.TownIds.Contains(townId)
             || !await placement.CanEnterTownAsync(channel, townId, ct).ConfigureAwait(false))

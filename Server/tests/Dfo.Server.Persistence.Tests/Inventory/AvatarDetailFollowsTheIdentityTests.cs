@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Transactions;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -63,16 +64,16 @@ public sealed class AvatarDetailFollowsTheIdentityTests
             await InsertAvatarAsync(path, slot: 4, itemId: FirstAvatarId, avatarUid: 9001, Facts(1));
 
             var before = await OneAvatarAsync(side, slot: 4);
-            var identity = before.Identity;
+            var identity = before.ItemUid;
             Assert.NotNull(identity);
 
             await MoveAsync(path, from: 4, to: 11, itemId: FirstAvatarId, avatarUid: 9001);
 
             var after = await OneAvatarAsync(side, slot: 11);
-            Assert.Equal(identity, after.Identity);
+            Assert.Equal(identity, after.ItemUid);
 
-            var expected = before.AvatarDetail;
-            var found = after.AvatarDetail;
+            var expected = before.Snapshot.AvatarDetail;
+            var found = after.Snapshot.AvatarDetail;
             Assert.NotNull(expected);
             Assert.NotNull(found);
             Assert.Equal(expected.ExpireDate, found.ExpireDate);
@@ -113,9 +114,9 @@ public sealed class AvatarDetailFollowsTheIdentityTests
 
             var first = await OneAvatarAsync(side, slot: 4);
             var second = await OneAvatarAsync(side, slot: 5);
-            Assert.NotNull(first.Identity);
-            Assert.NotNull(second.Identity);
-            Assert.NotEqual(first.Identity, second.Identity);
+            Assert.NotNull(first.ItemUid);
+            Assert.NotNull(second.ItemUid);
+            Assert.NotEqual(first.ItemUid, second.ItemUid);
 
             await SwapAsync(path);
 
@@ -123,23 +124,23 @@ public sealed class AvatarDetailFollowsTheIdentityTests
             var atFive = await OneAvatarAsync(side, slot: 5);
 
             // The identities have traded positions...
-            Assert.Equal(second.Identity, atFour.Identity);
-            Assert.Equal(first.Identity, atFive.Identity);
+            Assert.Equal(second.ItemUid, atFour.ItemUid);
+            Assert.Equal(first.ItemUid, atFive.ItemUid);
 
             // ...and so have the facts, because they are the identity's and not the position's.
-            Assert.Equal(Facts(2).Color1, atFour.AvatarDetail!.Color1);
-            Assert.Equal(Facts(2).Color2, atFour.AvatarDetail.Color2);
-            Assert.Equal(Facts(2).ExpireDate, atFour.AvatarDetail.ExpireDate);
-            Assert.Equal(Facts(2).ClearAvatarId, atFour.AvatarDetail.ClearAvatarId);
-            Assert.Equal(Facts(2).DeleteDate, atFour.AvatarDetail.DeleteDate);
-            Assert.Equal(Facts(2).JewelSocket, atFour.AvatarDetail.JewelSocket);
+            Assert.Equal(Facts(2).Color1, atFour.Snapshot.AvatarDetail!.Color1);
+            Assert.Equal(Facts(2).Color2, atFour.Snapshot.AvatarDetail.Color2);
+            Assert.Equal(Facts(2).ExpireDate, atFour.Snapshot.AvatarDetail.ExpireDate);
+            Assert.Equal(Facts(2).ClearAvatarId, atFour.Snapshot.AvatarDetail.ClearAvatarId);
+            Assert.Equal(Facts(2).DeleteDate, atFour.Snapshot.AvatarDetail.DeleteDate);
+            Assert.Equal(Facts(2).JewelSocket, atFour.Snapshot.AvatarDetail.JewelSocket);
 
-            Assert.Equal(Facts(1).Color1, atFive.AvatarDetail!.Color1);
-            Assert.Equal(Facts(1).Color2, atFive.AvatarDetail.Color2);
-            Assert.Equal(Facts(1).ExpireDate, atFive.AvatarDetail.ExpireDate);
-            Assert.Equal(Facts(1).ClearAvatarId, atFive.AvatarDetail.ClearAvatarId);
-            Assert.Equal(Facts(1).DeleteDate, atFive.AvatarDetail.DeleteDate);
-            Assert.Equal(Facts(1).JewelSocket, atFive.AvatarDetail.JewelSocket);
+            Assert.Equal(Facts(1).Color1, atFive.Snapshot.AvatarDetail!.Color1);
+            Assert.Equal(Facts(1).Color2, atFive.Snapshot.AvatarDetail.Color2);
+            Assert.Equal(Facts(1).ExpireDate, atFive.Snapshot.AvatarDetail.ExpireDate);
+            Assert.Equal(Facts(1).ClearAvatarId, atFive.Snapshot.AvatarDetail.ClearAvatarId);
+            Assert.Equal(Facts(1).DeleteDate, atFive.Snapshot.AvatarDetail.DeleteDate);
+            Assert.Equal(Facts(1).JewelSocket, atFive.Snapshot.AvatarDetail.JewelSocket);
         });
     }
 
@@ -153,42 +154,43 @@ public sealed class AvatarDetailFollowsTheIdentityTests
         DeleteDate: 1_800_000_000 + which);
 
     /// <summary>The avatar the entry load serves at that position of the avatar container.</summary>
-    private static async Task<InventoryStorageItem> OneAvatarAsync(InventorySide side, int slot)
+    private static async Task<ItemReference> OneAvatarAsync(InventorySide side, int slot)
     {
         var loaded = await side.InUseCaseAsync(token => side.CharacterEntries
             .LoadCharacterAsync(new AccountId(Account), new CharacterId(Character), token));
         var item = Assert.Single(
             loaded.CharacterItems,
-            value => value.ContainerType == InventoryContainerType.Avatar
+            value => value.ContainerId == Avatars
                 && value.SlotIndex == slot);
-        Assert.Equal(AvatarKind, item.Core.ItemKind);
+        Assert.Equal(AvatarKind, item.Snapshot.LegacyKind);
         return item;
     }
 
-    /// <summary>Settlement moving one avatar, said the way a use case says a move.</summary>
+    /// <summary>Move the issued item record; neither its identity nor its details are reconstructed.</summary>
     private static Task MoveAsync(string path, int from, int to, int itemId, int avatarUid) =>
-        SettleAsync(path, session =>
+        SettleAsync(path, async session =>
         {
-            session.Clear(Avatars, from);
-            session.Write(Avatars, Placed(to, itemId, avatarUid));
+            var source = (await session.GetAsync(Avatars, from, default))!;
+            Assert.Equal(itemId, source.ItemId);
+            Assert.Equal(avatarUid, source.Snapshot.InstanceValue);
+            await session.PutAsync(Avatars, to, await session.TakeAsync(source, null, default), default);
         });
 
-    /// <summary>Settlement trading the two positions, which is two writes and no clear.</summary>
     private static Task SwapAsync(string path) =>
-        SettleAsync(path, session =>
+        SettleAsync(path, async session =>
         {
-            session.Write(Avatars, Placed(4, SecondAvatarId, 9002));
-            session.Write(Avatars, Placed(5, FirstAvatarId, 9001));
+            var first = await session.TakeAsync((await session.GetAsync(Avatars, 4, default))!, null, default);
+            var second = await session.TakeAsync((await session.GetAsync(Avatars, 5, default))!, null, default);
+            await session.PutAsync(Avatars, 5, first, default);
+            await session.PutAsync(Avatars, 4, second, default);
         });
 
-    private static StoredItem Placed(int slotIndex, int itemId, int avatarUid) =>
-        new(slotIndex, Core(itemId, avatarUid)) { WorldClass = ItemWorldClass.Avatar };
-
-    private static async Task SettleAsync(string path, Action<IItemDomainStoreSession> work)
+    private static async Task SettleAsync(string path, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var transaction = new StubTransaction();
-        work(new SqliteItemDomainStore(path).SessionIn(transaction));
-        await transaction.SettleAsync();
+        var scope = new DomainTransactionScope();
+        await using var transaction = scope.Begin();
+        await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
+        await transaction.CommitAsync(CancellationToken.None);
     }
 
     /// <summary>The same eighty-two bytes the seeding writes, so a move recognises the row.</summary>
@@ -275,35 +277,4 @@ public sealed class AvatarDetailFollowsTheIdentityTests
                 : new ItemPlacement(2, 100, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
-    /// <summary>Stands in for the coordinator, as the store's own tests do.</summary>
-    private sealed class StubTransaction : IDomainTransaction
-    {
-        private readonly Dictionary<object, ITransactionParticipant> enlisted = [];
-
-        public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
-            where TParticipant : ITransactionParticipant
-        {
-            if (this.enlisted.TryGetValue(identity, out var existing))
-            {
-                return (TParticipant)existing;
-            }
-
-            var participant = create();
-            this.enlisted.Add(identity, participant);
-            return participant;
-        }
-
-        public async Task SettleAsync()
-        {
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.PrepareAsync(CancellationToken.None);
-            }
-
-            foreach (var participant in this.enlisted.Values)
-            {
-                await participant.CommitAsync(CancellationToken.None);
-            }
-        }
-    }
 }

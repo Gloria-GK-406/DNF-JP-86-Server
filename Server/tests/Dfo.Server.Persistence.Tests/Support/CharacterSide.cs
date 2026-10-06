@@ -29,14 +29,18 @@ namespace Dfo.Server.Persistence.Tests.Support;
 internal sealed class CharacterSide
 {
     private readonly SqliteDatabase database;
+    private readonly SqliteItemDomainStore itemStore;
 
     public CharacterSide(string databasePath)
     {
         this.Scope = new DomainTransactionScope();
+        this.itemStore = new SqliteItemDomainStore(databasePath);
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
 
     public DomainTransactionScope Scope { get; }
+
+    public SqliteItemDomainStore ItemStore => this.itemStore;
 
     public ICharacterRepository Roster => this.RosterOver(new SqliteCharacterItemTable(this.database));
 
@@ -56,7 +60,10 @@ internal sealed class CharacterSide
         new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
         items,
-        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue());
+        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
+        new ItemGrantDomainService(null!, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()),
+            new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())),
+            this.itemStore, this.Scope, new SqliteCharacterTable(this.database), null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())));
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.
@@ -95,9 +102,6 @@ internal sealed class CharacterSide
     /// </remarks>
     public ICharacterItemTable Items => new SqliteCharacterItemTable(this.database);
 
-    /// <summary>The positions themselves, for emptying one.</summary>
-    public IItemSlotTable Slots => new SqliteItemSlotTable(this.database);
-
     /// <summary>
     /// The characters table itself, for the tests that are about what one statement reads.
     /// </summary>
@@ -126,8 +130,11 @@ internal sealed class CharacterSide
             new SqliteDungeonEffectOutboxTable(this.database),
             new SqliteAccountTable(this.database),
             new SqliteCharacterTable(this.database),
-            experienceRules,
-            rules);
+            experienceRules, rules, new CharacterDomainService(null!, null!, id => new PlayingCharacter(id,
+                null!, null!, null!, null!, null!, new SqliteCharacterTable(database), null!, null!, null!,
+                experienceRules: experienceRules,
+                capsules: new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
+                transactions: Scope), null!));
 
     /// <summary>Runs one call inside a use case and settles it, the way one command would.</summary>
     public async Task<TResult> InUseCaseAsync<TResult>(

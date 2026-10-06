@@ -12,7 +12,7 @@ public sealed record SetOpeningPremiumEffect(PremiumServiceType Type, long Expec
 public sealed record SetSeriaLuckEffect(int Expected, int Next) : InventoryEffect;
 public sealed record SetDoublePotUsageEffect(DoublePotUsageDecision Decision) : InventoryEffect;
 public sealed record PreparedItemGrantChange(ImmutableArray<OpeningRewardDisplay> Rewards, ImmutableArray<BusinessSlot> Slots) : EffectChange;
-public sealed record OpeningVirtualChange(BusinessSlot Slot, InventoryItemCoreState Core, OpeningRewardDisplay Reward) : EffectChange;
+public sealed record OpeningVirtualChange(BusinessSlot Slot, ItemSnapshot Core, OpeningRewardDisplay Reward) : EffectChange;
 public sealed record OpeningPremiumChange(AccountPremiumEntryState Premium, OpeningRewardDisplay Reward) : EffectChange;
 public sealed record SeriaLuckChange(int Before, int After) : EffectChange;
 public sealed record DoublePotUsageChange(DoublePotUsageDecision Decision) : EffectChange;

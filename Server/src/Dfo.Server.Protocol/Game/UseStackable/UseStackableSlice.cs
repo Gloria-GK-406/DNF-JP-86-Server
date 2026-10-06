@@ -83,6 +83,7 @@ public sealed record UseStackableResponse(
     public const byte Silent = 2;
 
     public CreatureRuntimeChange? CreatureChange { get; init; }
+    public ItemUseSlotState? InventoryState { get; init; }
 
     public ServerMessageType MessageType => ServerMessageType.GameUseStackable;
 
@@ -208,9 +209,14 @@ public enum ItemUseStatus
 public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int RemainingCount,
     CreatureRuntimeChange? CreatureChange = null)
 {
+    public ItemUseSlotState? InventoryState { get; init; }
+
     public static ItemUseResult Refused(ItemUseStatus status, int itemId = 0) =>
         new(status, itemId, 0);
 }
+
+/// <summary>A transaction's final slot value; a null item explicitly clears the slot.</summary>
+public sealed record ItemUseSlotState(ItemSnapshot? Item, DateTimeOffset PreparedAt);
 
 /// <summary>One character using one item out of one slot.</summary>
 public sealed record UseStackableCommand(
@@ -225,9 +231,9 @@ public sealed record UseStackableCommand(
 /// Decides whether the item may be used, and applies what using it changes.
 /// </summary>
 /// <remarks>
-/// Exactly one is taken off the pile when the item is consumed at all: the client draws the
-/// recovery and decrements its own count before the answer arrives, so consuming any other number
-/// would leave the two disagreeing about a slot.
+/// Exactly one is taken off the pile when the item is consumed at all. The final slot value is
+/// captured in the same transaction and published after the acknowledgement: the A21 tower
+/// session on 2026-10-04 retained an empty potion icon when only the acknowledgement was sent.
 ///
 /// The eighty-four items whose <c>[stackable type]</c> begins with <c>unlimited</c> are consumed
 /// zero times, and that is expressed by their effect set containing no consumption rather than by
@@ -240,7 +246,8 @@ public sealed record UseStackableCommand(
 public sealed class UseStackableCommandHandler(
     ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService inventory,
-    IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
+    IItemUseEffectDomainService effects,
+    TimeProvider? timeProvider = null) : ICommandHandler<UseStackableCommand, ItemUseResult>
 {
     public async ValueTask<ItemUseResult> HandleAsync(
         CommandExecutionContext context,
@@ -260,20 +267,27 @@ public sealed class UseStackableCommandHandler(
         if (slot is null)
             return ItemUseResult.Refused(ItemUseStatus.NoBoundContainer);
 
-        var item = await slot.Container.ReadSlotAsync(slot.Slot.Index, cancellationToken)
+        var item = await slot.Container.GetAsync(slot.Slot.Index, cancellationToken)
             .ConfigureAwait(false);
 
         // The client names what it believes it is using. A slot that holds something else means the
         // two disagree about the inventory, and deleting from it anyway would resolve that
         // disagreement in favour of whichever one is wrong.
         if (item is null || command.ItemCode > 0 && item.ItemId != command.ItemCode)
-            return ItemUseResult.Refused(ItemUseStatus.SlotDisagrees);
+            return ItemUseResult.Refused(ItemUseStatus.SlotDisagrees) with
+            {
+                InventoryState = new(item?.Snapshot, (timeProvider ?? TimeProvider.System).GetUtcNow()),
+            };
 
         var applied = await effects.UseAsync(command.Session, command.Slot, item, cancellationToken).ConfigureAwait(false);
         if (applied.Status != ItemUsability.Allowed)
             return ItemUseResult.Refused(StatusFor(applied.Status), item.ItemId);
         var creatureChange = applied.Applied?.Changes<PetStomachChange>().LastOrDefault()?.Change;
-        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount, creatureChange);
+        var remaining = await slot.Container.GetAsync(slot.Slot.Index, cancellationToken).ConfigureAwait(false);
+        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount, creatureChange)
+        {
+            InventoryState = new(remaining?.Snapshot, (timeProvider ?? TimeProvider.System).GetUtcNow()),
+        };
     }
     /// <summary>
     /// The refusal the judgement gave, in this protocol's own terms.
@@ -319,9 +333,18 @@ public sealed class UseStackableHandler(
         CancellationToken cancellationToken)
     {
         var response = await ResolveAsync(context, message, cancellationToken).ConfigureAwait(false);
+        List<IGameServerMessage> messages = [response];
+        if (response.InventoryState is { } state)
+        {
+            // Absolute state follows the ACK so a native client decrement cannot subtract twice.
+            messages.Add(state.Item is { } item
+                ? GameInventoryDelivery.Notification(new(response.Slot.Space,
+                    [new(item.ItemUid, response.Slot.Index, item.ToCore(), item.AvatarDetail)], state.PreparedAt))
+                : GameInventoryDelivery.ClearedSlotNotification(response.Slot.Space, response.Slot.Index, state.PreparedAt));
+        }
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([response], []),
+            new GameExplicitMessageDelivery(messages, []),
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -361,7 +384,8 @@ public sealed class UseStackableHandler(
                 responseSlot.Index,
                 result.RemainingCount);
             return UseStackableResponse.Success(
-                responseSlot, message.InstanceValue, result.ItemId) with { CreatureChange = result.CreatureChange };
+                responseSlot, message.InstanceValue, result.ItemId) with
+                { CreatureChange = result.CreatureChange, InventoryState = result.InventoryState };
         }
 
         logger.LogInformation(
@@ -371,7 +395,8 @@ public sealed class UseStackableHandler(
             responseSlot.Index,
             result.Status);
         return UseStackableResponse.Failure(
-            responseSlot, message.InstanceValue, message.ItemCode, ErrorCodeFor(result.Status));
+            responseSlot, message.InstanceValue, message.ItemCode, ErrorCodeFor(result.Status)) with
+            { InventoryState = result.InventoryState };
     }
 
     /// <summary>

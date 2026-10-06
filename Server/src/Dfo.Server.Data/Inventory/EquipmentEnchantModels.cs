@@ -19,8 +19,8 @@ public sealed record EquipmentEnchantReceipt(
     BusinessSlot BeadSlot,
     BusinessSlot TargetSlot,
     int CardItemId,
-    InventoryItemCoreState Target,
-    InventoryItemCoreState? BeadRemaining,
+    ItemSnapshot Target,
+    ItemSnapshot? BeadRemaining,
     DateTimeOffset PreparedAt);
 
 public sealed record EquipmentEnchantResult(

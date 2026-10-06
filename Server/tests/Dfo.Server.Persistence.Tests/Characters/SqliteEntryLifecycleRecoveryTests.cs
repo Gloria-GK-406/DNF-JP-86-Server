@@ -311,8 +311,8 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         var path = TempPath();
         try
         {
-            await SeedExperienceOutboxAsync(path, level: 86, exp: 84000,
-                """{"characterId":7,"accountId":3,"previousLevel":86,"previousExp":84000,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":86,"expectedDatabaseExp":84000}""");
+            await SeedExperienceOutboxAsync(path, level: 86, exp: 85001,
+                """{"characterId":7,"accountId":3,"previousLevel":86,"previousExp":85001,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":86,"expectedDatabaseExp":85001}""");
 
             var outcome = await RecoverAsync(path);
 
@@ -321,7 +321,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal(85000L, await ScalarAsync(path, "SELECT exp FROM characters WHERE character_id=7"));
             Assert.Equal(30L, await ScalarAsync(path, "SELECT honor_exp FROM accounts WHERE account_id=3"));
             Assert.Equal(27L, await ScalarAsync(path, "SELECT growth_capsule_exp FROM accounts WHERE account_id=3"));
-            Assert.Equal("{\"rawGain\":25,\"honorExpGain\":25,\"normalExpGain\":0,\"previousLevel\":86,\"previousExp\":84000,\"newLevel\":86,\"newExp\":85000,\"normalizedMaxLevelExp\":true,\"persisted\":true,\"growthCapsuleExpGain\":25,\"totalHonorExp\":30,\"totalGrowthCapsuleExp\":27}",
+            Assert.Equal("{\"rawGain\":25,\"honorExpGain\":25,\"normalExpGain\":0,\"previousLevel\":86,\"previousExp\":85001,\"newLevel\":86,\"newExp\":85000,\"normalizedMaxLevelExp\":true,\"persisted\":true,\"growthCapsuleExpGain\":25,\"totalHonorExp\":30,\"totalGrowthCapsuleExp\":27}",
                 await ScalarStringAsync(path, "SELECT result_json FROM dungeon_persistent_effect_outbox"));
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
@@ -343,7 +343,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             var outcome = await RecoverAsync(path);
 
             Assert.Equal(1, outcome.CommittedCount);
-            Assert.Equal(85L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
+            Assert.Equal(81L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
             Assert.Equal(80025L, await ScalarAsync(path, "SELECT exp FROM characters WHERE character_id=7"));
             Assert.Equal(5L, await ScalarAsync(path, "SELECT honor_exp FROM accounts WHERE account_id=3"));
             Assert.Equal(2L, await ScalarAsync(path, "SELECT growth_capsule_exp FROM accounts WHERE account_id=3"));

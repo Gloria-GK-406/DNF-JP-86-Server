@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
@@ -14,19 +15,7 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 /// <summary>
 /// What comes of taking part of one pile into a slot of its own.
 /// </summary>
-/// <remarks>
-/// A split is the moment a pile could quietly acquire an identity. The obvious way to write it is
-/// to copy the pile that is being divided -- it is right there, it already has the item and the
-/// kind -- and a copy brings everything else the original was carrying: its durability, its seal,
-/// whatever a previous life left on the row. The two halves would then differ from one another,
-/// which is precisely what a pile is defined not to do, and every later question about "which of
-/// these two" would have an answer where there should be none.
-///
-/// So this asks the two halves the questions that could separate them and gets no answer from
-/// either: neither carries a name, neither's slot row names a world row, and the new half's payload
-/// is the plain pile shape rather than a copy of the one it came from. It then keeps moving both,
-/// because a half that cannot be used again is not a usable slot however clean its bytes are.
-/// </remarks>
+/// <remarks>Splitting preserves core restrictions and expiry but creates no world identity.</remarks>
 public sealed class SplitPileTests
 {
     private const int Character = 70;
@@ -36,18 +25,12 @@ public sealed class SplitPileTests
     private const int PotionId = 1234;
 
     /// <summary>The kind byte the seeded pile carries, and the one a new pile must carry too.</summary>
-    private const byte PotionKind = 6;
+    private const byte PotionKind = 2;
 
     /// <summary>
     /// Splitting a pile leaves two usable slots, and the new one is marked with nothing.
     /// </summary>
-    /// <remarks>
-    /// The pile that is divided is seeded carrying three things a pile has no business carrying --
-    /// a durability, an enchant count and a seal -- so that a new slot written as a copy of it
-    /// would be caught by its bytes rather than by an argument. The new slot is compared against
-    /// the whole plain pile shape rather than against those three fields, so a fourth field
-    /// inherited later is caught as well.
-    /// </remarks>
+    /// <remarks>Both halves retain the original payload except for count.</remarks>
     [Fact]
     public async Task SplittingAPileLeavesTwoUsablePilesAndMarksNeither()
     {
@@ -68,8 +51,8 @@ public sealed class SplitPileTests
             Assert.Equal(new ItemMoveOutcome.Moved(2, PotionId), moved);
 
             var (left, opened) = await side.InUseCaseAsync(async token => (
-                await bag.ReadSlotAsync(65, token).ConfigureAwait(false),
-                await bag.ReadSlotAsync(66, token).ConfigureAwait(false)));
+                await bag.GetAsync(65, token).ConfigureAwait(false),
+                await bag.GetAsync(66, token).ConfigureAwait(false)));
 
             // Both slots hold a usable pile, said the same way: what sort of thing it is, what it
             // is, and how many. Nothing but the count differs between them.
@@ -77,13 +60,12 @@ public sealed class SplitPileTests
             Assert.NotNull(opened);
             Assert.True(left.IsPile);
             Assert.True(opened.IsPile);
-            Assert.Equal((PotionKind, PotionId, 3), (left.ItemKind, left.ItemId, left.Count));
-            Assert.Equal((PotionKind, PotionId, 2), (opened.ItemKind, opened.ItemId, opened.Count));
+            Assert.Equal((PotionKind, PotionId, 3), (left.Snapshot.LegacyKind, left.ItemId, left.Count));
+            Assert.Equal((PotionKind, PotionId, 2), (opened.Snapshot.LegacyKind, opened.ItemId, opened.Count));
 
-            // The half that stayed keeps what it was carrying; the half that was opened carries
-            // the plain pile shape and not one byte of the other's.
-            Assert.Equal(Marked(3), left.Core);
-            Assert.Equal(StackableItemCore.Create(PotionKind, PotionId, 2), opened.Core);
+            // Splitting must not remove restrictions or expiry from either half.
+            Assert.Equal(Marked(3), left.Snapshot.ToCore());
+            Assert.Equal(Marked(2), opened.Snapshot.ToCore());
 
             // Neither position names a world row, so neither half has a name for anything to tell
             // it apart by -- which is the same thing the projection says a moment later.
@@ -91,7 +73,7 @@ public sealed class SplitPileTests
             Assert.Equal(new Slot("template", PotionId, 2), await SlotAsync(path, 66));
 
             var projected = await side.InUseCaseAsync(token =>
-                side.Mutations.ReadMainItemsAsync(new CharacterId(Character), token));
+                side.ReadMainItemsAsync(new AccountId(Account), new CharacterId(Character), token));
 
             Assert.Equal(
                 [(65, 3, (ItemIdentity?)null), (66, 2, null)],
@@ -101,7 +83,7 @@ public sealed class SplitPileTests
                     .ToArray());
             Assert.All(
                 projected,
-                item => Assert.Equal(ItemSlotKind.Template, item.Holds.Kind));
+                item => Assert.Null(item.Identity));
         }
         finally
         {
@@ -184,13 +166,15 @@ public sealed class SplitPileTests
         }
     }
 
-    /// <summary>A pile carrying three things a pile has no business carrying.</summary>
+    /// <summary>A pile with payload metadata, expiry and trade restrictions.</summary>
     private static InventoryItemCoreState Marked(int count) =>
         StackableItemCore.Create(PotionKind, PotionId, count) with
         {
             Durability = 4242,
             EnchantUpgradeCount = 9,
             SealFlag = 3,
+            ExpireTime = 1800000000,
+            TradeRestriction = 1,
         };
 
     /// <summary>What one position of <c>item_slots</c> says it holds.</summary>
@@ -218,8 +202,9 @@ public sealed class SplitPileTests
         command.CommandText =
             "INSERT INTO items(item_core) VALUES(@core);"
             + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
-            + "VALUES('character',@cid,0,@slot,'world',last_insert_rowid(),"
-            + "last_insert_rowid(),1)";
+            + "VALUES('character',@cid,0,@slot,'template',@id,last_insert_rowid(),@count)";
+        command.Parameters.AddWithValue("@id", core.ItemId);
+        command.Parameters.AddWithValue("@count", core.Value);
         command.Parameters.AddWithValue("@cid", Character);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", InventoryItemCore.Encode(core));

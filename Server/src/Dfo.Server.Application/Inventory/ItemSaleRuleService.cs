@@ -17,27 +17,27 @@ internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices, INpc
         return shop is not null && (shop.VisibleOnDungeonClear ? dungeonCleared : inTown);
     }
 
-    public async ValueTask<ItemSaleQuote> QuoteAsync(ContainerSlotItem item, int count, CancellationToken cancellationToken)
+    public async ValueTask<ItemSaleQuote> QuoteAsync(ItemReference item, int count, CancellationToken cancellationToken)
     {
         if (count <= 0 || count > short.MaxValue || count > item.Count)
             return new(ItemSaleRejection.InvalidRequest);
-        if (item.Core.EquipmentLockId != 0)
+        if (item.Snapshot.EquipmentLockId != 0)
             return new(ItemSaleRejection.Locked);
-        if (item.WorldClass is not (ItemWorldClass.Equipment or ItemWorldClass.Interchangeable)
-            || item.Core.ExpireTime != 0)
+        if ((!item.IsPile && !item.Type.HasFlag(ItemTraits.Equipment))
+            || item.Snapshot.ExpireTime != 0)
             return new(ItemSaleRejection.CannotSell);
         var definition = await prices.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is not { CanSell: true, Value: >= 0, RatePerThousand: >= 0 })
             return new(ItemSaleRejection.CannotSell);
-        if (definition.IsEquipment != (item.WorldClass == ItemWorldClass.Equipment))
+        if (definition.IsEquipment != ((!item.IsPile && item.Type.HasFlag(ItemTraits.Equipment))))
             return new(ItemSaleRejection.CannotSell);
         // Special equipment can select other client price branches. Keep it intact until those
         // mappings are verified; the ordinary equipment path is backed by the A21 live probe.
-        if (definition.IsEquipment && (item.Core.Attribute != 0 || item.Core.SealFlag != 0
-            || item.Core.AmplifyType != 0 || item.Core.GenuineUpgrade != 0
-            || item.Core.EmancipateEquipmentLevel != 0 || item.Core.RandomOptionState != 0
-            || item.Core.RandomOption0.Type != 0 || item.Core.RandomOption1.Type != 0
-            || item.Core.RandomOption2.Type != 0))
+        if (definition.IsEquipment && (item.Snapshot.Attribute != 0 || item.Snapshot.SealFlag != 0
+            || item.Snapshot.AmplifyType != 0 || item.Snapshot.GenuineUpgrade != 0
+            || item.Snapshot.EmancipateEquipmentLevel != 0 || item.Snapshot.RandomOptionState != 0
+            || item.Snapshot.RandomOption0.Type != 0 || item.Snapshot.RandomOption1.Type != 0
+            || item.Snapshot.RandomOption2.Type != 0))
             return new(ItemSaleRejection.CannotSell);
 
         // Match A21 RVA 02538230: float32 arithmetic, truncate, then equipment's 90/100.
@@ -45,7 +45,7 @@ internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices, INpc
         float rawGold;
         if (definition.IsEquipment && definition.MaxDurability != 0)
             rawGold = (float)definition.RatePerThousand * definition.Value * 0.001f
-                * Math.Min(item.Core.Durability, definition.MaxDurability) / definition.MaxDurability;
+                * Math.Min(item.Snapshot.Durability, definition.MaxDurability) / definition.MaxDurability;
         else
             rawGold = definition.RatePerThousand * 0.001f * definition.Value;
         if (!float.IsFinite(rawGold) || (double)rawGold > int.MaxValue)

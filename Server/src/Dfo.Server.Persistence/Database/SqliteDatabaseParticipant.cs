@@ -19,8 +19,9 @@ namespace Dfo.Server.Persistence.Database;
 /// in their own vocabulary and are asked to flush during prepare; they never open a connection,
 /// begin a transaction, or commit.
 /// </remarks>
-internal sealed class SqliteDatabaseParticipant(string connectionString) : ITransactionParticipant
+internal sealed class SqliteDatabaseParticipant(string connectionString, bool readOnly = false) : ITransactionParticipant
 {
+    public bool SupportsReadOnly => readOnly;
     private readonly Dictionary<object, ISqliteStoreFacet> facets = [];
 
     /// <summary>The facets in the order they first joined, which is the order they are flushed.</summary>
@@ -63,9 +64,6 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
         return facet;
     }
 
-    internal TFacet? ExistingFacet<TFacet>(object key) where TFacet : class, ISqliteStoreFacet =>
-        this.facets.TryGetValue(key, out var existing) ? existing as TFacet : null;
-
     /// <summary>
     /// A command on this use case's connection, inside its database transaction, opening the
     /// connection and beginning the transaction on first use.
@@ -101,7 +99,9 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
             return this.connection;
         }
 
-        var link = new SqliteConnection(connectionString);
+        var link = new SqliteConnection(readOnly
+            ? new SqliteConnectionStringBuilder(connectionString) { Mode = SqliteOpenMode.ReadOnly }.ToString()
+            : connectionString);
         try
         {
             await link.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -126,6 +126,10 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
     /// </remarks>
     public async ValueTask PrepareAsync(CancellationToken cancellationToken)
     {
+        if (readOnly && this.order.Any(facet => facet.HasStagedWork))
+            throw new InvalidOperationException("A read-only query cannot commit staged state changes.");
+        // Custody validation must also run after immediate writes or a mid-use-case flush.
+        foreach (var facet in this.order) facet.ValidateForCommit();
         if (!this.order.Any(facet => facet.HasStagedWork))
         {
             this.prepared = true;
@@ -242,6 +246,9 @@ internal interface ISqliteStoreFacet
 {
     /// <summary>Whether this facet has anything to write.</summary>
     bool HasStagedWork { get; }
+
+    /// <summary>Final invariants, separate from materializing writes during a use case.</summary>
+    void ValidateForCommit() { }
 
     /// <summary>Turns the staged writes into statements, inside the open transaction.</summary>
     ValueTask FlushAsync(CancellationToken cancellationToken);

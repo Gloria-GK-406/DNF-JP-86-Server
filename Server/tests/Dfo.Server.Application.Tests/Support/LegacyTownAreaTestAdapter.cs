@@ -26,7 +26,6 @@ namespace Dfo.Server.Abstractions.Sessions
         SameArea = 1 << 2,
         StandingInTown = 1 << 3,
         SharesTownPresence = 1 << 4,
-        SameLogicalChannel = 1 << 5,
     }
 
     public sealed record SessionPresenceScope(
@@ -39,37 +38,6 @@ namespace Dfo.Server.Abstractions.Sessions
     {
         public static SessionPresenceScope Global { get; } = new(SessionPresenceScopeFlags.None);
 
-        public static SessionPresenceScope VisibleTownArea(
-            int listenerPort,
-            byte townId,
-            byte areaId,
-            CharacterId? excludingCharacterId = null) =>
-            new(
-                SessionPresenceScopeFlags.SameChannel
-                | SessionPresenceScopeFlags.SameTown
-                | SessionPresenceScopeFlags.SameArea
-                | SessionPresenceScopeFlags.StandingInTown
-                | SessionPresenceScopeFlags.SharesTownPresence,
-                listenerPort,
-                townId,
-                areaId,
-                excludingCharacterId);
-
-        public static SessionPresenceScope VisiblePartyArea(
-            int channelId,
-            byte townId,
-            byte areaId,
-            CharacterId? excludingCharacterId = null) =>
-            new(
-                SessionPresenceScopeFlags.SameLogicalChannel
-                | SessionPresenceScopeFlags.SameTown
-                | SessionPresenceScopeFlags.SameArea
-                | SessionPresenceScopeFlags.StandingInTown
-                | SessionPresenceScopeFlags.SharesTownPresence,
-                TownId: townId,
-                AreaId: areaId,
-                ExcludingCharacterId: excludingCharacterId,
-                ChannelId: channelId);
     }
 
     public interface ISessionPresenceDomainService : ITownAreaDomainService
@@ -332,8 +300,6 @@ namespace Dfo.Server.Application.Sessions
                 .Where(value => value.CharacterId != scope.ExcludingCharacterId)
                 .Where(value => !scope.Flags.HasFlag(SessionPresenceScopeFlags.SameChannel)
                     || value.ListenerPort == scope.ListenerPort)
-                .Where(value => !scope.Flags.HasFlag(SessionPresenceScopeFlags.SameLogicalChannel)
-                    || value.ChannelId == scope.ChannelId)
                 .Where(value => !scope.Flags.HasFlag(SessionPresenceScopeFlags.SameTown)
                     || value.TownId == scope.TownId)
                 .Where(value => !scope.Flags.HasFlag(SessionPresenceScopeFlags.SameArea)

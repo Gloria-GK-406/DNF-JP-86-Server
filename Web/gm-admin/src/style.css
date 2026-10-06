@@ -12,7 +12,6 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
 .ant-empty { padding: 96px 0; }
 .login-page { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 24px; box-sizing: border-box; }
 .login-card { width: 400px; max-width: 100%; }
-.login-card .ant-alert { margin-bottom: 20px; }
 .loading-block { width: 200px; height: 80px; }
 @media (max-width: 800px) { .content { padding: 16px; } .brand { padding: 0 12px; } }
 .mail-attachments { width: 100%; border: 1px solid #e8edf4; border-radius: 10px; padding: 16px; box-sizing: border-box; }
@@ -34,8 +33,13 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
 .mail-picker-config { background: #fafbfe; }
 .mail-picker-config .ant-empty { padding: 20px 0; }
 .mail-picker-loading { text-align: center; padding: 40px 0; color: #748094; }
+.mail-workflow-modal, .cera-workflow-modal { top: 32px; max-width: calc(100vw - 32px); padding-bottom: 32px; }
+.mail-workflow-modal .ant-modal-body, .cera-workflow-modal .ant-modal-body { max-height: calc(100dvh - 190px); overflow-y: auto; }
+.mail-workflow-body, .cera-workflow-body { margin-top: 24px; }
 @media (max-width: 900px) {
   .mail-picker-filters { grid-template-columns: 1fr 1fr; }
   .mail-picker-body { grid-template-columns: 1fr; }
   .mail-attachment-row { flex-wrap: wrap; }
 }
+
+.initialization-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 20px; }

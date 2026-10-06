@@ -537,47 +537,32 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
     }
 
-    private sealed class NoExperienceAward : ICharacterExperienceDomainService
+    private sealed class NoExperienceAward : ExperienceCharacters
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId,
-            byte level,
-            uint experience,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
+        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
     }
 
-    private sealed class PricingOnlyExperience(IExperienceCalculationDomainService calculation) : ICharacterExperienceDomainService
+    private sealed class PricingOnlyExperience(IExperienceCalculationDomainService calculation) : ExperienceCharacters
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId,
-            byte level,
-            uint experience,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public async ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
         {
             _ = await calculation.CalculateAsync(source, 3, cancellationToken);
             return null;
         }
     }
 
-    private sealed class ExperienceMustNotBeAwarded : ICharacterExperienceDomainService
+    private sealed class ExperienceMustNotBeAwarded : ExperienceCharacters
     {
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
-        public ValueTask<bool> TrySetProgressAsync(
-            CharacterId characterId,
-            byte level,
-            uint experience,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public ValueTask<ExperienceAward?> ApplyAwardAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
+        public override ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("AI character deaths must not award experience.");
     }
 
@@ -611,7 +596,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     }
 
     private sealed class DirectGrantBag(int count,
-        Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null) : IItemContainer
+        Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null) : IItemContainer, Dfo.Server.Protocol.Tests.Support.IItemGrantStub
     {
         public bool FailAdd { get; set; }
         public int Count { get; private set; } = count;
@@ -620,22 +605,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public ContainerShape Shape => new(this.Type, 56);
         public bool IsRemovable => false;
 
-        private ContainerSlotItem? Slot => this.Count == 0
-            ? null
-            : new ContainerSlotItem(177,
-                StackableItemCore.Create(6, 10149163, this.Count),
-                ItemWorldClass.Interchangeable);
-
-        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
-            int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(slotIndex == 177 ? this.Slot : null);
-
-        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(
-                this.Slot is { } item ? [item] : []);
-
-        public ValueTask<ItemPlacementOutcome> AddAsync(
+        public ValueTask<ItemPlacementOutcome> GrantAsync(
             int itemId, int incoming, CancellationToken cancellationToken)
         {
             Assert.Equal(10149163, itemId);
@@ -645,6 +615,20 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             return ValueTask.FromResult<ItemPlacementOutcome>(
                 new ItemPlacementOutcome.AddedToPile(177, incoming, this.Count));
         }
+
+        private ItemReference? Slot => this.Count == 0
+            ? null
+            : new ItemReference(this, Id, 177, 0, ItemSnapshot.FromCore(StackableItemCore.Create(6, 10149163, this.Count), true));
+
+        public ValueTask<ItemReference?> GetAsync(
+            int slotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(slotIndex == 177 ? this.Slot : null);
+
+        public ValueTask<IReadOnlyList<ItemReference>> GetAllAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<ItemReference>>(
+                this.Slot is { } item ? [item] : []);
+
 
         private sealed class BagChange(DirectGrantBag bag, int before)
             : Dfo.Server.Abstractions.Transactions.ITransactionParticipant
@@ -659,18 +643,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             }
         }
 
-        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int firstSlotIndex, int secondSlotIndex,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask PutAsync(int slotIndex, InventoryItemCoreState core,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<ItemMoveOutcome> MoveToAsync(int fromSlotIndex, int toSlotIndex, int count,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ItemReference> PutAsync(int slotIndex, ItemRecord record, CancellationToken ct) =>
+            throw new NotSupportedException("This fixture uses injected grant outcomes and only projects their results.");
+        public ValueTask<ItemRecord> TakeAsync(ItemReference reference, int? count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ItemReference> UpdateAsync(ItemReference reference, Func<ItemSnapshot, ItemSnapshot> change, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask FlushAsync(CancellationToken ct) => ValueTask.CompletedTask;
     }
 
     private sealed class OneLog(CarriedQuest carried) : IQuestLog
@@ -712,8 +689,6 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             throw new NotSupportedException();
         public ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
             IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-        public ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
         public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

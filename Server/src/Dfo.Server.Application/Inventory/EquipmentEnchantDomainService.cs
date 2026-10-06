@@ -49,24 +49,24 @@ internal sealed class EquipmentEnchantDomainService(
         }
         if (beadBound is null || targetBound is null)
             return new(EquipmentEnchantRejection.ItemUnavailable);
-        var bead = await beadBound.Container.ReadSlotAsync(beadBound.Slot.Index, ct)
+        var bead = await beadBound.Container.GetAsync(beadBound.Slot.Index, ct)
             .ConfigureAwait(false);
         var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null)
             return new(EquipmentEnchantRejection.ItemUnavailable);
-        if (target.Core.ExpireTime > 0
-            && target.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.ExpireTime > 0
+            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentEnchantRejection.ItemUnavailable);
-        if (target.Core.EquipmentLockId != 0 || target.Core.SortLockFlag != 0)
+        if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentEnchantRejection.Locked);
-        if (bead is not { IsPile: true, WorldClass: ItemWorldClass.Interchangeable, Count: > 0 })
+        if (bead is not { IsPile: true, Count: > 0 })
             return new(EquipmentEnchantRejection.MaterialUnavailable);
-        if (bead.Core.EquipmentLockId != 0 || bead.Core.SortLockFlag != 0
-            || bead.Core.ExpireTime > 0
-                && bead.Core.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (bead.Snapshot.EquipmentLockId != 0 || bead.Snapshot.SortLockFlag != 0
+            || bead.Snapshot.ExpireTime > 0
+                && bead.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
             return new(EquipmentEnchantRejection.MaterialUnavailable);
-        var plan = await rules.EnchantAsync(target, beadSlot, bead.Core, ct).ConfigureAwait(false);
+        var plan = await rules.EnchantAsync(target, beadSlot, bead.Snapshot, ct).ConfigureAwait(false);
         var cardId = plan.Decision;
         if (cardId is null) return new(EquipmentEnchantRejection.UnsupportedContent);
 
@@ -74,8 +74,8 @@ internal sealed class EquipmentEnchantDomainService(
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentEnchantRejection.MaterialUnavailable);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
-        var changed = applied.Changes<EquipmentEffectChange>().Single().After!.Core;
-        var remaining = (await beadBound.Container.ReadSlotAsync(beadSlot.Index, ct).ConfigureAwait(false))?.Core;
+        var changed = applied.Changes<EquipmentEffectChange>().Single().After!;
+        var remaining = (await beadBound.Container.GetAsync(beadSlot.Index, ct).ConfigureAwait(false))?.Snapshot;
         return new(EquipmentEnchantRejection.None,
             new(session, beadSlot, targetSlot, cardId.Value, changed,
                 remaining, context.At));

@@ -82,8 +82,8 @@ public sealed class TitleBookCarrierTests
             var loaded = await LoadCharacterAsync(path);
 
             var item = Assert.Single(inventory.CharacterItems);
-            Assert.Equal(InventoryContainerType.Main, item.ContainerType);
-            Assert.Equal(2001, item.Core.ItemId);
+            Assert.Equal(ContainerId.ForCharacter(Character, InventoryContainerType.Main), item.ContainerId);
+            Assert.Equal(2001, item.Snapshot.ToCore().ItemId);
             var book = Assert.Single(loaded.Features.TitleBooks);
             Assert.Equal((byte)0, book.Category);
         });
@@ -108,17 +108,9 @@ public sealed class TitleBookCarrierTests
         });
     }
 
-    /// <summary>
-    /// Saving what a character is carrying does not touch what is in its title book.
-    /// </summary>
-    /// <remarks>
-    /// The save is authoritative for the containers it was given and sweeps away every other row the
-    /// character owns. Those rows used to be in a different table; now they are rows of the same
-    /// one, and a sweep that does not say so takes the title book with it -- which shows up as five
-    /// empty categories on the next entry and nowhere before that.
-    /// </remarks>
+    /// <summary>Explicitly moving an inventory item leaves title-book rows untouched.</summary>
     [Fact]
-    public async Task SavingTheInventoryLeavesTheTitleBookWhereItIs()
+    public async Task MovingAnInventoryItemLeavesTheTitleBookWhereItIs()
     {
         await WithACharacterAsync(async (path, side) =>
         {
@@ -129,25 +121,13 @@ public sealed class TitleBookCarrierTests
                 .LoadCharacterAsync(Account, Character, token));
             var held = Assert.Single(loaded.CharacterItems);
 
-            await side.PerCall.SaveAsync(
-                new EntryInventoryLeaseSnapshot(
-                    SelectedSessionIdentity.Create(
-                        Account,
-                        Character,
-                        new NetworkConnectionId("Game:titlebook"),
-                        1,
-                        10011),
-                    new CharacterItemLeaseState(
-                        Character,
-                        [
-                            new InventoryContainerState(
-                                InventoryContainerType.Main,
-                                0,
-                                [new InventoryItemState(held.Identity, 4, held.Core)]),
-                        ]),
-                    1,
-                    true),
-                CancellationToken.None);
+            await side.InUseCaseAsync(async token =>
+            {
+                var session = side.Store.SessionIn(side.Scope.Current!);
+                var source = (await session.GetAsync(held.ContainerId, held.SlotIndex, token))!;
+                var moving = await session.TakeAsync(source, null, token);
+                await session.PutAsync(source.ContainerId, 4, moving, token);
+            });
 
             Assert.Equal(2, (await LoadCharacterAsync(path)).Features.TitleBooks.Count);
             Assert.Equal(4L, await ScalarAsync(

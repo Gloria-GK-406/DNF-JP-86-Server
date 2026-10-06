@@ -1,6 +1,7 @@
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -44,7 +45,7 @@ public sealed record GrantKillExperienceCommand(
 /// </para>
 /// </remarks>
 public sealed class GrantKillExperienceCommandHandler(
-    ICharacterExperienceDomainService grant, TimeProvider clock)
+    ICharacterDomainService grant, TimeProvider clock)
     : ICommandHandler<GrantKillExperienceCommand, KillExperienceResult>
 {
     public async ValueTask<KillExperienceResult> HandleAsync(
@@ -68,8 +69,8 @@ public sealed class GrantKillExperienceCommandHandler(
     }
 
     internal static ValueTask<ExperienceAward?> ApplyAwardAsync(
-        ICharacterExperienceDomainService grant, GrantKillExperienceCommand command,
-        DateTimeOffset at, CancellationToken cancellationToken) => grant.ApplyAwardAsync(
+        ICharacterDomainService grant, GrantKillExperienceCommand command,
+        DateTimeOffset at, CancellationToken cancellationToken) => grant.Get(command.CharacterId).AddExpAsync(
             new KillExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.MonsterKill, command.AccountId,
                     command.CharacterId, command.DungeonId),

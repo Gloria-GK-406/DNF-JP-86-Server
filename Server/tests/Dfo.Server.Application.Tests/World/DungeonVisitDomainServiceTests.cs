@@ -449,7 +449,7 @@ public sealed class DungeonVisitDomainServiceTests
 
     private sealed class ImmediateSelection : IDungeonSelectionRuleService
     {
-        public bool DefersSelectionState(byte characterLevel) => false;
+        public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => false;
     }
     private sealed class MaximumDifficulty(DungeonDifficulty maximum = DungeonDifficulty.Tier4) : Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService
     {

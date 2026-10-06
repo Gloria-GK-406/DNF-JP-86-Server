@@ -1,10 +1,15 @@
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
+using Dfo.Server.Abstractions.Inventory;
 
 namespace Dfo.Server.Abstractions.Mail;
 
-public sealed record PreparedMailAttachment(MailAsset Asset, InventoryItemCoreState? Core = null);
+/// <summary>The exact detached records being delivered; descriptors and snapshots alone cannot transfer an item.</summary>
+public sealed record PreparedMailAttachment(MailAsset Asset, IReadOnlyList<ItemRecord> Items)
+{
+    public PreparedMailAttachment(MailAsset asset) : this(asset, []) { }
+}
 
 public interface IMailboxRepository
 {
@@ -18,6 +23,8 @@ public interface IMailboxRepository
     ValueTask<MailView?> FindAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken);
     ValueTask<MailView?> FindByAttachmentAsync(CharacterId recipient, long attachmentId, CancellationToken cancellationToken);
     ValueTask<bool> HoldsEquipmentAsync(ItemIdentity identity, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<ItemRecord>> TakeItemAsync(CharacterId recipient, long attachmentId,
+        DateTimeOffset now, CancellationToken cancellationToken);
     ValueTask MarkReadAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken);
     ValueTask<bool> MarkClaimedAsync(long attachmentId, CancellationToken cancellationToken);
     ValueTask MarkDeletedAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken);

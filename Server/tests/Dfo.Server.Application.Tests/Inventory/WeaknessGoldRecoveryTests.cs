@@ -6,6 +6,8 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Tests.Transactions;
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
@@ -16,6 +18,20 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class WeaknessGoldRecoveryTests
 {
+    [Fact]
+    public async Task Tower_member_cannot_buy_weakness_recovery()
+    {
+        var tower = TowerPresenceProxy.Create(out var presence);
+        using var shop = new ShopFixture(services => services.AddSingleton(tower));
+        presence.Members.Add(shop.Session.CharacterId);
+        var state = await Weaken(shop);
+
+        await Recover(shop);
+
+        Assert.Equal(4, Assert.IsType<RecoverStaminaResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
+        Assert.Equal(10, state.Value);
+        Assert.Equal(100000, shop.Gold);
+    }
     private sealed class PremiumRules : IPremiumServiceDefinitionSource
     {
         public IReadOnlyList<int> ReadQuestHelperMinimumDropRates() => new[] { 100, 70, 30 };
@@ -193,7 +209,7 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Sql("DELETE FROM character_daily_counters");
         await Recover(shop, 1);
         shop.Select(2);
-        shop.Sql("UPDATE characters SET level=85 WHERE character_id=2");
+        shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=2");
         var other = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
         await other.SetWeakness();
         await Recover(shop, 1);
@@ -325,7 +341,7 @@ public sealed class WeaknessGoldRecoveryTests
 
     private static async Task<IWeakness> Weaken(ShopFixture shop)
     {
-        shop.Sql("UPDATE characters SET level=85 WHERE character_id=1");
+        shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=1");
         var state = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
         await state.SetWeakness();
         Assert.Equal(10, state.Value);

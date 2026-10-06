@@ -38,7 +38,10 @@ public sealed class SelectCharacterPreparationService(
     ISessionAdjacentEntryDomainService sessionAdjacent,
     ISelectedSessionPositionPersistence positions,
     TimeProvider timeProvider,
-    ICharacterPositionDomainService? currentPositions = null) : ISelectCharacterPreparationDomainService
+    ICharacterPositionDomainService? currentPositions = null,
+    Dfo.Server.Abstractions.Events.IEventManagementDomainService? events = null,
+    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
+    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> LoadCurrentAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -252,7 +255,11 @@ public sealed class SelectCharacterPreparationService(
                 character.Identity.CharacterId,
                 adjacent),
             roster,
-            rosterEntry);
+            rosterEntry,
+            events is null || attendance is null ? null : new Dfo.Server.Data.Events.EventPlayerSnapshot(
+                await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
+                await attendance.StateAsync(accountId,preparedAt,cancellationToken),
+                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)));
 
         return result;
     }
@@ -311,26 +318,6 @@ public sealed class SelectCharacterPreparationService(
         return new CharacterRosterEntryState(
             roster.SlotLimit, roster.SlotLimit, checked((byte)selectedEntry.Public.Extras.ManageLevel),
             0, 0, 0, characters);
-    }
-
-    internal static IReadOnlyList<CharacterRosterAppearanceState> DecodeAppearances(byte[] blob)
-    {
-        if (blob is null || blob.Length == 0) return [];
-        using var stream = new MemoryStream(blob, writable: false);
-        using var reader = new BinaryReader(stream);
-        var count = reader.ReadByte();
-        var appearances = new List<CharacterRosterAppearanceState>(count);
-        for (var index = 0; index < count; index++)
-        {
-            if (stream.Length - stream.Position < 23)
-                throw new InvalidDataException("Character appearance blob is truncated.");
-            appearances.Add(new CharacterRosterAppearanceState(
-                reader.ReadByte(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadBytes(4),
-                reader.ReadByte(), reader.ReadInt32(), reader.ReadUInt32(), reader.ReadByte()));
-        }
-        if (stream.Position != stream.Length)
-            throw new InvalidDataException("Character appearance blob contains trailing bytes.");
-        return appearances;
     }
 
     private static CharacterEntryState CompleteCollectionBoxProjection(

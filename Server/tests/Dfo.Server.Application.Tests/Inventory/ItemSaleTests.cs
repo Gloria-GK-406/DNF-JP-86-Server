@@ -100,8 +100,8 @@ public sealed class ItemSaleTests
 
     [Theory]
     [InlineData(0, 0)]
-    [InlineData(0, 354)]
-    [InlineData(12, 65)]
+    [InlineData(0, 365)]
+    [InlineData(12, 120)]
     [InlineData(255, 65)]
     public async Task An_unmappable_game_slot_is_a_boundary_failure_and_cannot_reach_the_command(
         byte container, short slot)
@@ -164,7 +164,8 @@ public sealed class ItemSaleTests
     {
         using var shop = Fixture();
         await shop.Seed(65, 5000, 10);
-        shop.Sql("CREATE TRIGGER refuse_sale BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'test sale failure'); END;");
+        shop.Sql("CREATE TRIGGER refuse_sale_delete BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'test sale failure'); END; "
+            + "CREATE TRIGGER refuse_sale_update BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'test sale failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Sell(shop, 65, count).AsTask());
         Assert.Equal(100000, shop.Gold);
         Assert.Equal(10, shop.Count(5000));

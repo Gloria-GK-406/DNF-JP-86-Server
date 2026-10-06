@@ -24,6 +24,9 @@ public sealed record CeraShopPurchaseReceipt(SelectedSessionIdentity Session, Im
     AccountCeraBalances Balances, int Gold, bool GoldSpent, ImmutableArray<CommittedInventoryUpdateState> Updates,
     ImmutableArray<CharacterPetRuntimeState> Pets, bool CreaturesChanged, DateTimeOffset PreparedAt)
 {
+    public CharacterInventoryEntryState? ExpandedCharacterInventory { get; init; }
+    public AccountInventoryEntryState? ExpandedAccountInventory { get; init; }
+    public IReadOnlyList<InventoryContainerType> ExpandedContainers { get; init; } = [];
     public IReadOnlyList<AccountPremiumEntryState> GrantedPremiums { get; init; } = [];
     public AccountEntitlementEntryState? PremiumEntitlements { get; init; }
     public IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsageSlots { get; init; } = [];

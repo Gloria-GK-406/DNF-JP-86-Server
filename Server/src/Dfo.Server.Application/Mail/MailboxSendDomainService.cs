@@ -7,7 +7,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Mail;
 internal sealed class MailboxSendDomainService(IMailboxDomainService mailbox, IMailboxQueryDomainService query,
-    IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placements,
+    IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placements, IMailboxRepository repository,
     ICharacterBusinessInventoryDomainService inventories,
     TimeProvider clock) : IMailboxSendDomainService
 {
@@ -15,6 +15,7 @@ internal sealed class MailboxSendDomainService(IMailboxDomainService mailbox, IM
     {
         if (request.Gold < 0 || request.Attachments.Count > 10 || request.Attachments.Select(x => x.Slot).Distinct().Count() != request.Attachments.Count)
             throw new MailException(MailFailure.InvalidMail, "Invalid mail attachment selection.");
+        await repository.AcquireWriteAsync(token).ConfigureAwait(false);
         var recipient = await query.FindRecipientAsync(request.RecipientName, token)
             ?? throw new MailException(MailFailure.CharacterNotFound, "Recipient not found.");
         if (recipient.CharacterId == sender) throw new MailException(MailFailure.InvalidMail, "Cannot send mail to self.");
@@ -29,7 +30,7 @@ internal sealed class MailboxSendDomainService(IMailboxDomainService mailbox, IM
             var address = selection.Slot;
             var business = inventories.GetStore(sender, BusinessInventoryOwnership.StoreOf(address.Space))
                 .FindContainer(address.Space);
-            var item = business is null ? null : await business.ReadSlotAsync(address.Index, token).ConfigureAwait(false);
+            var item = business is null ? null : await business.GetAsync(address.Index, token).ConfigureAwait(false);
             if (item is null || item.ItemId != selection.ItemId)
                 throw new MailException(MailFailure.NotOwned, "The selected slot has changed.");
             var physical = LegacyInventoryStorageCoordinates.ToStorage(address);
@@ -37,9 +38,9 @@ internal sealed class MailboxSendDomainService(IMailboxDomainService mailbox, IM
                 || owner != sender || list != physical.List)
                 throw new MailException(MailFailure.NotOwned,
                     "The selected item is not in the sender's persistent container.");
-            var stored = await session.ReadAsync(business!.StorageId, physical.Index, token)
+            var stored = await session.GetAsync(business!.StorageId, physical.Index, token)
                 .ConfigureAwait(false);
-            if (stored is null || stored.Core.ItemId != selection.ItemId)
+            if (stored is null || stored.ItemId != selection.ItemId)
                 throw new MailException(MailFailure.NotOwned, "The selected slot has changed.");
             var kind = await placements.ClassifyAsync(selection.ItemId, token);
             if (kind == ItemWorldClass.Interchangeable)
@@ -48,7 +49,7 @@ internal sealed class MailboxSendDomainService(IMailboxDomainService mailbox, IM
                 builder.AddStackable(selection.ItemId, selection.Count, address);
             }
             else if (kind == ItemWorldClass.Equipment && selection.Count == 1)
-                builder.AddEquipment(stored.Identity ?? throw new MailException(MailFailure.InvalidItem, "Equipment identity is missing."));
+                builder.AddEquipment(stored.ItemUid ?? throw new MailException(MailFailure.InvalidItem, "Equipment identity is missing."));
             else throw new MailException(MailFailure.InvalidItem, "Unsupported attachment kind or quantity.");
         }
         if (request.Gold > 0) builder.AddGold(request.Gold);

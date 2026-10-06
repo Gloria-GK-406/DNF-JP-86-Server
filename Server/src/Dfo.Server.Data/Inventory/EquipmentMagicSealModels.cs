@@ -19,7 +19,7 @@ public enum EquipmentMagicSealRejection
 
 public sealed record EquipmentMagicSealReceipt(
     SelectedSessionIdentity Session, BusinessSlot TargetSlot,
-    InventoryItemCoreState UpdatedCore, int GoldRemaining,
+    ItemSnapshot UpdatedCore, int GoldRemaining,
     int Seed, DateTimeOffset CommittedAt);
 
 public sealed record EquipmentMagicSealResult(

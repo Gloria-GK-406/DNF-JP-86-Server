@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -10,6 +11,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Game;
@@ -438,7 +440,9 @@ public sealed class SelectDungeonHandler(
     SelectedSessionTransitionGate transitionGate,
     DungeonEntryProjectionDelivery? entryProjection = null,
     DungeonProjectionGate? entryProjectionGate = null,
-    ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null)
+    ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null,
+    IIllusionTowerDomainService? illusionTower = null,
+    IllusionTowerProjectionDelivery? illusionTowerProjection = null)
     : ClientMessageHandler<SelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -455,6 +459,14 @@ public sealed class SelectDungeonHandler(
                 "Select dungeon {ConnectionId}: no published session, ignoring dungeon {DungeonId}",
                 context.Connection.ConnectionId,
                 message.DungeonId);
+            return;
+        }
+
+        if (IllusionTowerProjectionDelivery.Stale(message.Metadata))
+        {
+            logger.LogWarning(
+                "Select dungeon {ConnectionId}: stale inbound sequence ignored before consuming intent",
+                context.Connection.ConnectionId);
             return;
         }
 
@@ -509,6 +521,23 @@ public sealed class SelectDungeonHandler(
                 SelectDungeonRefusal.NotPartyLeader,
                 context: 0,
                 cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        if (illusionTower is not null && illusionTowerProjection is not null
+            && await illusionTower.SupportsDungeonAsync(message.DungeonId, cancellationToken).ConfigureAwait(false))
+        {
+            _ = await illusionTowerProjection.EnterAsync(
+                context.Connection.ConnectionId,
+                session,
+                roster,
+                intent.Value,
+                () =>
+                {
+                    if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+                        entryIntents.RestoreIfAbsent(session, intent.Value);
+                },
+                cancellationToken, message.DungeonId).ConfigureAwait(false);
             return;
         }
 
@@ -619,7 +648,8 @@ public sealed class MoveMapHandler(
     IGameMessageSender sender,
     ILogger<MoveMapHandler> logger,
     DungeonPartyRecipients? partyRecipients = null,
-    Fatigue.FatigueProjectionDelivery? fatigueProjection = null) : ClientMessageHandler<MoveMapRequest>
+    Fatigue.FatigueProjectionDelivery? fatigueProjection = null,
+    IllusionTowerProjectionDelivery? illusionTower = null) : ClientMessageHandler<MoveMapRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -634,6 +664,11 @@ public sealed class MoveMapHandler(
                 context.Connection.ConnectionId, message.NextX, message.NextY);
             return;
         }
+
+        if (illusionTower is not null
+            && await illusionTower.AdvanceAsync(
+                context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
+            return;
 
         var current = runs.Find(session.CharacterId);
         if (current is null)

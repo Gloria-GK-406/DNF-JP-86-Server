@@ -124,7 +124,7 @@ public sealed class MoveItemSpaceHandlerTests
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task A_list_other_than_the_main_one_is_refused()
+    public async Task An_unserved_guild_medal_list_is_refused()
     {
         var inventory = new FakeInventory { [65] = (8474, 1) };
         var (handler, sender) = Build(inventory);
@@ -133,7 +133,7 @@ public sealed class MoveItemSpaceHandlerTests
             Context,
             ObservedRequest with
             {
-                DestinationSlot = new GameSlot(InventoryContainerType.PersonalCargo, 65),
+                DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
             },
             CancellationToken.None);
 
@@ -319,9 +319,10 @@ public sealed class MoveItemSpaceHandlerTests
                 new ItemPlacementRuleService(placements, new NoWearables()),
                 new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
+        using var admission = new Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate();
         var results = await Task.WhenAll(
-            Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
-            Dispatch(handler, inventory, sourceSlot: 66, destinationSlot: 3));
+            Dispatch(handler, inventory, admission, sourceSlot: 65, destinationSlot: 3),
+            Dispatch(handler, inventory, admission, sourceSlot: 66, destinationSlot: 3));
 
         Assert.All(results, result => Assert.Equal(ItemMoveStatus.Moved, result.Status));
         Assert.Single(inventory.Rows(), row => row.Slot == 3);
@@ -337,10 +338,13 @@ public sealed class MoveItemSpaceHandlerTests
     private static Task<ItemMoveResult> Dispatch(
         MoveItemSpaceCommandHandler handler,
         FakeInventory inventory,
+        Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate admission,
         short sourceSlot,
         short destinationSlot) =>
         Task.Run(async () =>
         {
+            // Match production admission: competing commands enter before their transaction starts.
+            await using var lease = await admission.AcquireAsync(default);
             var bus = new DirectCommandBus(move: handler, scope: inventory.Scope);
             var mappings = new InventorySlotMappingRuleService();
             return await bus.SendAsync(
@@ -391,7 +395,7 @@ public sealed class MoveItemSpaceHandlerTests
                 mappings,
                 new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
                 sender,
-                NullLogger<MoveItemSpaceHandler>.Instance),
+                NullLogger<MoveItemSpaceHandler>.Instance, null!, null!, TimeProvider.System),
             sender);
     }
 

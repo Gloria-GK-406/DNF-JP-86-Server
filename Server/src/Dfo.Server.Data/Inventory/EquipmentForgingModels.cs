@@ -34,7 +34,7 @@ public sealed record EquipmentForgingReceipt(
     BusinessSlot MaterialSlot,
     int MaterialItemId,
     int MaterialRemaining,
-    InventoryItemCoreState UpdatedCore,
+    ItemSnapshot UpdatedCore,
     byte OldLevel,
     byte NewLevel,
     bool Succeeded,

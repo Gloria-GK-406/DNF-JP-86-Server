@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Creatures;
@@ -38,10 +39,11 @@ internal sealed class SqliteCharacterDomainStore : ICharacterDomainStore
     public ICharacterDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
+        var scope = ItemLifecycleScope.In(transaction);
         var database = transaction.Enlist(
             this.StoreIdentity,
             () => new SqliteDatabaseParticipant(this.connectionString));
-        return database.Facet(FacetKey, owner => new SqliteCharacterDomainStoreSession(owner));
+        return database.Facet(FacetKey, owner => new SqliteCharacterDomainStoreSession(owner, scope));
     }
 }
 
@@ -58,10 +60,10 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
 
     private readonly Dictionary<OwnedCharacterId, CharacterPositionState> positions = [];
 
-    public SqliteCharacterDomainStoreSession(SqliteDatabaseParticipant owner)
+    public SqliteCharacterDomainStoreSession(SqliteDatabaseParticipant owner, ItemLifecycleScope scope)
     {
         this.owner = owner;
-        this.creatures = new CreatureSection(owner);
+        this.creatures = new CreatureSection(owner, scope);
     }
 
     public IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures => this.creatures;
@@ -150,10 +152,10 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
 }
 
 /// <summary>Compatibility view for the entry revival path; all writes join the creature facet.</summary>
-internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
+internal sealed class CreatureSection(SqliteDatabaseParticipant owner, ItemLifecycleScope scope)
     : IDomainStoreSession<OwnedCharacterId, long, StoredCreature>
 {
-    private readonly SqliteCreatureDomainStoreSession creatures = SqliteCreatureDomainStoreSession.In(owner);
+    private readonly SqliteCreatureDomainStoreSession creatures = SqliteCreatureDomainStoreSession.In(owner, scope);
 
     public async ValueTask<IReadOnlyList<StoredCreature>> ReadAllAsync(
         OwnedCharacterId place, CancellationToken cancellationToken) =>

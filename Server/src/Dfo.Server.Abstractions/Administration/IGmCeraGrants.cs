@@ -18,11 +18,6 @@ public interface IGmCeraRuleService
     string PayloadHash(GmCeraInput input);
     GmCeraDecision Decide(AccountCeraBalances before, GmCeraInput input);
 }
-public interface IAccountWalletDomainService
-{
-    ValueTask<AccountCeraBalances?> ReadAsync(AccountId account, CancellationToken token);
-}
-public sealed record AccountWalletChanged(AccountId Account) : INotification<AccountWalletChanged>;
 public interface IGmCeraReminderDomainService
 {
     ValueTask<string> RemindAsync(IReadOnlyList<int> accounts, CancellationToken token);

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Notifications;
@@ -8,18 +9,6 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Administration;
 
 namespace Dfo.Server.Application.Administration;
-
-internal sealed class AccountWalletDomainService(IAccountTable accounts) : IAccountWalletDomainService
-{
-    public async ValueTask<AccountCeraBalances?> ReadAsync(AccountId account, CancellationToken token)
-    {
-        var wallet = await accounts.FindWalletAsync(account, token);
-        if (wallet is null) return null;
-        if (wallet.Cera is < 0 or > int.MaxValue || wallet.TokenCera is < 0 or > int.MaxValue || wallet.HappyTokenCera is < 0 or > int.MaxValue)
-            throw new InvalidDataException("Account wallet is out of range.");
-        return new((int)wallet.Cera, (int)wallet.TokenCera, (int)wallet.HappyTokenCera);
-    }
-}
 
 internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService sessions, INotificationBus notifications) : IGmCeraReminderDomainService
 {
@@ -38,7 +27,7 @@ internal sealed class GmCeraReminderDomainService(ISelectedSessionDomainService 
 }
 
 internal sealed class GmCeraDomainService(IGmCeraPersistence persistence, IGmAccessDomainService access, IGmCeraRuleService rules,
-    IAccountWalletDomainService wallets, IAccountTable accounts, IGmAuditDomainService audit, IDomainTransactionAccessor transactions,
+    IAccountWalletDomainService wallets, IGmAuditDomainService audit, IDomainTransactionAccessor transactions,
     TimeProvider clock) : IGmCeraDomainService
 {
     public async ValueTask<GmCeraQueryResult> QueryAsync(string secret, GmCeraQuery kind, GmPlayerFilter filter, Guid id, GmCeraInput? input, CancellationToken token)
@@ -72,7 +61,7 @@ internal sealed class GmCeraDomainService(IGmCeraPersistence persistence, IGmAcc
         }
         var changes = await Changes(normalized, token);
         foreach (var change in changes)
-            if (await accounts.TrySetCeraBalancesAsync(new(change.AccountId), change.Before, change.After, token) != 1)
+            if (!await wallets.TryApplyAsync(new(change.AccountId), change.Before, change.After, token))
                 throw Error(GmCeraRefusal.Conflict, "账号余额已改变，本批未提交，请重新核对。");
         var receipt = new GmCeraReceipt(id, actor.Id, actor.LoginName, clock.GetUtcNow(), normalized, changes);
         await persistence.SaveOperationAsync(actor.Id, new(rules.PayloadHash(normalized), receipt), token);

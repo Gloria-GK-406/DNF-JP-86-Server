@@ -6,9 +6,7 @@ namespace Dfo.Server.Data.Administration;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GmMailItem([property: JsonRequired] int ItemId, [property: JsonRequired] int Count,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] GmMailEquipmentOptions? Equipment = null);
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record GmMailEquipmentOptions(string Seal = "default", string Growth = "none", int Level = 0, int AmplifyType = 0);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ItemEquipmentOptions? Equipment = null);
 public sealed record GmMailInput(string Title, string Body, int[] RecipientIds, GmMailItem[] Items, int Gold);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GmMailEditorRequest(string Title, string Body, int[] RecipientIds, GmMailItem[] Items, [property: JsonRequired] int Gold,
@@ -28,7 +26,7 @@ public sealed record GmMailReceipt(Guid RequestId, long AdministratorId, string 
 public sealed record GmMailOperation(string PayloadHash, GmMailReceipt Receipt);
 public sealed record GmMailSendResult(GmMailReceipt Receipt, bool Replayed);
 public sealed record GmMailPreparation(Guid RequestId, GmMailInput Input, IReadOnlyList<AccountId> Accounts);
-public sealed record GmMailPreparedItem(GmMailItem Requested, GmMailItemPreview Preview, InventoryItemCoreState Core);
+public sealed record GmMailPreparedItem(GmMailItem Requested, GmMailItemPreview Preview, ItemSnapshot Snapshot);
 public sealed record GmMailQueryResult(object Value);
 public enum GmMailQuery { Draft, Templates, Recipients, Preview, Prepare, Operations, Operation }
 public enum GmMailEdit { Draft, CreateTemplate, UpdateTemplate, DeleteTemplate }
