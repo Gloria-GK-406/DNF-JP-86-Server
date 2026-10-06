@@ -37,15 +37,14 @@ namespace Dfo.Server.Application.Tests.Events;
 public sealed class JoustIntegrationTests
 {
     [PvfFact]
-    public async Task Champion_override_is_locked_only_revisioned_cancellable_durable_and_scoped_to_one_round()
+    public async Task Champion_override_before_combat_is_revisioned_cancellable_durable_and_scoped_to_one_round()
     {
         using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
         var store=f.Services.GetRequiredService<IJoustPersistence>();var rules=f.Services.GetRequiredService<IJoustRuleService>();
         var state=await f.GetState();var original=(await store.RoundAsync(state.RoundId!,default))!;
         var champion=original.Knights.First(k=>k.Index!=original.Winners[^1]).Index;
         Task<JoustCurrentRound> Set(int? index,long revision=0,string? id=null)=>f.Run(()=>f.Joust.SetCurrentChampionAsync(new(id??original.RoundId,revision,index),"tester",f.Now,default));
-        Assert.False((await f.Joust.GetCurrentRoundAsync(f.Now,default)).CanSetChampion);
-        await Assert.ThrowsAsync<ArgumentException>(()=>Set(champion));
+        Assert.True((await f.Joust.GetCurrentRoundAsync(f.Now,default)).CanSetChampion);
         f.Now=original.StartsAt.AddMinutes(90);await f.AdvanceLifecycle();var locked=(await store.RoundAsync(original.RoundId,default))!;
         var current=await f.Joust.GetCurrentRoundAsync(f.Now,default);Assert.True(current.CanSetChampion);Assert.Equal(8,current.Knights.Length);
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_knight_statistics"));
@@ -74,6 +73,39 @@ public sealed class JoustIntegrationTests
         Assert.NotEqual(original.RoundId,next.RoundId);Assert.Null(next.ForcedChampionIndex);Assert.Empty(next.NaturalWinners);Assert.Equal(0,next.AdminRevision);
         Assert.Equal(champion,Assert.Single(await f.Joust.GetHistoryAsync(default)).WinnerIndex);
         Assert.Equal(3,(await f.KnightInfo(champion))!.Statistics.Wins);
+    }
+
+    [PvfFact]
+    public async Task Champion_override_during_betting_keeps_bets_and_dynamic_odds_open_until_lock_and_closes_at_combat()
+    {
+        using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,1000);
+        var store=f.Services.GetRequiredService<IJoustPersistence>();var state=await f.GetState();
+        var original=(await store.RoundAsync(state.RoundId!,default))!;var champion=state.Knights.OrderByDescending(k=>k.Odds).First().Knight.Index;
+        Task<JoustCurrentRound> Set(int? index,long revision)=>f.Run(()=>f.Joust.SetCurrentChampionAsync(new(original.RoundId,revision,index),"tester",f.Now,default));
+        var before=await f.Joust.GetCurrentRoundAsync(f.Now,default);Assert.True(before.CanSetChampion);
+        var saved=await Set(champion,0);Assert.Equal(champion,saved.ForcedChampionIndex);
+        Assert.Equal(before.Knights.Select(k=>k.Odds),saved.Knights.Select(k=>k.Odds));
+        Assert.Empty((await store.RoundAsync(original.RoundId,default))!.LockedOdds);
+        Assert.True((await f.Bet("after-override",champion,0,100)).Succeeded);
+        var afterBet=await f.Joust.GetCurrentRoundAsync(f.Now,default);
+        Assert.True(afterBet.Knights.Single(k=>k.Index==champion).Odds<saved.Knights.Single(k=>k.Index==champion).Odds);
+        Assert.Equal(100,afterBet.Knights.Single(k=>k.Index==champion).BettingAmount);
+        await Set(null,1);var restored=(await store.RoundAsync(original.RoundId,default))!;
+        Assert.Equal(original.Winners,restored.Winners);Assert.Empty(restored.LockedOdds);
+        f.Now=original.StartsAt.AddMinutes(90).AddTicks(-1);await Set(champion,2);
+        Assert.True((await f.Bet("before-lock-after-override",champion,0,100)).Succeeded);
+        Assert.Empty((await store.RoundAsync(original.RoundId,default))!.LockedOdds);
+        f.Now=original.StartsAt.AddMinutes(90);await f.AdvanceLifecycle();
+        var locked=(await store.RoundAsync(original.RoundId,default))!;Assert.Equal(8,locked.LockedOdds.Length);
+        Assert.True(afterBet.Knights.Single(k=>k.Index==champion).Odds>
+            locked.LockedOdds.Single(k=>k.KnightIndex==champion).Odds);
+        f.Now=original.StartsAt.AddMinutes(100).AddTicks(-1);Assert.True((await Set(null,3)).CanSetChampion);
+        Assert.Equal(locked.LockedOdds,(await store.RoundAsync(original.RoundId,default))!.LockedOdds);
+        f.Now=original.StartsAt.AddMinutes(100);Assert.False((await f.Joust.GetCurrentRoundAsync(f.Now,default)).CanSetChampion);
+        await Assert.ThrowsAsync<ArgumentException>(()=>Set(champion,4));
+        Assert.Null((await store.RoundAsync(original.RoundId,default))!.ForcedChampionIndex);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_knight_statistics"));
     }
 
     [PvfFact]

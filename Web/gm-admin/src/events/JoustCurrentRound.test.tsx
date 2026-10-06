@@ -34,7 +34,8 @@ beforeEach(() => {
     return structuredClone(data);
   });
 });
-it('八位参赛者含真实统计和投注；单选不写入，显式提交只含本场id和revision', async () => {
+it.each(['Betting', 'Locked'])('阶段%s可选择和取消；单选不写入，显式提交只含本场id和revision', async phase => {
+  data.phase = phase;
   await open(); expect(screen.getAllByRole('radio')).toHaveLength(8); expect(screen.getAllByText('75.0%')).toHaveLength(8);
   expect(screen.getAllByText('12.5%')).toHaveLength(8); expect(screen.getAllByText('2.0×')).toHaveLength(8);
   fireEvent.click(screen.getAllByRole('radio')[2]); expect(writes()).toHaveLength(0);
@@ -44,7 +45,7 @@ it('八位参赛者含真实统计和投注；单选不写入，显式提交只�
   fireEvent.click(screen.getByRole('button', { name: '取消内定' })); await screen.findByText('已取消本场内定冠军，恢复原抽签结果。');
   expect(writes()[1][1]).toEqual({ roundId: '1791252000', expectedRevision: 4, knightIndex: null });
 });
-it.each(['Betting', 'QuarterFinal', 'Result', 'Inactive'])('阶段%s只读，不能设置或取消', async phase => {
+it.each(['QuarterFinal', 'SemiFinal', 'Final', 'Result', 'Inactive'])('阶段%s只读，不能设置或取消', async phase => {
   data.phase = phase; data.canSetChampion = false; data.forcedChampionIndex = 1;
   render(<ConfigProvider><App><JoustCurrentRound onExpired={expired} onDenied={denied} onWriting={writing} /></App></ConfigProvider>);
   await screen.findByText('白骑士0（0）'); expect(screen.getAllByRole('radio').every(r => (r as HTMLInputElement).disabled)).toBe(true);

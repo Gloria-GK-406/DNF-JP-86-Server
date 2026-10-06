@@ -60,7 +60,7 @@ export function JoustCurrentRound({ onExpired, onDenied, onWriting }: { onExpire
   }
   return <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     <Space wrap><Button loading={reading} disabled={saving} onClick={() => void read(true)}>重新读取当前场次</Button>
-      <Typography.Text type="secondary">每 5 秒刷新；仅封盘后、第一轮战斗开始前可指定冠军。</Typography.Text></Space>
+      <Typography.Text type="secondary">每 5 秒刷新；投注与封盘阶段均可指定冠军，第一轮战斗开始后不可修改。</Typography.Text></Space>
     {readError && <Typography.Text type="secondary">当前场次读取失败，请重新读取后再操作。</Typography.Text>}
     {uncertain && <NotiHint noticeKey="joust-round-reload" title="请重新读取当前场次后再操作" description="场次可能已变化，或保存结果未确认。核对当前内定冠军后再提交。" />}
     {stale && <Typography.Text type="secondary">场次版本已更新，请重新读取后选择骑士。</Typography.Text>}
@@ -84,7 +84,7 @@ export function JoustCurrentRound({ onExpired, onDenied, onWriting }: { onExpire
         ]} />
       <Space wrap><Button type="primary" loading={saving} disabled={!allowed || !selection || !!stale || chosen === data.forcedChampionIndex}
         onClick={() => void save()}>设为本场冠军</Button><Button disabled={!allowed || !!stale || data.forcedChampionIndex == null} onClick={() => void save(true)}>取消内定</Button>
-        <Typography.Text type="secondary">仅影响本场晋级结果，冻结赔率保持不变；下一场重新抽签。</Typography.Text></Space>
+        <Typography.Text type="secondary">仅影响本场晋级结果；投注中赔率继续变化，封盘后保持不变；下一场重新抽签。</Typography.Text></Space>
       {data.updatedAt && <Typography.Text type="secondary">最近操作：{data.updatedBy ?? '—'} · {time(data.updatedAt)}</Typography.Text>}
     </> : <Empty description="当前没有已生成的场次" />)}
   </Space>;

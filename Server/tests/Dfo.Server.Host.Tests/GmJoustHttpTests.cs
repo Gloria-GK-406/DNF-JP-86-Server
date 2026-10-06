@@ -79,12 +79,16 @@ public sealed class GmJoustHttpTests
         await host.Services.GetRequiredService<ICommandBus>().SendAsync(new AdvanceJoustLifecycleCommand(clock.Now),default);
         return csrf;
     }
-    [Fact]
-    public async Task Current_round_reads_are_pure_and_champion_requires_csrf_identity_revision_entrant_and_locked_phase()
+    [Theory]
+    [InlineData(10)]
+    [InlineData(11)]
+    public async Task Current_round_reads_are_pure_and_champion_requires_csrf_identity_revision_entrant_and_precombat_phase(int hour)
     {
-        var clock=new RoundClock();await using var host=await GmTestHost.StartAsync(clock:clock,configureServices:Configure);
+        var clock=new RoundClock();clock.Now=clock.Now.AddHours(hour-11);
+        await using var host=await GmTestHost.StartAsync(clock:clock,configureServices:Configure);
         Assert.Equal(HttpStatusCode.Unauthorized,(await host.Client.GetAsync(CurrentUrl)).StatusCode);
         var csrf=await Enable(host,clock);var current=(await host.Client.GetFromJsonAsync<JoustCurrentRound>(CurrentUrl))!;
+        Assert.Equal(hour==10?"Betting":"Locked",current.Phase);
         Assert.True(current.CanSetChampion);Assert.Equal(8,current.Knights.Length);
         var before=await host.ReadAsync("SELECT input FROM event_joust_round");
         for(var i=0;i<3;i++)await host.Client.GetFromJsonAsync<JoustCurrentRound>(CurrentUrl);

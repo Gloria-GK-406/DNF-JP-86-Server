@@ -61,7 +61,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var state=await Project(round,new(0),Active(c,now) && round?.SeasonId==c.SeasonId,now,ct);
         var deadline=round?.StartsAt.AddMinutes(round.Schedule.Schedule.BettingMinutes+round.Schedule.Schedule.LockMinutes);
         return new(state.RoundId,state.RoundNo,round?.AdminRevision ?? 0,state.Active,state.Phase.ToString(),now,state.StartsAt,state.EndsAt,
-            state.NextTransitionAt,deadline,state.Active && state.Phase==JoustPhase.Locked && round is {Settled:false},
+            state.NextTransitionAt,deadline,state.Active && state.Phase is (JoustPhase.Betting or JoustPhase.Locked) && round is {Settled:false},
             round?.ForcedChampionIndex,round?.ChampionUpdatedAt,round?.ChampionUpdatedBy,
             state.Knights.Select(k=>new JoustCurrentKnight(k.Knight.Index,k.Knight.Name,k.Knight.AttackType,k.Forecast?.Condition,
                 k.Forecast?.CombatMultiplier,k.Forecast?.ChampionshipProbability,k.Odds,k.Pool,k.Statistics)).ToArray());
@@ -74,13 +74,14 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         if(round is null || round.RoundId!=change.RoundId || round.AdminRevision!=change.ExpectedRevision)
             throw new InitializationConflictException();
         var c=await Configuration(ct) ?? Initial;
-        if(!Active(c,now) || round.SeasonId!=c.SeasonId || round.Settled || rules.Phase(round,now).Phase!=JoustPhase.Locked)
-            throw new ArgumentException("仅在投注封盘后、第一轮战斗开始前可指定或取消本场冠军。");
-        round=rules.FreezeOdds(round,await store.BetsAsync(round.RoundId,ct));
+        var phase=rules.Phase(round,now).Phase;
+        if(!Active(c,now) || round.SeasonId!=c.SeasonId || round.Settled || phase is not (JoustPhase.Betting or JoustPhase.Locked))
+            throw new ArgumentException("仅在投注或封盘阶段、第一轮战斗开始前可指定或取消本场冠军。");
+        if(phase==JoustPhase.Locked)round=rules.FreezeOdds(round,await store.BetsAsync(round.RoundId,ct));
         var updated=rules.SetChampion(round,change.KnightIndex) with{AdminRevision=checked(round.AdminRevision+1),
             ChampionUpdatedAt=now,ChampionUpdatedBy=actor};
         var writeTime=clock.GetUtcNow();
-        if(!Active(c,writeTime) || rules.Phase(round,writeTime).Phase!=JoustPhase.Locked)
+        if(!Active(c,writeTime) || rules.Phase(round,writeTime).Phase is not (JoustPhase.Betting or JoustPhase.Locked))
             throw new ArgumentException("比赛已经开始，请重新读取当前场次。");
         await store.SaveRoundAsync(updated,ct);return await GetCurrentRoundAsync(now,ct);
     }
