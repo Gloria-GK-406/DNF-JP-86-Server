@@ -50,8 +50,10 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
         var durabilityValues = new List<int>();
         var permitted = true;
         var boosterDepth = 0;
-        foreach (var section in sections)
+        var restrictions = 0;
+        for(var index=0;index<sections.Count;index++)
         {
+            var section=sections[index];
             if (section.Name == Fields.BoosterInfoField.Name) { boosterDepth++; continue; }
             if (section.Name == Fields.CloseBoosterInfoField.Name) { if (boosterDepth-- <= 0) permitted = false; continue; }
             if (boosterDepth != 0) continue;
@@ -69,7 +71,16 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
                 else
                     durabilityValues.Add(section.Values[0].Value);
             }
-            if ((section.Name == Fields.ImpossibleContentsField.Name || section.Name == Fields.NotSellField.Name || section.Name == Fields.CannotSellField.Name))
+            if(section.Name == Fields.ImpossibleContentsField.Name)
+            {
+                // "gift" forbids gifting, not NPC sale. Other restrictions remain closed until interpreted.
+                permitted &= ++restrictions == 1 && section.Values.Count == 1 && section.Values[0].IsString
+                    && archive.ResolveString(section.Values[0].Value).Trim().Trim('`').Trim().Trim('[',']')
+                        .Equals("gift",StringComparison.OrdinalIgnoreCase)
+                    && index+1<sections.Count && sections[index+1].Name == "[/impossible contents]"
+                    && sections[index+1].Values.Count == 0;
+            }
+            if (section.Name == Fields.NotSellField.Name || section.Name == Fields.CannotSellField.Name)
                 permitted = false;
         }
         permitted &= boosterDepth == 0 && values.Count == 1 && values[0] >= 0;

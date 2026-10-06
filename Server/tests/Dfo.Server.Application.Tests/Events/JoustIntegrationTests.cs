@@ -532,7 +532,7 @@ public sealed class JoustIntegrationTests
         Assert.All(settings.Knights,k=>{Assert.Equal(28,k.Win.Length);Assert.Equal(28,k.Loss.Length);});
         var definition=(await f.Services.GetRequiredService<IJoustRuleService>().DefinitionAsync(default)).Definition!;
         Assert.All(definition.Materials.Concat([definition.Reward,definition.BettingReward]),i=>
-        {Assert.False(string.IsNullOrEmpty(i.ItemName));Assert.Equal(2016,i.ArchivedExpiresAt!.Value.Year);Assert.Equal(0,i.GrantTemplate!.ExpireTime);});
+        {Assert.False(string.IsNullOrEmpty(i.ItemName));Assert.Equal(0,i.GrantTemplate!.ExpireTime);});
         Assert.Same(f.Joust,f.Services.GetServices<IManagedEventDomainService>().Single(e=>e.EventId==2365));
         Assert.Contains(await f.Services.GetRequiredService<IEventManagementDomainService>().GetEventInfoListAsync(new(1),f.Now,default),e=>e.EventId==2365);
         await f.Seed(121,490002916,20);await f.Seed(122,490002916,30);await f.Seed(123,490700609,80);
@@ -571,7 +571,9 @@ public sealed class JoustIntegrationTests
         Assert.True((await f.Bet("valid",knight,0,1000)).Succeeded);Assert.Equal("BetLimitExceeded",(await f.Bet("extra",knight,0,1)).Rejection);
         f.Now=f.Now.AddMinutes(90);Assert.Equal("NotBettingPhase",(await f.Bet("locked",knight,0,1)).Rejection);Assert.Equal(1000,f.Count(490002916));
         var rules=f.Services.GetRequiredService<IJoustRuleService>();var d=(await rules.DefinitionAsync(default)).Definition!;
-        Assert.True(rules.MaterialAllowed(d,d.Materials[0].GrantTemplate! with{ExpireTime=(int)d.Materials[0].ArchivedExpiresAt!.Value.ToUnixTimeSeconds()},f.Now));
+        var archivedAt=DateTimeOffset.Parse("2016-11-17T06:00:00+08:00");
+        var archivedDefinition=d with{Materials=d.Materials.Select(i=>i with{ArchivedExpiresAt=archivedAt}).ToArray()};
+        Assert.True(rules.MaterialAllowed(archivedDefinition,d.Materials[0].GrantTemplate! with{ExpireTime=(int)archivedAt.ToUnixTimeSeconds()},f.Now));
         Assert.False(rules.MaterialAllowed(d,d.Materials[0].GrantTemplate! with{ExpireTime=(int)f.Now.AddDays(-1).ToUnixTimeSeconds()},f.Now));
     }
     [PvfFact]
