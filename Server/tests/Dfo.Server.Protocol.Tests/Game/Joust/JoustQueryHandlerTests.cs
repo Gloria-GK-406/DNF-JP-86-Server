@@ -21,15 +21,16 @@ namespace Dfo.Server.Protocol.Tests.Game.Joust;
 public sealed class JoustQueryHandlerTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Only_a_state_change_announces_the_phase_while_bet_changes_refresh_details(bool stateChanged)
+    [InlineData(JoustPhase.Betting)]
+    [InlineData(JoustPhase.Final)]
+    [InlineData(JoustPhase.Result)]
+    public async Task Bet_updates_always_publish_silent_data(JoustPhase phase)
     {
-        var state = new JoustState(true, DateTimeOffset.UnixEpoch, JoustPhase.Betting, "round",
-            null, null, null, [], [], 0, 1000, 17);
-        var messages = await new JoustChangedHandler(new Projection(state)).ComposeAsync(new(new(1), new("joust")),
-            new(state.ServerTime, stateChanged), default);
-        Assert.Equal(stateChanged ? 1 : 0, messages.OfType<JoustStateMessage>().Count());
+        var state = new JoustState(true, DateTimeOffset.UnixEpoch, phase, "round",
+            null, null, null, [], [1,2,3,4,1,3,1], 0, 1000, 17);
+        var messages = await new JoustDetailsChangedHandler(new Projection(state)).ComposeAsync(new(new(1), new("joust")),
+            new(state.ServerTime), default);
+        Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResultsMessage);
         Assert.Single(messages.OfType<JoustBetsMessage>());
         Assert.Single(messages.OfType<JoustInfoMessage>());
     }
@@ -44,11 +45,10 @@ public sealed class JoustQueryHandlerTests
         var replies = await QueryTwice(state);
         foreach (var messages in replies)
         {
-            Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResponse);
+            Assert.DoesNotContain(messages, m => m is JoustStateMessage or JoustResultsMessage or JoustResponse);
             Assert.IsType<JoustBetsMessage>(messages[0]);
             Assert.IsType<JoustInfoMessage>(messages[1]);
-            Assert.Equal(phase == JoustPhase.Result ? 3 : 2, messages.Count);
-            if (phase == JoustPhase.Result) Assert.IsType<JoustResultsMessage>(messages[2]);
+            Assert.Equal(2, messages.Count);
         }
     }
 

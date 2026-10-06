@@ -71,3 +71,10 @@ EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；
 reader `000D24A0` ReadBytes0x1F；consumer `000FCCA0/000F7A70`取+0/+1赢家、+2/+3输家，对方aux存对象+8。`016182F0`→`024FDC00`按Knight/Aux查Win/Loss表（+78/+8C），`024FD925/024FDA02`加载[win]/[loss]。PVF每表实际28整数=4×7，loader容量5选项不等于实际35整数。Aux0有效首项；真实原服选择策略Unknown。Stage3最终文本/scene12跳转仍Unknown。
 
 实现：`Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs`。固定布局测试和真实dispatcher测试属于CurrentImplementation；无本次抓包，无ClientVerified。轮号由保存的UTC+8 schedule/start推导每日1..N，不使用当前已修改配置。详见[准备证据](../../../Document/tasks/event-joust/protocol-preparation.md)和[实机清单](../../../Document/tasks/event-joust/Human-Test-List.md)。
+
+
+### 2026-10-06 冠军公告的客户端副作用
+
+ClientStatic（Confirmed调用链；仍非WireCaptured）：本轮重新校验上述dump SHA256一致。RVA000D2512调用000FCCA0；Stage跳表RVA000FD438四项分别为000FCCFF/000FCE32/000FD036/000FD236。Stage2分支000FD1E2比较当前scene，除13/9外直接进入scene12；Stage3在000FD40E–000FD412无条件调用000FA1B0(scene12)。scene12入口000FB369；窗口打开分支000FB6C3–000FB742取冠军名字，000FB70C读取字符串12BBF，000FB73B→000FB742进入聊天输出。此路径无旧轮号/旧冠军去重检查。用户“打开赛马就再次出现获胜者”截图与该路径High关联，12BBF文本资源未单独导出。
+
+CurrentImplementation：04BB已从所有普通快照中删除。后台八进四/半决赛事件可推Stage0/1；不再推Stage2终局预览，避免提前进入scene12。结束事件使用结算事务捕获的旧轮完整赛果，仅推Stage3一次；通知重试数0，启动恢复不补播。终局动画兼容性及中途进入后的显示仍需ClientVerified，不能把服务器单测当作原生界面证明。

@@ -74,12 +74,21 @@ internal static class JoustPayloadCodec
          var p=5+i*7;BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p),entry.DailyRoundNo);b[p+2]=checked((byte)entry.WinnerIndex);
          BinaryPrimitives.WriteSingleLittleEndian(b.AsSpan(p+3),(float)entry.Odds);}return b;
     }
-    // State is a client event: state 1 announces opening and an open UI requests 04E6 again.
-    // Queries and data refreshes must therefore never echo it back.
-    internal static GameStateSynchronizationMessage[] Details(JoustState s) => s.Winners.Length>=4
-        ? [new JoustBetsMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)]
-        : [new JoustBetsMessage(s),new JoustInfoMessage(s)];
-    internal static GameStateSynchronizationMessage[] Messages(JoustState s) => [new JoustStateMessage(s),..Details(s)];
+    // Both 04B8 and terminal 04BB have client announcement side effects.
+    // Ordinary snapshots (query, entry, bet update, replay) may contain neither.
+    internal static GameStateSynchronizationMessage[] Snapshot(JoustState s) =>
+        [new JoustBetsMessage(s),new JoustInfoMessage(s)];
+    internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleEventKind kind) => kind switch
+    {
+        JoustLifecycleEventKind.RoundStarted => [new JoustStateMessage(s)],
+        JoustLifecycleEventKind.RoundEnded => [new JoustStateMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleEventKind.PhaseChanged when !s.Active || s.Phase==JoustPhase.Locked => [new JoustStateMessage(s)],
+        JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.QuarterFinal => [new JoustStateMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.SemiFinal => [new JoustResultsMessage(s)],
+        // Native Stage2 can enter scene12 and announce the winner. Reveal the complete
+        // bracket only through the once-only RoundEnded/Stage3 event instead.
+        _ => [],
+    };
 }
 internal sealed record JoustStateMessage(JoustState State):GameStateSynchronizationMessage,IGameNotiMessage
 {internal override ushort Type=>0x04B8;internal override byte[] EncodeBody()=>JoustPayloadCodec.State(State);}
@@ -133,7 +142,7 @@ public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICo
         {
             var state=await bus.SendAsync(new QueryJoustStateCommand(session),ct);
             if(!state.Active)await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E6,6),ct);
-            else await sender.SendBatchAsync(c.Connection,JoustPayloadCodec.Details(state),ct);
+            else await sender.SendBatchAsync(c.Connection,JoustPayloadCodec.Snapshot(state),ct);
         }
     }
 }
@@ -155,17 +164,22 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
         try {result=await bus.SendAsync(new JoustBetCommand(user.OnlineUserId,session,$"joust:{Identities.GetOrCreateValue(c.Connection).Id}:{session.ConnectionGeneration}:{m.Metadata.InboundOrdinal}",m.KnightIndex,new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main,m.MaterialSlotIndex)),m.Amount),ct);}
         catch(Exception e) when(e is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(e))
         {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
-        if(result.Succeeded)await notices.PublishAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustChanged(result.State.ServerTime,StateChanged:false),ct);
+        if(result.Succeeded)await notices.PublishAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustDetailsChanged(result.State.ServerTime),ct);
         if(result.Succeeded)await replay.RefreshAsync(c.Connection,session,new(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Joust,result.Debits.Select(d=>d.Slot).ToImmutableArray()),ct);
         safety.DemandCurrent(recipient);
         await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E7,result.Succeeded?0u:6u)],ct);
     }
 }
-public sealed class JoustChangedHandler(IJoustProjectionDomainService joust):INotificationHandler<JoustChanged>
+public sealed class JoustDetailsChangedHandler(IJoustProjectionDomainService joust):INotificationHandler<JoustDetailsChanged>
 {
-    public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient r,JoustChanged n,CancellationToken ct)
+    public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient r,JoustDetailsChanged n,CancellationToken ct)
     {
         var state=await joust.ReadAsync(r.CharacterId,n.Now,ct);
-        return n.StateChanged?JoustPayloadCodec.Messages(state):JoustPayloadCodec.Details(state);
+        return JoustPayloadCodec.Snapshot(state);
     }
+}
+public sealed class JoustLifecycleNotificationHandler:INotificationHandler<JoustLifecycleNotification>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient r,JoustLifecycleNotification n,CancellationToken ct) =>
+        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(JoustPayloadCodec.Lifecycle(n.State,n.Kind));
 }

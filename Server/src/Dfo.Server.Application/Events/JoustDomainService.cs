@@ -102,7 +102,10 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
     }
     public async ValueTask<JoustLifecycleResult> AdvanceLifecycleAsync(DateTimeOffset now,CancellationToken ct)
     {
-        await Write(ct);var settledRounds=0;
+        await Write(ct);var completed=new List<JoustState>();
+        // A restart inside Result can create the current scheduled round. Include it in
+        // this same settlement pass so the next tick cannot announce a recovered result.
+        var c=await Configuration(ct) ?? Initial;await EnsureCurrentRoundAsync(c,now,ct);
         foreach(var round in await store.UnsettledAsync(ct))
         {
             if(rules.Phase(round,now).Phase!=JoustPhase.Result)continue;
@@ -125,9 +128,10 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
                 await mailbox.SendPreparedAsync(builder.Build(),prepared,ct);
             }
             // This marker and every attachment join the same ambient SQLite transaction.
-            await store.SaveRoundAsync(round with{Settled=true},ct);settledRounds++;
+            await store.SaveRoundAsync(round with{Settled=true},ct);
+            completed.Add(await Project(round,new(0),true,now,ct));
         }
-        var c=await Configuration(ct) ?? Initial;await EnsureCurrentRoundAsync(c,now,ct);return new(settledRounds);
+        return new(completed.Count){CompletedRounds=[..completed]};
     }
     public async ValueTask<bool> NeedsAdvanceAsync(DateTimeOffset now,CancellationToken ct)=>
         Active(await Configuration(ct) ?? Initial,now) || await store.HasUnsettledAsync(ct);

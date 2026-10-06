@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Events;
 using Dfo.Server.Application.Inventory;
@@ -365,6 +366,7 @@ public sealed class JoustIntegrationTests
         await f.AdvanceLifecycle();
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         Assert.DoesNotContain(f.Sender.Messages,m=>m is MailboxAlarm);
+        Assert.DoesNotContain(f.Sender.Messages,m=>m.GetType().Name is "JoustStateMessage" or "JoustResultsMessage");
     }
     [Fact]
     public async Task Refused_bet_does_not_settle_an_overdue_round()
@@ -386,6 +388,97 @@ public sealed class JoustIntegrationTests
         f.Now=f.Now.AddMinutes(90);await tick.TickAsync(default);Assert.True(f.Sender.Messages.Count>count);count=f.Sender.Messages.Count;await tick.TickAsync(default);Assert.Equal(count,f.Sender.Messages.Count);
         f.Now=f.Now.AddMinutes(20);await tick.TickAsync(default);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Contains(f.Sender.Messages,m=>m.GetType().Name=="MailboxAlarm");
     }
+    [Theory]
+    [InlineData("10:10:00")]
+    [InlineData("11:40:00")]
+    [InlineData("11:46:40")]
+    [InlineData("11:50:00")]
+    public async Task Startup_recovers_each_phase_without_replaying_announcements(string time)
+    {
+        using var f=new Fixture();f.Now=DateTimeOffset.Parse($"2026-10-06T{time}+08:00");await f.Enable();
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        try
+        {
+            await worker.StartAsync(default);
+            await worker.TickAsync(default);
+            Assert.Empty(f.Events);
+            Assert.DoesNotContain(f.Sender.Messages,m=>m.GetType().Name is "JoustStateMessage" or "JoustResultsMessage");
+            Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
+        }
+        finally{await worker.StopAsync(default);}
+    }
+    [Fact]
+    public async Task Lifecycle_broadcasts_opening_and_completed_winner_once_without_final_preview()
+    {
+        using var f=new Fixture();await f.Enable();
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        await worker.TickAsync(default);await worker.TickAsync(default);
+        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundStarted);
+        f.Now=f.Now.AddMinutes(100);await worker.TickAsync(default);
+        f.Now=f.Now.AddSeconds(200);await worker.TickAsync(default);
+        f.Sender.Messages.Clear();f.Now=f.Now.AddSeconds(200);await worker.TickAsync(default);
+        Assert.DoesNotContain(f.Sender.Messages,m=>m.GetType().Name is "JoustStateMessage" or "JoustResultsMessage");
+        f.Now=f.Now.AddSeconds(200);await worker.TickAsync(default);await worker.TickAsync(default);
+        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundEnded);
+        Assert.Single(f.Sender.Messages,m=>m.GetType().Name=="JoustResultsMessage");
+        var before=f.Sender.Messages.Count;
+        for(var i=0;i<3;i++)await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,0x04E6,0,1)),default);
+        Assert.Single(f.Sender.Messages,m=>m.GetType().Name=="JoustResultsMessage");
+        Assert.DoesNotContain(f.Sender.Messages.Skip(before),m=>m.GetType().Name is "JoustStateMessage" or "JoustResultsMessage");
+    }
+    [Fact]
+    public async Task Cross_round_tick_publishes_the_committed_old_winner_before_the_new_opening()
+    {
+        using var f=new Fixture();await f.Enable();
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        await worker.TickAsync(default);var original=await f.GetState();
+        f.Events.Clear();f.Sender.Messages.Clear();
+        f.Now=f.Now.AddHours(2);await worker.TickAsync(default);await worker.TickAsync(default);
+        Assert.Equal(new[]{JoustLifecycleEventKind.RoundEnded,JoustLifecycleEventKind.RoundStarted},f.Events.Select(e=>e.Kind));
+        Assert.Equal(original.RoundId,f.Events[0].State.RoundId);
+        Assert.Equal((ushort)1,f.Events[0].State.DailyRoundNo);
+        Assert.Equal((ushort)2,f.Events[1].State.DailyRoundNo);
+        Assert.Equal(JoustPhase.Result,f.Events[0].State.Phase);
+        Assert.Equal(7,f.Events[0].State.Winners.Length);
+        Assert.Single(f.Sender.Messages,m=>m.GetType().Name=="JoustResultsMessage");
+    }
+    private sealed class EventProbe(List<JoustLifecycleEvent> events):IDomainEventHandler<JoustLifecycleEvent>
+    {
+        public ValueTask HandleAsync(JoustLifecycleEvent value,CancellationToken ct){events.Add(value);return ValueTask.CompletedTask;}
+    }
+    [Fact]
+    public async Task Failed_broadcast_is_not_replayed_by_the_next_tick()
+    {
+        var notifications=new FailingNotifications();using var f=new Fixture(notifications);await f.Enable();
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        await worker.TickAsync(default);await worker.TickAsync(default);
+        Assert.Equal(1,notifications.Attempts);
+        f.Now=f.Now.AddMinutes(110);await worker.TickAsync(default);await worker.TickAsync(default);
+        Assert.Equal(2,notifications.Attempts);
+        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundEnded);
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+    }
+    private sealed class FailingNotifications:INotificationBus
+    {
+        public int Attempts{get;private set;}
+        public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience,T notification,CancellationToken ct)
+            where T:class,INotification<T>
+        {Attempts++;throw new IOException("broadcast transport failed");}
+    }
+    [Fact]
+    public async Task Reenable_or_clock_rewind_does_not_announce_the_same_round_as_new()
+    {
+        using var f=new Fixture();await f.Enable();
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        await worker.TickAsync(default);
+        await f.Run(async()=>{await f.Managed.ChangeAsync(new(2365,2,"disable"),"test",f.Now,default);return true;});
+        await worker.TickAsync(default);
+        await f.Run(async()=>{await f.Managed.ChangeAsync(new(2365,3,"enable"),"test",f.Now,default);return true;});
+        await worker.TickAsync(default);
+        f.Now=f.Now.AddMinutes(90);await worker.TickAsync(default);
+        f.Now=f.Now.AddMinutes(-90);await worker.TickAsync(default);
+        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundStarted);
+    }
     private sealed class Clock : TimeProvider { public DateTimeOffset Now=DateTimeOffset.Parse("2026-10-06T10:00:00+08:00");public override DateTimeOffset GetUtcNow()=>Now; }
     private sealed class Fixture : IDisposable
     {
@@ -397,15 +490,18 @@ public sealed class JoustIntegrationTests
         public SelectedSessionIdentity Session {get;}
         public NetworkConnectionContext Connection {get;}
         public ShopSender Sender {get;}=new();
-        public Fixture():this(System.IO.Path.Combine(System.IO.Path.GetTempPath(),"dfo-joust-"+Guid.NewGuid().ToString("N")),new Clock(),true)
+        public List<JoustLifecycleEvent> Events {get;}=[];
+        public Fixture(INotificationBus? notifications=null):this(System.IO.Path.Combine(System.IO.Path.GetTempPath(),"dfo-joust-"+Guid.NewGuid().ToString("N")),new Clock(),true,notifications)
         {Sql("INSERT INTO accounts(account_id,m_id) VALUES(1,'joust'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'joust',0,1,0); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,0);");}
-        private Fixture(string directory,Clock clock,bool owns)
+        private Fixture(string directory,Clock clock,bool owns,INotificationBus? notifications=null)
         {
             this.directory=directory;this.clock=clock;this.owns=owns;
             var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>
             { ["Database:Path"]=Path,["Pvf:ArchivePath"]=new PvfContentOptions().ResolveArchivePath() }).Build();
             var s=new ServiceCollection().AddLogging();new InfrastructureModule().ConfigureServices(s,config);new PersistenceModule().ConfigureServices(s,config);
-            new ApplicationModule().ConfigureServices(s,config);new ProtocolModule().ConfigureServices(s,config);s.AddSingleton<INetworkMessageSender>(Sender);s.AddSingleton<TimeProvider>(clock);provider=s.BuildServiceProvider();Sender.Services=provider;
+            new ApplicationModule().ConfigureServices(s,config);new ProtocolModule().ConfigureServices(s,config);s.AddSingleton<INetworkMessageSender>(Sender);s.AddSingleton<TimeProvider>(clock);
+            if(notifications is not null)s.AddSingleton(notifications);
+            s.AddSingleton<IDomainEventHandler<JoustLifecycleEvent>>(new EventProbe(Events));provider=s.BuildServiceProvider();Sender.Services=provider;
             _=provider.GetRequiredService<SqliteDatabase>();
             var connection=new NetworkConnectionContext(new("joust-test"),NetworkEndpointKind.Game,10011);Connection=connection;
             var registry=provider.GetRequiredService<OnlineStateRegistry>();var online=registry.RegisterConnection(connection);registry.Authenticate(online.OnlineUserId,new(1));

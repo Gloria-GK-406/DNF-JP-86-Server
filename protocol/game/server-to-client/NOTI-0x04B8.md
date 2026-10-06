@@ -79,3 +79,6 @@ reader `000D2690` ReadBytes3；consumer `000FCBD0`：0→scene0，1→scene1并r
 ClientStatic（同上dump）：每次收到state1均走D2731→D2850跳表index0→D2742，取字符串ID12BCB，经D2818–D282F聊天输出；未见旧轮号/状态比较。ID12BCB对应用户截图“骑士马战大竞猜已开始。”属于High关联，正文资源尚未确认。主UI0x1FC打开时还会自动查询04E6，消费链详见[查询记录](../client-to-server/0x04E6.md)。
 
 CurrentImplementation：04B8用于选角同步和后台签名(Active,RoundId,Phase)变化；查询、下注数据通知、重放和通用活动刷新只发详情。相同状态刷新不应重新公告。自动化回归保护消息边界，不替代修复后真实客户端验收。
+
+
+2026-10-06 CurrentImplementation更新：04B8不再用于选角同步或一般快照。后台轮次事件通过IDomainEventBus→INotificationBus广播；开场同轮一次，结束以已提交结算记录为依据一次，启动不补播。查询、登录、重放、投注资料更新均不返回04B8。

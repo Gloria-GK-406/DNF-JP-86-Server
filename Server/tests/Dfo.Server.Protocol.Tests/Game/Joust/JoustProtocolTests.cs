@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Joust;
@@ -7,6 +8,24 @@ using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 namespace Dfo.Server.Protocol.Tests.Game.Joust;
 public sealed class JoustProtocolTests
 {
+    [Theory]
+    [InlineData(JoustPhase.Betting,JoustLifecycleEventKind.RoundStarted,1,0)]
+    [InlineData(JoustPhase.Locked,JoustLifecycleEventKind.PhaseChanged,1,0)]
+    [InlineData(JoustPhase.QuarterFinal,JoustLifecycleEventKind.PhaseChanged,1,1)]
+    [InlineData(JoustPhase.SemiFinal,JoustLifecycleEventKind.PhaseChanged,0,1)]
+    [InlineData(JoustPhase.Final,JoustLifecycleEventKind.PhaseChanged,0,0)]
+    [InlineData(JoustPhase.Result,JoustLifecycleEventKind.RoundEnded,1,1)]
+    public void Announcement_packets_are_reserved_for_lifecycle_transitions(
+        JoustPhase phase,JoustLifecycleEventKind kind,int states,int results)
+    {
+        var state=State(phase);
+        var messages=JoustPayloadCodec.Lifecycle(state,kind);
+        Assert.Equal(states,messages.OfType<JoustStateMessage>().Count());
+        Assert.Equal(results,messages.OfType<JoustResultsMessage>().Count());
+        Assert.DoesNotContain(JoustPayloadCodec.Snapshot(state),m=>m is JoustStateMessage or JoustResultsMessage);
+        if(kind==JoustLifecycleEventKind.RoundEnded)
+            Assert.Equal(3,Assert.Single(messages.OfType<JoustResultsMessage>()).EncodeBody()[2]);
+    }
     private static JoustState State(JoustPhase phase=JoustPhase.QuarterFinal)=>new(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
         new[]{0,1,2,3,4,5,6,8}.Select(i=>new JoustKnightState(new(i,"knight",0,new int[28],new int[28]),10,i,2.5m)).ToArray(),
         [1,2,5,8,2,8,8],36,1000,17){DailyRoundNo=7};
@@ -29,9 +48,12 @@ public sealed class JoustProtocolTests
     {
         var b=JoustPayloadCodec.History(0,[new("saved",DateTimeOffset.UnixEpoch,11,3.4m){DailyRoundNo=3}]);Assert.Equal(3505,b.Length);Assert.Equal(new byte[]{1,0,0,0,0,3,0,11},b[..8]);Assert.Equal(3.4f,BinaryPrimitives.ReadSingleLittleEndian(b.AsSpan(8)));Assert.Equal(0,BinaryPrimitives.ReadUInt16LittleEndian(b.AsSpan(12)));Assert.Equal(new byte[]{1,6,0,0,0},JoustPayloadCodec.Ack(6));Assert.Equal(3505,JoustPayloadCodec.History(6,[]).Length);
     }
-    [Fact] public void Entry_contains_current_native_state_and_results_after_calendar()
+    [Theory]
+    [InlineData(JoustPhase.Betting)]
+    [InlineData(JoustPhase.Result)]
+    public void Entry_contains_silent_data_without_opening_or_winner_announcements(JoustPhase phase)
     {
-        var result=SelectCharacterPayloadTestData.CreateComplete() with{Events=new([],WeeklyAttendanceState.Empty,State())};
-        var messages=SelectedCharacterStateMessageFactory.Create(result);Assert.Single(messages.OfType<JoustStateMessage>());Assert.Single(messages.OfType<JoustResultsMessage>());
+        var result=SelectCharacterPayloadTestData.CreateComplete() with{Events=new([],WeeklyAttendanceState.Empty,State(phase))};
+        var messages=SelectedCharacterStateMessageFactory.Create(result);Assert.Empty(messages.OfType<JoustStateMessage>());Assert.Empty(messages.OfType<JoustResultsMessage>());Assert.Single(messages.OfType<JoustInfoMessage>());Assert.Single(messages.OfType<JoustBetsMessage>());
     }
 }

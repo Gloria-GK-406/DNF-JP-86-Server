@@ -79,6 +79,8 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IDomainEventBus,Dfo.Server.Application.Events.DomainEventBus>();
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<Dfo.Server.Abstractions.Events.IDomainEventHandler<Dfo.Server.Abstractions.Events.JoustLifecycleEvent>,Dfo.Server.Application.Events.JoustLifecycleEventHandler>());
         services.TryAddSingleton(new ChannelListenerOptions(
             configuration.GetSection("Networking:GamePorts")
                 .GetChildren()
