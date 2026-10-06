@@ -85,12 +85,13 @@ it('马战设置独立分派，停用明确保留已有投注的结算责任', a
   const original = mocked.getMockImplementation()!;
   mocked.mockImplementation((path, payload) => path === 'events/joust/settings' ? Promise.resolve({
     eventId: 2365, revision: 4, schedule: { dailyStartTime: '10:00', roundsPerDay: 7, roundIntervalMinutes: 120, bettingMinutes: 90, lockMinutes: 10, stageSeconds: 200 },
+    parameters: { strongMultiplier: 1.15, normalMultiplier: 1, weakMultiplier: .85, counterMultiplier: 1.25, historyPrior: 10, forecastWeight: .4, bettingScale: 1000 },
     sourcePath: 'event/chn_event/chn_joust.evt', available: true, unavailableReason: null, minimumLevel: 17, maximumBetting: 1000,
     knights: [], currencies: [], reward: null, bettingReward: null, updatedAt: null, updatedBy: null,
   }) : original(path, payload));
   open(); fireEvent.click(await screen.findByRole('button', { name: '设置活动' }));
   const dialog = await screen.findByRole('dialog'); await within(dialog).findByText('event/chn_event/chn_joust.evt');
-  expect(within(dialog).getByLabelText('每天期数')).toBeTruthy();
+  expect(within(dialog).getByLabelText('强势战斗力倍率')).toBeTruthy();
   expect(mocked.mock.calls.some(([path]) => path === 'events/weekly-attendance/settings')).toBe(false);
   fireEvent.click(within(dialog).getByRole('button', { name: /关\s*闭/ }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); fireEvent.click(screen.getByRole('button', { name: /停\s*用/ }));

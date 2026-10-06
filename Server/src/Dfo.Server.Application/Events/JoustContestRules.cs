@@ -6,28 +6,32 @@ namespace Dfo.Server.Application.Events;
 internal static class JoustContestRules
 {
     internal const int Version = 1;
-    internal const long BettingScale = 1000;
+    internal static JoustGameplayParameters DefaultParameters { get; } = new(1.15,1,.85,1.25,10,.4,1000);
     private const double NeutralProbability = 1d / 8;
     private static readonly double ColdExponent = Math.Log(6d / 14) / Math.Log(.6);
 
-    internal static double ConditionStrength(byte condition) => condition switch
+    internal static double ConditionStrength(byte condition, JoustGameplayParameters? parameters = null) => condition switch
     {
-        0 => 1.15, 1 => 1, 2 => .85,
+        0 => (parameters ?? DefaultParameters).StrongMultiplier,
+        1 => (parameters ?? DefaultParameters).NormalMultiplier,
+        2 => (parameters ?? DefaultParameters).WeakMultiplier,
         _ => throw new InvalidDataException("未知的马战状态。")
     };
 
-    internal static double AttackAdvantage(int left, int right)
+    internal static double AttackAdvantage(int left, int right, JoustGameplayParameters? parameters = null)
     {
         static int Position(int type) => type switch { 0 => 0, 1 => 1, 27 => 2, 28 => 3, _ => -1 };
         var a = Position(left); var b = Position(right);
         if (a < 0 || b < 0 || a == b) return 1;
-        return ((b - a + 4) % 4) switch { 1 => 1.25, 3 => .8, _ => 1 };
+        var advantage=(parameters ?? DefaultParameters).CounterMultiplier;
+        return ((b - a + 4) % 4) switch { 1 => advantage, 3 => 1/advantage, _ => 1 };
     }
 
-    internal static double MatchWinProbability(JoustKnight left, byte leftCondition, JoustKnight right, byte rightCondition)
+    internal static double MatchWinProbability(JoustKnight left, byte leftCondition, JoustKnight right, byte rightCondition,
+        JoustGameplayParameters? parameters = null)
     {
-        var a = ConditionStrength(leftCondition) * AttackAdvantage(left.AttackType, right.AttackType);
-        var b = ConditionStrength(rightCondition);
+        var a = ConditionStrength(leftCondition,parameters) * AttackAdvantage(left.AttackType, right.AttackType,parameters);
+        var b = ConditionStrength(rightCondition,parameters);
         return a / (a + b);
     }
 
@@ -51,13 +55,14 @@ internal static class JoustContestRules
         return reach;
     }
 
-    internal static double[] PricingProbabilities(IReadOnlyList<double> historical, IReadOnlyList<double> current)
+    internal static double[] PricingProbabilities(IReadOnlyList<double> historical, IReadOnlyList<double> current,
+        JoustGameplayParameters? parameters = null)
     {
         if (historical.Count != 8 || current.Count != 8
             || historical.Concat(current).Any(p => !double.IsFinite(p) || p < 0 || p > 1)
             || Math.Abs(historical.Sum() - 1) > 1e-9 || Math.Abs(current.Sum() - 1) > 1e-9)
             throw new InvalidDataException("马战概率分布无效。");
-        var weight = .4;
+        var weight = (parameters ?? DefaultParameters).ForecastWeight;
         for (var i = 0; i < 8; i++)
         {
             var delta = current[i] - NeutralProbability;
@@ -70,16 +75,18 @@ internal static class JoustContestRules
     }
 
     internal static JoustKnightForecast[] Forecast(IReadOnlyList<JoustKnight> knights, IReadOnlyList<byte> conditions,
-        IReadOnlyList<JoustKnightStatistics> statistics)
+        IReadOnlyList<JoustKnightStatistics> statistics, JoustGameplayParameters? parameters = null)
     {
         if (conditions.Count != 8 || statistics.Any(s => s.Wins < 0 || s.Losses < 0))
             throw new InvalidDataException("马战预测输入无效。");
         var saved = statistics.ToDictionary(s => s.KnightIndex);
-        var strengths = knights.Select(k => saved.TryGetValue(k.Index, out var s) ? (s.Wins + 10d) / (s.Losses + 10d) : 1d).ToArray();
+        var settings=parameters ?? DefaultParameters;
+        var strengths = knights.Select(k => saved.TryGetValue(k.Index, out var s) ? (s.Wins + (double)settings.HistoryPrior) / (s.Losses + (double)settings.HistoryPrior) : 1d).ToArray();
         var historical = ChampionshipProbabilities(knights, (a, b) => strengths[a] / (strengths[a] + strengths[b]));
-        var current = ChampionshipProbabilities(knights, (a, b) => MatchWinProbability(knights[a], conditions[a], knights[b], conditions[b]));
-        var pricing = PricingProbabilities(historical, current);
-        return knights.Select((k, i) => new JoustKnightForecast(k.Index, conditions[i], historical[i], current[i], pricing[i])).ToArray();
+        var current = ChampionshipProbabilities(knights, (a, b) => MatchWinProbability(knights[a], conditions[a], knights[b], conditions[b],settings));
+        var pricing = PricingProbabilities(historical, current,settings);
+        return knights.Select((k, i) => new JoustKnightForecast(k.Index, conditions[i], historical[i], current[i], pricing[i])
+            {CombatMultiplier=ConditionStrength(conditions[i],settings)}).ToArray();
     }
 
     internal static decimal InitialOdds(double probability)
@@ -91,10 +98,11 @@ internal static class JoustContestRules
             : 1 + (1 - probability) / (1 - NeutralProbability));
     }
 
-    internal static decimal BettingOdds(double probability, long amount)
+    internal static decimal BettingOdds(double probability, long amount, JoustGameplayParameters? parameters = null)
     {
         if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
-        var value = 1 + (InitialOdds(probability) - 1) * BettingScale / (BettingScale + (decimal)amount);
+        var scale=(parameters ?? DefaultParameters).BettingScale;
+        var value = 1 + (InitialOdds(probability) - 1) * scale / (scale + (decimal)amount);
         return decimal.Round(Math.Clamp(value, 1m, 16m), 1, MidpointRounding.AwayFromZero);
     }
 }

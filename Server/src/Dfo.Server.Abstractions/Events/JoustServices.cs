@@ -9,6 +9,10 @@ public interface IJoustRuleService
 {
     ValueTask<(JoustDefinition? Definition,string? Error)> DefinitionAsync(CancellationToken ct);
     void ValidateSchedule(JoustSchedule schedule);
+    JoustScheduleConfiguration NormalizeConfiguration(JoustScheduleConfiguration? configuration);
+    void ValidateParameters(JoustGameplayParameters parameters);
+    JoustKnightForecast? KnightForecast(JoustRound round, int knightIndex);
+    JoustRound SetChampion(JoustRound round, int? knightIndex);
     DateTimeOffset? CurrentStart(JoustSchedule schedule, DateTimeOffset now);
     JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition definition,
         IReadOnlyList<JoustKnightStatistics>? statistics = null, int seed = 0);
@@ -22,6 +26,8 @@ public interface IJoustDomainService
 {
     ValueTask<JoustSettings> SettingsAsync(CancellationToken ct);
     ValueTask<JoustSettings> SaveSettingsAsync(JoustSettingsChange change,string actor,DateTimeOffset now,CancellationToken ct);
+    ValueTask<JoustCurrentRound> GetCurrentRoundAsync(DateTimeOffset now,CancellationToken ct);
+    ValueTask<JoustCurrentRound> SetCurrentChampionAsync(JoustChampionChange change,string actor,DateTimeOffset now,CancellationToken ct);
     ValueTask<JoustState> GetStateAsync(CharacterId character,DateTimeOffset now,CancellationToken ct);
     ValueTask<JoustKnightInfo?> GetKnightInfoAsync(int knightIndex,CancellationToken ct);
     ValueTask<JoustBetResult> BetAsync(SelectedSessionIdentity session,string requestId,int knightIndex,BusinessSlot preferredSlot,int amount,DateTimeOffset now,CancellationToken ct);
@@ -31,8 +37,8 @@ public interface IJoustDomainService
 }
 public interface IJoustPersistence
 {
-    ValueTask<JoustScheduleConfiguration?> ScheduleAsync(CancellationToken ct);
-    ValueTask<bool> SaveScheduleAsync(long expectedRevision,JoustScheduleConfiguration schedule,CancellationToken ct);
+    ValueTask<JoustScheduleConfiguration?> ConfigurationAsync(CancellationToken ct);
+    ValueTask<bool> SaveConfigurationAsync(long expectedRevision,JoustScheduleConfiguration configuration,CancellationToken ct);
     ValueTask<JoustRound?> RoundAsync(string roundId,CancellationToken ct);
     ValueTask<JoustRound?> CurrentRoundAsync(DateTimeOffset now,CancellationToken ct);
     ValueTask<bool> HasUnsettledAsync(CancellationToken ct);
@@ -56,6 +62,8 @@ public interface IGmJoustDomainService
 {
     ValueTask<JoustSettings> SettingsAsync(string secret,CancellationToken ct);
     ValueTask<JoustSettings> SaveAsync(string secret,JoustSettingsChange change,CancellationToken ct);
+    ValueTask<JoustCurrentRound> CurrentRoundAsync(string secret,CancellationToken ct);
+    ValueTask<JoustCurrentRound> SetChampionAsync(string secret,JoustChampionChange change,CancellationToken ct);
 }
 
 public interface IJoustProjectionDomainService

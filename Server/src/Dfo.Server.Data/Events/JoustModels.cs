@@ -16,11 +16,24 @@ public sealed record JoustSchedule(string DailyStartTime, int RoundsPerDay, int 
 {
     public static JoustSchedule Default { get; } = new("10:00",7,120,90,10,200);
 }
-public sealed record JoustScheduleConfiguration(long Revision, JoustSchedule Schedule, DateTimeOffset? UpdatedAt=null, string? UpdatedBy=null);
-public sealed record JoustSettings(int EventId, long Revision, JoustSchedule Schedule, string SourcePath, bool Available,
+public sealed record JoustGameplayParameters([property:JsonRequired] double StrongMultiplier,
+    [property:JsonRequired] double NormalMultiplier, [property:JsonRequired] double WeakMultiplier,
+    [property:JsonRequired] double CounterMultiplier, [property:JsonRequired] int HistoryPrior,
+    [property:JsonRequired] double ForecastWeight, [property:JsonRequired] long BettingScale);
+public sealed record JoustScheduleConfiguration(long Revision, JoustSchedule Schedule, DateTimeOffset? UpdatedAt=null, string? UpdatedBy=null)
+{ public JoustGameplayParameters? Parameters { get; init; } }
+public sealed record JoustSettings(int EventId, long Revision, JoustSchedule Schedule, JoustGameplayParameters Parameters, string SourcePath, bool Available,
     string? UnavailableReason, int? MinimumLevel, int? MaximumBetting, JoustKnight[] Knights, JoustItem[] Currencies,
     JoustItem? Reward, JoustItem? BettingReward, DateTimeOffset? UpdatedAt, string? UpdatedBy);
-public sealed record JoustSettingsChange([property:JsonRequired] long ExpectedRevision, [property:JsonRequired] JoustSchedule Schedule);
+public sealed record JoustSettingsChange([property:JsonRequired] long ExpectedRevision, [property:JsonRequired] JoustGameplayParameters Parameters);
+public sealed record JoustChampionChange([property:JsonRequired] string RoundId, [property:JsonRequired] long ExpectedRevision,
+    [property:JsonRequired] int? KnightIndex);
+public sealed record JoustCurrentKnight(int Index, string Name, int AttackType, byte? Condition, double? CombatMultiplier,
+    double? ChampionshipProbability, decimal Odds, long BettingAmount, JoustKnightStatistics Statistics);
+public sealed record JoustCurrentRound(string? RoundId, long RoundNo, long Revision, bool Active, string Phase,
+    DateTimeOffset ServerTime, DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, DateTimeOffset? NextTransitionAt,
+    DateTimeOffset? ChampionDeadline, bool CanSetChampion, int? ForcedChampionIndex, DateTimeOffset? UpdatedAt,
+    string? UpdatedBy, JoustCurrentKnight[] Knights);
 public enum JoustPhase { Inactive, Betting, Locked, QuarterFinal, SemiFinal, Final, Result }
 public sealed record JoustRound(string RoundId, string SeasonId, DateTimeOffset StartsAt, DateTimeOffset EndsAt,
     JoustScheduleConfiguration Schedule, JoustDefinition Definition, JoustKnight[] Knights, int[] Winners, bool Settled)
@@ -30,9 +43,15 @@ public sealed record JoustRound(string RoundId, string SeasonId, DateTimeOffset 
     public int Seed { get; init; }
     public JoustKnightForecast[] Forecasts { get; init; } = [];
     public JoustKnightOdds[] LockedOdds { get; init; } = [];
+    public long AdminRevision { get; init; }
+    public int[] NaturalWinners { get; init; } = [];
+    public int? ForcedChampionIndex { get; init; }
+    public DateTimeOffset? ChampionUpdatedAt { get; init; }
+    public string? ChampionUpdatedBy { get; init; }
 }
 public sealed record JoustKnightForecast(int KnightIndex, byte Condition, double HistoricalProbability,
-    double ChampionshipProbability, double PricingProbability);
+    double ChampionshipProbability, double PricingProbability)
+{ public double CombatMultiplier { get; init; } }
 public sealed record JoustKnightOdds(int KnightIndex, decimal Odds);
 public sealed record JoustBet(string RequestId, string RoundId, CharacterId Character, int KnightIndex, int MaterialId, int Amount)
 {

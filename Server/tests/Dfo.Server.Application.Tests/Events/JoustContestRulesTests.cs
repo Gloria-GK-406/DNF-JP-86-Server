@@ -7,6 +7,26 @@ public sealed class JoustContestRulesTests
 {
     private static JoustKnight[] Knights => Enumerable.Range(0,8).Select(i=>new JoustKnight(i,"knight",0,[],[])).ToArray();
 
+    [Fact]
+    public void Configurable_parameters_change_combat_history_pricing_and_betting_without_changing_odds_anchors()
+    {
+        var p=new JoustGameplayParameters(2,1,.5,2,100,0,2000);var a=Knights[0];var b=Knights[1] with{AttackType=1};
+        var rules=new JoustRuleService(null!);rules.ValidateParameters(p);
+        Assert.Equal(2,JoustContestRules.ConditionStrength(0,p));Assert.Equal(.5,JoustContestRules.ConditionStrength(2,p));
+        Assert.Equal(.8,JoustContestRules.MatchWinProbability(a,0,a,2,p),12);
+        Assert.Equal(2d/3,JoustContestRules.MatchWinProbability(a,1,b,1,p),12);
+        Assert.Equal(1d/3,JoustContestRules.MatchWinProbability(b,1,a,1,p),12);
+        var forecast=JoustContestRules.Forecast(Knights,[0,1,2,0,1,2,0,1],[new(0,100,0,33)],p);
+        Assert.Equal(Math.Pow(2d/3,3),forecast[0].HistoricalProbability,12);
+        Assert.All(forecast,f=>Assert.Equal(f.HistoricalProbability,f.PricingProbability));
+        Assert.All(forecast,f=>Assert.Equal(JoustContestRules.ConditionStrength(f.Condition,p),f.CombatMultiplier));
+        Assert.Equal(1.7m,JoustContestRules.BettingOdds(.125,1000,p));Assert.Equal(1.5m,JoustContestRules.BettingOdds(.125,2000,p));
+        Assert.Equal(2m,JoustContestRules.BettingOdds(.125,0,p));Assert.Equal(16m,JoustContestRules.BettingOdds(0,0,p));
+        foreach(var invalid in new[]{p with{StrongMultiplier=double.NaN},p with{WeakMultiplier=2},p with{CounterMultiplier=.9},
+            p with{ForecastWeight=1.1},p with{HistoryPrior=0},p with{BettingScale=0}})
+            Assert.Throws<ArgumentException>(()=>rules.ValidateParameters(invalid));
+    }
+
     [Theory]
     [InlineData(0,16)]
     [InlineData(.05,8)]

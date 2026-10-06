@@ -10,9 +10,9 @@ namespace Dfo.Server.Persistence.Events;
 internal sealed class SqliteJoustPersistence(SqliteDatabase database) : IJoustPersistence
 {
     private static T Read<T>(string json) => JsonSerializer.Deserialize<T>(json) ?? throw new InvalidDataException("Invalid joust record.");
-    public ValueTask<JoustScheduleConfiguration?> ScheduleAsync(CancellationToken ct) => database.ReadFirstAsync(
+    public ValueTask<JoustScheduleConfiguration?> ConfigurationAsync(CancellationToken ct) => database.ReadFirstAsync(
         "SELECT input FROM event_joust_schedule WHERE id=1;", _=>{}, r=>Read<JoustScheduleConfiguration>(r.GetString(0)), ct);
-    public async ValueTask<bool> SaveScheduleAsync(long expectedRevision, JoustScheduleConfiguration s, CancellationToken ct) =>
+    public async ValueTask<bool> SaveConfigurationAsync(long expectedRevision, JoustScheduleConfiguration s, CancellationToken ct) =>
         await database.ExecuteAsync("""
         INSERT INTO event_joust_schedule(id,revision,input) SELECT 1,1,@input WHERE @rev=0 ON CONFLICT DO NOTHING;
         UPDATE event_joust_schedule SET revision=revision+1,input=@input WHERE id=1 AND revision=@rev AND @rev>0;

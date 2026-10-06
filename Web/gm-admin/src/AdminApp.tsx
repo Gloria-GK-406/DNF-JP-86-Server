@@ -19,7 +19,7 @@ const pages: { key: string; label: string; permission: Permission | 'All' | null
   { key: '/events', label: '活动管理', permission: 'All' },
   { key: '/operations', label: '操作记录', permission: 'ViewAudit' },
 ];
-const actionLabels: Record<string, string> = { ChangeEvent: '管理活动', ChangeDailyRefill: '修改每日补给', SaveInitialization: '保存初始化配置', Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
+const actionLabels: Record<string, string> = { ChangeEvent: '管理活动', ChangeJoustParameters: '修改马战玩法参数', SetJoustChampion: '设置本场马战冠军', ChangeDailyRefill: '修改每日补给', SaveInitialization: '保存初始化配置', Login: '登录', Logout: '退出', SendOfficialMail: '发送官方邮件', SaveMailDraft: '保存邮件草稿', EditMailTemplate: '修改内容模板' };
 const outcomeLabels: Record<string, string> = { Succeeded: '成功', Rejected: '拒绝', RolledBack: '已回滚', Unknown: '结果未确认' };
 
 export function AdminApp() {

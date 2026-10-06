@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Events;
 internal sealed class JoustDomainService(IEventPersistence events, IJoustPersistence store, IJoustRuleService rules,
     ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
     ICharacterBusinessInventoryDomainService inventory, IMaterialConsumptionDomainService materials,
-    IItemLifecycleDomainService lifecycle, IMailboxDomainService mailbox, IDomainTransactionAccessor transactions)
+    IItemLifecycleDomainService lifecycle, IMailboxDomainService mailbox, IDomainTransactionAccessor transactions,TimeProvider clock)
     : IJoustDomainService, IJoustProjectionDomainService, IManagedEventDomainService
 {
     public int EventId => 2365;
@@ -29,7 +29,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         if (transactions.Current is null || transactions.Current.IsReadOnly) throw new InvalidOperationException("马战写入和推进必须在命令事务内执行。");
         await events.AcquireWriteAsync(ct);
     }
-    private async ValueTask<JoustScheduleConfiguration> Schedule(CancellationToken ct)=>await store.ScheduleAsync(ct) ?? new(0,JoustSchedule.Default);
+    private async ValueTask<JoustScheduleConfiguration> Schedule(CancellationToken ct)=>rules.NormalizeConfiguration(await store.ConfigurationAsync(ct));
     public async ValueTask<JoustKnightInfo?> GetKnightInfoAsync(int knightIndex,CancellationToken ct)
     {
         var (definition,_)=await rules.DefinitionAsync(ct);
@@ -42,16 +42,47 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
     {
         var s=await Schedule(ct);var (d,error)=await rules.DefinitionAsync(ct);
         static JoustItem Display(JoustItem item)=>item with{GrantTemplate=null};
-        return new(EventId,s.Revision,s.Schedule,d?.SourcePath ?? "event/chn_event/chn_joust.evt",d is not null,error,
+        return new(EventId,s.Revision,s.Schedule,s.Parameters!,d?.SourcePath ?? "event/chn_event/chn_joust.evt",d is not null,error,
             d?.MinimumLevel,d?.MaximumBetting,d?.Knights ?? [],d?.Materials.Select(Display).ToArray() ?? [],
             d is null?null:Display(d.Reward),d is null?null:Display(d.BettingReward),s.UpdatedAt,s.UpdatedBy);
     }
     public async ValueTask<JoustSettings> SaveSettingsAsync(JoustSettingsChange change,string actor,DateTimeOffset now,CancellationToken ct)
     {
-        await Write(ct);rules.ValidateSchedule(change.Schedule);
-        if (change.ExpectedRevision<0 || !await store.SaveScheduleAsync(change.ExpectedRevision,new(change.ExpectedRevision+1,change.Schedule,now,actor),ct))
+        await Write(ct);rules.ValidateParameters(change.Parameters);
+        var configuration=rules.NormalizeConfiguration(await store.ConfigurationAsync(ct));
+        if (change.ExpectedRevision<0 || !await store.SaveConfigurationAsync(change.ExpectedRevision,
+            configuration with{Revision=change.ExpectedRevision+1,Parameters=change.Parameters,UpdatedAt=now,UpdatedBy=actor},ct))
             throw new InitializationConflictException();
         return await SettingsAsync(ct);
+    }
+    public async ValueTask<JoustCurrentRound> GetCurrentRoundAsync(DateTimeOffset now,CancellationToken ct)
+    {
+        var round=await store.CurrentRoundAsync(now,ct);var c=await Configuration(ct) ?? Initial;
+        var state=await Project(round,new(0),Active(c,now) && round?.SeasonId==c.SeasonId,now,ct);
+        var deadline=round?.StartsAt.AddMinutes(round.Schedule.Schedule.BettingMinutes+round.Schedule.Schedule.LockMinutes);
+        return new(state.RoundId,state.RoundNo,round?.AdminRevision ?? 0,state.Active,state.Phase.ToString(),now,state.StartsAt,state.EndsAt,
+            state.NextTransitionAt,deadline,state.Active && state.Phase==JoustPhase.Locked && round is {Settled:false},
+            round?.ForcedChampionIndex,round?.ChampionUpdatedAt,round?.ChampionUpdatedBy,
+            state.Knights.Select(k=>new JoustCurrentKnight(k.Knight.Index,k.Knight.Name,k.Knight.AttackType,k.Forecast?.Condition,
+                k.Forecast?.CombatMultiplier,k.Forecast?.ChampionshipProbability,k.Odds,k.Pool,k.Statistics)).ToArray());
+    }
+    public async ValueTask<JoustCurrentRound> SetCurrentChampionAsync(JoustChampionChange change,string actor,DateTimeOffset now,CancellationToken ct)
+    {
+        await Write(ct);now=clock.GetUtcNow();
+        if(string.IsNullOrWhiteSpace(change.RoundId) || change.ExpectedRevision<0)throw new ArgumentException("场次及版本无效。");
+        var round=await store.CurrentRoundAsync(now,ct);
+        if(round is null || round.RoundId!=change.RoundId || round.AdminRevision!=change.ExpectedRevision)
+            throw new InitializationConflictException();
+        var c=await Configuration(ct) ?? Initial;
+        if(!Active(c,now) || round.SeasonId!=c.SeasonId || round.Settled || rules.Phase(round,now).Phase!=JoustPhase.Locked)
+            throw new ArgumentException("仅在投注封盘后、第一轮战斗开始前可指定或取消本场冠军。");
+        round=rules.FreezeOdds(round,await store.BetsAsync(round.RoundId,ct));
+        var updated=rules.SetChampion(round,change.KnightIndex) with{AdminRevision=checked(round.AdminRevision+1),
+            ChampionUpdatedAt=now,ChampionUpdatedBy=actor};
+        var writeTime=clock.GetUtcNow();
+        if(!Active(c,writeTime) || rules.Phase(round,writeTime).Phase!=JoustPhase.Locked)
+            throw new ArgumentException("比赛已经开始，请重新读取当前场次。");
+        await store.SaveRoundAsync(updated,ct);return await GetCurrentRoundAsync(now,ct);
     }
     public async ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now,CancellationToken ct)
     {
@@ -185,7 +216,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var statistics=(await store.KnightStatisticsAsync(ct)).ToDictionary(s=>s.KnightIndex);
         var states=r.Knights.Select(k=>{var pool=bets.Where(b=>b.KnightIndex==k.Index).Sum(b=>(long)b.Amount);
             return new JoustKnightState(k,pool,bets.Where(b=>b.Character==character && b.KnightIndex==k.Index).Sum(b=>b.Amount),rules.Odds(r,k.Index,total,pool))
-                {Statistics=statistics.GetValueOrDefault(k.Index) ?? new(k.Index,0,0,0),Forecast=r.Forecasts.SingleOrDefault(f=>f.KnightIndex==k.Index)};}).ToArray();
+                {Statistics=statistics.GetValueOrDefault(k.Index) ?? new(k.Index,0,0,0),Forecast=rules.KnightForecast(r,k.Index)};}).ToArray();
         return new(active,now,phase.Phase,r.RoundId,r.StartsAt,r.EndsAt,phase.Next,states,r.Winners.Take(phase.Revealed).ToArray(),
             bets.Where(b=>b.Character==character).Sum(b=>b.Amount),r.Definition.MaximumBetting,r.Definition.MinimumLevel)
             {RoundNo=(await store.ResultAsync(r.RoundId,ct))?.RoundNo ?? await store.NextResultIndexAsync(ct)};

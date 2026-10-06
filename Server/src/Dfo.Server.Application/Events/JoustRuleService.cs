@@ -35,6 +35,43 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
             || start.ToTimeSpan().TotalMinutes + (long)s.RoundsPerDay*s.RoundIntervalMinutes > 1440)
             throw new ArgumentException("赛程时间格式无效、跨午夜或阶段占满每期时长；必须保留正时长结果展示窗口。");
     }
+    public JoustScheduleConfiguration NormalizeConfiguration(JoustScheduleConfiguration? configuration)
+    {
+        var value=configuration ?? new(0,JoustSchedule.Default);
+        var parameters=value.Parameters ?? JoustContestRules.DefaultParameters;ValidateParameters(parameters);
+        return value with{Schedule=JoustSchedule.Default,Parameters=parameters};
+    }
+    public void ValidateParameters(JoustGameplayParameters p)
+    {
+        if(p is null || new[]{p.StrongMultiplier,p.NormalMultiplier,p.WeakMultiplier,p.CounterMultiplier,p.ForecastWeight}.Any(v=>!double.IsFinite(v))
+            || p.WeakMultiplier<.1 || p.StrongMultiplier>3 || p.WeakMultiplier>p.NormalMultiplier || p.NormalMultiplier>p.StrongMultiplier
+            || p.CounterMultiplier is <1 or >3 || p.HistoryPrior is <1 or >1000 || p.ForecastWeight is <0 or >1
+            || p.BettingScale is <1 or >1000000)
+            throw new ArgumentException("状态倍率必须满足 0.1≤弱势≤常态≤强势≤3；克制倍率 1..3，历史先验 1..1000，预测权重 0..1，投注衰减基数 1..1000000。");
+    }
+    public JoustKnightForecast? KnightForecast(JoustRound round,int knightIndex)
+    {
+        var forecast=round.Forecasts.SingleOrDefault(f=>f.KnightIndex==knightIndex);
+        return forecast is null?null:forecast with{CombatMultiplier=JoustContestRules.ConditionStrength(forecast.Condition,
+            round.Schedule.Parameters ?? JoustContestRules.DefaultParameters)};
+    }
+    public JoustRound SetChampion(JoustRound round,int? knightIndex)
+    {
+        var natural=round.NaturalWinners.Length==0?round.Winners:round.NaturalWinners;
+        _=ResultStatistics(round with{Winners=natural});
+        if(knightIndex is {} chosen && !round.Knights.Any(k=>k.Index==chosen))throw new ArgumentException("指定冠军必须是本场参赛骑士。");
+        var winners=natural.ToArray();var entrants=round.Knights.Select(k=>k.Index).ToArray();var offset=0;
+        if(knightIndex is {} champion)
+            while(entrants.Length>1)
+            {
+                var next=new int[entrants.Length/2];
+                for(var i=0;i<next.Length;i++)
+                    next[i]=entrants[i*2]==champion || entrants[i*2+1]==champion?champion:natural[offset+i];
+                Array.Copy(next,0,winners,offset,next.Length);offset+=next.Length;entrants=next;
+            }
+        var result=round with{Winners=winners,NaturalWinners=natural.ToArray(),ForcedChampionIndex=knightIndex};
+        _=ResultStatistics(result);return result;
+    }
     public DateTimeOffset? CurrentStart(JoustSchedule s, DateTimeOffset now)
     {
         ValidateSchedule(s);
@@ -46,11 +83,13 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
     public JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition d,
         IReadOnlyList<JoustKnightStatistics>? statistics = null, int seed = 0)
     {
+        var parameters=schedule.Parameters ?? JoustContestRules.DefaultParameters;ValidateParameters(parameters);
+        schedule=schedule with{Parameters=parameters};
         var random = new Random(seed);
         var knights = d.Knights.Take(8).OrderBy(_ => random.Next()).Take(7)
             .Append(d.Knights[random.Next(8,12)]).OrderBy(_ => random.Next()).ToArray();
         var conditions = knights.Select(_ => (byte)random.Next(3)).ToArray();
-        var forecasts = JoustContestRules.Forecast(knights, conditions, statistics ?? []);
+        var forecasts = JoustContestRules.Forecast(knights, conditions, statistics ?? [],parameters);
         var conditionByKnight = forecasts.ToDictionary(f => f.KnightIndex, f => f.Condition);
         var entrants = knights.ToDictionary(k => k.Index);
         var winners = new List<int>(); var stage = knights.Select(k => k.Index).ToArray();
@@ -59,7 +98,7 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
             stage = Enumerable.Range(0,stage.Length/2).Select(i =>
             {
                 var a=stage[i*2];var b=stage[i*2+1];
-                var probability=JoustContestRules.MatchWinProbability(entrants[a],conditionByKnight[a],entrants[b],conditionByKnight[b]);
+                var probability=JoustContestRules.MatchWinProbability(entrants[a],conditionByKnight[a],entrants[b],conditionByKnight[b],parameters);
                 return random.NextDouble()<probability?a:b;
             }).ToArray();
             winners.AddRange(stage);
@@ -110,7 +149,7 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
         if(round.AlgorithmVersion!=JoustContestRules.Version || round.Forecasts.Length!=8)
             throw new InvalidDataException("马战概率快照缺失或版本无效。");
         var forecast=round.Forecasts.Single(f=>f.KnightIndex==knightIndex);
-        return JoustContestRules.BettingOdds(forecast.PricingProbability,pool);
+        return JoustContestRules.BettingOdds(forecast.PricingProbability,pool,round.Schedule.Parameters);
     }
     public JoustRound FreezeOdds(JoustRound round, IReadOnlyList<JoustBet> bets)
     {
