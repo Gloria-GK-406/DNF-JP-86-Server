@@ -39,7 +39,7 @@ internal static class JoustPayloadCodec
         var b=new byte[90];BinaryPrimitives.WriteUInt16LittleEndian(b,NativeRoundNo(s.RoundNo));
         for(var i=0;i<8;i++)
         { var p=2+i*11;b[p]=255;if(i>=s.Knights.Length)continue;var k=s.Knights[i];b[p]=checked((byte)k.Knight.Index);
-          // Condition has no current server source; win/loss come from committed tournament results.
+          b[p+1]=k.Forecast?.Condition ?? 0;
           BinaryPrimitives.WriteSingleLittleEndian(b.AsSpan(p+2),(float)k.Odds);
           var (wins,losses)=StatisticsCounters(k.Statistics);
           BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p+6),wins);

@@ -23,7 +23,17 @@ public sealed record JoustSettings(int EventId, long Revision, JoustSchedule Sch
 public sealed record JoustSettingsChange([property:JsonRequired] long ExpectedRevision, [property:JsonRequired] JoustSchedule Schedule);
 public enum JoustPhase { Inactive, Betting, Locked, QuarterFinal, SemiFinal, Final, Result }
 public sealed record JoustRound(string RoundId, string SeasonId, DateTimeOffset StartsAt, DateTimeOffset EndsAt,
-    JoustScheduleConfiguration Schedule, JoustDefinition Definition, JoustKnight[] Knights, int[] Winners, bool Settled);
+    JoustScheduleConfiguration Schedule, JoustDefinition Definition, JoustKnight[] Knights, int[] Winners, bool Settled)
+{
+    // Version zero identifies existing rounds whose original pool-based rewards must survive upgrades.
+    public int AlgorithmVersion { get; init; }
+    public int Seed { get; init; }
+    public JoustKnightForecast[] Forecasts { get; init; } = [];
+    public JoustKnightOdds[] LockedOdds { get; init; } = [];
+}
+public sealed record JoustKnightForecast(int KnightIndex, byte Condition, double HistoricalProbability,
+    double ChampionshipProbability, double PricingProbability);
+public sealed record JoustKnightOdds(int KnightIndex, decimal Odds);
 public sealed record JoustBet(string RequestId, string RoundId, CharacterId Character, int KnightIndex, int MaterialId, int Amount)
 {
     public BusinessSlot? PreferredSlot { get; init; }
@@ -36,6 +46,7 @@ public sealed record JoustKnightInfo(int Index, string Name, int AttackType, Jou
 public sealed record JoustKnightState(JoustKnight Knight, long Pool, int PersonalBet, decimal Odds)
 {
     public JoustKnightStatistics Statistics { get; init; } = new(Knight.Index, 0, 0, 0);
+    public JoustKnightForecast? Forecast { get; init; }
 }
 public sealed record JoustState(bool Active, DateTimeOffset ServerTime, JoustPhase Phase, string? RoundId,
     DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, DateTimeOffset? NextTransitionAt, JoustKnightState[] Knights,

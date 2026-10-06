@@ -10,10 +10,12 @@ public interface IJoustRuleService
     ValueTask<(JoustDefinition? Definition,string? Error)> DefinitionAsync(CancellationToken ct);
     void ValidateSchedule(JoustSchedule schedule);
     DateTimeOffset? CurrentStart(JoustSchedule schedule, DateTimeOffset now);
-    JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition definition);
+    JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition definition,
+        IReadOnlyList<JoustKnightStatistics>? statistics = null, int seed = 0);
     JoustKnightStatistics[] ResultStatistics(JoustRound round);
     (JoustPhase Phase, DateTimeOffset Next, int Revealed) Phase(JoustRound round, DateTimeOffset now);
-    decimal Odds(long total, long pool);
+    decimal Odds(JoustRound round, int knightIndex, long total, long pool);
+    JoustRound FreezeOdds(JoustRound round, IReadOnlyList<JoustBet> bets);
     bool MaterialAllowed(JoustDefinition definition, ItemSnapshot item, DateTimeOffset now);
 }
 public interface IJoustDomainService

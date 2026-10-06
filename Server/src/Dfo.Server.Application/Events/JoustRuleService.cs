@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security.Cryptography;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Inventory;
@@ -44,18 +43,29 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
         var index = (int)Math.Floor((day-first).TotalMinutes/s.RoundIntervalMinutes);
         return index >= 0 && index < s.RoundsPerDay ? first.AddMinutes((long)index*s.RoundIntervalMinutes).ToUniversalTime() : null;
     }
-    public JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition d)
+    public JoustRound CreateRound(string season, DateTimeOffset start, JoustScheduleConfiguration schedule, JoustDefinition d,
+        IReadOnlyList<JoustKnightStatistics>? statistics = null, int seed = 0)
     {
-        var knights = d.Knights.Take(8).OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)).Take(7)
-            .Append(d.Knights[RandomNumberGenerator.GetInt32(8,12)]).OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)).ToArray();
+        var random = new Random(seed);
+        var knights = d.Knights.Take(8).OrderBy(_ => random.Next()).Take(7)
+            .Append(d.Knights[random.Next(8,12)]).OrderBy(_ => random.Next()).ToArray();
+        var conditions = knights.Select(_ => (byte)random.Next(3)).ToArray();
+        var forecasts = JoustContestRules.Forecast(knights, conditions, statistics ?? []);
+        var conditionByKnight = forecasts.ToDictionary(f => f.KnightIndex, f => f.Condition);
+        var entrants = knights.ToDictionary(k => k.Index);
         var winners = new List<int>(); var stage = knights.Select(k => k.Index).ToArray();
         while (stage.Length > 1)
         {
-            stage = Enumerable.Range(0,stage.Length/2).Select(i => stage[i*2+RandomNumberGenerator.GetInt32(2)]).ToArray();
+            stage = Enumerable.Range(0,stage.Length/2).Select(i =>
+            {
+                var a=stage[i*2];var b=stage[i*2+1];
+                var probability=JoustContestRules.MatchWinProbability(entrants[a],conditionByKnight[a],entrants[b],conditionByKnight[b]);
+                return random.NextDouble()<probability?a:b;
+            }).ToArray();
             winners.AddRange(stage);
         }
         return new(start.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture), season, start, start.AddMinutes(schedule.Schedule.RoundIntervalMinutes),
-            schedule, d, knights, [..winners], false);
+            schedule, d, knights, [..winners], false){AlgorithmVersion=JoustContestRules.Version,Seed=seed,Forecasts=forecasts};
     }
     public JoustKnightStatistics[] ResultStatistics(JoustRound round)
     {
@@ -92,7 +102,28 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
         if (now < locked.AddSeconds(s.StageSeconds*3L)) return (JoustPhase.Final, locked.AddSeconds(s.StageSeconds*3L), 7);
         return (JoustPhase.Result, r.EndsAt, 7);
     }
-    public decimal Odds(long total, long pool) => pool == 0 ? 8m : decimal.Round((decimal)total/pool,1,MidpointRounding.AwayFromZero);
+    public decimal Odds(JoustRound round, int knightIndex, long total, long pool)
+    {
+        if(round.LockedOdds.SingleOrDefault(o=>o.KnightIndex==knightIndex) is {} locked)return locked.Odds;
+        if(round.AlgorithmVersion==0)
+            return pool==0?8m:decimal.Round((decimal)total/pool,1,MidpointRounding.AwayFromZero);
+        if(round.AlgorithmVersion!=JoustContestRules.Version || round.Forecasts.Length!=8)
+            throw new InvalidDataException("马战概率快照缺失或版本无效。");
+        var forecast=round.Forecasts.Single(f=>f.KnightIndex==knightIndex);
+        return JoustContestRules.BettingOdds(forecast.PricingProbability,pool);
+    }
+    public JoustRound FreezeOdds(JoustRound round, IReadOnlyList<JoustBet> bets)
+    {
+        if(round.LockedOdds.Length!=0)
+        {
+            if(round.LockedOdds.Length!=8 || !round.LockedOdds.Select(o=>o.KnightIndex).Order().SequenceEqual(round.Knights.Select(k=>k.Index).Order()))
+                throw new InvalidDataException("封盘赔率快照不完整。");
+            return round;
+        }
+        var total=bets.Sum(b=>(long)b.Amount);
+        return round with{LockedOdds=round.Knights.Select(k=>new JoustKnightOdds(k.Index,Odds(round,k.Index,total,
+            bets.Where(b=>b.KnightIndex==k.Index).Sum(b=>(long)b.Amount)))).ToArray()};
+    }
     public bool MaterialAllowed(JoustDefinition d, ItemSnapshot item, DateTimeOffset now)
     {
         var declaration = d.Materials.SingleOrDefault(i => i.ItemId == item.ItemId);

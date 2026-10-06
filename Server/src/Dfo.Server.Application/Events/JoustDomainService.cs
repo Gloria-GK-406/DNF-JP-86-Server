@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Cryptography;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Initialization;
@@ -106,14 +107,26 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var id=start.Value.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
         if(await store.RoundAsync(id,ct) is {} saved)return saved;
         var (d,_)=await rules.DefinitionAsync(ct);if(d is null)return null;
-        var round=rules.CreateRound(c.SeasonId,start.Value,s,d);await store.SaveRoundAsync(round,ct);return round;
+        var statistics=(await store.KnightStatisticsAsync(ct)).ToDictionary(v=>v.KnightIndex);
+        // At a round boundary the lifecycle transaction will settle the previous round
+        // below. Include its completed matches in the new opening baseline atomically.
+        foreach(var prior in await store.UnsettledAsync(ct))
+            if(prior.StartsAt<start.Value && rules.Phase(prior,now).Phase==JoustPhase.Result)
+                foreach(var delta in rules.ResultStatistics(prior))
+                {
+                    var value=statistics.GetValueOrDefault(delta.KnightIndex) ?? new(delta.KnightIndex,0,0,0);
+                    statistics[delta.KnightIndex]=value with{Wins=checked(value.Wins+delta.Wins),
+                        Losses=checked(value.Losses+delta.Losses),Championships=checked(value.Championships+delta.Championships)};
+                }
+        var round=rules.CreateRound(c.SeasonId,start.Value,s,d,statistics.Values.ToArray(),RandomNumberGenerator.GetInt32(int.MaxValue));
+        await store.SaveRoundAsync(round,ct);return round;
     }
     public async ValueTask<JoustLifecycleResult> AdvanceLifecycleAsync(DateTimeOffset now,CancellationToken ct)
     {
         await Write(ct);var completed=new List<JoustState>();
         // A restart inside Result can create the current scheduled round. Include it in
         // this same settlement pass so the next tick cannot announce a recovered result.
-        var c=await Configuration(ct) ?? Initial;await EnsureCurrentRoundAsync(c,now,ct);
+        var c=await Configuration(ct) ?? Initial;
         // Legacy completed rounds receive a persistent result index in chronological
         // order during startup recovery; queries never perform this backfill.
         foreach(var saved in await store.UnrecordedResultsAsync(ct))
@@ -125,12 +138,19 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         // This write belongs to lifecycle recovery, never to any information query.
         foreach(var saved in await store.UnrecordedStatisticsAsync(ct))
             await store.RecordStatisticsAsync(saved.RoundId,rules.ResultStatistics(saved),ct);
-        foreach(var round in await store.UnsettledAsync(ct))
+        await EnsureCurrentRoundAsync(c,now,ct);
+        foreach(var savedRound in await store.UnsettledAsync(ct))
         {
+            var round=savedRound;
+            if(rules.Phase(round,now).Phase is not (JoustPhase.Inactive or JoustPhase.Betting) && round.LockedOdds.Length==0)
+            {
+                round=rules.FreezeOdds(round,await store.BetsAsync(round.RoundId,ct));
+                await store.SaveRoundAsync(round,ct);
+            }
             if(rules.Phase(round,now).Phase!=JoustPhase.Result)continue;
             var statistics=rules.ResultStatistics(round);
             var bets=await store.BetsAsync(round.RoundId,ct);var total=bets.Sum(b=>(long)b.Amount);var winner=round.Winners[^1];
-            var odds=rules.Odds(total,bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount));
+            var odds=rules.Odds(round,winner,total,bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount));
             foreach(var group in bets.GroupBy(b=>b.Character))
             {
                 var participation=checked(group.Sum(b=>b.Amount));
@@ -164,8 +184,8 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         var bets=await store.BetsAsync(r.RoundId,ct);var total=bets.Sum(b=>(long)b.Amount);var phase=rules.Phase(r,now);
         var statistics=(await store.KnightStatisticsAsync(ct)).ToDictionary(s=>s.KnightIndex);
         var states=r.Knights.Select(k=>{var pool=bets.Where(b=>b.KnightIndex==k.Index).Sum(b=>(long)b.Amount);
-            return new JoustKnightState(k,pool,bets.Where(b=>b.Character==character && b.KnightIndex==k.Index).Sum(b=>b.Amount),rules.Odds(total,pool))
-                {Statistics=statistics.GetValueOrDefault(k.Index) ?? new(k.Index,0,0,0)};}).ToArray();
+            return new JoustKnightState(k,pool,bets.Where(b=>b.Character==character && b.KnightIndex==k.Index).Sum(b=>b.Amount),rules.Odds(r,k.Index,total,pool))
+                {Statistics=statistics.GetValueOrDefault(k.Index) ?? new(k.Index,0,0,0),Forecast=r.Forecasts.SingleOrDefault(f=>f.KnightIndex==k.Index)};}).ToArray();
         return new(active,now,phase.Phase,r.RoundId,r.StartsAt,r.EndsAt,phase.Next,states,r.Winners.Take(phase.Revealed).ToArray(),
             bets.Where(b=>b.Character==character).Sum(b=>b.Amount),r.Definition.MaximumBetting,r.Definition.MinimumLevel)
             {RoundNo=(await store.ResultAsync(r.RoundId,ct))?.RoundNo ?? await store.NextResultIndexAsync(ct)};
@@ -193,13 +213,14 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
         JoustBetResult Refuse(string reason)=>new(false,reason,false,state,[]);
         if(!state.Active)return Refuse("Closed");if(state.Phase!=JoustPhase.Betting)return Refuse("NotBettingPhase");
         if(amount<=0 || !state.Knights.Any(k=>k.Knight.Index==knightIndex))return Refuse("InvalidRequest");
+        var round=(await store.RoundAsync(state.RoundId!,ct))!;
+        if(round.Settled)return Refuse("RoundSettled");
+        if(round.LockedOdds.Length!=0)return Refuse("NotBettingPhase");
         var progress=await characters.Get(session.CharacterId).ProgressAsync(ct);
         if(progress is null || progress.Level<state.MinimumLevel)return Refuse("LevelTooLow");
         if((long)state.PersonalTotal+amount>state.MaximumBetting)return Refuse("BetLimitExceeded");
-        // One-decimal odds can round a winning character's <=1000 stake up by at most 50 coins.
+        // Preserve the global pool bound. New odds are <=16 and each player's stake <=1000.
         if(state.Knights.Sum(k=>k.Pool)+amount>int.MaxValue-1000L)return Refuse("PoolLimitExceeded");
-        var round=(await store.RoundAsync(state.RoundId!,ct))!;
-        if(round.Settled)return Refuse("RoundSettled");
         var candidates=new List<(BusinessSlot Slot,ItemReference Item)>();
         if(!preferredSlot.Space.IsCarriedItemSpace() || preferredSlot.Index<0)return Refuse("InvalidLocation");
         var preferred=slots.Find(session.CharacterId,preferredSlot);
@@ -229,7 +250,7 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
     private async ValueTask RecordResultAsync(JoustRound round,CancellationToken ct)
     {
         var bets=await store.BetsAsync(round.RoundId,ct);var winner=round.Winners[^1];
-        var odds=rules.Odds(bets.Sum(b=>(long)b.Amount),bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount));
+        var odds=rules.Odds(round,winner,bets.Sum(b=>(long)b.Amount),bets.Where(b=>b.KnightIndex==winner).Sum(b=>(long)b.Amount));
         await store.RecordResultAsync(new(round.RoundId,round.StartsAt,winner,odds),ct);
     }
     public ValueTask<JoustHistoryEntry[]> GetHistoryAsync(CancellationToken ct)=>store.HistoryAsync(ct);

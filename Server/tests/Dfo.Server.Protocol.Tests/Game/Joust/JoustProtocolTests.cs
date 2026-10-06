@@ -9,6 +9,16 @@ namespace Dfo.Server.Protocol.Tests.Game.Joust;
 public sealed class JoustProtocolTests
 {
     [Theory]
+    [InlineData(0)] [InlineData(1)] [InlineData(2)]
+    public void Info_sends_the_saved_condition_without_changing_odds_or_statistics(byte condition)
+    {
+        var state=State();var knight=state.Knights[0];
+        state=state with{Knights=[knight with{Forecast=new(knight.Knight.Index,condition,.125,.125,.125)}]};
+        var body=JoustPayloadCodec.Info(state);
+        Assert.Equal(condition,body[3]);Assert.Equal(2.5f,BinaryPrimitives.ReadSingleLittleEndian(body.AsSpan(4)));
+    }
+
+    [Theory]
     [InlineData(JoustPhase.Betting,JoustLifecycleEventKind.RoundStarted,1,0)]
     [InlineData(JoustPhase.Locked,JoustLifecycleEventKind.PhaseChanged,1,0)]
     [InlineData(JoustPhase.QuarterFinal,JoustLifecycleEventKind.PhaseChanged,1,1)]

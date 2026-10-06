@@ -77,3 +77,7 @@ reader `000D2330` ReadBytes0x5A，11B步长；`000D23B3..C0`将+10传给`000FA09
 ClientStatic / High：骑士资料消费者 VA `004F5130`，RVA `000F56F3`、`000F570B`、`000F5734` 读取 +8/+6 计算胜率，文本 ID 12BC7/12BC8 显示胜败与整数百分比。顶部 12BC6“获胜次数”来自历史冠军记录遍历（RVA `000F523B..000F5255`），不从 B9 的胜场字段计算。
 
 CurrentImplementation：Result 后整场统一增加累计胜败，写入上述字段；u16 超界时同比缩放以保留胜率，服务保留完整 64 位计数。客户端实机数值反馈仍待验。详见[统计实现与验证](../../../Document/tasks/event-joust/knight-statistics-result.md)。
+
+### 状态与动态倍率（2026-10-06）
+
+CurrentImplementation / ServerPolicy：新版本场次 +1 condition 使用保存的 0/1/2 状态，+2 赔率按历史基准、本期预测及本骑士累计投注计算，封盘后使用最终快照。ClientStatic 确认 condition 图片 index=值+3（RVA `000F54EF..000F54F6`）；0/1/2 被赋予强势/常态/弱势是服务端设计，不是客户端中文语义的确认。客户端图标匹配仍需实机观察，未修改客户端/PVF。详见 [赔率设计与兼容](../../../Document/JoustOdds.md)。
