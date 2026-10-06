@@ -20,26 +20,35 @@ public sealed class ChannelHostStartupTests
         var channelPort = GetAvailablePort();
         var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
         var output = new StringBuilder();
+        var phase = "starting the channel listener";
+        var elapsed = Stopwatch.StartNew();
         using var process = StartHost(workingDirectory, channelPort, gamePorts, output);
         try
         {
+            // Startup is not a latency assertion. Match the end-to-end harness's cold-start
+            // budget, then give the actual protocol exchange its own bounded deadline.
+            using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+            await WaitForListenerAsync(process, channelPort, output, startupTimeout.Token);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await WaitForListenerAsync(process, channelPort, output, timeout.Token);
+            phase = "connecting to the channel";
             using var client = new TcpClient();
             await client.ConnectAsync(IPAddress.Loopback, channelPort, timeout.Token);
             var stream = client.GetStream();
 
+            phase = "reading the connect response";
             await SendRequestAsync(stream, 0x0B, timeout.Token);
             var connect = await ReadFrameAsync(stream, timeout.Token);
             Assert.Equal(0x0C, connect.MessageNumber);
             var key = Encoding.ASCII.GetString(connect.Body, 4, 16).TrimEnd('\0');
 
+            phase = "reading the channel script response";
             await SendRequestAsync(stream, 0x09, timeout.Token);
             var script = await ReadFrameAsync(stream, timeout.Token);
             Assert.Equal(0x0A, script.MessageNumber);
             var scriptPlaintext = Decrypt(script.Body, key);
             Assert.Contains((byte)'[', scriptPlaintext);
 
+            phase = "reading the channel list response";
             await SendRequestAsync(stream, 0x11, timeout.Token);
             var channelInfo = await ReadFrameAsync(stream, timeout.Token);
             Assert.Equal(0x12, channelInfo.MessageNumber);
@@ -68,6 +77,12 @@ public sealed class ChannelHostStartupTests
             Assert.Contains("GameAddress=127.0.0.1", startupOutput);
             Assert.Contains($"ChannelPort={channelPort}", startupOutput);
             Assert.Contains($"GamePorts={string.Join(",", gamePorts)}", startupOutput);
+        }
+        catch (OperationCanceledException)
+        {
+            throw new Xunit.Sdk.XunitException(
+                $"Channel bootstrap timed out while {phase}; elapsed {elapsed.Elapsed}."
+                    + Environment.NewLine + Snapshot(output));
         }
         finally
         {
