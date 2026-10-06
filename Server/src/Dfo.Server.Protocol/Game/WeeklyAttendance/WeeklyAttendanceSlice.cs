@@ -91,6 +91,6 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
         if (sessions.FindByCharacter(recipient.CharacterId) is not { } session) return [];
         var state=await projection.ReadNowAsync(session,ct);
         return [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
-            .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Messages(joust) : []];
+            .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Details(joust) : []];
     }
 }

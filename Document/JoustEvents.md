@@ -1,5 +1,7 @@
 # 骑士马战大竞猜使用说明
 
+原生04B8是带公告和自动查询副作用的状态事件，不能作为普通数据刷新重复发送。选角和轮次/阶段变化发送状态；成功查询、下注、重放与通用活动刷新仅发送04BA→04B9→可选04BB详情，关闭查询只回ACK6。旧版查询回传state1会在竞猜窗口打开时形成查询循环并刷屏；静态消费证据见protocol中的04E6与NOTI04B8记录。
+
 GM 活动列表配置名称、说明、有效期和启停；“设置活动”打开马战专属赛程弹窗。玩法事件ID2365为服务器/参考选择。开启且有效、PVF可用时，EVENT_INFO提供`joust event/0/0`。原生客户端解析两个斜杠后才取首段resolver；RVA01018410/010186B0拆分，01018550复制首段，0100F030把joust event映射到窗口01FC（01013968→01012F92）。这条链属于ClientStatic，窗口实机仍待验收。
 
 专属 API：`GET /api/gm/v1/events/joust/settings`；`POST /api/gm/v1/events/joust/settings` body `{expectedRevision,schedule}`。需要既有GM全权限登录和CSRF。schedule为`dailyStartTime/roundsPerDay/roundIntervalMinutes/bettingMinutes/lockMinutes/stageSeconds`；默认`10:00/7/120/90/10/200`，按UTC+8，验证每日1..24期、不跨午夜、全部阶段不超过轮长。保存返回revision；已生成轮次保留设置和内容快照，未来轮次采用新设置。

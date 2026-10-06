@@ -18,6 +18,21 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class ReplayStateProjectionTests
 {
+    [Fact]
+    public void Joust_replay_refreshes_details_without_reannouncing_the_current_phase()
+    {
+        var state = State(ReplayProjectionNeeds.Joust) with
+        {
+            Joust = new(true, DateTimeOffset.UnixEpoch, Dfo.Server.Data.Events.JoustPhase.Betting,
+                "round", null, null, null, [], [], 0, 1000, 17),
+        };
+        var messages = ReplayStateProjectionDelivery.Create(state);
+        Assert.DoesNotContain(messages, m => m is Dfo.Server.Protocol.Game.Joust.JoustStateMessage);
+        Assert.Collection(messages,
+            m => Assert.IsType<Dfo.Server.Protocol.Game.Joust.JoustBetsMessage>(m),
+            m => Assert.IsType<Dfo.Server.Protocol.Game.Joust.JoustInfoMessage>(m));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

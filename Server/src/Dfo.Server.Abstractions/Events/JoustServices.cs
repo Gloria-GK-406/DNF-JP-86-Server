@@ -47,4 +47,4 @@ public interface IGmJoustDomainService
 
 public interface IJoustProjectionDomainService
 { ValueTask<JoustState> ReadAsync(CharacterId character, DateTimeOffset now, CancellationToken ct); }
-public sealed record JoustChanged(DateTimeOffset Now) : Dfo.Server.Abstractions.Notifications.INotification<JoustChanged>;
+public sealed record JoustChanged(DateTimeOffset Now, bool StateChanged = true) : Dfo.Server.Abstractions.Notifications.INotification<JoustChanged>;

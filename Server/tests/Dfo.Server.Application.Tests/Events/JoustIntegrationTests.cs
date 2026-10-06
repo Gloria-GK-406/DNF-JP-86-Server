@@ -214,7 +214,9 @@ public sealed class JoustIntegrationTests
             started.Task.GetAwaiter().GetResult();Assert.False(pending.IsCompleted);
         };
         await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,0x04E6,0,1)),default);
-        Assert.Single(f.Sender.Messages.OfType<JoustResponse>());Assert.Same(f.Connection,Assert.Single(f.Sender.Batches).Connection);
+        Assert.Empty(f.Sender.Messages.OfType<JoustResponse>());
+        Assert.DoesNotContain(f.Sender.Batches.SelectMany(b=>b.Frames),frame=>frame[0]==0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))==0x04B8);
+        Assert.Same(f.Connection,Assert.Single(f.Sender.Batches).Connection);
         await using var replacementLease=await pending!;f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session);
     }
     [Fact]

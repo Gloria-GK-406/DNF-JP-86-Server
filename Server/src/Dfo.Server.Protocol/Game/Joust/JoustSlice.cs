@@ -74,9 +74,12 @@ internal static class JoustPayloadCodec
          var p=5+i*7;BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(p),entry.DailyRoundNo);b[p+2]=checked((byte)entry.WinnerIndex);
          BinaryPrimitives.WriteSingleLittleEndian(b.AsSpan(p+3),(float)entry.Odds);}return b;
     }
-    internal static GameStateSynchronizationMessage[] Messages(JoustState s) => s.Winners.Length>=4
-        ? [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustBetsMessage(s),new JoustResultsMessage(s)]
-        : [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustBetsMessage(s)];
+    // State is a client event: state 1 announces opening and an open UI requests 04E6 again.
+    // Queries and data refreshes must therefore never echo it back.
+    internal static GameStateSynchronizationMessage[] Details(JoustState s) => s.Winners.Length>=4
+        ? [new JoustBetsMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)]
+        : [new JoustBetsMessage(s),new JoustInfoMessage(s)];
+    internal static GameStateSynchronizationMessage[] Messages(JoustState s) => [new JoustStateMessage(s),..Details(s)];
 }
 internal sealed record JoustStateMessage(JoustState State):GameStateSynchronizationMessage,IGameNotiMessage
 {internal override ushort Type=>0x04B8;internal override byte[] EncodeBody()=>JoustPayloadCodec.State(State);}
@@ -127,7 +130,13 @@ public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICo
         safety.DemandCurrent(recipient);
         // Storage exceptions propagate; a possibly committed advancement must not masquerade as a safe failure.
         if(m.Metadata.Type==0x04E8){var history=await bus.SendAsync(new JoustHistoryCommand(session),ct);await RefreshMailboxes(ct);await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E8,0,history),ct);}
-        else {var state=await bus.SendAsync(new JoustStateCommand(session),ct);if(state.SettledDuringAdvance)await RefreshMailboxes(ct);await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E6,state.Active?0u:6u),..JoustPayloadCodec.Messages(state)],ct);}
+        else
+        {
+            var state=await bus.SendAsync(new JoustStateCommand(session),ct);
+            if(state.SettledDuringAdvance)await RefreshMailboxes(ct);
+            if(!state.Active)await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E6,6),ct);
+            else await sender.SendBatchAsync(c.Connection,JoustPayloadCodec.Details(state),ct);
+        }
     }
     private async ValueTask RefreshMailboxes(CancellationToken ct)
     {foreach(var session in selected.Snapshot())await notices.PublishAsync(new NotificationAudience.TheseSessions([session]),new Dfo.Server.Abstractions.Mail.MailboxChanged(session.CharacterId),ct);}
@@ -150,7 +159,7 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
         try {result=await bus.SendAsync(new JoustBetCommand(user.OnlineUserId,session,$"joust:{Identities.GetOrCreateValue(c.Connection).Id}:{session.ConnectionGeneration}:{m.Metadata.InboundOrdinal}",m.KnightIndex,new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main,m.MaterialSlotIndex)),m.Amount),ct);}
         catch(Exception e) when(e is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(e))
         {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
-        if(result.Succeeded)await notices.PublishAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustChanged(result.State.ServerTime),ct);
+        if(result.Succeeded)await notices.PublishAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustChanged(result.State.ServerTime,StateChanged:false),ct);
         if(result.State.SettledDuringAdvance)
             foreach(var target in selected.Snapshot())await notices.PublishAsync(new NotificationAudience.TheseSessions([target]),new Dfo.Server.Abstractions.Mail.MailboxChanged(target.CharacterId),ct);
         if(result.Succeeded)await replay.RefreshAsync(c.Connection,session,new(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Joust,result.Debits.Select(d=>d.Slot).ToImmutableArray()),ct);
@@ -159,4 +168,10 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
     }
 }
 public sealed class JoustChangedHandler(IJoustProjectionDomainService joust):INotificationHandler<JoustChanged>
-{public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient r,JoustChanged n,CancellationToken ct)=>JoustPayloadCodec.Messages(await joust.ReadAsync(r.CharacterId,n.Now,ct));}
+{
+    public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient r,JoustChanged n,CancellationToken ct)
+    {
+        var state=await joust.ReadAsync(r.CharacterId,n.Now,ct);
+        return n.StateChanged?JoustPayloadCodec.Messages(state):JoustPayloadCodec.Details(state);
+    }
+}
