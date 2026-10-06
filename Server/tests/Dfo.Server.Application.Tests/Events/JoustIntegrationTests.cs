@@ -123,6 +123,28 @@ public sealed class JoustIntegrationTests
     }
 
     [PvfFact]
+    public async Task Minimum_odds_mail_rewards_round_down_small_winning_bets()
+    {
+        foreach(var (amount,expected) in new[]{(1,1),(10,11)})
+        {
+            using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
+            var store=f.Services.GetRequiredService<IJoustPersistence>();var state=await f.GetState();
+            var round=(await store.RoundAsync(state.RoundId!,default))!;
+            var winner=round.Winners[^1];
+            round=round with{Forecasts=round.Forecasts.Select(k=>k with{PricingProbability=k.KnightIndex==winner?1:0}).ToArray()};
+            await f.Run(async()=>{await store.SaveRoundAsync(round,default);return true;});
+            await f.Seed(121,490002916,amount);Assert.True((await f.Bet("small-prize",winner,0,amount)).Succeeded);
+            Assert.Equal(1.1m,(await f.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
+            f.Now=round.StartsAt.AddMinutes(90);await f.AdvanceLifecycle();
+            using var reopened=f.Reopen();reopened.Now=round.StartsAt.AddMinutes(110);
+            await reopened.AdvanceLifecycle();await reopened.AdvanceLifecycle();
+            var mail=Assert.Single(await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916} reward && reward.Count==expected);
+            Assert.Equal(1.1m,Assert.Single(await reopened.Joust.GetHistoryAsync(default)).Odds);
+        }
+    }
+
+    [PvfFact]
     public async Task Frozen_odds_survive_restart_and_drive_both_mail_reward_and_archived_result()
     {
         using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();
@@ -133,24 +155,24 @@ public sealed class JoustIntegrationTests
         Assert.All((await f.GetState()).Knights,k=>Assert.Equal(2m,k.Odds));
         var winner=round.Winners[^1];await f.Seed(121,490002916,1000);
         Assert.True((await f.Bet("price",winner,0,1000)).Succeeded);
-        Assert.Equal(1.5m,(await f.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
+        Assert.Equal(1.6m,(await f.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
         f.Now=round.StartsAt.AddMinutes(90);
         // Reading after the boundary is still read-only; only lifecycle saves the lock.
-        Assert.Equal(1.5m,(await f.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
+        Assert.Equal(1.6m,(await f.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
         Assert.Empty((await store.RoundAsync(round.RoundId,default))!.LockedOdds);
         await f.AdvanceLifecycle();var locked=(await store.RoundAsync(round.RoundId,default))!;
-        Assert.Equal(8,locked.LockedOdds.Length);Assert.Equal(1.5m,locked.LockedOdds.Single(k=>k.KnightIndex==winner).Odds);
+        Assert.Equal(8,locked.LockedOdds.Length);Assert.Equal(1.6m,locked.LockedOdds.Single(k=>k.KnightIndex==winner).Odds);
         Assert.Equal("NotBettingPhase",(await f.Bet("late",winner,0,1)).Rejection);
         f.Now=round.StartsAt.AddMinutes(89);Assert.Equal("NotBettingPhase",(await f.Bet("clock-reversed",winner,0,1)).Rejection);
         f.Now=round.StartsAt.AddMinutes(90);
         using var reopened=f.Reopen();
         Assert.Equal(round.Forecasts,(await reopened.Services.GetRequiredService<IJoustPersistence>().RoundAsync(round.RoundId,default))!.Forecasts);
-        Assert.Equal(1.5m,(await reopened.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
+        Assert.Equal(1.6m,(await reopened.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
         reopened.Now=round.StartsAt.AddMinutes(110);await reopened.AdvanceLifecycle();await reopened.AdvanceLifecycle();
         var mail=Assert.Single(await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
-        Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916,Count:1500});
+        Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916,Count:1600});
         Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002925,Count:1000});
-        Assert.Equal(1.5m,Assert.Single(await reopened.Joust.GetHistoryAsync(default)).Odds);
+        Assert.Equal(1.6m,Assert.Single(await reopened.Joust.GetHistoryAsync(default)).Odds);
         Assert.Equal(1,reopened.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         Assert.Equal(round.Forecasts,(await reopened.Services.GetRequiredService<IJoustPersistence>().RoundAsync(round.RoundId,default))!.Forecasts);
     }
@@ -633,7 +655,7 @@ public sealed class JoustIntegrationTests
         Assert.Throws<ArgumentException>(()=>rules.ValidateSchedule(new("10:00",1,60,60,10,200)));
         Assert.Throws<ArgumentException>(()=>rules.ValidateSchedule(new("1:00",1,60,30,10,200)));
         Assert.Throws<ArgumentException>(()=>rules.ValidateSchedule(new("10:00",7,120,90,10,400)));
-        Assert.Equal(8m,JoustContestRules.BettingOdds(.05,0));Assert.Equal(1.5m,JoustContestRules.BettingOdds(.125,1000));
+        Assert.Equal(8m,JoustContestRules.BettingOdds(.05,0));Assert.Equal(1.6m,JoustContestRules.BettingOdds(.125,1000));
         Assert.Null(rules.CurrentStart(JoustSchedule.Default,DateTimeOffset.Parse("2026-10-06T09:59:59+08:00")));
         Assert.Equal(DateTimeOffset.Parse("2026-10-06T02:00:00Z"),rules.CurrentStart(JoustSchedule.Default,DateTimeOffset.Parse("2026-10-06T10:00:00+08:00")));
         var definition=new JoustDefinition("fixture",17,1000,[],new(1,"reward",null),new(2,"participation",null),Enumerable.Range(0,12).Select(i=>new JoustKnight(i,"knight",0,[],[])).ToArray());

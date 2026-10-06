@@ -20,7 +20,7 @@ public sealed class JoustContestRulesTests
         Assert.Equal(Math.Pow(2d/3,3),forecast[0].HistoricalProbability,12);
         Assert.All(forecast,f=>Assert.Equal(f.HistoricalProbability,f.PricingProbability));
         Assert.All(forecast,f=>Assert.Equal(JoustContestRules.ConditionStrength(f.Condition,p),f.CombatMultiplier));
-        Assert.Equal(1.7m,JoustContestRules.BettingOdds(.125,1000,p));Assert.Equal(1.5m,JoustContestRules.BettingOdds(.125,2000,p));
+        Assert.Equal(1.7m,JoustContestRules.BettingOdds(.125,1000,p));Assert.Equal(1.6m,JoustContestRules.BettingOdds(.125,2000,p));
         Assert.Equal(2m,JoustContestRules.BettingOdds(.125,0,p));Assert.Equal(16m,JoustContestRules.BettingOdds(0,0,p));
         foreach(var invalid in new[]{p with{StrongMultiplier=double.NaN},p with{WeakMultiplier=2},p with{CounterMultiplier=.9},
             p with{ForecastWeight=1.1},p with{HistoryPrior=0},p with{BettingScale=0}})
@@ -31,7 +31,7 @@ public sealed class JoustContestRulesTests
     [InlineData(0,16)]
     [InlineData(.05,8)]
     [InlineData(.125,2)]
-    [InlineData(1,1)]
+    [InlineData(1,1.1)]
     public void Price_curve_passes_the_four_accepted_anchors(double probability,decimal expected)
         => Assert.Equal(expected,JoustContestRules.BettingOdds(probability,0));
 
@@ -42,14 +42,14 @@ public sealed class JoustContestRulesTests
         for(var i=0;i<=10000;i++)
         {
             var current=JoustContestRules.InitialOdds(i/10000d);
-            Assert.InRange(current,1m,16m);Assert.True(current<=previous);previous=current;
+            Assert.InRange(current,1.1m,16m);Assert.True(current<=previous);previous=current;
         }
         var a=JoustContestRules.InitialOdds(.25);var b=JoustContestRules.InitialOdds(.5);var c=JoustContestRules.InitialOdds(.75);
         Assert.InRange(Math.Abs((a-b)-(b-c)),0m,.000000000001m);
-        Assert.Equal(1.5m,JoustContestRules.BettingOdds(.125,1000));
-        Assert.Equal(1.1m,JoustContestRules.BettingOdds(.125,9000));
-        Assert.Equal(1m,JoustContestRules.BettingOdds(1,0));Assert.Equal(1m,JoustContestRules.BettingOdds(1,long.MaxValue));
-        Assert.Equal(1m,JoustContestRules.BettingOdds(0,long.MaxValue));
+        Assert.Equal(1.6m,JoustContestRules.BettingOdds(.125,1000));
+        Assert.Equal(1.2m,JoustContestRules.BettingOdds(.125,9000));
+        Assert.Equal(1.1m,JoustContestRules.BettingOdds(1,0));Assert.Equal(1.1m,JoustContestRules.BettingOdds(1,long.MaxValue));
+        Assert.Equal(1.1m,JoustContestRules.BettingOdds(0,long.MaxValue));
         Assert.Throws<ArgumentOutOfRangeException>(()=>JoustContestRules.BettingOdds(.125,-1));
         foreach(var invalid in new[]{double.NaN,double.PositiveInfinity,-.1,1.1})
             Assert.Throws<ArgumentOutOfRangeException>(()=>JoustContestRules.InitialOdds(invalid));

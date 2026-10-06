@@ -8,6 +8,7 @@ internal static class JoustContestRules
     internal const int Version = 1;
     internal static JoustGameplayParameters DefaultParameters { get; } = new(1.15,1,.85,1.25,10,.4,1000);
     private const double NeutralProbability = 1d / 8;
+    private const decimal MinimumOdds = 1.1m;
     private static readonly double ColdExponent = Math.Log(6d / 14) / Math.Log(.6);
 
     internal static double ConditionStrength(byte condition, JoustGameplayParameters? parameters = null) => condition switch
@@ -95,14 +96,14 @@ internal static class JoustContestRules
             throw new ArgumentOutOfRangeException(nameof(probability));
         return (decimal)(probability <= NeutralProbability
             ? 2 + 14 * Math.Pow(1 - probability / NeutralProbability, ColdExponent)
-            : 1 + (1 - probability) / (1 - NeutralProbability));
+            : (double)MinimumOdds + (2 - (double)MinimumOdds) * (1 - probability) / (1 - NeutralProbability));
     }
 
     internal static decimal BettingOdds(double probability, long amount, JoustGameplayParameters? parameters = null)
     {
         if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
         var scale=(parameters ?? DefaultParameters).BettingScale;
-        var value = 1 + (InitialOdds(probability) - 1) * scale / (scale + (decimal)amount);
-        return decimal.Round(Math.Clamp(value, 1m, 16m), 1, MidpointRounding.AwayFromZero);
+        var value = MinimumOdds + (InitialOdds(probability) - MinimumOdds) * scale / (scale + (decimal)amount);
+        return decimal.Round(Math.Clamp(value, MinimumOdds, 16m), 1, MidpointRounding.AwayFromZero);
     }
 }
