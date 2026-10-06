@@ -17,9 +17,13 @@ public sealed class GmJoustHttpTests
     public async Task Starting_host_mid_round_recovers_before_http_is_ready(string time,JoustPhase phase)
     {
         var directory=GmTestHost.NewDirectory();
-        var now=DateTimeOffset.Parse($"2026-10-06T{time}+08:00");
+        // CookieContainer uses the real wall clock, independently of the host's
+        // fixed clock. A future day keeps simulated 09:00+8h cookies valid.
+        var offset=TimeSpan.FromHours(8);
+        var day=DateTimeOffset.UtcNow.ToOffset(offset).Date.AddDays(1);
+        var now=new DateTimeOffset(day+TimeSpan.Parse(time),offset);
         await using(var initial=await GmTestHost.StartAsync(directory:directory,
-            clock:new FixedClock(DateTimeOffset.Parse("2026-10-06T09:00:00+08:00")),configureServices:Configure))
+            clock:new FixedClock(new DateTimeOffset(day.AddHours(9),offset)),configureServices:Configure))
         {
             var csrf=await GmCeraHttpTests.Login(initial);
             using var configured=await initial.PostAsync("/api/gm/v1/events",csrf,
@@ -33,7 +37,7 @@ public sealed class GmJoustHttpTests
         Assert.Equal(HttpStatusCode.OK,(await restarted.Client.GetAsync("/api/gm/v1/health")).StatusCode);
         var state=await restarted.Services.GetRequiredService<IJoustProjectionDomainService>().ReadAsync(new(0),now,default);
         Assert.True(state.Active);Assert.Equal(phase,state.Phase);
-        Assert.Equal(DateTimeOffset.Parse("2026-10-06T12:00:00+08:00"),state.StartsAt);
+        Assert.Equal(new DateTimeOffset(day.AddHours(12),offset),state.StartsAt);
         Assert.Single(await restarted.ReadAsync("SELECT round_id FROM event_joust_round"));
     }
 

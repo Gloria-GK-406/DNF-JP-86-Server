@@ -49,6 +49,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## 2026-10-06 静默初始化兼容扩展
+
+CurrentImplementation：选角和通用配置刷新额外发送状态byte=`0x80 | NativeState`的04B8，由客户端插件0190_JoustStateSync配套解码。该标记是本项目扩展，不是原生协议结论。正常生命周期04B8仍使用0..5；查询/下注/重放不返回状态初始化。
+
+ClientStatic（下述同一EXE/dump身份）：reader `000D26F9`对byte作movsx，`000D2700`调用setter `000D2150`写管理器`[this+4]`；`000D2728`调用UI consumer `000FCBD0`。`000D272D`再次读取packet原始byte，`state-1`作unsigned比较，大于4则跳过公告。插件仅在上述两个consumer处将-128..-123还原为0..5，packet不修改。窗口打开链 `000F60CF`读取管理器状态，`02446D50`返回`[this+4]`；为0时`000F60D9`显示字符串12BC0固定时间弹窗。此前完全移除入场状态包的策略已废弃。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 

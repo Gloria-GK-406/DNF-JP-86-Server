@@ -79,7 +79,7 @@ internal static class SelectedCharacterStateMessageFactory
         {
             messages.Add(new Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage(events.Information));
             messages.Add(new Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage(events.Attendance));
-            if (events.Joust is { } joust) messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(joust));
+            if (events.Joust is { } joust) messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.EntrySnapshot(joust));
         }
         else messages.Add(new ServerEventBaselineMessage());
         messages.Add(new CharacterOptionStateMessage(result.CharacterEntry.Settings.OptionBitmap));

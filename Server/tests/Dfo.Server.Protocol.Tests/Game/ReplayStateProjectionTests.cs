@@ -29,7 +29,7 @@ public sealed class ReplayStateProjectionTests
                 "round", null, null, null, [], [1,2,3,4,1,3,1], 0, 1000, 17),
         };
         var messages = ReplayStateProjectionDelivery.Create(state);
-        Assert.DoesNotContain(messages, m => m is Dfo.Server.Protocol.Game.Joust.JoustStateMessage or Dfo.Server.Protocol.Game.Joust.JoustResultsMessage);
+        Assert.DoesNotContain(messages, m => m is Dfo.Server.Protocol.Game.Joust.JoustStateMessage or Dfo.Server.Protocol.Game.Joust.JoustStateSnapshotMessage or Dfo.Server.Protocol.Game.Joust.JoustResultsMessage);
         Assert.Collection(messages,
             m => Assert.IsType<Dfo.Server.Protocol.Game.Joust.JoustBetsMessage>(m),
             m => Assert.IsType<Dfo.Server.Protocol.Game.Joust.JoustInfoMessage>(m));
