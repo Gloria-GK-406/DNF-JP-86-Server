@@ -156,7 +156,8 @@ internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider
             var difficulty = Difficulty(values[at]);
             if (values.Skip(at + 1).Take(5).Any(x => x.Kind != PvfTokenKind.Int32))
                 throw new InvalidDataException("Malformed hellparty difficulty integers.");
-            weights.Add(new(difficulty, values[at + 4].Value));
+            if (values[at + 1].Value is < 0 or > 255) throw new InvalidDataException("Invalid hell reward attempt count.");
+            weights.Add(new(difficulty, values[at + 4].Value) { RewardRollCount = values[at + 1].Value });
         }
         var groups = ImmutableArray.CreateBuilder<HellActorGroup>();
         var groupId = 0;

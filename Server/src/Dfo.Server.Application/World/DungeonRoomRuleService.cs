@@ -47,7 +47,7 @@ internal sealed class DungeonRoomRuleService(
         if (context.Layout.Hell is { } hell && context.Cell == hell.Cell)
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
                 actor.Actor.ActorType >= FirstAiCharacterActorType)
-                { IsHellTemplate = true, HellOrder = actor.Order })).ToArray();
+                { IsHellTemplate = true, HellOrder = actor.Order, HellGroupIndex = actor.GroupIndex })).ToArray();
         return new DungeonRoomContents(
             described,
             [.. objectDrops.Draw(await roomDrops.GetAsync(

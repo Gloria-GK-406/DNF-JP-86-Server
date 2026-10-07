@@ -146,6 +146,13 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
         services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
         services.TryAddSingleton<IHellDungeonEntryRuleService, HellDungeonEntryRuleService>();
+        services.TryAddSingleton<IHellRewardRuleService, HellRewardRuleService>();
+        services.TryAddSingleton<IHellRewardDomainService, HellRewardDomainService>();
+        services.TryAddSingleton(new HellRewardOptions
+        {
+            EquipmentRatePercent = int.TryParse(configuration["HellRewards:EquipmentRatePercent"], out var hellRate)
+                ? hellRate : 100,
+        });
         services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();

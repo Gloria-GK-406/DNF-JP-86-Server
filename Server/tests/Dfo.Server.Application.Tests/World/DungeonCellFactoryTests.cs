@@ -10,6 +10,49 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonCellFactoryTests
 {
+    [Fact]
+    public async Task Repeated_hell_group_across_orders_freezes_one_shared_reward_and_preserves_actor_loot()
+    {
+        var cell = new MazeCell(0, 0);
+        var layout = new DungeonLayout(77, 0, 1, 1, cell, cell, 60064, 123,
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(60064) })
+        { Hell = new(1, cell, 60064, []) };
+        var factory = new DungeonCellFactory(new HellRoom(), new NoPlacement(), new RecordingLoot(),
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new FrozenHellRewards());
+        var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 60064, 0,
+            DateTimeOffset.UnixEpoch, [new(new(1), new(10), 0, true)]), default);
+        Assert.Empty(seed.GroundItems);
+        Assert.Equal(4, seed.Actors.Count);
+        Assert.All(seed.Actors, actor =>
+        {
+            Assert.Equal(3330, Assert.Single(actor.PendingLoot).ItemId);
+            Assert.False(actor.IsMonster);
+            Assert.True(actor.EligibleForHellGroupReward);
+        });
+        var group = Assert.Single(seed.HellGroups);
+        Assert.Equal(136, group.GroupIndex);
+        Assert.Equal(new ushort[] { 100, 101, 102, 103 }, group.ActorSequences);
+        Assert.Equal(14400, Assert.Single(group.PendingLoot).ItemId);
+    }
+
+    private sealed class HellRoom : IDungeonRoomRuleService
+    {
+        public ValueTask<DungeonRoomContents> DescribeAsync(DungeonCellCreationContext context, CancellationToken ct) =>
+            ValueTask.FromResult(new DungeonRoomContents(Enumerable.Range(0, 4).Select(i =>
+                new RoomActorDescription(new(20444, 75, 5), true)
+                { IsHellTemplate = true, HellGroupIndex = 136, HellOrder = (ushort)(1 + i / 2) }).ToArray(), [], 100));
+        public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> actors) => throw new NotSupportedException();
+        public ushort FirstActorSequenceFor(DungeonCellCreationContext context) => 100;
+    }
+
+    private sealed class FrozenHellRewards : IHellRewardDomainService
+    {
+        public ValueTask<HellActorReward> FreezeActorAsync(int code, MonsterDropContext context, CancellationToken ct) =>
+            ValueTask.FromResult(new HellActorReward([new(3330, 1, DropRarity.Common, DropItemKind.Stackable)], true));
+        public ValueTask<IReadOnlyList<RolledDrop>> FreezeGroupAsync(HellGroupRewardContext context, CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<RolledDrop>>([new(14400, 1, DropRarity.Rare, DropItemKind.Equipment, 25)]);
+    }
+
     [Theory]
     [InlineData(3, true, 1)]
     [InlineData(3, true, 2)]
@@ -37,7 +80,7 @@ public sealed class DungeonCellFactoryTests
             new OneActorRoom(actorType),
             new NoPlacement(),
             loot,
-            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus());
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
 
         var seed = await factory.CreateAsync(
             new DungeonCellCreationContext(
@@ -90,7 +133,7 @@ public sealed class DungeonCellFactoryTests
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
         DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
         var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
-            new MonsterBoundary(), questLoot, new NoQuestBonus());
+            new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards());
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
             DateTimeOffset.UnixEpoch, members), CancellationToken.None);
         Assert.Empty(seed.Actors);
@@ -113,6 +156,14 @@ public sealed class DungeonCellFactoryTests
     {
         public ValueTask<DungeonCellSeed> ApplyAsync(DungeonCellCreationContext context, DungeonCellSeed cell,
             CancellationToken cancellationToken) => ValueTask.FromResult(cell);
+    }
+
+    private sealed class NoHellRewards : IHellRewardDomainService
+    {
+        public ValueTask<HellActorReward> FreezeActorAsync(int code, MonsterDropContext context, CancellationToken ct) =>
+            throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<RolledDrop>> FreezeGroupAsync(HellGroupRewardContext context, CancellationToken ct) =>
+            throw new NotSupportedException();
     }
 
     private sealed class ObjectRoom : IDungeonRoomRuleService

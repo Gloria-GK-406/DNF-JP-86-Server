@@ -14,6 +14,7 @@ public readonly record struct RoomActorDescription(DungeonRoomActor Actor, bool 
 {
     public bool IsHellTemplate { get; init; }
     public ushort HellOrder { get; init; }
+    public int? HellGroupIndex { get; init; }
 }
 
 /// <summary>

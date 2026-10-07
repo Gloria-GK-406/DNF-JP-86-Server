@@ -12,7 +12,8 @@ internal sealed class DungeonCellFactory(
     IMonsterDropDomainService loot,
     IExperienceRuleService experienceRules,
     IQuestEnemyDropDomainService questLoot,
-    IQuestHelperGroundBonusDomainService questBonus) : IDungeonCellFactory
+    IQuestHelperGroundBonusDomainService questBonus,
+    IHellRewardDomainService hellRewards) : IDungeonCellFactory
 {
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
@@ -44,10 +45,11 @@ internal sealed class DungeonCellFactory(
         {
             var described = contents.Actors[index];
             var sequence = checked((ushort)(contents.FirstActorSequence + index));
-            // Hell rewards/XP have their own future lifecycle; do not pre-generate ordinary loot.
+            // Hell actors do not participate in ordinary boss XP/automatic room suppression.
             var isMonster = !described.IsHellTemplate && experienceRules.IsMonster(described.Actor.ActorType);
             IReadOnlyList<RolledDrop> pending = [];
-            if (!described.IsHellTemplate && (isMonster || described.IsAiCharacter))
+            var eligibleForGroupReward = false;
+            if (described.IsHellTemplate || isMonster || described.IsAiCharacter)
             {
                 var dropContext = new MonsterDropContext(
                     context.RunId,
@@ -66,13 +68,23 @@ internal sealed class DungeonCellFactory(
                     SourceType = described.IsAiCharacter
                         ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster,
                 };
-                var generated = new List<RolledDrop>(await loot.GenerateGroundAsync(
-                    described.Actor.Code, dropContext, cancellationToken).ConfigureAwait(false));
-                foreach (var participant in participants)
-                    generated.AddRange(await loot.GeneratePersonalAsync(
-                        described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
-                        .ConfigureAwait(false));
-                pending = generated;
+                if (described.IsHellTemplate)
+                {
+                    if (described.HellGroupIndex is not > 0) throw new InvalidDataException("Hell actor is missing its group identity.");
+                    var frozen = await hellRewards.FreezeActorAsync(described.Actor.Code, dropContext, cancellationToken).ConfigureAwait(false);
+                    pending = frozen.Loot;
+                    eligibleForGroupReward = frozen.EligibleForGroupReward;
+                }
+                else
+                {
+                    var generated = new List<RolledDrop>(await loot.GenerateGroundAsync(
+                        described.Actor.Code, dropContext, cancellationToken).ConfigureAwait(false));
+                    foreach (var participant in participants)
+                        generated.AddRange(await loot.GeneratePersonalAsync(
+                            described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
+                            .ConfigureAwait(false));
+                    pending = generated;
+                }
             }
 
             actors.Add(new DungeonCellActorState(
@@ -81,7 +93,21 @@ internal sealed class DungeonCellFactory(
                 described.IsAiCharacter,
                 IsDead: false,
                 pending.ToArray(),
-                isMonster) { IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder });
+                isMonster) { IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder,
+                    HellGroupIndex = described.HellGroupIndex, EligibleForHellGroupReward = eligibleForGroupReward });
+        }
+
+        var hellGroups = new List<DungeonCellHellGroupState>();
+        foreach (var group in actors.Where(x => x.IsHellTemplate).GroupBy(x => x.HellGroupIndex!.Value))
+        {
+            var hell = context.Layout.Hell ?? throw new InvalidDataException("Hell actors require a frozen entry plan.");
+            var drop = new MonsterDropContext(context.RunId, context.Layout.DungeonId, context.Layout.Seed,
+                context.Cell, context.MapId, context.Difficulty, group.First().Sequence,
+                context.Layout.BasisLevel, 0, leader.CharacterId, participants);
+            var pending = group.Any(x => x.EligibleForHellGroupReward)
+                ? await hellRewards.FreezeGroupAsync(new(drop, hell.Difficulty, group.Key, context.Layout.BasisLevel), cancellationToken).ConfigureAwait(false)
+                : [];
+            hellGroups.Add(new(group.Key, group.Select(x => x.Sequence).ToArray(), pending.ToArray()));
         }
 
         var objects = new List<DungeonCellObjectState>(contents.Objects.Count);
@@ -101,7 +127,7 @@ internal sealed class DungeonCellFactory(
             context.MapId,
             contents.FirstActorSequence,
             actors,
-            groundItems) { Objects = objects.ToArray() };
+            groundItems) { Objects = objects.ToArray(), HellGroups = hellGroups.ToArray() };
         return await questBonus.ApplyAsync(context, seed, cancellationToken).ConfigureAwait(false);
     }
 }

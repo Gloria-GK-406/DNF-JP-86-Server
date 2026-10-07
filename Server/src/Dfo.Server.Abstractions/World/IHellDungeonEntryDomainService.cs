@@ -24,7 +24,10 @@ public sealed record HellDungeonDefinition(
     bool Enabled, IReadOnlyList<int> RequiredQuestIds,
     IReadOnlyList<HellTicketAlternative> FreePasses, IReadOnlyList<int> TicketIds,
     IReadOnlyDictionary<int, HellRoomDefinition> Rooms);
-public sealed record HellDifficultyWeight(byte Difficulty, int Weight);
+public sealed record HellDifficultyWeight(byte Difficulty, int Weight)
+{
+    public int RewardRollCount { get; init; }
+}
 public sealed record HellPartyDefinition(
     IReadOnlyList<HellDifficultyWeight> ManualDifficulties,
     IReadOnlyList<HellActorGroup> Groups);
