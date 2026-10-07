@@ -40,7 +40,8 @@ public sealed record DungeonPartyEntry(
 }
 
 public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon,
-    HellUnavailable, HellQuestNotCleared, MissingHellTicket, HellConfigurationInvalid }
+    HellUnavailable, HellQuestNotCleared, MissingHellTicket, HellConfigurationInvalid,
+    MissingRequiredItem, LevelTooLow, MissingPrerequisite, DailyEntryLimitReached, MemberEntryLimitReached }
 
 public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null)
 {

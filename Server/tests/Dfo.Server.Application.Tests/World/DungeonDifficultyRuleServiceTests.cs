@@ -19,6 +19,33 @@ public sealed class DungeonDifficultyRuleServiceTests
         Assert.Equal(next < 0 ? null : (DungeonDifficulty?)next, result);
     }
 
+    [Theory]
+    [InlineData(2, 0, true)]
+    [InlineData(0, 4, false)]
+    [InlineData(3, 4, false)]
+    public async Task Fixed_ancient_difficulty_is_available_without_progression(byte requested, byte maximum, bool expected)
+    {
+        var rules = new DungeonDifficultyRuleService(new FixedDefinitions());
+        Assert.Equal(expected, await rules.AllowsAsync(1500, (DungeonDifficulty)requested, (DungeonDifficulty)maximum, default));
+    }
+
+    [Theory]
+    [InlineData(0, 0, true)]
+    [InlineData(1, 0, false)]
+    [InlineData(1, 1, true)]
+    [InlineData(2, 4, false)]
+    public async Task Ordinary_tiers_still_require_clear_progression(byte requested, byte maximum, bool expected)
+    {
+        var rules = new DungeonDifficultyRuleService(new Definitions("dungeon/timegate/a.dgn"));
+        Assert.Equal(expected, await rules.AllowsAsync(70, (DungeonDifficulty)requested, (DungeonDifficulty)maximum, default));
+    }
+
+    private sealed class FixedDefinitions : IDungeonDefinitionSource
+    {
+        public ValueTask<DungeonDefinition?> GetAsync(int id, CancellationToken token) =>
+            ValueTask.FromResult<DungeonDefinition?>(new(id, "dungeon/Ancient/N_Vilmark.dgn", 85, true, [], SupportedDifficulties: [2]));
+    }
+
     private sealed class Definitions(string path) : IDungeonDefinitionSource
     {
         public ValueTask<DungeonDefinition?> GetAsync(int id, CancellationToken token) =>

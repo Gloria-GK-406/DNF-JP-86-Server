@@ -73,6 +73,42 @@ public sealed class SelectDungeonHandlerTests
         Assert.Empty(fatigue.Spent);
     }
 
+    [Theory]
+    [InlineData(DungeonEntryFailure.DifficultyNotUnlocked, false, 0x15)]
+    [InlineData(DungeonEntryFailure.MissingRequiredItem, false, 0x11)]
+    [InlineData(DungeonEntryFailure.MissingHellTicket, true, 0x1B)]
+    [InlineData(DungeonEntryFailure.LevelTooLow, false, 0xAC)]
+    [InlineData(DungeonEntryFailure.LevelTooLow, true, 0x6F)]
+    [InlineData(DungeonEntryFailure.HellQuestNotCleared, true, 0x07)]
+    [InlineData(DungeonEntryFailure.MissingPrerequisite, false, 0x07)]
+    [InlineData(DungeonEntryFailure.InsufficientFatigue, false, 0x16)]
+    [InlineData(DungeonEntryFailure.DailyEntryLimitReached, false, 0xF6)]
+    [InlineData(DungeonEntryFailure.MemberEntryLimitReached, false, 0xAD)]
+    [InlineData(DungeonEntryFailure.AlreadyInDungeon, false, 0x13)]
+    public async Task Refusals_preserve_the_actual_reason_and_allow_retry(DungeonEntryFailure failure, bool hell, byte code)
+    {
+        var sender = new RecordingSender();
+        var visits = new RecordingVisits();
+        var handler = Handler(visits, sender, commands: new RefusalCommands(failure));
+        for (var i = 0; i < 2; i++)
+            await handler.HandleAsync(Dispatch(), Request() with { RequestMode = hell ? (byte)1 : (byte)0 }, default);
+        Assert.Equal(2, sender.Sent.Count);
+        Assert.All(sender.Sent, message =>
+        {
+            var refusal = Assert.IsType<SelectDungeonRefusal>(message);
+            Assert.Equal(code, refusal.ErrorCode);
+            Assert.Equal((byte)2, refusal.Context);
+            Assert.Equal(new byte[] {0, code, 2}, new SelectDungeonRefusalEncoder().Encode(refusal).Single().ToArray()[15..]);
+        });
+        Assert.Empty(visits.Facts);
+    }
+
+    private sealed class RefusalCommands(DungeonEntryFailure failure) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull => ValueTask.FromResult((TResult)(object)new DungeonEntryAttempt(null, failure, 2));
+    }
+
     private sealed class MissingHellTicketCommands : ICommandBus
     {
         public int Calls { get; private set; }

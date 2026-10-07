@@ -66,15 +66,7 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
     /// <summary>The archive declares no enterable dungeon under that identifier.</summary>
     public const byte DungeonNotFound = 0x15;
 
-    /// <summary>
-    /// The dungeon exists and this character may not enter it.
-    /// </summary>
-    /// <remarks>
-    /// The reference server's catch-all, and what its minimum-level gate answers with. Nothing
-    /// here sends it yet: the gate needs the archive's <c>[minimum required level]</c> and the
-    /// story-dungeon exemption that goes with it, and a gate without the exemption would refuse
-    /// dungeons the client legitimately offers. See <c>Docs/ProtocolScaffoldDissonances.md</c>.
-    /// </remarks>
+    /// <summary>The dungeon or requested mode is currently unavailable.</summary>
     public const byte DungeonUnavailable = 0x01;
 
     /// <summary>The selection screen is not open, or is open on something else.</summary>
@@ -94,9 +86,15 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
 
     /// <summary>Today's entries are used up.</summary>
     public const byte DailyEntryLimitReached = 0xF6;
+    public const byte MemberEntryLimitReached = 0xAD;
+    public const byte LevelTooLow = 0xAC;
+    public const byte HellLevelTooLow = 0x6F;
+    public const byte MissingPrerequisite = 0x07;
+    // A21 uses this branch for an invalid dungeon or difficulty, not an entry quota.
+    public const byte InvalidDungeonOrDifficulty = 0x15;
 
-    /// <summary>A member has no entries left, or no permission. The context names which.</summary>
-    public const byte MemberBlocked = 0xAD;
+    /// <summary>The current selection cohort cannot enter. This is not a quota failure.</summary>
+    public const byte SelectionCohortUnavailable = InvalidSelectionState;
 
     public ServerMessageType MessageType => ServerMessageType.GameSelectDungeon;
 

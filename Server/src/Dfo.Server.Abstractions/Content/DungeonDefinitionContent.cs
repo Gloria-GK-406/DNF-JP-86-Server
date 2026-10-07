@@ -132,7 +132,14 @@ public sealed record DungeonDefinition(
     bool OffersPaidCard = true,
     DungeonQuestConnection? QuestConnection = null,
     IReadOnlyList<byte>? SupportedDifficulties = null,
-    DungeonEntryMode EntryMode = DungeonEntryMode.Maze);
+    DungeonEntryMode EntryMode = DungeonEntryMode.Maze)
+{
+    public bool HasStoryMode { get; init; }
+    public IReadOnlyList<DungeonRequiredItem> RequiredItems { get; init; } = [];
+}
+
+/// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>
+public sealed record DungeonRequiredItem(int ItemId, int Count, bool Consume);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

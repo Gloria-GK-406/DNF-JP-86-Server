@@ -319,6 +319,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICardFlipCostDomainService, CardFlipCostDomainService>();
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
+        services.TryAddSingleton<IDungeonEntryMaterialsDomainService, DungeonEntryMaterialsDomainService>();
         services.TryAddSingleton<DungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonVisitDomainService, TransactionalDungeonVisitDomainService>();
         services.TryAddSingleton<IDungeonDifficultyRuleService, DungeonDifficultyRuleService>();

@@ -47,6 +47,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         internal static readonly PvfField<IReadOnlyList<int>> DifficultyLevelField = PvfField.Int32List("[difficulty level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> DesignatedDifficultyField = PvfField.Int32List("[designate dungeon difficulty]", optional: true);
         internal static readonly PvfField<int> DifficultyField = PvfField.Int32("[difficulty]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<PvfToken>> StoryModeField = PvfField.Tokens("[story mode]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> RequiredItemsField = PvfField.Int32List("[required item]", optional: true);
         internal static readonly PvfField<int> TournamentField = PvfField.Int32("[tournament dungeon]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RevengeField = PvfField.Int32List("[village attack revenge dungeon]", optional: true);
     }
@@ -117,6 +119,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         IReadOnlyList<byte>? designatedDifficulties = null;
         int? fixedDifficulty = null;
         var entryMode = DungeonEntryMode.Maze;
+        IReadOnlyList<DungeonRequiredItem> requiredItems = [];
+        var hasStoryMode = false;
 
         void Unique(PvfField field)
         {
@@ -185,6 +189,24 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 Unique(Fields.DifficultyField);
                 fixedDifficulty = Fields.DifficultyField.Decode(archive, section.Values, archivePath);
                 Require(fixedDifficulty is >= -1 and <= 4, archivePath, Fields.DifficultyField, "difficulty outside A21 range");
+            }
+            else if (Fields.StoryModeField.Matches(section.Name))
+            {
+                hasStoryMode = true;
+            }
+            else if (Fields.RequiredItemsField.Matches(section.Name))
+            {
+                Unique(Fields.RequiredItemsField);
+                var values = Fields.RequiredItemsField.Decode(archive, section.Values, archivePath);
+                Require(values.Count % 3 == 0, archivePath, Fields.RequiredItemsField, "truncated item/count/consume triple");
+                var items = new List<DungeonRequiredItem>();
+                for (var i = 0; i < values.Count; i += 3)
+                {
+                    Require(values[i] > 0 && values[i + 1] > 0 && values[i + 2] is 0 or 1,
+                        archivePath, Fields.RequiredItemsField, "invalid item/count/consume triple");
+                    items.Add(new(values[i], values[i + 1], values[i + 2] == 1));
+                }
+                requiredItems = items.AsReadOnly();
             }
             else if (Fields.TournamentField.Matches(section.Name))
             {
@@ -279,7 +301,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         return mazes.Count == 0 ? null : new DungeonDefinition(
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,
-            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode);
+            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode) { RequiredItems = requiredItems, HasStoryMode = hasStoryMode };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

@@ -55,7 +55,10 @@ public sealed record IllusionTowerSnapshot(Guid RunId, int DungeonId, ImmutableA
 }
 public sealed record TowerMemberDebit(SelectedSessionIdentity Session, IReadOnlyList<MaterialDebit> Debits);
 public sealed record TowerEntryResult(string? Rejection, IllusionTowerSnapshot? Run,
-    IReadOnlyList<TowerMemberDebit> Debits);
+    IReadOnlyList<TowerMemberDebit> Debits)
+{
+    public byte? BlockedSlot { get; init; }
+}
 // Facts are provisional until the enclosing command transaction commits.
 public sealed record TowerActionResult(bool Changed, IllusionTowerSnapshot? Run, TowerActor? KilledActor = null)
 {

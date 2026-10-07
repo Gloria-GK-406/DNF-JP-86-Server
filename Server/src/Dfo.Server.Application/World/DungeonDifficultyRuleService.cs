@@ -9,6 +9,19 @@ internal sealed class DungeonDifficultyRuleService(IDungeonDefinitionSource? def
     public bool Allows(DungeonDifficulty requested, DungeonDifficulty maximum) =>
         Enum.IsDefined(requested) && Enum.IsDefined(maximum) && requested <= maximum;
 
+    public async ValueTask<bool> AllowsAsync(int dungeonId, DungeonDifficulty requested, DungeonDifficulty maximum,
+        CancellationToken cancellationToken)
+    {
+        if (!Enum.IsDefined(requested) || !Enum.IsDefined(maximum)) return false;
+        var definition = definitions is null ? null : await definitions.GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        var tiers = definition?.SupportedDifficulties;
+        if (tiers is not { Count: > 0 }) return Allows(requested, maximum);
+        if (!tiers.Contains((byte)requested)) return false;
+        // The lowest declared tier is available initially, including a single fixed ancient tier.
+        return (byte)requested == tiers.Min() || requested <= maximum
+            || definition!.HasStoryMode || definition.ArchivePath.StartsWith("dungeon/quest/", StringComparison.OrdinalIgnoreCase);
+    }
+
     public async ValueTask<DungeonDifficulty?> NextAfterClearAsync(int dungeonId, DungeonDifficulty cleared, CancellationToken cancellationToken)
     {
         if (!Enum.IsDefined(cleared)) throw new ArgumentOutOfRangeException(nameof(cleared));

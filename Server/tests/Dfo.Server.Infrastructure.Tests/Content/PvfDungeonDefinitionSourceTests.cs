@@ -18,6 +18,31 @@ public sealed class PvfDungeonDefinitionSourceTests
     private const int SwordmanTutorialDungeonId = 10004;
 
     [SkippableFact]
+    public async Task All_ordinary_ancient_and_requiem_declarations_decode_with_entry_requirements()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+        foreach (var id in new[] {1500,1501,1502,1504,1506,1507,200,201,202,203,204,205,206})
+        {
+            var definition = await source.GetAsync(id, default);
+            Assert.NotNull(definition);
+            Assert.NotEmpty(definition.RequiredItems);
+        }
+    }
+
+    [SkippableFact]
+    public async Task Ancient_entry_reads_material_costs_and_its_fixed_tier()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var dungeon = (await new PvfDungeonDefinitionSource(provider).GetAsync(1500, default))!;
+        Assert.Equal(new[] {new DungeonRequiredItem(3037, 120, true), new DungeonRequiredItem(3332, 10, true)}, dungeon.RequiredItems);
+        Assert.Equal(new byte[] {2}, dungeon.SupportedDifficulties);
+        Assert.Equal((byte)85, dungeon.MinimumRequiredLevel);
+    }
+
+    [SkippableFact]
     public async Task Consciousness_keeps_connected_cells_without_explicit_map_bindings()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

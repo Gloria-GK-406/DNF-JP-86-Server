@@ -68,7 +68,7 @@ public sealed class DungeonEntryProjectionDelivery(
         if (attachments.BlockedSlot is { } blockedSlot)
         {
             RestoreSelection();
-            await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, blockedSlot,
+            await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, blockedSlot,
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -96,27 +96,12 @@ public sealed class DungeonEntryProjectionDelivery(
         if (entered is null)
         {
             RestoreSelection();
-            if (attempt.Failure is DungeonEntryFailure.HellUnavailable or DungeonEntryFailure.HellConfigurationInvalid
-                or DungeonEntryFailure.HellQuestNotCleared or DungeonEntryFailure.MissingHellTicket)
+            if (attempt.Failure is not null)
             {
-                var error = attempt.Failure == DungeonEntryFailure.MissingHellTicket
-                    ? SelectDungeonRefusal.MissingHellTicket
-                    : attempt.Failure == DungeonEntryFailure.HellQuestNotCleared
-                        ? SelectDungeonRefusal.MemberBlocked : SelectDungeonRefusal.DungeonUnavailable;
+                var error = DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
+                logger.LogInformation("Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}",
+                    message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0);
                 await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            if (attempt.Failure == DungeonEntryFailure.InsufficientFatigue)
-            {
-                await RefuseAsync(requesterConnection,
-                    participants.Length == 1 ? SelectDungeonRefusal.InsufficientFatigue : SelectDungeonRefusal.MemberBlocked,
-                    attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            if (attempt.Failure == DungeonEntryFailure.DifficultyNotUnlocked)
-            {
-                await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked,
-                    participants[0].Slot, cancellationToken).ConfigureAwait(false);
                 return;
             }
             logger.LogWarning(
@@ -518,7 +503,7 @@ public sealed class DungeonEntryProjectionDelivery(
         SelectedSessionIdentity requester,
         CancellationToken cancellationToken) =>
         selectedSessions.FindByCharacter(requester.CharacterId) == requester
-            ? RefuseAsync(connectionId, SelectDungeonRefusal.MemberBlocked, 0, cancellationToken)
+            ? RefuseAsync(connectionId, SelectDungeonRefusal.SelectionCohortUnavailable, 0, cancellationToken)
             : ValueTask.CompletedTask;
 
     private ValueTask RefuseAsync(

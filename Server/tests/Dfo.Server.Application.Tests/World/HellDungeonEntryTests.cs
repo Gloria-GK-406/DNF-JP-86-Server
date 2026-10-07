@@ -102,6 +102,26 @@ public sealed class HellDungeonEntryTests
         }
     }
 
+    [Theory]
+    [InlineData(24, false)]
+    [InlineData(30, true)]
+    public async Task Ordinary_and_hell_costs_sharing_an_item_are_reserved_together_and_rebind_split_stacks(int total, bool success)
+    {
+        await using var f = Fixture(); await f.SeedAsync();
+        await SeedTicket(f, new(71), 3330, 10, 0);
+        await SeedTicket(f, new(71), 3330, total - 10, 1);
+        var (hell, runs) = Service(f, required: [new(3330, 5, true)]);
+        await using (var tx = f.Scope.Begin())
+        {
+            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+            if (success) Assert.NotNull(result.Entry);
+            else Assert.Equal(DungeonEntryFailure.MissingHellTicket, result.Failure);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(success ? total - 25 : total, await Count(f, new(71), 3330));
+        Assert.Equal(success, runs.Find(new CharacterId(71)) is not null);
+    }
+
     [Fact]
     public async Task Any_member_missing_tickets_refuses_without_debit_or_run()
     {
@@ -237,7 +257,7 @@ public sealed class HellDungeonEntryTests
         }
         var start = runs.Find(new CharacterId(71))!;
         var visits = new DungeonVisitDomainService(new Structures(), runs, new Selection(), new Cells(),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f));
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>());
         await using (var tx = f.Scope.Begin())
         {
             var room = await visits.MoveAsync(new(71), start, start.Hell!.Cell, default);
@@ -294,12 +314,12 @@ public sealed class HellDungeonEntryTests
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
     private static HellDungeonEntryRuleService RuleService(Content content) => new(content, new RoomActors());
 
-    private static (IHellDungeonEntryDomainService, DungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null)
+    private static (IHellDungeonEntryDomainService, DungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null, IReadOnlyList<DungeonRequiredItem>? required = null)
     {
-        var structures = new Structures();
+        var structures = new Structures(required);
         var runs = new DungeonRunDomainService(f.Scope);
         var visits = new DungeonVisitDomainService(structures, runs, new Selection(), new Cells(),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f));
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>());
         return (new HellDungeonEntryDomainService(RuleService(new Content { Rules = rules ?? Rules }), structures, visits,
             f.Services.GetRequiredService<ICharacterDomainService>(), f.Services.GetRequiredService<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(),
             f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>(), f.Services.GetRequiredService<IItemLifecycleDomainService>(), f.Scope), runs);
@@ -339,9 +359,9 @@ public sealed class HellDungeonEntryTests
     {
         public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(int map, CancellationToken token) => ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
     }
-    private sealed class Structures : IDungeonStructureRuleService
+    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? required = null) : IDungeonStructureRuleService
     {
-        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => ValueTask.FromResult<DungeonDefinition?>(new(150, "test", 70, true, [], 80));
+        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => ValueTask.FromResult<DungeonDefinition?>(new(150, "test", 70, true, [], 80) { RequiredItems = required ?? [] });
         public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) => ValueTask.FromResult<DungeonLayout?>(Layout);
         public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => ValueTask.FromResult(DungeonMapSelection.Selected(layout.Hell?.Cell == target ? layout.Hell.MapId : layout.Cells[target].MapCandidates[0]));
     }
