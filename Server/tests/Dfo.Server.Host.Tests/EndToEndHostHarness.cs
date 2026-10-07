@@ -208,10 +208,13 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
             ReadFixedAscii(infoPlaintext.AsSpan(34 + 2 * 48, 16)),
             BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(50 + 2 * 48, 4)));
         Assert.Equal("#ch.100", ReadFixedAscii(infoPlaintext.AsSpan(6 + 2 * 48, 20)));
-        // New channel can arrive before the old TCP close callback; its credential stays the same.
+        // The native client acknowledges EXIT before opening the next channel.
+        await AcknowledgeExitAsync(game);
+        // The next login may arrive before the old TCP close callback.
         using var switched = await LoginGameAsync(saintHornChannel, mId!, ticket!);
         await Assert.ThrowsAsync<EndOfStreamException>(async () =>
             await ReadGameFrameAsync(gameStream, this.timeout.Token));
+        await AcknowledgeExitAsync(switched);
         switched.Dispose();
         using var reconnected = await LoginGameAsync(advertisedGame, mId!, ticket!);
 
@@ -225,11 +228,17 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         var newMId = replacementJson.RootElement.GetProperty("mId").GetString()!;
         var newTicket = replacementJson.RootElement.GetProperty("ticket").GetString()!;
         using var last = await LoginGameAsync(saintHornChannel, newMId, newTicket);
-        await last.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0003, [0]), this.timeout.Token);
-        var exit = await ReadGameFrameAsync(last.GetStream(), this.timeout.Token);
-        Assert.Equal((ushort)0x0003, exit.Type);
-        Assert.Equal((byte)1, exit.Body[0]);
-        await AssertLoginRejectedAsync(advertisedGame, newMId, newTicket);
+        await AcknowledgeExitAsync(last);
+        using var finalSwitch = await LoginGameAsync(advertisedGame, newMId, newTicket);
+    }
+
+    private async Task AcknowledgeExitAsync(TcpClient client)
+    {
+        await client.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0003, [0]), timeout.Token);
+        var response = await ReadGameFrameAsync(client.GetStream(), timeout.Token);
+        Assert.Equal((byte)1, response.Command);
+        Assert.Equal((ushort)0x0003, response.Type);
+        Assert.Equal(new byte[] { 1 }, response.Body);
     }
 
     private async Task<TcpClient> LoginGameAsync(AdvertisedEndpoint endpoint, string mId, string ticket)

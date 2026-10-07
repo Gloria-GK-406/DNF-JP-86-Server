@@ -347,8 +347,6 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
             CommandExecutionKind.Workflow, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
-            CommandExecutionKind.Direct);
         // Every command below reaches a write that outlives the process, so every one of them
         // opens a use case boundary. A write with no boundary settles on its own: it looks like it
         // worked, it is not taken back by whatever else the command was doing, and no test shows

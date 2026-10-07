@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game;
@@ -12,8 +11,7 @@ public sealed class GameExitMessageHandlerTests
     public async Task HandleAsync_AcknowledgesTheExitOnTheSameConnection()
     {
         var sender = new RecordingSender();
-        var bus = new StubCommandBus();
-        var handler = new GameExitHandler(sender, bus);
+        var handler = new GameExitHandler(sender);
         var connectionId = new NetworkConnectionId("game-42");
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
@@ -23,23 +21,8 @@ public sealed class GameExitMessageHandlerTests
             new GameExitRequest(GameMessageMetadata.Empty),
             CancellationToken.None);
 
-        Assert.IsType<AcknowledgeGameExitCommand>(bus.Command);
         Assert.Equal(connectionId, sender.ConnectionId);
         Assert.Equal(new GameExitResponse(true), sender.Message);
-    }
-
-    private sealed class StubCommandBus : ICommandBus
-    {
-        public ICommand? Command { get; private set; }
-
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            Command = command;
-            return ValueTask.FromResult((TResult)(object)new AcknowledgeGameExitResult(true));
-        }
     }
 
     private sealed class RecordingSender : IGameMessageSender

@@ -641,7 +641,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));
         services.TryAddSingleton<LoginSessionRegistry>();
-        services.TryAddSingleton<ILoginSessionDomainService>(provider => provider.GetRequiredService<LoginSessionRegistry>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INetworkConnectionObserver, LoginSessionConnectionObserver>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, LoginSessionMaintenanceService>());
         services.TryAddSingleton<Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>>(p => () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>());

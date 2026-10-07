@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-07 EXIT 与切频道
+
+[CMD0003](game/client-to-server/0x0003.md) 改为纯协议成功 ACK，不再撤销登录凭据；断线后使用既有 300 秒重连宽限，新连接交接和密码重新登录失效规则保留。实际切频道日志已定位 EXIT 后的新 LOGIN `ticket_rejected`；Host 回归覆盖先 EXIT 再登录 CH100 与切回普通频道。修复为 CurrentImplementation，原生客户端待验收。
+
 ## 2026-10-07 升级券
 
 [CMD01A2](game/client-to-server/0x01A2.md) 已接入升级券领域服务：PVF 等级范围/升级幅度/模式限制，真实背包扣券与角色 SetLevel、旧主线清理同事务，提交后更新背包、经验点数、任务和技能。请求 `05 00 00` 已观察。首次部署使用原生非零分支，用户反馈升级后弹旧活动窗口；补追确认该分支在等级 >=60 时显示窗口 0x191，当前业务成功改为上游同样的 `00 00` 静默回执，并由 NOTI 同步状态。请求为 WireCaptured，修正为 ClientStatic + CurrentImplementation，修正后 UI 待实机验收。见[说明与验证](../Document/level-up-ticket-20261007.md)。
@@ -238,7 +242,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 |---:|---:|---|---|---|---|
 | `0x01` | `0x0001` | LOGIN | Query | 实现服务端功能 | [0x0001.md](game/client-to-server/0x0001.md) |
 | `0x01` | `0x0002` | `SET_UDP_IP_PORT` | Mutation / 更新端点供后续队伍快照使用；当前无 CMD 回包 | ClientVerified（A21 双客户端组队路径） | [0x0002.md](game/client-to-server/0x0002.md) |
-| `0x01` | `0x0003` | EXIT | Session side effect / 有响应 | 实现服务端功能（A21 七帧线级重放；真客户端完整退出待归档） | [0x0003.md](game/client-to-server/0x0003.md) |
+| `0x01` | `0x0003` | EXIT | Protocol ACK / 有响应 | 实现服务端功能（A21 七帧线级重放；真客户端完整退出待归档） | [0x0003.md](game/client-to-server/0x0003.md) |
 | `0x01` | `0x0004` | `SELECT_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0004.md](game/client-to-server/0x0004.md) |
 | `0x01` | `0x0005` | `CREATE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0005.md](game/client-to-server/0x0005.md) |
 | `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |

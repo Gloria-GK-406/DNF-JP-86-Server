@@ -721,8 +721,8 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 
 - `CLIENT_SPEC_STATISTIC`(0x00AB) 的 handler 直接打语义化日志，**不经过命令总线**
   （纯遥测、无领域变更、无响应；见 protocol 记录的 Implementation mapping）。
-  存在水命令：`AcknowledgeGameExitCommand` 返回常量；Channel Connect 已改为纯协议
-  直接响应。ScriptVersion、Script、Info 三个命令曾直接读基础设施内容源，现已改为经
+  EXIT 与 Channel Connect 均为纯协议直接响应，不修改领域状态。
+  ScriptVersion、Script、Info 三个命令曾直接读基础设施内容源，现已改为经
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。

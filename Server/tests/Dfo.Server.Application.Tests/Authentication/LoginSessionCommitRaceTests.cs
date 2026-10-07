@@ -58,9 +58,8 @@ public sealed class LoginSessionCommitRaceTests
         Assert.False(sessions.IsSuperseded(first));
         Assert.False(sessions.CloseRequests.TryRead(out _));
         clock.Now = clock.Now.AddHours(2);
-        sessions.EndSession(first);
         await using (scope.Begin())
-            Assert.Null(sessions.TryBind(new NetworkConnectionId("after-exit"), issued.MId, issued.Ticket));
+            Assert.NotNull(sessions.TryBind(new NetworkConnectionId("after-rollback"), issued.MId, issued.Ticket));
     }
 
     private sealed class Clock : TimeProvider
