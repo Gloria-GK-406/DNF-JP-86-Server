@@ -25,8 +25,9 @@ function open(initial: ItemInput[] = []) { render(<ConfigProvider locale={zhCN} 
 function picker() { render(<ConfigProvider locale={zhCN} theme={{ token: { motion: false } }}><App><ItemPicker purpose="mail" {...callbacks} onClose={vi.fn()} onChoose={vi.fn()} /></App></ConfigProvider>); }
 async function choose(id: number) {
   fireEvent.click(screen.getByRole('button', { name: '添加物品附件' }));
-  fireEvent.click(await screen.findByRole('button', { name: `选择物品 ${id}` }));
+  fireEvent.click(await screen.findByRole('button', { name: `添加物品 ${id}` }));
   await screen.findByLabelText('每人数量');
+  if (id === 100310498) fireEvent.click(screen.getByRole('button', { name: '配置装备附件 1' }));
 }
 async function option(label: string, text: string) {
   fireEvent.mouseDown(screen.getByRole('combobox', { name: label }));
@@ -44,9 +45,9 @@ beforeEach(() => {
 
 it('材料重复添加会合并数量，编辑和移除保持同一行', async () => {
   open(); await choose(3037);
-  fireEvent.change(screen.getByLabelText('每人数量'), { target: { value: '9' } }); fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  fireEvent.change(screen.getByLabelText('每人数量'), { target: { value: '9' } }); fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
   await waitFor(() => expect(screen.queryByLabelText('每人数量')).toBeNull());
-  await choose(3037); fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  await choose(3037); fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
   expect(change).toHaveBeenLastCalledWith([{ itemId: 3037, count: 10 }]);
   await waitFor(() => expect(screen.queryByLabelText('每人数量')).toBeNull());
   fireEvent.click(screen.getByRole('button', { name: '编辑附件 1' }));
@@ -59,17 +60,17 @@ it('材料重复添加会合并数量，编辑和移除保持同一行', async (
 
 it('同模板不同强化和增幅配置分别保留，展开超限不能加入', async () => {
   open(); await choose(100310498); await option('封装状态', '解除封装'); await option('成长模式', '强化');
-  fireEvent.change(screen.getByLabelText('强化等级'), { target: { value: '7' } }); fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  fireEvent.change(screen.getByLabelText('强化等级'), { target: { value: '7' } }); fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
   await waitFor(() => expect(screen.queryByLabelText('每人数量')).toBeNull());
   await choose(100310498); await option('成长模式', '增幅'); await option('异次元属性', '智力');
   fireEvent.change(screen.getByLabelText('增幅等级'), { target: { value: '10' } });
-  fireEvent.change(screen.getByLabelText('每人数量'), { target: { value: '9' } }); fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  fireEvent.change(screen.getByLabelText('每人数量'), { target: { value: '9' } }); fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
   expect(change).toHaveBeenLastCalledWith([
     { itemId: 100310498, count: 1, equipment: { seal: 'unsealed', growth: 'reinforcement', level: 7, amplifyType: 0 } },
     { itemId: 100310498, count: 9, equipment: { seal: 'default', growth: 'amplification', level: 10, amplifyType: 4 } },
   ]);
   await waitFor(() => expect(screen.queryByLabelText('每人数量')).toBeNull());
-  await choose(100310498); fireEvent.click(screen.getByRole('button', { name: '加入邮件' }));
+  await choose(100310498); fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
   expect(await screen.findByText('每人最多 10 个展开物品附件；每件装备单独占一个附件位。')).toBeTruthy();
   expect(change).toHaveBeenCalledTimes(2);
 });

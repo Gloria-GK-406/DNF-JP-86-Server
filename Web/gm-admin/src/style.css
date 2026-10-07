@@ -32,6 +32,14 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
 .mail-picker-pagination { width: 100%; justify-content: flex-end; margin-top: 12px; }
 .mail-picker-config { background: #fafbfe; }
 .mail-picker-config .ant-empty { padding: 20px 0; }
+.mail-batch-picker .mail-picker-body { grid-template-columns: minmax(0, 1fr) 370px; }
+.mail-batch-config { min-width: 0; padding: 14px; border: 1px solid #e8edf4; border-radius: 10px; background: #fafbfe; }
+.mail-batch-cards { display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; margin-top: 12px; padding-right: 4px; }
+.mail-batch-cards .ant-empty { padding: 28px 0; }
+.mail-batch-card { flex-shrink: 0; }
+.mail-batch-equipment-summary { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 12px; }
+.mail-equipment-fields:not([hidden]) { display: flex; flex-direction: column; gap: 16px; }
+.mail-batch-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left; }
 .mail-picker-loading { text-align: center; padding: 40px 0; color: #748094; }
 .mail-workflow-modal, .cera-workflow-modal { top: 32px; max-width: calc(100vw - 32px); padding-bottom: 32px; }
 .mail-workflow-modal .ant-modal-body, .cera-workflow-modal .ant-modal-body { max-height: calc(100dvh - 190px); overflow-y: auto; }
@@ -39,6 +47,9 @@ body { margin: 0; color: #243247; background: #f4f6fa; }
 @media (max-width: 900px) {
   .mail-picker-filters { grid-template-columns: 1fr 1fr; }
   .mail-picker-body { grid-template-columns: 1fr; }
+  .mail-batch-picker .mail-picker-body { grid-template-columns: 1fr; }
+  .mail-batch-cards { max-height: 400px; }
+  .mail-batch-footer { flex-wrap: wrap; }
   .mail-attachment-row { flex-wrap: wrap; }
 }
 
