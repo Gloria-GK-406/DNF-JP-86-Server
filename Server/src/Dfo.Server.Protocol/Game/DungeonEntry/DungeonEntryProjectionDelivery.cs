@@ -99,8 +99,8 @@ public sealed class DungeonEntryProjectionDelivery(
             if (attempt.Failure is not null)
             {
                 var error = DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
-                logger.LogInformation("Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}",
-                    message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0);
+                logger.LogInformation("Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, detail={Detail}",
+                    message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0, attempt.Detail);
                 await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
                 return;
             }

@@ -32,11 +32,16 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         if (from is { } previous && !layout.CanTraverse(previous, target))
             return DungeonMapSelection.Refused(DungeonMapSelectionFailure.Disconnected);
 
-        // The hell room replacement is selected at entry, never selected anew at a door.
-        if (layout.Hell is { } hell && target == hell.Cell)
-            return DungeonMapSelection.Selected(hell.MapId);
-
         var entrance = from is { } source ? DungeonLayout.EntranceFrom(source, target) : DungeonPathDirection.None;
+        // The frozen hell replacement still has to satisfy this cell's actual door layout.
+        // It never falls back to ordinary resources when its own metadata is unavailable.
+        if (layout.Hell is { } hell && target == hell.Cell)
+        {
+            var map = await maps.GetAsync(hell.MapId, cancellationToken).ConfigureAwait(false);
+            return map is not null && IsCompatible(map, cell, entrance)
+                ? DungeonMapSelection.Selected(hell.MapId)
+                : DungeonMapSelection.Refused(DungeonMapSelectionFailure.NoCompatibleMap);
+        }
         var boss = from is not null && target == layout.BossCell;
         var declared = boss ? cell.BossMapCandidates : cell.MapCandidates;
         var candidates = new List<int>();
@@ -47,8 +52,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             foreach (var mapId in declared)
             {
                 var map = await maps.GetAsync(mapId, cancellationToken).ConfigureAwait(false);
-                if (map is not null && (entrance == DungeonPathDirection.None
-                        || map.Connections.Any(pair => (pair.Entrances & entrance) != 0)))
+                if (map is not null && IsCompatible(map, cell, entrance))
                     candidates.Add(mapId);
             }
         }
@@ -59,8 +63,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             foreach (var map in pool)
             {
                 if (from is null ? !map.HasStartArea : map.Kind != kind) continue;
-                if (map.Connections.Any(pair => pair.Pattern == cell.Connections
-                        && (entrance == DungeonPathDirection.None || (pair.Entrances & entrance) != 0)))
+                if (IsCompatible(map, cell, entrance))
                     candidates.Add(map.MapId);
             }
         }
@@ -71,7 +74,23 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         return DungeonMapSelection.Selected(ordered[(int)(Mix(layout.Seed, salt) % (uint)ordered.Length)]);
     }
 
+    private static bool IsCompatible(DungeonMapDefinition map, DungeonCellDefinition cell,
+        DungeonPathDirection entrance) =>
+        !cell.HasDeclaredConnections && entrance == DungeonPathDirection.None
+        || map.Connections.Any(pair => (!cell.HasDeclaredConnections || pair.Pattern == cell.Connections)
+            && (entrance == DungeonPathDirection.None || (pair.Entrances & entrance) != 0));
+
     public async ValueTask<DungeonLayout?> ResolveAsync(
+        int dungeonId,
+        DungeonEntryFacts facts,
+        int seed,
+        CancellationToken cancellationToken)
+    {
+        var topology = await ResolveTopologyAsync(dungeonId, facts, seed, cancellationToken).ConfigureAwait(false);
+        return topology is null ? null : await PrepareLayoutAsync(topology, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<DungeonLayout?> ResolveTopologyAsync(
         int dungeonId,
         DungeonEntryFacts facts,
         int seed,
@@ -86,20 +105,11 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         if (candidate is null)
             return null;
         var (maze, purpose) = candidate.Value;
+        ValidateMaze(dungeonId, maze);
         var startCell = Choose(maze.StartCandidates, seed, salt: 1);
         var bossCell = Choose(maze.BossCandidates, seed, salt: 2);
 
-        // A start cell that carries no room would put the character nowhere, and the client would
-        // be loading a map the server cannot name. Refusing is the honest answer; the content that
-        // produced it is wrong in a way this layer cannot repair.
-        if (!maze.Cells.ContainsKey(startCell))
-        {
-            throw new InvalidDataException(
-                $"Dungeon '{dungeonId}' maze '{maze.Index}' starts at cell "
-                + $"({startCell.X},{startCell.Y}), which declares no room.");
-        }
-
-        var layout = new DungeonLayout(
+        return new DungeonLayout(
             dungeonId,
             maze.Index,
             maze.Width,
@@ -112,9 +122,93 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             definition.BasisLevel,
             definition.ExperienceWeight,
             purpose, definition.ConsumesFatigue);
-        var start = await SelectMapAsync(layout, null, startCell, cancellationToken).ConfigureAwait(false);
-        return start.MapId is { } mapId ? layout with { StartRoomMapId = mapId } : null;
     }
+
+    public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        if (layout.Hell is { } hell && (hell.MapId <= 0 || !layout.Cells.ContainsKey(hell.Cell)))
+            throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
+                "hell replacement requires an occupied cell and a positive map id");
+        var startCell = layout.StartCell;
+        var start = await SelectMapAsync(layout, null, startCell, cancellationToken).ConfigureAwait(false);
+        if (start.MapId is not { } mapId)
+            throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
+                $"start cell ({startCell.X},{startCell.Y}) has no compatible map");
+        layout = layout with { StartRoomMapId = mapId };
+        await ValidateReachableMapsAsync(layout, cancellationToken).ConfigureAwait(false);
+        return layout;
+    }
+
+    /// <summary>Content syntax is read globally; run semantics belong only to the selected maze.</summary>
+    private static void ValidateMaze(int dungeonId, MazeDefinition maze)
+    {
+        if (maze.ConfigurationError is { } error)
+            throw ConfigurationFailure(dungeonId, maze.Index, error);
+        if (maze.Width == 0 || maze.Height == 0 || maze.Cells.Count == 0)
+            throw ConfigurationFailure(dungeonId, maze.Index, "maze size and occupied cells must be nonempty");
+        foreach (var (coordinate, cell) in maze.Cells)
+        {
+            if (coordinate.X >= maze.Width || coordinate.Y >= maze.Height)
+                throw ConfigurationFailure(dungeonId, maze.Index,
+                    $"occupied cell ({coordinate.X},{coordinate.Y}) is outside the maze size");
+            if (cell.HasDeclaredConnections && (cell.Connections == DungeonPathDirection.None
+                    || (cell.Connections & ~DungeonPathDirection.All) != 0))
+                throw ConfigurationFailure(dungeonId, maze.Index,
+                    $"occupied cell ({coordinate.X},{coordinate.Y}) has an invalid door pattern");
+            if (cell.MapCandidates.Concat(cell.BossMapCandidates).Any(id => id <= 0))
+                throw ConfigurationFailure(dungeonId, maze.Index,
+                    $"cell ({coordinate.X},{coordinate.Y}) has an invalid map candidate id");
+        }
+        ValidateCandidates(maze.StartCandidates, "start");
+        ValidateCandidates(maze.BossCandidates, "boss");
+
+        void ValidateCandidates(IReadOnlyList<MazeCell> candidates, string kind)
+        {
+            if (candidates.Count == 0)
+                throw ConfigurationFailure(dungeonId, maze.Index, $"{kind} candidates are empty");
+            foreach (var cell in candidates)
+                if (cell.X >= maze.Width || cell.Y >= maze.Height || !maze.Cells.ContainsKey(cell))
+                    throw ConfigurationFailure(dungeonId, maze.Index,
+                        $"{kind} cell ({cell.X},{cell.Y}) declares no room within the maze");
+        }
+    }
+
+    /// <summary>
+    /// Refuse incompatible content before paying for entry. This checks candidates; each cell's
+    /// actual map remains selected only on its first visit and retained by the run thereafter.
+    /// </summary>
+    private async ValueTask ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token)
+    {
+        var reachable = new HashSet<MazeCell> { layout.StartCell };
+        var pending = new Queue<MazeCell>();
+        pending.Enqueue(layout.StartCell);
+        while (pending.TryDequeue(out var source))
+        {
+            token.ThrowIfCancellationRequested();
+            if (source == layout.BossCell) continue;
+            foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+            {
+                var x = source.X + dx;
+                var y = source.Y + dy;
+                if (x < 0 || x >= layout.Width || y < 0 || y >= layout.Height) continue;
+                var target = new MazeCell((byte)x, (byte)y);
+                if (!layout.CanTraverse(source, target)) continue;
+                var selected = await SelectMapAsync(layout, source, target, token).ConfigureAwait(false);
+                if (selected.MapId is null)
+                    throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
+                        $"cell ({target.X},{target.Y}) has no compatible map for entrance "
+                        + $"'{DungeonLayout.EntranceFrom(source, target)}'");
+                if (reachable.Add(target)) pending.Enqueue(target);
+            }
+        }
+        if (!reachable.Contains(layout.BossCell))
+            throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
+                $"boss cell ({layout.BossCell.X},{layout.BossCell.Y}) is unreachable from the start");
+    }
+
+    private static InvalidDataException ConfigurationFailure(int dungeonId, int mazeIndex, string detail) =>
+        new($"Dungeon '{dungeonId}' maze '{mazeIndex}': {detail}.");
 
     /// <remarks>
     /// Candidate partition precedes random choice. An interactive entry sees only ordinary mazes;

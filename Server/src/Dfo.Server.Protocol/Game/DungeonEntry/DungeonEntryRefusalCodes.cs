@@ -16,7 +16,7 @@ internal static class DungeonEntryRefusalCodes
         DungeonEntryFailure.DailyEntryLimitReached => SelectDungeonRefusal.DailyEntryLimitReached,
         DungeonEntryFailure.MemberEntryLimitReached => SelectDungeonRefusal.MemberEntryLimitReached,
         DungeonEntryFailure.AlreadyInDungeon => SelectDungeonRefusal.InvalidSelectionState,
-        DungeonEntryFailure.HellUnavailable or DungeonEntryFailure.HellConfigurationInvalid => SelectDungeonRefusal.DungeonUnavailable,
+        DungeonEntryFailure.ConfigurationInvalid or DungeonEntryFailure.HellUnavailable or DungeonEntryFailure.HellConfigurationInvalid => SelectDungeonRefusal.DungeonUnavailable,
         _ => throw new ArgumentOutOfRangeException(nameof(failure), failure, "Unmapped dungeon entry failure."),
     };
 }

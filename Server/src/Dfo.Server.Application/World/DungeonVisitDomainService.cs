@@ -68,8 +68,16 @@ internal sealed class DungeonVisitDomainService(
         ArgumentNullException.ThrowIfNull(facts);
         if (await ValidateAdmissionAsync(participants, dungeonId, facts, cancellationToken).ConfigureAwait(false) is { } refusal)
             return refusal;
-        var layout = await layouts.ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
-            .ConfigureAwait(false);
+        DungeonLayout? layout;
+        try
+        {
+            layout = await layouts.ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (InvalidDataException error)
+        {
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
+        }
         return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
             : await EnterPreparedCoreAsync(participants, layout, facts, cancellationToken).ConfigureAwait(false);
     }
@@ -95,7 +103,15 @@ internal sealed class DungeonVisitDomainService(
 
         var difficulty = facts.Difficulty;
         if (!Enum.IsDefined(difficulty)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
-        var definition = await layouts.GetDefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        DungeonDefinition? definition;
+        try
+        {
+            definition = await layouts.GetDefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException error)
+        {
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
+        }
         foreach (var member in participants)
         {
             if (definition is { HasStoryMode: false } && characters is not null)
@@ -104,8 +120,19 @@ internal sealed class DungeonVisitDomainService(
                 if (progress is null || progress.Level < definition.MinimumRequiredLevel)
                     return new(null, DungeonEntryFailure.LevelTooLow, member.Slot);
             }
-            if (!await difficultyRules.AllowsAsync(dungeonId, difficulty, await difficulties.GetMaximumAsync(
-                    member.CharacterId, dungeonId, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))
+            var maximum = await difficulties.GetMaximumAsync(member.CharacterId, dungeonId, cancellationToken)
+                .ConfigureAwait(false);
+            bool allowed;
+            try
+            {
+                allowed = await difficultyRules.AllowsAsync(dungeonId, difficulty, maximum, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (InvalidDataException error)
+            {
+                return new(null, DungeonEntryFailure.ConfigurationInvalid, member.Slot, error.Message);
+            }
+            if (!allowed)
                 return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
         }
         return null;
@@ -121,7 +148,15 @@ internal sealed class DungeonVisitDomainService(
                 if ((await fatigue.BalanceOfAsync(participant.CharacterId, cancellationToken).ConfigureAwait(false)).Remaining == 0)
                     return new(null, DungeonEntryFailure.InsufficientFatigue, participant.Slot);
 
-        var definition = await layouts.GetDefinitionAsync(layout.DungeonId, cancellationToken).ConfigureAwait(false);
+        DungeonDefinition? definition;
+        try
+        {
+            definition = await layouts.GetDefinitionAsync(layout.DungeonId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException error)
+        {
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message);
+        }
         IDungeonEntryMaterialPlan? materialPlan = null;
         if (definition?.RequiredItems is { Count: > 0 } requirements)
         {

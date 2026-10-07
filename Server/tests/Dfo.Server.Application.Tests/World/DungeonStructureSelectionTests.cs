@@ -31,7 +31,7 @@ public sealed class DungeonStructureSelectionTests
     {
         var layout = Layout(new(Horizontal, [10, 11, 12], []));
         var rules = Rules(new Maps([
-            Map(10, DungeonPathDirection.All, DungeonPathDirection.Left),
+            Map(10, Horizontal, DungeonPathDirection.Left),
             Map(11, Horizontal, DungeonPathDirection.Left),
             Map(12, Horizontal, DungeonPathDirection.Right),
         ]));
@@ -41,6 +41,39 @@ public sealed class DungeonStructureSelectionTests
         Assert.Equal(new HashSet<int> { 10, 11 }, selected);
         Assert.Equal(await rules.SelectMapAsync(layout, Left, Right, default),
             await rules.SelectMapAsync(layout, Left, Right, default));
+    }
+
+    [Fact]
+    public async Task Explicit_candidates_require_the_full_pattern_and_entrance_in_the_same_pair()
+    {
+        var layout = Layout(new(Horizontal, [10, 11, 12], []));
+        var wrongPattern = Map(10, DungeonPathDirection.All, DungeonPathDirection.Left);
+        var differentPairs = Map(11, Horizontal, DungeonPathDirection.Right) with
+        {
+            Connections = [new(Horizontal, DungeonPathDirection.Right),
+                new(DungeonPathDirection.All, DungeonPathDirection.Left)],
+        };
+        var rules = Rules(new Maps([wrongPattern, differentPairs, Map(12, Horizontal, DungeonPathDirection.Left)]));
+        for (var seed = 0; seed < 30; seed++)
+            Assert.Equal(12, (await rules.SelectMapAsync(layout with { Seed = seed }, Left, Right, default)).MapId);
+    }
+
+    [Fact]
+    public async Task Explicit_start_filters_the_declared_pattern_without_requiring_an_entrance()
+    {
+        var layout = Layout(new(Horizontal, [10, 11], [])) with { StartCell = Right };
+        var rules = Rules(new Maps([Map(10, DungeonPathDirection.All, DungeonPathDirection.All),
+            Map(11, Horizontal, DungeonPathDirection.None)]));
+        for (var seed = 0; seed < 30; seed++)
+            Assert.Equal(11, (await rules.SelectMapAsync(layout with { Seed = seed }, null, Right, default)).MapId);
+    }
+
+    [Fact]
+    public async Task Missing_declared_pattern_does_not_invent_a_four_door_requirement()
+    {
+        var layout = Layout(DungeonCellDefinition.Fixed(10));
+        var rules = Rules(new Maps([Map(10, DungeonPathDirection.Left, DungeonPathDirection.Left)]));
+        Assert.Equal(10, (await rules.SelectMapAsync(layout, Left, Right, default)).MapId);
     }
 
     [Fact]

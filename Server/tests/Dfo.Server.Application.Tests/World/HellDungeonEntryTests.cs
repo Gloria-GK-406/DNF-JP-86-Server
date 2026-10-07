@@ -15,6 +15,48 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class HellDungeonEntryTests
 {
+    [Theory]
+    [InlineData("rules")]
+    [InlineData("definition")]
+    [InlineData("resolve")]
+    [InlineData("prepare")]
+    [InlineData("final-layout")]
+    public async Task Invalid_hell_configuration_refuses_without_ticket_fatigue_or_run(string boundary)
+    {
+        await using var f = Fixture();
+        await f.SeedAsync();
+        await SeedTicket(f, new(71), 3330, 30, 0);
+        var (hell, runs) = Service(f, failureBoundary: boundary);
+        await using (var tx = f.Scope.Begin())
+        {
+            var result = await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default);
+            Assert.Equal(DungeonEntryFailure.HellConfigurationInvalid, result.Failure);
+            Assert.NotNull(result.Detail);
+            Assert.Null(result.Entry);
+            await tx.CommitAsync(default);
+        }
+        Assert.Equal(30, await Count(f, new(71), 3330));
+        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+        Assert.Null(runs.Find(new CharacterId(71)));
+    }
+
+    [Fact]
+    public async Task InvalidData_from_hell_cell_creation_remains_an_exception()
+    {
+        await using var f = Fixture();
+        await f.SeedAsync();
+        await SeedTicket(f, new(71), 3330, 30, 0);
+        var (hell, runs) = Service(f, failureBoundary: "cell");
+        await using (var tx = f.Scope.Begin())
+        {
+            var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await hell.EnterManualAsync(Context() with { Participants = [Party[0]] }, default));
+            Assert.Equal("unexpected hell cell failure", error.Message);
+        }
+        Assert.Equal(30, await Count(f, new(71), 3330));
+        Assert.Equal(0, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
+        Assert.Null(runs.Find(new CharacterId(71)));
+    }
     [Fact]
     public async Task Registered_CMD_commits_manual_entry_and_ticket_debit_without_an_outer_transaction()
     {
@@ -77,8 +119,10 @@ public sealed class HellDungeonEntryTests
         Assert.Null(await rules.PrepareAsync(Rules, Layout, 42, default));
     }
 
-    [SkippableFact]
-    public async Task Real_PVF_preparation_selects_a_declared_timegate_room_without_request_difficulty_override()
+    [SkippableTheory]
+    [InlineData(72)]
+    [InlineData(77)]
+    public async Task Real_PVF_preparation_selects_a_declared_timegate_room_without_request_difficulty_override(int dungeonId)
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var content = ContentArchive.CreateContentProvider();
@@ -86,10 +130,10 @@ public sealed class HellDungeonEntryTests
             content.GetRequiredService<IDungeonMapDefinitionSource>());
         var rules = new HellDungeonEntryRuleService(content.GetRequiredService<IHellDungeonDefinitionSource>(),
             content.GetRequiredService<IDungeonRoomActorSource>());
-        var declarations = (await rules.GetRulesAsync(77, default))!;
+        var declarations = (await rules.GetRulesAsync(dungeonId, default))!;
         for (var seed = 0; seed < 20; seed++)
         {
-            var layout = (await structures.ResolveAsync(77, DungeonEntryFacts.None, seed, default))!;
+            var layout = (await structures.ResolveTopologyAsync(dungeonId, DungeonEntryFacts.None, seed, default))!;
             var plan = await rules.PrepareAsync(declarations, layout, seed, default);
             Assert.NotNull(plan);
             Assert.Contains(plan.Cell, layout.Cells.Keys);
@@ -97,7 +141,8 @@ public sealed class HellDungeonEntryTests
             Assert.NotEmpty(plan.Actors);
             Assert.All(plan.Actors, x => Assert.InRange(x.Actor.Level, (byte)1, byte.MaxValue));
             Assert.Equal(plan.Actors, (await rules.PrepareAsync(declarations, layout, seed, default))!.Actors);
-            var frozen = layout with { EntryKind = DungeonEntryKind.ManualHell, Hell = plan };
+            var frozen = await structures.PrepareLayoutAsync(
+                layout with { EntryKind = DungeonEntryKind.ManualHell, Hell = plan }, default);
             Assert.Equal(plan.MapId, (await structures.SelectMapAsync(frozen, null, plan.Cell, default)).MapId);
         }
     }
@@ -314,13 +359,13 @@ public sealed class HellDungeonEntryTests
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
     private static HellDungeonEntryRuleService RuleService(Content content) => new(content, new RoomActors());
 
-    private static (IHellDungeonEntryDomainService, DungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null, IReadOnlyList<DungeonRequiredItem>? required = null)
+    private static (IHellDungeonEntryDomainService, DungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null, IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null)
     {
-        var structures = new Structures(required);
+        var structures = new Structures(required, failureBoundary);
         var runs = new DungeonRunDomainService(f.Scope);
-        var visits = new DungeonVisitDomainService(structures, runs, new Selection(), new Cells(),
+        var visits = new DungeonVisitDomainService(structures, runs, new Selection(), new Cells(failureBoundary),
             f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>());
-        return (new HellDungeonEntryDomainService(RuleService(new Content { Rules = rules ?? Rules }), structures, visits,
+        return (new HellDungeonEntryDomainService(new FaultingHellRules(RuleService(new Content { Rules = rules ?? Rules }), failureBoundary), structures, visits,
             f.Services.GetRequiredService<ICharacterDomainService>(), f.Services.GetRequiredService<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(),
             f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>(), f.Services.GetRequiredService<IItemLifecycleDomainService>(), f.Scope), runs);
     }
@@ -359,18 +404,36 @@ public sealed class HellDungeonEntryTests
     {
         public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(int map, CancellationToken token) => ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
     }
-    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? required = null) : IDungeonStructureRuleService
+    private sealed class FaultingHellRules(IHellDungeonEntryRuleService inner, string? boundary) : IHellDungeonEntryRuleService
     {
-        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => ValueTask.FromResult<DungeonDefinition?>(new(150, "test", 70, true, [], 80) { RequiredItems = required ?? [] });
-        public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) => ValueTask.FromResult<DungeonLayout?>(Layout);
+        public ValueTask<HellDungeonDefinition?> GetRulesAsync(int id, CancellationToken token) =>
+            boundary == "rules" ? throw new InvalidDataException("invalid hell rules") : inner.GetRulesAsync(id, token);
+        public ValueTask<HellEntryPlan?> PrepareAsync(HellDungeonDefinition rules, DungeonLayout layout, int seed, CancellationToken token) =>
+            boundary == "prepare" ? throw new InvalidDataException("invalid hell plan") : inner.PrepareAsync(rules, layout, seed, token);
+        public IReadOnlyList<HellTicketAlternative> TicketAlternatives(HellDungeonDefinition rules, byte level) => inner.TicketAlternatives(rules, level);
+    }
+    private sealed class Structures(IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null) : IDungeonStructureRuleService
+    {
+        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token) => failureBoundary == "definition"
+            ? throw new InvalidDataException("invalid test maze") : ValueTask.FromResult<DungeonDefinition?>(new(150, "test", 70, true, [], 80) { RequiredItems = required ?? [] });
+        public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) => failureBoundary == "resolve"
+            ? throw new InvalidDataException("invalid test maze") : ValueTask.FromResult<DungeonLayout?>(Layout);
+        public ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken token)
+        {
+            Assert.Equal(DungeonEntryKind.ManualHell, layout.EntryKind);
+            Assert.NotNull(layout.Hell);
+            return failureBoundary == "final-layout" ? throw new InvalidDataException("invalid final hell layout")
+                : ValueTask.FromResult(layout);
+        }
         public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => ValueTask.FromResult(DungeonMapSelection.Selected(layout.Hell?.Cell == target ? layout.Hell.MapId : layout.Cells[target].MapCandidates[0]));
     }
     private sealed class Selection : IDungeonSelectionRuleService
     {
         public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => false;
     }
-    private sealed class Cells : IDungeonCellFactory
+    private sealed class Cells(string? failureBoundary = null) : IDungeonCellFactory
     {
-        public ValueTask<DungeonCellSeed> CreateAsync(DungeonCellCreationContext context, CancellationToken token) => ValueTask.FromResult(DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId));
+        public ValueTask<DungeonCellSeed> CreateAsync(DungeonCellCreationContext context, CancellationToken token) => failureBoundary == "cell"
+            ? throw new InvalidDataException("unexpected hell cell failure") : ValueTask.FromResult(DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId));
     }
 }

@@ -46,7 +46,11 @@ public sealed record MazeDefinition(
     IReadOnlyDictionary<MazeCell, DungeonCellDefinition> Cells,
     IReadOnlyList<MazeCell> StartCandidates,
     IReadOnlyList<MazeCell> BossCandidates,
-    DungeonQuestConnection? QuestConnection = null);
+    DungeonQuestConnection? QuestConnection = null)
+{
+    /// <summary>A parsed maze's semantic error, checked only if this maze is selected.</summary>
+    public string? ConfigurationError { get; init; }
+}
 
 [Flags]
 public enum DungeonPathDirection : byte
@@ -65,8 +69,12 @@ public sealed record DungeonCellDefinition(
     IReadOnlyList<int> MapCandidates,
     IReadOnlyList<int> BossMapCandidates)
 {
+    /// <summary>False when content omits the door pattern; All then carries no pattern restriction.</summary>
+    public bool HasDeclaredConnections { get; init; } = true;
+
     /// <summary>An explicitly fixed resource with unrestricted connection metadata.</summary>
-    public static DungeonCellDefinition Fixed(int mapId) => new(DungeonPathDirection.All, [mapId], []);
+    public static DungeonCellDefinition Fixed(int mapId) =>
+        new(DungeonPathDirection.All, [mapId], []) { HasDeclaredConnections = false };
 }
 
 public enum DungeonEntryMode : byte { Maze, Tournament, VillageRevenge }

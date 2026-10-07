@@ -16,6 +16,97 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonVisitDomainServiceTests
 {
+    [Theory]
+    [InlineData("definition")]
+    [InlineData("resolve")]
+    [InlineData("prepared-definition")]
+    [InlineData("difficulty-rule")]
+    public async Task Invalid_entry_configuration_refuses_before_cell_run_materials_or_fatigue(string boundary)
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var fatigue = new TestFatigue();
+        var materials = new UnexpectedMaterials();
+        var visits = new DungeonVisitDomainService(new FaultingEntryStructures(boundary), runs,
+            new ImmediateSelection(), cells, new MaximumDifficulty(), new DungeonDifficultyRuleService(
+                boundary == "difficulty-rule" ? new InvalidDefinitions() : null),
+            fatigue, materials: materials);
+        var result = await visits.TryEnterPartyAsync([new(new(1), new(71), 0, true)],
+            Layout.DungeonId, DungeonEntryFacts.None, default);
+        Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, result.Failure);
+        Assert.Equal("invalid test maze", result.Detail);
+        Assert.Null(result.Entry);
+        Assert.Equal(0, cells.CallCount);
+        Assert.Empty(fatigue.Spent);
+        Assert.Null(runs.Find(new CharacterId(71)));
+        Assert.Equal(0, materials.Calls);
+    }
+
+    [Fact]
+    public async Task InvalidData_from_cell_creation_is_not_misclassified_as_configuration_refusal()
+    {
+        var runs = new DungeonRunDomainService();
+        var fatigue = new TestFatigue();
+        var visits = new DungeonVisitDomainService(new RecordingLayouts(), runs, new ImmediateSelection(),
+            new InvalidDataCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(), fatigue);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await visits.TryEnterPartyAsync([new(new(1), new(71), 0, true)], Layout.DungeonId, DungeonEntryFacts.None, default));
+        Assert.Equal("unexpected cell failure", error.Message);
+        Assert.Empty(fatigue.Spent);
+        Assert.Null(runs.Find(new CharacterId(71)));
+    }
+
+    private sealed class FaultingEntryStructures(string boundary) : IDungeonStructureRuleService
+    {
+        private int _definitions;
+        public ValueTask<DungeonDefinition?> GetDefinitionAsync(int id, CancellationToken token)
+        {
+            _definitions++;
+            if (boundary == "definition" || boundary == "prepared-definition" && _definitions == 2)
+                throw new InvalidDataException("invalid test maze");
+            return ValueTask.FromResult<DungeonDefinition?>(new(id, "test", 1, true, [])
+                { RequiredItems = [new(3330, 1, true)] });
+        }
+        public ValueTask<DungeonLayout?> ResolveAsync(int id, DungeonEntryFacts facts, int seed, CancellationToken token) =>
+            boundary == "resolve" ? throw new InvalidDataException("invalid test maze") : ValueTask.FromResult<DungeonLayout?>(Layout);
+        public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) =>
+            throw new NotSupportedException();
+    }
+    [Fact]
+    public async Task InvalidData_from_difficulty_storage_is_not_misclassified_as_configuration_refusal()
+    {
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var fatigue = new TestFatigue();
+        var visits = new DungeonVisitDomainService(new RecordingLayouts(), runs, new ImmediateSelection(), cells,
+            new MaximumDifficulty(storageFailure: true), new DungeonDifficultyRuleService(), fatigue);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await visits.TryEnterPartyAsync([new(new(1), new(71), 0, true)], Layout.DungeonId, DungeonEntryFacts.None, default));
+        Assert.Equal("unexpected difficulty storage failure", error.Message);
+        Assert.Equal(0, cells.CallCount);
+        Assert.Empty(fatigue.Spent);
+        Assert.Null(runs.Find(new CharacterId(71)));
+    }
+    private sealed class InvalidDefinitions : IDungeonDefinitionSource
+    {
+        public ValueTask<DungeonDefinition?> GetAsync(int id, CancellationToken token) =>
+            throw new InvalidDataException("invalid test maze");
+    }
+    private sealed class UnexpectedMaterials : IDungeonEntryMaterialsDomainService
+    {
+        public int Calls { get; private set; }
+        public ValueTask<DungeonEntryMaterialPreparation> PrepareAsync(IReadOnlyList<DungeonRunParticipant> participants,
+            IReadOnlyList<DungeonRequiredItem> requirements, CancellationToken token)
+        {
+            Calls++;
+            throw new InvalidOperationException("configuration should be rejected before material preparation");
+        }
+    }
+    private sealed class InvalidDataCellFactory : IDungeonCellFactory
+    {
+        public ValueTask<DungeonCellSeed> CreateAsync(DungeonCellCreationContext context, CancellationToken token) =>
+            throw new InvalidDataException("unexpected cell failure");
+    }
 
     [SkippableFact]
     public async Task Real_consciousness_route_reaches_implicit_cells_and_revisits_the_same_shared_map()
@@ -71,7 +162,8 @@ public sealed class DungeonVisitDomainServiceTests
         var rules = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
             content.GetRequiredService<IDungeonMapDefinitionSource>());
         var layout = TwoRoomLayout with { Cells = new Dictionary<MazeCell, DungeonCellDefinition>
-            { [new(0, 0)] = DungeonCellDefinition.Fixed(61000), [new(1, 0)] = DungeonCellDefinition.Fixed(999999) } };
+            { [new(0, 0)] = DungeonCellDefinition.Fixed(61000),
+                [new(1, 0)] = DungeonCellDefinition.Fixed(999999) with { BossMapCandidates = [999999] } } };
         var runs = new DungeonRunDomainService();
         var cells = new RecordingCellFactory();
         var fatigue = new TestFatigue();
@@ -532,9 +624,10 @@ public sealed class DungeonVisitDomainServiceTests
     {
         public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) => false;
     }
-    private sealed class MaximumDifficulty(DungeonDifficulty maximum = DungeonDifficulty.Tier4) : Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService
+    private sealed class MaximumDifficulty(DungeonDifficulty maximum = DungeonDifficulty.Tier4, bool storageFailure = false) : Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService
     {
-        public ValueTask<DungeonDifficulty> GetMaximumAsync(CharacterId characterId, int dungeonId, CancellationToken token) => ValueTask.FromResult(maximum);
+        public ValueTask<DungeonDifficulty> GetMaximumAsync(CharacterId characterId, int dungeonId, CancellationToken token) => storageFailure
+            ? throw new InvalidDataException("unexpected difficulty storage failure") : ValueTask.FromResult(maximum);
         public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Characters.CharacterDungeonDifficulty>> GetRecordedAsync(CharacterId characterId, CancellationToken token) => throw new NotSupportedException();
         public ValueTask<DungeonDifficulty> UnlockAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, CancellationToken token) => throw new NotSupportedException();
         public ValueTask<Dfo.Server.Abstractions.Characters.CharacterDungeonDifficulty?> UnlockAfterClearAsync(CharacterId characterId, int dungeonId, DungeonDifficulty cleared, CancellationToken token) => throw new NotSupportedException();

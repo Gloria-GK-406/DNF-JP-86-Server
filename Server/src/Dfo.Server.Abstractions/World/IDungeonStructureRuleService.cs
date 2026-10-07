@@ -193,6 +193,14 @@ public interface IDungeonStructureRuleService
 {
     ValueTask<DungeonDefinition?> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken);
 
+    /// <summary>Select and validate the maze before mode-specific room replacements are applied.</summary>
+    ValueTask<DungeonLayout?> ResolveTopologyAsync(int dungeonId, DungeonEntryFacts facts, int seed,
+        CancellationToken cancellationToken) => ResolveAsync(dungeonId, facts, seed, cancellationToken);
+
+    /// <summary>Select the actual start resource and validate the final run's reachable room candidates.</summary>
+    ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(layout);
+
     /// <summary>Choose on first entry only. The domain instance retains the selected map on revisit.</summary>
     ValueTask<DungeonMapSelection> SelectMapAsync(
         DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken cancellationToken);

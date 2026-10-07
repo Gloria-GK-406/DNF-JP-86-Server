@@ -24,15 +24,30 @@ internal sealed class HellDungeonEntryDomainService(
         if (transactions.Current is null) throw new InvalidOperationException("Hell entry requires the shared entry transaction.");
         if (context.RequestMode != 1 || context.PracticeMode != 0)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellUnavailable);
-        var rules = await hellRules.GetRulesAsync(context.DungeonId, token).ConfigureAwait(false);
-        if (rules is not { Enabled: true }) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellUnavailable);
-        var definition = await structures.GetDefinitionAsync(context.DungeonId, token).ConfigureAwait(false);
-        if (definition is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-        var seed = Random.Shared.Next();
-        var layout = await structures.ResolveAsync(context.DungeonId, context.Facts, seed, token).ConfigureAwait(false);
-        if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid);
-        var plan = await hellRules.PrepareAsync(rules, layout, seed, token).ConfigureAwait(false);
-        if (plan is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid);
+        HellDungeonDefinition? rules;
+        DungeonDefinition? definition;
+        DungeonLayout? layout;
+        HellEntryPlan? plan;
+        try
+        {
+            rules = await hellRules.GetRulesAsync(context.DungeonId, token).ConfigureAwait(false);
+            if (rules is not { Enabled: true }) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellUnavailable);
+            definition = await structures.GetDefinitionAsync(context.DungeonId, token).ConfigureAwait(false);
+            if (definition is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
+            var seed = Random.Shared.Next();
+            layout = await structures.ResolveTopologyAsync(context.DungeonId, context.Facts, seed, token).ConfigureAwait(false);
+            if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid);
+            plan = await hellRules.PrepareAsync(rules, layout, seed, token).ConfigureAwait(false);
+            if (plan is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid);
+            layout = await structures.PrepareLayoutAsync(
+                layout with { EntryKind = DungeonEntryKind.ManualHell, Hell = plan,
+                    StartRoomMapId = layout.StartCell == plan.Cell ? plan.MapId : layout.StartRoomMapId },
+                token).ConfigureAwait(false);
+        }
+        catch (InvalidDataException error)
+        {
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid, error.Message);
+        }
         var pending = new List<Debit>();
         var alternatives = hellRules.TicketAlternatives(rules, definition.MinimumRequiredLevel);
         foreach (var member in context.Participants)
@@ -47,11 +62,12 @@ internal sealed class HellDungeonEntryDomainService(
             if (costs is null) return new(null, DungeonEntryFailure.MissingHellTicket, member.Slot);
             pending.AddRange(costs);
         }
-        layout = layout with { EntryKind = DungeonEntryKind.ManualHell, Hell = plan,
-            StartRoomMapId = layout.StartCell == plan.Cell ? plan.MapId : layout.StartRoomMapId };
         var attempt = await visits.TryEnterPreparedPartyAsync(context.Participants, layout, context.Facts, token)
             .ConfigureAwait(false);
-        if (attempt.Entry is not { } entry) return attempt;
+        if (attempt.Entry is not { } entry)
+            return attempt.Failure == DungeonEntryFailure.ConfigurationInvalid
+                ? attempt with { Failure = DungeonEntryFailure.HellConfigurationInvalid }
+                : attempt;
         // Ordinary entry may consume the same item from these stacks. Rebind the validated
         // hell cost to current references after it commits to the shared transaction.
         pending.Clear();

@@ -130,6 +130,130 @@ public sealed class PvfTypedDungeonAndMagicSealTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Dungeon_repeated_cell_candidates_merge_in_order_without_crossing_kinds_or_mazes(bool separateSections)
+    {
+        var builder = DungeonBuilder();
+        var script = builder.AddScript("dungeon", "test.dgn").Tag("[maze info]").Tag("[size]").Int(2).Int(1)
+            .Tag("[map specification]").Quoted("map").Int(0).Int(0).Int(32984).Int(32984)
+            .Quoted("boss").Int(0).Int(0).Int(32990);
+        if (separateSections) script.Tag("[map specification]");
+        script.Quoted("map").Int(0).Int(0).Int(32986).Int(32984).Int(32987)
+            .Quoted("boss").Int(0).Int(0).Int(32991).Int(32990)
+            .Tag("[start map]").Int(0).Int(0).Tag("[boss map]").Int(0).Int(0)
+            .Tag("[quest connection]").Int(0).Int(2389);
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+
+        var dungeon = await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default);
+
+        Assert.NotNull(dungeon);
+        Assert.Equal(2, dungeon.Mazes.Count);
+        var questCell = Assert.Single(dungeon.Mazes[0].Cells).Value;
+        Assert.Equal([32984, 32986, 32987], questCell.MapCandidates);
+        Assert.Equal([32990, 32991], questCell.BossMapCandidates);
+        var ordinaryCell = Assert.Single(dungeon.Mazes[1].Cells).Value;
+        Assert.Equal([61000], ordinaryCell.MapCandidates);
+        Assert.Empty(ordinaryCell.BossMapCandidates);
+        Assert.False(questCell.HasDeclaredConnections);
+        Assert.False(ordinaryCell.HasDeclaredConnections);
+        Assert.All(dungeon.Mazes, maze => Assert.Null(maze.ConfigurationError));
+        Assert.Equal(2389, dungeon.Mazes[0].QuestConnection!.QuestId);
+        Assert.Null(dungeon.Mazes[1].QuestConnection);
+    }
+
+    [Theory]
+    [InlineData("single")]
+    [InlineData("zero")]
+    [InlineData("truncated")]
+    public async Task Dungeon_repeated_candidate_sections_still_validate_the_complete_tail(string defect)
+    {
+        var builder = DungeonBuilder();
+        var script = AddMaze(builder.AddScript("dungeon", "test.dgn"))
+            .Tag("[map specification]").Quoted("map").Int(0).Int(1);
+        if (defect == "single") script.Single(32986);
+        if (defect == "zero") script.Int(0);
+        script.End();
+        using var file = new BuiltArchive(builder);
+
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default).AsTask());
+
+        Assert.Contains("[map specification]", error.Message);
+        Assert.Contains(defect switch {
+            "single" => "expected Int32",
+            "zero" => "expected a positive map candidate id",
+            _ => "at least one map candidate",
+        }, error.Message);
+    }
+
+    [Theory]
+    [InlineData("grid", "connection grid does not match maze size")]
+    [InlineData("outside", "outside occupied maze cells")]
+    [InlineData("zero-width", "positive width and height")]
+    [InlineData("empty", "no occupied cells")]
+    public async Task Dungeon_maze_geometry_diagnostics_do_not_block_reading_other_mazes(string defect, string reason)
+    {
+        var builder = DungeonBuilder();
+        var script = AddMaze(builder.AddScript("dungeon", "test.dgn"))
+            .Tag("[maze info]").Tag("[size]").Int(defect == "zero-width" ? 0 : 2).Int(1)
+            .Tag("[quest connection]").Int(0).Int(2389);
+        if (defect != "empty")
+        {
+            script.Tag("[greed]").Quoted(defect == "outside" ? "AAAA" : "BB")
+                .Tag("[map specification]").Quoted("map").Int(0).Int(0).Int(32984)
+                .Tag("[start map]").Int(0).Int(0).Tag("[boss map]").Int(0).Int(0);
+        }
+        AddMaze(script).End();
+        using var file = new BuiltArchive(builder);
+
+        var dungeon = await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default);
+
+        Assert.NotNull(dungeon);
+        Assert.Equal(3, dungeon.Mazes.Count);
+        Assert.Equal([0, 1, 2], dungeon.Mazes.Select(maze => maze.Index));
+        Assert.Null(dungeon.Mazes[0].ConfigurationError);
+        Assert.Null(dungeon.Mazes[2].ConfigurationError);
+        var invalid = dungeon.Mazes[1];
+        Assert.Contains(reason, invalid.ConfigurationError!);
+        Assert.Equal(2389, invalid.QuestConnection!.QuestId);
+        if (defect != "empty")
+        {
+            var cell = Assert.Single(invalid.Cells).Value;
+            Assert.Equal([32984], cell.MapCandidates);
+            Assert.True(cell.HasDeclaredConnections);
+        }
+        else Assert.Empty(invalid.Cells);
+    }
+
+    [Theory]
+    [InlineData("type")]
+    [InlineData("truncated")]
+    [InlineData("invalid-greed")]
+    public async Task Dungeon_unselected_maze_syntax_errors_still_refuse_the_complete_file(string defect)
+    {
+        var builder = DungeonBuilder();
+        var script = AddMaze(builder.AddScript("dungeon", "test.dgn"))
+            .Tag("[maze info]").Tag("[size]").Int(2).Int(1)
+            .Tag("[quest connection]").Int(0).Int(2389);
+        if (defect == "invalid-greed") script.Tag("[greed]").Quoted("AB");
+        else
+        {
+            script.Tag("[map specification]").Quoted("map").Int(0).Int(0);
+            if (defect == "type") script.Single(32984);
+        }
+        script.End();
+        using var file = new BuiltArchive(builder);
+
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() =>
+            new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default).AsTask());
+
+        Assert.Contains("dungeon/test.dgn", error.Message);
+        Assert.Contains(defect == "invalid-greed" ? "[greed]" : "[map specification]", error.Message);
+    }
+
+    [Theory]
     [InlineData("tail")]
     [InlineData("word")]
     [InlineData("mixed")]

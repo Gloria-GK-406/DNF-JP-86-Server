@@ -251,7 +251,6 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             }
             else if (Fields.MapSpecificationField.Matches(section.Name))
             {
-                Unique(Fields.MapSpecificationField);
                 var values = section.Values;
                 var offset = 0;
                 while (offset < values.Count)
@@ -278,9 +277,11 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     var cell = new MazeCell((byte)values[firstOperand].Value, (byte)values[firstOperand + 1].Value);
                     var declarations = string.Equals(kind, BossRoomKeyword, StringComparison.OrdinalIgnoreCase)
                         ? draft.BossMaps : draft.Maps;
-                    Require(declarations.TryAdd(cell, Array.AsReadOnly(values.Skip(firstOperand + 2)
-                            .Take(offset - firstOperand - 2).Select(value => value.Value).ToArray())),
-                        archivePath, Fields.MapSpecificationField, "duplicate candidate declaration for a cell and kind");
+                    // Multiple declarations at one coordinate append resource candidates. They
+                    // remain scoped to this maze and kind, including across repeated sections.
+                    var existing = declarations.GetValueOrDefault(cell) ?? [];
+                    declarations[cell] = Array.AsReadOnly(existing.Concat(values.Skip(firstOperand + 2)
+                        .Take(offset - firstOperand - 2).Select(value => value.Value)).Distinct().ToArray());
                 }
             }
 
@@ -319,14 +320,20 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
     {
         if (draft is null) return;
         var cells = new Dictionary<MazeCell, DungeonCellDefinition>();
+        var configurationErrors = new List<string>();
+        if (draft.Width == 0 || draft.Height == 0)
+            configurationErrors.Add("maze size must have positive width and height");
         if (draft.Patterns is not null)
         {
-            Require(draft.Patterns.Count == draft.Width * draft.Height, path, Fields.GreedField,
-                "connection grid does not match maze size");
-            for (var index = 0; index < draft.Patterns.Count; index++)
+            if (draft.Patterns.Count != draft.Width * draft.Height)
+                configurationErrors.Add("connection grid does not match maze size");
+            for (var index = 0; draft.Width > 0 && index < draft.Patterns.Count; index++)
             {
                 var pattern = draft.Patterns[index];
                 if (pattern == DungeonPathDirection.None) continue;
+                // A malformed oversized grid is retained as a maze diagnostic, not allowed
+                // to wrap byte coordinates and throw while another maze is being loaded.
+                if (index / draft.Width > byte.MaxValue) continue;
                 var cell = new MazeCell((byte)(index % draft.Width), (byte)(index / draft.Width));
                 cells.Add(cell, new(pattern, draft.Maps.GetValueOrDefault(cell) ?? [],
                     draft.BossMaps.GetValueOrDefault(cell) ?? []));
@@ -338,15 +345,25 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             // from an AA cell in a declared grid, which is unoccupied.
             foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys).Distinct())
                 cells.Add(cell, new(DungeonPathDirection.All, draft.Maps.GetValueOrDefault(cell) ?? [],
-                    draft.BossMaps.GetValueOrDefault(cell) ?? []));
+                    draft.BossMaps.GetValueOrDefault(cell) ?? []) { HasDeclaredConnections = false });
         }
-        foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys))
-            Require(cells.ContainsKey(cell) && cell.X < draft.Width && cell.Y < draft.Height,
-                path, Fields.MapSpecificationField, "map declared outside occupied maze cells");
-        if (cells.Count == 0) return;
+        foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys).Distinct())
+        {
+            if (!cells.ContainsKey(cell) || cell.X >= draft.Width || cell.Y >= draft.Height)
+                configurationErrors.Add($"map ({cell.X},{cell.Y}) declared outside occupied maze cells");
+            // Preserve explicit declarations even when they conflict with the grid. Only
+            // selecting this maze should refuse entry, while diagnostics can still name it.
+            cells.TryAdd(cell, new(DungeonPathDirection.None, draft.Maps.GetValueOrDefault(cell) ?? [],
+                draft.BossMaps.GetValueOrDefault(cell) ?? []));
+        }
+        if (cells.Count == 0)
+            configurationErrors.Add("maze contains no occupied cells");
         mazes.Add(new MazeDefinition(draft.Index, draft.Width, draft.Height,
             new System.Collections.ObjectModel.ReadOnlyDictionary<MazeCell, DungeonCellDefinition>(cells),
-            draft.StartCandidates.AsReadOnly(), draft.BossCandidates.AsReadOnly(), draft.QuestConnection));
+            draft.StartCandidates.AsReadOnly(), draft.BossCandidates.AsReadOnly(), draft.QuestConnection) {
+            ConfigurationError = configurationErrors.Count == 0 ? null
+                : $"PVF '{path}', maze '{draft.Index}': {string.Join("; ", configurationErrors)}.",
+        });
     }
 
     internal static DungeonQuestConnection? ProjectQuestConnection(IReadOnlyList<int> values)

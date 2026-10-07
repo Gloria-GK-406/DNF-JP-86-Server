@@ -41,12 +41,14 @@ public sealed record DungeonPartyEntry(
 
 public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon,
     HellUnavailable, HellQuestNotCleared, MissingHellTicket, HellConfigurationInvalid,
-    MissingRequiredItem, LevelTooLow, MissingPrerequisite, DailyEntryLimitReached, MemberEntryLimitReached }
+    MissingRequiredItem, LevelTooLow, MissingPrerequisite, DailyEntryLimitReached, MemberEntryLimitReached,
+    ConfigurationInvalid }
 
-public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null)
+public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null,
+    string? Detail = null)
 {
     public static DungeonEntryAttempt Accepted(DungeonPartyEntry entry) => new(entry, null);
-    public static DungeonEntryAttempt Refused(DungeonEntryFailure failure) => new(null, failure);
+    public static DungeonEntryAttempt Refused(DungeonEntryFailure failure, string? detail = null) => new(null, failure, Detail: detail);
 }
 
 public enum DungeonMoveFailure { StaleRun, CellNotFound, Disconnected, NoCompatibleMap, StateRejected }

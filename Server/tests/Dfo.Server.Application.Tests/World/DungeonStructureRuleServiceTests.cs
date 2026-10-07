@@ -21,13 +21,13 @@ public sealed class DungeonStructureRuleServiceTests
         Width: 5,
         Height: 3,
         Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
-            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
-            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
-            [new MazeCell(2, 1)] = DungeonCellDefinition.Fixed(61002),
-            [new MazeCell(3, 1)] = DungeonCellDefinition.Fixed(61003),
-            [new MazeCell(4, 1)] = DungeonCellDefinition.Fixed(61005),
-            [new MazeCell(3, 2)] = DungeonCellDefinition.Fixed(61004),
-            [new MazeCell(3, 0)] = DungeonCellDefinition.Fixed(61006),
+            [new MazeCell(0, 1)] = FixedRoom(61000),
+            [new MazeCell(1, 1)] = FixedRoom(61001),
+            [new MazeCell(2, 1)] = FixedRoom(61002),
+            [new MazeCell(3, 1)] = FixedRoom(61003),
+            [new MazeCell(4, 1)] = FixedRoom(61005),
+            [new MazeCell(3, 2)] = FixedRoom(61004),
+            [new MazeCell(3, 0)] = FixedRoom(61006),
         },
         StartCandidates: [new MazeCell(0, 1)],
         BossCandidates: [new MazeCell(3, 0)]);
@@ -129,6 +129,172 @@ public sealed class DungeonStructureRuleServiceTests
         }
     }
 
+    [Theory]
+    [InlineData("start")]
+    [InlineData("boss")]
+    [InlineData("geometry")]
+    [InlineData("parse")]
+    public async Task Selected_maze_configuration_is_rejected_before_a_layout_is_returned(string invalid)
+    {
+        var maze = TutorialMaze;
+        maze = invalid switch
+        {
+            "start" => maze with { StartCandidates = [] },
+            "boss" => maze with { BossCandidates = [new MazeCell(4, 2)] },
+            "geometry" => maze with { Width = 1 },
+            _ => maze with { ConfigurationError = "greed grid size mismatch" },
+        };
+        var service = Service(Tutorial() with { Mazes = [maze] });
+        var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await service.ResolveAsync(10000, DungeonEntryFacts.None, 1, default));
+        Assert.Contains("maze '0'", error.Message);
+    }
+
+    [Fact]
+    public async Task Unselected_quest_maze_semantics_do_not_block_the_ordinary_maze()
+    {
+        var brokenQuest = TutorialMaze with
+        {
+            Index = 1, Width = 0, StartCandidates = [],
+            QuestConnection = new(DungeonQuestConnectionState.Active, 1776, -1),
+            ConfigurationError = "bad quest maze geometry",
+        };
+        var definition = Tutorial() with { Mazes = [TutorialMaze, brokenQuest] };
+        var rules = Service(definition);
+        Assert.NotNull(await rules.ResolveAsync(10000, DungeonEntryFacts.None, 1, default));
+        var directed = new DungeonEntryFacts(0, [1776], [], DungeonEntryIntent.Directed(10000));
+        var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await rules.ResolveAsync(10000, directed, 1, default));
+        Assert.Contains("bad quest maze geometry", error.Message);
+    }
+
+    [Fact]
+    public async Task Entry_preflights_each_reachable_incoming_direction_including_the_boss_room()
+    {
+        var start = new MazeCell(0, 0);
+        var ordinary = new MazeCell(1, 0);
+        var boss = new MazeCell(2, 0);
+        var maze = new MazeDefinition(0, 3, 1, new Dictionary<MazeCell, DungeonCellDefinition>
+        {
+            [start] = new(DungeonPathDirection.Right, [10], []),
+            [ordinary] = new(DungeonPathDirection.Left | DungeonPathDirection.Right, [11], []),
+            [boss] = new(DungeonPathDirection.Left, [], [12]),
+        }, [start], [boss]);
+        var definitions = new StubDungeonSource(new(1, "dungeon/preflight.dgn", 1, false, [maze]));
+        var maps = new PreflightMaps(ordinaryAcceptsLeft: false, bossPresent: true);
+        var rules = new DungeonStructureRuleService(definitions, maps);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default));
+        Assert.Contains("(1,0)", error.Message);
+
+        rules = new DungeonStructureRuleService(definitions, new PreflightMaps(true, false));
+        error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default));
+        Assert.Contains("(2,0)", error.Message);
+        Assert.NotNull(await new DungeonStructureRuleService(definitions, new PreflightMaps(true, true))
+            .ResolveAsync(1, DungeonEntryFacts.None, 1, default));
+    }
+
+    private sealed class PreflightMaps(bool ordinaryAcceptsLeft, bool bossPresent) : IDungeonMapDefinitionSource
+    {
+        public ValueTask<DungeonMapDefinition?> GetAsync(int id, CancellationToken token) =>
+            ValueTask.FromResult<DungeonMapDefinition?>(id switch
+            {
+                10 => new(10, [1], DungeonMapKind.Normal,
+                    [new(DungeonPathDirection.Right, DungeonPathDirection.Right)], true),
+                11 => new(11, [1], DungeonMapKind.Normal,
+                    [new(DungeonPathDirection.Left | DungeonPathDirection.Right,
+                        ordinaryAcceptsLeft ? DungeonPathDirection.All : DungeonPathDirection.Right)], false),
+                12 when bossPresent => new(12, [1], DungeonMapKind.Boss,
+                    [new(DungeonPathDirection.Left, DungeonPathDirection.Left)], false),
+                _ => null,
+            });
+        public ValueTask<IReadOnlyList<DungeonMapDefinition>> ListForDungeonAsync(int id, CancellationToken token) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonMapDefinition>>([]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Final_layout_preflights_the_hell_replacement_instead_of_the_unavailable_ordinary_resource(bool replaceStart)
+    {
+        var start = new MazeCell(0, 0);
+        var boss = new MazeCell(1, 0);
+        var maze = new MazeDefinition(0, 2, 1, new Dictionary<MazeCell, DungeonCellDefinition>
+        {
+            [start] = new(DungeonPathDirection.Right, [replaceStart ? 999 : 10], []),
+            [boss] = new(DungeonPathDirection.Left, [], [replaceStart ? 11 : 999]),
+        }, [start], [boss]);
+        IDungeonStructureRuleService rules = new DungeonStructureRuleService(
+            new StubDungeonSource(new(1, "dungeon/replacement.dgn", 1, false, [maze])),
+            new ReplacementMaps(replaceStart, "valid"));
+        var topology = Assert.IsType<DungeonLayout>(await rules.ResolveTopologyAsync(1, DungeonEntryFacts.None, 1, default));
+        Assert.Equal(0, topology.StartRoomMapId);
+        var prepared = await rules.PrepareLayoutAsync(topology with
+        {
+            EntryKind = DungeonEntryKind.ManualHell,
+            Hell = new HellEntryPlan(0, replaceStart ? start : boss, 900, []),
+        }, default);
+        Assert.Equal(replaceStart ? 900 : 10, prepared.StartRoomMapId);
+        Assert.Equal(900, (await rules.SelectMapAsync(prepared, replaceStart ? null : start,
+            replaceStart ? start : boss, default)).MapId);
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("pattern")]
+    [InlineData("entrance")]
+    [InlineData("separate-pairs")]
+    public async Task Hell_replacement_requires_an_existing_map_with_compatible_pattern_and_entrance(string failure)
+    {
+        var start = new MazeCell(0, 0);
+        var boss = new MazeCell(1, 0);
+        var layout = new DungeonLayout(1, 0, 2, 1, start, boss, 10, 1,
+            new Dictionary<MazeCell, DungeonCellDefinition>
+            {
+                [start] = new(DungeonPathDirection.Right, [10], []),
+                [boss] = new(DungeonPathDirection.Left, [], [11]),
+            }) { EntryKind = DungeonEntryKind.ManualHell, Hell = new(0, boss, 900, []) };
+        IDungeonStructureRuleService rules = new DungeonStructureRuleService(
+            new StubDungeonSource(Tutorial()), new ReplacementMaps(false, failure));
+        var selected = await rules.SelectMapAsync(layout, start, boss, default);
+        Assert.Null(selected.MapId);
+        Assert.Equal(DungeonMapSelectionFailure.NoCompatibleMap, selected.Failure);
+        var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await rules.PrepareLayoutAsync(layout, default));
+        Assert.Contains("(1,0)", error.Message);
+    }
+
+    private sealed class ReplacementMaps(bool replaceStart, string replacement) : IDungeonMapDefinitionSource
+    {
+        public ValueTask<DungeonMapDefinition?> GetAsync(int id, CancellationToken token)
+        {
+            var pattern = replaceStart ? DungeonPathDirection.Right : DungeonPathDirection.Left;
+            DungeonMapDefinition? result = id switch
+            {
+                10 => new(10, [1], DungeonMapKind.Normal,
+                    [new(DungeonPathDirection.Right, DungeonPathDirection.All)], true),
+                11 => new(11, [1], DungeonMapKind.Boss,
+                    [new(DungeonPathDirection.Left, DungeonPathDirection.All)], false),
+                900 when replacement != "missing" => new(900, [1], DungeonMapKind.Normal,
+                    replacement switch
+                    {
+                        "pattern" => [new(DungeonPathDirection.All, DungeonPathDirection.All)],
+                        "entrance" => [new(pattern, DungeonPathDirection.Right)],
+                        "separate-pairs" => [new(pattern, DungeonPathDirection.Right),
+                            new(DungeonPathDirection.All, DungeonPathDirection.Left)],
+                        _ => [new(pattern, DungeonPathDirection.All)],
+                    }, replaceStart),
+                _ => null,
+            };
+            return ValueTask.FromResult(result);
+        }
+        public ValueTask<IReadOnlyList<DungeonMapDefinition>> ListForDungeonAsync(int id, CancellationToken token) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonMapDefinition>>([]);
+    }
+
     [Fact]
     public async Task AnActiveQuestDoesNotUpgradeAnInteractiveOrdinaryEntry()
     {
@@ -212,7 +378,7 @@ public sealed class DungeonStructureRuleServiceTests
         var candidates = new List<MazeCell>();
         for (byte x = 0; x < 5; x++)
         {
-            rooms[new MazeCell(x, 0)] = DungeonCellDefinition.Fixed(61000 + x);
+            rooms[new MazeCell(x, 0)] = FixedRoom(61000 + x);
             candidates.Add(new MazeCell(x, 0));
         }
 
@@ -228,7 +394,7 @@ public sealed class DungeonStructureRuleServiceTests
                 index,
                 1,
                 1,
-                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(55600 + index)},
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = FixedRoom(55600 + index)},
                 [new MazeCell(0, 0)],
                 [new MazeCell(0, 0)],
                 connection);
@@ -253,4 +419,9 @@ public sealed class DungeonStructureRuleServiceTests
             int dungeonId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(dungeonId == definition.DungeonId ? definition : null);
     }
+
+    // Every candidate can be selected as the boss in the seed tests; provide an explicit boss
+    // resource as well, rather than relying on an empty implicit pool the fixture cannot answer.
+    private static DungeonCellDefinition FixedRoom(int id) =>
+        DungeonCellDefinition.Fixed(id) with { BossMapCandidates = [id] };
 }

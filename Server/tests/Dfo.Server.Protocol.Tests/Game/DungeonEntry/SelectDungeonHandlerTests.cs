@@ -85,6 +85,8 @@ public sealed class SelectDungeonHandlerTests
     [InlineData(DungeonEntryFailure.DailyEntryLimitReached, false, 0xF6)]
     [InlineData(DungeonEntryFailure.MemberEntryLimitReached, false, 0xAD)]
     [InlineData(DungeonEntryFailure.AlreadyInDungeon, false, 0x13)]
+    [InlineData(DungeonEntryFailure.ConfigurationInvalid, false, SelectDungeonRefusal.DungeonUnavailable)]
+    [InlineData(DungeonEntryFailure.HellConfigurationInvalid, true, SelectDungeonRefusal.DungeonUnavailable)]
     public async Task Refusals_preserve_the_actual_reason_and_allow_retry(DungeonEntryFailure failure, bool hell, byte code)
     {
         var sender = new RecordingSender();

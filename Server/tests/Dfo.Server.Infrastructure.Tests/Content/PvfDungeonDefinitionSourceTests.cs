@@ -18,6 +18,22 @@ public sealed class PvfDungeonDefinitionSourceTests
     private const int SwordmanTutorialDungeonId = 10004;
 
     [SkippableFact]
+    public async Task Formacartel_quest_maze_keeps_both_resources_at_the_same_cell()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var declaration = Assert.Single(PvfListFile.Read(provider.Archive, "dungeon/dungeon.lst"),
+            item => string.Equals(item.RelativePath, "timegate/formacartel_r.dgn", StringComparison.OrdinalIgnoreCase));
+
+        var dungeon = await new PvfDungeonDefinitionSource(provider).GetAsync(declaration.Id, default);
+
+        Assert.NotNull(dungeon);
+        var maze = Assert.Single(dungeon.Mazes, item => item.QuestConnection?.QuestId == 2389);
+        Assert.Equal([32984, 32986], maze.Cells[new MazeCell(1, 2)].MapCandidates);
+        Assert.Contains(dungeon.Mazes, item => item.QuestConnection is null);
+    }
+
+    [SkippableFact]
     public async Task All_ordinary_ancient_and_requiem_declarations_decode_with_entry_requirements()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
