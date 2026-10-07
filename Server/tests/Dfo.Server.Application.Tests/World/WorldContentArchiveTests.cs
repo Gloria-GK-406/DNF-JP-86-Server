@@ -262,16 +262,17 @@ public sealed class WorldContentArchiveTests
             ChannelEntryOptions.Legacy);
 
         var result = await placement.ResolveAsync(
-            new ChannelEntryIdentity(100, 10161, ChannelEntryKind.LevelRestricted),
+            new ChannelEntryIdentity(100, 10161, ChannelEntryKind.SaintHorn),
             persistedTownId: 1,
             CancellationToken.None);
 
         Assert.True(result.Spawn.IsTransient);
         Assert.False(result.PersistsPosition);
         Assert.Equal(17, result.Spawn.TownId);
-        Assert.Equal(4, result.Spawn.AreaId);
-        Assert.Equal(378, result.Spawn.X);
-        Assert.Equal(278, result.Spawn.Y);
+        Assert.Equal(0, result.Spawn.AreaId);
+        Assert.Equal(474, result.Spawn.X);
+        Assert.Equal(234, result.Spawn.Y);
+        Assert.False(result.Spawn.SharesTownPresence);
     }
 
     [SkippableFact]

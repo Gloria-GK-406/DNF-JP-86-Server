@@ -52,11 +52,12 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-auth-e2e-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
-        var ports = GetAvailablePorts(4);
+        var ports = GetAvailablePorts(5);
         var httpPort = ports[0];
         var channelListenerPort = ports[1];
         var gameListenerPort = ports[2];
         var secondGameListenerPort = ports[3];
+        var saintHornListenerPort = ports[4];
         var output = new StringBuilder();
         var process = StartHost(
             directory,
@@ -64,6 +65,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
             channelListenerPort,
             gameListenerPort,
             secondGameListenerPort,
+            saintHornListenerPort,
             output);
         var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
         var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
@@ -75,6 +77,8 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
                 new(IPAddress.Loopback, gameListenerPort),
             [new(GameHost, AdvertisedGamePort + 1)] =
                 new(IPAddress.Loopback, secondGameListenerPort),
+            [new(GameHost, AdvertisedGamePort + 2)] =
+                new(IPAddress.Loopback, saintHornListenerPort),
         };
         var harness = new EndToEndHostHarness(
             directory,
@@ -138,7 +142,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         var info = await ReadChannelFrameAsync(channelStream, this.timeout.Token);
         Assert.Equal(0x12, info.MessageNumber);
         var infoPlaintext = DecryptChannelPayload(info.Body, key);
-        Assert.True(BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(2, 4)) >= 1);
+        Assert.Equal(3, BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(2, 4)));
         var advertisedGame = new AdvertisedEndpoint(
             ReadFixedAscii(infoPlaintext.AsSpan(34, 16)),
             BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(50, 4)));
@@ -200,11 +204,12 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         Assert.Equal((byte)0x00, honor.Command);
         Assert.Equal((ushort)0x0289, honor.Type);
 
-        var secondChannel = new AdvertisedEndpoint(
-            ReadFixedAscii(infoPlaintext.AsSpan(34 + 48, 16)),
-            BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(50 + 48, 4)));
+        var saintHornChannel = new AdvertisedEndpoint(
+            ReadFixedAscii(infoPlaintext.AsSpan(34 + 2 * 48, 16)),
+            BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(50 + 2 * 48, 4)));
+        Assert.Equal("#ch.100", ReadFixedAscii(infoPlaintext.AsSpan(6 + 2 * 48, 20)));
         // New channel can arrive before the old TCP close callback; its credential stays the same.
-        using var switched = await LoginGameAsync(secondChannel, mId!, ticket!);
+        using var switched = await LoginGameAsync(saintHornChannel, mId!, ticket!);
         await Assert.ThrowsAsync<EndOfStreamException>(async () =>
             await ReadGameFrameAsync(gameStream, this.timeout.Token));
         switched.Dispose();
@@ -219,7 +224,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         await AssertLoginRejectedAsync(advertisedGame, mId!, ticket!);
         var newMId = replacementJson.RootElement.GetProperty("mId").GetString()!;
         var newTicket = replacementJson.RootElement.GetProperty("ticket").GetString()!;
-        using var last = await LoginGameAsync(secondChannel, newMId, newTicket);
+        using var last = await LoginGameAsync(saintHornChannel, newMId, newTicket);
         await last.GetStream().WriteAsync(EncodeGameClientFrame(0x01, 0x0003, [0]), this.timeout.Token);
         var exit = await ReadGameFrameAsync(last.GetStream(), this.timeout.Token);
         Assert.Equal((ushort)0x0003, exit.Type);
@@ -320,6 +325,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         int channelListenerPort,
         int gameListenerPort,
         int secondGameListenerPort,
+        int saintHornListenerPort,
         StringBuilder output)
     {
         var startInfo = new ProcessStartInfo("dotnet")
@@ -339,11 +345,14 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         startInfo.Environment["Networking__ChannelPort"] = channelListenerPort.ToString();
         startInfo.Environment["Networking__GamePorts__0"] = gameListenerPort.ToString();
         startInfo.Environment["Networking__GamePorts__1"] = secondGameListenerPort.ToString();
+        startInfo.Environment["Networking__GamePorts__2"] = saintHornListenerPort.ToString();
         startInfo.Environment["Channel__PublicServerIp"] = GameHost;
         startInfo.Environment["Channel__Channels__0__Host"] = GameHost;
         startInfo.Environment["Channel__Channels__0__Port"] = AdvertisedGamePort.ToString();
         startInfo.Environment["Channel__Channels__1__Host"] = GameHost;
         startInfo.Environment["Channel__Channels__1__Port"] = (AdvertisedGamePort + 1).ToString();
+        startInfo.Environment["Channel__Channels__2__Host"] = GameHost;
+        startInfo.Environment["Channel__Channels__2__Port"] = (AdvertisedGamePort + 2).ToString();
         startInfo.Environment["Game__EndpointHost"] = FollowUpHost;
         startInfo.Environment["GameLogin__ConnectionPort"] = FollowUpConnectionPort.ToString();
         startInfo.Environment["GameLogin__EndpointPortA"] = FollowUpPortA.ToString();

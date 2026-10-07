@@ -6,11 +6,7 @@ namespace Dfo.Server.Application.Channel;
 /// <summary>
 /// Decides what a listener means and who may enter through it.
 /// </summary>
-/// <remarks>
-/// Reverse-engineered from the legacy channel admission policy, which carries exactly one
-/// rule: the restricted channel turns away characters below its minimum level. Everything
-/// else the legacy policy exposes is spawn behaviour, which is a separate decision.
-/// </remarks>
+/// <remarks>Saint Horn identity, level admission and listener mapping are separate decisions.</remarks>
 internal sealed class ChannelEntryPolicy(
     IChannelContentRuleService channels,
     ChannelEntryOptions options,
@@ -63,8 +59,8 @@ internal sealed class ChannelEntryPolicy(
     {
         ArgumentNullException.ThrowIfNull(channel);
 
-        return channel.Kind is ChannelEntryKind.LevelRestricted
-               && characterLevel < options.LevelRestrictedMinimumLevel
+        return channel.Kind is ChannelEntryKind.SaintHorn
+               && characterLevel < options.SaintHornMinimumLevel
             ? RestrictedChannelRefusal
             : null;
     }
@@ -76,20 +72,19 @@ internal sealed class ChannelEntryPolicy(
         new(ChannelIdUnknown, listenerPort, ChannelEntryKind.General);
 
     /// <summary>
-    /// The refusal the legacy server sends, byte for byte.
+    /// The native refusal code and a notice reflecting the configured minimum.
     /// </summary>
     /// <remarks>
-    /// The code and the wording are protocol surface, so they are reproduced rather than
-    /// reworded. The text reads "this channel admits only characters of level 70 and above".
+    /// Preserve the refusal code; describe the configured minimum level in the notice.
     /// </remarks>
-    private static readonly ChannelAdmissionRefusal RestrictedChannelRefusal = new(
+    private readonly ChannelAdmissionRefusal RestrictedChannelRefusal = new(
         ErrorCode: 0xFD,
-        Message: "当前频道仅限70级及以上角色进入。");
+        Message: $"圣者之鸣号频道仅限{options.SaintHornMinimumLevel}级及以上角色进入。");
 
     private ChannelEntryKind KindOf(int channelId)
     {
-        if (channelId == options.LevelRestrictedChannelId)
-            return ChannelEntryKind.LevelRestricted;
+        if (channelId == options.SaintHornChannelId)
+            return ChannelEntryKind.SaintHorn;
 
         // A duelling channel that is switched off is an ordinary channel, not a missing
         // one: the legacy server simply does not list its listener.

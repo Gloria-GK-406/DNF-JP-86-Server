@@ -69,8 +69,10 @@ public sealed class EntryPlacementTests
         Assert.True(result.Spawn.IsTransient);
         Assert.False(result.PersistsPosition);
         Assert.Equal(17, result.Spawn.TownId);
-        Assert.Equal(4, result.Spawn.AreaId);
-        Assert.True(result.Spawn.SharesTownPresence);
+        Assert.Equal(0, result.Spawn.AreaId);
+        Assert.Equal(474, result.Spawn.X);
+        Assert.Equal(234, result.Spawn.Y);
+        Assert.False(result.Spawn.SharesTownPresence);
     }
 
     [Fact]
@@ -98,6 +100,8 @@ public sealed class EntryPlacementTests
             StubChannelEntryPolicy.RestrictedChannel, 1, CancellationToken.None));
         Assert.True(await placement.CanEnterTownAsync(
             StubChannelEntryPolicy.GeneralChannel, 1, CancellationToken.None));
+        Assert.False(await placement.CanEnterTownAsync(
+            StubChannelEntryPolicy.GeneralChannel, 17, CancellationToken.None));
     }
 
     [Fact]
@@ -148,94 +152,38 @@ public sealed class EntryPlacementTests
         Assert.Equal(1, result.Spawn.TownId);
     }
 
-    /// <remarks>
-    /// The exit rectangle is 30 wide and 120 tall at (340, 218), so its centre is (355, 278)
-    /// and the four candidates are (332, 278), (378, 278), (355, 210) and (355, 346). Only
-    /// the second lies inside a walkable rectangle, so it is the arrival point. Getting the
-    /// clearance or the side wrong would still yield a plausible coordinate, which is why
-    /// the expected point is stated rather than merely range-checked.
-    /// </remarks>
-    [Fact]
-    public async Task The_transient_arrival_is_the_nearest_walkable_point_beside_the_local_exit()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Saint_horn_requires_its_own_valid_gate_and_never_falls_back_to_an_ordinary_town(bool invalidCoordinates)
     {
-        var result = await Placement().ResolveAsync(
-            StubChannelEntryPolicy.RestrictedChannel,
-            persistedTownId: 1,
-            CancellationToken.None);
-
-        Assert.Equal(378, result.Spawn.X);
-        Assert.Equal(278, result.Spawn.Y);
-    }
-
-    /// <remarks>
-    /// Exits that lead to another town map are not arrival points. Considering them would
-    /// place the character beside a door to somewhere else.
-    /// </remarks>
-    [Fact]
-    public async Task An_exit_that_leads_to_another_map_is_not_used_as_an_arrival_point()
-    {
-        var towns = new StubTownSource(
-            [Town(17, [Area(4, "restricted.map", TownAreaKind.DungeonGate)])],
-            new Dictionary<string, MapGeometry>
-            {
-                // The only exit here links to town 3, so nothing qualifies.
-                ["restricted.map"] = new MapGeometry(
-                    [new TownTransitArea(new MapRectangle(100, 100, 10, 10), 3, 1)],
-                    [new MapRectangle(0, 0, 1000, 1000)]),
-            });
-
-        var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
-                StubChannelEntryPolicy.RestrictedChannel,
-                persistedTownId: 1,
-                CancellationToken.None));
-
-        Assert.Contains("arrival", error.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <remarks>
-    /// The arrival is computed from a local exit's geometry, which only an area leading out
-    /// of town has. Reading an ordinary area's map would still produce a coordinate, and
-    /// nothing downstream would question it, so the kind is checked rather than assumed.
-    /// </remarks>
-    [Fact]
-    public async Task An_area_that_does_not_lead_out_of_town_is_not_an_arrival_point()
-    {
-        var towns = new StubTownSource(
-            [Town(17, [Area(4, "restricted.map", TownAreaKind.Normal)])],
-            new Dictionary<string, MapGeometry>
-            {
-                ["restricted.map"] = new MapGeometry(
-                    [new TownTransitArea(new MapRectangle(340, 218, 30, 120), -1, -1)],
-                    [new MapRectangle(0, 0, 1000, 1000)]),
-            });
-
-        var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
-                StubChannelEntryPolicy.RestrictedChannel,
-                persistedTownId: 1,
-                CancellationToken.None));
-
-        Assert.Contains("Normal", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task An_exit_with_no_walkable_neighbour_yields_no_arrival_point()
-    {
-        var towns = new StubTownSource(
-            [Town(17, [Area(4, "restricted.map", TownAreaKind.DungeonGate)])],
-            new Dictionary<string, MapGeometry>
-            {
-                ["restricted.map"] = new MapGeometry(
-                    [new TownTransitArea(new MapRectangle(100, 100, 10, 10), -1, -1)],
-                    []),
-            });
-
+        var specialArea = invalidCoordinates
+            ? Area(0, "special.map", TownAreaKind.Gate, int.MaxValue, 234)
+            : Area(4, "old-exit.map", TownAreaKind.DungeonGate);
+        var placement = new EntryPlacementRuleService(new StubTownSource(
+            [Town(1, [Area(0, "initial.map", TownAreaKind.Gate, 474, 234)]),
+             Town(17, [specialArea])], new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy);
         await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
-                StubChannelEntryPolicy.RestrictedChannel,
-                persistedTownId: 1,
-                CancellationToken.None));
+            await placement.ResolveAsync(StubChannelEntryPolicy.RestrictedChannel, 1, default));
+    }
+
+    [Fact]
+    public async Task Returning_to_an_ordinary_channel_recovers_the_saved_home_gate()
+    {
+        var placement = Placement();
+        var boat = await placement.ResolveAsync(StubChannelEntryPolicy.RestrictedChannel, 2, default);
+        Assert.False(boat.PersistsPosition);
+        var home = await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, 2, default);
+        Assert.Equal(2, home.Spawn.TownId);
+        Assert.Equal(300, home.Spawn.X);
+        Assert.True(home.PersistsPosition);
+    }
+
+    [Fact]
+    public async Task A_historical_special_town_save_cannot_put_a_general_channel_on_the_boat()
+    {
+        var result = await Placement().ResolveAsync(StubChannelEntryPolicy.GeneralChannel, 17, default);
+        Assert.Equal(1, result.Spawn.TownId);
     }
 
     private static EntryPlacementRuleService Placement() =>
@@ -249,22 +197,8 @@ public sealed class EntryPlacementTests
                 Town(2, [Area(0, "second.map", TownAreaKind.Gate, 300, 400)]),
                 // Town 7 has areas but no gate, which the real content also contains.
                 Town(7, [Area(0, "warfare.map", TownAreaKind.Unrecognized)]),
-                Town(17, [Area(4, "restricted.map", TownAreaKind.DungeonGate)]),
-            ],
-            new Dictionary<string, MapGeometry>
-            {
-                // Reproduces the shape the real restricted-channel map declares.
-                ["restricted.map"] = new MapGeometry(
-                    [
-                        new TownTransitArea(new MapRectangle(1323, 157, 30, 258), 17, 1),
-                        new TownTransitArea(new MapRectangle(340, 218, 30, 120), -1, -1),
-                    ],
-                    [
-                        new MapRectangle(617, 177, 750, 230),
-                        new MapRectangle(346, 228, 280, 100),
-                        new MapRectangle(555, 307, 280, 100),
-                    ]),
-            }),
+                Town(17, [Area(0, "saint-gate.map", TownAreaKind.Gate, 474, 234)]),
+            ], new Dictionary<string, MapGeometry>()),
             ChannelEntryOptions.Legacy);
 
     private static TownDefinition Town(int townId, IReadOnlyList<TownAreaDefinition> areas) =>

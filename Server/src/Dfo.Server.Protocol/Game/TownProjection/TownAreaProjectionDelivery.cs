@@ -73,6 +73,21 @@ public sealed class TownAreaProjectionDelivery
         this.weaknessProjection = weaknessProjection;
     }
 
+    /// <summary>Restores the accepted location after a refused channel-boundary crossing.</summary>
+    public ValueTask RefuseTownChangeAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
+        SelectCharacterResult result, Dfo.Server.Data.Characters.CharacterPositionState standing,
+        string reason, CancellationToken cancellationToken)
+    {
+        var spawn = result.World.Channel.Spawn with
+        {
+            TownId = standing.TownId, AreaId = standing.AreaId,
+            X = standing.X, Y = standing.Y, Direction = standing.Direction,
+        };
+        return sender.SendExplicitAsync(connectionId, new GameExplicitMessageDelivery(
+            [new UserAreaNotification(session.WireUserId, spawn, standing.AreaId),
+             new GameServerNoticeMessage(reason)], []), cancellationToken);
+    }
+
     public async ValueTask<bool> TransferAsync(
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,

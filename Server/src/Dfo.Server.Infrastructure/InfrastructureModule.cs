@@ -150,12 +150,12 @@ public sealed class InfrastructureModule : IServerModule
         var defaults = ChannelEntryOptions.Legacy;
 
         return new ChannelEntryOptions(
-            int.TryParse(section["LevelRestrictedChannelId"], out var restrictedId)
+            int.TryParse(section["SaintHornChannelId"], out var restrictedId)
                 ? restrictedId
-                : defaults.LevelRestrictedChannelId,
-            int.TryParse(section["LevelRestrictedMinimumLevel"], out var minimumLevel)
+                : defaults.SaintHornChannelId,
+            int.TryParse(section["SaintHornMinimumLevel"], out var minimumLevel)
                 ? minimumLevel
-                : defaults.LevelRestrictedMinimumLevel,
+                : defaults.SaintHornMinimumLevel,
             int.TryParse(section["FreeDuelChannelId"], out var freeDuelId)
                 ? freeDuelId
                 : defaults.FreeDuelChannelId,
@@ -165,12 +165,9 @@ public sealed class InfrastructureModule : IServerModule
             int.TryParse(section["DefaultTownId"], out var defaultTownId)
                 ? defaultTownId
                 : defaults.DefaultTownId,
-            int.TryParse(section["LevelRestrictedTownId"], out var restrictedTownId)
+            int.TryParse(section["SaintHornTownId"], out var restrictedTownId)
                 ? restrictedTownId
-                : defaults.LevelRestrictedTownId,
-            int.TryParse(section["LevelRestrictedSpawnAreaId"], out var restrictedAreaId)
-                ? restrictedAreaId
-                : defaults.LevelRestrictedSpawnAreaId);
+                : defaults.SaintHornTownId);
     }
 }
 

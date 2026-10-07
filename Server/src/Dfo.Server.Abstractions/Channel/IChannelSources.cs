@@ -23,28 +23,23 @@ public interface IChannelCatalog
 /// what being restricted means belongs above this contract.
 /// </remarks>
 /// <param name="DefaultTownId">Where a character with no remembered town arrives.</param>
-/// <param name="LevelRestrictedTownId">The only town the restricted channel serves.</param>
-/// <param name="LevelRestrictedSpawnAreaId">
-/// The area within that town whose geometry supplies the transient arrival point.
-/// </param>
+/// <param name="SaintHornTownId">The only town the restricted channel serves.</param>
 public sealed record ChannelEntryOptions(
-    int LevelRestrictedChannelId,
-    int LevelRestrictedMinimumLevel,
+    int SaintHornChannelId,
+    int SaintHornMinimumLevel,
     int FreeDuelChannelId,
     bool FreeDuelEnabled,
     int DefaultTownId,
-    int LevelRestrictedTownId,
-    int LevelRestrictedSpawnAreaId)
+    int SaintHornTownId)
 {
     /// <summary>The values the legacy server uses.</summary>
     public static ChannelEntryOptions Legacy { get; } = new(
-        LevelRestrictedChannelId: 100,
-        LevelRestrictedMinimumLevel: 70,
+        SaintHornChannelId: 100,
+        SaintHornMinimumLevel: 70,
         FreeDuelChannelId: 68,
         FreeDuelEnabled: false,
         DefaultTownId: 1,
-        LevelRestrictedTownId: 17,
-        LevelRestrictedSpawnAreaId: 4);
+        SaintHornTownId: 17);
 }
 
 /// <summary>

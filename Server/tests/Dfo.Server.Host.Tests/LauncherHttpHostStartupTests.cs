@@ -327,11 +327,15 @@ public sealed class LauncherHttpHostStartupTests
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();
         startInfo.Environment["Networking__GamePorts__0"] = gamePort.ToString();
         startInfo.Environment["Networking__GamePorts__1"] = GetAvailablePortExcept(httpPort, channelPort, gamePort).ToString();
+        startInfo.Environment["Networking__GamePorts__2"] = GetAvailablePortExcept(
+            httpPort, channelPort, gamePort, int.Parse(startInfo.Environment["Networking__GamePorts__1"]!)).ToString();
         startInfo.Environment["Channel__PublicServerIp"] = "127.0.0.1";
         startInfo.Environment["Channel__Channels__0__Host"] = "127.0.0.1";
         startInfo.Environment["Channel__Channels__0__Port"] = gamePort.ToString();
         startInfo.Environment["Channel__Channels__1__Host"] = "127.0.0.1";
         startInfo.Environment["Channel__Channels__1__Port"] = startInfo.Environment["Networking__GamePorts__1"];
+        startInfo.Environment["Channel__Channels__2__Host"] = "127.0.0.1";
+        startInfo.Environment["Channel__Channels__2__Port"] = startInfo.Environment["Networking__GamePorts__2"];
         startInfo.Environment["Game__EndpointHost"] = "127.0.0.1";
         startInfo.Environment["GameLogin__ConnectionPort"] = "10128";
         startInfo.Environment["GameLogin__EndpointPortA"] = "17200";
