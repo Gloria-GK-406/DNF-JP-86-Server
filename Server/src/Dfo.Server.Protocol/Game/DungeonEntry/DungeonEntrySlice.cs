@@ -52,11 +52,9 @@ public sealed record SelectDungeonRequest(
 /// The CMD refusal under the same type: why the character is not going in.
 /// </summary>
 /// <remarks>
-/// Three bytes -- a zero, a code, and a context byte that only the party-shaped refusals use. The
-/// codes are the reference server's own
-/// <c>DungeonAdmissionRejectBuilder</c> table; <b>what the client draws for each of them has not
-/// been read out of its string table</b>, unlike the move and use refusals, so they are named for
-/// what the server decided rather than for what the player is told.
+/// Three bytes: zero, error code, context. Most codes retain reference-server names.
+/// A21 distinguishes ordinary missing materials (0x11) from hell tickets (0x1B);
+/// the latter also updates the hell selection control. See protocol/game/client-to-server/0x0010.md.
 /// <para>
 /// Before 2026-08-26 a selection this server could not answer was answered with nothing at all,
 /// which reaches the player as a button that does nothing. A probe against dungeon 5000 -- a
@@ -84,6 +82,9 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
 
     /// <summary>An entry item the dungeon requires is not held.</summary>
     public const byte MissingRequiredItem = 0x11;
+
+    /// <summary>A participant lacks the hell entry ticket.</summary>
+    public const byte MissingHellTicket = 0x1B;
 
     /// <summary>Not enough fatigue left to enter.</summary>
     public const byte InsufficientFatigue = 0x16;

@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-07 深渊缺票拒绝修正
+
+[CMD0010](game/client-to-server/0x0010.md) 的 `MissingHellTicket` 使用 A21 深渊专用码 `0x1B`，不再沿用普通材料不足 `0x11`。客户端分支与文案为 ClientStatic / Confirmed；回归覆盖拒绝帧和重试意图，修正后的控件恢复仍待实机验收。
+
 ## 2026-10-07 主动深渊入场（CurrentImplementation）
 
 [CMD0010](game/client-to-server/0x0010.md) 模式1经CMD类型判定和主动深渊领域服务，检查全队任务/等级/门票并冻结共享方案；随机深渊保留桩。[001C](game/server-to-client/NOTI-0x001C.md)/[001D](game/server-to-client/NOTI-0x001D.md)/[02A7](game/server-to-client/NOTI-0x02A7.md)消费同一方案，普通编码保留原向量。02A7资源消费链补证为ClientStatic；尚未部署/实机验收。柱、波次、掉落与结算不在此次范围。见[实现说明](../Document/tasks/manual-hell-entry/implementation.md)。

@@ -22,6 +22,7 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
@@ -47,6 +48,46 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 /// </remarks>
 public sealed class SelectDungeonHandlerTests
 {
+    [Fact]
+    public async Task Missing_hell_tickets_send_the_native_refusal_and_preserve_selection_for_retry()
+    {
+        var commands = new MissingHellTicketCommands();
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var fatigue = new RecordingFatigue();
+        var handler = Handler(visits, sender, fatigue: fatigue, commands: commands);
+        var request = Request() with { RequestMode = 1 };
+
+        await handler.HandleAsync(Dispatch(), request, default);
+        await handler.HandleAsync(Dispatch(), request, default);
+
+        Assert.Equal(2, commands.Calls);
+        Assert.Equal(2, sender.Sent.Count);
+        foreach (var message in sender.Sent)
+        {
+            var refusal = Assert.IsType<SelectDungeonRefusal>(message);
+            var frame = new SelectDungeonRefusalEncoder().Encode(refusal).Single().ToArray();
+            Assert.Equal(Convert.FromHexString("001B00"), frame[15..]);
+        }
+        Assert.Empty(visits.Facts);
+        Assert.Empty(fatigue.Spent);
+    }
+
+    private sealed class MissingHellTicketCommands : ICommandBus
+    {
+        public int Calls { get; private set; }
+
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
+            CancellationToken cancellationToken = default) where TResult : notnull
+        {
+            var entry = Assert.IsType<EnterDungeonCommand>(command);
+            Assert.Equal((byte)1, entry.Entry.RequestMode);
+            Calls++;
+            return ValueTask.FromResult((TResult)(object)new DungeonEntryAttempt(
+                null, DungeonEntryFailure.MissingHellTicket, 0));
+        }
+    }
+
     [Theory]
     [InlineData(11000, 0)]
     [InlineData(11001, 0)]
@@ -512,20 +553,32 @@ public sealed class SelectDungeonHandlerTests
         OneLog? logs = null,
         RecordingFatigue? fatigue = null,
         DungeonEntryIntent? intent = null,
-        IIllusionTowerDomainService? tower = null)
+        IIllusionTowerDomainService? tower = null,
+        ICommandBus? commands = null)
     {
         var actualSender = sender ?? new RecordingSender();
         var sessions = new OneSession(Identity);
         var runtimes = new OneRuntimeSession(Entry());
+        var actualFatigue = fatigue ?? new RecordingFatigue();
+        var intents = new IntentStore(intent ?? DungeonEntryIntent.Interactive);
+        var runs = new NoopRuns();
+        var registry = new DungeonRunDeliveryRegistry();
+        var transitionGate = new SelectedSessionTransitionGate();
+        var town = TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender);
+        var projection = commands is null ? null : new DungeonEntryProjectionDelivery(
+            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), new UnchangedState(),
+            sessions, new RuntimeCurrentView(runtimes), runs, registry, intents, visits,
+            actualFatigue, actualSender, new NoopConnectionCloser(), town, transitionGate,
+            new DungeonProjectionGate(), NullLogger<DungeonEntryProjectionDelivery>.Instance, commands);
         return new(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             sessions,
             new RuntimeCurrentView(runtimes),
             new NoPartyService(),
-            new NoopRuns(),
-            new DungeonRunDeliveryRegistry(),
-            new IntentStore(intent ?? DungeonEntryIntent.Interactive),
+            runs,
+            registry,
+            intents,
             visits,
             logs ?? new OneLog(new StandInLog(
                 [
@@ -533,12 +586,13 @@ public sealed class SelectDungeonHandlerTests
                     new CarriedQuest(1, AlsoCarriedInLog, 0),
                 ],
                 [new ClearedQuest(ClearedInLog, IQuestLog.ClearedMark)])),
-            fatigue ?? new RecordingFatigue(),
+            actualFatigue,
             actualSender,
             new NoopConnectionCloser(),
-            TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender),
+            town,
             NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate(),
+            transitionGate,
+            entryProjection: projection,
             illusionTower: tower,
             // Sentinel projection: the probe throws if the shortcut is even consulted.
             illusionTowerProjection: tower is null ? null : new(tower, null!, null!, null!, null!, null!, null!,

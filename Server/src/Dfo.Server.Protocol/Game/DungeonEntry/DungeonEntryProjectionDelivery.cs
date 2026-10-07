@@ -100,7 +100,7 @@ public sealed class DungeonEntryProjectionDelivery(
                 or DungeonEntryFailure.HellQuestNotCleared or DungeonEntryFailure.MissingHellTicket)
             {
                 var error = attempt.Failure == DungeonEntryFailure.MissingHellTicket
-                    ? SelectDungeonRefusal.MissingRequiredItem
+                    ? SelectDungeonRefusal.MissingHellTicket
                     : attempt.Failure == DungeonEntryFailure.HellQuestNotCleared
                         ? SelectDungeonRefusal.MemberBlocked : SelectDungeonRefusal.DungeonUnavailable;
                 await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
