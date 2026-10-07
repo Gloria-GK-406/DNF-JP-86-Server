@@ -8,7 +8,7 @@ namespace Dfo.Server.Application.Sessions;
 internal sealed class SelectedCharacterCurrentViewDomainService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory published,
-    ISelectCharacterPreparationDomainService preparation) : ISelectedCharacterCurrentViewDomainService
+    ICharacterCurrentStateQueryDomainService currentState) : ISelectedCharacterCurrentViewDomainService
 {
     public async ValueTask<SelectCharacterResult?> TryLoadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -17,7 +17,7 @@ internal sealed class SelectedCharacterCurrentViewDomainService(
             || !published.IsPublishedExact(session))
             return null;
 
-        var result = await preparation.LoadCurrentAsync(session, cancellationToken)
+        var result = await currentState.ReadAsync(session, cancellationToken)
             .ConfigureAwait(false);
 
         // A replacement can publish while the independently-owned facts are being read.

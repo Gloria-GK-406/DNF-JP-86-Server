@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World;
 
@@ -18,7 +19,8 @@ namespace Dfo.Server.Application.World;
 /// </remarks>
 internal sealed class EntryPlacementRuleService(
     ITownDefinitionSource towns,
-    ChannelEntryOptions options) : IEntryPlacementRuleService
+    ChannelEntryOptions options,
+    ILogger<EntryPlacementRuleService>? logger = null) : IEntryPlacementRuleService
 {
     /// <summary>The facing and area state the legacy server assigns to every arrival.</summary>
     private const byte ArrivalDirection = 5;
@@ -91,13 +93,34 @@ internal sealed class EntryPlacementRuleService(
         CancellationToken cancellationToken)
     {
         var townId = persistedTownId > 0 ? persistedTownId : options.DefaultTownId;
-        var town = await towns.GetAsync(townId, cancellationToken).ConfigureAwait(false)
-            ?? throw new EntryPlacementUnavailableException(
-                $"The content defines no town {townId}, so a character cannot be placed there.");
+        var spawn = await TryResolveTownGateSpawnAsync(townId, cancellationToken).ConfigureAwait(false);
+        if (spawn is not null)
+            return spawn;
 
-        var gate = town.Gate
-            ?? throw new EntryPlacementUnavailableException(
-                $"Town {townId} declares no arrival gate, so a character cannot be placed there.");
+        if (townId != options.DefaultTownId)
+        {
+            logger?.LogWarning(
+                "Town {TownId} has no usable login arrival gate; falling back to initial town {DefaultTownId}",
+                townId, options.DefaultTownId);
+            spawn = await TryResolveTownGateSpawnAsync(options.DefaultTownId, cancellationToken)
+                .ConfigureAwait(false);
+            if (spawn is not null)
+                return spawn;
+        }
+
+        throw new EntryPlacementUnavailableException(
+            $"Initial town {options.DefaultTownId} declares no usable arrival gate (requested town {townId}).");
+    }
+
+    private async ValueTask<EntrySpawnState?> TryResolveTownGateSpawnAsync(
+        int townId, CancellationToken cancellationToken)
+    {
+        var gate = (await towns.GetAsync(townId, cancellationToken).ConfigureAwait(false))?.Gate;
+        if (gate is null || townId is <= 0 or > byte.MaxValue
+            || gate.AreaId is < 0 or > byte.MaxValue
+            || gate.Operand1 is < short.MinValue or > short.MaxValue
+            || gate.Operand2 is < short.MinValue or > short.MaxValue)
+            return null;
 
         return new EntrySpawnState(
             checked((byte)townId),

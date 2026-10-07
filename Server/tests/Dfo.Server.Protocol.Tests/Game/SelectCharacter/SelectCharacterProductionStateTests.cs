@@ -26,14 +26,12 @@ public sealed class SelectCharacterProductionStateTests
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var sources = new Sources(seed, []);
-        var service = new SelectCharacterPreparationService(
-            sources, sources, sources, sources, sources, sources, sources,
-            new CharacterEntryPreparationRuleService(sources, sources, sources),
-            sources, sources, sources, sources, sources, sources, sources,
-            new FixedTimeProvider(seed.World.PreparedAt));
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
+        var positions = new CharacterPositionDomainService();
+        positions.Place(session, seed.Character.Position);
+        var service = Query(sources, seed, positions);
         var equipment = seed.CharacterInventory.Containers.Single(container =>
             container.ContainerType == InventoryContainerType.Equipment);
         var changed = equipment with
@@ -50,13 +48,62 @@ public sealed class SelectCharacterProductionStateTests
                     ? changed : container).ToArray(),
         };
 
-        var current = await service.LoadCurrentAsync(session, CancellationToken.None);
+        var current = await service.ReadAsync(session, CancellationToken.None);
 
         Assert.Equal(37, current.CharacterInventory.Containers.Single(container =>
             container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
         Assert.Equal(0, sources.RecoveryCalls);
         Assert.Equal(0, sources.ReconciliationCalls);
     }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(12, 0)]
+    public async Task CurrentView_UsesLivePositionWithoutLoginPlacementOrInventoryMaintenance(byte town, byte area)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var sources = new Sources(seed, []) { RejectPlacement = true };
+        var session = SelectedSessionIdentity.Create(
+            seed.Account.AccountId, seed.Character.Identity.CharacterId,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("time-gate"), 1, 10011);
+        var positions = new CharacterPositionDomainService();
+        var standing = new CharacterPositionState(town, area, 185, 215, 2);
+        positions.Place(session, standing);
+
+        var current = await Query(sources, seed, positions).ReadAsync(session, CancellationToken.None);
+
+        Assert.Equal(standing, current.Character.Position);
+        Assert.Equal(town, current.World.Channel.Spawn.TownId);
+        Assert.Equal(area, current.World.Channel.Spawn.AreaId);
+        Assert.Equal(185, current.World.Channel.Spawn.X);
+        Assert.Equal(215, current.World.Channel.Spawn.Y);
+        Assert.Equal(2, current.World.Channel.Spawn.Direction);
+        Assert.Equal(standing, positions.Find(session.CharacterId));
+        Assert.Equal(0, sources.PlacementCalls);
+        Assert.Equal(0, sources.InventoryMaintenanceCalls);
+        Assert.Equal(0, sources.RecoveryCalls);
+        Assert.Equal(0, sources.ReconciliationCalls);
+        Assert.Equal((town, area), sources.AdjacentPosition);
+    }
+
+    [Fact]
+    public async Task CurrentView_RequiresLivePositionInsteadOfInventingALoginSpawn()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var sources = new Sources(seed, []) { RejectPlacement = true };
+        var session = SelectedSessionIdentity.Create(
+            seed.Account.AccountId, seed.Character.Identity.CharacterId,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("missing-position"), 1, 10011);
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await Query(sources, seed, new CharacterPositionDomainService()).ReadAsync(session, CancellationToken.None));
+        Assert.Equal(0, sources.PlacementCalls);
+    }
+
+    private static CharacterCurrentStateQueryDomainService Query(
+        Sources sources, SelectCharacterResult seed, ICharacterPositionDomainService positions) =>
+        new(sources, sources, sources, sources, sources, sources, sources,
+            new CharacterEntryPreparationRuleService(sources, sources, sources),
+            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt));
 
     [Theory]
     [InlineData(false, 0)]
@@ -281,9 +328,13 @@ public sealed class SelectCharacterProductionStateTests
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
         ISessionAdjacentEntryDomainService, IActiveCharacterDomainService,
-        ISelectedSessionPositionPersistence
+        ISelectedSessionPositionPersistence, ITownMovementDomainService
     {
         public bool Published { get; private set; }
+        public bool RejectPlacement { get; init; }
+        public int PlacementCalls { get; private set; }
+        public int InventoryMaintenanceCalls { get; private set; }
+        public (int Town, int Area) AdjacentPosition { get; private set; }
         public CharacterInventoryEntryState CharacterInventory { get; set; } = seed.CharacterInventory;
         public int RecoveryCalls { get; private set; }
         public int ReconciliationCalls { get; private set; }
@@ -330,9 +381,13 @@ public sealed class SelectCharacterProductionStateTests
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
             AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.ReadCurrentAsync(
-            AccountId id, CharacterId cid, CancellationToken ct) => ((ICharacterInventoryEntryDomainService)this).LoadAsync(id, cid, ct);
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(CharacterInventory);
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
+            AccountId id, CharacterId cid, CancellationToken ct)
+        {
+            InventoryMaintenanceCalls++;
+            return ValueTask.FromResult(CharacterInventory);
+        }
         ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.AccountInventory);
         public ValueTask<CharacterEntryState> LoadAsync(AccountId id, CharacterId cid, CancellationToken ct) =>
@@ -394,15 +449,23 @@ public sealed class SelectCharacterProductionStateTests
             ValueTask.FromResult(new ChannelEntryIdentity(1, port, ChannelEntryKind.General));
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => null;
         public ValueTask<ChannelEntryPolicyState> ResolveAsync(
-            ChannelEntryIdentity channel, int town, CancellationToken ct) => ValueTask.FromResult(seed.World.Channel);
+            ChannelEntryIdentity channel, int town, CancellationToken ct)
+        {
+            PlacementCalls++;
+            if (RejectPlacement) throw new InvalidOperationException("An online query must not resolve login placement.");
+            return ValueTask.FromResult(seed.World.Channel);
+        }
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int town, CancellationToken ct) =>
             ValueTask.FromResult(true);
         public ValueTask<bool> DeclaresAreaAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
         public ValueTask<bool> SharesTownPresenceAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
-        public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct) =>
-            ValueTask.FromResult(SessionAdjacentEntryState.Empty);
+        public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct)
+        {
+            AdjacentPosition = (subject.TownId, subject.AreaId);
+            return ValueTask.FromResult(SessionAdjacentEntryState.Empty);
+        }
         public void Publish(SelectedSessionIdentity session) => Published = true;
         public bool ClearExact(SelectedSessionIdentity session) => Published = false;
     }

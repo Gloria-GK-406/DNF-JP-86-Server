@@ -445,6 +445,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
+        services.TryAddSingleton<ICharacterCurrentStateQueryDomainService, CharacterCurrentStateQueryDomainService>();
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();

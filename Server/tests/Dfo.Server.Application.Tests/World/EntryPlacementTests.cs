@@ -110,29 +110,42 @@ public sealed class EntryPlacementTests
         Assert.False(await placement.SharesTownPresenceAsync(1, 99, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task A_town_the_content_does_not_define_fails_and_names_it()
+    [Theory]
+    [InlineData(999)]
+    [InlineData(7)]
+    public async Task A_missing_town_or_gate_falls_back_to_the_initial_town(int townId)
     {
-        var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await Placement().ResolveAsync(
-                StubChannelEntryPolicy.GeneralChannel,
-                persistedTownId: 999,
-                CancellationToken.None));
+        var result = await Placement().ResolveAsync(
+            StubChannelEntryPolicy.GeneralChannel, townId, CancellationToken.None);
+        Assert.Equal(1, result.Spawn.TownId);
+        Assert.Equal(0, result.Spawn.AreaId);
+        Assert.Equal(474, result.Spawn.X);
+        Assert.Equal(234, result.Spawn.Y);
+        Assert.True(result.PersistsPosition);
+    }
 
-        Assert.Contains("999", error.Message, StringComparison.Ordinal);
+    [Theory]
+    [InlineData(1)]
+    [InlineData(999)]
+    public async Task A_missing_initial_gate_still_reports_a_configuration_error(int townId)
+    {
+        var placement = new EntryPlacementRuleService(
+            new StubTownSource([Town(1, [Area(0, "initial.map", TownAreaKind.Normal)])],
+                new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy);
+        var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
+            await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, townId, CancellationToken.None));
+        Assert.Contains("Initial town 1", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_town_that_declares_no_gate_fails_and_names_it()
+    public async Task An_invalid_arrival_coordinate_falls_back_to_the_initial_town()
     {
-        var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await Placement().ResolveAsync(
-                StubChannelEntryPolicy.GeneralChannel,
-                persistedTownId: 7,
-                CancellationToken.None));
-
-        Assert.Contains("7", error.Message, StringComparison.Ordinal);
-        Assert.Contains("gate", error.Message, StringComparison.OrdinalIgnoreCase);
+        var placement = new EntryPlacementRuleService(new StubTownSource(
+            [Town(1, [Area(0, "initial.map", TownAreaKind.Gate, 474, 234)]),
+             Town(2, [Area(0, "invalid.map", TownAreaKind.Gate, int.MaxValue, 234)])],
+            new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy);
+        var result = await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, 2, CancellationToken.None);
+        Assert.Equal(1, result.Spawn.TownId);
     }
 
     /// <remarks>

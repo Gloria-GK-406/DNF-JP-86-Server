@@ -7,9 +7,9 @@ namespace Dfo.Server.Abstractions.World;
 /// Raised when the content cannot say where a character should stand.
 /// </summary>
 /// <remarks>
-/// Placement has no safe default. Dropping a character at an arbitrary coordinate would
-/// leave them outside the walkable world with no indication that anything went wrong, so
-/// an unresolvable spawn is an error.
+/// Ordinary login placement falls back to the configured initial town's declared gate.
+/// Missing that gate, or failing to resolve a restricted channel's required spawn, remains
+/// an error rather than placing the character at arbitrary coordinates.
 /// </remarks>
 public sealed class EntryPlacementUnavailableException(string message)
     : InvalidOperationException(message);
@@ -18,7 +18,8 @@ public sealed class EntryPlacementUnavailableException(string message)
 public interface IEntryPlacementRuleService
 {
     /// <summary>
-    /// Resolves the placement and permissions for a character entering on a channel.
+    /// Resolves login placement and permissions. Ordinary channels fall back to the initial
+    /// town when the remembered town has no usable arrival gate. Online queries do not call this.
     /// </summary>
     /// <param name="persistedTownId">
     /// The town the character was last in, or zero when they have none.

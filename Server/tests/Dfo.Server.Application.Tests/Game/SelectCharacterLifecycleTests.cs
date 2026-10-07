@@ -958,9 +958,6 @@ public sealed partial class SelectCharacterLifecycleTests
         ISelectedSessionPositionPersistence positions)
         : ISelectCharacterPreparationDomainService
     {
-        public ValueTask<SelectCharacterResult> LoadCurrentAsync(
-            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(result);
         /// <summary>The real service's own act: stamp the spawn, then store it when the channel keeps positions.</summary>
         public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
             SelectedSessionIdentity session, SelectCharacterResult prepared,
@@ -1001,9 +998,6 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private sealed class RefusingPreparation(List<string> ledger) : ISelectCharacterPreparationDomainService
     {
-        public ValueTask<SelectCharacterResult> LoadCurrentAsync(
-            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
-            throw new InvalidOperationException();
         public ValueTask<ActiveCharacterState> PreflightAsync(
             AccountId accountId, ushort slotIndex, Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
             CancellationToken cancellationToken)

@@ -208,9 +208,10 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 `SelectCharacterResult` DTO 本身仍完整，作为一次性组包结果使用，不是运行期角色聚合。
 入场后的当前视图走只读重建，不重复执行选角恢复、技能和解锁等写入。
 
-坐标运行期由 `ICharacterPositionDomainService` 持有；当前视图构造时把这个位置覆盖到
-`ActiveCharacterState.Position`，再解析频道/出生投影。选角入口结果中的坐标只用于当次入场，
-不得在之后作为真源复用。
+坐标运行期由 `ICharacterPositionDomainService` 持有；当前视图通过独立的
+`ICharacterCurrentStateQueryDomainService` 读取当前位置并组装投影，不调用登录准备或出生点计算。
+登录落点只在选角准备中计算，普通频道缺少到达门时回退到配置的初始城镇到达门。
+选角入口结果中的坐标只用于当次入场，不得在之后作为真源复用。
 
 **物品移动、修理和耐久消耗直接落在物品领域。** 要发外观帧或进本投影时再读取当前库存；
 不存在会话物品副本和 `ReplaceExact` 回写。入场时的物品租约缓存及退场保存链路已移除。

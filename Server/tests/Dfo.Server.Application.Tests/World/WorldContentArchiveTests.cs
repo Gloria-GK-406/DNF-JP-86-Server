@@ -295,6 +295,25 @@ public sealed class WorldContentArchiveTests
         Assert.Equal(234, result.Spawn.Y);
     }
 
+    [SkippableFact]
+    public async Task Time_gate_login_falls_back_to_the_initial_town_from_the_real_archive()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var scope = ContentArchive.CreateContentProvider();
+        var towns = scope.GetRequiredService<ITownDefinitionSource>();
+        var timeGate = await towns.GetAsync(12, CancellationToken.None);
+        Assert.NotNull(timeGate);
+        Assert.Null(timeGate.Gate);
+        var placement = new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy);
+
+        var result = await placement.ResolveAsync(
+            new ChannelEntryIdentity(11, 10011, ChannelEntryKind.General), 12, CancellationToken.None);
+
+        Assert.Equal(1, result.Spawn.TownId);
+        Assert.Equal(474, result.Spawn.X);
+        Assert.Equal(234, result.Spawn.Y);
+    }
+
     private static WorldContentEntryRuleService CreateService(IServiceProvider provider) =>
         new(new QuestContentRuleService(
                 provider.GetRequiredService<IQuestDefinitionSource>(),
