@@ -65,25 +65,47 @@ internal sealed class DungeonVisitDomainService(
     {
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(facts);
+        if (await ValidateAdmissionAsync(participants, dungeonId, facts, cancellationToken).ConfigureAwait(false) is { } refusal)
+            return DungeonEntryAttempt.Refused(refusal);
+        var layout = await layouts.ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
+            .ConfigureAwait(false);
+        return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
+            : await EnterPreparedCoreAsync(participants, layout, facts, cancellationToken).ConfigureAwait(false);
+    }
 
+    public async ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout,
+        DungeonEntryFacts facts, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(participants);
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(facts);
+        if (await ValidateAdmissionAsync(participants, layout.DungeonId, facts, cancellationToken).ConfigureAwait(false) is { } refusal)
+            return DungeonEntryAttempt.Refused(refusal);
+        return await EnterPreparedCoreAsync(participants, layout, facts, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<DungeonEntryFailure?> ValidateAdmissionAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, int dungeonId,
+        DungeonEntryFacts facts, CancellationToken cancellationToken)
+    {
         if (participants.Any(x => tower?.IsInTower(x.CharacterId) == true))
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
+            return DungeonEntryFailure.AlreadyInDungeon;
 
         var difficulty = facts.Difficulty;
         if (!Enum.IsDefined(difficulty)) throw new ArgumentOutOfRangeException(nameof(facts));
         // Party-wide eligibility policy is intentionally unchanged in this task.
         if (participants.Count == 1 && !difficultyRules.Allows(difficulty, await difficulties.GetMaximumAsync(
                 participants[0].CharacterId, dungeonId, cancellationToken).ConfigureAwait(false)))
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
+            return DungeonEntryFailure.DifficultyNotUnlocked;
+        return null;
+    }
 
-        // One seed and one layout per shared run. Every participant is attached only after the
-        // layout exists, and BeginParty publishes all character indexes under one aggregate lock.
-        var layout = await layouts
-            .ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
-            .ConfigureAwait(false);
-        if (layout is null)
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-
+    private async ValueTask<DungeonEntryAttempt> EnterPreparedCoreAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout,
+        DungeonEntryFacts facts, CancellationToken cancellationToken)
+    {
+        var difficulty = facts.Difficulty;
         if (layout.ConsumesFatigue)
             foreach (var participant in participants)
                 if ((await fatigue.BalanceOfAsync(participant.CharacterId, cancellationToken).ConfigureAwait(false)).Remaining == 0)
@@ -184,7 +206,8 @@ internal sealed class DungeonVisitDomainService(
         }
 
         var actors = cell.Actors
-            .Select(actor => new RoomActorDescription(actor.Actor, actor.IsAiCharacter))
+            .Select(actor => new RoomActorDescription(actor.Actor, actor.IsAiCharacter)
+                { IsHellTemplate = actor.IsHellTemplate, HellOrder = actor.HellOrder })
             .ToArray();
         var floor = cell.GroundItems
             .Where(item => item.Source.Kind == DungeonGroundItemSourceKind.DeclaredObject)

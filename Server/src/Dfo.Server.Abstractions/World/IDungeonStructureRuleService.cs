@@ -109,6 +109,9 @@ public sealed record DungeonLayout(
     DungeonRunPurpose Purpose = default,
     bool ConsumesFatigue = true)
 {
+    public DungeonEntryKind EntryKind { get; init; } = DungeonEntryKind.Normal;
+    public HellEntryPlan? Hell { get; init; }
+
     /// <summary>Both cells must expose the matching door, not just be adjacent on the grid.</summary>
     public bool CanTraverse(MazeCell from, MazeCell target)
     {

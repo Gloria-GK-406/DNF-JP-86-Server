@@ -1,5 +1,9 @@
 # NOTI `0x001D` `START_MAP`
 
+## 2026-10-07 主动深渊当前投影
+
+**CurrentImplementation / UpstreamImplementation**：offset7写冻结A/B值（1/2），普通保留2；深渊run fog=1。仅首次进入冻结深渊房附加hidden actor模板，order来自已选PVF组，模板flag1/FF；普通演员维持原向量。重访不再次发演员/掉落，也不重抽。首次深渊房的START_MAP之后发送[NOTI02A7](NOTI-0x02A7.md) APC资料。模式/隐藏位的主动深渊效果还待实机；不代表柱交互、怪物波次或奖励已经实现。见[实现边界](../../../Document/tasks/manual-hell-entry/implementation.md)。
+
 ## 2026-10-07 深渊模式字节的证据边界
 
 RVA`00D57B30`先读取三u8、u32，再在正文offset7/8分别读取u8并写不同全局`VA03A5C8F9/03A5C8FA`，之后u32与u8。读取布局为**ClientStatic / Confirmed**；offset7的默认2、2是否表示普通模式或深渊强度等枚举含义尚未闭合，不能由当前上游/JP编码值直接断言客户端语义。

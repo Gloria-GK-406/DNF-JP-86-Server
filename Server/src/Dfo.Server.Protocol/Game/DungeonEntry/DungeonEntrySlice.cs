@@ -35,15 +35,15 @@ namespace Dfo.Server.Protocol.Game.DungeonEntry;
 /// this handler existed the burst went unanswered and the tutorial could not be finished; it was
 /// the only unhandled game frame. See protocol/patterns/flow-dungeon-entry.md.
 ///
-/// A21 ordinary entry carries 15 bytes: u32 dungeon and u8 difficulty, followed by fields
-/// whose full meaning remains unverified. No new abyss behavior is inferred from those fields.
+/// A21 entry carries 15 bytes. Offset5 is the entry-mode enum (1 requests manual hell);
+/// offset6 controls practice, independently of the server-selected hell difficulty.
 /// </remarks>
 public sealed record SelectDungeonRequest(
     GameMessageMetadata Metadata,
     int DungeonId,
     DungeonDifficulty Difficulty,
-    byte HellPartyRequested,
-    byte HellPartyDifficulty) : IClientNetworkMessage
+    byte RequestMode,
+    byte PracticeMode) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameSelectDungeon;
 }
@@ -151,9 +151,9 @@ internal static class DungeonEntryPayloadCodec
     ///   * the dungeon id is an <c>i32</c>, not an <c>i16</c>. That alone is the two-byte
     ///     difference, and it is what puts the trailing <c>FFFFFFFF</c> sentinel at offset 18 where
     ///     the reference has it rather than at 16;
-    ///   * there is no absent-abyss cell pair. Those two bytes are a hell-party marker and a
-    ///     hell-party enabled flag, both zero when neither applies -- the older client's 0xFF/0xFF
-    ///     sentinel is not what A21 writes;
+    ///   * offsets 8/9 are two independent native bytes (RVA 00D523AE/BC). Upstream uses
+    ///     the selected hell cell X/Y; ordinary A21 vectors retain zero/zero. Active-hell
+    ///     coordinate behavior is reference-backed and awaits real-client acceptance;
     ///   * a constant one follows the minimap group count. A21's builder writes it outside the
     ///     dynamic group list and its own comment declines to read it as a switch, so it is copied
     ///     rather than interpreted.
@@ -170,9 +170,9 @@ internal static class DungeonEntryPayloadCodec
         writer.Write(checked((byte)layout.MazeIndex));
         writer.Write(layout.BossCell.X);
         writer.Write(layout.BossCell.Y);
-        writer.Write((byte)0); // hell-party marker
-        writer.Write((byte)0); // hell party not enabled
-        writer.Write((byte)0);
+        writer.Write(layout.Hell?.Cell.X ?? (byte)0);
+        writer.Write(layout.Hell?.Cell.Y ?? (byte)0);
+        writer.Write((byte)0); // practice mode
         writer.Write((byte)0); // no minimap groups
         writer.Write((byte)1); // the constant after the group list
         writer.Write(new byte[5]);
@@ -222,9 +222,9 @@ internal static class DungeonEntryPayloadCodec
         writer.Write((byte)0); // not a layered room
         writer.Write(RoomSeed(run));
         // A21's builder defaults this to two, not zero, and the reference session carries two here
-        // on both of its START_MAP frames. It is the ordinary-dungeon marker; the older client's
-        // zero was an abyss-mode reading that A21 does not share.
-        writer.Write((byte)2);
+        // on both ordinary START_MAP frames. Hell difficulty values follow upstream; native
+        // A21 reads this byte, but active-hell behavior still needs real-client acceptance.
+        writer.Write(run.Hell?.Difficulty ?? (byte)2);
         writer.Write((byte)0); // unnamed byte the builder writes after it
         writer.Write(1); // room state value, the builder's default
         writer.Write(firstEntry ? (byte)1 : (byte)0);
@@ -256,7 +256,7 @@ internal static class DungeonEntryPayloadCodec
                 ? aiCharactersWritten++
                 : monstersWritten++;
 
-            writer.Write((ushort)0); // template order
+            writer.Write(actors[index].HellOrder);
             writer.Write(packetIndex);
             writer.Write(unchecked((ushort)(firstActorSequence + index)));
             writer.Write(actor.Code);
@@ -264,8 +264,8 @@ internal static class DungeonEntryPayloadCodec
             // dungeon. LevelOf remains the fallback for any actor with no declared level.
             writer.Write(layout.LevelOf(actor.Level));
             writer.Write(actor.ActorType);
-            writer.Write((byte)0); // first flag
-            writer.Write((byte)0); // second flag
+            writer.Write(actors[index].IsHellTemplate ? (byte)1 : (byte)0);
+            writer.Write(actors[index].IsHellTemplate ? (byte)0xFF : (byte)0);
             writer.Write(0); // extra state
             writer.Write((byte)0); // A21 actor record extension
         }
@@ -300,7 +300,7 @@ internal static class DungeonEntryPayloadCodec
             writer.Write((byte)0);
         }
 
-        writer.Write((byte)0); // abyss fog
+        writer.Write(run.Hell is not null ? (byte)1 : (byte)0); // abyss fog
         writer.Write((byte)0); // no ridable object groups
         // The client binds its local dungeon actor and party HUD to this frozen entry slot. 0xFF is
         // only the solo/default sentinel; sending it to a party participant leaves the shared run
@@ -524,7 +524,9 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
-        if (illusionTower is not null && illusionTowerProjection is not null
+        // The legacy tower shortcut accepts ordinary entry only. Manual hell must reach the
+        // CMD decision/hell admission path, where towers have no valid hell declaration.
+        if (message.RequestMode != 1 && illusionTower is not null && illusionTowerProjection is not null
             && await illusionTower.SupportsDungeonAsync(message.DungeonId, cancellationToken).ConfigureAwait(false))
         {
             _ = await illusionTowerProjection.EnterAsync(
@@ -772,15 +774,19 @@ public sealed class MoveMapHandler(
             visit.FirstActorSequence,
             FloorPieceValues.Describe(run, visit.FloorDrops));
 
+        IReadOnlyList<IGameServerMessage> FramesFor(DungeonRunState run) =>
+            visit.FirstEntry && HellPartyProjection.For(run) is { } info
+                ? [RoomFor(run), info] : [RoomFor(run)];
+
         await sender.SendExplicitAsync(
             required.Session.ConnectionId,
             new GameExplicitMessageDelivery(
-                [RoomFor(required.Run)],
+                FramesFor(required.Run),
                 [.. currentRecipients
                     .Where(value => value.Session != required.Session)
                     .Select(value => new GameExplicitMessageTarget(
                         value.Session.ConnectionId,
-                        [RoomFor(value.Run)]))]),
+                        FramesFor(value.Run)))]),
             cancellationToken).ConfigureAwait(false);
         if (fatigueProjection is not null)
             foreach (var receiver in currentRecipients)

@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-07 主动深渊入场（CurrentImplementation）
+
+[CMD0010](game/client-to-server/0x0010.md) 模式1经CMD类型判定和主动深渊领域服务，检查全队任务/等级/门票并冻结共享方案；随机深渊保留桩。[001C](game/server-to-client/NOTI-0x001C.md)/[001D](game/server-to-client/NOTI-0x001D.md)/[02A7](game/server-to-client/NOTI-0x02A7.md)消费同一方案，普通编码保留原向量。02A7资源消费链补证为ClientStatic；尚未部署/实机验收。柱、波次、掉落与结算不在此次范围。见[实现说明](../Document/tasks/manual-hell-entry/implementation.md)。
+
 ## 2026-10-06 A21 骑士马战大竞猜
 
 [04E6](game/client-to-server/0x04E6.md)、[04E7](game/client-to-server/0x04E7.md)、[04E8](game/client-to-server/0x04E8.md)及[04B8](game/server-to-client/NOTI-0x04B8.md)/[04B9](game/server-to-client/NOTI-0x04B9.md)/[04BA](game/server-to-client/NOTI-0x04BA.md)/[04BB](game/server-to-client/NOTI-0x04BB.md)已接线原生查询、事务下注、历史、入场和提交后在线投影。成功04E6只返回ACK→04BA→04B9；04B8只用于入场初始化及实际生命周期事件，04BB只用于比赛结果事件。查询不推进、不结算、不发邮件。用户确认登录出现一次开启通知、操作窗口不再公告，并接受当前赔率；这些行为记为ClientVerified，其余布局/统计/完整动画仍按ClientStatic、CurrentImplementation或HumanPending区分。04E7槽位i32、04BB四个u8、历史错误也固定3505B；LinkKey必须`joust event/0/0`。详见[使用说明](../Document/JoustEvents.md)和[0.2.2收口边界](../Document/closeout-0.2.2-20261006.md)。

@@ -44,9 +44,10 @@ internal sealed class DungeonCellFactory(
         {
             var described = contents.Actors[index];
             var sequence = checked((ushort)(contents.FirstActorSequence + index));
-            var isMonster = experienceRules.IsMonster(described.Actor.ActorType);
+            // Hell rewards/XP have their own future lifecycle; do not pre-generate ordinary loot.
+            var isMonster = !described.IsHellTemplate && experienceRules.IsMonster(described.Actor.ActorType);
             IReadOnlyList<RolledDrop> pending = [];
-            if (isMonster || described.IsAiCharacter)
+            if (!described.IsHellTemplate && (isMonster || described.IsAiCharacter))
             {
                 var dropContext = new MonsterDropContext(
                     context.RunId,
@@ -80,7 +81,7 @@ internal sealed class DungeonCellFactory(
                 described.IsAiCharacter,
                 IsDead: false,
                 pending.ToArray(),
-                isMonster));
+                isMonster) { IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder });
         }
 
         var objects = new List<DungeonCellObjectState>(contents.Objects.Count);

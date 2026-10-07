@@ -69,7 +69,11 @@ public sealed record DungeonCellActorState(
     bool IsAiCharacter,
     bool IsDead,
     IReadOnlyList<RolledDrop> PendingLoot,
-    bool IsMonster = true);
+    bool IsMonster = true)
+{
+    public bool IsHellTemplate { get; init; }
+    public ushort HellOrder { get; init; }
+}
 
 public sealed record DungeonCellObjectState(
     DungeonRoomObject Object, IReadOnlyList<RolledDrop> PendingLoot, bool IsConsumed = false);

@@ -10,7 +10,11 @@ namespace Dfo.Server.Abstractions.World;
 /// no business knowing where the boundary between a monster and an ally sits. Which type is which
 /// is a fact about the game, and the rules own it.
 /// </remarks>
-public readonly record struct RoomActorDescription(DungeonRoomActor Actor, bool IsAiCharacter);
+public readonly record struct RoomActorDescription(DungeonRoomActor Actor, bool IsAiCharacter)
+{
+    public bool IsHellTemplate { get; init; }
+    public ushort HellOrder { get; init; }
+}
 
 /// <summary>
 /// What the room a run is standing in holds, as the room is about to be described.

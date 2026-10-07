@@ -622,6 +622,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
+        services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
@@ -1101,6 +1103,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<EplpCommandResponse, EplpCommandResponseEncoder>();
         services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
         services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
+        services.AddGameNotiMessageEncoder<HellPartyMonsterInfoNotification, HellPartyMonsterInfoEncoder>();
         services.AddGameCmdMessageEncoder<BackToVillageResponse, BackToVillageResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();

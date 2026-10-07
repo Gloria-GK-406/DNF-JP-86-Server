@@ -1,5 +1,11 @@
 # NOTI `0x02A7` `HELL_PARTY_MONSTER_INFO`
 
+## 2026-10-07 消费链补证与接线
+
+**ClientStatic / High**：存表RVA0134B4A0之后，消费者0134A7E0以key查询管理器（0237C6D0），缺失时调用创建器01D18F60、设置等级01419B80、登记0237CA90。创建器引用字符串VA03464820（RVA03064820），解密为 `AiCharacter Create Index :%d`。据此index用于AI角色资源索引，而非重连队伍ID；原始指令与字符串解码见[取证](../../../Document/tasks/manual-hell-entry/verification/client-02a7-consumer.txt)。
+
+**CurrentImplementation**：首次进入深渊房时发送 `u32 count + count×(u32 APC code,u32 level)`，相同APC code去重，不发送普通monster代码，level来自冻结方案。该接线没有深渊WireCaptured/ClientVerified，后续战斗不在范围。
+
 ## 2026-10-07 A21客户端裁决
 
 **ClientStatic / Confirmed**：RVA`00D483C0..00D48453`读取`u32 count + count×(u32 hellIndex,u32 level)`，消费长度`4+8n`。首字段直接控制循环，不能解释为重连队伍ID。两值传给RVA`0134B4A0`，原生日志解密为`hell index(%d) level(%d)`；index是否等于怪物ID、组ID或另一映射尚未确认。

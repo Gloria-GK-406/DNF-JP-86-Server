@@ -57,6 +57,7 @@ public sealed class InfrastructureModule : IServerModule
                 : 0,
         });
         services.TryAddSingleton<PvfArchiveProvider>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource, PvfHellDungeonDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDefinitionSource, PvfWeeklyAttendanceDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustDefinitionSource, PvfJoustDefinitionSource>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();

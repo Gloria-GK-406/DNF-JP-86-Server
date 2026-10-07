@@ -294,6 +294,7 @@ public enum ServerMessageType
     // The dungeon-entry answer: the run's shape, the room it opens in, and the support
     // roster. See Game/DungeonEntry.
     GameDungeonInfo = 0x0000_001C,
+    GameHellPartyMonsterInfo = 0x0000_02A7,
     GameStartMap = 0x0000_001D,
     GameSupportTag = 0x0000_019F,
 

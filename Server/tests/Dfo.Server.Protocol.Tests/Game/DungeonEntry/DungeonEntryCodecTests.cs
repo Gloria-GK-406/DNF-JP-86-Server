@@ -89,8 +89,8 @@ public sealed class DungeonEntryCodecTests
 
         Assert.Equal(150, request.DungeonId);
         Assert.Equal(Dfo.Server.Data.World.DungeonDifficulty.Normal, request.Difficulty);
-        Assert.Equal(0, request.HellPartyRequested);
-        Assert.Equal(0, request.HellPartyDifficulty);
+        Assert.Equal(0, request.RequestMode);
+        Assert.Equal(0, request.PracticeMode);
     }
 
     [Theory]
@@ -132,10 +132,8 @@ public sealed class DungeonEntryCodecTests
     }
 
     /// <remarks>
-    /// The two bytes that used to carry an absent-abyss sentinel of 0xFF/0xFF are a hell-party
-    /// marker and a hell-party enabled flag on A21, and both are zero when neither applies. The
-    /// older reading was the A12 builder's; A21's writes zeros, and its reference session's frame
-    /// has them zero.
+    /// Ordinary A21 vectors preserve zero/zero at offsets 8/9. Active-hell coordinates follow
+    /// upstream and are covered separately; native A21 reads two independent bytes.
     /// </remarks>
     [Fact]
     public void A_run_with_no_hell_party_leaves_both_of_its_bytes_clear()

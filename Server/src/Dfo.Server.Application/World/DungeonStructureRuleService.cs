@@ -32,6 +32,10 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         if (from is { } previous && !layout.CanTraverse(previous, target))
             return DungeonMapSelection.Refused(DungeonMapSelectionFailure.Disconnected);
 
+        // The hell room replacement is selected at entry, never selected anew at a door.
+        if (layout.Hell is { } hell && target == hell.Cell)
+            return DungeonMapSelection.Selected(hell.MapId);
+
         var entrance = from is { } source ? DungeonLayout.EntranceFrom(source, target) : DungeonPathDirection.None;
         var boss = from is not null && target == layout.BossCell;
         var declared = boss ? cell.BossMapCandidates : cell.MapCandidates;

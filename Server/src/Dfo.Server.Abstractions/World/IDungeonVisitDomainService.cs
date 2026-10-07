@@ -34,9 +34,13 @@ public sealed record DungeonEntry(DungeonLayout Layout, DungeonRoomVisit Visit);
 public sealed record DungeonPartyEntry(
     DungeonLayout Layout,
     IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits,
-    DungeonEntryChange? Change = null);
+    DungeonEntryChange? Change = null)
+{
+    public IReadOnlyList<DungeonEntryInventoryChange> InventoryChanges { get; init; } = [];
+}
 
-public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon }
+public enum DungeonEntryFailure { DungeonNotFound, DifficultyNotUnlocked, InsufficientFatigue, AlreadyInDungeon,
+    HellUnavailable, HellQuestNotCleared, MissingHellTicket, HellConfigurationInvalid }
 
 public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryFailure? Failure, byte? BlockedSlot = null)
 {
@@ -63,6 +67,11 @@ public sealed record DungeonMoveAttempt(DungeonRoomVisit? Visit, DungeonMoveFail
 /// </remarks>
 public interface IDungeonVisitDomainService
 {
+    ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout,
+        DungeonEntryFacts facts, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("This visit service does not accept a prepared layout.");
+
     /// <summary>
     /// Whether the selection screen's state is deferred to this character's first entry.
     /// </summary>

@@ -144,6 +144,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestCompletionEffectRuleService, QuestCompletionEffectRuleService>();
         services.TryAddSingleton<IQuestCompletionDomainService, QuestCompletionDomainService>();
         services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
+        services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
+        services.TryAddSingleton<IHellDungeonEntryRuleService, HellDungeonEntryRuleService>();
+        services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
         services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();

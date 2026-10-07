@@ -1,0 +1,82 @@
+[
+  {
+    "Assembly": "dfo.pvf.tests.dll",
+    "Total": 80,
+    "Passed": 80,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_42_16_net10.0.trx",
+    "SHA256": "A86ED5F7B809F32415C5F4019A3FC8D629A7AC844A4894340FCE47B892F2D65E"
+  },
+  {
+    "Assembly": "dfo.server.application.tests.dll",
+    "Total": 3118,
+    "Passed": 3118,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_42_19_net10.0.trx",
+    "SHA256": "D62099574AF5783F38B46A4817D22699C52CC58A75F98C4F5934C24D50A5CF68"
+  },
+  {
+    "Assembly": "dfo.server.host.tests.dll",
+    "Total": 155,
+    "Passed": 155,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_43_47_net10.0.trx",
+    "SHA256": "361F814A008CF930F9035FB089FBBFDC861AF513165EE03E5DC71C8026D80B45"
+  },
+  {
+    "Assembly": "dfo.server.httpapi.tests.dll",
+    "Total": 50,
+    "Passed": 50,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_45_27_net10.0.trx",
+    "SHA256": "94124B8E218FFE35BB1932D4483D17F92971D9ED963D8DB99BA06A41E575A297"
+  },
+  {
+    "Assembly": "dfo.server.infrastructure.tests.dll",
+    "Total": 785,
+    "Passed": 783,
+    "Failed": 0,
+    "Skipped": 2,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_45_28_net10.0.trx",
+    "SHA256": "C5F7E0B04A23E992FC699D8F8924BF9A9EDF9C079FE49461769EB58045CC4212"
+  },
+  {
+    "Assembly": "dfo.server.networking.tests.dll",
+    "Total": 90,
+    "Passed": 90,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_45_46_net10.0.trx",
+    "SHA256": "88D4F3CB0CA55A06AA122EBCB09CBA09EB3C3A5CED9921D45103E8E2C48F3D9F"
+  },
+  {
+    "Assembly": "dfo.server.persistence.tests.dll",
+    "Total": 459,
+    "Passed": 459,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_45_51_net10.0.trx",
+    "SHA256": "70FE90468055962790421B9594F382D0D875374C3FB76C5CE23A632958A3DD56"
+  },
+  {
+    "Assembly": "dfo.server.protocol.tests.dll",
+    "Total": 1340,
+    "Passed": 1340,
+    "Failed": 0,
+    "Skipped": 0,
+    "Outcome": "Completed",
+    "Trx": "Gloria_家庭台式机_2026-10-07_13_46_33_net10.0.trx",
+    "SHA256": "EE4A23A5BA001D7D15C47C380F265389D3C2A288A7BB0EAA33D75F9051F54D76"
+  }
+]

@@ -1,5 +1,9 @@
 # NOTI `0x001C` `DUNGEON_INFO`
 
+## 2026-10-07 主动深渊当前投影
+
+**CurrentImplementation / UpstreamImplementation**：offset8/9 写入共享run冻结的深渊cell X/Y，普通维持0/0；offset10维持普通0，主动+练习组合在准入时拒绝。原生RVA00D523AE/BC将两字节写入对象+AF4/+AFC，坐标业务语义仍按上游参照，不升级为ClientVerified。普通32B样本不是所有条件分支的固定包长证明。见[实现边界](../../../Document/tasks/manual-hell-entry/implementation.md)。
+
 ## 2026-10-07 深渊动态结构的边界
 
 本轮实际阅读RVA`00D51E10`：前缀为u32与四u8，之后两u8、一u8、u8 groupCount；每group再读u8 pairCount与多组u8/u8。其后仍有多类型字段和条件分支。**ClientStatic / Confirmed**说明该消息可变长，不能把普通模式的32B编码样本推广为所有深渊场景固定包长。

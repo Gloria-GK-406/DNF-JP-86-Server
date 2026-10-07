@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -46,6 +47,49 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 /// </remarks>
 public sealed class SelectDungeonHandlerTests
 {
+    [Theory]
+    [InlineData(11000, 0)]
+    [InlineData(11001, 0)]
+    [InlineData(11000, 1)]
+    [InlineData(11001, 1)]
+    public async Task Manual_hell_cannot_bypass_CMD_routing_through_the_tower_shortcut(int dungeon, byte practice)
+    {
+        var visits = new RecordingVisits();
+        var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
+        var handler = Handler(visits, tower: tower);
+        await handler.HandleAsync(Dispatch(), Request() with { DungeonId = dungeon, RequestMode = 1, PracticeMode = practice }, default);
+        Assert.Empty(visits.Facts);
+        Assert.Equal(0, ((TowerProbe)(object)tower).Calls);
+    }
+
+    [Fact]
+    public async Task Ordinary_request_still_consults_the_existing_tower_shortcut()
+    {
+        var tower = System.Reflection.DispatchProxy.Create<IIllusionTowerDomainService, TowerProbe>();
+        var handler = Handler(new RecordingVisits(), tower: tower);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(Dispatch(), Request() with { DungeonId = 11001 }, default));
+        Assert.Equal(1, ((TowerProbe)(object)tower).Calls);
+    }
+
+    public class TowerProbe : System.Reflection.DispatchProxy
+    {
+        public int Calls { get; private set; }
+        protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args)
+        {
+            Calls++;
+            throw new InvalidOperationException("Manual hell must never enter the tower shortcut.");
+        }
+    }
+    [Fact]
+    public async Task Manual_hell_request_is_never_silently_entered_as_an_ordinary_dungeon()
+    {
+        var visits = new RecordingVisits();
+        var handler = Handler(visits);
+        await handler.HandleAsync(Dispatch(), Request() with { RequestMode = 1 }, default);
+        Assert.Empty(visits.Facts);
+    }
+
     /// <summary>
     /// The facts handed to the run are the log's carried quests, not the session's copy.
     /// </summary>
@@ -467,7 +511,8 @@ public sealed class SelectDungeonHandlerTests
         RecordingSender? sender = null,
         OneLog? logs = null,
         RecordingFatigue? fatigue = null,
-        DungeonEntryIntent? intent = null)
+        DungeonEntryIntent? intent = null,
+        IIllusionTowerDomainService? tower = null)
     {
         var actualSender = sender ?? new RecordingSender();
         var sessions = new OneSession(Identity);
@@ -493,7 +538,11 @@ public sealed class SelectDungeonHandlerTests
             new NoopConnectionCloser(),
             TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender),
             NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate());
+            new SelectedSessionTransitionGate(),
+            illusionTower: tower,
+            // Sentinel projection: the probe throws if the shortcut is even consulted.
+            illusionTowerProjection: tower is null ? null : new(tower, null!, null!, null!, null!, null!, null!,
+                null!, null!, null!, null!, null!, null!, null!, null!, null!, null!));
     }
 
     private static SelectDungeonRequest Request() =>

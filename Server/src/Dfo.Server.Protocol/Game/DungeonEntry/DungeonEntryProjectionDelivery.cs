@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -42,7 +43,9 @@ public sealed class DungeonEntryProjectionDelivery(
     TownAreaProjectionDelivery townAreaProjection,
     SelectedSessionTransitionGate transitionGate,
     DungeonProjectionGate projectionGate,
-    ILogger<DungeonEntryProjectionDelivery> logger)
+    ILogger<DungeonEntryProjectionDelivery> logger,
+    ICommandBus? commands = null,
+    IInventorySlotProjectionDomainService? inventoryProjection = null)
 {
     public async ValueTask EnterAsync(
         NetworkConnectionId requesterConnection,
@@ -80,13 +83,29 @@ public sealed class DungeonEntryProjectionDelivery(
         var previousRuns = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
-        var attempt = await visits.TryEnterPartyAsync(
-            participants, message.DungeonId, facts, cancellationToken)
-            .ConfigureAwait(false);
+        var command = new EnterDungeonCommand(new DungeonEntryContext(
+            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants));
+        // Directly constructed protocol fixtures may supply their own visit service. They still
+        // execute the same CMD routing; the production composition always uses the command bus.
+        var attempt = commands is not null
+            ? await commands.SendAsync(command, cancellationToken).ConfigureAwait(false)
+            : await new EnterDungeonCommandHandler(new Dfo.Server.Application.World.DungeonEntryDecisionDomainService(), visits)
+                .HandleAsync(new(Guid.NewGuid(), typeof(EnterDungeonCommand), typeof(EnterDungeonCommandHandler),
+                    CommandExecutionKind.Workflow), command, cancellationToken).ConfigureAwait(false);
         var entered = attempt.Entry;
         if (entered is null)
         {
             RestoreSelection();
+            if (attempt.Failure is DungeonEntryFailure.HellUnavailable or DungeonEntryFailure.HellConfigurationInvalid
+                or DungeonEntryFailure.HellQuestNotCleared or DungeonEntryFailure.MissingHellTicket)
+            {
+                var error = attempt.Failure == DungeonEntryFailure.MissingHellTicket
+                    ? SelectDungeonRefusal.MissingRequiredItem
+                    : attempt.Failure == DungeonEntryFailure.HellQuestNotCleared
+                        ? SelectDungeonRefusal.MemberBlocked : SelectDungeonRefusal.DungeonUnavailable;
+                await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
+                return;
+            }
             if (attempt.Failure == DungeonEntryFailure.InsufficientFatigue)
             {
                 await RefuseAsync(requesterConnection,
@@ -220,6 +239,14 @@ public sealed class DungeonEntryProjectionDelivery(
                 }
 
                 frames.Add(new SupportTagNotification());
+                foreach (var debit in entered.InventoryChanges.Where(x => x.CharacterId == receiver.Session.CharacterId))
+                {
+                    var slot = (inventoryProjection ?? throw new InvalidOperationException("Inventory projection is required for entry costs."))
+                        .Project(debit.Slot);
+                    frames.Add(debit.Remaining is { } remaining
+                        ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
+                        : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
+                }
                 frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
                 frames.Add(new StartMapNotification(
                     roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
@@ -227,6 +254,7 @@ public sealed class DungeonEntryProjectionDelivery(
                     visit.Actors,
                     visit.FirstActorSequence,
                     FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                if (HellPartyProjection.For(visit.Run) is { } hellInfo) frames.Add(hellInfo);
                 frames.Add(new Fatigue.FatigueNotification(await fatigue.BalanceOfAsync(receiver.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 deliveries.Add((receiver.Session, frames));
             }
