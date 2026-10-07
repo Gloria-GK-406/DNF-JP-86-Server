@@ -31,9 +31,9 @@ public sealed record DungeonQuestConnection(
 /// Position in the dungeon's declared order. This is the number the client is told, so it must
 /// stay tied to the archive's order rather than to any sorting we find convenient.
 /// </param>
-/// <param name="Rooms">
-/// The cells that carry a room, and the map each resolves to. A grid cell with no entry is not a
-/// room; the grid is larger than the maze that occupies it.
+/// <param name="Cells">
+/// Occupied cells and their connection/candidate declarations. A cell can exist without an
+/// explicit map: its resource then comes from the dungeon's compatible map pool.
 /// </param>
 /// <param name="StartCandidates">
 /// The cells a run may start on. The archive lists candidates rather than one cell, so which is
@@ -43,10 +43,33 @@ public sealed record MazeDefinition(
     int Index,
     byte Width,
     byte Height,
-    IReadOnlyDictionary<MazeCell, int> Rooms,
+    IReadOnlyDictionary<MazeCell, DungeonCellDefinition> Cells,
     IReadOnlyList<MazeCell> StartCandidates,
     IReadOnlyList<MazeCell> BossCandidates,
     DungeonQuestConnection? QuestConnection = null);
+
+[Flags]
+public enum DungeonPathDirection : byte
+{
+    None = 0,
+    Right = 1,
+    Up = 2,
+    Left = 4,
+    Down = 8,
+    All = Right | Up | Left | Down,
+}
+
+/// <summary>Static topology and explicit resource candidates, never a selected runtime map.</summary>
+public sealed record DungeonCellDefinition(
+    DungeonPathDirection Connections,
+    IReadOnlyList<int> MapCandidates,
+    IReadOnlyList<int> BossMapCandidates)
+{
+    /// <summary>An explicitly fixed resource with unrestricted connection metadata.</summary>
+    public static DungeonCellDefinition Fixed(int mapId) => new(DungeonPathDirection.All, [mapId], []);
+}
+
+public enum DungeonEntryMode : byte { Maze, Tournament, VillageRevenge }
 
 /// <summary>
 /// A dungeon as the archive declares it.
@@ -108,7 +131,8 @@ public sealed record DungeonDefinition(
     double ExperienceWeight = 1.0,
     bool OffersPaidCard = true,
     DungeonQuestConnection? QuestConnection = null,
-    IReadOnlyList<byte>? SupportedDifficulties = null);
+    IReadOnlyList<byte>? SupportedDifficulties = null,
+    DungeonEntryMode EntryMode = DungeonEntryMode.Maze);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

@@ -39,7 +39,7 @@ public sealed class PartyCommandHandlerTests
         var runs = new DungeonRunDomainService(parties);
         var layout = new DungeonLayout(
             10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-            61000, 1, new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
+            61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var run = runs.PreparePartyEntry(
             [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
              new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
@@ -74,7 +74,7 @@ public sealed class PartyCommandHandlerTests
         var runs = new DungeonRunDomainService(parties);
         var layout = new DungeonLayout(
             10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-            61000, 1, new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
+            61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var run = runs.PreparePartyEntry(
             [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
              new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],

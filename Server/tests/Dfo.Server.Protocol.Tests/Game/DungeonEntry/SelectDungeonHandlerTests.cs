@@ -556,7 +556,7 @@ public sealed class SelectDungeonHandlerTests
         BossCell: new MazeCell(3, 0),
         StartRoomMapId: 61000,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 1)] = 61000 });
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000)});
 
     /// <summary>The run as it stands on entry: in the start room, having seen only it.</summary>
     private static readonly DungeonRunState AtStart = new(

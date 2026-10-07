@@ -18,6 +18,18 @@ public sealed class PvfDungeonDefinitionSourceTests
     private const int SwordmanTutorialDungeonId = 10004;
 
     [SkippableFact]
+    public async Task Consciousness_keeps_connected_cells_without_explicit_map_bindings()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var dungeon = await new PvfDungeonDefinitionSource(provider).GetAsync(77, default);
+        var maze = dungeon!.Mazes[0];
+        Assert.Equal(16, maze.Cells.Count);
+        Assert.Contains(new MazeCell(2, 1), maze.Cells.Keys);
+        Assert.Contains(new MazeCell(2, 2), maze.Cells.Keys);
+    }
+
+    [SkippableFact]
     public async Task Difficulty_tiers_follow_real_archive_flags_and_fixed_designations()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
@@ -68,19 +80,18 @@ public sealed class PvfDungeonDefinitionSourceTests
         var maze = (await source.GetAsync(TutorialDungeonId, CancellationToken.None))!.Mazes[0];
 
         Assert.Equal(
-            new Dictionary<MazeCell, int>
-            {
+            new Dictionary<MazeCell, int> {
                 [new MazeCell(0, 1)] = 61000,
                 [new MazeCell(1, 1)] = 61001,
                 [new MazeCell(2, 1)] = 61002,
                 [new MazeCell(2, 0)] = 61005,
             },
-            maze.Rooms);
+            maze.Cells.ToDictionary(pair => pair.Key, pair => pair.Value.MapCandidates[0]));
         Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);
         Assert.Equal([new MazeCell(2, 0)], maze.BossCandidates);
         Assert.All(
             maze.StartCandidates.Concat(maze.BossCandidates),
-            cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));
+            cell => Assert.True(maze.Cells.ContainsKey(cell), $"cell {cell} carries no room"));
     }
 
     /// <remarks>
@@ -110,8 +121,7 @@ public sealed class PvfDungeonDefinitionSourceTests
         Assert.Equal(5, maze.Width);
         Assert.Equal(3, maze.Height);
         Assert.Equal(
-            new Dictionary<MazeCell, int>
-            {
+            new Dictionary<MazeCell, int> {
                 [new MazeCell(0, 1)] = 35031,
                 [new MazeCell(1, 1)] = 35032,
                 [new MazeCell(2, 1)] = 35033,
@@ -121,12 +131,13 @@ public sealed class PvfDungeonDefinitionSourceTests
                 [new MazeCell(3, 0)] = 35037,
                 [new MazeCell(2, 0)] = 35038,
             },
-            maze.Rooms);
+            maze.Cells.ToDictionary(pair => pair.Key, pair => (pair.Value.BossMapCandidates.Count > 0
+                ? pair.Value.BossMapCandidates : pair.Value.MapCandidates)[0]));
         Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);
         Assert.Equal([new MazeCell(2, 0)], maze.BossCandidates);
         Assert.All(
             maze.StartCandidates.Concat(maze.BossCandidates),
-            cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));
+            cell => Assert.True(maze.Cells.ContainsKey(cell), $"cell {cell} carries no room"));
     }
 
     /// <summary>

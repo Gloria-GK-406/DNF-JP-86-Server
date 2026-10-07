@@ -214,7 +214,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             Account, Character, new Dfo.Server.Data.Networking.NetworkConnectionId("object"), 1, 10010);
         sessions.Select(session);
         var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
-            new Dictionary<MazeCell, int> { [new(0, 0)] = 10 });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10)});
         var seed = DungeonCellSeed.CompleteEmpty(new(0, 0), 10) with
         {
             Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0),
@@ -342,7 +342,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             this.Sessions.Select(first);
             this.Sessions.Select(second);
             var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
-                new Dictionary<MazeCell, int> { [new(0, 0)] = 10 });
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10)});
             var loot = new[] { first, second }.Select(owner => new RolledDrop(
                 10149163, 3, DropRarity.Common, DropItemKind.Stackable,
                 OwnerCharacterId: owner.CharacterId, Delivery: RolledDropDelivery.DirectQuestItem,

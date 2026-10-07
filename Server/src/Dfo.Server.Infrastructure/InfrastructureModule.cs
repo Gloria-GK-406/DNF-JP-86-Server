@@ -110,6 +110,7 @@ public sealed class InfrastructureModule : IServerModule
             PvfExpertSkillContractDefinitionSource>();
         services.TryAddSingleton<ITownDefinitionSource, PvfTownDefinitionSource>();
         services.TryAddSingleton<IDungeonDefinitionSource, PvfDungeonDefinitionSource>();
+        services.TryAddSingleton<IDungeonMapDefinitionSource, PvfDungeonMapDefinitionSource>();
         services.TryAddSingleton<IInitialSkillDefinitionSource, PvfInitialSkillDefinitionSource>();
         services.TryAddSingleton<ITutorialRewardDefinitionSource, PvfTutorialRewardDefinitionSource>();
         services.TryAddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();

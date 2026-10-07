@@ -44,10 +44,9 @@ public sealed class GroundPickupTests
         BossCell: new MazeCell(1, 0),
         StartRoomMapId: 8153,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 0)] = 8153,
-            [new MazeCell(1, 0)] = 8154,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153),
+            [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(8154),
         },
         BasisLevel: 86);
 
@@ -340,7 +339,7 @@ public sealed class GroundPickupTests
             run.RunId,
             run.RoomVersion,
             target,
-            new DungeonCellSeed(target, Layout.Rooms[target], 1, [], []));
+            new DungeonCellSeed(target, Layout.Cells[target].MapCandidates[0], 1, [], []));
 
         Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
     }

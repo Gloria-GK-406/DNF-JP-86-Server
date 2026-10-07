@@ -408,7 +408,7 @@ public sealed class QuestEnemyDropDomainServiceTests
             new MazeCell(0, 0),
             1,
             123,
-            new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 1 },
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(1)},
             Purpose: purpose);
 
     private sealed record Fixture(

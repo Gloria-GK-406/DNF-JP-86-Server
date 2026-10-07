@@ -557,7 +557,7 @@ public sealed class LeaveDungeonTests
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1,
             new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
-            new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 },
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)},
             5);
 
         public bool Ended { get; private set; }

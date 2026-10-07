@@ -36,11 +36,10 @@ public sealed class DungeonRunClearRewardCardTests
         BossCell: new MazeCell(2, 0),
         StartRoomMapId: 61000,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 1)] = 61000,
-            [new MazeCell(1, 1)] = 61001,
-            [new MazeCell(2, 0)] = 61005,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
+            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
+            [new MazeCell(2, 0)] = DungeonCellDefinition.Fixed(61005),
         });
 
     /// <summary>What the hand-written faces below say a flip of them pays.</summary>

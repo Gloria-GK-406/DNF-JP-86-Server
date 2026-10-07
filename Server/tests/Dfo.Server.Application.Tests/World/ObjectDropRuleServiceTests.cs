@@ -44,7 +44,7 @@ public sealed class ObjectDropRuleServiceTests
 
     internal static DungeonCellCreationContext Context(int seed) => new(DungeonRunId.New(),
         new DungeonLayout(1, 0, 1, 1, new(0, 0), new(0, 0), 1, seed,
-            new Dictionary<MazeCell, int> { [new(0, 0)] = 1 }, BasisLevel: 20),
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(1)}, BasisLevel: 20),
         new(0, 0), 1, 0, DateTimeOffset.UnixEpoch, []);
 
     [Fact]

@@ -705,17 +705,19 @@ public sealed class MoveMapHandler(
             && !partyRecipients.Find(session, current.RunId).Contains(session))
             return;
 
-        var visit = await visits
-            .MoveAsync(session.CharacterId, current, target, cancellationToken)
+        var attempt = await visits
+            .TryMoveAsync(session.CharacterId, current, target, cancellationToken)
             .ConfigureAwait(false);
+        var visit = attempt.Visit;
         if (visit is null)
         {
             logger.LogWarning(
-                "Move map {ConnectionId}: maze {MazeIndex} of dungeon {DungeonId} declares no room "
+                "Move map {ConnectionId}: maze {MazeIndex} of dungeon {DungeonId} refused {Failure} "
                     + "at ({X},{Y}), staying in ({FromX},{FromY})",
                 context.Connection.ConnectionId,
                 current.Layout.MazeIndex,
                 current.Layout.DungeonId,
+                attempt.Failure,
                 message.NextX,
                 message.NextY,
                 current.CurrentCell.X,

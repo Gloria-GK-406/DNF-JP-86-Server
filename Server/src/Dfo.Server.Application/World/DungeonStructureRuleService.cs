@@ -17,9 +17,56 @@ namespace Dfo.Server.Application.World;
 /// to provide.
 /// </para>
 /// </remarks>
-internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons)
-    : IDungeonLayoutRuleService
+internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dungeons, IDungeonMapDefinitionSource maps)
+    : IDungeonStructureRuleService
 {
+    public ValueTask<DungeonDefinition?> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken) =>
+        dungeons.GetAsync(dungeonId, cancellationToken);
+
+    public async ValueTask<DungeonMapSelection> SelectMapAsync(
+        DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!layout.Cells.TryGetValue(target, out var cell))
+            return DungeonMapSelection.Refused(DungeonMapSelectionFailure.CellNotFound);
+        if (from is { } previous && !layout.CanTraverse(previous, target))
+            return DungeonMapSelection.Refused(DungeonMapSelectionFailure.Disconnected);
+
+        var entrance = from is { } source ? DungeonLayout.EntranceFrom(source, target) : DungeonPathDirection.None;
+        var boss = from is not null && target == layout.BossCell;
+        var declared = boss ? cell.BossMapCandidates : cell.MapCandidates;
+        var candidates = new List<int>();
+        if (declared.Count > 0)
+        {
+            // Explicit resources are checked for entrance compatibility, not replaced with
+            // unrelated pool maps if all declared candidates are incompatible.
+            foreach (var mapId in declared)
+            {
+                var map = await maps.GetAsync(mapId, cancellationToken).ConfigureAwait(false);
+                if (map is not null && (entrance == DungeonPathDirection.None
+                        || map.Connections.Any(pair => (pair.Entrances & entrance) != 0)))
+                    candidates.Add(mapId);
+            }
+        }
+        else
+        {
+            var pool = await maps.ListForDungeonAsync(layout.DungeonId, cancellationToken).ConfigureAwait(false);
+            var kind = boss ? DungeonMapKind.Boss : DungeonMapKind.Normal;
+            foreach (var map in pool)
+            {
+                if (from is null ? !map.HasStartArea : map.Kind != kind) continue;
+                if (map.Connections.Any(pair => pair.Pattern == cell.Connections
+                        && (entrance == DungeonPathDirection.None || (pair.Entrances & entrance) != 0)))
+                    candidates.Add(map.MapId);
+            }
+        }
+        if (candidates.Count == 0)
+            return DungeonMapSelection.Refused(DungeonMapSelectionFailure.NoCompatibleMap);
+        var ordered = candidates.Distinct().Order().ToArray();
+        var salt = unchecked(3 + target.X * 257 + target.Y * 65537 + (int)entrance * 16777619);
+        return DungeonMapSelection.Selected(ordered[(int)(Mix(layout.Seed, salt) % (uint)ordered.Length)]);
+    }
+
     public async ValueTask<DungeonLayout?> ResolveAsync(
         int dungeonId,
         DungeonEntryFacts facts,
@@ -28,7 +75,7 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
     {
         ArgumentNullException.ThrowIfNull(facts);
         var definition = await dungeons.GetAsync(dungeonId, cancellationToken).ConfigureAwait(false);
-        if (definition is null)
+        if (definition is null || definition.EntryMode != DungeonEntryMode.Maze)
             return null;
 
         var candidate = SelectMaze(definition, facts, seed);
@@ -41,26 +88,28 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
         // A start cell that carries no room would put the character nowhere, and the client would
         // be loading a map the server cannot name. Refusing is the honest answer; the content that
         // produced it is wrong in a way this layer cannot repair.
-        if (!maze.Rooms.TryGetValue(startCell, out var startRoomMapId))
+        if (!maze.Cells.ContainsKey(startCell))
         {
             throw new InvalidDataException(
                 $"Dungeon '{dungeonId}' maze '{maze.Index}' starts at cell "
                 + $"({startCell.X},{startCell.Y}), which declares no room.");
         }
 
-        return new DungeonLayout(
+        var layout = new DungeonLayout(
             dungeonId,
             maze.Index,
             maze.Width,
             maze.Height,
             startCell,
             bossCell,
-            startRoomMapId,
+            0,
             seed,
-            maze.Rooms,
+            maze.Cells,
             definition.BasisLevel,
             definition.ExperienceWeight,
             purpose, definition.ConsumesFatigue);
+        var start = await SelectMapAsync(layout, null, startCell, cancellationToken).ConfigureAwait(false);
+        return start.MapId is { } mapId ? layout with { StartRoomMapId = mapId } : null;
     }
 
     /// <remarks>

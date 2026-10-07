@@ -54,7 +54,7 @@ internal sealed partial class DungeonRunDomainService
             this.version = run.RoomVersion; this.leader = leader;
             members = run.ViewFor(leader).Participants.Select(x => x.CharacterId).ToArray();
             Preview = run.ViewFor(leader) with {
-                CurrentCell = target, CurrentRoomMapId = run.Layout.Rooms[target],
+                CurrentCell = target, CurrentRoomMapId = cell.MapId,
                 VisitedCells = run.VisitedCells.Add(target), RoomVersion = version + 1,
                 EntryRevision = run.EntryRevision + 1, ReadyParticipants = ImmutableHashSet<CharacterId>.Empty,
                 CurrentCellState = cell.Snapshot(), ClearOpen = cell.ClearOpen

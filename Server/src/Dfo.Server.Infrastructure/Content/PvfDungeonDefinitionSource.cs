@@ -15,8 +15,8 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <c>[/maze info]</c> where one exists, or by the end of the file. Reading it as a properly
 /// bracketed block would silently drop every maze in a file that never closes one.
 /// <para>
-/// Inside a maze, <c>[size]</c> gives the grid, <c>[map specification]</c> lists the rooms as
-/// repeated <c>"map" x y mapId</c>, and <c>[start map]</c> and <c>[boss map]</c> list candidate
+/// Inside a maze, <c>[size]</c> gives the grid, <c>[map specification]</c> lists cell candidates as
+/// repeated <c>"map" x y mapId...</c> or <c>"boss" x y mapId...</c>, and <c>[start map]</c> and <c>[boss map]</c> list candidate
 /// cells as bare x/y pairs -- candidates rather than single cells, which is why choosing among
 /// them belongs to a rule and not here.
 /// </para>
@@ -34,6 +34,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         internal static readonly PvfField<IReadOnlyList<PvfToken>> MazeInfoField = PvfField.Tokens("[maze info]", optional: true);
         internal static readonly PvfField<bool> CloseMazeInfoField = PvfField.Marker("[/maze info]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> SizeField = PvfField.Int32List("[size]", optional: true);
+        internal static readonly PvfField<string> GreedField = PvfField.String("[greed]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> MapSpecificationField = PvfField.Tokens("[map specification]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> StartMapField = PvfField.Int32List("[start map]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> BossMapField = PvfField.Int32List("[boss map]", optional: true);
@@ -46,6 +47,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         internal static readonly PvfField<IReadOnlyList<int>> DifficultyLevelField = PvfField.Int32List("[difficulty level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> DesignatedDifficultyField = PvfField.Int32List("[designate dungeon difficulty]", optional: true);
         internal static readonly PvfField<int> DifficultyField = PvfField.Int32("[difficulty]", optional: true);
+        internal static readonly PvfField<int> TournamentField = PvfField.Int32("[tournament dungeon]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> RevengeField = PvfField.Int32List("[village attack revenge dungeon]", optional: true);
     }
 
     private const string ListPath = "dungeon/dungeon.lst";
@@ -113,6 +116,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         IReadOnlyList<byte>? difficultyLevels = null;
         IReadOnlyList<byte>? designatedDifficulties = null;
         int? fixedDifficulty = null;
+        var entryMode = DungeonEntryMode.Maze;
 
         void Unique(PvfField field)
         {
@@ -124,13 +128,13 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             if (Fields.MazeInfoField.Matches(section.Name))
             {
                 Require(section.Values.Count == 0, archivePath, Fields.MazeInfoField, "expected an empty maze marker");
-                Close(mazes, draft);
+                Close(mazes, draft, archivePath);
                 draft = new MazeDraft(mazes.Count);
             }
             else if (Fields.CloseMazeInfoField.Matches(section.Name))
             {
                 Fields.CloseMazeInfoField.Decode(archive, section.Values, archivePath);
-                Close(mazes, draft);
+                Close(mazes, draft, archivePath);
                 draft = null;
             }
             else if (Fields.MinimumRequiredLevelField.Matches(section.Name))
@@ -182,6 +186,16 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 fixedDifficulty = Fields.DifficultyField.Decode(archive, section.Values, archivePath);
                 Require(fixedDifficulty is >= -1 and <= 4, archivePath, Fields.DifficultyField, "difficulty outside A21 range");
             }
+            else if (Fields.TournamentField.Matches(section.Name))
+            {
+                if (Fields.TournamentField.Decode(archive, section.Values, archivePath) != 0)
+                    entryMode = DungeonEntryMode.Tournament;
+            }
+            else if (Fields.RevengeField.Matches(section.Name))
+            {
+                Fields.RevengeField.Decode(archive, section.Values, archivePath);
+                entryMode = DungeonEntryMode.VillageRevenge;
+            }
             else if (Fields.NoFatigueField.Matches(section.Name))
             {
                 Unique(Fields.NoFatigueField);
@@ -205,6 +219,13 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 var width = CellCoordinate(values[0], archivePath, Fields.SizeField);
                 var height = CellCoordinate(values[1], archivePath, Fields.SizeField);
                 if (draft is not null) { draft.Width = width; draft.Height = height; }
+            }
+            else if (Fields.GreedField.Matches(section.Name))
+            {
+                Unique(Fields.GreedField);
+                var values = PvfDungeonConnections.Decode(
+                    Fields.GreedField.Decode(archive, section.Values, archivePath), archivePath);
+                if (draft is not null) draft.Patterns = values;
             }
             else if (Fields.MapSpecificationField.Matches(section.Name))
             {
@@ -232,13 +253,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     if (draft is null || !(string.Equals(kind, RoomKeyword, StringComparison.OrdinalIgnoreCase)
                         || string.Equals(kind, BossRoomKeyword, StringComparison.OrdinalIgnoreCase))) continue;
 
-                    // The archive permits multiple map candidates after a cell, while the
-                    // existing deterministic business projection consumes complete integer
-                    // triples and ignores one or two remaining valid candidates. Retain that
-                    // projection here; validation above covers the entire declared entry.
-                    for (var row = firstOperand; row + 2 < offset; row += 3)
-                        draft.Rooms[new MazeCell(LegacyCoordinate(values[row].Value), LegacyCoordinate(values[row + 1].Value))]
-                            = values[row + 2].Value;
+                    var cell = new MazeCell((byte)values[firstOperand].Value, (byte)values[firstOperand + 1].Value);
+                    var declarations = string.Equals(kind, BossRoomKeyword, StringComparison.OrdinalIgnoreCase)
+                        ? draft.BossMaps : draft.Maps;
+                    Require(declarations.TryAdd(cell, Array.AsReadOnly(values.Skip(firstOperand + 2)
+                            .Take(offset - firstOperand - 2).Select(value => value.Value).ToArray())),
+                        archivePath, Fields.MapSpecificationField, "duplicate candidate declaration for a cell and kind");
                 }
             }
 
@@ -255,15 +275,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 }
             }
         }
-        Close(mazes, draft);
+        Close(mazes, draft, archivePath);
         return mazes.Count == 0 ? null : new DungeonDefinition(
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
             experienceWeight, offersPaidCard, questConnection,
-            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []));
+            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode);
     }
-
-    private static byte LegacyCoordinate(int value) =>
-        value is >= 0 and <= byte.MaxValue ? (byte)value : (byte)0;
 
     private static byte CellCoordinate(int value, string path, PvfField field)
     {
@@ -276,11 +293,38 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         if (!valid) throw new InvalidDataException($"PVF '{path}', field '{field}': {reason}.");
     }
 
-    private static void Close(List<MazeDefinition> mazes, MazeDraft? draft)
+    private static void Close(List<MazeDefinition> mazes, MazeDraft? draft, string path)
     {
-        if (draft is null || draft.Rooms.Count == 0) return;
-        mazes.Add(new MazeDefinition(draft.Index, draft.Width, draft.Height, draft.Rooms,
-            draft.StartCandidates, draft.BossCandidates, draft.QuestConnection));
+        if (draft is null) return;
+        var cells = new Dictionary<MazeCell, DungeonCellDefinition>();
+        if (draft.Patterns is not null)
+        {
+            Require(draft.Patterns.Count == draft.Width * draft.Height, path, Fields.GreedField,
+                "connection grid does not match maze size");
+            for (var index = 0; index < draft.Patterns.Count; index++)
+            {
+                var pattern = draft.Patterns[index];
+                if (pattern == DungeonPathDirection.None) continue;
+                var cell = new MazeCell((byte)(index % draft.Width), (byte)(index / draft.Width));
+                cells.Add(cell, new(pattern, draft.Maps.GetValueOrDefault(cell) ?? [],
+                    draft.BossMaps.GetValueOrDefault(cell) ?? []));
+            }
+        }
+        else
+        {
+            // Explicit-only declarations carry no door restrictions. Keep the absence distinct
+            // from an AA cell in a declared grid, which is unoccupied.
+            foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys).Distinct())
+                cells.Add(cell, new(DungeonPathDirection.All, draft.Maps.GetValueOrDefault(cell) ?? [],
+                    draft.BossMaps.GetValueOrDefault(cell) ?? []));
+        }
+        foreach (var cell in draft.Maps.Keys.Concat(draft.BossMaps.Keys))
+            Require(cells.ContainsKey(cell) && cell.X < draft.Width && cell.Y < draft.Height,
+                path, Fields.MapSpecificationField, "map declared outside occupied maze cells");
+        if (cells.Count == 0) return;
+        mazes.Add(new MazeDefinition(draft.Index, draft.Width, draft.Height,
+            new System.Collections.ObjectModel.ReadOnlyDictionary<MazeCell, DungeonCellDefinition>(cells),
+            draft.StartCandidates.AsReadOnly(), draft.BossCandidates.AsReadOnly(), draft.QuestConnection));
     }
 
     internal static DungeonQuestConnection? ProjectQuestConnection(IReadOnlyList<int> values)
@@ -304,7 +348,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
 
         public byte Height { get; set; }
 
-        public Dictionary<MazeCell, int> Rooms { get; } = [];
+        public IReadOnlyList<DungeonPathDirection>? Patterns { get; set; }
+        public Dictionary<MazeCell, IReadOnlyList<int>> Maps { get; } = [];
+        public Dictionary<MazeCell, IReadOnlyList<int>> BossMaps { get; } = [];
 
         public List<MazeCell> StartCandidates { get; } = [];
 

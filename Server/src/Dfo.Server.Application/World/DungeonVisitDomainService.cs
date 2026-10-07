@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.World;
 /// carries it is a handler the domain layer knows nothing about.
 /// </remarks>
 internal sealed class DungeonVisitDomainService(
-    IDungeonLayoutRuleService layouts,
+    IDungeonStructureRuleService layouts,
     IDungeonRunDomainService runs,
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
@@ -121,6 +121,10 @@ internal sealed class DungeonVisitDomainService(
         DungeonRunState current,
         MazeCell target,
         CancellationToken cancellationToken)
+        => (await TryMoveAsync(characterId, current, target, cancellationToken).ConfigureAwait(false)).Visit;
+
+    public async ValueTask<DungeonMoveAttempt> TryMoveAsync(
+        CharacterId characterId, DungeonRunState current, MazeCell target, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(current);
 
@@ -129,15 +133,20 @@ internal sealed class DungeonVisitDomainService(
         var latest = runs.Find(characterId);
         if (latest is null || latest.RunId != current.RunId
             || latest.RoomVersion != current.RoomVersion)
-            return null;
+            return new(null, DungeonMoveFailure.StaleRun);
 
         var firstEntry = !latest.VisitedCells.Contains(target);
-        if (!latest.Layout.Rooms.TryGetValue(target, out var mapId))
-            return null;
+        if (!latest.Layout.Cells.ContainsKey(target))
+            return new(null, DungeonMoveFailure.CellNotFound);
+        if (!latest.Layout.CanTraverse(latest.CurrentCell, target))
+            return new(null, DungeonMoveFailure.Disconnected);
 
         DungeonCellSeed? preparedCell = null;
         if (firstEntry)
         {
+            var selected = await layouts.SelectMapAsync(latest.Layout, latest.CurrentCell, target, cancellationToken)
+                .ConfigureAwait(false);
+            if (selected.MapId is not { } mapId) return new(null, DungeonMoveFailure.NoCompatibleMap);
             preparedCell = await cells.CreateAsync(
                 new DungeonCellCreationContext(
                     latest.RunId,
@@ -156,11 +165,11 @@ internal sealed class DungeonVisitDomainService(
             latest.RoomVersion,
             target,
             preparedCell);
-        if (entered is null) return null;
+        if (entered is null) return new(null, DungeonMoveFailure.StateRejected);
         if (firstEntry && entered.Layout.ConsumesFatigue)
             foreach (var participant in entered.Participants)
                 await fatigue.SpendAsync(participant.CharacterId, 1, cancellationToken).ConfigureAwait(false);
-        return this.DescribeCreatedCell(entered, firstEntry);
+        return new(this.DescribeCreatedCell(entered, firstEntry), null);
     }
 
     private DungeonRoomVisit DescribeCreatedCell(DungeonRunState run, bool firstEntry)

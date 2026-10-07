@@ -125,7 +125,7 @@ internal sealed class CardRewardDomainService(
                 settlement.CharacterLevel,
                 run.Layout.BasisLevel,
                 run.Difficulty,
-                run.Layout.Rooms.Count,
+                run.Layout.Cells.Count,
                 settlement.PartyMemberCount)
             {
                 Kills = run.Kills,

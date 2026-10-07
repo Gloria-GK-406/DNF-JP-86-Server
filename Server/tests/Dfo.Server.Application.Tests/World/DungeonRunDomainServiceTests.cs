@@ -342,7 +342,7 @@ public sealed class DungeonRunDomainServiceTests
             IsComplete: false);
         var wrongIdentity = DungeonCellSeed.CompleteEmpty(
             new MazeCell(1, 1),
-            Tutorial.Rooms[new MazeCell(1, 1)]);
+            Tutorial.Cells[new MazeCell(1, 1)].MapCandidates[0]);
 
         Assert.Throws<ArgumentException>(() => service.PreparePartyEntry(
             [participant],
@@ -369,7 +369,7 @@ public sealed class DungeonRunDomainServiceTests
         var target = new MazeCell(1, 1);
         var incompleteTarget = new DungeonCellSeed(
             target,
-            Tutorial.Rooms[target],
+            Tutorial.Cells[target].MapCandidates[0],
             FirstSequence,
             [],
             [],
@@ -427,7 +427,7 @@ public sealed class DungeonRunDomainServiceTests
             new MazeCell(1, 1),
             CellSeed(
                 new MazeCell(1, 1),
-                Tutorial.Rooms[new MazeCell(1, 1)],
+                Tutorial.Cells[new MazeCell(1, 1)].MapCandidates[0],
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]));
         Assert.NotNull(moved);
         Assert.Equal(moved.CurrentCell, service.Find(member.CharacterId)!.CurrentCell);
@@ -502,7 +502,7 @@ public sealed class DungeonRunDomainServiceTests
         var moved = service.TryMove(
             member.CharacterId, current.RunId, current.RoomVersion,
             new MazeCell(1, 1),
-            CellSeed(new MazeCell(1, 1), Tutorial.Rooms[new MazeCell(1, 1)],
+            CellSeed(new MazeCell(1, 1), Tutorial.Cells[new MazeCell(1, 1)].MapCandidates[0],
                 actors: []));
 
         Assert.NotNull(moved);
@@ -548,11 +548,10 @@ public sealed class DungeonRunDomainServiceTests
         BossCell: new MazeCell(2, 1),
         StartRoomMapId: 61000,
         Seed: 0x0BADF00D,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 1)] = 61000,
-            [new MazeCell(1, 1)] = 61001,
-            [new MazeCell(2, 1)] = 61005,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
+            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
+            [new MazeCell(2, 1)] = DungeonCellDefinition.Fixed(61005),
         });
 
     [Fact]
@@ -616,7 +615,7 @@ public sealed class DungeonRunDomainServiceTests
             started.RunId,
             started.RoomVersion,
             target,
-            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)]));
+            CellSeed(target, Tutorial.Cells[target].MapCandidates[0], groundItems: [DeclaredItem(1)]));
 
         Assert.NotNull(moved);
         Assert.Single(moved.CurrentCellState.GroundItems);
@@ -801,7 +800,7 @@ public sealed class DungeonRunDomainServiceTests
         var remaining = checked((ushort)(FirstSequence + 1));
         run = Assert.IsType<DungeonRunState>(service.TryMove(
             Character, run.RunId, run.RoomVersion, Tutorial.BossCell,
-            CellSeed(Tutorial.BossCell, Tutorial.Rooms[Tutorial.BossCell],
+            CellSeed(Tutorial.BossCell, Tutorial.Cells[Tutorial.BossCell].MapCandidates[0],
             [
                 CellActor(boss, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss)),
                 CellActor(remaining, new DungeonRoomActor(65601, 1, 0),
@@ -837,7 +836,7 @@ public sealed class DungeonRunDomainServiceTests
         var other = checked((ushort)(FirstSequence + 1));
         run = Assert.IsType<DungeonRunState>(service.TryMove(
             Character, run.RunId, run.RoomVersion, Tutorial.BossCell,
-            CellSeed(Tutorial.BossCell, Tutorial.Rooms[Tutorial.BossCell],
+            CellSeed(Tutorial.BossCell, Tutorial.Cells[Tutorial.BossCell].MapCandidates[0],
             [
                 CellActor(FirstSequence,
                     new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss)),
@@ -1067,7 +1066,7 @@ public sealed class DungeonRunDomainServiceTests
             run.RunId,
             run.RoomVersion,
             new MazeCell(1, 1),
-            CellSeed(new MazeCell(1, 1), Tutorial.Rooms[new MazeCell(1, 1)])));
+            CellSeed(new MazeCell(1, 1), Tutorial.Cells[new MazeCell(1, 1)].MapCandidates[0])));
     }
 
     [Fact]
@@ -1102,7 +1101,7 @@ public sealed class DungeonRunDomainServiceTests
             run.RunId,
             run.RoomVersion,
             new MazeCell(1, 1),
-            CellSeed(new MazeCell(1, 1), Tutorial.Rooms[new MazeCell(1, 1)])));
+            CellSeed(new MazeCell(1, 1), Tutorial.Cells[new MazeCell(1, 1)].MapCandidates[0])));
     }
 
     [Fact]
@@ -1190,7 +1189,7 @@ public sealed class DungeonRunDomainServiceTests
             run.RunId,
             run.RoomVersion,
             target,
-            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+            CellSeed(target, Tutorial.Cells[target].MapCandidates[0], groundItems: [DeclaredItem(1)])));
 
         var change = Assert.IsType<DungeonPickupChange>(
             service.CommitGroundDrop(claim, DungeonPickupKind.Item));
@@ -1203,7 +1202,7 @@ public sealed class DungeonRunDomainServiceTests
             run.RunId,
             run.RoomVersion,
             target,
-            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+            CellSeed(target, Tutorial.Cells[target].MapCandidates[0], groundItems: [DeclaredItem(1)])));
         Assert.Equal(target, moved.CurrentCell);
         Assert.Null(moved.CurrentCellState.FindGroundItem(1));
         Assert.NotNull(moved.CurrentCellState.FindGroundItem(2));
@@ -1625,7 +1624,7 @@ public sealed class DungeonRunDomainServiceTests
             ordinary.RunId,
             ordinary.RoomVersion,
             Tutorial.BossCell,
-            CellSeed(Tutorial.BossCell, Tutorial.Rooms[Tutorial.BossCell]));
+            CellSeed(Tutorial.BossCell, Tutorial.Cells[Tutorial.BossCell].MapCandidates[0]));
         Assert.NotNull(boss);
         Assert.True(boss.IsBossRoom);
         Assert.False(boss.MayLeaveCurrentRoom);
@@ -1667,7 +1666,7 @@ public sealed class DungeonRunDomainServiceTests
             target,
             CellSeed(
                 target,
-                Tutorial.Rooms[target],
+                Tutorial.Cells[target].MapCandidates[0],
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]));
 
         Assert.NotNull(moved);
@@ -1699,7 +1698,7 @@ public sealed class DungeonRunDomainServiceTests
             target,
             CellSeed(
                 target,
-                Tutorial.Rooms[target],
+                Tutorial.Cells[target].MapCandidates[0],
                 actors: [CellActor(FirstSequence, secondActor)])));
         var secondClaim = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, FirstSequence));
@@ -1856,7 +1855,7 @@ public sealed class DungeonRunDomainServiceTests
         var target = new MazeCell(1, 1);
         var moved = Assert.IsType<DungeonRunState>(service.TryMove(
             Character, run.RunId, run.RoomVersion, target,
-            CellSeed(target, Tutorial.Rooms[target],
+            CellSeed(target, Tutorial.Cells[target].MapCandidates[0],
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0),
                     pendingLoot: [new RolledDrop(99, 1, DropRarity.Common, DropItemKind.Stackable)])],
                 groundItems: [DeclaredItem(1)])));
@@ -1892,12 +1891,12 @@ public sealed class DungeonRunDomainServiceTests
         var target = new MazeCell(1, 1);
         Assert.Throws<InvalidOperationException>(() => service.TryMove(
             Character, run.RunId, run.RoomVersion, target,
-            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+            CellSeed(target, Tutorial.Cells[target].MapCandidates[0], groundItems: [DeclaredItem(1)])));
         Assert.Equal(run.CurrentCell, service.Find(Character)!.CurrentCell);
         _ = Take(service, run, 1);
         Assert.Throws<InvalidOperationException>(() => service.TryMove(
             Character, run.RunId, run.RoomVersion, target,
-            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+            CellSeed(target, Tutorial.Cells[target].MapCandidates[0], groundItems: [DeclaredItem(1)])));
         Assert.NotNull(MoveToEmptyCell(service, service.Find(Character)!, target));
     }
 
@@ -1948,7 +1947,7 @@ public sealed class DungeonRunDomainServiceTests
             run.RunId,
             run.RoomVersion,
             target,
-            CellSeed(target, run.Layout.Rooms[target]));
+            CellSeed(target, run.Layout.Cells[target].MapCandidates[0]));
 
     private static DungeonCellSeed CellSeed(
         MazeCell cell,

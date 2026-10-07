@@ -353,3 +353,9 @@ actor 都没有**，所以「actor 表恒发 0 条」与它逐字节相同；它
 回归测试；此前玩家观察到组队时低级角色收到 2、9 点经验，只是发现错误的症状，
 **还没有修复后的 A21 成对 `START_MAP` / 击杀经验帧与客户端等级显示记录**。
 因此本节是当前服务端投影来源，不提升为 `ClientVerified`。
+
+### 2026-10-07：地图资源与 cell 身份分离（CurrentImplementation）
+
+`START_MAP` 的 mapId 来自本局 cell 已选资源，不再取自布局的固定坐标/mapId 字典。
+同一 MAP 被不同 cell 使用时，actor 序列基数加入 cell 坐标；回访仍使用原 cell 和既有空重访投影。
+字节布局未改；详见 [结构规则](../../../Document/DungeonStructureRules.md)。本次变更的客户端验收待补。

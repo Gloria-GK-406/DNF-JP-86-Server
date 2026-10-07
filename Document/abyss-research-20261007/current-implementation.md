@@ -3,6 +3,8 @@
 研究日期：2026-10-07。基线 `81f4373f8e5d686257420080b3f1b0c7cc7fc83c`，分支 `task/abyss-research`。
 证据种类：**CurrentImplementation**；这些结论说明代码的现状，不证明客户端协议字段的正确业务含义。
 
+2026-10-07 后续更新：本页保留初次研究基线；结构规则服务已统一为 `IDungeonStructureRuleService`，当前实现与验收边界见 [地下城结构规则](../DungeonStructureRules.md)。
+
 ## 入场链路
 
 `SelectDungeonDecoder → SelectDungeonHandler → DungeonEntryProjectionDelivery → IDungeonVisitDomainService → DungeonLayoutRuleService / DungeonCellFactory → DungeonRunDomainService`。

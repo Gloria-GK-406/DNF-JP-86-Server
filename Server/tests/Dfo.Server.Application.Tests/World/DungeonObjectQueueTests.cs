@@ -12,7 +12,7 @@ public sealed class DungeonObjectQueueTests
 {
     private static readonly CharacterId Character = new(1);
     private static readonly DungeonLayout Layout = new(84, 0, 3, 1, new(0, 0), new(2, 0), 10, 123,
-        new Dictionary<MazeCell, int> { [new(0, 0)] = 10, [new(1, 0)] = 11, [new(2, 0)] = 12 });
+        new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(10), [new(1, 0)] = DungeonCellDefinition.Fixed(11), [new(2, 0)] = DungeonCellDefinition.Fixed(12)});
 
     [Fact]
     public async Task Empty_entries_count_and_a_type_cannot_skip_its_reserved_head()

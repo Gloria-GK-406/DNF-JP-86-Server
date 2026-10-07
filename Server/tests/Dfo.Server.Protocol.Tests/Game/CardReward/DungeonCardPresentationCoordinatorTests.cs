@@ -269,7 +269,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
                 session.AccountId, session.CharacterId, Slot: 0, IsLeader: true)],
             new DungeonLayout(
                 144, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
-                new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 }),
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)}),
             difficulty: 0);
         var face = new ClearRewardCardFace(
             ClearRewardCardKind.Free,
@@ -338,7 +338,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             ],
             new DungeonLayout(
                 144, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
-                new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 }),
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)}),
             difficulty: 0);
         var face = new ClearRewardCardFace(
             ClearRewardCardKind.Free,

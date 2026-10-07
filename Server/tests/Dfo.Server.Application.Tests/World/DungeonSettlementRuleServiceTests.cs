@@ -72,7 +72,7 @@ public sealed class DungeonSettlementRuleServiceTests
             cell,
             55612,
             7,
-            new Dictionary<MazeCell, int> { [cell] = 55612 },
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55612)},
             Purpose: purpose);
         return new DungeonRunState(
             layout,

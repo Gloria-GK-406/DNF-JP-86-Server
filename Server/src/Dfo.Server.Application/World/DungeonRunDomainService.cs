@@ -455,9 +455,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
             || Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
-            || !aggregate.Layout.Rooms.TryGetValue(target, out var mapId)
+            || !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target)
             || (preparedCell is not null
-                && (preparedCell.Cell != target || preparedCell.MapId != mapId)))
+                && (preparedCell.Cell != target || preparedCell.MapId <= 0
+                    || (aggregate.Cells.TryGetValue(target, out var retained) && retained.MapId != preparedCell.MapId))))
         {
             return null;
         }

@@ -84,11 +84,9 @@ public sealed record DungeonEntryFacts(
 /// the client was told about.
 /// </para>
 /// </remarks>
-/// <param name="Rooms">
-/// Every cell that carries a room, and the map each resolves to. Carried here rather than looked
-/// up again when a character walks between rooms: the maze was chosen from quest state as it stood
-/// at entry, and reading the archive again later would answer for whichever maze the rule would
-/// pick now.
+/// <param name="Cells">
+/// The frozen maze topology and resource candidate declarations. Selected maps belong to the
+/// run's cell instances; entering another room never reselects the maze from current quest state.
 /// </param>
 /// <param name="ExperienceWeight">
 /// What this dungeon multiplies a monster's worth by. Carried here for the same reason the basis
@@ -105,12 +103,41 @@ public sealed record DungeonLayout(
     MazeCell BossCell,
     int StartRoomMapId,
     int Seed,
-    IReadOnlyDictionary<MazeCell, int> Rooms,
+    IReadOnlyDictionary<MazeCell, DungeonCellDefinition> Cells,
     byte BasisLevel = 1,
     double ExperienceWeight = 1.0,
     DungeonRunPurpose Purpose = default,
     bool ConsumesFatigue = true)
 {
+    /// <summary>Both cells must expose the matching door, not just be adjacent on the grid.</summary>
+    public bool CanTraverse(MazeCell from, MazeCell target)
+    {
+        var entrance = EntranceFrom(from, target);
+        return entrance != DungeonPathDirection.None
+            && Cells.TryGetValue(from, out var source)
+            && Cells.TryGetValue(target, out var destination)
+            && (destination.Connections & entrance) != 0
+            && (source.Connections & Opposite(entrance)) != 0;
+    }
+
+    public static DungeonPathDirection EntranceFrom(MazeCell from, MazeCell target) =>
+        ((int)target.X - from.X, (int)target.Y - from.Y) switch
+        {
+            (1, 0) => DungeonPathDirection.Left,
+            (-1, 0) => DungeonPathDirection.Right,
+            (0, 1) => DungeonPathDirection.Up,
+            (0, -1) => DungeonPathDirection.Down,
+            _ => DungeonPathDirection.None,
+        };
+
+    private static DungeonPathDirection Opposite(DungeonPathDirection direction) => direction switch
+    {
+        DungeonPathDirection.Left => DungeonPathDirection.Right,
+        DungeonPathDirection.Right => DungeonPathDirection.Left,
+        DungeonPathDirection.Up => DungeonPathDirection.Down,
+        DungeonPathDirection.Down => DungeonPathDirection.Up,
+        _ => DungeonPathDirection.None,
+    };
 
     /// <summary>Resolve an absolute map level or a level relative to this dungeon.</summary>
     /// <remarks>
@@ -159,8 +186,13 @@ public enum DungeonRoomKind : byte
 }
 
 /// <summary>Turns dungeon content, entry facts and an explicit seed into a run's maze.</summary>
-public interface IDungeonLayoutRuleService
+public interface IDungeonStructureRuleService
 {
+    ValueTask<DungeonDefinition?> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken);
+
+    /// <summary>Choose on first entry only. The domain instance retains the selected map on revisit.</summary>
+    ValueTask<DungeonMapSelection> SelectMapAsync(
+        DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken cancellationToken);
     /// <summary>
     /// The layout for this run, or null when the archive declares no enterable dungeon under this
     /// identifier.
@@ -175,4 +207,12 @@ public interface IDungeonLayoutRuleService
         DungeonEntryFacts facts,
         int seed,
         CancellationToken cancellationToken);
+}
+
+public enum DungeonMapSelectionFailure { CellNotFound, Disconnected, NoCompatibleMap }
+
+public readonly record struct DungeonMapSelection(int? MapId, DungeonMapSelectionFailure? Failure)
+{
+    public static DungeonMapSelection Selected(int mapId) => new(mapId, null);
+    public static DungeonMapSelection Refused(DungeonMapSelectionFailure failure) => new(null, failure);
 }

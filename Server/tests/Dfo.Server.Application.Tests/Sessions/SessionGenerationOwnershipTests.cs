@@ -204,7 +204,7 @@ public sealed class SessionGenerationOwnershipTests
             replacement.CharacterId,
             new DungeonLayout(
                 10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-                61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }),
+                61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
             difficulty: 0);
         var departure = new RecordingDepartureSink();
         var service = new SelectedSessionCleanupService(

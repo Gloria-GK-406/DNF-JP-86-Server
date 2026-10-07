@@ -44,6 +44,9 @@ public sealed record DungeonEntryAttempt(DungeonPartyEntry? Entry, DungeonEntryF
     public static DungeonEntryAttempt Refused(DungeonEntryFailure failure) => new(null, failure);
 }
 
+public enum DungeonMoveFailure { StaleRun, CellNotFound, Disconnected, NoCompatibleMap, StateRejected }
+public sealed record DungeonMoveAttempt(DungeonRoomVisit? Visit, DungeonMoveFailure? Failure);
+
 /// <summary>
 /// Entering a dungeon and walking between its rooms.
 /// </summary>
@@ -139,4 +142,11 @@ public interface IDungeonVisitDomainService
         DungeonRunState current,
         MazeCell target,
         CancellationToken cancellationToken);
+
+    async ValueTask<DungeonMoveAttempt> TryMoveAsync(CharacterId characterId, DungeonRunState current,
+        MazeCell target, CancellationToken cancellationToken)
+    {
+        var visit = await MoveAsync(characterId, current, target, cancellationToken).ConfigureAwait(false);
+        return new(visit, visit is null ? DungeonMoveFailure.StateRejected : null);
+    }
 }

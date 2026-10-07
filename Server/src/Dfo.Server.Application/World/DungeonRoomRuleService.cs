@@ -84,6 +84,9 @@ internal sealed class DungeonRoomRuleService(
         ArgumentNullException.ThrowIfNull(context);
 
         var mixed = ((uint)context.MapId * 2654435761u) ^ (uint)context.Layout.Seed;
+        // One resource may be selected by several cells in the same run. Identity belongs to
+        // the cell, so reused MAP resources must not recreate previously killed actors.
+        mixed ^= ((uint)context.Cell.X << 8) | context.Cell.Y;
         mixed ^= mixed >> 15;
         mixed *= 2246822519u;
         mixed ^= mixed >> 13;

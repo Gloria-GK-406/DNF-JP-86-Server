@@ -889,10 +889,9 @@ public sealed class PartySelectDungeonHandlerTests
             new MazeCell(1, 0),
             61000,
             123,
-            new Dictionary<MazeCell, int>
-            {
-                [new MazeCell(0, 0)] = 61000,
-                [new MazeCell(1, 0)] = 61001,
+            new Dictionary<MazeCell, DungeonCellDefinition> {
+                [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000),
+                [new MazeCell(1, 0)] = DungeonCellDefinition.Fixed(61001),
             });
     }
 

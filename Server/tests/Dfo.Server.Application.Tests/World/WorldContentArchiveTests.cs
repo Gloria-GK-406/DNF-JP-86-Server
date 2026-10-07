@@ -49,7 +49,7 @@ public sealed class WorldContentArchiveTests
             BossCell: boss,
             StartRoomMapId: 55623,
             Seed: 1,
-            Rooms: new Dictionary<MazeCell, int> { [ordinary] = 55623, [boss] = 55625 },
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [ordinary] = DungeonCellDefinition.Fixed(55623), [boss] = DungeonCellDefinition.Fixed(55625)},
             BasisLevel: dungeon.BasisLevel);
 
         async Task<DungeonRoomContents> Describe(MazeCell cell, int mapId) =>

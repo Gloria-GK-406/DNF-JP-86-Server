@@ -92,7 +92,7 @@ public sealed class PvfTypedDungeonAndMagicSealTests
     }
 
     [Fact]
-    public async Task Dungeon_variable_map_candidates_keep_the_existing_complete_triple_projection()
+    public async Task Dungeon_variable_map_candidates_preserve_all_candidates_without_phantom_cells()
     {
         var builder = DungeonBuilder();
         builder.AddScript("dungeon", "test.dgn").Tag("[maze info]").Tag("[size]").Int(9).Int(1)
@@ -102,12 +102,12 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         using var file = new BuiltArchive(builder);
         var dungeon = await new PvfDungeonDefinitionSource(file.Provider).GetAsync(7, default);
         Assert.NotNull(dungeon);
-        Assert.Equal(new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(7, 0)] = 27136,
-            [new MazeCell(8, 0)] = 27142,
-            [new MazeCell(0, 0)] = 27145,
-        }, Assert.Single(dungeon.Mazes).Rooms);
+        var cells = Assert.Single(dungeon.Mazes).Cells;
+        Assert.Equal(2, cells.Count);
+        Assert.Equal([27136, 27137, 27138, 27139, 27140], cells[new(7, 0)].MapCandidates);
+        Assert.Equal([27142, 27143, 27144, 27145], cells[new(8, 0)].BossMapCandidates);
+        Assert.Empty(cells[new(8, 0)].MapCandidates);
+        Assert.DoesNotContain(new MazeCell(0, 0), cells.Keys);
     }
 
     [Theory]

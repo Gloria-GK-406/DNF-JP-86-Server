@@ -23,7 +23,7 @@ public sealed class DungeonPaidCardSwitchRuleTests
     private const int Level = 86;
 
     /// <summary>The dungeons that declare the switch and that this server can read.</summary>
-    public static TheoryData<int> SwitchedOff => [100, 3700, 3901, 3902];
+    public static TheoryData<int> SwitchedOff => [100, 3503, 3700, 3901, 3902];
 
     /// <summary>Dungeons that declare no switch: this subject's own, and the two tutorials.</summary>
     public static TheoryData<int> Untouched => [144, 10000, 10004];
@@ -54,18 +54,6 @@ public sealed class DungeonPaidCardSwitchRuleTests
     /// <summary>
     /// A dungeon this server has no definition for is offered a flip, not refused one.
     /// </summary>
-    /// <remarks>
-    /// Two ways to have no definition and both answer the same: an identifier the archive's list
-    /// does not name at all, and 3503 -- which <b>does</b> declare <c>[gold card use] 0</c> but
-    /// declares a maze with no rooms, so the source answers nothing for it exactly as it does for
-    /// the four dungeons that declare a face of their own.
-    /// <para>
-    /// <b>So 3503's own switch is not honoured, and that is recorded rather than hidden.</b> It
-    /// cannot be observed -- a dungeon with no definition gets no layout and so no run, and a
-    /// clear is what a paid flip belongs to -- but the reading is nonetheless incomplete, and this
-    /// assertion is what will go red on the day maze-less dungeons become readable.
-    /// </para>
-    /// </remarks>
     [SkippableFact]
     public async Task A_dungeon_with_no_definition_is_not_treated_as_switched_off()
     {
@@ -74,12 +62,6 @@ public sealed class DungeonPaidCardSwitchRuleTests
         var rules = Rules(provider);
 
         Assert.True(await rules.OffersPaidFlipAsync(999_999, CancellationToken.None));
-        Assert.True(await rules.OffersPaidFlipAsync(3503, CancellationToken.None));
-
-        // And the reason it answers that way is the missing definition, not a missing tag.
-        Assert.Null(
-            await provider.GetRequiredService<IDungeonDefinitionSource>()
-                .GetAsync(3503, CancellationToken.None));
     }
 
     /// <summary>

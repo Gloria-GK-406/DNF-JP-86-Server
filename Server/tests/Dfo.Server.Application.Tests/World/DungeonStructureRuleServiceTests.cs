@@ -13,22 +13,21 @@ namespace Dfo.Server.Application.Tests.World;
 /// Both exist so a run can be replayed from its record and so the client, which is told the seed,
 /// can be checked against the same derivation.
 /// </remarks>
-public sealed class DungeonLayoutRuleServiceTests
+public sealed class DungeonStructureRuleServiceTests
 {
     /// <summary>The tutorial's maze, as read out of the archive on 2026-08-18.</summary>
     private static readonly MazeDefinition TutorialMaze = new(
         Index: 0,
         Width: 5,
         Height: 3,
-        Rooms: new Dictionary<MazeCell, int>
-        {
-            [new MazeCell(0, 1)] = 61000,
-            [new MazeCell(1, 1)] = 61001,
-            [new MazeCell(2, 1)] = 61002,
-            [new MazeCell(3, 1)] = 61003,
-            [new MazeCell(4, 1)] = 61005,
-            [new MazeCell(3, 2)] = 61004,
-            [new MazeCell(3, 0)] = 61006,
+        Cells: new Dictionary<MazeCell, DungeonCellDefinition> {
+            [new MazeCell(0, 1)] = DungeonCellDefinition.Fixed(61000),
+            [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001),
+            [new MazeCell(2, 1)] = DungeonCellDefinition.Fixed(61002),
+            [new MazeCell(3, 1)] = DungeonCellDefinition.Fixed(61003),
+            [new MazeCell(4, 1)] = DungeonCellDefinition.Fixed(61005),
+            [new MazeCell(3, 2)] = DungeonCellDefinition.Fixed(61004),
+            [new MazeCell(3, 0)] = DungeonCellDefinition.Fixed(61006),
         },
         StartCandidates: [new MazeCell(0, 1)],
         BossCandidates: [new MazeCell(3, 0)]);
@@ -107,7 +106,7 @@ public sealed class DungeonLayoutRuleServiceTests
     {
         var broken = new MazeDefinition(
             0, 5, 3,
-            new Dictionary<MazeCell, int> { [new MazeCell(1, 1)] = 61001 },
+            new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(1, 1)] = DungeonCellDefinition.Fixed(61001)},
             [new MazeCell(0, 1)],
             [new MazeCell(1, 1)]);
         var service = Service(new DungeonDefinition(1, "dungeon/Broken.dgn", 1, true, [broken]));
@@ -181,19 +180,39 @@ public sealed class DungeonLayoutRuleServiceTests
         Assert.Null(await service.ResolveAsync(144, facts, seed: 1, default));
     }
 
-    private static IDungeonLayoutRuleService Service(DungeonDefinition definition) =>
-        new DungeonLayoutRuleService(new StubDungeonSource(definition));
+    private static IDungeonStructureRuleService Service(DungeonDefinition definition) =>
+        new DungeonStructureRuleService(new StubDungeonSource(definition), new StubMaps());
+
+    [Theory]
+    [InlineData(DungeonEntryMode.Tournament)]
+    [InlineData(DungeonEntryMode.VillageRevenge)]
+    public async Task Special_structure_is_queryable_but_does_not_start_through_the_ordinary_entry(DungeonEntryMode mode)
+    {
+        var definition = Tutorial() with { EntryMode = mode };
+        var rules = Service(definition);
+        Assert.Equal(definition, await rules.GetDefinitionAsync(definition.DungeonId, default));
+        Assert.Null(await rules.ResolveAsync(definition.DungeonId, DungeonEntryFacts.None, 42, default));
+    }
+
+    private sealed class StubMaps : IDungeonMapDefinitionSource
+    {
+        public ValueTask<DungeonMapDefinition?> GetAsync(int mapId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<DungeonMapDefinition?>(new(mapId, [], DungeonMapKind.Normal,
+                [new(DungeonPathDirection.All, DungeonPathDirection.All)], true));
+        public ValueTask<IReadOnlyList<DungeonMapDefinition>> ListForDungeonAsync(int dungeonId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonMapDefinition>>([]);
+    }
 
     private static DungeonDefinition Tutorial() =>
         new(10000, "dungeon/Tutorial/Tutorial.dgn", 1, false, [TutorialMaze]);
 
     private static DungeonDefinition ManyCandidates()
     {
-        var rooms = new Dictionary<MazeCell, int>();
+        var rooms = new Dictionary<MazeCell, DungeonCellDefinition>();
         var candidates = new List<MazeCell>();
         for (byte x = 0; x < 5; x++)
         {
-            rooms[new MazeCell(x, 0)] = 61000 + x;
+            rooms[new MazeCell(x, 0)] = DungeonCellDefinition.Fixed(61000 + x);
             candidates.Add(new MazeCell(x, 0));
         }
 
@@ -209,7 +228,7 @@ public sealed class DungeonLayoutRuleServiceTests
                 index,
                 1,
                 1,
-                new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 55600 + index },
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(55600 + index)},
                 [new MazeCell(0, 0)],
                 [new MazeCell(0, 0)],
                 connection);

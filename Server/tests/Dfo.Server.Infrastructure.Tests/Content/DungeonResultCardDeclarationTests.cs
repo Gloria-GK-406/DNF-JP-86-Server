@@ -16,16 +16,8 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// sections in <c>Tool/PvfLib/Models/DungeonFile.cs</c> (<c>TournamentResultCard</c>,
 /// <c>TournamentRewardItemRate</c>) and consumes them in
 /// <c>Game/Dungeon/Tournament/TournamentDungeonApplicationService.cs</c>.
-/// <para>
-/// <b>What this file exists to pin is the reachability, not the reading.</b> Every dungeon that
-/// declares <c>[result card]</c> opens a <c>[maze info]</c> and then never declares a
-/// <c>[map specification]</c> inside it, so
-/// <see cref="PvfDungeonDefinitionSource"/> closes no maze for it and answers null -- the same
-/// answer it gives for a dungeon the archive does not declare at all. A dungeon that answers null
-/// gets no layout and so no run, which is why nothing that declares a face of its own can reach a
-/// clear on this server today. The paid-card switch is the opposite case: four of the five
-/// dungeons that turn it off are ordinary maze dungeons this server reads.
-/// </para>
+/// <para>Structure declarations are readable even without [map specification]. This does not
+/// imply the ordinary entry service implements tournament gameplay or its card rewards.</para>
 /// </remarks>
 public sealed class DungeonResultCardDeclarationTests
 {
@@ -42,7 +34,7 @@ public sealed class DungeonResultCardDeclarationTests
     private static readonly Lazy<ArchiveDeclarations> Declarations = new(Scan);
 
     [SkippableFact]
-    public async Task Every_dungeon_declaring_a_result_card_is_absent_from_the_definition_source()
+    public async Task Result_card_dungeons_have_implicit_structure_and_require_special_entry()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         var declared = Declarations.Value.ResultCard;
@@ -53,7 +45,12 @@ public sealed class DungeonResultCardDeclarationTests
         using var provider = ContentArchive.CreateProvider();
         var source = new PvfDungeonDefinitionSource(provider);
         foreach (var dungeonId in declared)
-            Assert.Null(await source.GetAsync(dungeonId, CancellationToken.None));
+        {
+            var dungeon = await source.GetAsync(dungeonId, CancellationToken.None);
+            Assert.NotNull(dungeon);
+            Assert.NotEmpty(dungeon.Mazes);
+            Assert.Equal(Dfo.Server.Abstractions.Content.DungeonEntryMode.Tournament, dungeon.EntryMode);
+        }
 
         // The control has to be reachable, or "absent" would be saying nothing about the four.
         Assert.NotNull(await source.GetAsync(OrdinaryDungeonId, CancellationToken.None));
@@ -78,9 +75,8 @@ public sealed class DungeonResultCardDeclarationTests
                 reachable.Add(dungeonId);
         }
 
-        // 3503 declares a maze with no rooms, exactly as the four above do. The other four are
-        // ordinary dungeons, so unlike the face declaration this switch is not unreachable.
-        Assert.Equal([100, 3700, 3901, 3902], reachable);
+        // 3503 has occupied implicit cells; its switch is now readable too.
+        Assert.Equal([100, 3503, 3700, 3901, 3902], reachable);
     }
 
     /// <summary>

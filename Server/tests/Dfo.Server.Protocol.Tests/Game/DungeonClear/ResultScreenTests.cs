@@ -288,7 +288,7 @@ public sealed class ResultScreenTests
             BossCell: Cell,
             StartRoomMapId: 55611,
             Seed: 0,
-            Rooms: new Dictionary<MazeCell, int> { [Cell] = 55611 },
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [Cell] = DungeonCellDefinition.Fixed(55611)},
             BasisLevel: 5,
             ExperienceWeight: 1.45);
 

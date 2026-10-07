@@ -367,7 +367,7 @@ public sealed class GetItemHandlerTests
         new MazeCell(0, 0),
         8153,
         7,
-        new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 },
+        new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)},
         5);
 
     private static SelectedSessionIdentity Session(int id, string connection, long generation) =>

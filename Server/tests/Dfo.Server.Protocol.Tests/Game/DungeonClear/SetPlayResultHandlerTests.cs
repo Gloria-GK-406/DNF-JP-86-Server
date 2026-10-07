@@ -825,7 +825,7 @@ public sealed class SetPlayResultHandlerTests
             BossCell: new MazeCell(0, 0),
             StartRoomMapId: 1,
             Seed: 0,
-            Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 1 },
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(1)},
             BasisLevel: 5,
             ExperienceWeight: 1.45,
             Purpose: purpose);

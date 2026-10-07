@@ -29,7 +29,7 @@ public sealed class DungeonCellFactoryTests
             BossCell: new MazeCell(0, 0),
             StartRoomMapId: 61000,
             Seed: 123,
-            Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
+            Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var participants = Enumerable.Range(0, memberCount)
             .Select(index => new DungeonRunParticipant(new AccountId(index + 1),
                 new CharacterId(index + 10), Slot: (byte)index, IsLeader: index == 0)).ToArray();
@@ -87,7 +87,7 @@ public sealed class DungeonCellFactoryTests
         var questLoot = new RecordingQuestLoot();
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(84, 0, 1, 1, cell, cell, 123, 456,
-            new Dictionary<MazeCell, int> { [cell] = 123 });
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
         DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
         var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
             new MonsterBoundary(), questLoot, new NoQuestBonus());
