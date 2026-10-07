@@ -5,6 +5,21 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfStackableActionDefinitionSourceTests
 {
     [SkippableFact]
+    public async Task Level_up_ticket_exposes_its_level_range_increment_and_hardcore_restriction()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var rule = await new PvfStackableActionDefinitionSource(provider).GetAsync(10006124, default);
+        Assert.NotNull(rule);
+        Assert.True(rule.IsReadable);
+        Assert.Equal("[level up ticket]", rule.Action);
+        Assert.Equal(1, rule.MinimumLevel);
+        Assert.Equal(85, rule.MaximumLevel);
+        Assert.Equal(1, rule.LevelIncrease);
+        Assert.True(rule.BlockedInHardcore);
+    }
+
+    [SkippableFact]
     public async Task Batch_coupon_has_action_and_level_ceiling_independent_of_item_id()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

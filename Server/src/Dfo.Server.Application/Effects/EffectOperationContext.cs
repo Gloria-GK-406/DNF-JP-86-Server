@@ -169,6 +169,7 @@ internal sealed class EffectOperationContext : IRequestReplayProjectionDomainSer
                 case (RenamePetEffect, PetNameChange):
                 case (AddPetStomachEffect, PetStomachChange): frame.Needs |= ReplayProjectionNeeds.Pets; break;
                 case (CharacterExperienceEffect, CharacterExperienceChange): frame.Needs |= ReplayProjectionNeeds.Experience; break;
+                case (SetCharacterLevelEffect, CharacterLevelChange): frame.Needs |= ReplayProjectionNeeds.Experience | ReplayProjectionNeeds.Skills; break;
                 case (SetCharacterGrowTypeEffect, CharacterGrowTypeChange):
                 case (MaterializeSkillBuildsEffect, SkillBuildsMaterializedChange):
                     frame.Needs |= ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills; break;

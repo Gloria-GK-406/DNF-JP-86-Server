@@ -395,6 +395,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
         services.TryAddSingleton<IQuestClearCouponDomainService, QuestClearCouponDomainService>();
+        services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
+        services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterLevelEffectHandler>());
         services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
         services.TryAddSingleton<IItemUsageDomainService, ItemUsageDomainService>();
         services.TryAddSingleton<

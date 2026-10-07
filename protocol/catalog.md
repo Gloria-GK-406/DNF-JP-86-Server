@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-07 升级券
+
+[CMD01A2](game/client-to-server/0x01A2.md) 已接入升级券领域服务：PVF 等级范围/升级幅度/模式限制，真实背包扣券与角色 SetLevel、旧主线清理同事务，提交后更新背包、经验点数、任务和技能。用户请求 `05 00 00` 已在运行日志观察；12B 成功响应按本体读取结构实现。当前为 WireCaptured 请求 + ClientStatic 响应 + CurrentImplementation，尚未部署或实机验收。见[说明与验证](../Document/level-up-ticket-20261007.md)。
+
 ## 2026-10-07 深渊缺票拒绝修正
 
 [CMD0010](game/client-to-server/0x0010.md) 的 `MissingHellTicket` 使用 A21 深渊专用码 `0x1B`，不再沿用普通材料不足 `0x11`。客户端分支与文案为 ClientStatic / Confirmed；回归覆盖拒绝帧和重试意图，修正后的控件恢复仍待实机验收。

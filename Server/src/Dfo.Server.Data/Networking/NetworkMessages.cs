@@ -179,6 +179,7 @@ public enum ClientMessageType
     GameCreatureScriptMessage = 0x0001_007A,
     GameTeleport = 0x0001_00ED,
     GameQuestClearCoupon = 0x0001_0204,
+    GameLevelUpTicket = 0x0001_01A2,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
@@ -319,6 +320,7 @@ public enum ServerMessageType
     GameTeleport = 0x0001_00ED,
     GameLoadCooltimeItems = 0x0000_00AC,
     GameQuestClearCoupon = 0x0001_0204,
+    GameLevelUpTicket = 0x0001_01A2,
 
     GameCreatureDeath = 0x0000_0064,
     GameCreatureRename = 0x0000_0065,

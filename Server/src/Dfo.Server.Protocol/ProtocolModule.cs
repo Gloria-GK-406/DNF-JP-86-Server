@@ -84,6 +84,7 @@ using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.QuestClearCoupon;
+using Dfo.Server.Protocol.Game.LevelUpTicket;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.ReturnToSelection;
@@ -437,6 +438,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<UseLevelUpTicketCommand, LevelUpTicketResult, UseLevelUpTicketCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddSingleton<FatiguePotionHandler>();
@@ -712,6 +715,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
         services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
+        services.RegisterMessageHandler<LevelUpTicketHandler>(ClientMessageType.GameLevelUpTicket);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
         services.RegisterMessageHandler<MagicBoxBatchOpeningHandler>(ClientMessageType.GameMagicBoxBatchOpening);
@@ -981,6 +985,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<TeleportDecoder>(0x00ED, ClientMessageType.GameTeleport);
         services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
             GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
+        services.AddGameCmdMessageDecoder<LevelUpTicketDecoder>(GameProtocol.LevelUpTicketType, ClientMessageType.GameLevelUpTicket);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
             GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
@@ -1063,6 +1068,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TeleportResponse, TeleportEncoder>();
         services.AddGameNotiMessageEncoder<TeleportCooldownNotification, TeleportCooldownEncoder>();
         services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
+        services.AddGameCmdMessageEncoder<LevelUpTicketResponse, LevelUpTicketEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
         services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();

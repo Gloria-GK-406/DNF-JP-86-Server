@@ -169,7 +169,11 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 
             try
             {
-                rawOrdered.Add(Project(archive, tags, questId, fileIndex));
+                var raw = Project(archive, tags, questId, fileIndex);
+                var parts = Path.GetFileNameWithoutExtension(relativePath).Split('_', 3);
+                var stage = parts.Length == 3 && parts[0].Equals("epic", StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(parts[1], out var value) && value >= 0 ? (int?)value : null;
+                rawOrdered.Add(raw with { Definition = raw.Definition with { StoryStageLevel = stage } });
             }
             catch (InvalidDataException)
             {

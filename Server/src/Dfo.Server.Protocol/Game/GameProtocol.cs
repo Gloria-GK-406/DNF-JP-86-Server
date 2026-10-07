@@ -288,6 +288,7 @@ internal static class GameProtocol
 
     public const ushort UseStackableType = 0x002C;
     public const ushort QuestClearCouponType = 0x0204;
+    public const ushort LevelUpTicketType = 0x01A2;
 
     public const ushort StoryPauseType = 0x00BF;
 

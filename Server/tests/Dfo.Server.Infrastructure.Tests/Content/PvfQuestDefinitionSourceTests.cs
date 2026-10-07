@@ -49,6 +49,16 @@ internal static class ContentArchive
 
 public sealed class PvfQuestDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task Story_stage_is_independent_of_the_regions_shared_minimum_level()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var definitions = await new PvfQuestDefinitionSource(provider).GetAllAsync(default);
+        Assert.Contains(definitions, q => q.StoryStageLevel == 17 && q.RequiredLevel?.Minimum == 17);
+        Assert.Contains(definitions, q => q.StoryStageLevel == 19 && q.RequiredLevel?.Minimum == 17);
+    }
+
     [Fact]
     public void Monster_reward_operands_are_strict_seven_field_groups()
     {

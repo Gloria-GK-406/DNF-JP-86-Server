@@ -246,6 +246,9 @@ public sealed record QuestDefinition(
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;
 
+    /// <summary>Individual story stage from epic_N_*.qst; the region's shared minimum level is not the stage.</summary>
+    public int? StoryStageLevel { get; init; }
+
     public bool AppliesToAnyGrowType => GrowTypeRequirement is null;
 
     public IReadOnlyList<HuntEnemyRequirement> HuntEnemyRequirements { get; init; }
