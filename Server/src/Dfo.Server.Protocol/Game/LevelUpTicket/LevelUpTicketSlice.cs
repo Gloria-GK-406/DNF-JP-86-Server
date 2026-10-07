@@ -47,13 +47,12 @@ internal static class LevelUpTicketPayloadCodec
     public static byte[] Encode(LevelUpTicketResponse response)
     {
         if (response.ErrorCode is { } error) return [0, error];
-        // A21 D28C95..D28CC7 reads slot/u8/u32/u16/u16 after the generic result.
-        // The client reads slot/container followed by u32/u16/u16 reward fields.
-        // No quest rewards are granted here; authoritative points come from NOTI 0025.
-        var body = new byte[12];
-        body[0] = 1;
-        BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(1), response.SourceSlot);
-        return body;
+        // A21's nonzero-result branch also opens the old event-server migration
+        // window for level >= 60 (D2907E..D290A2). Zero result with reason zero
+        // takes the silent completion path (D290DF -> D29140 -> D29158), which
+        // clears the wait without a popup or local decrement. Authoritative
+        // inventory, experience and quest NOTIs follow the committed receipt.
+        return [0, 0];
     }
 }
 internal sealed class LevelUpTicketEncoder : GameCmdMessageEncoder<LevelUpTicketResponse>

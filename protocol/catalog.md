@@ -2,7 +2,7 @@
 
 ## 2026-10-07 升级券
 
-[CMD01A2](game/client-to-server/0x01A2.md) 已接入升级券领域服务：PVF 等级范围/升级幅度/模式限制，真实背包扣券与角色 SetLevel、旧主线清理同事务，提交后更新背包、经验点数、任务和技能。用户请求 `05 00 00` 已在运行日志观察；12B 成功响应按本体读取结构实现。当前为 WireCaptured 请求 + ClientStatic 响应 + CurrentImplementation，尚未部署或实机验收。见[说明与验证](../Document/level-up-ticket-20261007.md)。
+[CMD01A2](game/client-to-server/0x01A2.md) 已接入升级券领域服务：PVF 等级范围/升级幅度/模式限制，真实背包扣券与角色 SetLevel、旧主线清理同事务，提交后更新背包、经验点数、任务和技能。请求 `05 00 00` 已观察。首次部署使用原生非零分支，用户反馈升级后弹旧活动窗口；补追确认该分支在等级 >=60 时显示窗口 0x191，当前业务成功改为上游同样的 `00 00` 静默回执，并由 NOTI 同步状态。请求为 WireCaptured，修正为 ClientStatic + CurrentImplementation，修正后 UI 待实机验收。见[说明与验证](../Document/level-up-ticket-20261007.md)。
 
 ## 2026-10-07 深渊缺票拒绝修正
 

@@ -1,9 +1,16 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.LevelUpTicket;
+using Dfo.Server.Protocol.Game.MonsterDeath;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,9 +41,9 @@ public sealed class LevelUpTicketCodecTests
     }
 
     [Fact]
-    public void Success_echoes_slot_and_provides_all_fields_the_native_handler_reads()
+    public void Committed_success_uses_silent_completion_and_does_not_enter_the_old_activity_popup_branch()
     {
-        Assert.Equal(Convert.FromHexString("010500000000000000000000"), LevelUpTicketPayloadCodec.Encode(new(5)));
+        Assert.Equal(Convert.FromHexString("0000"), LevelUpTicketPayloadCodec.Encode(new(5)));
         Assert.Equal(Convert.FromHexString("0016"), LevelUpTicketPayloadCodec.Encode(new(5, 0x16)));
     }
 
@@ -48,6 +55,23 @@ public sealed class LevelUpTicketCodecTests
     {
         var request = Assert.IsType<LevelUpTicketRequest>(new LevelUpTicketDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString(body)));
         Assert.False(request.Complete);
+    }
+
+    [Fact]
+    public async Task Silent_completion_is_followed_by_absolute_slot_and_level_updates_for_the_current_session()
+    {
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("ticket-test"), 2, 10011);
+        var receipt = new OpeningInventoryReceipt(session, [], [OpeningWireSlots.FromMain(5)], [], DateTimeOffset.UnixEpoch);
+        var experience = new ExperienceNotification(85, 880603520, new(0, 0, 0, 0), AccountHonorLevel.Initial, ExperienceBonusLines.None);
+        var notification = new OpeningCompleted(receipt, [new LevelUpTicketResponse(5)], FollowingMessages: [experience]);
+        var delivery = new OpeningCompletedHandler(new global::Dfo.Server.Protocol.Tests.Game.OneSession(session));
+        var messages = await delivery.ComposeAsync(new NotificationRecipient(session.CharacterId, session.ConnectionId, session), notification, default);
+        Assert.Equal(Convert.FromHexString("0000"), LevelUpTicketPayloadCodec.Encode(Assert.IsType<LevelUpTicketResponse>(messages[0])));
+        var item = Assert.Single(Assert.IsType<InventoryDeltaMessage>(messages[1]).Items);
+        Assert.Equal(5, item.SlotIndex);
+        Assert.Equal(-1, item.Core.ItemId);
+        Assert.Same(experience, messages[2]);
+        Assert.Empty(await delivery.ComposeAsync(new NotificationRecipient(new CharacterId(999), session.ConnectionId), notification, default));
     }
 
     [Theory]
