@@ -301,6 +301,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_dark_knight_combo_skill_pages(character_id INTEGER, page_index INTEGER, body BLOB NOT NULL, PRIMARY KEY(character_id,page_index));
         CREATE TABLE IF NOT EXISTS character_dimensions(character_id INTEGER, sort_order INTEGER, dim_key INTEGER, val1 INTEGER, val2 INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_dungeon_permissions(character_id INTEGER, sort_order INTEGER, dungeon_id INTEGER, clear_state INTEGER, PRIMARY KEY(character_id,sort_order));
+        CREATE TABLE IF NOT EXISTS account_dungeon_permissions(account_id INTEGER NOT NULL, dungeon_id INTEGER NOT NULL, clear_state INTEGER NOT NULL, PRIMARY KEY(account_id,dungeon_id));
         CREATE TABLE IF NOT EXISTS character_expert_job ( character_id INTEGER PRIMARY KEY, disjoint_machine_endurance INTEGER NOT NULL DEFAULT 0, disjoint_machine_grade INTEGER NOT NULL DEFAULT 0, enchanter_endurance INTEGER NOT NULL DEFAULT 0, expert_job_exp INTEGER NOT NULL DEFAULT 0, expert_job_type INTEGER NOT NULL DEFAULT 0, giveup_count INTEGER NOT NULL DEFAULT 0 );
         CREATE TABLE IF NOT EXISTS character_expert_job_recipes(character_id INTEGER, recipe_id INTEGER, PRIMARY KEY(character_id,recipe_id));
         CREATE TABLE IF NOT EXISTS character_growth_weapon_stages(character_id INTEGER, sort_order INTEGER, stage_id INTEGER, PRIMARY KEY(character_id,sort_order));

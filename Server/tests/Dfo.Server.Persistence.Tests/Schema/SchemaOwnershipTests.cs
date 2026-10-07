@@ -55,7 +55,8 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(67, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(68, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Contains("account_dungeon_permissions(account_id:INTEGER,clear_state:INTEGER,dungeon_id:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("event_joust_result(odds:TEXT,result_index:INTEGER,round_id:TEXT,starts_at:INTEGER,winner_index:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("daily_refill_settings(id:INTEGER,input:TEXT,revision:INTEGER,updated_at:INTEGER,updated_by:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("initialization_settings(input:TEXT,kind:TEXT,revision:INTEGER,updated_at:INTEGER,updated_by:TEXT)", shape, StringComparison.Ordinal);

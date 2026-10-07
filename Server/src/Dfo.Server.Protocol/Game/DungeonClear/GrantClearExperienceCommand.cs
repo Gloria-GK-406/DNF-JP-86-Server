@@ -18,7 +18,8 @@ namespace Dfo.Server.Protocol.Game.DungeonClear;
 /// <param name="ClearBase">What the clear itself was worth, for the result screen to report.</param>
 /// <param name="RankBonus">What the run's rank added, likewise.</param>
 public sealed record ClearExperienceResult(
-    ExperienceAward? Award, uint ClearBase, uint RankBonus, bool AttendanceChanged = false);
+    ExperienceAward? Award, uint ClearBase, uint RankBonus, bool AttendanceChanged = false,
+    CharacterDungeonDifficulty? DifficultyUnlocked = null);
 
 /// <summary>One character's finished run, paid.</summary>
 public sealed record GrantClearExperienceCommand(
@@ -30,7 +31,8 @@ public sealed record GrantClearExperienceCommand(
 
 /// <summary>Calculate settlement and persist progression within one transaction.</summary>
 public sealed class GrantClearExperienceCommandHandler(
-    ICharacterDomainService grant, TimeProvider clock, Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null)
+    ICharacterDomainService grant, TimeProvider clock, ICharacterDungeonDifficultyDomainService difficulties,
+    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext context,
@@ -47,6 +49,8 @@ public sealed class GrantClearExperienceCommandHandler(
             cancellationToken).ConfigureAwait(false);
         var changed = award is not null && attendance is not null && command.RunId != Guid.Empty
             && await attendance.RecordClearAsync(command.AccountId,command.RunId,command.DungeonId,command.SettlementLevel,now,cancellationToken);
-        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed);
+        var unlocked = await difficulties.UnlockAfterClearAsync(command.CharacterId, command.DungeonId,
+            (DungeonDifficulty)command.Clear.Difficulty, cancellationToken).ConfigureAwait(false);
+        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked);
     }
 }

@@ -43,6 +43,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         internal static readonly PvfField<IReadOnlyList<PvfToken>> NoFatigueField = PvfField.Tokens("[no fatigue]", optional: true);
         internal static readonly PvfField<int> GoldCardUseField = PvfField.Int32("[gold card use]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> QuestConnectionField = PvfField.Int32List("[quest connection]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> DifficultyLevelField = PvfField.Int32List("[difficulty level]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> DesignatedDifficultyField = PvfField.Int32List("[designate dungeon difficulty]", optional: true);
+        internal static readonly PvfField<int> DifficultyField = PvfField.Int32("[difficulty]", optional: true);
     }
 
     private const string ListPath = "dungeon/dungeon.lst";
@@ -107,6 +110,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         var consumesFatigue = true;
         var offersPaidCard = true;
         DungeonQuestConnection? questConnection = null;
+        IReadOnlyList<byte>? difficultyLevels = null;
+        IReadOnlyList<byte>? designatedDifficulties = null;
+        int? fixedDifficulty = null;
 
         void Unique(PvfField field)
         {
@@ -154,6 +160,27 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             {
                 Unique(Fields.GoldCardUseField);
                 offersPaidCard = Fields.GoldCardUseField.Decode(archive, section.Values, archivePath) != 0;
+            }
+            else if (Fields.DifficultyLevelField.Matches(section.Name))
+            {
+                Unique(Fields.DifficultyLevelField);
+                var values = Fields.DifficultyLevelField.Decode(archive, section.Values, archivePath);
+                Require(values.Count <= 5, archivePath, Fields.DifficultyLevelField, "expected at most five A21 difficulty flags");
+                difficultyLevels = values.Select((value, index) => (value, index))
+                    .Where(pair => pair.value != 0).Select(pair => (byte)pair.index).ToArray();
+            }
+            else if (Fields.DesignatedDifficultyField.Matches(section.Name))
+            {
+                Unique(Fields.DesignatedDifficultyField);
+                var values = Fields.DesignatedDifficultyField.Decode(archive, section.Values, archivePath);
+                Require(values.All(value => value is >= 0 and <= 4), archivePath, Fields.DesignatedDifficultyField, "difficulty outside A21 range");
+                designatedDifficulties = values.Select(value => (byte)value).Distinct().Order().ToArray();
+            }
+            else if (Fields.DifficultyField.Matches(section.Name))
+            {
+                Unique(Fields.DifficultyField);
+                fixedDifficulty = Fields.DifficultyField.Decode(archive, section.Values, archivePath);
+                Require(fixedDifficulty is >= -1 and <= 4, archivePath, Fields.DifficultyField, "difficulty outside A21 range");
             }
             else if (Fields.NoFatigueField.Matches(section.Name))
             {
@@ -231,7 +258,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         Close(mazes, draft);
         return mazes.Count == 0 ? null : new DungeonDefinition(
             dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
-            experienceWeight, offersPaidCard, questConnection);
+            experienceWeight, offersPaidCard, questConnection,
+            designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []));
     }
 
     private static byte LegacyCoordinate(int value) =>

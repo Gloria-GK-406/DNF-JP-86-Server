@@ -107,7 +107,8 @@ public sealed record DungeonDefinition(
     byte BasisLevel = 1,
     double ExperienceWeight = 1.0,
     bool OffersPaidCard = true,
-    DungeonQuestConnection? QuestConnection = null);
+    DungeonQuestConnection? QuestConnection = null,
+    IReadOnlyList<byte>? SupportedDifficulties = null);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

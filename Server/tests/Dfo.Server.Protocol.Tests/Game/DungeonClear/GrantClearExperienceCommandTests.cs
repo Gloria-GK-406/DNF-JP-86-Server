@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -120,14 +122,40 @@ public sealed class GrantClearExperienceCommandTests
             Command(clientRankPoint, basisLevel),
             CancellationToken.None);
 
-    private static GrantClearExperienceCommandHandler Handler() =>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(100)]
+    public async Task Difficulty_progression_is_part_of_settlement_regardless_of_score(int score)
+    {
+        var difficulties = new RecordingDifficulty();
+        var result = await Handler(difficulties).HandleAsync(Context(CommandExecutionKind.Transactional), Command(score,5), default);
+        Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
+        Assert.Equal(new CharacterId(60), difficulties.Character);
+        Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
+    }
+
+    private static GrantClearExperienceCommandHandler Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>
         new(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
                 new NoProgression(),
                 new NoChannelExperience(),
                 ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)), new NoBonuses())), TimeProvider.System);
+                ExperienceEntitlementPolicy.None)), new NoBonuses())), TimeProvider.System, difficulties ?? new RecordingDifficulty());
+
+    private sealed class RecordingDifficulty : ICharacterDungeonDifficultyDomainService
+    {
+        public CharacterId Character { get; private set; }
+        public DungeonDifficulty Cleared { get; private set; }
+        public ValueTask<CharacterDungeonDifficulty?> UnlockAfterClearAsync(CharacterId id, int dungeon, DungeonDifficulty cleared, CancellationToken token)
+        {
+            Character=id; Cleared=cleared;
+            return ValueTask.FromResult<CharacterDungeonDifficulty?>(new(dungeon,DungeonDifficulty.Adventure));
+        }
+        public ValueTask<DungeonDifficulty> GetMaximumAsync(CharacterId id,int dungeon,CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<CharacterDungeonDifficulty>> GetRecordedAsync(CharacterId id,CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<DungeonDifficulty> UnlockAsync(CharacterId id,int dungeon,DungeonDifficulty difficulty,CancellationToken token) => throw new NotSupportedException();
+    }
 
     private sealed class NoBonuses : IExperienceBonusDomainService
     {

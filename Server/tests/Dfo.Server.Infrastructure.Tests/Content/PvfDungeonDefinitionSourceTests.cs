@@ -18,6 +18,17 @@ public sealed class PvfDungeonDefinitionSourceTests
     private const int SwordmanTutorialDungeonId = 10004;
 
     [SkippableFact]
+    public async Task Difficulty_tiers_follow_real_archive_flags_and_fixed_designations()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+        Assert.Equal(new byte[] {0,1,2,3,4}, (await source.GetAsync(70, default))!.SupportedDifficulties);
+        Assert.Equal(new byte[] {1}, (await source.GetAsync(7, default))!.SupportedDifficulties);
+        Assert.Empty((await source.GetAsync(TutorialDungeonId, default))!.SupportedDifficulties!);
+    }
+
+    [SkippableFact]
     public async Task The_tutorial_dungeon_reads_as_one_maze_on_a_three_by_two_grid()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

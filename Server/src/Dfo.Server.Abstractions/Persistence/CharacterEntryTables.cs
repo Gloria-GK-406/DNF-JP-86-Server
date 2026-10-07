@@ -181,7 +181,7 @@ public interface ICharacterDailyScheduleTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>character_dungeon_permissions</c> table.</summary>
+/// <summary>Shared account permissions accessed through a character, including read-only legacy rows.</summary>
 public interface ICharacterDungeonPermissionTable
 {
     ValueTask<IReadOnlyList<DungeonPermissionRow>> ReadAsync(
@@ -253,4 +253,3 @@ public interface ICharacterDailyCounterValueTable
     ValueTask<int?> FindValueAsync(
         CharacterId characterId, string counterKey, CancellationToken cancellationToken);
 }
-

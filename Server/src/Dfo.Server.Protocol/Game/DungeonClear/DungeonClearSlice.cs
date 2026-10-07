@@ -1031,6 +1031,10 @@ public sealed class SetPlayResultHandler(
                     ExperienceBonusLines.Of(award)),
             ];
 
+            if (paid.DifficultyUnlocked is { } unlocked)
+                frames.Add(new DungeonPermissionStateMessage(
+                    [new CharacterDungeonProgressState(unlocked.DungeonId, (byte)unlocked.Maximum)]));
+
             if (award?.LeveledUp == true)
             {
                 frames.Add(new AvailableQuestListMessage(

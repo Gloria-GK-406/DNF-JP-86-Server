@@ -456,5 +456,6 @@ public sealed class DungeonVisitDomainServiceTests
         public ValueTask<DungeonDifficulty> GetMaximumAsync(CharacterId characterId, int dungeonId, CancellationToken token) => ValueTask.FromResult(maximum);
         public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Characters.CharacterDungeonDifficulty>> GetRecordedAsync(CharacterId characterId, CancellationToken token) => throw new NotSupportedException();
         public ValueTask<DungeonDifficulty> UnlockAsync(CharacterId characterId, int dungeonId, DungeonDifficulty difficulty, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Abstractions.Characters.CharacterDungeonDifficulty?> UnlockAfterClearAsync(CharacterId characterId, int dungeonId, DungeonDifficulty cleared, CancellationToken token) => throw new NotSupportedException();
     }
 }
