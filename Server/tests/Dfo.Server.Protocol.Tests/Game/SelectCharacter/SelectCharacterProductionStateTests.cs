@@ -21,6 +21,22 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 public sealed class SelectCharacterProductionStateTests
 {
+    [Theory]
+    [InlineData(11, 11)]
+    [InlineData(0, 12)]
+    public async Task Login_uses_the_remembered_inn_and_legacy_saves_use_the_current_town(byte inn, int requestedTown)
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        seed = seed with { Character = seed.Character with
+        {
+            Position = new(12, 0, 562, 183, 5), LastInnTownId = inn,
+        } };
+        var sources = new Sources(seed, []);
+        await PrepareAsync(sources, seed);
+        Assert.Equal(requestedTown, sources.RequestedLoginTown);
+        Assert.Equal(1, sources.PlacementCalls);
+    }
+
     private sealed class QueryOnlyEpicBook : Dfo.Server.Abstractions.Inventory.IEpicBookDomainService
     {
         public Dfo.Server.Data.Inventory.EpicPieceDefinition? FindPiece(int id) => null;
@@ -342,6 +358,7 @@ public sealed class SelectCharacterProductionStateTests
         ISelectedSessionPositionPersistence, ITownMovementDomainService
     {
         public bool Published { get; private set; }
+        public int RequestedLoginTown { get; private set; }
         public bool RejectPlacement { get; init; }
         public int PlacementCalls { get; private set; }
         public int InventoryMaintenanceCalls { get; private set; }
@@ -463,11 +480,14 @@ public sealed class SelectCharacterProductionStateTests
             ChannelEntryIdentity channel, int town, CancellationToken ct)
         {
             PlacementCalls++;
+            RequestedLoginTown = town;
             if (RejectPlacement) throw new InvalidOperationException("An online query must not resolve login placement.");
             return ValueTask.FromResult(seed.World.Channel);
         }
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int town, CancellationToken ct) =>
             ValueTask.FromResult(true);
+        public ValueTask<bool> CanRememberInnAsync(int town, CancellationToken ct) =>
+            ValueTask.FromResult(town > 0 && town != 17);
         public ValueTask<bool> DeclaresAreaAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
         public ValueTask<bool> SharesTownPresenceAsync(int town, int area, CancellationToken ct) =>

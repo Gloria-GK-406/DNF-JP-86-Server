@@ -24,7 +24,7 @@ public sealed class CharacterBodyShapeTests
         "account_id", "appearance_blob", "area_id", "area_state", "bonus_sp", "bonus_tp",
         "character_id", "clone_title_item_id", "created_at", "delete_flag", "direction",
         "ex_equip_slot_stat", "exp", "grow_type", "guild_level", "guild_power_war", "job",
-        "level", "manage_level", "name", "name_bytes", "name_tag_expire_time",
+        "last_inn_town_id", "level", "manage_level", "name", "name_bytes", "name_tag_expire_time",
         "name_tag_item_id", "pos_x", "pos_y", "skill_tree_index", "active_skill_build", "slot_index", "town_id",
         "tutorial_completed", "user_state",
     ];

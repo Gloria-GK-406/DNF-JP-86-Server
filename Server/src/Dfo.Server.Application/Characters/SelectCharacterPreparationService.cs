@@ -49,7 +49,12 @@ public sealed class SelectCharacterPreparationService(
             spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction);
         var placed = prepared with
         {
-            Character = prepared.Character with { Position = resolved },
+            Character = prepared.Character with
+            {
+                Position = resolved,
+                LastInnTownId = prepared.World.Channel.PersistsPosition
+                    ? spawn.TownId : prepared.Character.LastInnTownId,
+            },
         };
         if (placed.World.Channel.PersistsPosition)
         {
@@ -149,7 +154,7 @@ public sealed class SelectCharacterPreparationService(
             .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(
             channel,
-            character.Position.TownId,
+            character.LastInnTownId != 0 ? character.LastInnTownId : character.Position.TownId,
             cancellationToken).ConfigureAwait(false);
         if (channelPolicy.PvpSkillProfileApplies)
         {

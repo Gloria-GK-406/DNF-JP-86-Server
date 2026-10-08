@@ -17,12 +17,15 @@ public sealed class EntryPlacementUnavailableException(string message)
 /// <summary>Decides where a character stands and what the channel permits.</summary>
 public interface IEntryPlacementRuleService
 {
+    /// <summary>Whether this ordinary town has a usable Seria gate and can become the remembered inn.</summary>
+    ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken);
+
     /// <summary>
     /// Resolves login placement and permissions. Ordinary channels fall back to the initial
-    /// town when the remembered town has no usable arrival gate. Online queries do not call this.
+    /// town when the remembered inn has no usable arrival gate. Online queries do not call this.
     /// </summary>
     /// <param name="persistedTownId">
-    /// The town the character was last in, or zero when they have none.
+    /// The remembered inn town; callers may use the current town for legacy saves with no inn record.
     /// </param>
     /// <exception cref="EntryPlacementUnavailableException">
     /// The content defines no usable arrival point for the resolved town.

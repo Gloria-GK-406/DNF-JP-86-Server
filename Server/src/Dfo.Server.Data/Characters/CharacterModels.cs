@@ -195,6 +195,8 @@ public sealed record ActiveCharacterState(
     DateTimeOffset CreatedAt)
 {
     public bool TutorialCompleted { get; init; }
+    /// <summary>Last ordinary town with a usable Seria arrival gate; zero for legacy saves.</summary>
+    public byte LastInnTownId { get; init; }
 }
 
 public sealed record CharacterAppearanceCompatibilityState(

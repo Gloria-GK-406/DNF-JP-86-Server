@@ -96,7 +96,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         database.ReadFirstAsync(
             $"""
             SELECT character_id, slot_index, {Name}, job, grow_type, level, created_at,
-                   town_id, area_id, pos_x, pos_y, direction, tutorial_completed
+                   town_id, area_id, pos_x, pos_y, direction, tutorial_completed, last_inn_town_id
             FROM characters
             WHERE account_id = @aid AND slot_index = @slot AND delete_flag = 0
             LIMIT 1;
@@ -115,6 +115,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 reader.GetInt32(6))
             {
                 TutorialCompleted = reader.GetInt32(12) != 0,
+                LastInnTownId = checked((byte)reader.GetInt32(13)),
                 Position = new CharacterPositionState(
                     checked((byte)reader.GetInt32(7)), checked((byte)reader.GetInt32(8)),
                     checked((short)reader.GetInt32(9)), checked((short)reader.GetInt32(10)),

@@ -260,7 +260,7 @@ public sealed class CommonExperienceEffectTests
     public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
     {
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand"];
-        string[] expected = ["ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
+        string[] expected = ["ClaimWeeklyAttendanceCommand","UseStackableCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
             "ForgingCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
             "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand"];

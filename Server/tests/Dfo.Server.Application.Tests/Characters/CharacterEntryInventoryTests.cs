@@ -911,6 +911,8 @@ public sealed class CharacterEntryInventoryTests
 
     private sealed class DuelAwarePlacement : Dfo.Server.Abstractions.World.IEntryPlacementRuleService
     {
+        public ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(townId > 0 && townId != 17);
         public ValueTask<ChannelEntryPolicyState> ResolveAsync(ChannelEntryIdentity channel,
             int persistedTownId, CancellationToken cancellationToken) => ValueTask.FromResult(
                 new ChannelEntryPolicyState(channel.ChannelId,

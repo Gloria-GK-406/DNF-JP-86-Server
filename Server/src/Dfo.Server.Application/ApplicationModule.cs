@@ -234,7 +234,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionPositionPersistence>(
             provider => new SelectedSessionPositionPersistence(
                 provider.GetService<ICharacterDomainStore>(),
-                provider.GetRequiredService<IDomainTransactionAccessor>()));
+                provider.GetRequiredService<IDomainTransactionAccessor>(),
+                provider.GetService<ICharacterDomainStore>() is null ? null
+                    : provider.GetRequiredService<IEntryPlacementRuleService>()));
         // What a job starts with and what a creation request may ask for; and what entry
         // reconciles a character against on the way in.
         services.TryAddSingleton<ICharacterCreationRuleService, CharacterCreationRuleService>();

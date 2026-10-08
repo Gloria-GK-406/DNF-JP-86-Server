@@ -231,6 +231,7 @@ internal sealed class CharacterRosterService(
                 DateTimeOffset.FromUnixTimeSeconds(row.CreatedAtUnixSeconds))
         {
             TutorialCompleted = row.TutorialCompleted,
+            LastInnTownId = row.LastInnTownId,
         };
     }
 

@@ -9,6 +9,17 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class EntryPlacementTests
 {
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(7, false)]
+    [InlineData(17, false)]
+    [InlineData(999, false)]
+    public async Task Only_ordinary_towns_with_a_usable_gate_can_be_remembered_as_an_inn(int town, bool expected)
+    {
+        Assert.Equal(expected, await Placement().CanRememberInnAsync(town, default));
+    }
+
     [Fact]
     public async Task A_character_arrives_at_the_gate_of_the_town_they_were_last_in()
     {

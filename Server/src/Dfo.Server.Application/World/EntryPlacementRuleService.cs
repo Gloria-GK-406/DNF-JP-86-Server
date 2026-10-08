@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.World;
 /// </summary>
 /// <remarks>
 /// Reverse-engineered from the legacy channel spawn policy. Ordinary channels put a
-/// character at their town's arrival gate and remember where they end up. Saint Horn
+/// character at their remembered inn's arrival gate. Their live town is saved separately. Saint Horn
 /// serves one town and uses its own arrival gate without overwriting the remembered town.
 /// </remarks>
 internal sealed class EntryPlacementRuleService(
@@ -24,6 +24,10 @@ internal sealed class EntryPlacementRuleService(
     private const byte ArrivalDirection = 5;
 
     private const byte ArrivalAreaState = 3;
+
+    public async ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken) =>
+        townId != options.SaintHornTownId
+        && await TryResolveTownGateSpawnAsync(townId, cancellationToken).ConfigureAwait(false) is not null;
 
     public async ValueTask<ChannelEntryPolicyState> ResolveAsync(
         ChannelEntryIdentity channel,

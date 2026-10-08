@@ -57,8 +57,9 @@ public interface ICharacterDomainStoreSession
     ValueTask<CharacterPositionState?> ReadPositionAsync(
         OwnedCharacterId characterId, CancellationToken cancellationToken);
 
-    /// <summary>Puts the character at this exact place.</summary>
-    void WritePosition(OwnedCharacterId characterId, CharacterPositionState position);
+    /// <summary>Saves the exact position and, when supplied, the newly remembered inn town atomically.</summary>
+    /// <param name="lastInnTownId">Null preserves the previous inn independently of the position.</param>
+    void WritePosition(OwnedCharacterId characterId, CharacterPositionState position, byte? lastInnTownId = null);
 }
 
 /// <summary>The condition one of a character's creatures is in.</summary>
