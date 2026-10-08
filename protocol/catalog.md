@@ -919,7 +919,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x03C1` | `RentalStateMessage` | 仅证明 encoder 可产生该 identity | [0x03C1](game/server-to-client/NOTI-0x03C1.md) |
 | `0x00` NOTI | `0x03D8` | `LotteryProgressStateMessage` | 仅证明 encoder 可产生该 identity | [0x03D8](game/server-to-client/NOTI-0x03D8.md) |
 | `0x00` NOTI | `0x042D` | `WeeklyAttendanceStateMessage` | 仅证明 encoder 可产生该 identity | [0x042D](game/server-to-client/NOTI-0x042D.md) |
-| `0x00` NOTI | `0x0465` | `EpicBookBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
+| `0x00` NOTI | `0x0465` | `EpicBookStateMessage` | 全量/增量累计余额编码已测；非空客户端效果待验收 | [0x0465](game/server-to-client/NOTI-0x0465.md) |
 | `0x00` NOTI | `0x04B8` | `JoustStateMessage` | 仅证明 encoder 可产生该 identity | [0x04B8](game/server-to-client/NOTI-0x04B8.md) |
 | `0x00` NOTI | `0x04B9` | `JoustInfoMessage` | 仅证明 encoder 可产生该 identity | [0x04B9](game/server-to-client/NOTI-0x04B9.md) |
 | `0x00` NOTI | `0x04BA` | `JoustBetsMessage` | 仅证明 encoder 可产生该 identity | [0x04BA](game/server-to-client/NOTI-0x04BA.md) |

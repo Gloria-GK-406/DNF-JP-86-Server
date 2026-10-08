@@ -225,6 +225,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<AmbientStoreAccess>();
         services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
         services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
+        services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
+        services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
         // The store is looked up rather than demanded, because a host may be assembled without
         // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
         // outright would make such a host fail to start; asking for it optionally lets it start

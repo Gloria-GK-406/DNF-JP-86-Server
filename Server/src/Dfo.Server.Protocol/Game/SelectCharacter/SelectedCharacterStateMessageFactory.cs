@@ -70,7 +70,7 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new DungeonPermissionStateMessage(result.CharacterEntry.Progression.Dungeons));
         AddInventorySnapshots(messages, result);
         messages.Add(new GuildMedalBaselineMessage());
-        messages.Add(new EpicBookBaselineMessage());
+        messages.Add(new EpicBookStateMessage(0, result.EpicPieces ?? []));
         messages.Add(new UsableCountBaselineMessage());
         messages.Add(new DailyChallengeStateMessage(result.CharacterEntry.Progression));
         messages.Add(new AccountGameOptionsMessage(result.Account.Settings));

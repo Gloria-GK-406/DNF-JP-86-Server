@@ -34,7 +34,8 @@ public sealed class SelectCharacterPreparationService(
     TimeProvider timeProvider,
     Dfo.Server.Abstractions.Events.IEventManagementDomainService? events = null,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
-    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null,
+    IEpicBookDomainService? epicBook = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
@@ -203,7 +204,8 @@ public sealed class SelectCharacterPreparationService(
             events is null || attendance is null ? null : new Dfo.Server.Data.Events.EventPlayerSnapshot(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
-                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)));
+                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken)),
+            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false));
 
         return result;
     }

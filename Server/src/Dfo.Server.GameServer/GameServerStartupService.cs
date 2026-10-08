@@ -66,6 +66,8 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
             var worldCount = services.GetRequiredService<IWorldDropRuleService>().Initialize();
             logger.LogInformation("World drop tables initialized: {Count} levels in {ElapsedMs} ms", worldCount, worldTimer.ElapsedMilliseconds);
             await services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync(cancellationToken);
+            await services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>()
+                .InitializeAsync(cancellationToken).ConfigureAwait(false);
             var vendingCount = services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IVendingMachineDefinitionSource>().Initialize();
             logger.LogInformation("Vending machine definitions initialized: {Count} groups", vendingCount);
             var timer = System.Diagnostics.Stopwatch.StartNew();

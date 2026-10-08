@@ -77,16 +77,7 @@ internal sealed class PvfHellRewardDefinitionSource(PvfArchiveProvider provider)
                 throw new InvalidDataException("Invalid hell grade window.");
             windows.Add(grades[at], new(Math.Max(0, grades[at] - grades[at + 1]), grades[at] + grades[at + 2] - 1));
         }
-        var pieces = new Dictionary<int, int>();
-        const string piecePath = "etc/epicpieceinfo.etc";
-        if (archive.FindFile(piecePath) >= 0)
-        {
-            var pieceDocument = PvfDocument.Open(archive, piecePath);
-            var section = pieceDocument.Sections.Single(x => x.Name == "[piece list]");
-            var values = PvfField.Int32List(section.Name).Decode(archive, section.Values, piecePath).ToArray();
-            if (values.Length % 2 != 0 || values.Any(x => x <= 0)) throw new InvalidDataException("Invalid epic piece pairs.");
-            for (var at = 0; at < values.Length; at += 2) pieces.Add(values[at], values[at + 1]);
-        }
+        var pieces = new PvfEpicBookDefinitionSource(provider).Load().ToDictionary(x => x.EquipmentId, x => x.PieceId);
         return new(bands, ladders, windows, pieces);
     }
 }

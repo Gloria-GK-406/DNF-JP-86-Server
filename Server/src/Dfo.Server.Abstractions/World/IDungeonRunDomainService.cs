@@ -332,6 +332,7 @@ public enum DungeonPickupKind
 {
     Item,
     Gold,
+    EpicPiece,
 }
 
 /// <summary>A committed shared pickup, expressed without transport identities.</summary>

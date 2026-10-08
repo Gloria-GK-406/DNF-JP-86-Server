@@ -228,6 +228,7 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS account_epic_pieces(account_id INTEGER NOT NULL REFERENCES accounts(account_id),piece_id INTEGER NOT NULL CHECK(piece_id>0),count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 2147483647),PRIMARY KEY(account_id,piece_id));
         CREATE TABLE IF NOT EXISTS schema_migrations(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS gm_administrators (id INTEGER PRIMARY KEY AUTOINCREMENT,login_name TEXT NOT NULL UNIQUE,password_record TEXT NOT NULL,enabled INTEGER NOT NULL,permissions INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_sessions (token_hash TEXT PRIMARY KEY,administrator_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);

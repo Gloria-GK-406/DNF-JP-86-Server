@@ -21,6 +21,15 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 public sealed class SelectCharacterProductionStateTests
 {
+    private sealed class QueryOnlyEpicBook : Dfo.Server.Abstractions.Inventory.IEpicBookDomainService
+    {
+        public Dfo.Server.Data.Inventory.EpicPieceDefinition? FindPiece(int id) => null;
+        public ValueTask<Dfo.Server.Data.Inventory.EpicPieceAddition> AddPiecesAsync(Dfo.Server.Data.Accounts.AccountId account, int pieceId, int count, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Inventory.EpicPieceBalance>> GetBalancesAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<Dfo.Server.Data.Inventory.EpicPieceBalance>>([new(10300000, 13)]);
+        public ValueTask<IReadOnlyList<Dfo.Server.Data.Inventory.EpicBookEntry>> GetBookAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask InitializeAsync(CancellationToken ct) => throw new NotSupportedException();
+    }
+
     [Fact]
     public async Task CurrentView_ReadsChangedDurabilityWithoutRepeatingEntryRecovery()
     {
@@ -171,7 +180,7 @@ public sealed class SelectCharacterProductionStateTests
             sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, sources, sources, sources,
-            new FixedTimeProvider(seed.World.PreparedAt));
+            new FixedTimeProvider(seed.World.PreparedAt), epicBook: new QueryOnlyEpicBook());
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
 
         var selected = await handler.PreflightAsync(seed.Account.AccountId,
@@ -185,6 +194,8 @@ public sealed class SelectCharacterProductionStateTests
             value => Assert.NotNull(value.Protocol));
         // 62 static rows on A21, less the knight-only row this job does not take.
         Assert.Equal(61, messages.Count);
+        Assert.Equal(13, Assert.Single(result.EpicPieces!).Count);
+        Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.StateSynchronization.EpicBookStateMessage>());
         Assert.False(sources.Published);
     }
 

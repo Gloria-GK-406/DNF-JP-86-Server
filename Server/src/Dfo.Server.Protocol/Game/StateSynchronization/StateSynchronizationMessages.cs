@@ -186,11 +186,26 @@ internal sealed record VillageObjectListMessage : GameStateSynchronizationMessag
     internal override byte[] EncodeBody() => [0x00];
 }
 
-/// <summary>NOTI 0x0465 <c>EPIC_BOOK_INFO</c>, five zero bytes.</summary>
-internal sealed record EpicBookBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
+/// <summary>NOTI 0x0465: full (0) or changed cumulative balances (1), per upstream A21.</summary>
+internal sealed record EpicBookStateMessage(byte Mode, IReadOnlyList<EpicPieceBalance> Pieces)
+    : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x0465;
-    internal override byte[] EncodeBody() => new byte[5];
+    internal override byte[] EncodeBody()
+    {
+        if (Mode > 1 || Pieces.Any(x => x.PieceId <= 0 || x.Count < 0)
+            || Pieces.Select(x => x.PieceId).Distinct().Count() != Pieces.Count)
+            throw new InvalidDataException("Invalid epic book projection.");
+        var body = new byte[checked(5 + Pieces.Count * 8)];
+        body[0] = Mode;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(1), checked((uint)Pieces.Count));
+        for (var index = 0; index < Pieces.Count; index++)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5 + index * 8), Pieces[index].PieceId);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(9 + index * 8), Pieces[index].Count);
+        }
+        return body;
+    }
 }
 
 /// <summary>NOTI 0x021E <c>SET_USABLE_COUNT_INFO</c>, one zero byte.</summary>
@@ -590,7 +605,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<LoginHotkeyStateMessage>(services);
         AddNoti<UserStateBaselineMessage>(services);
         AddNoti<VillageObjectListMessage>(services);
-        AddNoti<EpicBookBaselineMessage>(services);
+        AddNoti<EpicBookStateMessage>(services);
         AddNoti<UsableCountBaselineMessage>(services);
         AddNoti<ItemUsageCountMessage>(services);
         AddNoti<PartyBaselineMessage>(services);

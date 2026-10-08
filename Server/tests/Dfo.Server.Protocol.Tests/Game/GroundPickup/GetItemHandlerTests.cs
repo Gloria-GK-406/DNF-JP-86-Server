@@ -331,6 +331,28 @@ public sealed class GetItemHandlerTests
             run);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    public async Task Epic_pickup_sends_ack_removal_then_only_changed_balance_to_the_picker(int added)
+    {
+        var (handler, sender) = Build([Leader, Helper],
+            [new GroundPickupResult(GroundPickupStatus.EpicPieceCollected, 10300000, 0,
+                EpicPiece: new(10300000, 3, added, 27))]);
+        await handler.HandleAsync(Dispatch(Leader.ConnectionId), new GetItemRequest(GameMessageMetadata.Empty, 3), default);
+        var messages = sender.Delivery!.RequiredDirectMessages;
+        Assert.Equal(added > 0 ? 3 : 2, messages.Count);
+        Assert.True(Assert.IsType<GetItemResponse>(messages[0]).Accepted);
+        Assert.Equal(0, Assert.IsType<GroundPickupNotification>(messages[1]).DestinationSlot);
+        if (added > 0)
+        {
+            var epic = Assert.IsType<EpicBookStateMessage>(messages[2]);
+            Assert.Equal(1, epic.Mode);
+            Assert.Equal(27, Assert.Single(epic.Pieces).Count);
+        }
+        Assert.IsType<GroundPickupNotification>(Assert.Single(Assert.Single(sender.Delivery.BestEffortTargets).OrderedMessages));
+    }
+
     private static (GetItemHandler Handler, RecordingSender Sender) Build(
         IReadOnlyList<SelectedSessionIdentity> frozen,
         IReadOnlyList<GroundPickupResult> results,
@@ -395,7 +417,7 @@ public sealed class GetItemHandlerTests
         {
             var pickup = Assert.IsType<PickUpGroundDropCommand>(command);
             var result = results[index++];
-            if (result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked)
+            if (result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked or GroundPickupStatus.EpicPieceCollected)
             {
                 result = result with
                 {
@@ -406,7 +428,7 @@ public sealed class GetItemHandlerTests
                         new GroundDropId(run.CurrentCell, pickup.GroundDropNumber),
                         result.Status is GroundPickupStatus.Banked
                             ? DungeonPickupKind.Gold
-                            : DungeonPickupKind.Item,
+                            : result.Status is GroundPickupStatus.EpicPieceCollected ? DungeonPickupKind.EpicPiece : DungeonPickupKind.Item,
                         recipients),
                 };
             }

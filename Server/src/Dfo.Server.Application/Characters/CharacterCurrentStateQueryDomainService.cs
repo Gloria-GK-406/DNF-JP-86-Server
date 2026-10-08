@@ -31,7 +31,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     TimeProvider timeProvider,
     IEventManagementDomainService? events = null,
     IWeeklyAttendanceDomainService? attendance = null,
-    IJoustProjectionDomainService? joust = null) : ICharacterCurrentStateQueryDomainService
+    IJoustProjectionDomainService? joust = null,
+    IEpicBookDomainService? epicBook = null) : ICharacterCurrentStateQueryDomainService
 {
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -107,6 +108,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             events is null || attendance is null ? null : new EventPlayerSnapshot(
                 await events.GetEventInfoListAsync(session.AccountId, readAt, cancellationToken),
                 await attendance.StateAsync(session.AccountId, readAt, cancellationToken),
-                joust is null ? null : await joust.ReadAsync(session.CharacterId, readAt, cancellationToken)));
+                joust is null ? null : await joust.ReadAsync(session.CharacterId, readAt, cancellationToken)),
+            epicBook is null ? [] : await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false));
     }
 }
