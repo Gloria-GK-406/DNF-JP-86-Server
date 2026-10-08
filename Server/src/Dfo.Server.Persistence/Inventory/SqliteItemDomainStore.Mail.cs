@@ -197,7 +197,7 @@ internal sealed partial class SqliteItemDomainStoreSession : IMailItemCustodySes
         command.CommandText = """
             SELECT item_core,avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,avatar_color2,avatar_delete_date,
                 creature_field04,creature_mode_flag,creature_progress_value,creature_mode1_field0a,creature_mode1_field0b,
-                creature_field_after_value,creature_text,creature_tail_flag FROM items WHERE item_uid=@uid;
+                creature_field_after_value,creature_text,creature_tail_flag,appearance_item_id FROM items WHERE item_uid=@uid;
             """;
         command.Parameters.AddWithValue("@uid", uid);
         await using var r = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -205,7 +205,7 @@ internal sealed partial class SqliteItemDomainStoreSession : IMailItemCustodySes
         var avatar = ReadAvatarDetail(r, 1);
         var creature = r.IsDBNull(7) ? null : new InventoryCreatureDetailState(r.GetInt32(7), checked((byte)r.GetInt32(8)),
             r.GetInt32(9), r.GetInt32(10), r.GetInt32(11), r.GetInt32(12), r.IsDBNull(13) ? [] : (byte[])r.GetValue(13), checked((byte)r.GetInt32(14)));
-        var value = ItemSnapshot.FromCore(InventoryItemCore.Decode((byte[])r.GetValue(0)), false, new(uid), avatar, creature);
+        var value = ItemSnapshot.FromCore(InventoryItemCore.Decode((byte[])r.GetValue(0)), false, new(uid), avatar, creature) with { AppearanceItemId = r.IsDBNull(15) ? null : r.GetInt32(15) };
         Validate(value);
         return value;
     }

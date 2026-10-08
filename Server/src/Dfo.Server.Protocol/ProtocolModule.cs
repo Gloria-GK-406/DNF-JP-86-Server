@@ -455,6 +455,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>(retryLimit: 0);
+        services.AddCommandHandler<SetTitleAppearanceCommand, bool, SetTitleAppearanceCommandHandler>(CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.RegisterMessageHandler<SetTitleAppearanceHandler>(ClientMessageType.GameSetTitleAppearance);
+        services.AddGameCmdMessageDecoder<SetTitleAppearanceDecoder>(0x0239, ClientMessageType.GameSetTitleAppearance);
+        services.AddGameCmdMessageEncoder<SetTitleAppearanceResponse, SetTitleAppearanceEncoder>();
+        services.AddDomainSubscriber<TitleAppearanceChanged, TitleBookEventSubscriber>("title.noti-appearance", DomainEventDeliveryPolicy.LiveOnly);
         services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameStoreTitle);
         services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameWithdrawTitle);
         services.RegisterMessageHandler<AchievementTriggerHandler>(ClientMessageType.GameAchievementTrigger);

@@ -65,6 +65,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             session.AccountId, character, roster, accountEntry, characters, inventories.ReadCurrentAsync,
             entries, rules, readAt, cancellationToken).ConfigureAwait(false);
 
+        characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
         var contentSubject = CharacterStateProjection.BuildContentSubject(
             equippedCreature, character, characterEntry, characterInventory);
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken).ConfigureAwait(false);

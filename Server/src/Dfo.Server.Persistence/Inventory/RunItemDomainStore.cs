@@ -174,6 +174,7 @@ internal sealed class RunItemDomainStore : IItemDomainStore
         }
         private static void Validate(ItemSnapshot item)
         {
+            if (item.AppearanceItemId is <= 0) throw new InvalidDataException("Invalid item appearance identity.");
             if (item.Type != ItemTraitClassification.For(item.LegacyKind, item.ItemId))
                 throw new InvalidDataException("Item type disagrees with its legacy encoding.");
             if (item.ItemId <= 0 || (item.Count < 0 || item.Count == 0 && !IsRevivalCounter(item)) || (!item.IsPile && item.Count != 1) || (item.IsPile && item.ItemUid is not null))

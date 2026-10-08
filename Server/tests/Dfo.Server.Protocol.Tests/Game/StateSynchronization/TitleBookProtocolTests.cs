@@ -35,6 +35,28 @@ public sealed class TitleBookProtocolTests
         Assert.Equal(2,BinaryPrimitives.ReadInt32LittleEndian(failure.AsSpan(6)));
         Assert.False(Assert.IsType<TitleBookMutationRequest>(decoder.Decode(new(1,0x019C,0,1),body[..19])).Complete);
     }
+
+    [Theory]
+    [InlineData(true, 0, 18)]
+    [InlineData(false, 4, 22)]
+    public void Worn_title_ack_confirms_the_book_slot_instead_of_invoking_the_native_equipment_swap(bool store, int category, int list)
+    {
+        var reply = TitleBookMutationResponse.ConfirmBookSlot(store, category, 10);
+        Assert.Equal(list, reply.Space); Assert.Equal(10, reply.Slot); Assert.Null(reply.Error);
+        var body = reply.Body(); Assert.Equal(17, body.Length);
+        Assert.Equal(list, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1)));
+        Assert.Equal(category, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
+        Assert.DoesNotContain(reply.Space, new[] { 0, 3, 17 });
+    }
+    [Fact]
+    public void Title_appearance_request_and_reply_use_native_0239_shape_without_inventory_movement()
+    {
+        var request = Assert.IsType<SetTitleAppearanceRequest>(new SetTitleAppearanceDecoder().Decode(new(1, 0x0239, 0, 1), BitConverter.GetBytes(26628)));
+        Assert.True(request.Complete); Assert.Equal(26628, request.ItemId);
+        Assert.False(Assert.IsType<SetTitleAppearanceRequest>(new SetTitleAppearanceDecoder().Decode(new(1, 0x0239, 0, 1), new byte[3])).Complete);
+        Assert.Equal(new byte[] { 1 }.Concat(BitConverter.GetBytes(26628)), new SetTitleAppearanceResponse(true, 26628).Body());
+        Assert.Equal(new byte[] { 0, 1 }, new SetTitleAppearanceResponse(false, 0).Body());
+    }
     [Fact]
     public void Achievement_reply_contains_remaining_counters_and_failure_still_contains_the_id()
     {
@@ -72,16 +94,18 @@ public sealed class TitleBookProtocolTests
         Assert.Null(notice.Unlock); Assert.NotNull(notice.ChangedSlot);
         Assert.Equal(2, notice.ChangedIndex);
     }
-    [Fact]
-    public async Task Mirror_removal_projection_waits_for_ack_and_refreshes_carried_inventory_after_local_client_movement()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Mirror_removal_projection_keeps_generic_move_reconciliation_and_can_skip_carried_inventory_for_book_operations(bool refreshCarriedInventory)
     {
         var events=new RecordingEvents();var gate=new AchievementTitleProjectionGate();var subscriber=new TitleBookEventSubscriber(events,gate);
         using var held=await gate.EnterAsync(new(1),default);
-        var delivery=subscriber.HandleAsync(new DomainEventEnvelope<Dfo.Server.Abstractions.Inventory.ItemMirrorRemoved>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),InventoryContainerType.Equipment)),default).AsTask();
+        var delivery=subscriber.HandleAsync(new DomainEventEnvelope<Dfo.Server.Abstractions.Inventory.ItemMirrorRemoved>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),InventoryContainerType.Equipment) { RefreshCarriedInventory = refreshCarriedInventory }),default).AsTask();
         Assert.False(delivery.IsCompleted);Assert.Empty(events.Projected);
         held.Dispose();await delivery.WaitAsync(TimeSpan.FromSeconds(2));
         var notice=Assert.IsType<TitleBookChanged>(Assert.Single(events.Projected));
-        Assert.True(notice.RefreshCarriedInventory);Assert.Equal(InventoryContainerType.Equipment,notice.ChangedContainer);Assert.Null(notice.Unlock);
+        Assert.Equal(refreshCarriedInventory, notice.RefreshCarriedInventory);Assert.Equal(InventoryContainerType.Equipment,notice.ChangedContainer);Assert.Null(notice.Unlock);
         Assert.Null(notice.Category); Assert.Null(notice.ChangedIndex);
     }
 
@@ -142,6 +166,8 @@ public sealed class TitleBookProtocolTests
 
     private sealed class CurrentTitles(IReadOnlyList<InventoryItemState> items) : ITitleBookDomainService
     {
+        public ValueTask<TitleBookMutationResult> ToggleEquippedAsync(CharacterId character, int itemId, int category, int index, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> SetAppearanceAsync(CharacterId character, int appearanceItemId, CancellationToken ct) => throw new NotSupportedException();
         public int Reads { get; private set; }
         public ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct)
         { Assert.Equal(new CharacterId(1), character); Assert.Equal(4, category); Reads++; return ValueTask.FromResult(items); }

@@ -183,6 +183,7 @@ public enum ClientMessageType
     GameQueryTitleBook = 0x0001_01A8,
     GameStoreTitle = 0x0001_019C,
     GameWithdrawTitle = 0x0001_019D,
+    GameSetTitleAppearance = 0x0001_0239,
     GameAchievementTrigger = 0x0001_01A1,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
@@ -327,6 +328,7 @@ public enum ServerMessageType
     GameLevelUpTicket = 0x0001_01A2,
     GameStoreTitle = 0x0001_019C,
     GameWithdrawTitle = 0x0001_019D,
+    GameSetTitleAppearance = 0x0001_0239,
     GameAchievementTrigger = 0x0001_01A1,
 
     GameCreatureDeath = 0x0000_0064,

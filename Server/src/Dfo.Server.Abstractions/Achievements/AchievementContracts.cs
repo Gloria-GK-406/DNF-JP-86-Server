@@ -76,9 +76,14 @@ public interface IAchievementDomainService
     ValueTask<CharacterAchievementProgressState?> ReconcileAsync(CharacterId character, int achievementId, CancellationToken ct);
     ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId character, CancellationToken ct);
 }
-public sealed record TitleBookMutationResult(bool Success, string? Reason, int Category, int Index, BusinessSlot Slot);
+public sealed record TitleBookMutationResult(bool Success, string? Reason, int Category, int Index, BusinessSlot Slot)
+{
+    public bool CarriedInventoryChanged { get; init; }
+}
 public interface ITitleBookDomainService
 {
+    ValueTask<TitleBookMutationResult> ToggleEquippedAsync(CharacterId character, int itemId, int category, int index, CancellationToken ct);
+    ValueTask<bool> SetAppearanceAsync(CharacterId character, int appearanceItemId, CancellationToken ct);
     ValueTask PrepareAsync(CharacterId character, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct);
     ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct);
@@ -104,5 +109,6 @@ public interface ICharacterGameplayFactDomainService
 public sealed record AchievementProgressChanged(CharacterId CharacterId, int AchievementId) : IDomainEvent;
 public sealed record AchievementCompleted(CharacterId CharacterId, int AchievementId) : IDomainEvent;
 public sealed record TitleUnlocked(CharacterId CharacterId, int AchievementId, int Category, int Index, int ItemId) : IDomainEvent;
+public sealed record TitleAppearanceChanged(CharacterId CharacterId) : IDomainEvent;
 public sealed record TitleStored(CharacterId CharacterId, int Category, int Index, BusinessSlot Slot) : IDomainEvent;
 public sealed record TitleWithdrawn(CharacterId CharacterId, int Category, int Index, BusinessSlot Slot) : IDomainEvent;

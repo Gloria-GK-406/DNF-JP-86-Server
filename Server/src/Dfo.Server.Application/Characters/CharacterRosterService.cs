@@ -178,10 +178,12 @@ internal sealed class CharacterRosterService(
                 group => (IReadOnlyList<InventoryItemState>)[.. group.Select(Worn)]);
         return
         [
-            .. rows.Select(row => Summary(
-                row,
-                DrawnAppearance.Of(
-                    byCharacter.TryGetValue(row.CharacterId, out var pieces) ? pieces : []))),
+            .. rows.Select(row =>
+            {
+                var pieces = byCharacter.GetValueOrDefault(row.CharacterId) ?? [];
+                return Summary(row, DrawnAppearance.Of(pieces)) with
+                { CloneTitleItemId = checked((uint)(pieces.SingleOrDefault(x => x.SlotIndex == 13)?.Core.AppearanceItemId ?? 0)) };
+            }),
         ];
     }
 

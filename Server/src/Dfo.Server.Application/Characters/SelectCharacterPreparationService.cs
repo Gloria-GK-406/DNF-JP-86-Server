@@ -158,6 +158,7 @@ public sealed class SelectCharacterPreparationService(
             preparationRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
+        characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
         var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);

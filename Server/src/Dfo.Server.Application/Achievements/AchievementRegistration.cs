@@ -25,6 +25,7 @@ internal static class AchievementRegistration
         services.AddDomainEvent<AchievementProgressChanged>("achievement.progress-changed", 1);
         services.AddDomainEvent<AchievementCompleted>("achievement.completed", 1);
         services.AddDomainEvent<TitleUnlocked>("title.unlocked", 1);
+        services.AddDomainEvent<TitleAppearanceChanged>("title.appearance-changed", 1);
         services.AddDomainEvent<TitleStored>("title.stored", 1);
         services.AddDomainEvent<TitleWithdrawn>("title.withdrawn", 1);
         services.AddDomainSubscriber<MonsterDefeated, AchievementDomainService>("achievement.monster", DomainEventDeliveryPolicy.Reliable);

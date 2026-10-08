@@ -7,6 +7,9 @@ public sealed record ItemSnapshot
     public bool IsMirror { get; init; }
     public ItemIdentity? MirrorSourceUid { get; init; }
     public int ItemId { get; init; }
+    /// <summary>Optional title appearance override, effective only while worn; never part of the item wire core.</summary>
+    public int? AppearanceItemId { get; init; }
+    public int DisplayItemId => AppearanceItemId ?? ItemId;
     public int Count { get; init; } = 1;
     public ItemTraits Type { get; init; }
     public bool IsPile { get; init; }
@@ -63,13 +66,13 @@ public sealed record ItemSnapshot
 
     public InventoryItemCoreState ToCore() => new(
         LegacyKind, ItemId, IsPile ? Count : InstanceValue,
-        Attribute, Durability, SealFlag, EnchantCardId, EnchantUpgradeCount, AmplifyType, AmplifyValue, Marker16, ChronicleOption0, ChronicleOption1, ExpireTime, EmblemSocketCount, EmblemId1, EmblemId2, Rune, RandomOption0, RandomOption1, RandomOption2, RandomOptionState, RandomOptionChangedIndex, RandomOptionChangeState, RandomOptionChange, GenuineUpgrade, EmancipateEquipmentLevel, TradeRestriction, TailUnknown0, TailUnknown1, TailUnknown2, TailUnknown3, RemainUseCount, SortLockFlag, EquipmentLockId);
+        Attribute, Durability, SealFlag, EnchantCardId, EnchantUpgradeCount, AmplifyType, AmplifyValue, Marker16, ChronicleOption0, ChronicleOption1, ExpireTime, EmblemSocketCount, EmblemId1, EmblemId2, Rune, RandomOption0, RandomOption1, RandomOption2, RandomOptionState, RandomOptionChangedIndex, RandomOptionChangeState, RandomOptionChange, GenuineUpgrade, EmancipateEquipmentLevel, TradeRestriction, TailUnknown0, TailUnknown1, TailUnknown2, TailUnknown3, RemainUseCount, SortLockFlag, EquipmentLockId) { AppearanceItemId = AppearanceItemId };
 
     public static ItemSnapshot FromCore(InventoryItemCoreState core, bool isPile,
         ItemIdentity? itemUid = null, InventoryAvatarDetailState? avatar = null,
         InventoryCreatureDetailState? creature = null) => new ItemSnapshot
     {
-        ItemId = core.ItemId, Count = isPile ? core.Value : 1,
+        ItemId = core.ItemId, AppearanceItemId = core.AppearanceItemId, Count = isPile ? core.Value : 1,
         Type = ItemTraitClassification.For(core.ItemKind, core.ItemId),
         IsPile = isPile, ItemUid = isPile ? null : itemUid,
         LegacyKind = core.ItemKind, InstanceValue = isPile ? 0 : core.Value,

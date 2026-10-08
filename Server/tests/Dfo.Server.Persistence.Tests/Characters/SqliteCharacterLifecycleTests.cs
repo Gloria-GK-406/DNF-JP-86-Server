@@ -266,8 +266,8 @@ public sealed class SqliteCharacterLifecycleTests
             var drawn = Drawn((await repository.ListByAccountWithAppearanceAsync(
                 Account, CancellationToken.None)).Single());
 
-            Assert.Equal([0, 12, 23], drawn.Select(value => (int)value.Slot));
-            Assert.Equal([413560000, 27600, 12400], drawn.Select(value => value.DisplayItemId));
+            Assert.Equal([0, 12, 13, 24], drawn.Select(value => (int)value.Slot));
+            Assert.Equal([413560000, 27600, 10400, 88800], drawn.Select(value => value.DisplayItemId));
         });
     }
 

@@ -18,6 +18,12 @@ namespace Dfo.Server.Application.Characters;
 /// <summary>Shared projections of character facts, without login placement or recovery.</summary>
 internal static class CharacterStateProjection
 {
+    internal static CharacterEntryState CompleteTitleAppearanceProjection(CharacterEntryState entry, CharacterInventoryEntryState inventory)
+    {
+        var title = inventory.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items.SingleOrDefault(x => x.SlotIndex == 13);
+        return entry with { Public = entry.Public with { CloneTitleItemId = checked((uint)(title?.Core.AppearanceItemId ?? 0)) } };
+    }
+
     internal static CharacterSkillsEntryState MergePvpProfile(
         CharacterSkillsEntryState normal, CharacterSkillsEntryState pvp) => normal with
     {
@@ -165,6 +171,7 @@ internal static class CharacterStateProjection
         supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
+        supportEntry = CompleteTitleAppearanceProjection(supportEntry, supportInventory);
         var completed = relation with
         {
             SupportProjection = new AccountSupportCharacterEntryState(

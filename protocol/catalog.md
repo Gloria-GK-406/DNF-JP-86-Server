@@ -1,8 +1,12 @@
 # 协议清单
 
-## 2026-10-08 称号簿操作后的窗口保留（待实机验收）
+## 2026-10-08 称号穿戴与外观独立同步（候选，待实机验收）
 
-[CMD019D](game/server-to-client/CMD-0x019D.md)成功后使用[NOTI000E](game/server-to-client/NOTI-0x000E.md)更新称号簿槽位，不再以[NOTI0166](game/server-to-client/NOTI-0x0166.md)重建整类缓存。A21静态分析显示0166会清除已打开窗口的条目引用，关窗重开恢复的用户反馈与此一致。wire list 18..22与内部存储枚举19..23分别映射；完整物品属性和镜像原实例保留已有回归。新窗口效果尚待ClientVerified，见[镜像装备说明](../Document/equipment-mirrors-and-title-book.md)。
+`019C/019D` 穿戴镜像操作提交后独立同步 `0002 subtype1` 穿戴位、`0002 subtype0` 外观、`000E` 保留原件的书槽，再通过有效书列表 ACK 走 UI 重建分支，避开本地搬移。`0239` 修改当前穿戴实例的独立外观元数据。完整业务/协议/持久化回归 5149 项通过，实际 x86 handler 分支模拟 10 例通过；这不是 ClientVerified，也未证明此组合是官方 wire。见 [修复与验收记录](../Document/tasks/achievement-title-book/worn-title-appearance-repair-20261008.md)。
+
+## 2026-10-08 称号簿操作后的窗口保留（实机未通过）
+
+[CMD019D](game/server-to-client/CMD-0x019D.md)成功后改用[NOTI000E](game/server-to-client/NOTI-0x000E.md)的候选修复 `50e8d8ba` 未通过用户实机测试：仍有称号消失、背包闪现与无法替换。重新分析确认成功 ACK 本身执行本地交换，固定槽有已装备称号回退显示，而 Equipment `000D` 不能承担当前假设的校正。完整结论及未决点见[原生装备映射复核](../Document/tasks/achievement-title-book/native-equipment-mapping-audit-20261008.md)。不得将已有服务端回归视为客户端流程通过。
 
 ## 2026-10-08 成就与独立称号簿（CurrentImplementation / HumanPending）
 
