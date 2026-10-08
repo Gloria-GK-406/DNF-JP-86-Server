@@ -68,9 +68,8 @@ public interface IGmJoustDomainService
 
 public interface IJoustProjectionDomainService
 { ValueTask<JoustState> ReadAsync(CharacterId character, DateTimeOffset now, CancellationToken ct); }
-public enum JoustLifecycleEventKind { RoundStarted, PhaseChanged, RoundEnded }
-public sealed record JoustLifecycleEvent(JoustState State, JoustLifecycleEventKind Kind) : IDomainEvent;
-public sealed record JoustLifecycleNotification(JoustState State, JoustLifecycleEventKind Kind)
+public enum JoustLifecycleNotificationKind { RoundStarted, PhaseChanged, RoundEnded }
+public sealed record JoustLifecycleNotification(JoustState State, JoustLifecycleNotificationKind Kind)
     : Dfo.Server.Abstractions.Notifications.INotification<JoustLifecycleNotification>;
 public sealed record JoustDetailsChanged(DateTimeOffset Now)
     : Dfo.Server.Abstractions.Notifications.INotification<JoustDetailsChanged>;

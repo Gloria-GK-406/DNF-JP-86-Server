@@ -15,6 +15,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Events;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
@@ -99,7 +100,8 @@ public sealed class JoustIntegrationTests
         Assert.Empty((await store.RoundAsync(original.RoundId,default))!.LockedOdds);
         f.Now=original.StartsAt.AddMinutes(90);await f.AdvanceLifecycle();
         var locked=(await store.RoundAsync(original.RoundId,default))!;Assert.Equal(8,locked.LockedOdds.Length);
-        Assert.True(afterBet.Knights.Single(k=>k.Index==champion).Odds>
+        // One-decimal odds can stay equal after another bet; the unfrozen value must not increase.
+        Assert.True(afterBet.Knights.Single(k=>k.Index==champion).Odds>=
             locked.LockedOdds.Single(k=>k.KnightIndex==champion).Odds);
         f.Now=original.StartsAt.AddMinutes(100).AddTicks(-1);Assert.True((await Set(null,3)).CanSetChampion);
         Assert.Equal(locked.LockedOdds,(await store.RoundAsync(original.RoundId,default))!.LockedOdds);
@@ -442,7 +444,7 @@ public sealed class JoustIntegrationTests
         Assert.Equal(501,f.Scalar("SELECT COUNT(*) FROM event_joust_statistics_round"));
         Assert.Equal(501,f.Scalar("SELECT COUNT(*) FROM event_joust_result"));
         Assert.Equal(Enumerable.Range(2,500).Reverse().Select(i=>(long)i),(await f.Joust.GetHistoryAsync(default)).Select(r=>r.RoundNo));
-        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Empty(f.Events);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Empty(f.Notifications);
         await f.AdvanceLifecycle();Assert.Equal(1503,(await f.KnightInfo(0))!.Statistics.Wins);
     }
 
@@ -839,7 +841,7 @@ public sealed class JoustIntegrationTests
         {
             await worker.StartAsync(default);
             await worker.TickAsync(default);
-            Assert.Empty(f.Events);
+            Assert.Empty(f.Notifications);
             Assert.DoesNotContain(f.Sender.Messages,m=>m.GetType().Name is "JoustStateMessage" or "JoustResultsMessage");
             Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round"));
         }
@@ -851,13 +853,13 @@ public sealed class JoustIntegrationTests
         using var f=new Fixture();await f.Enable();
         using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
         await worker.TickAsync(default);await worker.TickAsync(default);
-        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundStarted);
+        Assert.Single(f.Notifications,e=>e.Kind==JoustLifecycleNotificationKind.RoundStarted);
         f.Now=f.Now.AddMinutes(100);await worker.TickAsync(default);
         f.Now=f.Now.AddSeconds(200);await worker.TickAsync(default);
         f.Sender.Messages.Clear();f.Now=f.Now.AddSeconds(200);await worker.TickAsync(default);
         Assert.DoesNotContain(f.Sender.Messages,m=>m.GetType().Name is "JoustStateMessage" or "JoustResultsMessage");
         f.Now=f.Now.AddSeconds(200);await worker.TickAsync(default);await worker.TickAsync(default);
-        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundEnded);
+        Assert.Single(f.Notifications,e=>e.Kind==JoustLifecycleNotificationKind.RoundEnded);
         Assert.Single(f.Sender.Messages,m=>m.GetType().Name=="JoustResultsMessage");
         var before=f.Sender.Messages.Count;
         for(var i=0;i<3;i++)await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),new JoustQueryRequest(new(1,0x04E6,0,1)),default);
@@ -870,19 +872,29 @@ public sealed class JoustIntegrationTests
         using var f=new Fixture();await f.Enable();
         using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
         await worker.TickAsync(default);var original=await f.GetState();
-        f.Events.Clear();f.Sender.Messages.Clear();
+        f.Notifications.Clear();f.Sender.Messages.Clear();
         f.Now=f.Now.AddHours(2);await worker.TickAsync(default);await worker.TickAsync(default);
-        Assert.Equal(new[]{JoustLifecycleEventKind.RoundEnded,JoustLifecycleEventKind.RoundStarted},f.Events.Select(e=>e.Kind));
-        Assert.Equal(original.RoundId,f.Events[0].State.RoundId);
-        Assert.Equal((ushort)1,f.Events[0].State.RoundNo);
-        Assert.Equal((ushort)2,f.Events[1].State.RoundNo);
-        Assert.Equal(JoustPhase.Result,f.Events[0].State.Phase);
-        Assert.Equal(7,f.Events[0].State.Winners.Length);
+        Assert.Equal(new[]{JoustLifecycleNotificationKind.RoundEnded,JoustLifecycleNotificationKind.RoundStarted},f.Notifications.Select(e=>e.Kind));
+        Assert.Equal(original.RoundId,f.Notifications[0].State.RoundId);
+        Assert.Equal((ushort)1,f.Notifications[0].State.RoundNo);
+        Assert.Equal((ushort)2,f.Notifications[1].State.RoundNo);
+        Assert.Equal(JoustPhase.Result,f.Notifications[0].State.Phase);
+        Assert.Equal(7,f.Notifications[0].State.Winners.Length);
         Assert.Single(f.Sender.Messages,m=>m.GetType().Name=="JoustResultsMessage");
     }
-    private sealed class EventProbe(List<JoustLifecycleEvent> events):IDomainEventHandler<JoustLifecycleEvent>
+    private sealed class NotificationProbe(INotificationBus inner,IDomainTransactionAccessor transactions,
+        List<JoustLifecycleNotification> observed):INotificationBus
     {
-        public ValueTask HandleAsync(JoustLifecycleEvent value,CancellationToken ct){events.Add(value);return ValueTask.CompletedTask;}
+        public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience,T notification,CancellationToken ct)
+            where T:class,INotification<T>
+        {
+            if(notification is JoustLifecycleNotification lifecycle)
+            {
+                Assert.Null(transactions.Current);
+                observed.Add(lifecycle);
+            }
+            return inner.PublishAsync(audience,notification,ct);
+        }
     }
     [Fact]
     public async Task Failed_broadcast_is_not_replayed_by_the_next_tick()
@@ -893,7 +905,7 @@ public sealed class JoustIntegrationTests
         Assert.Equal(1,notifications.Attempts);
         f.Now=f.Now.AddMinutes(110);await worker.TickAsync(default);await worker.TickAsync(default);
         Assert.Equal(2,notifications.Attempts);
-        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundEnded);
+        Assert.Single(f.Notifications,e=>e.Kind==JoustLifecycleNotificationKind.RoundEnded);
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
     }
     private sealed class FailingNotifications:INotificationBus
@@ -902,6 +914,19 @@ public sealed class JoustIntegrationTests
         public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience,T notification,CancellationToken ct)
             where T:class,INotification<T>
         {Attempts++;throw new IOException("broadcast transport failed");}
+    }
+    [Fact]
+    public async Task Failed_old_round_broadcast_does_not_suppress_the_new_opening()
+    {
+        var notifications=new FailingNotifications();using var f=new Fixture(notifications);await f.Enable();
+        using var worker=ActivatorUtilities.CreateInstance<JoustMaintenanceService>(f.Services);
+        await worker.TickAsync(default);
+        f.Notifications.Clear();f.Now=f.Now.AddHours(2);
+        await worker.TickAsync(default);await worker.TickAsync(default);
+        Assert.Equal(new[]{JoustLifecycleNotificationKind.RoundEnded,JoustLifecycleNotificationKind.RoundStarted},
+            f.Notifications.Select(n=>n.Kind));
+        Assert.Equal(3,notifications.Attempts);
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
     }
     [Fact]
     public async Task Reenable_or_clock_rewind_does_not_announce_the_same_round_as_new()
@@ -915,7 +940,7 @@ public sealed class JoustIntegrationTests
         await worker.TickAsync(default);
         f.Now=f.Now.AddMinutes(90);await worker.TickAsync(default);
         f.Now=f.Now.AddMinutes(-90);await worker.TickAsync(default);
-        Assert.Single(f.Events,e=>e.Kind==JoustLifecycleEventKind.RoundStarted);
+        Assert.Single(f.Notifications,e=>e.Kind==JoustLifecycleNotificationKind.RoundStarted);
     }
     private sealed class Clock : TimeProvider { public DateTimeOffset Now=DateTimeOffset.Parse("2026-10-06T10:00:00+08:00");public override DateTimeOffset GetUtcNow()=>Now; }
     // Non-archive lifecycle/transaction tests declare only the rules they exercise.
@@ -944,7 +969,7 @@ public sealed class JoustIntegrationTests
         public SelectedSessionIdentity Session {get;}
         public NetworkConnectionContext Connection {get;}
         public ShopSender Sender {get;}=new();
-        public List<JoustLifecycleEvent> Events {get;}=[];
+        public List<JoustLifecycleNotification> Notifications {get;}=[];
         public Fixture(INotificationBus? notifications=null,bool useArchive=false):this(System.IO.Path.Combine(System.IO.Path.GetTempPath(),"dfo-joust-"+Guid.NewGuid().ToString("N")),new Clock(),true,useArchive,notifications)
         {Sql("INSERT INTO accounts(account_id,m_id) VALUES(1,'joust'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'joust',0,1,0); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,0);");}
         private Fixture(string directory,Clock clock,bool owns,bool useArchive,INotificationBus? notifications=null)
@@ -964,8 +989,10 @@ public sealed class JoustIntegrationTests
                 s.AddSingleton<IItemPlacementDefinitionSource>(content);
                 s.AddSingleton<IGoldCarryLimitSource>(content);
             }
-            if(notifications is not null)s.AddSingleton(notifications);
-            s.AddSingleton<IDomainEventHandler<JoustLifecycleEvent>>(new EventProbe(Events));provider=s.BuildServiceProvider();Sender.Services=provider;
+            s.AddSingleton<INotificationBus>(services=>new NotificationProbe(
+                notifications ?? services.GetRequiredService<NotificationBus>(),
+                services.GetRequiredService<IDomainTransactionAccessor>(),Notifications));
+            provider=s.BuildServiceProvider();Sender.Services=provider;
             _=provider.GetRequiredService<SqliteDatabase>();
             var connection=new NetworkConnectionContext(new("joust-test"),NetworkEndpointKind.Game,10011);Connection=connection;
             var registry=provider.GetRequiredService<OnlineStateRegistry>();var online=registry.RegisterConnection(connection);registry.Authenticate(online.OnlineUserId,new(1));

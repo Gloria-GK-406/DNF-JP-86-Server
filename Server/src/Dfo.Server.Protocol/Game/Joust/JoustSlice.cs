@@ -101,13 +101,13 @@ internal static class JoustPayloadCodec
         [new JoustBetsMessage(s),new JoustInfoMessage(s)];
     internal static GameStateSynchronizationMessage[] Initialization(JoustState s) =>
         [new JoustStateMessage(s),..Snapshot(s)];
-    internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleEventKind kind) => kind switch
+    internal static GameStateSynchronizationMessage[] Lifecycle(JoustState s,JoustLifecycleNotificationKind kind) => kind switch
     {
-        JoustLifecycleEventKind.RoundStarted => [new JoustStateMessage(s)],
-        JoustLifecycleEventKind.RoundEnded => [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)],
-        JoustLifecycleEventKind.PhaseChanged when !s.Active || s.Phase==JoustPhase.Locked => [new JoustStateMessage(s)],
-        JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.QuarterFinal => [new JoustStateMessage(s),new JoustResultsMessage(s)],
-        JoustLifecycleEventKind.PhaseChanged when s.Phase==JoustPhase.SemiFinal => [new JoustResultsMessage(s)],
+        JoustLifecycleNotificationKind.RoundStarted => [new JoustStateMessage(s)],
+        JoustLifecycleNotificationKind.RoundEnded => [new JoustStateMessage(s),new JoustInfoMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleNotificationKind.PhaseChanged when !s.Active || s.Phase==JoustPhase.Locked => [new JoustStateMessage(s)],
+        JoustLifecycleNotificationKind.PhaseChanged when s.Phase==JoustPhase.QuarterFinal => [new JoustStateMessage(s),new JoustResultsMessage(s)],
+        JoustLifecycleNotificationKind.PhaseChanged when s.Phase==JoustPhase.SemiFinal => [new JoustResultsMessage(s)],
         // Native Stage2 can enter scene12 and announce the winner. Reveal the complete
         // bracket only through the once-only RoundEnded/Stage3 event instead.
         _ => [],
