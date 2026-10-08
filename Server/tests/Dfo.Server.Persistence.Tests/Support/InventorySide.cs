@@ -155,6 +155,7 @@ internal sealed class InventorySide
     /// <summary>Nothing here is worn; no test reached through this binding puts a piece on.</summary>
     private sealed class NoWearables : IEquipmentSlotDefinitionSource, IEquipmentWearDomainService
     {
+        public Dfo.Server.Data.Inventory.ItemSnapshot UnsealForEquip(Dfo.Server.Data.Inventory.ItemSnapshot item) => item;
         public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<BusinessSlot?>(null);
 

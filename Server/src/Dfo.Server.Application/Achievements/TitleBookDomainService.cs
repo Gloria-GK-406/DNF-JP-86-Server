@@ -123,6 +123,12 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         if (destination.Space == BusinessInventorySpace.WornEquipment && !await wear.CanWearAsync(character, itemId, ct)) return Fail("NotWearable");
         var target = await session.GetAsync(container, game.Index, ct);
         if (target is not null) return Fail("OccupiedDestination");
+        if (destination.Space == BusinessInventorySpace.WornEquipment)
+        {
+            var prepared = wear.UnsealForEquip(current.Snapshot);
+            if (prepared.SealFlag != current.Snapshot.SealFlag)
+                current = await session.UpdateAsync(current, _ => prepared, ct);
+        }
         var moving = await session.TakeAsync(current, null, ct);
         await session.PutAsync(container, game.Index, moving, ct);
         await events.EnqueueAsync(new TitleWithdrawn(character, category, index, destination), ct);

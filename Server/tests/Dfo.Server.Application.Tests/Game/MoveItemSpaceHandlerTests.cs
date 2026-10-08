@@ -533,5 +533,7 @@ public sealed class MoveItemSpaceHandlerTests
 
 internal sealed class MoveItemSpaceHandlerTestsWearEligibility : Dfo.Server.Abstractions.Inventory.IEquipmentWearDomainService
 {
+    public Dfo.Server.Data.Inventory.ItemSnapshot UnsealForEquip(Dfo.Server.Data.Inventory.ItemSnapshot item) => item;
+
     public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }

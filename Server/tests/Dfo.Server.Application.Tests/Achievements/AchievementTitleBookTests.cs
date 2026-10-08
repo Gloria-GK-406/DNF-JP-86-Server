@@ -193,8 +193,10 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         Assert.Equal(before,f.Scalar("SELECT SUM(p1) FROM character_achievement_complete"));
         Assert.Null(await f.WriteAsync(async () => await f.Achievements.ReconcileAsync(Character,int.MaxValue,default)));
     }
-    [PvfFact]
-    public async Task Complete_item_identity_and_attributes_survive_store_take_and_permanent_unlock_prevents_regrant()
+    [PvfTheory]
+    [InlineData((byte)0)]
+    [InlineData((byte)1)]
+    public async Task Complete_item_identity_and_attributes_survive_store_take_and_permanent_unlock_prevents_regrant(byte sealFlag)
     {
         await using var f=new Fixture();
         var slot=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Single(x=>x.QuestId==6501);
@@ -207,7 +209,7 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         await f.WriteAsync(async()=>
         {
             var session=f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var record=await session.CreateAsync(new() {ItemId=26596,LegacyKind=1,Type=ItemTraits.Equipment,Attribute=12,EnchantCardId=123,Durability=47,AmplifyType=3,AmplifyValue=91},default);
+            var record=await session.CreateAsync(new() {ItemId=26596,LegacyKind=1,Type=ItemTraits.Equipment,SealFlag=sealFlag,Attribute=12,EnchantCardId=123,Durability=47,AmplifyType=3,AmplifyValue=91},default);
             var put=await session.PutAsync(ContainerId.ForCharacter(Character,InventoryContainerType.Main),9,record,default);
             original=put.Snapshot;
         });
@@ -219,9 +221,14 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         {
             var game=f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn!.Value);
             var snapshot=(await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!).GetAsync(ContainerId.ForCharacter(Character,game.Space),game.Index,default))!.Snapshot;
-            Assert.Equal(original,snapshot);
+            Assert.Equal(original! with { SealFlag = 0 },snapshot);
             await f.Titles.PrepareAsync(Character,default);
         });
+        Assert.True((await f.WriteAsync(async()=> await f.Titles.StoreAsync(Character,worn!.Value,26596,slot.Category,slot.Index,default))).Success);
+        var stored = Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries), x=>x.ItemId==26596);
+        Assert.Equal((byte)0, stored.SealFlag);
+        await using var restored = new Fixture(f.Path);
+        Assert.Equal((byte)0, Assert.Single((await restored.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries),x=>x.ItemId==26596).SealFlag);
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items"));
     }
     [PvfFact]
@@ -332,10 +339,11 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         var carried = new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0);
         await f.WriteAsync(async () => {
             var s = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var item = await s.CreateAsync(new() { ItemId = 26596, LegacyKind = 1, Type = ItemTraits.Equipment, Attribute = 12, Durability = 47 }, default);
+            var item = await s.CreateAsync(new() { ItemId = 26596, LegacyKind = 1, Type = ItemTraits.Equipment, SealFlag = 1, Attribute = 12, Durability = 47 }, default);
             await s.PutAsync(bag, 9, item, default);
         });
         var uid = Assert.Single(f.ItemUids(26596));
+        var original = f.ItemsAndPositions();
         Assert.True((await f.WriteAsync(async () => await f.Titles.StoreAsync(Character, carried, 26596, slot.Category, slot.Index, default))).Success);
         var open = await f.Services.GetRequiredService<IInventoryCapacityDomainService>().OpenSlotCountAsync(bag, carried.Space, default);
         var before = f.ItemsAndPositions();
@@ -343,9 +351,73 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         Assert.False(refused.Success); Assert.Equal("InvalidDestination", refused.Reason); Assert.Equal(before, f.ItemsAndPositions());
         Assert.True((await f.WriteAsync(async () => await f.Titles.WithdrawAsync(Character, carried, 26596, slot.Category, slot.Index, default))).Success);
         Assert.Equal(uid, Assert.Single(f.ItemUids(26596)));
+        Assert.Equal(original, f.ItemsAndPositions());
+    }
+    [PvfTheory]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, true, false)]
+    public async Task Equipping_a_sealed_title_unseals_only_the_incoming_instance_and_rolls_back_with_the_move(bool reverse, bool occupied, bool commit)
+    {
+        await using var f = new Fixture();
+        var bag = ContainerId.ForCharacter(Character, InventoryContainerType.Main);
+        var wornContainer = ContainerId.ForCharacter(Character, InventoryContainerType.Equipment);
+        var worn = (await f.Services.GetRequiredService<IItemPlacementRuleService>().WornSlotForAsync(26596, default))!.Value;
+        var game = f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn);
+        ItemSnapshot? original = null, previous = null;
+        await f.WriteAsync(async () => {
+            var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+            var item = await session.CreateAsync(new() { ItemId=26596, LegacyKind=1, Type=ItemTraits.Equipment, SealFlag=1, Attribute=12, EnchantCardId=123, Durability=47, AmplifyType=3, AmplifyValue=91 }, default);
+            original = (await session.PutAsync(bag,9,item,default)).Snapshot;
+            if (occupied) {
+                var old = await session.CreateAsync(new() { ItemId=26596, LegacyKind=1, Type=ItemTraits.Equipment, Attribute=8, Durability=23 },default);
+                previous = (await session.PutAsync(wornContainer,game.Index,old,default)).Snapshot;
+            }
+        });
+        var before = f.ItemsAndPositions();
+        foreach (var type in new[] { InventoryContainerType.Main, InventoryContainerType.Equipment })
+            f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
+                new Dfo.Server.Application.Inventory.PersistentItemContainer(ContainerId.ForCharacter(Character,type),new(type,0),
+                    f.Services.GetRequiredService<IItemDomainStore>(),f.Services.GetRequiredService<IDomainTransactionAccessor>(),
+                    f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>()));
+        var handler = new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommandHandler(
+            f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(), f.Services.GetRequiredService<IItemMovementDomainService>());
+        var carried = new BusinessSlot(BusinessInventorySpace.CarriedEquipment,0);
+        await using (var tx = f.Scope.Begin()) {
+            var result = await handler.HandleAsync(new(Guid.NewGuid(),typeof(Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand),handler.GetType(),Dfo.Server.Application.Commands.CommandExecutionKind.Transactional),
+                new(Character,reverse ? worn : carried,1,reverse ? carried : worn),default);
+            Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.Moved,result.Status);
+            if (commit) await tx.CommitAsync(default);
+        }
+        if (!commit) { Assert.Equal(before,f.ItemsAndPositions()); return; }
+        await f.WriteAsync(async () => {
+            var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+            Assert.Equal(original! with { SealFlag=0 },(await session.GetAsync(wornContainer,game.Index,default))!.Snapshot);
+            Assert.Equal(previous,(await session.GetAsync(bag,9,default))?.Snapshot);
+        });
+        var slot = f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().Single(x=>x.Category==4).Slots.First(x=>x.SlotType>=0 && x.QuestId==-1 && x.ItemIds.Contains(-1));
+        Assert.True((await f.WriteAsync(async () => await f.Titles.StoreAsync(Character,worn,26596,slot.Category,slot.Index,default))).Success);
+        Assert.Equal((byte)0, Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries),x=>x.ItemId==26596).SealFlag);
+    }
+    [PvfTheory]
+    [InlineData((byte)1,(byte)1,(byte)0)]
+    [InlineData((byte)6,(byte)1,(byte)0)]
+    [InlineData((byte)5,(byte)1,(byte)1)]
+    [InlineData((byte)8,(byte)1,(byte)1)]
+    [InlineData((byte)1,(byte)0,(byte)0)]
+    [InlineData((byte)1,(byte)2,(byte)2)]
+    public async Task Equip_preparation_preserves_other_item_state_and_does_not_unseal_creature_or_avatar_fields(byte kind, byte seal, byte expectedSeal)
+    {
+        await using var f = new Fixture();
+        var original = new ItemSnapshot { ItemId=26596, LegacyKind=kind, SealFlag=seal, Attribute=12, Durability=47, EnchantCardId=123, AmplifyType=3, AmplifyValue=91 };
+        Assert.Equal(original with { SealFlag=expectedSeal }, f.Services.GetRequiredService<IEquipmentWearDomainService>().UnsealForEquip(original));
     }
     private sealed class RefuseWear : IEquipmentWearDomainService
-    {public ValueTask<bool> CanWearAsync(CharacterId character,int itemId,CancellationToken ct)=>ValueTask.FromResult(false);}
+    {
+        public ItemSnapshot UnsealForEquip(ItemSnapshot item) => throw new InvalidOperationException("Rejected equip must not unseal.");
+        public ValueTask<bool> CanWearAsync(CharacterId character,int itemId,CancellationToken ct)=>ValueTask.FromResult(false);
+    }
     private sealed class FakeDefinitions(IReadOnlyList<AchievementDefinition> definitions) : IAchievementDefinitionSource
     {public IReadOnlyList<AchievementDefinition> Load()=>definitions;}
     private sealed class Fixture : IAsyncDisposable

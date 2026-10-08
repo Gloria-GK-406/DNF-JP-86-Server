@@ -3,11 +3,15 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentWearRuleService(IEquipmentRequirementDefinitionSource source) : IEquipmentWearRuleService
 {
+    public ItemSnapshot UnsealForEquip(ItemSnapshot item) =>
+        item.LegacyKind is 1 or 6 && item.SealFlag == 1 ? item with { SealFlag = 0 } : item;
+
     public ValueTask<int?> MinimumLevelAsync(int itemId, CancellationToken cancellationToken) =>
         source.MinimumLevelAsync(itemId, cancellationToken);
 }
@@ -16,6 +20,8 @@ internal sealed class EquipmentWearDomainService(ICharacterTable characters,
     IEquipmentWearRuleService rules, IItemPlacementRuleService placements,
     IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules) : IEquipmentWearDomainService
 {
+    public ItemSnapshot UnsealForEquip(ItemSnapshot item) => rules.UnsealForEquip(item);
+
     public async ValueTask<bool> CanWearAsync(CharacterId characterId, int itemId, CancellationToken cancellationToken)
     {
         var required = await rules.MinimumLevelAsync(itemId, cancellationToken).ConfigureAwait(false);

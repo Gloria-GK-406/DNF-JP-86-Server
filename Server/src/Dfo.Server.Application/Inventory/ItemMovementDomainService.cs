@@ -79,6 +79,8 @@ internal sealed class ItemMovementDomainService(
         return new ItemMoveOutcome.Moved(moveCount, moving.ItemId);
     }
 
+    public ItemSnapshot UnsealForEquip(ItemSnapshot item) => wearing.UnsealForEquip(item);
+
     public ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken) =>
         wearing.CanWearAsync(characterId, itemId, cancellationToken);
 
