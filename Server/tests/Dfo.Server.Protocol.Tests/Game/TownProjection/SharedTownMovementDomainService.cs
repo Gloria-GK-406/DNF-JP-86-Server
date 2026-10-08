@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -45,13 +46,12 @@ internal static class TownAreaProjectionTestFactory
             sender,
             SharedTownMovementDomainService.Instance);
 
-    private sealed class NoopNotificationBus : INotificationBus
+    private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
@@ -272,15 +273,14 @@ public sealed class CleanupNotificationDeliveryTests
         }
     }
 
-    private sealed class RecordingNotifications(List<string> order) : INotificationBus
+    private sealed class RecordingNotifications(List<string> order) : Dfo.Server.Testing.ProjectionEventService
     {
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             order.Add(notification is PartyRosterChanged ? "party" : "peers");
             Published.Add((audience, notification));

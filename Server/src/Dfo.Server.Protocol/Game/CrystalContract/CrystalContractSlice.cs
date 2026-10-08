@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -59,7 +60,7 @@ public sealed class CrystalContractSelectedHandler(ISelectedSessionDomainService
                 new CubeProgressionStateMessage(message.Mode, message.Selection)] : []);
 }
 public sealed class CrystalContractHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<CrystalContractHandler> logger)
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<CrystalContractHandler> logger)
     : ClientMessageHandler<CrystalContractRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CrystalContractRequest message, CancellationToken ct)
@@ -71,7 +72,7 @@ public sealed class CrystalContractHandler(ISelectedSessionDomainService session
             session.CharacterId.Value, message.Mode, message.Selection, saved);
         if (sessions.Find(session.AccountId) != session) return;
         if (saved)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new CrystalContractSelected(session, message.Mode, message.Selection), ct);
         else
             await sender.SendCmdAsync(context.Connection.ConnectionId, new CrystalContractResponse(false, 0, 255), ct);

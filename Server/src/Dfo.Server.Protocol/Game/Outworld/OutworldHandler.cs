@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -15,7 +16,7 @@ public sealed class OutworldHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService mappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<OutworldHandler> logger) : ClientMessageHandler<OutworldRequest>
 {
@@ -75,7 +76,7 @@ public sealed class OutworldHandler(
         }
         logger.LogInformation("OUTWORLD character={Character} action={Action} target={Target} material={Material} seed={Seed}",
             receipt.Session.CharacterId.Value, action, request.TargetSlot, request.MaterialSlot, receipt.Seed);
-        await notifications.PublishAsync(
+        await notifications.ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
             new OutworldCompleted(receipt, request.Purify, request.WireAction), ct)
             .ConfigureAwait(false);

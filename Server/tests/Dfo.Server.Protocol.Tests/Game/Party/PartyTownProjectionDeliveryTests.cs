@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -311,32 +312,30 @@ public sealed class PartyTownProjectionDeliveryTests
 
     private sealed record Publication(NotificationAudience Audience, object Notification);
 
-    private sealed class RecordingNotificationBus : INotificationBus
+    private sealed class RecordingNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public List<Publication> Publications { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Publications.Add(new(audience, notification));
             return ValueTask.FromResult(new NotificationDelivery([]));
         }
     }
 
-    private sealed class FailFirstRosterNotificationBus : INotificationBus
+    private sealed class FailFirstRosterNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public int Attempts { get; private set; }
 
         public int Successes { get; private set; }
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Attempts++;
             var outcome = Attempts == 1
@@ -349,7 +348,7 @@ public sealed class PartyTownProjectionDeliveryTests
         }
     }
 
-    private sealed class BlockingFirstRosterNotificationBus : INotificationBus
+    private sealed class BlockingFirstRosterNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         private int rosterCount;
 
@@ -361,11 +360,10 @@ public sealed class PartyTownProjectionDeliveryTests
 
         public List<PartyRosterChanged> Rosters { get; } = [];
 
-        public async ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             if (notification is PartyRosterChanged roster)
             {

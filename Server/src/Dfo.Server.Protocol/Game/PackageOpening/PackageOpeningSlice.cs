@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
@@ -74,7 +75,7 @@ public sealed class PackageOpeningCommandHandler(IPackageOpeningDomainService pa
         packages.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
 }
 public sealed class PackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<PackageOpeningHandler> logger)
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<PackageOpeningHandler> logger)
     : ClientMessageHandler<PackageOpeningRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, PackageOpeningRequest message, CancellationToken ct)
@@ -98,7 +99,7 @@ public sealed class PackageOpeningHandler(ISelectedSessionDomainService sessions
             context.Connection.ConnectionId, message.Input?.SourceSlot, result.Rejection, result.Detail);
         var response = new PackageOpeningResponse(message.Input?.SourceSlot ?? 0, result);
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new OpeningCompleted(receipt, [response]), ct).ConfigureAwait(false);
         else await sender.SendCmdAsync(context.Connection.ConnectionId, response, ct).ConfigureAwait(false);
     }

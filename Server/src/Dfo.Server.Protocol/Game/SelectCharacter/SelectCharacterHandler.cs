@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
@@ -60,7 +61,7 @@ public sealed class SelectCharacterHandler(
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
-    INotificationBus notifications,
+    IEventService notifications,
     TownAreaProjectionDelivery townAreaProjection,
     ICleanupNotificationDelivery cleanupDelivery,
     INetworkConnectionCloser closer,
@@ -345,7 +346,7 @@ public sealed class SelectCharacterHandler(
             // a delivery plan out of connections the domain service had looked up for it.
             if (pvpPublication.Publication.Audience.Count > 0)
             {
-                await notifications.PublishAsync(
+                await notifications.ProjectAsync(
                     new NotificationAudience.TheseCharacters(pvpPublication.Publication.Audience),
                     new PvpParticipantPublished(pvpPublication.Publication.Newcomer),
                     cancellationToken).ConfigureAwait(false);

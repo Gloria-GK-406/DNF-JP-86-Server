@@ -1,13 +1,12 @@
 using Dfo.Server.Data.Events;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Events;
-using Dfo.Server.Abstractions.Notifications;
-using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.DomainEvents;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Events;
 internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainService joust,IJoustProjectionDomainService projection,
-    INotificationBus notifications,ISelectedSessionSnapshotQuery selected,TimeProvider clock,ILogger<JoustMaintenanceService> logger) : BackgroundService
+    IEventService events,TimeProvider clock,ILogger<JoustMaintenanceService> logger) : BackgroundService
 {
     private JoustState? observed;
     private readonly HashSet<string> openedRounds=[];
@@ -33,7 +32,7 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
         // its captured outcome before reading the next round's projection.
         if(!suppressNotifications)
             foreach(var completed in advanced.CompletedRounds)
-                await NotifyAsync(completed,JoustLifecycleNotificationKind.RoundEnded);
+                await PublishTransitionAsync(completed,JoustLifecycleTransition.RoundEnded);
         var state=await projection.ReadAsync(new(0),now,ct);
         var previous=observed;
         // Consume the transition before publication. A failed recipient must not replay it
@@ -47,17 +46,16 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
         if(previous?.Active==state.Active && previous?.RoundId==state.RoundId && previous?.Phase==state.Phase)return;
         if(state.Active && state.Phase==JoustPhase.Betting && state.RoundId is {} round && openedRounds.Add(round))
         {
-            await NotifyAsync(state,JoustLifecycleNotificationKind.RoundStarted);
+            await PublishTransitionAsync(state,JoustLifecycleTransition.RoundStarted);
         }
         else if(state.Phase!=JoustPhase.Result)
-            await NotifyAsync(state,JoustLifecycleNotificationKind.PhaseChanged);
+            await PublishTransitionAsync(state,JoustLifecycleTransition.PhaseChanged);
     }
-    private async ValueTask NotifyAsync(JoustState state,JoustLifecycleNotificationKind kind)
+    private async ValueTask PublishTransitionAsync(JoustState state,JoustLifecycleTransition kind)
     {
         try
         {
-            _=await notifications.PublishAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),
-                new JoustLifecycleNotification(state,kind),CancellationToken.None);
+            await events.PublishAsync(new JoustLifecycleChanged(state,kind),CancellationToken.None);
         }
         catch(Exception error)
         {

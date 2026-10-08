@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -234,12 +235,12 @@ public interface ICleanupNotificationDelivery
 
 internal sealed class CleanupNotificationDelivery(
     IGameMessageSender sender,
-    INotificationBus notifications,
+    IEventService notifications,
     PartyNotificationDelivery partyNotifications) : ICleanupNotificationDelivery
 {
     internal CleanupNotificationDelivery(
         IGameMessageSender sender,
-        INotificationBus notifications)
+        IEventService notifications)
         : this(sender, notifications, new PartyNotificationDelivery(notifications))
     {
     }
@@ -260,7 +261,7 @@ internal sealed class CleanupNotificationDelivery(
 
         if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
         {
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseSessions(plan.PeerAudience),
                 new SessionCleanupAnnounced(plan.PeerNotices),
                 cancellationToken).ConfigureAwait(false);

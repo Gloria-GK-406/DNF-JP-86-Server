@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
@@ -54,7 +55,7 @@ public sealed class MagicBoxBatchOpeningCommandHandler(IMagicBoxOpeningDomainSer
         boxes.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
 }
 public sealed class MagicBoxBatchOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<MagicBoxBatchOpeningHandler> logger)
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<MagicBoxBatchOpeningHandler> logger)
     : ClientMessageHandler<MagicBoxBatchOpeningRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, MagicBoxBatchOpeningRequest message, CancellationToken ct)
@@ -78,7 +79,7 @@ public sealed class MagicBoxBatchOpeningHandler(ISelectedSessionDomainService se
             context.Connection.ConnectionId, message.Input?.SourceSlot, message.Input?.Count, result.Rejection, result.Detail, result.LuckBefore, result.LuckAfter);
         var response = new MagicBoxBatchOpeningResponse(message.Input, result);
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new OpeningCompleted(receipt, [response]), ct).ConfigureAwait(false);
         else await sender.SendCmdAsync(context.Connection.ConnectionId, response, ct).ConfigureAwait(false);
     }

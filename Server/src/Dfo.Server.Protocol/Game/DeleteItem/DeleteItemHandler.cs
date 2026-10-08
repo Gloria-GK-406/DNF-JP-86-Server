@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -15,7 +16,7 @@ public sealed class DeleteItemHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<DeleteItemHandler> logger) : ClientMessageHandler<DeleteItemRequest>
 {
@@ -70,7 +71,7 @@ public sealed class DeleteItemHandler(
                 "Discard character={CharacterId} container={Container} slot={Slot} item={ItemId} count={Count}",
                 receipt.Session.CharacterId.Value, receipt.Slot.Space, receipt.Slot.Index,
                 receipt.ItemId, receipt.AppliedCount);
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new ItemDiscardCompleted(receipt, result.QuestProgress), cancellationToken).ConfigureAwait(false);
             return;
@@ -106,7 +107,7 @@ public sealed class DeleteItemHandler(
         logger.LogInformation("Material consumption operation={Operation} character={CharacterId} slot={Slot} item={Item} count={Count} success={Success} reason={Reason}",
             message.OperationType, session?.CharacterId, message.Slot, message.ItemId, message.DeleteCount, result.Success, result.Rejection);
         if (result.Success)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
                 new MaterialsConsumed(session, result.Debits.Single(), DateTimeOffset.UtcNow), ct);
         else if (session is null || sessions.Find(session.AccountId) == session)
             await sender.SendCmdAsync(context.Connection.ConnectionId,

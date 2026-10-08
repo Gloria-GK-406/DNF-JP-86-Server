@@ -1,3 +1,4 @@
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Protocol.Game.Joust;
 using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.Teleport;
@@ -130,6 +131,8 @@ public sealed class ProtocolModule : IServerModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddEventDispatching();
 
         services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustInfo);
         services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustHistory);

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
@@ -131,7 +132,7 @@ public sealed class QuestClearCouponHandler(
     ICharacterQuestLogDomainService questLogs,
     IQuestOfferRefreshDomainService offers,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<QuestClearCouponHandler> logger,
     FatiguePotionHandler? fatiguePotions = null) : ClientMessageHandler<QuestClearCouponRequest>
@@ -216,7 +217,7 @@ public sealed class QuestClearCouponHandler(
             logger.LogError(failure, "Quest clear coupon committed but offer refresh failed character={CharacterId}",
                 session.CharacterId);
         }
-        await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new OpeningCompleted(result.Inventory,
                 [new QuestClearCouponResponse(true, message.SourceSlot, message.Container)],
                 FollowingMessages: following), ct).ConfigureAwait(false);

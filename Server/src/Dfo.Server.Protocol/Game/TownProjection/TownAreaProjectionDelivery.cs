@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -45,7 +46,7 @@ public sealed class TownAreaProjectionDelivery
     private readonly ISelectedSessionDomainService selectedSessions;
     private readonly ISelectedCharacterCurrentViewDomainService currentViews;
     private readonly ITownMovementDomainService towns;
-    private readonly INotificationBus notifications;
+    private readonly IEventService notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameMessageSender sender;
     private readonly TownAreaProjectionGate projectionGate;
@@ -55,7 +56,7 @@ public sealed class TownAreaProjectionDelivery
         ITownAreaDomainService townAreas,
         ISelectedSessionDomainService selectedSessions,
         ISelectedCharacterCurrentViewDomainService currentViews,
-        INotificationBus notifications,
+        IEventService notifications,
         IPartyTownProjectionDelivery partyTownProjection,
         IGameMessageSender sender,
         ITownMovementDomainService towns,
@@ -275,7 +276,7 @@ public sealed class TownAreaProjectionDelivery
             .ToArray();
         if (audience.Length > 0)
         {
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseSessions(audience),
                 new TownPositionChanged(
                     session.WireUserId,
@@ -620,7 +621,7 @@ public sealed class TownAreaProjectionDelivery
                     state));
             }
 
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseSessions([recipient]),
                 new TownAreaRosterReconciled(key.TownId, key.AreaId, users),
                 cancellationToken).ConfigureAwait(false);

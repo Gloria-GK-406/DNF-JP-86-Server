@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -164,15 +165,14 @@ public sealed class OtherCharacterDetailFlowTests
 
     private sealed record Publication(NotificationAudience Audience, object Notification);
 
-    private sealed class RecordingNotificationBus : INotificationBus
+    private sealed class RecordingNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public List<Publication> Publications { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Publications.Add(new Publication(audience, notification));
             return ValueTask.FromResult(new NotificationDelivery([]));

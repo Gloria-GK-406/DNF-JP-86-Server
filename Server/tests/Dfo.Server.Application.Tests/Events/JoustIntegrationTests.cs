@@ -1,3 +1,4 @@
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.Joust;
 using Dfo.Server.Protocol.Game.Mailbox;
@@ -798,6 +799,7 @@ public sealed class JoustIntegrationTests
         using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
         await f.Bet("earned",(await f.GetState()).Knights[0].Knight.Index,0,5);
         f.Now=f.Now.AddMinutes(110);await f.AdvanceLifecycle();
+        await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Single(f.Sender.Messages.OfType<MailboxAlarm>());
         f.Sender.Messages.Clear();
         var dispatcher=f.Services.GetRequiredService<INetworkMessageDispatcher>();
@@ -826,7 +828,8 @@ public sealed class JoustIntegrationTests
         var tick=ActivatorUtilities.CreateInstance<Dfo.Server.Application.Events.JoustMaintenanceService>(f.Services);
         await tick.TickAsync(default);var count=f.Sender.Messages.Count;Assert.True(count>0);await tick.TickAsync(default);Assert.Equal(count,f.Sender.Messages.Count);
         f.Now=f.Now.AddMinutes(90);await tick.TickAsync(default);Assert.True(f.Sender.Messages.Count>count);count=f.Sender.Messages.Count;await tick.TickAsync(default);Assert.Equal(count,f.Sender.Messages.Count);
-        f.Now=f.Now.AddMinutes(20);await tick.TickAsync(default);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));Assert.Contains(f.Sender.Messages,m=>m.GetType().Name=="MailboxAlarm");
+        f.Now=f.Now.AddMinutes(20);await tick.TickAsync(default);Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();Assert.Contains(f.Sender.Messages,m=>m.GetType().Name=="MailboxAlarm");
     }
     [Theory]
     [InlineData("10:10:00")]

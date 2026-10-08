@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
@@ -75,7 +76,7 @@ public sealed class UseLevelUpTicketCommandHandler(ILevelUpTicketDomainService t
 }
 
 public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
     ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<LevelUpTicketHandler> logger)
     : ClientMessageHandler<LevelUpTicketRequest>
@@ -148,7 +149,7 @@ public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions,
         }
         logger.LogInformation("Level-up ticket used character={CharacterId} slot={Slot} level={Level} exp={Exp} completedQuests={Count}",
             session.CharacterId, message.SourceSlot, result.Progress.Level, result.Progress.Experience, result.CompletedQuestIds.Length);
-        await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new OpeningCompleted(result.Inventory, [new LevelUpTicketResponse(message.SourceSlot)], FollowingMessages: following), ct).ConfigureAwait(false);
     }
 

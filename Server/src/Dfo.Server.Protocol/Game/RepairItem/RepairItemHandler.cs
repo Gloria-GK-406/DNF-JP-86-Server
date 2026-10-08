@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -13,7 +14,7 @@ namespace Dfo.Server.Protocol.Game.RepairItem;
 
 public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService slotMappings,
-    ICommandBus commands, INotificationBus notifications,
+    ICommandBus commands, IEventService notifications,
     IGameMessageSender sender, SelectedSessionTransitionGate transitions, TimeProvider clock, ILogger<RepairItemHandler> logger) : ClientMessageHandler<RepairItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
@@ -45,7 +46,7 @@ public sealed class RepairItemHandler(IOnlineUserQueryDomainService onlineUsers,
         if (automatic)
             logger.LogInformation("Automatic repair character={CharacterId} result={Result}", session.CharacterId, result.Rejection);
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new EquipmentRepairCompleted(receipt, message.RepairAllSpace, result.Entitlements, result.Usage, clock.GetUtcNow()), cancellationToken)
                 .ConfigureAwait(false);
         else

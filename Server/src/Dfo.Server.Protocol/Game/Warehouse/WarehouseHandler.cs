@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.Warehouse;
 
 public sealed class WarehouseHandler(IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<WarehouseHandler> logger,
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<WarehouseHandler> logger,
     IInventorySlotMappingRuleService mappings)
     : ClientMessageHandler<WarehouseRequest>
 {
@@ -35,7 +36,7 @@ public sealed class WarehouseHandler(IOnlineUserQueryDomainService users, ISelec
             { logger.LogError(error, "Warehouse {Type:X4} failed for character {Character}", message.Metadata.Type, session.CharacterId); result = new(InventoryExpansionRejection.StateChanged); }
         }
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new WarehouseChanged(message.Metadata.Type, receipt), ct).ConfigureAwait(false);
         else
         {

@@ -1,0 +1,26 @@
+[
+  {
+    "Name": "test-Host.log",
+    "SHA256": "A5BF74FFEE9D6DFAACE6136199625E3192DC1BC7CAA26A964487D18C79272097",
+    "Bytes": 402890,
+    "Archive": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\domain-event-dispatch\\artifacts\\domain-event-dispatch-validation\\test-Host.log"
+  },
+  {
+    "Name": "event-Application.trx",
+    "SHA256": "6B77EA10CD08EAB36965F2A52EEFB1B39D753B06F9BE88BE04DCF26D573478D8",
+    "Bytes": 5187375,
+    "Archive": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\domain-event-dispatch\\artifacts\\domain-event-dispatch-validation\\event-Application.trx"
+  },
+  {
+    "Name": "event-Persistence.trx",
+    "SHA256": "F992A38D1918E292F6D15A98BEF28EB11505DEA2122A0724523129244C661818",
+    "Bytes": 754815,
+    "Archive": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\domain-event-dispatch\\artifacts\\domain-event-dispatch-validation\\event-Persistence.trx"
+  },
+  {
+    "Name": "event-Protocol.trx",
+    "SHA256": "1BDC2993CB5E82FD90E3C437BDE4A3070DD8DA3A518D486CD9D2B752ABFEC62B",
+    "Bytes": 2199971,
+    "Archive": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\domain-event-dispatch\\artifacts\\domain-event-dispatch-validation\\event-Protocol.trx"
+  }
+]

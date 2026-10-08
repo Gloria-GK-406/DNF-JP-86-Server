@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -26,7 +27,7 @@ public sealed class PartyTownProjectionDelivery(
     IPartyService parties,
     ITownAreaDomainService townAreas,
     ISelectedSessionDomainService selectedSessions,
-    INotificationBus notifications,
+    IEventService notifications,
     PartyProjectionStreamRegistry streams) : IPartyTownProjectionDelivery
 {
     public async ValueTask RefreshMovedPartyAsync(
@@ -248,7 +249,7 @@ internal static class PartyExactNotificationDelivery
 
     public static async ValueTask<PartyExactNotificationDeliveryResult> PublishWithRetryAsync<
         TNotification>(
-        INotificationBus notifications,
+        IEventService notifications,
         IEnumerable<SelectedSessionIdentity> intendedAudience,
         TNotification notification,
         CancellationToken cancellationToken)
@@ -266,7 +267,7 @@ internal static class PartyExactNotificationDelivery
 
         for (var attempt = 0; attempt < MaximumAttempts && pending.Length > 0; attempt++)
         {
-            var result = await notifications.PublishAsync(
+            var result = await notifications.ProjectAsync(
                 new NotificationAudience.TheseSessions(pending),
                 notification,
                 cancellationToken).ConfigureAwait(false);

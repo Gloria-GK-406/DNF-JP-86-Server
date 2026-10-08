@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Notifications;
@@ -123,7 +124,7 @@ public sealed class JoustQueryHandlerTests
                 session.AccountId, session.CharacterId, OnlineUserState.CharacterActive, 1)))
             .AddSingleton<ICommandBus>(new Commands(state, history ?? []))
             .AddSingleton<IGameMessageSender>(sender)
-            .AddSingleton<INotificationBus>(new Notices())
+            .AddSingleton<IEventService>(new Notices())
             .AddSingleton(transitions)
             .AddSingleton(sp => new SelectedSessionSafety(sp, transitions, NullLogger<SelectedSessionSafety>.Instance))
             .BuildServiceProvider();
@@ -173,10 +174,9 @@ public sealed class JoustQueryHandlerTests
         public bool TryGetByConnection(NetworkConnectionId id, out OnlineUserSnapshot? found)
         { found = id == user.Connection.ConnectionId ? user : null; return found is not null; }
     }
-    private sealed class Notices : INotificationBus
+    private sealed class Notices : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<T>(NotificationAudience audience, T notice, CancellationToken ct)
-            where T : class, INotification<T> => throw new InvalidOperationException("A query must not publish notifications.");
+        public override ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notice, CancellationToken ct) => throw new InvalidOperationException("A query must not publish notifications.");
     }
     private sealed class Sender : IGameMessageSender
     {

@@ -372,9 +372,10 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
    Protocol 所有的当日密钥，或 LOGIN 从 `IServerConfigService` 读取端点配置并构造响应；
 4. `commandBus.SendAsync(...)`、sender 的单连接或显式收件人发送方法、
-   `INotificationBus.PublishAsync(...)`，以及把两者按顺序打包好的投递服务
-   （如 `ICleanupNotificationDelivery.DeliverAsync`）——见下面的「CMD ⇒ Notify」。
-   发布一个通知是投递，不是业务：谁该收到由前面的命令决定，通知只负责把它送出去。
+   `IEventService.ProjectAsync(...)`，以及把两者按顺序打包好的投递服务
+   （如 `ICleanupNotificationDelivery.DeliverAsync`）——见下面的「领域事件与即时投影」。
+   即时投影是投递，不是业务：谁该收到由前面的命令决定，投影只负责按原顺序送出。
+   handler 不发布领域事实；事实由实际变更所属的领域服务在事务中记录。
    **一份计划要分两条路送出去时，把顺序封进一个投递服务，不要在每个调用点各写一遍**——
    清理通告有六个投递点，**其中四个在 catch 里**（`OnlineUserConnectionObserver.cs:102`、
    `SelectCharacterHandler.cs:136` / `:156` / `:162`），`:156` 那个还在补偿命令之后。
@@ -428,15 +429,38 @@ PVP、任务、宠物与补偿等顶层命令，并在阶段之间发送具体�
 PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝保持相邻的 CMD
 `01/0004` 与 NOTI `00/01F7` 两条消息。Networking 只执行通用传输与显式收件人失败隔离。
 
-### CMD ⇒ Notify：把一件事告诉一群人
+### 领域事件与即时投影
 
-**做完一件事和告诉别人这件事，是两步。** 命令改状态并提交；通知把结果送给一群人。
-它们之间没有隐式联系——协议 handler 先派发命令，再发布通知，顺序写在那里看得见。
+组件统一依赖 `IEventService`；领域服务发布事实，订阅者自行决定如何响应。通知只是消费者之一。
+组件不得直接依赖 `INotificationBus`：只有 `NotificationProjectionSubscriber<T>` 适配器、
+通知运输机制与组合注册接触该接口。协议编码和 Socket 发送仍由 Protocol/Networking 拥有。
+
+- `EnqueueAsync<TEvent>`：当前可写业务事务内记录强类型事实与匹配订阅的 delivery；
+  与业务使用同一个 SQLite 事务。提交后只向容量 1 的 Channel TryWrite 唤醒，回滚不投递。
+  每事务一个 BatchId，每事实一个 EventId，payload 不带服务、连接、协议消息或可变聚合。
+- `PublishAsync<TEvent>`：已退出事务的即时领域事件，等待运行时订阅者；不落库、不重放。
+  马战维护发布阶段变化，查询不发布。启动恢复静默、变化去重、失败不重复公告。
+- `ProjectAsync<TNotification>`：等待即时协议投影，原样返回 NotificationDelivery；
+  不持久化 Session/CMD 回复，也不能在未提交的可写事务内调用。登录、队伍、库存等流程
+  保持批次、精确会话与 ACK 顺序。单连接直接 sender 和明确协议投递工作流仍可使用。
+
+事件稳定名称/版本与 subscriber ID 在组合根注册。每订阅组独立异步循环，闲时 await
+唤醒或最近重试时间，启动扫描遗留工作，停服取消未完成消费。Reliable 订阅在新 scope、
+数据库准入门及新事务中处理，业务更新与完成标记同事务；失败回滚后另事务记录重试。
+Reliable 不能重入命令管线，也不能在该门内再获取外层账户/会话锁。组内串行，失败退避期间
+后续到期事实可先处理，不保证严格 FIFO。当前只注册每个稳定名称的一个版本；未知版本保留
+诊断，不自动 upcast；新订阅不回填历史 delivery，完成记录暂不自动清理。
+
+LiveOnly 只处理本进程的新鲜事件：发送前提交一次消费决定，离线、旧进程或过期提示跳过，
+失败不补播；崩溃窗口允许漏提示。邮件每封记录 MailCreated，提醒按 BatchId/角色合并，
+不以合并提醒丢失事实。GM 活动配置在领域事务记录变化，HTTP 不负责广播。
+
+协议即时投影仍是明确的“命令完成，然后发送结果”：
 
 ```csharp
 var result = await commandBus.SendAsync(new MarkSelectedCharacterPvpReadyCommand(...), ct);
 if (result.Publication.Audience.Count > 0)
-    await notifications.PublishAsync(
+    await eventService.ProjectAsync(
         new NotificationAudience.TheseCharacters(result.Publication.Audience),
         new PvpParticipantPublished(result.Publication.Newcomer),
         ct);
@@ -474,7 +498,8 @@ if (result.Publication.Audience.Count > 0)
 - 人群通知用于 PvP 大厅公示、会话清理以及队伍城镇投影等路径；
   `PartyTownProjectionDelivery` 使用 `TheseSessions` 指定精确会话。
 - `SessionAdjacentEntryDomainService` 给入场者本人计算周围角色，不因此成为多人扇出。
-- 通知总线没有业务周期调度或发布订阅层；`NotificationRetryDrainService` 只排空重试队列。
+- 事件服务拥有领域订阅与分发；通知总线是低层投递机制，`NotificationRetryDrainService`
+  只排空运输层的既有重试队列，不处理可靠领域事实。
 - 回给请求方的消息仍可直接投递，不必套上人群抽象。
 - 没有专用的频道、全服或组队 Audience 类型；队伍业务已存在，使用现有精确会话人群。
   人群 record 层级不能完全阻止外部派生，解析器会明确拒绝未知形态。

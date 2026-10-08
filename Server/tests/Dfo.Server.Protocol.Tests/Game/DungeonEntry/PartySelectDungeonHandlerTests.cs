@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
@@ -1007,13 +1008,12 @@ public sealed class PartySelectDungeonHandlerTests
         }
     }
 
-    private sealed class NoopNotificationBus : INotificationBus
+    private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 

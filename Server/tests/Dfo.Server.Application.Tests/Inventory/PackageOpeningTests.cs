@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -423,13 +424,13 @@ public sealed class PackageOpeningTests
         var result = await opening.Box(1);
         var receipt = result.Receipt!;
         var notification = new OpeningCompleted(receipt, [new MagicBoxBatchOpeningResponse(new(0, 80, 1000, 120, 2000, 1), result)]);
-        var notifications = opening.Host.Services.GetRequiredService<INotificationBus>();
-        await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
+        var notifications = opening.Host.Services.GetRequiredService<IEventService>();
+        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
         Assert.IsType<MagicBoxBatchOpeningResponse>(opening.Host.Sender.Messages[0]);
         Assert.All(opening.Host.Sender.Messages.Skip(1), message => Assert.IsAssignableFrom<IGameNotiMessage>(message));
         var sent = opening.Host.Sender.Messages.Count;
         opening.Host.Select(2);
-        await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
+        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), notification, default);
         Assert.Equal(sent, opening.Host.Sender.Messages.Count);
     }
 

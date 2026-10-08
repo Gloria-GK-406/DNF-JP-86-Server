@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
@@ -76,7 +77,7 @@ public sealed class VendingMachineCommandHandler(IVendingMachineDomainService ve
             OpeningWireSlots.FromMain(command.Slot), token);
 }
 public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, INotificationBus notifications, IGameMessageSender sender,
+    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications, IGameMessageSender sender,
     ILogger<VendingMachineHandler> logger) : ClientMessageHandler<VendingMachineRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, VendingMachineRequest message, CancellationToken token)
@@ -106,7 +107,7 @@ public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions
             result?.Reward.ItemId, result?.Reward.Count, result?.Remaining);
         var response = new VendingMachineResponse(result, error);
         if (result is null) await sender.SendCmdAsync(connection, response, token).ConfigureAwait(false);
-        else await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+        else await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new OpeningCompleted(result.Receipt, [response]), token).ConfigureAwait(false);
     }
 }

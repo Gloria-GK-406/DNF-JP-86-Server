@@ -32,6 +32,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Notifications;
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
@@ -79,6 +80,18 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.AddEventDispatching();
+        services.AddDomainEvent<MailCreated>("mail.created", 1);
+        services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => fact.Recipient.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddDomainEvent<Dfo.Server.Abstractions.Events.ManagedEventConfigurationChanged>("activity.configuration-changed", 1);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Events.ManagedEventConfigurationChanged,
+            Dfo.Server.Application.Events.EventsConfigurationNotificationSubscriber>("activity.refresh",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => fact.EventId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.Events.JoustLifecycleChanged,
+            Dfo.Server.Application.Events.JoustLifecycleNotificationSubscriber>();
         services.TryAddSingleton(new ChannelListenerOptions(
             configuration.GetSection("Networking:GamePorts")
                 .GetChildren()

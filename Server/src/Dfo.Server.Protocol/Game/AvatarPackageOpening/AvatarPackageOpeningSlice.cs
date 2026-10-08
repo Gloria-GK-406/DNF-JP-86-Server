@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
@@ -60,7 +61,7 @@ public sealed class AvatarPackageOpeningCommandHandler(IAvatarPackageOpeningDoma
             : avatars.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
 }
 public sealed class AvatarPackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, INotificationBus notifications, IGameMessageSender sender, ILogger<AvatarPackageOpeningHandler> logger)
+    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<AvatarPackageOpeningHandler> logger)
     : ClientMessageHandler<AvatarPackageOpeningRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AvatarPackageOpeningRequest message, CancellationToken ct)
@@ -84,7 +85,7 @@ public sealed class AvatarPackageOpeningHandler(ISelectedSessionDomainService se
             context.Connection.ConnectionId, message.Input?.SourceSlot, result.Rejection, result.Detail);
         var response = new AvatarPackageOpeningResponse(message.Input?.SourceSlot ?? 0, result);
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new OpeningCompleted(receipt, [response, new OpeningRewardPopup(message.Input!.SourceSlot, receipt.Rewards)]), ct).ConfigureAwait(false);
         else await sender.SendCmdAsync(context.Connection.ConnectionId, response, ct).ConfigureAwait(false);
     }

@@ -4,17 +4,16 @@ using System.Text;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
-using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Mail;
-using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Mail;
 
 internal sealed class MailboxDomainService(IMailboxRepository repository, ICharacterDomainService characters,
     ICharacterTable owners, MailItemTransfers items, DomainTransactionScope transactions,
-    TimeProvider time, INotificationBus notifications, ILogger<MailboxDomainService> logger) : IMailboxDomainService
+    TimeProvider time, IEventService events) : IMailboxDomainService
 {
     public ValueTask<MailSendReceipt> SendAsync(Dfo.Server.Data.Mail.Mail mail, CancellationToken cancellationToken = default) =>
         SendCoreAsync(mail, null, cancellationToken);
@@ -88,20 +87,7 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                 }
             }
             var id = await repository.InsertAsync(mail, senderName, now, prepared, cancellationToken);
-            var recipient = mail.Recipient;
-            transactions.Current!.RegisterAfterCommit((typeof(MailDelivered), recipient), async ct =>
-            {
-                try
-                {
-                    await notifications.PublishAsync(new NotificationAudience.TheseCharacters([recipient]),
-                        new MailDelivered(recipient), ct);
-                }
-                catch (Exception error)
-                {
-                    // The letter is durable; a disconnected recipient or cancelled publish cannot undo it.
-                    logger.LogWarning(error, "Committed mail notification failed for character {CharacterId}", recipient.Value);
-                }
-            });
+            await events.EnqueueAsync(new MailCreated(id, mail.Recipient), cancellationToken);
             return new MailSendReceipt(id, changes.ToImmutable());
         }, cancellationToken);
 

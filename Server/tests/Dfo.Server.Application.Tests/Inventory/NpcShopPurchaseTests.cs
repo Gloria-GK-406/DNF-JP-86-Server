@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -405,7 +406,7 @@ internal sealed class ShopFixture : IDisposable
     public Task<BuyItemOutcome> Command(int item, int count, SelectedSessionIdentity? owner = null) => provider.GetRequiredService<ICommandBus>()
         .SendAsync(new BuyItemCommand(onlineUser, owner ?? session, item, count, 15, 2)).AsTask();
     public async ValueTask Publish(NpcShopPurchaseReceipt receipt) =>
-        _ = await provider.GetRequiredService<INotificationBus>().PublishAsync(
+        _ = await provider.GetRequiredService<IEventService>().ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new NpcShopPurchaseCompleted(receipt), default);
     public int Gold => Scalar($"SELECT carried_gold FROM character_stats WHERE character_id={session.CharacterId.Value}");
     public async ValueTask<ushort?> Durability(InventoryContainerType container, int slot)

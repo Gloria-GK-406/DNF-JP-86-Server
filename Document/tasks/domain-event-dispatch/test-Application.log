@@ -1,0 +1,36 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:13.13]     Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.System_and_prepared_delivery_refresh_only_the_online_recipient_after_commit [FAIL]
+  失败 Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.System_and_prepared_delivery_refresh_only_the_online_recipient_after_commit [68 ms]
+  错误消息:
+   Assert.Single() Failure: The collection was empty
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Mail.MailboxProtocolIntegrationTests.System_and_prepared_delivery_refresh_only_the_online_recipient_after_commit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\Mail\MailboxProtocolIntegrationTests.cs:line 38
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:48.96]     Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts [FAIL]
+  失败 Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts [566 ms]
+  错误消息:
+   Assert.Contains() Failure: Sub-string not found
+String:    "An error occurred while writing to logger"···
+Not found: "'UnhandledProbe'"
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\Notifications\NotificationRegistrationTests.cs:line 78
+--- End of stack trace from previous location ---
+[xUnit.net 00:02:29.74]     Dfo.Server.Application.Tests.Events.JoustIntegrationTests.Repeated_queries_after_settlement_do_not_announce_existing_mail [FAIL]
+  失败 Dfo.Server.Application.Tests.Events.JoustIntegrationTests.Repeated_queries_after_settlement_do_not_announce_existing_mail [691 ms]
+  错误消息:
+   Assert.Single() Failure: The collection was empty
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Events.JoustIntegrationTests.Repeated_queries_after_settlement_do_not_announce_existing_mail() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\Events\JoustIntegrationTests.cs:line 801
+--- End of stack trace from previous location ---
+[xUnit.net 00:02:59.79]     Dfo.Server.Application.Tests.Events.JoustIntegrationTests.Maintenance_projects_phase_changes_and_mail_service_notifies_actual_delivery [FAIL]
+  失败 Dfo.Server.Application.Tests.Events.JoustIntegrationTests.Maintenance_projects_phase_changes_and_mail_service_notifies_actual_delivery [694 ms]
+  错误消息:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [JoustStateMessage { MessageType = GameStateSynchronization, State = JoustState { Active = True, ServerTime = 2026/10/6 10:00:00 +08:00, Phase = Betting, RoundId = 1791252000, StartsAt = 2026/10/6 2:00:00 +00:00, EndsAt = 2026/10/6 4:00:00 +00:00, NextTransitionAt = 2026/10/6 3:30:00 +00:00, Knights = Dfo.Server.Data.Events.JoustKnightState[], Winners = System.Int32[], PersonalTotal = 0, MaximumBetting = 1000, MinimumLevel = 17, RoundNo = 1 } }, JoustStateMessage { MessageType = GameStateSynchronization, State = JoustState { Active = True, ServerTime = 2026/10/6 11:30:00 +08:00, Phase = Locked, RoundId = 1791252000, StartsAt = 2026/10/6 2:00:00 +00:00, EndsAt = 2026/10/6 4:00:00 +00:00, NextTransitionAt = 2026/10/6 3:40:00 +00:00, Knights = Dfo.Server.Data.Events.JoustKnightState[], Winners = System.Int32[], PersonalTotal = 0, MaximumBetting = 1000, MinimumLevel = 17, RoundNo = 1 } }, JoustStateMessage { MessageType = GameStateSynchronization, State = JoustState { Active = True, ServerTime = 2026/10/6 11:50:00 +08:00, Phase = Result, RoundId = 1791252000, StartsAt = 2026/10/6 2:00:00 +00:00, EndsAt = 2026/10/6 4:00:00 +00:00, NextTransitionAt = 2026/10/6 4:00:00 +00:00, Knights = Dfo.Server.Data.Events.JoustKnightState[], Winners = System.Int32[], PersonalTotal = 0, MaximumBetting = 1000, MinimumLevel = 17, RoundNo = 1 } }, JoustInfoMessage { MessageType = GameStateSynchronization, State = JoustState { Active = True, ServerTime = 2026/10/6 11:50:00 +08:00, Phase = Result, RoundId = 1791252000, StartsAt = 2026/10/6 2:00:00 +00:00, EndsAt = 2026/10/6 4:00:00 +00:00, NextTransitionAt = 2026/10/6 4:00:00 +00:00, Knights = Dfo.Server.Data.Events.JoustKnightState[], Winners = System.Int32[], PersonalTotal = 0, MaximumBetting = 1000, MinimumLevel = 17, RoundNo = 1 } }, JoustResultsMessage { MessageType = GameStateSynchronization, State = JoustState { Active = True, ServerTime = 2026/10/6 11:50:00 +08:00, Phase = Result, RoundId = 1791252000, StartsAt = 2026/10/6 2:00:00 +00:00, EndsAt = 2026/10/6 4:00:00 +00:00, NextTransitionAt = 2026/10/6 4:00:00 +00:00, Knights = Dfo.Server.Data.Events.JoustKnightState[], Winners = System.Int32[], PersonalTotal = 0, MaximumBetting = 1000, MinimumLevel = 17, RoundNo = 1 } }]
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Events.JoustIntegrationTests.Maintenance_projects_phase_changes_and_mail_service_notifies_actual_delivery() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\Events\JoustIntegrationTests.cs:line 829
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     4，通过:  3235，已跳过:     0，总计:  3239，持续时间: 3 m 38 s - Dfo.Server.Application.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Document\tasks\domain-event-dispatch\test-results\event-Application.trx

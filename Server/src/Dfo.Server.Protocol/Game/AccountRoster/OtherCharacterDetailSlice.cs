@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -100,7 +101,7 @@ public sealed class GetOtherCharacterDetailHandler(
     ISelectedSessionDomainService sessions,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     ILogger<GetOtherCharacterDetailHandler> logger)
     : ClientMessageHandler<GetOtherCharacterDetailRequest>
 {
@@ -154,7 +155,7 @@ public sealed class GetOtherCharacterDetailHandler(
 
         if (result.Projection is { } projection)
         {
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseCharacters([requester.CharacterId]),
                 new OtherCharacterDetailRequested(projection),
                 cancellationToken).ConfigureAwait(false);

@@ -230,6 +230,8 @@ internal static class CharacterDatabaseSchema
     private const string TableDeclarations = """
         CREATE TABLE IF NOT EXISTS account_epic_pieces(account_id INTEGER NOT NULL REFERENCES accounts(account_id),piece_id INTEGER NOT NULL CHECK(piece_id>0),count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 2147483647),PRIMARY KEY(account_id,piece_id));
         CREATE TABLE IF NOT EXISTS schema_migrations(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS domain_events(sequence INTEGER PRIMARY KEY AUTOINCREMENT,event_id TEXT NOT NULL UNIQUE,batch_id TEXT NOT NULL,occurred_at INTEGER NOT NULL,origin_instance_id TEXT NOT NULL,event_type TEXT NOT NULL,schema_version INTEGER NOT NULL CHECK(schema_version>0),payload_json TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS domain_event_deliveries(event_id TEXT NOT NULL REFERENCES domain_events(event_id),subscriber_id TEXT NOT NULL,coalescing_key TEXT,state INTEGER NOT NULL DEFAULT 0 CHECK(state IN(0,1,2)),attempt_count INTEGER NOT NULL DEFAULT 0,next_attempt_at INTEGER NOT NULL,processed_at INTEGER,last_error TEXT NOT NULL DEFAULT '',PRIMARY KEY(event_id,subscriber_id));
         CREATE TABLE IF NOT EXISTS gm_administrators (id INTEGER PRIMARY KEY AUTOINCREMENT,login_name TEXT NOT NULL UNIQUE,password_record TEXT NOT NULL,enabled INTEGER NOT NULL,permissions INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_sessions (token_hash TEXT PRIMARY KEY,administrator_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_audit (operation_id TEXT PRIMARY KEY,occurred_at INTEGER NOT NULL,action TEXT NOT NULL,administrator_id INTEGER,administrator_name TEXT,target TEXT NOT NULL,outcome TEXT NOT NULL,reason TEXT NOT NULL);
@@ -326,6 +328,9 @@ internal static class CharacterDatabaseSchema
         """;
 
     private const string IndexDeclarations = """
+        CREATE INDEX IF NOT EXISTS ix_domain_delivery_due ON domain_event_deliveries(subscriber_id,state,next_attempt_at,event_id);
+        CREATE INDEX IF NOT EXISTS ix_domain_delivery_coalescing ON domain_event_deliveries(subscriber_id,coalescing_key,state,event_id);
+        CREATE INDEX IF NOT EXISTS ix_domain_event_batch ON domain_events(batch_id,event_id);
         CREATE INDEX IF NOT EXISTS ix_gm_audit_time ON gm_audit(occurred_at DESC,operation_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_mail_operations_time ON gm_mail_operations(administrator_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_cera_operations_time ON gm_cera_operations(administrator_id,committed_at DESC,request_id DESC);

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -12,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.SellItem;
 
 public sealed class SellItemHandler(IOnlineUserQueryDomainService onlineUsers, ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings, ICommandBus commands,
-    INotificationBus notifications, IGameMessageSender sender, ILogger<SellItemHandler> logger)
+    IEventService notifications, IGameMessageSender sender, ILogger<SellItemHandler> logger)
     : ClientMessageHandler<SellItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SellItemRequest message,
@@ -39,7 +40,7 @@ public sealed class SellItemHandler(IOnlineUserQueryDomainService onlineUsers, I
         {
             logger.LogInformation("NPC sale character={CharacterId} npc={NpcId} slot={Slot} item={ItemId} count={Count} gold={Gold}",
                 receipt.Session.CharacterId.Value, message.NpcId, receipt.Slot, receipt.ItemId, receipt.Count, receipt.Gold);
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new ItemSaleCompleted(receipt), cancellationToken).ConfigureAwait(false);
         }
         else

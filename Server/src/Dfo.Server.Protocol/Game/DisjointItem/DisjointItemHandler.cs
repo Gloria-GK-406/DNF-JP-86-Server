@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -15,7 +16,7 @@ public sealed class DisjointItemHandler(
     ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands,
-    INotificationBus notifications,
+    IEventService notifications,
     IGameMessageSender sender,
     ILogger<DisjointItemHandler> logger) : ClientMessageHandler<DisjointItemRequest>
 {
@@ -59,7 +60,7 @@ public sealed class DisjointItemHandler(
                 targetSlot), cancellationToken).ConfigureAwait(false);
 
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(
+            await notifications.ProjectAsync(
                 new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new EquipmentDisjointCompleted(receipt),
                 cancellationToken).ConfigureAwait(false);

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -640,13 +641,12 @@ public sealed class SelectDungeonHandlerTests
     private static SelectDungeonRequest Request() =>
         new(GameMessageMetadata.Empty, TutorialDungeonId, Difficulty, 0, 0);
 
-    private sealed class NoopNotifications : INotificationBus
+    private sealed class NoopNotifications : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
-            CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification> =>
+            CancellationToken cancellationToken) =>
             ValueTask.FromResult(new NotificationDelivery([]));
     }
 

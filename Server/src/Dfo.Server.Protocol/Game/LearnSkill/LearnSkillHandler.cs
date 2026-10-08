@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -12,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.LearnSkill;
 
 public sealed class LearnSkillHandler(IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender,
-    ILogger<LearnSkillHandler> logger, INotificationBus notifications) : ClientMessageHandler<LearnSkillRequest>
+    ILogger<LearnSkillHandler> logger, IEventService notifications) : ClientMessageHandler<LearnSkillRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, LearnSkillRequest message,
         CancellationToken cancellationToken)
@@ -48,7 +49,7 @@ public sealed class LearnSkillHandler(IOnlineUserQueryDomainService onlineUsers,
             return;
         if (result.Receipt?.Inventory is { } inventory)
         {
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session!.CharacterId]),
                 new OpeningCompleted(inventory, [new LearnSkillResponse(result.Receipt)]), cancellationToken);
             return;
         }

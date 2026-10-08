@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
@@ -825,15 +826,14 @@ public sealed class TownProjectionHandlerTests
         }
     }
 
-    private sealed class RecordingNotifications(List<string>? order = null) : INotificationBus
+    private sealed class RecordingNotifications(List<string>? order = null) : Dfo.Server.Testing.ProjectionEventService
     {
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             Published.Add((audience, notification));
             order?.Add($"notify:{notification.GetType().Name}");

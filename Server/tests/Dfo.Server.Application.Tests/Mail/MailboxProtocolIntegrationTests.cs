@@ -1,4 +1,5 @@
 using System.Text;
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
@@ -35,11 +36,14 @@ public sealed class MailboxProtocolIntegrationTests
             Assert.Empty(shop.Sender.Messages);
             await tx.CommitAsync(default);
         }
+        Assert.Empty(shop.Sender.Messages);
+        await shop.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Equal((ushort)2, Assert.IsType<MailboxAlarm>(Assert.Single(shop.Sender.Messages)).Count);
         shop.Sender.BeforeSend = null;
         shop.Sender.Messages.Clear();
         await using (scope.Begin())
             await Mail(shop).SendAsync(MailBuilder.FromSystem(new(1)).Build());
+        Assert.Equal(0, await shop.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync());
         Assert.Empty(shop.Sender.Messages);
         Assert.Equal(2, (await Mail(shop).InboxAsync(new(1))).Count);
     }

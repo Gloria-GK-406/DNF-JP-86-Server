@@ -1,0 +1,27 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.13]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.39]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.41]   Starting:    Dfo.Server.Application.Tests
+[xUnit.net 00:00:03.46]     Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting [FAIL]
+[xUnit.net 00:00:03.46]       System.TimeoutException : The operation has timed out.
+[xUnit.net 00:00:03.46]       Stack Trace:
+[xUnit.net 00:00:03.46]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\DomainEvents\DomainEventSchedulingTests.cs(23,0): at Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting()
+[xUnit.net 00:00:03.46]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\DomainEvents\DomainEventSchedulingTests.cs(24,0): at Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting()
+[xUnit.net 00:00:03.46]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\DomainEvents\DomainEventSchedulingTests.cs(25,0): at Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting()
+[xUnit.net 00:00:03.46]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:03.47]   Finished:    Dfo.Server.Application.Tests
+  失败 Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting [3 s]
+  错误消息:
+   System.TimeoutException : The operation has timed out.
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\DomainEvents\DomainEventSchedulingTests.cs:line 23
+   at Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\DomainEvents\DomainEventSchedulingTests.cs:line 24
+   at Dfo.Server.Application.Tests.DomainEvents.DomainEventSchedulingTests.A_synchronously_consuming_group_with_continuous_backlog_cannot_prevent_other_groups_starting() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\domain-event-dispatch\Server\tests\Dfo.Server.Application.Tests\DomainEvents\DomainEventSchedulingTests.cs:line 25
+--- End of stack trace from previous location ---
+
+测试运行失败。
+测试总数: 1
+     失败数: 1
+总时间: 3.8064 秒

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
@@ -205,7 +206,7 @@ public sealed class ItemSaleTests
             new BusinessSlot(BusinessInventorySpace.Consumable, 0),
             5000, 1, 31, null, DateTimeOffset.UtcNow);
         shop.Select(2);
-        await shop.Services.GetRequiredService<INotificationBus>().PublishAsync(
+        await shop.Services.GetRequiredService<IEventService>().ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
         Assert.Single(shop.Sender.Messages);
     }

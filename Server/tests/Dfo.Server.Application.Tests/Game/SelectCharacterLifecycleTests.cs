@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -1349,17 +1350,16 @@ public sealed partial class SelectCharacterLifecycleTests
     /// </remarks>
     private sealed class RecordingNotifications(
         List<string> ledger,
-        bool failFirstTownPublication) : INotificationBus
+        bool failFirstTownPublication) : Dfo.Server.Testing.ProjectionEventService
     {
         private int townPublicationAttempts;
 
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
-        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
-            where TNotification : class, INotification<TNotification>
         {
             ledger.Add("target");
             Published.Add((audience, notification));

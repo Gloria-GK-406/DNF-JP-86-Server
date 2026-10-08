@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -10,7 +11,7 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.InventorySort;
 
 public sealed class SortLockHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    IInventorySlotMappingRuleService slots, ICommandBus commands, INotificationBus notifications)
+    IInventorySlotMappingRuleService slots, ICommandBus commands, IEventService notifications)
     : ClientMessageHandler<SortLockRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SortLockRequest message,
@@ -25,7 +26,7 @@ public sealed class SortLockHandler(ISelectedSessionDomainService sessions, IOnl
         var result = await commands.SendAsync(new SortLockCommand(online.OnlineUserId, session, slot, message.Action), ct)
             .ConfigureAwait(false);
         if (result.Receipt is { } receipt)
-            await notifications.PublishAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new SortLockChanged(receipt), ct).ConfigureAwait(false);
     }
 }
