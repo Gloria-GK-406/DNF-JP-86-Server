@@ -56,6 +56,8 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton(provider => new SqliteDatabase(
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
         services.TryAddSingleton<IEpicBookDomainStore, SqliteEpicBookDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
         services.TryAddSingleton<ICharacterExperienceStoragePolicy, Dfo.Server.Persistence.Schema.CharacterExperienceStoragePolicy>();
         services.TryAddSingleton<INoticeStateTable, Dfo.Server.Persistence.Notices.NoticeStateTable>();
         services.TryAddSingleton<IAccountTable>(

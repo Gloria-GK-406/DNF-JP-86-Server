@@ -81,6 +81,7 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddEventDispatching();
+        Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddDomainSubscriber<MailCreated, MailCreatedNotificationSubscriber>("mail.arrival",
             Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
@@ -469,7 +470,8 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<IExperienceCalculationDomainService>(),
                     provider.GetRequiredService<IExperienceCapsuleDomainService>(),
                     provider.GetRequiredService<IDomainTransactionAccessor>(),
-                    () => provider.GetRequiredService<IApplyEffectsDomainService>()),
+                    () => provider.GetRequiredService<IApplyEffectsDomainService>(),
+                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>()),
                 () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());

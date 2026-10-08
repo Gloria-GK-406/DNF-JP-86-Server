@@ -180,6 +180,10 @@ public enum ClientMessageType
     GameTeleport = 0x0001_00ED,
     GameQuestClearCoupon = 0x0001_0204,
     GameLevelUpTicket = 0x0001_01A2,
+    GameQueryTitleBook = 0x0001_01A8,
+    GameStoreTitle = 0x0001_019C,
+    GameWithdrawTitle = 0x0001_019D,
+    GameAchievementTrigger = 0x0001_01A1,
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
@@ -321,6 +325,9 @@ public enum ServerMessageType
     GameLoadCooltimeItems = 0x0000_00AC,
     GameQuestClearCoupon = 0x0001_0204,
     GameLevelUpTicket = 0x0001_01A2,
+    GameStoreTitle = 0x0001_019C,
+    GameWithdrawTitle = 0x0001_019D,
+    GameAchievementTrigger = 0x0001_01A1,
 
     GameCreatureDeath = 0x0000_0064,
     GameCreatureRename = 0x0000_0065,

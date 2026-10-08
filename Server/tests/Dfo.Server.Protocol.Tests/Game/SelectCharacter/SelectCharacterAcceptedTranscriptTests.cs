@@ -233,7 +233,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
     }
 
     [Fact]
-    public void AcceptedEntryTranscript_AllStaticFrameBytesMatchAcceptedBaseline()
+    public void AcceptedEntryTranscript_StaticBytesExceptReferenceOnlyTitleExtensionMatchAcceptedBaseline()
     {
         var source = SelectCharacterPayloadTestData.CreateComplete();
         // The pinned ACK contains ordinary wire type 69. The old fixture represented
@@ -251,7 +251,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
             },
         };
 
-        var hashes = CaptureCurrentTranscript(result).Select(Sha256).ToArray();
+        var hashes = CaptureCurrentTranscript(result).Select(WithoutReferenceOnlyTitleExtension).Select(Sha256).ToArray();
 
         Assert.Equal(AcceptedKnightFrameSha256.Length, hashes.Length);
         for (var i = 0; i < hashes.Length; i++)
@@ -458,6 +458,28 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         }
 
         return frames;
+    }
+
+    // Preserve the accepted 22-byte title prefix baseline. Only the new reference-only
+    // extension is excluded; its exact current layout is asserted separately here. This
+    // comparison does not upgrade the virtualized client tail to ClientVerified.
+    private static byte[] WithoutReferenceOnlyTitleExtension(byte[] frame)
+    {
+        if (frame[0] != 0 || BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) != 0x0166) return frame;
+        const int frameHeader = 15, listHeader = 11, prefix = 22, extension = 4;
+        var count = BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(frameHeader + 7));
+        Assert.True(count >= 0);
+        Assert.Equal(frameHeader + listHeader + count * (prefix + extension), frame.Length);
+        var baseline = new byte[frameHeader + listHeader + count * prefix];
+        frame.AsSpan(0, frameHeader + listHeader).CopyTo(baseline);
+        for (var i = 0; i < count; i++)
+        {
+            var at = frameHeader + listHeader + i * (prefix + extension);
+            Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(at + prefix)));
+            frame.AsSpan(at, prefix).CopyTo(baseline.AsSpan(frameHeader + listHeader + i * prefix));
+        }
+        BinaryPrimitives.WriteInt32LittleEndian(baseline.AsSpan(3), baseline.Length);
+        return baseline;
     }
 
     private static string Sha256(byte[] frame) =>

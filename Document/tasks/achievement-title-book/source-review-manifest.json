@@ -1,0 +1,146 @@
+{
+  "baseline": "774f7b3581be1eeb1689b9220f4bf8ca31852caf",
+  "sha256": "69171f2e293b6bbcc71656d6e83af07b5e75bfd5ac03f61818ae7cf6f36fe207",
+  "files": [
+    {
+      "path": "Server/src/Dfo.Server.Abstractions/Achievements/AchievementContracts.cs",
+      "sha256": "38bb05662c5aed8497c3f8ca64795011fd5b673b6b234d9f21c0cb78ce5cf859"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Abstractions/Quests/IQuestLog.cs",
+      "sha256": "78c38808fe6640b908dd56a951587b14c2519cdc3defec23cb29c8a4e22e3a48"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Achievements/AchievementCharacterFactsDomainService.cs",
+      "sha256": "8d87ca80200dba233ef6f8648855613c5c61e1bc78436fbb1a12e1ddb897eb1a"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Achievements/AchievementDomainService.cs",
+      "sha256": "fde7c105d278be93a42aa797b71fd9ea6b47884b518583167336eb44c632c26d"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Achievements/AchievementRegistration.cs",
+      "sha256": "3195dc704d6a3a8bcfeedc6a055ffa014a48167f2f3679b562f1efd611f7e46e"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Achievements/AchievementRuleService.cs",
+      "sha256": "e4c8eba815daeb2fda210951c6faf81bd0b705096fb6ad85ac0760983963eee2"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Achievements/TitleBookDomainService.cs",
+      "sha256": "6821fcb3551b1fb324982ee7f7121af1c9654db0787ba8d82b0deaec2dc7cf7e"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/ApplicationModule.cs",
+      "sha256": "2bccdd735fa8bd7e83d4093406fc851a546fb2ff3e30abfbddccf1a67e191c16"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Characters/PlayingCharacter.Experience.cs",
+      "sha256": "808a35b8d93597d9bbc9722ed33e4e04d3fa6f5811659f347a93b9ca921cbe3e"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Characters/PlayingCharacter.cs",
+      "sha256": "5163fb9596ee9e6c53c72deaf72fbbe7ed9c84429a3730ad39a6ef4337eb42cc"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Characters/SelectCharacterPreparationService.cs",
+      "sha256": "4b168467146e976188026c7ebc479fac0433ed39e2d0e51466ad2b9e0ac33af3"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Inventory/ItemUseEffectDomainService.cs",
+      "sha256": "ee7da8cfcb2606913bf9821e0c24d8f0f65dde8a2a00552eeace140e7d9c65a5"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Inventory/MaterialConsumptionDomainService.cs",
+      "sha256": "680e4ad29b4a0f6d5246c6465850a08b6d85cfb18a9635f442e7259e555aade8"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Quests/QuestCompletionDomainService.cs",
+      "sha256": "ac95d34335c0ededd6c21ab5f96eefa82688fbd5f9140d6af942095f08739c54"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Application/Quests/QuestLog.cs",
+      "sha256": "f17c7166ef66d1ced95d63b9e57e6cdb99b3c6d66c3d1bc480641ecaa8d7406c"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Data/Networking/NetworkMessages.cs",
+      "sha256": "9710ebae73d2a06f4e5fa96a0a7986547b11c6d3ff7665140ebc27343809fad2"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Infrastructure/Content/PvfAchievementDefinitionSource.cs",
+      "sha256": "47ffbda1aaeb074a713d617f7bf15cfeec7a58935a875b65129ccd2eb6a55f30"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Infrastructure/InfrastructureModule.cs",
+      "sha256": "46e45daaceb05c716e2dffb00e088decd50eb2280ec8b417f595802ff06aa369"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Persistence/Achievements/SqliteAchievementPersistence.cs",
+      "sha256": "b7af24f36596362b8a936f5bbb16d3619183e847245c6923d2e74d04e5c3cdbd"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Persistence/Inventory/SqliteItemDomainStore.cs",
+      "sha256": "e60cbbbce31921239d97326633cfe25cc0961cf96d4901b2fedceb7e343e8af4"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Persistence/PersistenceModule.cs",
+      "sha256": "6e0273b2b78a05de202cd541f2fa20950b737fc2e55a0ac2a00aaa41a9cf8f9d"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Persistence/Schema/CharacterDatabaseSchema.cs",
+      "sha256": "c4193f811dba87d85fdea2fb7a88e19cb279fdd93535bd4d14bdd7dc868d3ffd"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
+      "sha256": "2ad0a405927a531cbaec4af9ac9d34d0fe70cb5b15c28001c696a4bfa7b472f2"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyMonsterKillCommand.cs",
+      "sha256": "f7095663af78ea90741063b4f214e90265516d2dbdd55dcc4ee57d8b7bd422bd"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs",
+      "sha256": "bc114d0f371ae729937e6cf3b19e1222f339d85658a78cd0961b2ac811e63ffb"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+      "sha256": "543380b808aff4522e793f435c27cb39b6f0079f676924e0e419406547776b32"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
+      "sha256": "8da5faf8442f7ba5da11a1338303162c515617f552e6d19d8e8b6195c4b51de8"
+    },
+    {
+      "path": "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+      "sha256": "79a7565b21287bdd69d46e129ffc31c53f7020f664b893cece48ceedc34805d2"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Application.Tests/Achievements/AchievementTitleBookTests.cs",
+      "sha256": "28a16060d4cdcfdf677786aac87a86722d226ee3c0ad1100971eab7ef86e6d82"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectSettlementRegistrationTests.cs",
+      "sha256": "0577611daa0253186640ace1823b613ff56d348038170b3f89d30d61c975bd0e"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Application.Tests/World/CommonExperienceEffectTests.cs",
+      "sha256": "8086944dfe306b3339e058d1a6e37108fc1b3f9ac665e029d398fe8a7a8f32dd"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Persistence.Tests/Schema/SchemaOwnershipTests.cs",
+      "sha256": "d9a4df8bc7810ef2b5796698813de529021eaaddcb90efc36431940c4448735e"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Protocol.Tests/Game/SelectCharacter/SelectCharacterAcceptedTranscriptTests.cs",
+      "sha256": "647010cb9331f0e27d664cd2751bb550621d82afb1bebc56900daca2b3b14689"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Protocol.Tests/Game/StateSynchronization/AchievementWireTests.cs",
+      "sha256": "c6bff021b3f2b65945811ec618835ff686ba36e529b842d63671fce2d6be82ef"
+    },
+    {
+      "path": "Server/tests/Dfo.Server.Protocol.Tests/Game/StateSynchronization/TitleBookProtocolTests.cs",
+      "sha256": "de017d73233acb8dbaf644a744683ab537e000a3468e010a88719d6fd819d230"
+    }
+  ]
+}

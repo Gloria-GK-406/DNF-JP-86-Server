@@ -480,6 +480,10 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(entry.SlotIndex); writer.Write(entry.ItemId); writer.Write(entry.Value); writer.Write(entry.Attribute);
             writer.Write(entry.Durability); writer.Write(entry.SealFlag); writer.Write(entry.EnchantIndex);
             writer.Write(entry.EnchantUpgradeCount); writer.Write(entry.AmplifyType); writer.Write(entry.AmplifyValue);
+            // The upstream A21 writer includes this empty extension after the native 22-byte
+            // prefix. The native tail helper is virtualized; its size remains reference evidence,
+            // pending real-client acceptance. Do not infer that this dword is padding.
+            writer.Write(0);
         }
         return stream.ToArray();
     }

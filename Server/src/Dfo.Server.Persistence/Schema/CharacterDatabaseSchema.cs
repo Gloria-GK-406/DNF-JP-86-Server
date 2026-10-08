@@ -228,6 +228,8 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS achievement_consumed_facts(character_id INTEGER NOT NULL,event_id TEXT NOT NULL,PRIMARY KEY(character_id,event_id));
+        CREATE TABLE IF NOT EXISTS title_book_unlocks(character_id INTEGER NOT NULL,category INTEGER NOT NULL,slot_index INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(character_id,category,slot_index));
         CREATE TABLE IF NOT EXISTS account_epic_pieces(account_id INTEGER NOT NULL REFERENCES accounts(account_id),piece_id INTEGER NOT NULL CHECK(piece_id>0),count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 2147483647),PRIMARY KEY(account_id,piece_id));
         CREATE TABLE IF NOT EXISTS schema_migrations(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS domain_events(sequence INTEGER PRIMARY KEY AUTOINCREMENT,event_id TEXT NOT NULL UNIQUE,batch_id TEXT NOT NULL,occurred_at INTEGER NOT NULL,origin_instance_id TEXT NOT NULL,event_type TEXT NOT NULL,schema_version INTEGER NOT NULL CHECK(schema_version>0),payload_json TEXT NOT NULL);

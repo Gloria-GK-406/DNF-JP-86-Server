@@ -11,6 +11,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Parties;
+using Dfo.Server.Abstractions.Achievements;
 
 namespace Dfo.Server.Protocol.Game.MonsterDeath;
 
@@ -45,7 +46,8 @@ public sealed class ApplyMonsterKillCommandHandler(
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
     IItemGrantDomainService itemGrants,
-    IPartyService? parties = null, TimeProvider? clock = null)
+    IPartyService? parties = null, TimeProvider? clock = null,
+    ICharacterGameplayFactDomainService? gameplay = null)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
     public async ValueTask<ApplyMonsterKillResult> HandleAsync(
@@ -94,6 +96,14 @@ public sealed class ApplyMonsterKillCommandHandler(
         var advanced = reported.Changes
             .Select(change => new HuntEnemyQuestAdvance(change.QuestId, change.Before, change.After))
             .ToArray();
+        if (gameplay is not null && command.EnemyType == HuntEnemyTargetTypes.Monster)
+        {
+            await gameplay.RecordMonsterDefeatedAsync(new(command.CharacterId, command.Monster.Code,
+                (int)command.Monster.Rank, command.DungeonId, (int)command.Difficulty), cancellationToken).ConfigureAwait(false);
+            if (command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss)
+                await gameplay.RecordDungeonCompletedAsync(new(command.CharacterId, command.DungeonId,
+                    (int)command.Difficulty), cancellationToken).ConfigureAwait(false);
+        }
         return new ApplyMonsterKillResult(
             awarded,
             advanced,

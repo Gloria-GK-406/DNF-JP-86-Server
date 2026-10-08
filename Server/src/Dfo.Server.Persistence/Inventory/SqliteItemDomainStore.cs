@@ -359,7 +359,9 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     private static (string Scope, int Owner, int List) OwnerOf(ContainerId container)
     {
         if (!container.TryGetOwner(out var owner, out var type)
-            || type is not (InventoryContainerType.Main or InventoryContainerType.Avatar or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial)
+            || type is not (InventoryContainerType.Main or InventoryContainerType.Avatar or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial
+                or InventoryContainerType.TitleBookGeneral or InventoryContainerType.TitleBookSpecific or InventoryContainerType.TitleBookPvp or InventoryContainerType.TitleBookDespair or InventoryContainerType.TitleBookEvent)
+            || type is >= InventoryContainerType.TitleBookGeneral and <= InventoryContainerType.TitleBookEvent && owner.Scope != InventoryOwnerType.Character
             || type is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial && owner.Scope != InventoryOwnerType.Account)
             throw new InvalidOperationException("The container has no supported persistent owner.");
         return (owner.Scope == InventoryOwnerType.Account ? "account" : "character", owner.Value, (int)type);

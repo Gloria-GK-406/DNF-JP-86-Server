@@ -23,6 +23,9 @@ public sealed record ClearedQuest(int QuestId, byte Mark);
 /// </remarks>
 public enum QuestRefusal
 {
+    /// <summary>Progress and rewards are owned by the achievement/title services.</summary>
+    ManagedByAchievement,
+
     /// <summary>The character is already carrying it.</summary>
     AlreadyCarried,
 

@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-08 成就与独立称号簿（CurrentImplementation / HumanPending）
+
+[019C](game/client-to-server/0x019C.md)/[019D](game/client-to-server/0x019D.md)事务存取真实物品；[01A1](game/client-to-server/0x01A1.md)显式核对权威进度，不采信任意delta；[01A8](game/client-to-server/0x01A8.md)只读查看。CMD ACK与EventBus驱动的[0167](game/server-to-client/NOTI-0x0167.md)进度、[0168](game/server-to-client/NOTI-0x0168.md)解锁及[0166](game/server-to-client/NOTI-0x0166.md)分类刷新职责分开。PVF动态规则、幂等完成及独立称号资格见[实现说明](../Document/tasks/achievement-title-book/implementation.md)。0166额外4B仅上游参照，实机非空列表仍待验收；没有客户端patch。
+
 ## 2026-10-07 EXIT 与切频道
 
 [CMD0003](game/client-to-server/0x0003.md) 改为纯协议成功 ACK，不再撤销登录凭据；断线后使用既有 300 秒重连宽限，新连接交接和密码重新登录失效规则保留。实际切频道日志已定位 EXIT 后的新 LOGIN `ticket_rejected`；Host 回归覆盖先 EXIT 再登录 CH100 与切回普通频道。修复为 CurrentImplementation，原生客户端待验收。

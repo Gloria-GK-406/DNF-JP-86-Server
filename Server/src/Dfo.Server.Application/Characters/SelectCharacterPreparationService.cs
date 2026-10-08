@@ -35,7 +35,9 @@ public sealed class SelectCharacterPreparationService(
     Dfo.Server.Abstractions.Events.IEventManagementDomainService? events = null,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
     Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null,
-    IEpicBookDomainService? epicBook = null) : ISelectCharacterPreparationDomainService
+    IEpicBookDomainService? epicBook = null,
+    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null,
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
@@ -120,6 +122,10 @@ public sealed class SelectCharacterPreparationService(
             accountId,
             character.Identity.CharacterId,
             cancellationToken).ConfigureAwait(false);
+        if (achievements is not null)
+            await achievements.PrepareAsync(character.Identity.CharacterId, character.Progression.Level, cancellationToken).ConfigureAwait(false);
+        if (titles is not null)
+            await titles.PrepareAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
         var characterEntry = await characterEntries.LoadAsync(
             accountId,
             character.Identity.CharacterId,

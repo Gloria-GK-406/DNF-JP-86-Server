@@ -38,7 +38,8 @@ internal sealed partial class PlayingCharacter(
     IExperienceCalculationDomainService? experienceCalculation = null,
     IExperienceCapsuleDomainService? capsules = null,
     Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null,
-    Func<Dfo.Server.Abstractions.Effects.IApplyEffectsDomainService>? experienceEffects = null) : ICharacter
+    Func<Dfo.Server.Abstractions.Effects.IApplyEffectsDomainService>? experienceEffects = null,
+    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null) : ICharacter
 {
     public CharacterId Id => characterId;
 
