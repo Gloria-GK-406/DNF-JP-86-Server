@@ -3,6 +3,9 @@ namespace Dfo.Server.Data.Inventory;
 /// <summary>Complete item value; storage and wire codecs alone interpret legacy fields.</summary>
 public sealed record ItemSnapshot
 {
+    /// <summary>Server-only disposable equipment projection; never part of the client item core.</summary>
+    public bool IsMirror { get; init; }
+    public ItemIdentity? MirrorSourceUid { get; init; }
     public int ItemId { get; init; }
     public int Count { get; init; } = 1;
     public ItemTraits Type { get; init; }

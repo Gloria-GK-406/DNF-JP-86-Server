@@ -452,6 +452,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<TitleUnlocked, TitleBookEventSubscriber>("title.noti-unlock", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<TitleWithdrawn, TitleBookEventSubscriber>("title.noti-withdraw", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>(retryLimit: 0);
         services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameStoreTitle);

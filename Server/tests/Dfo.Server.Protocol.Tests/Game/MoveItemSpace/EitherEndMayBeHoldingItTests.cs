@@ -688,7 +688,9 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                  InventoryContainerType.Equipment, InventoryContainerType.Pet])
             {
                 var side = this.Build();
-                var result = await side.MoveAsync(first, SlotIn(first), second, SlotIn(second));
+                // A same-slot no-op does not prove that movement between two equipment slots is served.
+                var secondSlot = first == second ? checked((short)(SlotIn(second) + 1)) : SlotIn(second);
+                var result = await side.MoveAsync(first, SlotIn(first), second, secondSlot);
                 if (result.Status is not ItemMoveStatus.ListNotServed)
                     served.Add((first, second));
             }

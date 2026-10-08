@@ -12,7 +12,7 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     ITitleBookPersistence titlePersistence, IAchievementCharacterFactsDomainService characterFacts,
     IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placement,
     IInventorySlotMappingRuleService mapping, IInventoryCapacityDomainService capacity, IEventService events,
-    IEquipmentWearDomainService wear) : ITitleBookDomainService, IDomainEventSubscriber<AchievementCompleted>
+    IEquipmentWearDomainService wear, IItemMirrorDomainService mirrors) : ITitleBookDomainService, IDomainEventSubscriber<AchievementCompleted>
 {
     private static ContainerId Book(CharacterId character, int category) =>
         ContainerId.ForCharacter(character, (InventoryContainerType)((int)InventoryContainerType.TitleBookGeneral + category));
@@ -96,16 +96,28 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         var session = Session; var current = await session.GetAsync(container, game.Index, ct);
         if (current is null || current.ItemId != itemId || !await UsableAsync(current.Snapshot, source, ct)) return Fail("InvalidItem");
         var target = await session.GetAsync(Book(character, category), index, ct);
+        if (await mirrors.RemoveAsync(session, current, ct))
+        {
+            await events.EnqueueAsync(new TitleStored(character, category, index, source), ct);
+            return new(true, null, category, index, source);
+        }
         if (target is not null && (source.Space == BusinessInventorySpace.WornEquipment || !await UsableAsync(target.Snapshot, source, ct))) return Fail("OccupiedTitleSlot");
         var moving = await session.TakeAsync(current, null, ct);
         if (target is not null)
         {
+            await RemoveEquippedMirrorOfAsync(character, target.ItemUid, ct);
             var exchanged = await session.TakeAsync(target, null, ct);
             await session.PutAsync(container, game.Index, exchanged, ct);
         }
         await session.PutAsync(Book(character, category), index, moving, ct);
         await events.EnqueueAsync(new TitleStored(character, category, index, source), ct);
         return new(true, null, category, index, source);
+    }
+    private async ValueTask RemoveEquippedMirrorOfAsync(CharacterId character, ItemIdentity? source, CancellationToken ct)
+    {
+        if (source is null) return;
+        foreach (var item in await Session.GetAllAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), ct))
+            if (item.Snapshot.IsMirror && item.Snapshot.MirrorSourceUid == source) await mirrors.RemoveAsync(Session, item, ct);
     }
     public async ValueTask<TitleBookMutationResult> WithdrawAsync(CharacterId character, BusinessSlot destination,
         int itemId, int category, int index, CancellationToken ct)
@@ -122,15 +134,35 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         if (current is null || current.ItemId != itemId || !await UsableAsync(current.Snapshot, destination, ct)) return Fail("InvalidItem");
         if (destination.Space == BusinessInventorySpace.WornEquipment && !await wear.CanWearAsync(character, itemId, ct)) return Fail("NotWearable");
         var target = await session.GetAsync(container, game.Index, ct);
-        if (target is not null) return Fail("OccupiedDestination");
         if (destination.Space == BusinessInventorySpace.WornEquipment)
         {
+            int? free = null;
+            var bag = ContainerId.ForCharacter(character, InventoryContainerType.Main);
+            if (target is not null && !target.Snapshot.IsMirror)
+            {
+                var open = await capacity.OpenSlotCountAsync(bag, BusinessInventorySpace.CarriedEquipment, ct);
+                for (var i = 0; i < open; i++)
+                {
+                    var candidate = mapping.ToGameSlot(new(BusinessInventorySpace.CarriedEquipment, i));
+                    if (await session.GetAsync(bag, candidate.Index, ct) is null) { free = candidate.Index; break; }
+                }
+                if (free is null) return Fail("InventoryFull");
+            }
+            if (target is not null && !await mirrors.RemoveAsync(session, target, ct))
+                await session.PutAsync(bag, free!.Value, await session.TakeAsync(target, null, ct), ct);
             var prepared = wear.UnsealForEquip(current.Snapshot);
             if (prepared.SealFlag != current.Snapshot.SealFlag)
                 current = await session.UpdateAsync(current, _ => prepared, ct);
+            var mirror = await session.CreateAsync(current.Snapshot with { ItemUid = null, IsMirror = true, MirrorSourceUid = current.ItemUid }, ct);
+            await session.PutAsync(container, game.Index, mirror, ct);
         }
-        var moving = await session.TakeAsync(current, null, ct);
-        await session.PutAsync(container, game.Index, moving, ct);
+        else
+        {
+            if (target is not null) return Fail("OccupiedDestination");
+            await RemoveEquippedMirrorOfAsync(character, current.ItemUid, ct);
+            var moving = await session.TakeAsync(current, null, ct);
+            await session.PutAsync(container, game.Index, moving, ct);
+        }
         await events.EnqueueAsync(new TitleWithdrawn(character, category, index, destination), ct);
         return new(true, null, category, index, destination);
     }

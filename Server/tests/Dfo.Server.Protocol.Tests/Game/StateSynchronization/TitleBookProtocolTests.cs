@@ -71,6 +71,18 @@ public sealed class TitleBookProtocolTests
         Assert.Null(notice.Unlock); Assert.NotNull(notice.ChangedSlot);
     }
     [Fact]
+    public async Task Mirror_removal_projection_waits_for_ack_and_refreshes_carried_inventory_after_local_client_movement()
+    {
+        var events=new RecordingEvents();var gate=new AchievementTitleProjectionGate();var subscriber=new TitleBookEventSubscriber(events,gate);
+        using var held=await gate.EnterAsync(new(1),default);
+        var delivery=subscriber.HandleAsync(new DomainEventEnvelope<Dfo.Server.Abstractions.Inventory.ItemMirrorRemoved>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),InventoryContainerType.Equipment)),default).AsTask();
+        Assert.False(delivery.IsCompleted);Assert.Empty(events.Projected);
+        held.Dispose();await delivery.WaitAsync(TimeSpan.FromSeconds(2));
+        var notice=Assert.IsType<TitleBookChanged>(Assert.Single(events.Projected));
+        Assert.True(notice.RefreshCarriedInventory);Assert.Equal(InventoryContainerType.Equipment,notice.ChangedContainer);Assert.Null(notice.Unlock);
+    }
+
+    [Fact]
     public async Task Achievement_progress_projection_waits_until_request_ack_releases_the_character_gate()
     {
         var gate = new AchievementTitleProjectionGate(); var events = new RecordingEvents();

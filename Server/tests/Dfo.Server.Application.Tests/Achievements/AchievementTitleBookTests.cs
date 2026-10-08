@@ -22,7 +22,7 @@ using Xunit.Abstractions;
 
 namespace Dfo.Server.Application.Tests.Achievements;
 
-public sealed class AchievementTitleBookTests(ITestOutputHelper output)
+public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
 {
     private static readonly CharacterId Character = new(1);
     [PvfTheory]
@@ -221,7 +221,12 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         {
             var game=f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn!.Value);
             var snapshot=(await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!).GetAsync(ContainerId.ForCharacter(Character,game.Space),game.Index,default))!.Snapshot;
-            Assert.Equal(original! with { SealFlag = 0 },snapshot);
+            Assert.True(snapshot.IsMirror);
+            Assert.Equal(original!.ItemUid, snapshot.MirrorSourceUid);
+            Assert.NotEqual(original.ItemUid, snapshot.ItemUid);
+            Assert.Equal(original with { SealFlag = 0, IsMirror = true, MirrorSourceUid = original.ItemUid, ItemUid = snapshot.ItemUid },snapshot);
+            var book = (await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!).GetAsync(ContainerId.ForCharacter(Character,(InventoryContainerType)(19+slot.Category)),slot.Index,default))!.Snapshot;
+            Assert.Equal(original with { SealFlag = 0 },book);
             await f.Titles.PrepareAsync(Character,default);
         });
         Assert.True((await f.WriteAsync(async()=> await f.Titles.StoreAsync(Character,worn!.Value,26596,slot.Category,slot.Index,default))).Success);
@@ -232,7 +237,7 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items"));
     }
     [PvfFact]
-    public async Task Main_exchange_preserves_both_instances_and_equipment_occupied_refusal_preserves_all_positions()
+    public async Task Main_exchange_preserves_instances_and_equipping_a_book_title_returns_real_equipment_to_the_bag()
     {
         await using var f=new Fixture();
         var rule=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Single(x=>x.QuestId==6501);
@@ -253,10 +258,13 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         var ids=f.ItemUids(26596);
         Assert.True((await f.WriteAsync(async()=>await f.Titles.StoreAsync(Character,main,26596,rule.Category,rule.Index,default))).Success);
         Assert.Equal((byte)12,Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries)).Attribute);
-        var before=f.ItemsAndPositions();
-        Assert.False((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
-        Assert.False((await f.WriteAsync(async()=>await f.Titles.StoreAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
-        Assert.Equal(before,f.ItemsAndPositions()); Assert.Equal(ids,f.ItemUids(26596));
+        Assert.True((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
+        Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
+        Assert.All(ids,id=>Assert.Contains(id,f.ItemUids(26596)));
+        Assert.Equal((byte)12,Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries)).Attribute);
+        Assert.True((await f.WriteAsync(async()=>await f.Titles.StoreAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
+        Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
+        Assert.Equal(ids,f.ItemUids(26596));
     }
     [PvfTheory]
     [InlineData(1,0,0)]

@@ -6,7 +6,7 @@ namespace Dfo.Server.Application.Inventory;
 /// <summary>Moving a piece between the bag and what the character is wearing.</summary>
 internal sealed class ItemMovementDomainService(
     IItemPlacementRuleService placementRules,
-    IItemSlotRuleService slotRules, IEquipmentWearDomainService wearing) : IItemMovementDomainService
+    IItemSlotRuleService slotRules, IEquipmentWearDomainService wearing, IItemMirrorDomainService? mirrors = null) : IItemMovementDomainService
 {
     public ValueTask<ItemMoveOutcome> MoveWithinBackingAsync(BoundInventorySlot source,
         BoundInventorySlot destination, int requestedCount, CancellationToken cancellationToken)
@@ -35,6 +35,8 @@ internal sealed class ItemMovementDomainService(
         if (placement is null || !slotRules.CanOccupySlot(into.Slot, placement)
             || into.Slot.Index >= await into.Container.OpenSlotCountAsync(cancellationToken).ConfigureAwait(false))
             return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
+        if (await RemoveMirrorAsync(from, moving, cancellationToken).ConfigureAwait(false))
+            return new ItemMoveOutcome.MirrorRemoved(moving.ItemId);
         var moveCount = requestedCount <= 0 || requestedCount > moving.Count
             ? moving.Count : requestedCount;
         if (moving.IsPile && placement.StackLimit > 0 && moveCount > placement.StackLimit)
@@ -63,6 +65,14 @@ internal sealed class ItemMovementDomainService(
         {
             if (moveCount != moving.Count)
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.PartialSwapNotAllowed);
+            if (displaced.Snapshot.IsMirror)
+            {
+                await RemoveMirrorAsync(into, displaced, cancellationToken).ConfigureAwait(false);
+                var real = await from.Container.TakeAsync(moving, null, cancellationToken).ConfigureAwait(false);
+                await into.Container.PutAsync(into.Slot.Index, real, cancellationToken).ConfigureAwait(false);
+                await from.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
+                return new ItemMoveOutcome.Moved(moveCount, moving.ItemId);
+            }
             var back = await placementRules.PlacementForAsync(displaced.ItemId, from.Slot.Space, cancellationToken)
                 .ConfigureAwait(false);
             if (back is null || !slotRules.CanOccupySlot(from.Slot, back)
@@ -78,6 +88,11 @@ internal sealed class ItemMovementDomainService(
         await from.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
         return new ItemMoveOutcome.Moved(moveCount, moving.ItemId);
     }
+
+    public ValueTask<bool> RemoveMirrorAsync(BoundInventorySlot source, ItemReference item, CancellationToken ct) =>
+        !item.Snapshot.IsMirror ? ValueTask.FromResult(false)
+        : (mirrors ?? throw new InvalidOperationException("Mirror movement requires mirror lifecycle services."))
+            .RemoveAsync(source.Container, item, ct);
 
     public ItemSnapshot UnsealForEquip(ItemSnapshot item) => wearing.UnsealForEquip(item);
 

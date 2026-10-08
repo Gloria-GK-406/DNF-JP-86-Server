@@ -163,9 +163,9 @@ public sealed class QueryTitleBookHandler(ISelectedSessionDomainService sessions
 }
 
 internal sealed record TitleBookChanged(CharacterId Character, int? Category = null, TitleUnlocked? Unlock = null,
-    BusinessSlot? ChangedSlot = null) : INotification<TitleBookChanged>;
+    BusinessSlot? ChangedSlot = null, InventoryContainerType? ChangedContainer = null, bool RefreshCarriedInventory = false) : INotification<TitleBookChanged>;
 internal sealed class TitleBookEventSubscriber(IEventService events, AchievementTitleProjectionGate gate)
-    : IDomainEventSubscriber<TitleUnlocked>, IDomainEventSubscriber<TitleStored>, IDomainEventSubscriber<TitleWithdrawn>
+    : IDomainEventSubscriber<TitleUnlocked>, IDomainEventSubscriber<TitleStored>, IDomainEventSubscriber<TitleWithdrawn>, IDomainEventSubscriber<ItemMirrorRemoved>
 {
     private async ValueTask ProjectAsync(TitleBookChanged notice, CancellationToken ct)
     {
@@ -177,7 +177,9 @@ internal sealed class TitleBookEventSubscriber(IEventService events, Achievement
     public ValueTask HandleAsync(DomainEventEnvelope<TitleStored> message, CancellationToken ct) =>
         ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleWithdrawn> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot), ct);
+        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot, RefreshCarriedInventory: true), ct);
+    public ValueTask HandleAsync(DomainEventEnvelope<ItemMirrorRemoved> message, CancellationToken ct) =>
+        ProjectAsync(new(message.Payload.CharacterId, null, ChangedContainer: message.Payload.ContainerType, RefreshCarriedInventory: true), ct);
 }
 internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, IInventorySlotProjectionDomainService slots)
@@ -190,14 +192,18 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
         var messages = new List<IServerNetworkMessage>();
         if (notification.Unlock is { } unlock) messages.Add(new TitleUnlockedMessage(unlock));
         messages.AddRange(rows.Where(x => notification.Category is null || x.Category == notification.Category).Select(x => new TitleBookStateMessage(x)));
-        if (notification.ChangedSlot is { } changed && sessions.FindByConnection(recipient.ConnectionId) is { } session
+        var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? slots.Project(changed).Space : (InventoryContainerType?)null);
+        if (changedType is { } type && sessions.FindByConnection(recipient.ConnectionId) is { } session
             && await views.TryLoadAsync(session, ct).ConfigureAwait(false) is { } current)
         {
-            var wire = slots.Project(changed);
-            var container = current.CharacterInventory.Containers.Single(x => x.ContainerType == wire.Space);
-            messages.Add(new InventoryFullSnapshotMessage(container, current.CharacterInventory, current.AccountInventory, current.World.PreparedAt));
-            if (wire.Space == InventoryContainerType.Equipment)
-                messages.Add(new CurrentUserStateMessage(current.Character, current.CharacterEntry.Public, container.Items, current.CharacterEntry.Features.Pets));
+            var types = notification.RefreshCarriedInventory ? new[] { type, InventoryContainerType.Main } : new[] { type };
+            foreach (var containerType in types.Distinct())
+            {
+                var container = current.CharacterInventory.Containers.Single(x => x.ContainerType == containerType);
+                messages.Add(new InventoryFullSnapshotMessage(container, current.CharacterInventory, current.AccountInventory, current.World.PreparedAt));
+                if (containerType == InventoryContainerType.Equipment)
+                    messages.Add(new CurrentUserStateMessage(current.Character, current.CharacterEntry.Public, container.Items, current.CharacterEntry.Features.Pets));
+            }
         }
         return messages;
     }
