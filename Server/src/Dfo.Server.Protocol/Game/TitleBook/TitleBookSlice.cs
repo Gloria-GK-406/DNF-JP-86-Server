@@ -163,7 +163,8 @@ public sealed class QueryTitleBookHandler(ISelectedSessionDomainService sessions
 }
 
 internal sealed record TitleBookChanged(CharacterId Character, int? Category = null, TitleUnlocked? Unlock = null,
-    BusinessSlot? ChangedSlot = null, InventoryContainerType? ChangedContainer = null, bool RefreshCarriedInventory = false) : INotification<TitleBookChanged>;
+    BusinessSlot? ChangedSlot = null, InventoryContainerType? ChangedContainer = null, bool RefreshCarriedInventory = false,
+    int? ChangedIndex = null) : INotification<TitleBookChanged>;
 internal sealed class TitleBookEventSubscriber(IEventService events, AchievementTitleProjectionGate gate)
     : IDomainEventSubscriber<TitleUnlocked>, IDomainEventSubscriber<TitleStored>, IDomainEventSubscriber<TitleWithdrawn>, IDomainEventSubscriber<ItemMirrorRemoved>
 {
@@ -173,11 +174,11 @@ internal sealed class TitleBookEventSubscriber(IEventService events, Achievement
         await events.ProjectAsync(new NotificationAudience.TheseCharacters([notice.Character]), notice, ct).ConfigureAwait(false);
     }
     public ValueTask HandleAsync(DomainEventEnvelope<TitleUnlocked> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, message.Payload), ct);
+        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, message.Payload, ChangedIndex: message.Payload.Index), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleStored> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot), ct);
+        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot, ChangedIndex: message.Payload.Index), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleWithdrawn> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot, RefreshCarriedInventory: true), ct);
+        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot, RefreshCarriedInventory: true, ChangedIndex: message.Payload.Index), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<ItemMirrorRemoved> message, CancellationToken ct) =>
         ProjectAsync(new(message.Payload.CharacterId, null, ChangedContainer: message.Payload.ContainerType, RefreshCarriedInventory: true), ct);
 }
@@ -188,10 +189,13 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, TitleBookChanged notification, CancellationToken ct)
     {
         if (recipient.CharacterId != notification.Character) return [];
-        var rows = await titles.GetAsync(notification.Character, ct).ConfigureAwait(false);
         var messages = new List<IServerNetworkMessage>();
         if (notification.Unlock is { } unlock) messages.Add(new TitleUnlockedMessage(unlock));
-        messages.AddRange(rows.Where(x => notification.Category is null || x.Category == notification.Category).Select(x => new TitleBookStateMessage(x)));
+        // NOTI 0166 rebuilds the book cache without rebuilding the open window's item references.
+        // CMD 019C/019D already rebuild the window; preserve those references with slot updates.
+        if (notification.Category is { } category)
+            messages.Add(new TitleBookSlotsChangedMessage(category,
+                await titles.GetItemsAsync(notification.Character, category, ct).ConfigureAwait(false), notification.ChangedIndex, DateTimeOffset.UtcNow));
         var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? slots.Project(changed).Space : (InventoryContainerType?)null);
         if (changedType is { } type && sessions.FindByConnection(recipient.ConnectionId) is { } session
             && await views.TryLoadAsync(session, ct).ConfigureAwait(false) is { } current)
@@ -206,6 +210,26 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
             }
         }
         return messages;
+    }
+}
+internal sealed record TitleBookSlotsChangedMessage(int Category, IReadOnlyList<InventoryItemState> Items, int? ChangedIndex, DateTimeOffset PreparedAt)
+    : GameStateSynchronizationMessage, IGameNotiMessage
+{
+    internal override ushort Type => 0x000E;
+    internal override byte[] EncodeBody()
+    {
+        if (Category is < 0 or > 4) throw new InvalidDataException("Invalid title book category.");
+        var entries = Items.ToList();
+        if (ChangedIndex is { } index && entries.All(x => x.SlotIndex != index))
+            entries.Add(new(null, index, new ItemSnapshot { ItemId = -1, Count = 0 }.ToCore()));
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        // Native 01648AC0 maps lists 18..22 to book categories 0..4; storage enums use 19..23.
+        writer.Write(checked((byte)(18 + Category)));
+        writer.Write(checked((ushort)entries.Count));
+        foreach (var item in entries.OrderBy(x => x.SlotIndex))
+            GameInventoryItemEntry.Write(writer, item, PreparedAt,
+                (InventoryContainerType)((int)InventoryContainerType.TitleBookGeneral + Category));
+        return stream.ToArray();
     }
 }
 internal sealed record TitleUnlockedMessage(TitleUnlocked Unlock) : GameStateSynchronizationMessage, IGameNotiMessage

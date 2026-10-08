@@ -261,3 +261,9 @@ default                                       → CommonEntrySize  = 101
 发放/消费回执只保留真实 BusinessSlot、物品 core 与普通容器结果；本帧投影由实际容器读取最终数量，删除 AccountMaterialChange 等余额分支。材料 Main/354..364 的既有 wire 形状与私有投递顺序保留。消费 ACK 已扣除且余额为0时省略正 itemId/count=0 更新；无扣除 ACK 的绝对清除沿用空槽通知，非零材料仍校正绝对值。
 
 本次覆盖分解、强化、合成、丢弃、拾取、任务、邮件及 replay 自动测试；2026-09-20/26 客户端观察仅支持当时行为。新模型效果见 [共享材料实机清单](../../../Document/SharedMaterialHumanTest-20261003.md)，未新增 WireCaptured 或 ClientVerified。
+
+## 2026-10-08 称号簿槽位校正（ClientStatic / CurrentImplementation）
+
+A21容器查询VA01648AC0将wire list 18..22映射到称号簿分类0..4；服务端存储枚举19..23不能直接转为这里的wire值。handler VA0117D720按101B完整物品条目更新槽位，不经过0166整类缓存清理。
+
+称号存入、取出、镜像装备及真实解锁后，以000E发送该分类现存原实例；显式取出时另以itemId=-1清除已移出的槽。完整core保留解封、附魔等属性。镜像卸下仅更新装备/背包，不改书中原实例。此路径保持ACK先于异步槽位校正；存取不伪造0168解锁提示。编码和领域回归支持实现，原生客户端窗口效果待用户验收，未新增ClientVerified。

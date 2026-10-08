@@ -38,6 +38,13 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         foreach (var row in (await persistence.ReadAsync(character, ct)).Where(x => x.Completed && !unlocked.Contains(x.AchievementId)))
             await UnlockAsync(character, row.AchievementId, ct);
     }
+    public async ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct)
+    {
+        if (category is < 0 or > 4) throw new ArgumentOutOfRangeException(nameof(category));
+        var rows = await titlePersistence.ReadTitlesAsync(character, ct);
+        return rows.Where(x => x.Category == category)
+            .Select(x => new InventoryItemState(x.Item.ItemUid, x.Index, x.Item.ToCore())).ToArray();
+    }
     private async ValueTask<IReadOnlySet<int>> GetUnlockedAchievementIdsAsync(CharacterId character, CancellationToken ct)
     {
         var unlocked = (await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet();

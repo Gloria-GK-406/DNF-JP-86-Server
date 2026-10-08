@@ -1,8 +1,12 @@
 # 协议清单
 
+## 2026-10-08 称号簿操作后的窗口保留（待实机验收）
+
+[CMD019D](game/server-to-client/CMD-0x019D.md)成功后使用[NOTI000E](game/server-to-client/NOTI-0x000E.md)更新称号簿槽位，不再以[NOTI0166](game/server-to-client/NOTI-0x0166.md)重建整类缓存。A21静态分析显示0166会清除已打开窗口的条目引用，关窗重开恢复的用户反馈与此一致。wire list 18..22与内部存储枚举19..23分别映射；完整物品属性和镜像原实例保留已有回归。新窗口效果尚待ClientVerified，见[镜像装备说明](../Document/equipment-mirrors-and-title-book.md)。
+
 ## 2026-10-08 成就与独立称号簿（CurrentImplementation / HumanPending）
 
-[019C](game/client-to-server/0x019C.md)/[019D](game/client-to-server/0x019D.md)事务存取真实物品；[01A1](game/client-to-server/0x01A1.md)显式核对权威进度，不采信任意delta；[01A8](game/client-to-server/0x01A8.md)只读查看。CMD ACK与EventBus驱动的[0167](game/server-to-client/NOTI-0x0167.md)进度、[0168](game/server-to-client/NOTI-0x0168.md)解锁及[0166](game/server-to-client/NOTI-0x0166.md)分类刷新职责分开。PVF动态规则、幂等完成及独立称号资格见[实现说明](../Document/tasks/achievement-title-book/implementation.md)。0166额外4B仅上游参照，实机非空列表仍待验收；没有客户端patch。
+[019C](game/client-to-server/0x019C.md)/[019D](game/client-to-server/0x019D.md)事务存取真实物品；[01A1](game/client-to-server/0x01A1.md)显式核对权威进度，不采信任意delta；[01A8](game/client-to-server/0x01A8.md)只读查看。CMD ACK与EventBus驱动的[0167](game/server-to-client/NOTI-0x0167.md)进度、[0168](game/server-to-client/NOTI-0x0168.md)解锁、[000E](game/server-to-client/NOTI-0x000E.md)操作槽位校正及[0166](game/server-to-client/NOTI-0x0166.md)登录/查询列表职责分开。PVF动态规则、幂等完成及独立称号资格见[实现说明](../Document/tasks/achievement-title-book/implementation.md)。0166额外4B仅上游参照，实机非空列表仍待验收；没有客户端patch。
 
 ## 2026-10-07 EXIT 与切频道
 

@@ -81,6 +81,7 @@ public interface ITitleBookDomainService
 {
     ValueTask PrepareAsync(CharacterId character, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct);
+    ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct);
     ValueTask<TitleBookMutationResult> StoreAsync(CharacterId character, BusinessSlot source,
         int itemId, int category, int index, CancellationToken ct);
     ValueTask<TitleBookMutationResult> WithdrawAsync(CharacterId character, BusinessSlot destination,

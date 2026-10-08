@@ -48,6 +48,10 @@ public sealed partial class AchievementTitleBookTests
         Assert.True((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,TitleWorn,26628,4,slots[1].Index,default))).Success);
         Assert.DoesNotContain(oldMirror.ItemUid!.Value.Value,f.ItemUids(26596).Select(x=>(int)x));
         Assert.Equal(first,await ReadTitle(f,book,slots[0].Index)); Assert.Equal(second,await ReadTitle(f,book,slots[1].Index));
+        var projected = await f.Titles.GetItemsAsync(Character, 4, default);
+        Assert.Contains(projected, x => x.Identity == first.ItemUid && x.SlotIndex == slots[0].Index && x.Core == first.ToCore());
+        Assert.Contains(projected, x => x.Identity == second.ItemUid && x.SlotIndex == slots[1].Index && x.Core == second.ToCore());
+        Assert.DoesNotContain(projected, x => x.Identity == oldMirror.ItemUid);
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
         await using var restored=new Fixture(f.Path);
         var current=(await ReadTitle(restored,equip,13))!;

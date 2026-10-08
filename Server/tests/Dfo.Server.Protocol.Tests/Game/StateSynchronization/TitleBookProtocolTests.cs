@@ -7,6 +7,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Achievements;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
@@ -69,6 +70,7 @@ public sealed class TitleBookProtocolTests
         held.Dispose(); await projecting.WaitAsync(TimeSpan.FromSeconds(2));
         var notice=Assert.IsType<TitleBookChanged>(Assert.Single(events.Projected));
         Assert.Null(notice.Unlock); Assert.NotNull(notice.ChangedSlot);
+        Assert.Equal(2, notice.ChangedIndex);
     }
     [Fact]
     public async Task Mirror_removal_projection_waits_for_ack_and_refreshes_carried_inventory_after_local_client_movement()
@@ -80,6 +82,73 @@ public sealed class TitleBookProtocolTests
         held.Dispose();await delivery.WaitAsync(TimeSpan.FromSeconds(2));
         var notice=Assert.IsType<TitleBookChanged>(Assert.Single(events.Projected));
         Assert.True(notice.RefreshCarriedInventory);Assert.Equal(InventoryContainerType.Equipment,notice.ChangedContainer);Assert.Null(notice.Unlock);
+        Assert.Null(notice.Category); Assert.Null(notice.ChangedIndex);
+    }
+
+    [Theory]
+    [InlineData(0, 18)]
+    [InlineData(1, 19)]
+    [InlineData(2, 20)]
+    [InlineData(3, 21)]
+    [InlineData(4, 22)]
+    public void Book_slot_updates_use_native_book_lists_and_preserve_equipment_attributes(int category, byte nativeList)
+    {
+        var item = new InventoryItemState(new(42), 10, new ItemSnapshot
+        {
+            ItemId = 26596, Count = 1, LegacyKind = 1, InstanceValue = 17,
+            Attribute = 12, Durability = 47, SealFlag = 0, EnchantCardId = 123,
+            EnchantUpgradeCount = 1, AmplifyType = 3, AmplifyValue = 91
+        }.ToCore());
+        var body = new TitleBookSlotsChangedMessage(category, [item], 10, DateTimeOffset.UnixEpoch).EncodeBody();
+        var expected = new InventoryDeltaMessage(InventoryContainerType.Main, [item], DateTimeOffset.UnixEpoch).EncodeBody();
+        Assert.Equal(nativeList, body[0]);
+        Assert.Equal(104, body.Length);
+        Assert.Equal(expected[1..], body[1..]);
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1)));
+        Assert.Equal(10, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(3)));
+        Assert.Equal(26596, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
+    }
+
+    [Fact]
+    public async Task Mutation_projects_slots_without_replacing_the_open_book_cache_or_announcing_an_unlock()
+    {
+        var item = new InventoryItemState(new(42), 10, new ItemSnapshot { ItemId = 26596, Count = 1, LegacyKind = 1 }.ToCore());
+        var titles = new CurrentTitles([item]);
+        var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
+        var recipient = new NotificationRecipient(new(1), new("Game:1"));
+        var messages = await handler.ComposeAsync(recipient, new(new(1), 4, ChangedIndex: 10), default);
+        var delta = Assert.IsType<TitleBookSlotsChangedMessage>(Assert.Single(messages));
+        Assert.Equal(item, Assert.Single(delta.Items));
+        Assert.Equal(1, titles.Reads);
+        Assert.DoesNotContain(messages, x => x is TitleBookStateMessage or TitleUnlockedMessage);
+        Assert.Empty(await handler.ComposeAsync(recipient, new(new(1)), default));
+        Assert.Equal(1, titles.Reads);
+        Assert.Empty(await handler.ComposeAsync(recipient, new(new(2), 4, ChangedIndex: 10), default));
+        Assert.Equal(1, titles.Reads);
+    }
+
+    [Fact]
+    public void Physical_withdrawal_clears_only_the_removed_slot_and_keeps_other_book_entries()
+    {
+        var retained = new InventoryItemState(new(42), 11, new ItemSnapshot { ItemId = 26628, Count = 1, LegacyKind = 1 }.ToCore());
+        var body = new TitleBookSlotsChangedMessage(4, [retained], 10, DateTimeOffset.UnixEpoch).EncodeBody();
+        Assert.Equal(205, body.Length);
+        Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1)));
+        Assert.Equal(10, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(3)));
+        Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
+        Assert.Equal(11, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(104)));
+        Assert.Equal(26628, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(106)));
+    }
+
+    private sealed class CurrentTitles(IReadOnlyList<InventoryItemState> items) : ITitleBookDomainService
+    {
+        public int Reads { get; private set; }
+        public ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct)
+        { Assert.Equal(new CharacterId(1), character); Assert.Equal(4, category); Reads++; return ValueTask.FromResult(items); }
+        public ValueTask PrepareAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<TitleBookMutationResult> StoreAsync(CharacterId character, BusinessSlot source, int itemId, int category, int index, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<TitleBookMutationResult> WithdrawAsync(CharacterId character, BusinessSlot destination, int itemId, int category, int index, CancellationToken ct) => throw new NotSupportedException();
     }
 
     [Fact]

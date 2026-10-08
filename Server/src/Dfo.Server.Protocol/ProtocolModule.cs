@@ -466,6 +466,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TitleBookMutationResponse, TitleBookMutationEncoder>();
         services.AddGameCmdMessageEncoder<AchievementTriggerResponse, AchievementTriggerEncoder>();
         services.AddGameNotiMessageEncoder<TitleUnlockedMessage, GameNotiStateSynchronizationEncoder<TitleUnlockedMessage>>();
+        services.AddGameNotiMessageEncoder<TitleBookSlotsChangedMessage, GameNotiStateSynchronizationEncoder<TitleBookSlotsChangedMessage>>();
         services.AddCommandHandler<UseLevelUpTicketCommand, LevelUpTicketResult, UseLevelUpTicketCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
