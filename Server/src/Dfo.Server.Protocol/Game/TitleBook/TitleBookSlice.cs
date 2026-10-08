@@ -76,7 +76,7 @@ public sealed class WithdrawTitleCommandHandler(ITitleBookDomainService titles) 
 
 // The client applies a local movement on CMD success. An asynchronous refresh must follow that
 // acknowledgement. Bounded stripes coordinate only protocol delivery, never durable consumers.
-internal sealed class AchievementTitleProjectionGate
+public sealed class AchievementTitleProjectionGate
 {
     private readonly SemaphoreSlim[] gates = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1)).ToArray();
     public async ValueTask<IDisposable> EnterAsync(CharacterId character, CancellationToken ct)

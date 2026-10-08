@@ -11,6 +11,8 @@ public sealed record AchievementDefinition(int Id, int MinimumLevel, int Maximum
 {
     public IReadOnlyList<IReadOnlyList<int>> PrerequisiteGroups { get; init; } = [];
     public bool SupportedRestrictions { get; init; } = true;
+    public bool? RequiresHardcore { get; init; }
+    public IReadOnlyList<string> EquipmentSlots { get; init; } = [];
 }
 public sealed record TitleBookSlotDefinition(int Category, int Index, int SlotType, int QuestId,
     IReadOnlyList<int> ItemIds)
@@ -27,10 +29,13 @@ public interface IAchievementRuleService
     bool IsSupported(AchievementDefinition definition);
     int InitialRemaining(AchievementDefinition definition);
     int Contribution(AchievementDefinition definition, CharacterGameplayFact fact);
+    bool CanCheckSnapshot(AchievementDefinition definition);
+    ValueTask<bool?> IsSatisfiedAsync(AchievementDefinition definition, AchievementCharacterFacts facts, CancellationToken ct);
 }
 public interface ITitleBookRuleService
 {
     IReadOnlyList<TitleBookCategoryDefinition> Catalog();
+    IReadOnlySet<int> ActivatedAchievements(IReadOnlySet<(int Category, int Index)> unlockedSlots);
     ValueTask<OpeningRewardItemDefinition?> RewardTemplateAsync(int itemId, CancellationToken ct);
 }
 public sealed record AchievementProgress(int AchievementId, int Remaining, int P2, int P3, int P4, bool Completed);
@@ -43,21 +48,33 @@ public interface IAchievementPersistence
     ValueTask<bool> AdvanceAsync(CharacterId character, int achievementId, int count, CancellationToken ct);
     ValueTask<bool> IsCompletedAsync(CharacterId character, int achievementId, CancellationToken ct);
 }
-public sealed record AchievementCharacterFacts(int Level, IReadOnlySet<int> ClearedQuests);
+public sealed record AchievementEquippedItem(BusinessSlot Slot, int ItemId);
+public sealed record AchievementCharacterFacts(int Level, IReadOnlySet<int> ClearedQuests)
+{
+    public CharacterCareer? Career { get; init; }
+    public bool? Hardcore { get; init; }
+    public IReadOnlyDictionary<int, long> ItemCounts { get; init; } = new Dictionary<int, long>();
+    public int? AvatarCount { get; init; }
+    public IReadOnlyList<int> CreatureItems { get; init; } = [];
+    public IReadOnlyList<AchievementEquippedItem> EquippedItems { get; init; } = [];
+}
 public interface IAchievementCharacterFactsDomainService
 {
     ValueTask<AchievementCharacterFacts> ReadAsync(CharacterId character, CancellationToken ct);
+    ValueTask<AchievementCharacterFacts> ReadForUnlockAsync(CharacterId character, IReadOnlyList<AchievementDefinition> pending, CancellationToken ct);
 }
 public interface ITitleBookPersistence
 {
     ValueTask<bool> TryUnlockTitleAsync(CharacterId character, int category, int index, int itemId, CancellationToken ct);
     ValueTask<IReadOnlyList<StoredTitleBookItem>> ReadTitlesAsync(CharacterId character, CancellationToken ct);
+    ValueTask<IReadOnlyList<(int Category, int Index)>> ReadUnlockedSlotsAsync(CharacterId character, CancellationToken ct);
 }
 public interface IAchievementDomainService
 {
     ValueTask PrepareAsync(CharacterId character, int level, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterAchievementProgressState>> GetAsync(CharacterId character, CancellationToken ct);
     ValueTask<CharacterAchievementProgressState?> ReconcileAsync(CharacterId character, int achievementId, CancellationToken ct);
+    ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId character, CancellationToken ct);
 }
 public sealed record TitleBookMutationResult(bool Success, string? Reason, int Category, int Index, BusinessSlot Slot);
 public interface ITitleBookDomainService

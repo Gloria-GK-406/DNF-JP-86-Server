@@ -34,13 +34,21 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     }
     public async ValueTask PrepareAsync(CharacterId character, CancellationToken ct)
     {
-        foreach (var row in (await persistence.ReadAsync(character, ct)).Where(x => x.Completed))
+        var unlocked = await GetUnlockedAchievementIdsAsync(character, ct);
+        foreach (var row in (await persistence.ReadAsync(character, ct)).Where(x => x.Completed && !unlocked.Contains(x.AchievementId)))
             await UnlockAsync(character, row.AchievementId, ct);
+    }
+    private async ValueTask<IReadOnlySet<int>> GetUnlockedAchievementIdsAsync(CharacterId character, CancellationToken ct)
+    {
+        var unlocked = (await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet();
+        return rules.ActivatedAchievements(unlocked);
     }
     private async ValueTask UnlockAsync(CharacterId character, int achievementId, CancellationToken ct)
     {
+        var unlocked = (await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet();
         foreach (var slot in rules.Catalog().SelectMany(x => x.Slots).Where(x => x.SlotType >= 0 && x.QuestId == achievementId && x.ItemIds.Any(id => id > 0)))
         {
+            if (unlocked.Contains((slot.Category, slot.Index))) continue;
             var session = Session;
             var held = await session.GetAsync(Book(character, slot.Category), slot.Index, ct);
             var itemId = slot.ItemIds.First(id => id > 0);

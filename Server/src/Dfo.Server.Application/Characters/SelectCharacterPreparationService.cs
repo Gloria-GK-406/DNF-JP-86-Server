@@ -123,7 +123,10 @@ public sealed class SelectCharacterPreparationService(
             character.Identity.CharacterId,
             cancellationToken).ConfigureAwait(false);
         if (achievements is not null)
+        {
             await achievements.PrepareAsync(character.Identity.CharacterId, character.Progression.Level, cancellationToken).ConfigureAwait(false);
+            await achievements.UnlockSatisfiedAchievementsAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
+        }
         if (titles is not null)
             await titles.PrepareAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
         var characterEntry = await characterEntries.LoadAsync(

@@ -32,6 +32,10 @@ internal sealed class PvfAchievementDefinitionSource(PvfArchiveProvider provider
                 Numbers("[pre required quest]"))
             {
                 PrerequisiteGroups = document.ReadAll(PvfField.Int32List("[pre required quest]", optional: true)).ToArray(),
+                RequiresHardcore = document.Sections.Any(x => x.Name == "[hardcore mode only]") ? true
+                    : document.Sections.Any(x => x.Name == "[hardcore mode disable]") ? false : null,
+                EquipmentSlots = document.Sections.Where(x => x.Name == "[string data]").SelectMany(x => x.Values)
+                    .Where(x => x.IsString).Select(x => archive.ResolveString(x.Value).Trim('[', ']').ToLowerInvariant()).ToArray(),
                 SupportedRestrictions = (!document.Sections.Any(x => x.Name == "[job]") || Text("[job]") == "all")
                     && (!Numbers("[grow type]").Any(x => x >= 0))
                     && !document.Sections.Any(x => x.Name is "[target character]" or "[creature kind]" or "[creature level]" or "[expertjob level]" or "[required quest answer]" or "[collision quest]" or "[account collision quest]"),

@@ -25,6 +25,130 @@ namespace Dfo.Server.Application.Tests.Achievements;
 public sealed class AchievementTitleBookTests(ITestOutputHelper output)
 {
     private static readonly CharacterId Character = new(1);
+    [PvfTheory]
+    [InlineData(69,false)]
+    [InlineData(70,true)]
+    public async Task Level_title_uses_reached_threshold_instead_of_requiring_a_new_level_event(int level,bool expected)
+    {
+        await using var f=new Fixture(definitions:new FakeDefinitions([new(6531,10,99,new("level up",-1,[70],1),[])]));
+        f.Sql($"UPDATE characters SET level={level} WHERE character_id=1");
+        Assert.Equal(expected,(await f.WriteAsync(async()=>await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default))).Contains(6531));
+    }
+    [PvfFact]
+    public async Task Archive_snapshot_support_has_79_bound_titles_and_excludes_unknown_duel_and_clone_conditions()
+    {
+        await using var f=new Fixture();
+        var rules=f.Services.GetRequiredService<IAchievementRuleService>();
+        var slots=f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().SelectMany(x=>x.Slots).Where(x=>x.SlotType>=0).Select(x=>x.QuestId).ToHashSet();
+        Assert.Equal(79,rules.Catalog().Count(x=>slots.Contains(x.Id)&&rules.CanCheckSnapshot(x)));
+        Assert.False(rules.CanCheckSnapshot(rules.Catalog().Single(x=>x.Id==6663)));
+        Assert.False(rules.CanCheckSnapshot(rules.Catalog().Single(x=>x.Id==6582)));
+    }
+    [PvfFact]
+    public async Task Equipped_item_unlock_reads_pvf_grade_and_level_at_the_worn_slot()
+    {
+        await using var f=new Fixture(definitions:new FakeDefinitions([new(6567,10,99,new("equipped item",0,[3,55],1),[]){EquipmentSlots=["weapon"]}]));
+        await f.WriteAsync(async()=>{
+            var s=f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+            var item=await s.CreateAsync(new(){ItemId=2747466,LegacyKind=1,Type=ItemTraits.Equipment},default);
+            await s.PutAsync(ContainerId.ForCharacter(Character,InventoryContainerType.Equipment),12,item,default);
+        });
+        Assert.Contains(6567,await f.WriteAsync(async()=>await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)));
+    }
+    [PvfFact]
+    public async Task Existing_level_unlocks_once_and_does_not_grant_hardcore_titles_to_ordinary_characters()
+    {
+        await using var f = new Fixture();
+        f.Sql("UPDATE characters SET level=85 WHERE character_id=1");
+        await f.WriteAsync(async () => await f.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterConditionTable>().InsertIfAbsentAsync(Character, default));
+        var completed = await f.WriteAsync(async () => await f.Achievements.UnlockSatisfiedAchievementsAsync(Character, default));
+        Assert.Contains(6531, completed); Assert.Contains(6697, completed); Assert.DoesNotContain(6721, completed);
+        await f.DrainAsync();
+        Assert.Single(f.ItemUids(26628)); Assert.Single(f.ItemUids(100331240)); Assert.Empty(f.ItemUids(100331297));
+        var before = f.Scalar("SELECT COUNT(*) FROM domain_events");
+        Assert.Empty(await f.WriteAsync(async () => await f.Achievements.UnlockSatisfiedAchievementsAsync(Character, default)));
+        await f.WriteAsync(async () => await f.Titles.PrepareAsync(Character, default));
+        Assert.Equal(before, f.Scalar("SELECT COUNT(*) FROM domain_events"));
+        Assert.Single(f.ItemUids(26628));
+    }
+    [PvfFact]
+    public async Task Hardcore_career_and_level_checks_respect_mode_and_reconcile_dependencies_in_one_pass()
+    {
+        await using var f = new Fixture();
+        f.Sql("UPDATE characters SET level=85,grow_type=17 WHERE character_id=1");
+        await f.WriteAsync(async () => await f.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterConditionTable>().InsertIfAbsentAsync(Character, default));
+        f.Sql("UPDATE character_condition SET is_hardcore_mode=1 WHERE character_id=1");
+        Assert.True((await f.Services.GetRequiredService<IAchievementCharacterFactsDomainService>().ReadAsync(Character,default)).Hardcore);
+        var completed = await f.WriteAsync(async () => await f.Achievements.UnlockSatisfiedAchievementsAsync(Character, default));
+        Assert.Contains(6719, completed); Assert.Contains(6720, completed); Assert.Contains(6721, completed);
+        Assert.DoesNotContain(6697, completed);
+        await f.DrainAsync();
+        Assert.Single(f.ItemUids(100331295)); Assert.Single(f.ItemUids(100331296)); Assert.Single(f.ItemUids(100331297));
+        Assert.Empty(f.ItemUids(100331240));
+    }
+    [PvfFact]
+    public async Task Possession_checks_do_not_consume_items_and_equipment_checks_require_actual_worn_items()
+    {
+        await using var f = new Fixture();
+        await f.WriteAsync(async () => {
+            var s = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+            foreach (var (id, slot) in new[] {(7463,65), (7464,66)})
+            {
+                var item = await s.CreateAsync(new(){ItemId=id, Count=1000, IsPile=true, LegacyKind=2, Type=ItemTraits.Consumable}, default);
+                await s.PutAsync(ContainerId.ForCharacter(Character,InventoryContainerType.Main),slot,item,default);
+            }
+            var weapon = await s.CreateAsync(new(){ItemId=21009, Count=1, LegacyKind=1, Type=ItemTraits.Equipment}, default);
+            await s.PutAsync(ContainerId.ForCharacter(Character,InventoryContainerType.Main),9,weapon,default);
+        });
+        var before = f.ItemsAndPositions();
+        var completed = await f.WriteAsync(async () => await f.Achievements.UnlockSatisfiedAchievementsAsync(Character, default));
+        Assert.Contains(6580, completed); Assert.DoesNotContain(6567, completed);
+        Assert.Equal(before, f.ItemsAndPositions());
+        await f.DrainAsync();
+        Assert.Single(f.ItemUids(26688));
+    }
+    [PvfFact]
+    public async Task Activated_or_completed_rules_do_not_read_character_snapshot_and_queries_do_not_unlock()
+    {
+        var facts = new RefuseSnapshot();
+        await using var f = new Fixture(definitions:new FakeDefinitions([
+            new(6531,1,99,new("level up",-1,[70],1),[]),
+            new(6697,1,99,new("level up",-1,[85],1),[])]), facts:facts);
+        f.Sql("INSERT INTO title_book_unlocks(character_id,category,slot_index,item_id) VALUES(1,0,46,26628); INSERT INTO character_achievement_complete(character_id,sort_order,achievement_id,p1,p2,p3,p4) VALUES(1,0,6697,0,0,0,0)");
+        _ = await f.Achievements.GetAsync(Character, default); _ = await f.Titles.GetAsync(Character, default);
+        Assert.Empty(await f.WriteAsync(async () => await f.Achievements.UnlockSatisfiedAchievementsAsync(Character, default)));
+        Assert.Empty(f.ItemUids(26628)); Assert.Equal(0, facts.Reads);
+    }
+    [PvfFact]
+    public async Task Permanently_activated_title_satisfies_dependencies_without_rechecking_or_recompleting_its_achievement()
+    {
+        await using var f = new Fixture(definitions:new FakeDefinitions([
+            new(6531,1,99,new("level up",-1,[70],1),[]),
+            new(9002,1,99,new("clear quest",-1,[6531],1),[])]));
+        f.Sql("INSERT INTO title_book_unlocks(character_id,category,slot_index,item_id) VALUES(1,0,46,26628)");
+        Assert.Equal(new[]{9002},await f.WriteAsync(async()=>await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)));
+        await f.WriteAsync(async()=>await f.Achievements.PrepareAsync(Character,80,default));
+        Assert.DoesNotContain(await f.Achievements.GetAsync(Character,default),x=>x.AchievementId==6531);
+        Assert.Empty(f.ItemUids(26628));
+    }
+    [PvfFact]
+    public async Task Snapshot_completion_rolls_back_without_events_or_rewards_and_follows_dependency_chain()
+    {
+        await using var f = new Fixture(definitions:new FakeDefinitions([
+            new(9002,1,99,new("clear quest",-1,[9001],1),[]),
+            new(9001,1,99,new("level up",-1,[70],1),[])]));
+        await using (var tx=f.Scope.Begin()) Assert.Equal(2,(await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)).Count);
+        Assert.Empty(await f.Achievements.GetAsync(Character,default)); Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM domain_events"));
+        Assert.Equal(new[]{9001,9002},await f.WriteAsync(async()=>await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)));
+    }
+    private sealed class RefuseSnapshot : IAchievementCharacterFactsDomainService
+    {
+        public int Reads {get;private set;}
+        public ValueTask<AchievementCharacterFacts> ReadForUnlockAsync(CharacterId character,IReadOnlyList<AchievementDefinition> pending,CancellationToken ct)
+            => ReadAsync(character,ct);
+        public ValueTask<AchievementCharacterFacts> ReadAsync(CharacterId character,CancellationToken ct)
+        {Reads++; throw new InvalidOperationException("Completed rules must not load a snapshot.");}
+    }
     [PvfFact]
     public async Task Real_rules_complete_from_verified_kills_and_grant_one_title_across_restart_and_repeated_delivery()
     {
@@ -233,7 +357,7 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
         public IEventService Events=>Services.GetRequiredService<IEventService>();
         public IAchievementDomainService Achievements=>Services.GetRequiredService<IAchievementDomainService>();
         public ITitleBookDomainService Titles=>Services.GetRequiredService<ITitleBookDomainService>();
-        public Fixture(string? path=null,IAchievementDefinitionSource? definitions=null,IEquipmentWearDomainService? wear=null)
+        public Fixture(string? path=null,IAchievementDefinitionSource? definitions=null,IEquipmentWearDomainService? wear=null,IAchievementCharacterFactsDomainService? facts=null)
         {
             owns=path is null; Path=path??System.IO.Path.Combine(System.IO.Path.GetTempPath(),"achievement-"+Guid.NewGuid().ToString("N")+".db");
             var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{{"Database:Path",Path},{"Pvf:ArchivePath",Environment.GetEnvironmentVariable("PVF_ARCHIVE_PATH")}}).Build();
@@ -243,6 +367,7 @@ public sealed class AchievementTitleBookTests(ITestOutputHelper output)
             new PersistenceModule().ConfigureServices(services,config);
             if(definitions is not null)services.AddSingleton(definitions);
             if(wear is not null)services.AddSingleton(wear);
+            if(facts is not null)services.AddSingleton(facts);
             Services=services.BuildServiceProvider();
             _=Services.GetRequiredService<SqliteDatabase>();
             if(owns) Sql("INSERT INTO accounts(account_id,m_id,password_hash) VALUES(1,'test','test'); INSERT INTO characters(character_id,account_id,slot_index,name,job,level,exp) VALUES(1,1,0,'test',0,80,0)");

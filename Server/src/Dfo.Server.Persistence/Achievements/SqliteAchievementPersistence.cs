@@ -34,6 +34,9 @@ internal sealed class SqliteAchievementPersistence(SqliteDatabase database) : IA
         await database.ExecuteAsync("INSERT OR IGNORE INTO title_book_unlocks(character_id,category,slot_index,item_id) VALUES(@cid,@cat,@slot,@item)",
             p => { p.AddWithValue("@cid", character.Value); p.AddWithValue("@cat", category); p.AddWithValue("@slot", index); p.AddWithValue("@item", itemId); }, ct) == 1;
     private sealed record Present;
+    public ValueTask<IReadOnlyList<(int Category, int Index)>> ReadUnlockedSlotsAsync(CharacterId character, CancellationToken ct) =>
+        database.ReadAllAsync("SELECT category,slot_index FROM title_book_unlocks WHERE character_id=@cid",
+            p => p.AddWithValue("@cid", character.Value), r => (r.GetInt32(0), r.GetInt32(1)), ct);
     public ValueTask<IReadOnlyList<StoredTitleBookItem>> ReadTitlesAsync(CharacterId character, CancellationToken ct) =>
         database.ReadAllAsync("SELECT s.list_type,s.slot_index,i.item_uid,i.item_core FROM item_slots s JOIN items i ON i.item_uid=s.core_uid WHERE s.owner_scope='character' AND s.owner_id=@cid AND s.list_type BETWEEN 19 AND 23 ORDER BY s.list_type,s.slot_index",
             p => p.AddWithValue("@cid", character.Value), r => new StoredTitleBookItem(r.GetInt32(0)-19,r.GetInt32(1),

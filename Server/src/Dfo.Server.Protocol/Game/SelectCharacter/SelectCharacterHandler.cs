@@ -69,7 +69,8 @@ public sealed class SelectCharacterHandler(
     SelectCharacterDeliveryOptions delivery,
     Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery? weaknessProjection = null,
     LotteryCounterExperimentOptions? lotteryCounterExperiment = null,
-    ItemUsageProjectionDelivery? itemUsageProjection = null) : ClientMessageHandler<SelectCharacterRequest>
+    ItemUsageProjectionDelivery? itemUsageProjection = null,
+    Dfo.Server.Protocol.Game.TitleBook.AchievementTitleProjectionGate? achievementProjectionGate = null) : ClientMessageHandler<SelectCharacterRequest>
 {
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -131,6 +132,9 @@ public sealed class SelectCharacterHandler(
             }
             await commandBus.SendAsync(new EnsureDailyContractPuppetsCommand(session), cancellationToken)
                 .ConfigureAwait(false);
+            // Hold live achievement/title projections until the complete entry batch has reached the client.
+            using var achievementProjection = achievementProjectionGate is null ? null
+                : await achievementProjectionGate.EnterAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
             var state = await commandBus.SendAsync(
                 new PrepareSelectedCharacterStateCommand(
                     session, prepared.Selected, prepared.Channel), cancellationToken)
