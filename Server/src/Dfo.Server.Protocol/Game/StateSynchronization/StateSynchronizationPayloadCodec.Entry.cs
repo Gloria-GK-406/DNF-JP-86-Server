@@ -790,10 +790,8 @@ internal static partial class StateSynchronizationPayloadCodec
     /// rather than a third filter: the appearance run is
     /// <see cref="DrawnAppearance.DrawsFrom"/>'s answer -- asked rather than restated, because the
     /// character-selection roster draws from the same run -- and the creature triple takes
-    /// <c>24</c>. Anyone asking "would this frame come out differently if that slot changed" has to
-    /// ask about both, and asking here is what keeps a fourth slot filter from appearing in this
-    /// repository -- there are already three that disagree with each other, and reconciling them
-    /// changes bytes.
+    /// A21 slot <c>25</c>. Anyone asking "would this frame come out differently if that slot changed"
+    /// has to ask about both, keeping equip/unequip refresh decisions aligned with serialization.
     /// <para>
     /// It answers about a worn slot. A slot number from the bag or the avatar page means something
     /// else entirely, and the caller is the one that knows which list it holds.

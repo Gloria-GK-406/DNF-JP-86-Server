@@ -37,9 +37,9 @@ namespace Dfo.Server.Application.Characters;
 /// </para>
 /// <para>
 /// <b>What it does not decide.</b> Dye colour and the clone-avatar link are zero here because the
-/// in-world frame writes them as zero; making the roster agree with the in-world frame is what this
-/// answers, and agreeing with upstream instead would move bytes in a frame that is anchored.
-/// Whether a worn slot holds the creature (slot 24) is a different question with a different
+/// in-world frame writes them as zero. The appearance count describes the parts actually present;
+/// adding a title therefore adds one part without changing any part's wire layout.
+/// Whether a worn slot holds the creature (A21 slot 25) is a different question with a different
 /// answer, and the frame that cares asks it separately.
 /// </para>
 /// </remarks>
@@ -47,16 +47,14 @@ public static class DrawnAppearance
 {
     /// <summary>The end of the run of worn slots a drawn appearance is taken from.</summary>
     /// <remarks>
-    /// Twelve, not thirteen. Upstream's equivalent runs to thirteen and takes slot 24 as its extra
-    /// (<c>EquipmentTypeInfo.IsA21RosterAppearanceSlot</c>, read from upstream source); this
-    /// repository's in-world frame runs to twelve and takes 23, and the two are not the same set.
-    /// This one is the in-world frame's, because that frame's bytes are anchored and a wider run
-    /// would move them.
+    /// A21's worn wire slots are avatars 0..11, weapon 12 and title 13. This agrees with
+    /// InventorySlotMappingRuleService and upstream EquipmentTypeInfo.IsA21RosterAppearanceSlot
+    /// (source reference, not a claim of live-client verification).
     /// </remarks>
-    private const int LastDrawnSlot = 12;
+    private const int LastDrawnSlot = 13;
 
-    /// <summary>The one slot past that run a drawn appearance is also taken from.</summary>
-    private const int ExtraDrawnSlot = 23;
+    /// <summary>A21's support weapon slot, outside the contiguous appearance run.</summary>
+    private const int ExtraDrawnSlot = 24;
 
     /// <summary>The length each part declares for its own expansion field.</summary>
     private const int ExpansionLength = 4;
@@ -67,7 +65,7 @@ public static class DrawnAppearance
     /// means something else entirely, and the caller is the one that knows which list it holds.
     /// </remarks>
     public static bool DrawsFrom(int wornSlotIndex) =>
-        wornSlotIndex <= LastDrawnSlot || wornSlotIndex == ExtraDrawnSlot;
+        (wornSlotIndex >= 0 && wornSlotIndex <= LastDrawnSlot) || wornSlotIndex == ExtraDrawnSlot;
 
     /// <summary>The parts a character wearing these is drawn as, in slot order.</summary>
     /// <remarks>
