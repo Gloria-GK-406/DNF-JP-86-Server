@@ -36,11 +36,6 @@ internal sealed class WithdrawTitleDecoder() : TitleBookMutationDecoder(false);
 public sealed record TitleBookMutationResponse(bool Store, int Space, int Slot, int Category, int Index, byte? Error = null) : IGameCmdMessage
 {
     public ServerMessageType MessageType => Store ? ServerMessageType.GameStoreTitle : ServerMessageType.GameWithdrawTitle;
-    // A21 success handlers map this valid book list, skip their 0/3/17 transfer branches,
-    // then rebuild Category. This server-directed confirmation route is ClientStatic, not yet ClientVerified.
-    internal static TitleBookMutationResponse ConfirmBookSlot(bool store, int category, int index) =>
-        category is >= 0 and <= 4 && index >= 0 ? new(store, 18 + category, index, category, index)
-        : throw new ArgumentOutOfRangeException(nameof(category));
     internal byte[] Body()
     {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
@@ -76,9 +71,7 @@ public sealed class StoreTitleCommandHandler(ITitleBookDomainService titles) : I
 public sealed class WithdrawTitleCommandHandler(ITitleBookDomainService titles) : ICommandHandler<WithdrawTitleCommand, TitleBookMutationResult>
 {
     public ValueTask<TitleBookMutationResult> HandleAsync(CommandExecutionContext context, WithdrawTitleCommand command, CancellationToken ct) =>
-        command.Destination.Space == BusinessInventorySpace.WornEquipment
-            ? titles.ToggleEquippedAsync(command.Session.CharacterId, command.ItemId, command.Category, command.Index, ct)
-            : titles.WithdrawAsync(command.Session.CharacterId, command.Destination, command.ItemId, command.Category, command.Index, ct);
+        titles.WithdrawAsync(command.Session.CharacterId, command.Destination, command.ItemId, command.Category, command.Index, ct);
 }
 
 // Bounded stripes keep committed title projections and request confirmations ordered.
@@ -100,7 +93,7 @@ public sealed class AchievementTitleProjectionGate
 }
 internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     IInventorySlotMappingRuleService mapping, ICommandBus commands, IGameMessageSender sender,
-    AchievementTitleProjectionGate gate, ITitleBookDomainService titles, ISelectedCharacterCurrentViewDomainService views, ILogger<TitleBookMutationHandler> logger) : ClientMessageHandler<TitleBookMutationRequest>
+    AchievementTitleProjectionGate gate, ILogger<TitleBookMutationHandler> logger) : ClientMessageHandler<TitleBookMutationRequest>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TitleBookMutationRequest message, CancellationToken ct)
     {
@@ -125,20 +118,6 @@ internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService ses
             await Refuse(); return;
         }
         var actual = mapping.ToGameSlot(result.Slot);
-        if (result.Success && actual.Space == InventoryContainerType.Equipment)
-        {
-            var current = await views.TryLoadAsync(session, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException("Committed title mutation lost its published session.");
-            var messages = TitleBookEquipmentProjection.Compose(current).ToList();
-            if (result.CarriedInventoryChanged)
-                messages.Add(new InventoryFullSnapshotMessage(current.CharacterInventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Main),
-                    current.CharacterInventory, current.AccountInventory, current.World.PreparedAt));
-            messages.Add(new TitleBookSlotsChangedMessage(result.Category,
-                await titles.GetItemsAsync(session.CharacterId, result.Category, ct), result.Index, current.World.PreparedAt));
-            messages.Add(TitleBookMutationResponse.ConfirmBookSlot(message.Store, result.Category, result.Index));
-            await sender.SendExplicitAsync(session.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
-            return;
-        }
         await sender.SendCmdAsync(context.Connection.ConnectionId, new TitleBookMutationResponse(message.Store,
             (int)actual.Space, actual.Index, result.Category, result.Index, result.Success ? null : (byte)1), ct).ConfigureAwait(false);
     }
@@ -185,7 +164,7 @@ public sealed class QueryTitleBookHandler(ISelectedSessionDomainService sessions
 
 internal sealed record TitleBookChanged(CharacterId Character, int? Category = null, TitleUnlocked? Unlock = null,
     BusinessSlot? ChangedSlot = null, InventoryContainerType? ChangedContainer = null, bool RefreshCarriedInventory = false,
-    int? ChangedIndex = null) : INotification<TitleBookChanged>;
+    int? ChangedIndex = null, bool RefreshBook = false) : INotification<TitleBookChanged>;
 internal sealed class TitleBookEventSubscriber(IEventService events, AchievementTitleProjectionGate gate)
     : IDomainEventSubscriber<TitleUnlocked>, IDomainEventSubscriber<TitleStored>, IDomainEventSubscriber<TitleWithdrawn>, IDomainEventSubscriber<ItemMirrorRemoved>, IDomainEventSubscriber<TitleAppearanceChanged>
 {
@@ -197,13 +176,14 @@ internal sealed class TitleBookEventSubscriber(IEventService events, Achievement
     public ValueTask HandleAsync(DomainEventEnvelope<TitleUnlocked> message, CancellationToken ct) =>
         ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, message.Payload, ChangedIndex: message.Payload.Index), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleStored> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Slot.Space == BusinessInventorySpace.CarriedEquipment ? message.Payload.Category : null, ChangedSlot: message.Payload.Slot, ChangedIndex: message.Payload.Index), ct);
+        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedSlot: message.Payload.Slot, ChangedIndex: message.Payload.Index, RefreshBook: message.Payload.Slot.Space == BusinessInventorySpace.WornEquipment), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleWithdrawn> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Slot.Space == BusinessInventorySpace.CarriedEquipment ? message.Payload.Category : null, ChangedIndex: message.Payload.Index, ChangedSlot: message.Payload.Slot, RefreshCarriedInventory: message.Payload.Slot.Space == BusinessInventorySpace.CarriedEquipment), ct);
+        ProjectAsync(new(message.Payload.CharacterId, message.Payload.Category, ChangedIndex: message.Payload.Index, ChangedSlot: message.Payload.Slot, RefreshCarriedInventory: message.Payload.Slot.Space == BusinessInventorySpace.CarriedEquipment || message.Payload.CarriedInventoryChanged, RefreshBook: message.Payload.Slot.Space == BusinessInventorySpace.WornEquipment), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<TitleAppearanceChanged> message, CancellationToken ct) =>
         ProjectAsync(new(message.Payload.CharacterId, ChangedContainer: InventoryContainerType.Equipment), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<ItemMirrorRemoved> message, CancellationToken ct) =>
-        ProjectAsync(new(message.Payload.CharacterId, null, ChangedContainer: message.Payload.ContainerType, RefreshCarriedInventory: message.Payload.RefreshCarriedInventory), ct);
+        ProjectAsync(new(message.Payload.CharacterId, null, ChangedContainer: message.Payload.ContainerType,
+            RefreshCarriedInventory: message.Payload.RefreshCarriedInventory, RefreshBook: message.Payload.RefreshCarriedInventory), ct);
 }
 internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, IInventorySlotProjectionDomainService slots)
@@ -214,9 +194,13 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
         if (recipient.CharacterId != notification.Character) return [];
         var messages = new List<IServerNetworkMessage>();
         if (notification.Unlock is { } unlock) messages.Add(new TitleUnlockedMessage(unlock));
-        // Unlocks and physical bag transfers update book data here. Worn mirror mutations
-        // synchronize before their ACK rebuild; delayed events must not replace book objects.
-        if (notification.Category is { } category)
+        // The request gate keeps native ACK handling ahead of authoritative item projection.
+        if (notification.RefreshBook)
+            for (var bookCategory = 0; bookCategory < 5; bookCategory++)
+                messages.Add(new TitleBookSlotsChangedMessage(bookCategory,
+                    await titles.GetItemsAsync(notification.Character, bookCategory, ct).ConfigureAwait(false),
+                    notification.Category == bookCategory ? notification.ChangedIndex : null, DateTimeOffset.UtcNow));
+        else if (notification.Category is { } category)
             messages.Add(new TitleBookSlotsChangedMessage(category,
                 await titles.GetItemsAsync(notification.Character, category, ct).ConfigureAwait(false), notification.ChangedIndex, DateTimeOffset.UtcNow));
         var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? slots.Project(changed).Space : (InventoryContainerType?)null);
@@ -228,7 +212,7 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
             {
                 var container = current.CharacterInventory.Containers.Single(x => x.ContainerType == containerType);
                 if (containerType == InventoryContainerType.Equipment)
-                    messages.AddRange(TitleBookEquipmentProjection.Compose(current));
+                    messages.InsertRange(0, TitleBookEquipmentProjection.Compose(current));
                 else
                     messages.Add(new InventoryFullSnapshotMessage(container, current.CharacterInventory, current.AccountInventory, current.World.PreparedAt));
             }

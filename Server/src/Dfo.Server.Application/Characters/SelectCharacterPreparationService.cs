@@ -159,6 +159,10 @@ public sealed class SelectCharacterPreparationService(
             cancellationToken).ConfigureAwait(false);
 
         characterEntry = CharacterStateProjection.CompleteTitleAppearanceProjection(characterEntry, characterInventory);
+        if (titles is not null)
+            characterEntry = characterEntry with { Features = characterEntry.Features with
+            { Collections = characterEntry.Features.Collections with
+            { TitleBooks = await titles.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
         var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);

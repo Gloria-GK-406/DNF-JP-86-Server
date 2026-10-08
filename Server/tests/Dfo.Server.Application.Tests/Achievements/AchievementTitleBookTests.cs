@@ -261,7 +261,8 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         Assert.True((await f.WriteAsync(async()=>await f.Titles.WithdrawAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
         Assert.All(ids,id=>Assert.Contains(id,f.ItemUids(26596)));
-        Assert.Equal((byte)12,Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries)).Attribute);
+        Assert.Empty((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries));
+        Assert.Equal((byte)12, (await ReadTitle(f, book, rule.Index))!.Attribute);
         Assert.True((await f.WriteAsync(async()=>await f.Titles.StoreAsync(Character,worn,26596,rule.Category,rule.Index,default))).Success);
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
         Assert.Equal(ids,f.ItemUids(26596));

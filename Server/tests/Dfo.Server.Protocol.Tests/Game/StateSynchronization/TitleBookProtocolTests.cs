@@ -36,18 +36,6 @@ public sealed class TitleBookProtocolTests
         Assert.False(Assert.IsType<TitleBookMutationRequest>(decoder.Decode(new(1,0x019C,0,1),body[..19])).Complete);
     }
 
-    [Theory]
-    [InlineData(true, 0, 18)]
-    [InlineData(false, 4, 22)]
-    public void Worn_title_ack_confirms_the_book_slot_instead_of_invoking_the_native_equipment_swap(bool store, int category, int list)
-    {
-        var reply = TitleBookMutationResponse.ConfirmBookSlot(store, category, 10);
-        Assert.Equal(list, reply.Space); Assert.Equal(10, reply.Slot); Assert.Null(reply.Error);
-        var body = reply.Body(); Assert.Equal(17, body.Length);
-        Assert.Equal(list, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1)));
-        Assert.Equal(category, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
-        Assert.DoesNotContain(reply.Space, new[] { 0, 3, 17 });
-    }
     [Fact]
     public void Title_appearance_request_and_reply_use_native_0239_shape_without_inventory_movement()
     {
@@ -164,13 +152,29 @@ public sealed class TitleBookProtocolTests
         Assert.Equal(26628, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(106)));
     }
 
-    private sealed class CurrentTitles(IReadOnlyList<InventoryItemState> items) : ITitleBookDomainService
+    [Fact]
+    public async Task Worn_reconciliation_restores_all_book_categories_and_clears_a_native_fallback_return_slot()
     {
-        public ValueTask<TitleBookMutationResult> ToggleEquippedAsync(CharacterId character, int itemId, int category, int index, CancellationToken ct) => throw new NotSupportedException();
+        var original = new InventoryItemState(new(42), 10, new ItemSnapshot { ItemId = 26596, Count = 1, LegacyKind = 1 }.ToCore());
+        var titles = new CurrentTitles([original], true);
+        var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
+        var messages = await handler.ComposeAsync(new(new(1), new("Game:1")),
+            new(new(1), 4, ChangedIndex: 11, RefreshBook: true), default);
+        Assert.Equal(5, messages.Count);
+        Assert.Equal(Enumerable.Range(0, 5), messages.Cast<TitleBookSlotsChangedMessage>().Select(x => x.Category));
+        var body = Assert.IsType<TitleBookSlotsChangedMessage>(messages[4]).EncodeBody();
+        Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1)));
+        Assert.Equal(26596, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
+        Assert.Equal(11, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(104)));
+        Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(106)));
+    }
+
+    private sealed class CurrentTitles(IReadOnlyList<InventoryItemState> items, bool allCategories = false) : ITitleBookDomainService
+    {
         public ValueTask<bool> SetAppearanceAsync(CharacterId character, int appearanceItemId, CancellationToken ct) => throw new NotSupportedException();
         public int Reads { get; private set; }
         public ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct)
-        { Assert.Equal(new CharacterId(1), character); Assert.Equal(4, category); Reads++; return ValueTask.FromResult(items); }
+        { Assert.Equal(new CharacterId(1), character); if (!allCategories) Assert.Equal(4, category); Reads++; return ValueTask.FromResult<IReadOnlyList<InventoryItemState>>(category == 4 ? items : []); }
         public ValueTask PrepareAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<TitleBookMutationResult> StoreAsync(CharacterId character, BusinessSlot source, int itemId, int category, int index, CancellationToken ct) => throw new NotSupportedException();

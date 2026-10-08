@@ -1,8 +1,8 @@
 # 协议清单
 
-## 2026-10-08 称号穿戴与外观独立同步（候选，待实机验收）
+## 2026-10-08 称号簿原生确认与书槽投影（候选，待实机验收）
 
-`019C/019D` 穿戴镜像操作提交后独立同步 `0002 subtype1` 穿戴位、`0002 subtype0` 外观、`000E` 保留原件的书槽，再通过有效书列表 ACK 走 UI 重建分支，避开本地搬移。`0239` 修改当前穿戴实例的独立外观元数据。完整业务/协议/持久化回归 5149 项通过，实际 x86 handler 分支模拟 10 例通过；这不是 ClientVerified，也未证明此组合是官方 wire。见 [修复与验收记录](../Document/tasks/achievement-title-book/worn-title-appearance-repair-20261008.md)。
+上一版 `087c97fe` 使用 space=18+category 的 ACK 绕过原生确认，实机仍无法再次佩戴；只读采样定位到 pending=7 未清。当前恢复 `019C/019D` 真实目标 ACK，发送完成后投影 `0002 subtype1` 穿戴、`0002 subtype0` 外观及五分类 `000E`。持久化保留原件，客户端隐藏当前镜像来源的书槽实体；取消后恢复。019D 只佩戴，019C 取消，不再把 GET 当开关。ClientStatic / CurrentImplementation，原生窗口效果尚待验收；见 [修复记录](../Document/tasks/achievement-title-book/native-title-confirmation-repair-20261008.md)。先前分支模拟未覆盖请求生命周期，不能证明旧确认方案有效。
 
 ## 2026-10-08 称号簿操作后的窗口保留（实机未通过）
 

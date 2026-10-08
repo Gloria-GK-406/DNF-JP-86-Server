@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Application.Characters;
 
 namespace Dfo.Server.Application.Achievements;
 
@@ -18,18 +19,6 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         ContainerId.ForCharacter(character, (InventoryContainerType)((int)InventoryContainerType.TitleBookGeneral + category));
     private IItemDomainStoreSession Session => items.SessionIn(transactions.Current
         ?? throw new InvalidOperationException("Title mutations require a transaction."));
-    public async ValueTask<TitleBookMutationResult> ToggleEquippedAsync(CharacterId character, int itemId, int category, int index, CancellationToken ct)
-    {
-        var wornSlot = new BusinessSlot(BusinessInventorySpace.WornEquipment, 1);
-        if (Find(category, index) is not { } definition || !definition.AllowsItem(itemId))
-            return new(false, "InvalidTitleSlot", category, index, wornSlot);
-        var session = Session;
-        var source = await session.GetAsync(Book(character, category), index, ct);
-        var worn = await session.GetAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, ct);
-        return source is not null && source.ItemId == itemId && worn is not null && worn.Snapshot.IsMirror && worn.Snapshot.MirrorSourceUid == source.ItemUid
-            ? await StoreAsync(character, wornSlot, itemId, category, index, ct)
-            : await WithdrawAsync(character, wornSlot, itemId, category, index, ct);
-    }
     public async ValueTask<bool> SetAppearanceAsync(CharacterId character, int appearanceItemId, CancellationToken ct)
     {
         if (appearanceItemId < 0) return false;
@@ -52,9 +41,9 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     }
     public async ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct)
     {
-        var rows = await titlePersistence.ReadTitlesAsync(character, ct);
+        var (rows, equippedSource) = await ReadClientProjectionAsync(character, ct);
         return rules.Catalog().Select(category => new CharacterTitleBookCategoryState((byte)category.Category, 0, 0,
-            rows.Where(x => x.Category == category.Category).Select(x => new CharacterTitleBookEntryState(
+            rows.Where(x => x.Category == category.Category && (equippedSource is null || x.Item.ItemUid != equippedSource)).Select(x => new CharacterTitleBookEntryState(
                 checked((ushort)x.Index), x.Item.ItemId, x.Item.InstanceValue, x.Item.Attribute, x.Item.Durability,
                 x.Item.SealFlag, x.Item.EnchantCardId, x.Item.EnchantUpgradeCount, x.Item.AmplifyType, x.Item.AmplifyValue)).ToArray())).ToArray();
     }
@@ -73,9 +62,19 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     public async ValueTask<IReadOnlyList<InventoryItemState>> GetItemsAsync(CharacterId character, int category, CancellationToken ct)
     {
         if (category is < 0 or > 4) throw new ArgumentOutOfRangeException(nameof(category));
-        var rows = await titlePersistence.ReadTitlesAsync(character, ct);
+        var (rows, equippedSource) = await ReadClientProjectionAsync(character, ct);
         return rows.Where(x => x.Category == category)
-            .Select(x => new InventoryItemState(x.Item.ItemUid, x.Index, x.Item.ToCore())).ToArray();
+            .Select(x => equippedSource is not null && x.Item.ItemUid == equippedSource
+                ? new InventoryItemState(null, x.Index, new ItemSnapshot { ItemId = -1, Count = 0 }.ToCore())
+                : new InventoryItemState(x.Item.ItemUid, x.Index, x.Item.ToCore())).ToArray();
+    }
+    // Native slots are empty while worn; ownership remains in the canonical store.
+    private async ValueTask<(IReadOnlyList<StoredTitleBookItem> Rows, ItemIdentity? EquippedSource)> ReadClientProjectionAsync(CharacterId character, CancellationToken ct)
+    {
+        var rows = await titlePersistence.ReadTitlesAsync(character, ct);
+        var worn = await new AmbientStoreAccess(transactions).ReadAsync(items,
+            session => session.GetAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, ct));
+        return (rows, worn?.Snapshot.IsMirror == true ? worn.Snapshot.MirrorSourceUid : null);
     }
     private async ValueTask<IReadOnlySet<int>> GetUnlockedAchievementIdsAsync(CharacterId character, CancellationToken ct)
     {
@@ -192,7 +191,12 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
             var prepared = wear.UnsealForEquip(current.Snapshot);
             if (prepared.SealFlag != current.Snapshot.SealFlag)
                 current = await session.UpdateAsync(current, _ => prepared, ct);
-            var mirror = await session.CreateAsync(current.Snapshot with { ItemUid = null, IsMirror = true, MirrorSourceUid = current.ItemUid, AppearanceItemId = null }, ct);
+            var mirror = await session.CreateAsync(current.Snapshot with
+            {
+                ItemUid = null, IsMirror = true, MirrorSourceUid = current.ItemUid,
+                AppearanceItemId = target is not null && target.Snapshot.IsMirror && target.Snapshot.MirrorSourceUid == current.ItemUid
+                    ? target.Snapshot.AppearanceItemId : null,
+            }, ct);
             await session.PutAsync(container, game.Index, mirror, ct);
         }
         else
@@ -202,7 +206,8 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
             var moving = await session.TakeAsync(current, null, ct);
             await session.PutAsync(container, game.Index, moving, ct);
         }
-        await events.EnqueueAsync(new TitleWithdrawn(character, category, index, destination), ct);
-        return new(true, null, category, index, destination) { CarriedInventoryChanged = destination.Space == BusinessInventorySpace.WornEquipment && target is not null && !target.Snapshot.IsMirror };
+        var carriedChanged = destination.Space == BusinessInventorySpace.WornEquipment && target is not null && !target.Snapshot.IsMirror;
+        await events.EnqueueAsync(new TitleWithdrawn(character, category, index, destination) { CarriedInventoryChanged = carriedChanged }, ct);
+        return new(true, null, category, index, destination) { CarriedInventoryChanged = carriedChanged };
     }
 }

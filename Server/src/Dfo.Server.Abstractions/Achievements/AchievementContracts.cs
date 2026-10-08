@@ -82,7 +82,6 @@ public sealed record TitleBookMutationResult(bool Success, string? Reason, int C
 }
 public interface ITitleBookDomainService
 {
-    ValueTask<TitleBookMutationResult> ToggleEquippedAsync(CharacterId character, int itemId, int category, int index, CancellationToken ct);
     ValueTask<bool> SetAppearanceAsync(CharacterId character, int appearanceItemId, CancellationToken ct);
     ValueTask PrepareAsync(CharacterId character, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> GetAsync(CharacterId character, CancellationToken ct);
@@ -111,4 +110,7 @@ public sealed record AchievementCompleted(CharacterId CharacterId, int Achieveme
 public sealed record TitleUnlocked(CharacterId CharacterId, int AchievementId, int Category, int Index, int ItemId) : IDomainEvent;
 public sealed record TitleAppearanceChanged(CharacterId CharacterId) : IDomainEvent;
 public sealed record TitleStored(CharacterId CharacterId, int Category, int Index, BusinessSlot Slot) : IDomainEvent;
-public sealed record TitleWithdrawn(CharacterId CharacterId, int Category, int Index, BusinessSlot Slot) : IDomainEvent;
+public sealed record TitleWithdrawn(CharacterId CharacterId, int Category, int Index, BusinessSlot Slot) : IDomainEvent
+{
+    public bool CarriedInventoryChanged { get; init; }
+}

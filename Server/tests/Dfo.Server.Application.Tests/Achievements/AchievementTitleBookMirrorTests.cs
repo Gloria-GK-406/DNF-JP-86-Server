@@ -50,7 +50,8 @@ public sealed partial class AchievementTitleBookTests
         Assert.Equal(first,await ReadTitle(f,book,slots[0].Index)); Assert.Equal(second,await ReadTitle(f,book,slots[1].Index));
         var projected = await f.Titles.GetItemsAsync(Character, 4, default);
         Assert.Contains(projected, x => x.Identity == first.ItemUid && x.SlotIndex == slots[0].Index && x.Core == first.ToCore());
-        Assert.Contains(projected, x => x.Identity == second.ItemUid && x.SlotIndex == slots[1].Index && x.Core == second.ToCore());
+        Assert.Contains(projected, x => x.Identity is null && x.SlotIndex == slots[1].Index && x.Core.ItemId == -1);
+        Assert.DoesNotContain((await f.Titles.GetAsync(Character, default)).SelectMany(x => x.Entries), x => x.ItemId == second.ItemId);
         Assert.DoesNotContain(projected, x => x.Identity == oldMirror.ItemUid);
         Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
         await using var restored=new Fixture(f.Path);
@@ -171,18 +172,60 @@ public sealed partial class AchievementTitleBookTests
     }
 
     [PvfFact]
-    public async Task Repeated_book_clicks_toggle_only_the_worn_mirror_and_preserve_the_same_canonical_instance()
+    public async Task Equip_and_cancel_commands_preserve_ownership_and_restore_the_native_book_slot()
     {
         await using var f = new Fixture(); var slot = OpenTitleSlots(f)[0];
         var book = ContainerId.ForCharacter(Character, InventoryContainerType.TitleBookEvent);
         var original = await SeedTitle(f, 26596, book, slot.Index);
         for (var i = 0; i < 6; i++)
         {
-            Assert.True((await f.WriteAsync(async () => await f.Titles.ToggleEquippedAsync(Character, 26596, 4, slot.Index, default))).Success);
+            var result = i % 2 == 0
+                ? await f.WriteAsync(async () => await f.Titles.WithdrawAsync(Character, TitleWorn, 26596, 4, slot.Index, default))
+                : await f.WriteAsync(async () => await f.Titles.StoreAsync(Character, TitleWorn, 26596, 4, slot.Index, default));
+            Assert.True(result.Success);
+            var projected = Assert.Single(await f.Titles.GetItemsAsync(Character, 4, default));
+            Assert.Equal(i % 2 == 0 ? -1 : 26596, projected.Core.ItemId);
+            Assert.Equal(i % 2 != 0, (await f.Titles.GetAsync(Character, default)).SelectMany(x => x.Entries).Any(x => x.ItemId == 26596));
             Assert.Equal(i % 2 == 0, await ReadTitle(f, ContainerId.ForCharacter(Character, InventoryContainerType.Equipment), 13) is not null);
             Assert.Equal(original, await ReadTitle(f, book, slot.Index));
             Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM item_slots WHERE list_type=0"));
         }
+    }
+
+    [PvfFact]
+    public async Task Repeated_get_commands_do_not_toggle_the_equipped_title_off()
+    {
+        await using var f = new Fixture(); var slot = OpenTitleSlots(f)[0];
+        var book = ContainerId.ForCharacter(Character, InventoryContainerType.TitleBookEvent);
+        var original = await SeedTitle(f, 26596, book, slot.Index);
+        await SeedTitle(f, 26628, book, OpenTitleSlots(f)[1].Index);
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.True((await f.WriteAsync(async () => await f.Titles.WithdrawAsync(Character, TitleWorn, 26596, 4, slot.Index, default))).Success);
+            var equipped = (await ReadTitle(f, ContainerId.ForCharacter(Character, InventoryContainerType.Equipment), 13))!;
+            Assert.Equal(original.ItemUid, equipped.MirrorSourceUid);
+            Assert.Equal(i == 0 ? null : (int?)26628, equipped.AppearanceItemId);
+            Assert.True(await f.WriteAsync(async () => await f.Titles.SetAppearanceAsync(Character, 26628, default)));
+            Assert.Equal(original, await ReadTitle(f, book, slot.Index));
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM items WHERE is_mirror=1"));
+        }
+    }
+    [PvfFact]
+    public async Task Client_book_projection_distinguishes_same_template_instances_by_source_uid_and_survives_restart()
+    {
+        await using var f = new Fixture(); var slots = OpenTitleSlots(f);
+        var book = ContainerId.ForCharacter(Character, InventoryContainerType.TitleBookEvent);
+        var first = await SeedTitle(f, 26596, book, slots[0].Index);
+        var second = await SeedTitle(f, 26596, book, slots[1].Index);
+        Assert.True((await f.WriteAsync(async () => await f.Titles.WithdrawAsync(Character, TitleWorn, 26596, 4, slots[1].Index, default))).Success);
+        await using var restored = new Fixture(f.Path);
+        var before = restored.ItemsAndPositions();
+        var delta = await restored.Titles.GetItemsAsync(Character, 4, default);
+        Assert.Equal(first.ItemUid, Assert.Single(delta, x => x.Core.ItemId == 26596).Identity);
+        Assert.Equal(slots[1].Index, Assert.Single(delta, x => x.Core.ItemId == -1).SlotIndex);
+        Assert.Equal(slots[0].Index, Assert.Single((await restored.Titles.GetAsync(Character, default)).SelectMany(x => x.Entries)).SlotIndex);
+        Assert.Equal(before, restored.ItemsAndPositions());
+        Assert.Equal(second, await ReadTitle(restored, book, slots[1].Index));
     }
 
 }
