@@ -29,6 +29,12 @@ async function add(id: number, index: number) {
   await card.findByLabelText('每人数量');
   return card;
 }
+async function submit(count: number) {
+  const button = screen.getByRole('button', { name: `加入邮件（${count}项）` });
+  // Card fields can render before their rules reach the batch's shared metadata.
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(button);
+}
 beforeEach(() => {
   change.mockClear();
   mocked.mockImplementation(async path => {
@@ -50,7 +56,7 @@ it('连续配置多张卡片只在统一提交时更新邮件，翻页搜索保�
   expect((first.getByLabelText('每人数量') as HTMLInputElement).value).toBe('9');
   expect((second.getByLabelText('每人数量') as HTMLInputElement).value).toBe('20');
   expect(change).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: '加入邮件（2项）' }));
+  await submit(2);
   expect(change).toHaveBeenCalledExactlyOnceWith([{ itemId: 3037, count: 9 }, { itemId: 3330, count: 20 }]);
   await waitFor(() => expect(screen.queryByLabelText('待加入的附件')).toBeNull());
 });
@@ -75,7 +81,7 @@ it('计入已有附件容量，超限不部分加入，满位仍能合并已有�
   expect((screen.getByRole('button', { name: '加入邮件（2项）' }) as HTMLButtonElement).disabled).toBe(true);
   expect(change).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '移除待加入附件 2' }));
-  fireEvent.click(screen.getByRole('button', { name: '加入邮件（1项）' }));
+  await submit(1);
   expect(change).toHaveBeenCalledExactlyOnceWith([{ itemId: 100, count: 9 }, { itemId: 3037, count: 6 }]);
 });
 
@@ -91,7 +97,7 @@ it('规则未加载和数量为空时阻止整批加入', async () => {
   fireEvent.change(first.getByLabelText('每人数量'), { target: { value: '' } });
   expect((screen.getByRole('button', { name: '加入邮件（2项）' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(first.getByLabelText('每人数量'), { target: { value: '1' } });
-  fireEvent.click(screen.getByRole('button', { name: '加入邮件（2项）' }));
+  await submit(2);
   expect(change).toHaveBeenCalledTimes(1);
 });
 
@@ -106,6 +112,6 @@ it('单张卡片读取失败后可重试，其他配置不丢失', async () => {
   fireEvent.click(screen.getByRole('button', { name: '添加物品 3330' }));
   fireEvent.click(await screen.findByRole('button', { name: '重试读取规则' }));
   await within(screen.getByLabelText('待加入附件 2')).findByLabelText('每人数量');
-  fireEvent.click(screen.getByRole('button', { name: '加入邮件（2项）' }));
+  await submit(2);
   expect(change).toHaveBeenCalledExactlyOnceWith([{ itemId: 3037, count: 9 }, { itemId: 3330, count: 1 }]);
 });
