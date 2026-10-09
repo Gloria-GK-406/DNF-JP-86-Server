@@ -127,6 +127,46 @@ public sealed class DungeonVisitDomainServiceTests
     }
 
     [SkippableFact]
+    public async Task Real_gent_south_gate_ordinary_entry_reuses_its_start_room_when_returning()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var content = ContentArchive.CreateContentProvider();
+        var rules = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
+            content.GetRequiredService<IDungeonMapDefinitionSource>());
+        foreach (var seed in new[] { 0, 42, -777, int.MaxValue })
+        {
+            var layout = await rules.ResolveAsync(82, DungeonEntryFacts.None, seed, default);
+            Assert.NotNull(layout);
+            Assert.Equal(0, layout.MazeIndex);
+            Assert.Equal(DungeonRunPurpose.Ordinary, layout.Purpose);
+            Assert.Equal(new MazeCell(3, 2), layout.StartCell);
+            Assert.Equal(22419, layout.StartRoomMapId);
+        }
+        var runs = new DungeonRunDomainService();
+        var cells = new RecordingCellFactory();
+        var fatigue = new TestFatigue();
+        var visits = new DungeonVisitDomainService(rules, runs, new ImmediateSelection(), cells,
+            new MaximumDifficulty(), new DungeonDifficultyRuleService(), fatigue);
+        var character = new CharacterId(71);
+        var attempt = await visits.TryEnterPartyAsync([new(new(1), character, 0, true)], 82,
+            DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Adventure }, default);
+        Assert.Null(attempt.Failure);
+        Assert.NotNull(attempt.Entry);
+        Assert.Equal(1, cells.CallCount);
+        var next = await visits.MoveAsync(character, runs.Find(character)!, new(2, 2), default);
+        Assert.NotNull(next);
+        Assert.True(next.FirstEntry);
+        Assert.Equal(22417, next.Run.CurrentRoomMapId);
+        var spent = fatigue.Spent.GetValueOrDefault(character);
+        var back = await visits.MoveAsync(character, next.Run, new(3, 2), default);
+        Assert.NotNull(back);
+        Assert.False(back.FirstEntry);
+        Assert.Equal(22419, back.Run.CurrentRoomMapId);
+        Assert.Equal(2, cells.CallCount);
+        Assert.Equal(spent, fatigue.Spent.GetValueOrDefault(character));
+    }
+
+    [SkippableFact]
     public async Task Real_consciousness_route_reaches_implicit_cells_and_revisits_the_same_shared_map()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

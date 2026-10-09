@@ -90,3 +90,17 @@
 - 服务端修复，不修改客户端/PVF。部署身份、哈希、数据库备份和回滚位置见
   仓库根 `artifacts/apc-boss-clear-20261009/deployment.json`。**ClientVerified 待验收**：重登 1123，
   重进该循环地图，先杀普通 APC 应继续战斗，真正 Boss 死亡后才出现通关及结算。
+
+## 普通根特南门入场预检修复
+
+用户授权按出生房复用规则修复并部署；基线 `6c7a4332`。
+旧部署 `artifacts/apc-boss-clear-20261009/stdout.log` 的普通入场（Interactive）选中
+迷宫 0，预检从 `(2,2)` 返回出生房 `(3,2)` 时重新筛选 MAP，返回 ConfigurationInvalid。
+真实 PVF 中出生房 22419 的 `[greed]` 为 `EE BB`，无法满足该重复筛选的 Left 入口条件。
+出生房初始化已验证资源；实际回访使用已创建 Cell。因此预检在确认门连通后，跳过返回
+出生房的素材重选，其他房间入口校验和 Boss 可达性检查保持执行。普通、循环仍各选自己的迷宫。
+回归先在旧逻辑重现错误；修复后 Application 90、Protocol 117 项通过，无跳过。
+真实 PVF 用例覆盖普通迷宫的四种 seed、完整入场、移至相邻房再返回出生房、无重复创建或疲劳扣除；
+同时保留缺失出生房资源的拒绝检查及深渊替换验证。未运行全量测试，客户端/PVF 无改动。
+部署与回滚记录见仓库根 `artifacts/ordinary-maze-preflight-20261009/deployment.json`。
+普通根特南门入场、清房切房和回访出生房的 **ClientVerified 待实机验收**。

@@ -194,6 +194,9 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
                 if (x < 0 || x >= layout.Width || y < 0 || y >= layout.Height) continue;
                 var target = new MazeCell((byte)x, (byte)y);
                 if (!layout.CanTraverse(source, target)) continue;
+                // The start resource is already validated and created before any door move;
+                // revisiting it retains that Cell instead of selecting a new MAP.
+                if (target == layout.StartCell) continue;
                 var selected = await SelectMapAsync(layout, source, target, token).ConfigureAwait(false);
                 if (selected.MapId is null)
                     throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
