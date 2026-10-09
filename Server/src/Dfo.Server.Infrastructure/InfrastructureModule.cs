@@ -130,6 +130,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
         services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
         services.TryAddSingleton<IEquipmentQualityDefinitionSource, PvfEquipmentQualityDefinitionSource>();
+        services.TryAddSingleton<IEquipmentMagicSealGradeDefinitionSource, PvfEquipmentMagicSealGradeDefinitionSource>();
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
         services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();

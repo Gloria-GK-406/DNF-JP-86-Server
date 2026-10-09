@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-09 魔法封印词条品级（CurrentImplementation，实机待测）
+
+[CMD01C8](game/client-to-server/0x01C8.md)按A21三u16（目标槽、材料槽、指定词条序号）接入独立切片。70Reference确认只改所选词条品级，两品质字节同值，保留类型/其他词条/基础品级种子；真实PVF决定概率与不可调整名单。扣一箱与装备变化同事务；NOTI000E先刷新装备及材料，再回[单字节成功ACK](game/server-to-client/CMD-0x01C8.md)，失败00+原因。通过真实PVF、事务、重放及TCP检查；不修改客户端。尚待实机验证。
+
 ## 2026-10-09 装备品级调级箱（CurrentImplementation，实机待测）
 
 [CMD0051请求](game/client-to-server/0x0051.md)按70Reference的目标槽/模板ID/材料槽接入。A21 ClientStatic确认[成功响应](game/server-to-client/CMD-0x0051.md)为成功信封、材料槽u16、剩余数量u32、操作类型u16=2，共9字节；之后以NOTI000E更新目标装备。扣一个箱子与重抽种子同事务，已有属性及身份保持，重复请求不重扣。普通装备生成的随机种子生产器统一并排除五个固定属性种子；不改旧装备、不改已公布的地面掉落种子。请求未采到A21实帧，UI与文案待用户验证；封蜡未实现。
@@ -160,7 +164,7 @@ P01–P10由用户确认通过；实例重构及常规事务回归已交付。�
 
 ## 2026-09-30 魔法封印装备候选实现
 
-[解封 `0x0191`](game/client-to-server/0x0191.md) 与[词条变更 `0x01B6`](game/client-to-server/0x01B6.md) 已按 A21 静态请求宽度及真实 PVF 规则接入服务端事务；本服解封推装备/金币刷新，变更另发静态读法支持的最小成功 ACK。`0x0191` 未注册客户端响应 handler，两个请求的非哨兵第二字段均安全拒绝且不扣材料；`0x01B6` 的实际 S2C 实帧仍缺。[重铸 `0x0197`](game/client-to-server/0x0197.md) 与[重置 `0x01C8`](game/client-to-server/0x01C8.md) 因布局/版本差异隔离。状态仅 `CurrentImplementation + ClientStatic + ContentStatic`，没有 `ClientVerified`。固定样本与人工验收见 [Human Test List](../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md)。
+[解封 `0x0191`](game/client-to-server/0x0191.md) 与[词条变更 `0x01B6`](game/client-to-server/0x01B6.md) 已按 A21 静态请求宽度及真实 PVF 规则接入服务端事务；本服解封推装备/金币刷新，变更另发静态读法支持的最小成功 ACK。`0x0191` 未注册客户端响应 handler，两个请求的非哨兵第二字段均安全拒绝且不扣材料；`0x01B6` 的实际 S2C 实帧仍缺。[重铸 `0x0197`](game/client-to-server/0x0197.md) 仍因布局/版本差异隔离；[重置 `0x01C8`](game/client-to-server/0x01C8.md) 于2026-10-09按指定词条品级重抽接入，实机待测。状态仅 `CurrentImplementation + ClientStatic + ContentStatic`，没有 `ClientVerified`。固定样本与人工验收见 [Human Test List](../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md)。
 
 ## 2026-09-30 CMD0110 宝珠附魔取证
 

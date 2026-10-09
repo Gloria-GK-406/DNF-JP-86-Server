@@ -56,10 +56,17 @@ public sealed class MagicSealFrameIntegrationTests
         Assert.Equal(GameServerFrameEncoder.Encode(0x01, 0x01B6, [0, 0x13]),
             await ReadResponseAsync(stream, timeout.Token));
 
-        await stream.WriteAsync(EncodeClientFrame(0x0191, [9, 0, 0xFF, 0xFF], 8),
+        // Grade reset is a distinct six-byte CMD, not a 0051 response or a five-byte 70 request.
+        await stream.WriteAsync(EncodeClientFrame(0x01C8, [9, 0, 65, 0, 2, 0], 8), timeout.Token);
+        Assert.Equal(GameServerFrameEncoder.Encode(0x01, 0x01C8, [0, 0x13]),
+            await ReadResponseAsync(stream, timeout.Token));
+        await stream.WriteAsync(EncodeClientFrame(0x01C8, [9, 0, 65, 0, 2], 9), timeout.Token);
+        Assert.Equal(GameServerFrameEncoder.Encode(0x01, 0x01C8, [0, 0x13]),
+            await ReadResponseAsync(stream, timeout.Token));
+        await stream.WriteAsync(EncodeClientFrame(0x0191, [9, 0, 0xFF, 0xFF], 10),
             timeout.Token);
         await logs.WaitForAsync("MAGIC_SEAL no selected session change=False", timeout.Token);
-        await stream.WriteAsync(EncodeClientFrame(0x0003, [], 9), timeout.Token);
+        await stream.WriteAsync(EncodeClientFrame(0x0003, [], 11), timeout.Token);
         Assert.Equal(GameServerFrameEncoder.Encode(0x01, 0x0003, [0x01]),
             await ReadResponseAsync(stream, timeout.Token));
         await host.StopAsync(timeout.Token);

@@ -47,6 +47,8 @@ internal static class EffectRequestTransport
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         switch (request)
         {
+            case Dfo.Server.Protocol.Game.ResetRandomOption.ResetRandomOptionRequest x:
+                writer.Write(x.TargetSlot); writer.Write(x.MaterialSlot); writer.Write(x.OptionIndex); break;
             case Dfo.Server.Protocol.Game.ResetItemQuality.ResetItemQualityRequest x:
                 writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId); writer.Write(x.MaterialSlot); break;
             case Dfo.Server.Protocol.Game.EpicCraft.EpicCraftRequest x: writer.Write(x.EquipmentId); break;
