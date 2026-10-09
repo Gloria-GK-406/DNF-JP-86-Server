@@ -19,15 +19,22 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         CancellationToken cancellationToken)
     {
         var before = intents.Find(session);
-        if (sessions.Find(session.AccountId) != session || before is null
-            || before.Value.Kind is not (DungeonEntryIntentKind.Interactive or DungeonEntryIntentKind.Cycle))
-            return new(false, Refusal: "No current interactive selection.");
+        if (sessions.Find(session.AccountId) != session || before is null)
+            return new(false, Refusal: "No current dungeon selection.");
         var facts = await FactsAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         var region = facts is null ? null : await rules.EligibleAsync(dungeonId, questId, facts, cancellationToken).ConfigureAwait(false);
         if (region is null) return new(false, Refusal: "Cycle pair or character prerequisites rejected.");
-        var carriedCycles = (await quests.LogOf(session.AccountId, session.CharacterId).CarriedAsync(cancellationToken)
-            .ConfigureAwait(false)).Any(x => x.QuestId != questId && rules.RewardsForQuest(x.QuestId).Count > 0);
-        if (carriedCycles) return new(false, Refusal: "Another cycle quest is still active.");
+        // A21 retry opens selection with the previous dungeon ID (000F), then prepares
+        // a new random pair (0308). That nonzero selection is initially Directed, but
+        // this explicit cycle command may rebind it within the eligible region's pool.
+        if (before.Value.Kind == DungeonEntryIntentKind.Directed
+            && !region.Candidates.Any(x => x.DungeonId == before.Value.DirectedDungeonId))
+            return new(false, Refusal: "Directed selection is outside the eligible cycle region.");
+        if (before.Value.Kind is not (DungeonEntryIntentKind.Interactive or DungeonEntryIntentKind.Cycle or DungeonEntryIntentKind.Directed))
+            return new(false, Refusal: "Selection does not support cycle preparation.");
+        // The native retry sends preparation before abandoning its previous quest.
+        // Preparation changes only the selection; persisted quest conflicts belong
+        // to acceptance, after the client has performed its own cancellation.
         if (sessions.Find(session.AccountId) != session
             || !intents.TryReplaceExact(session, before.Value, DungeonEntryIntent.Cycle(dungeonId, questId)))
             return new(false, Refusal: "Selection changed while preparing.");
@@ -43,7 +50,10 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
             || intent.DirectedDungeonId is not > 0) return false;
         var facts = await FactsAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
         var region = facts is null ? null : await rules.EligibleAsync(intent.DirectedDungeonId!.Value, questId, facts, cancellationToken).ConfigureAwait(false);
-        return region is not null && sessions.Find(accountId) == session && intents.Find(session) == intent;
+        if (region is null) return false;
+        var carried = await quests.LogOf(accountId, characterId).CarriedAsync(cancellationToken).ConfigureAwait(false);
+        if (carried.Any(x => x.QuestId != questId && rules.RewardsForQuest(x.QuestId).Count > 0)) return false;
+        return sessions.Find(accountId) == session && intents.Find(session) == intent;
     }
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken cancellationToken)

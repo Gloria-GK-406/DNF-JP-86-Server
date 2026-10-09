@@ -17,6 +17,9 @@ public sealed class PvfCycleDungeonTests
         Assert.Equal(2228, region.OpenQuestId);
         Assert.Equal(3, region.DeclaredDifficultyLevel);
         Assert.Contains(new CycleDungeonCandidate(84, 15203), region.Candidates);
+        // Observed retry: 000F(previous 82), 0308(new 85/15217), 0020(old 15242).
+        Assert.Contains(new CycleDungeonCandidate(82, 15242), region.Candidates);
+        Assert.Contains(new CycleDungeonCandidate(85, 15217), region.Candidates);
         Assert.Equal(10149700, Assert.Single(region.Rewards).ItemId);
         Assert.Equal(1, Assert.Single(region.Rewards).Count);
         var quest = await new PvfQuestDefinitionSource(provider).GetAsync(15203, default);

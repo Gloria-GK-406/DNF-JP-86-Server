@@ -13,6 +13,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.CycleDungeonEntry;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Dfo.Server.Protocol.Game.QuestCompletion;
+using Dfo.Server.Protocol.Game.QuestGiveUp;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Quests;
@@ -79,6 +80,68 @@ public sealed class CycleQuestFlowTests
         Assert.False(await cycles.CanAcceptAsync(new(1), new(1), 2002, default));
         Assert.False((await cycles.PrepareAsync(fixture.Session with { ConnectionGeneration = 500 }, 84, 2001, default)).Accepted);
         Assert.True(await cycles.CanAcceptAsync(new(1), new(1), 2001, default));
+    }
+
+    [Fact]
+    public async Task Retry_prepares_a_new_pair_before_the_client_cancels_the_previous_quest()
+    {
+        using var fixture = Fixture();
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+
+        // Native retry: 000F(previous map), 0308(new pair), 0020(old quest), 001F(new quest).
+        intents.Record(fixture.Session, DungeonEntryIntent.Directed(84));
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 85, 2002))).Accepted);
+        Assert.Equal(DungeonEntryIntent.Cycle(85, 2002), intents.Find(fixture.Session));
+        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2001"));
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=2002"));
+        Assert.False((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Accepted);
+        Assert.True((await commands.SendAsync(new GiveUpQuestCommand(new(1), new(1), 2001))).GivenUp);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2002))).Accepted);
+        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
+
+        // The next retry can select the original pair without restarting the session.
+        intents.Record(fixture.Session, DungeonEntryIntent.Directed(85));
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new GiveUpQuestCommand(new(1), new(1), 2002))).GivenUp);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+    }
+
+    [Fact]
+    public async Task Retry_cannot_rebind_an_unrelated_directed_map_or_an_invalid_cycle_pair()
+    {
+        using var fixture = Fixture();
+        var cycles = fixture.Services.GetRequiredService<ICycleDungeonEntryDomainService>();
+        var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+        var unrelated = DungeonEntryIntent.Directed(10000);
+        intents.Record(fixture.Session, unrelated);
+        Assert.False((await cycles.PrepareAsync(fixture.Session, 85, 2002, default)).Accepted);
+        Assert.Equal(unrelated, intents.Find(fixture.Session));
+        var retry = DungeonEntryIntent.Directed(84);
+        intents.Record(fixture.Session, retry);
+        Assert.False((await cycles.PrepareAsync(fixture.Session, 85, 2001, default)).Accepted);
+        Assert.False((await cycles.PrepareAsync(fixture.Session with { ConnectionGeneration = 500 }, 85, 2002, default)).Accepted);
+        Assert.Equal(retry, intents.Find(fixture.Session));
+        Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
+    }
+
+    [Fact]
+    public async Task Retry_can_prepare_and_accept_the_same_carried_cycle_without_resetting_it()
+    {
+        using var fixture = Fixture();
+        var commands = fixture.Services.GetRequiredService<ICommandBus>();
+        var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+        intents.Record(fixture.Session, DungeonEntryIntent.Interactive);
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        intents.Record(fixture.Session, DungeonEntryIntent.Directed(84));
+        Assert.True((await commands.SendAsync(new PrepareCycleDungeonEntryCommand(fixture.Session, 84, 2001))).Accepted);
+        Assert.True((await commands.SendAsync(new AcceptQuestCommand(new(1), new(1), 2001))).Accepted);
+        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests"));
     }
 
     private static ShopFixture Fixture() => new(services =>
@@ -162,10 +225,10 @@ public sealed class CycleQuestFlowTests
 
     private sealed class CycleRules : ICycleDungeonRuleService
     {
-        private static readonly CycleDungeonRegion Region = new(12, 101, 3, [new(84, 2001)], [new(5000, 1)]);
+        private static readonly CycleDungeonRegion Region = new(12, 101, 3, [new(84, 2001), new(85, 2002)], [new(5000, 1)]);
         public ValueTask<CycleDungeonRegion?> EligibleAsync(int dungeonId, int questId, WorldContentSubject subject, CancellationToken ct) =>
-            ValueTask.FromResult<CycleDungeonRegion?>(dungeonId == 84 && questId == 2001 ? Region : null);
-        public IReadOnlyList<QuestRewardItemGrant> RewardsForQuest(int questId) => questId == 2001 ? Region.Rewards : [];
+            ValueTask.FromResult<CycleDungeonRegion?>(Region.Candidates.Contains(new(dungeonId, questId)) ? Region : null);
+        public IReadOnlyList<QuestRewardItemGrant> RewardsForQuest(int questId) => questId is 2001 or 2002 ? Region.Rewards : [];
     }
 
     private sealed class QuestRules : IQuestContentRuleService
@@ -173,8 +236,8 @@ public sealed class CycleQuestFlowTests
         private static readonly QuestDefinition Definition = new(2001, "cycle seeking", QuestGrade.Circle, null,
             new LevelRange(1, 99), null, null, null, [new(QuestRewardKind.CircleDungeon, [0, 0])], "seeking", "M",
             null, null, null, null, null, null, null, [], [], [], [], SeekingItems: [new(1000, 1)]);
-        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([Definition]);
-        public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(id == 2001 ? Definition : null);
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([Definition, Definition with { QuestId = 2002 }]);
+        public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(id is 2001 or 2002 ? Definition with { QuestId = id } : null);
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
         public QuestParameters Parameters() => new([0, 0], new Dictionary<char, int>(), 100, 100, 100, 100);
     }
