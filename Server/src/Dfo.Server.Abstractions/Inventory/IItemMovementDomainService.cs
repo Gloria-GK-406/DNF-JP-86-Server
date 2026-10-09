@@ -36,6 +36,9 @@ public interface IItemMovementDomainService
         MoveWithinBackingAsync(source, destination, count, cancellationToken);
     ValueTask<bool> RemoveMirrorAsync(BoundInventorySlot source, ItemReference item, CancellationToken ct);
     ItemSnapshot UnsealForEquip(ItemSnapshot item);
+    /// <summary>Prepare the new worn value inside the movement transaction.</summary>
+    ValueTask<ItemSnapshot> PrepareForWearAsync(ItemSnapshot item, ItemSnapshot? previous, CancellationToken ct) =>
+        ValueTask.FromResult(UnsealForEquip(item));
     ValueTask<bool> CanWearAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId, CancellationToken cancellationToken);
     /// <summary>
     /// The equipment slot this item is worn in, or null when nothing wearable is declared under

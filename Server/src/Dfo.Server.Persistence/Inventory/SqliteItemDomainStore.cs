@@ -303,7 +303,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     }
     private static void Validate(ItemSnapshot value, bool allowLegacyCargoAvatar = false)
     {
-        if (value.AppearanceItemId is <= 0) throw new InvalidDataException("Invalid item appearance identity.");
+        if (value.AppearanceItemId is < 0 || value.AppearanceItemId == 0 && value.LegacyKind != 8) throw new InvalidDataException("Invalid item appearance identity.");
         if (value.ItemId <= 0 || (value.Count < 0 || value.Count == 0 && !IsRevivalCounter(value)) || (!value.IsPile && value.Count != 1)
             || (value.IsPile && value.ItemUid is not null)) throw new InvalidDataException("Invalid item identity or quantity.");
         if (value.Type != ItemTraitClassification.For(value.LegacyKind, value.ItemId))

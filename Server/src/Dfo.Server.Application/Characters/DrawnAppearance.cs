@@ -36,8 +36,8 @@ namespace Dfo.Server.Application.Characters;
 /// than this one.
 /// </para>
 /// <para>
-/// <b>What it does not decide.</b> Dye colour and the clone-avatar link are zero here because the
-/// in-world frame writes them as zero. The appearance count describes the parts actually present;
+/// <b>What it does not decide.</b> Avatar colour and its copied appearance come from the worn value. A zero
+/// avatar appearance draws its original transparent asset, never an invalid item zero. The appearance count describes the parts actually present;
 /// adding a title therefore adds one part without changing any part's wire layout.
 /// Whether a worn slot holds the creature (A21 slot 25) is a different question with a different
 /// answer, and the frame that cares asks it separately.
@@ -94,11 +94,26 @@ public static class DrawnAppearance
     /// </remarks>
     private static CharacterRosterAppearanceState Part(InventoryItemState item) => new(
         checked((byte)item.SlotIndex),
-        item.Core.ItemId,
+        AvatarDisplay(item),
         ExpansionLength,
-        new byte[ExpansionLength],
+        Colors(item),
         checked((byte)(((item.Core.Attribute & 0x1F) * 2) + (item.Core.AmplifyType != 0 ? 1 : 0))),
-        LinkItemId: 0,
+        LinkItemId: AvatarDisplay(item) != item.Core.ItemId ? item.Core.ItemId : 0,
         EnchantValue: 0u,
         Flag20: item.Core.EnchantUpgradeCount);
+
+    private static int AvatarDisplay(InventoryItemState item) => item.Core.ItemKind == 8
+        ? (item.Core.AppearanceItemId ?? item.AvatarDetail?.ClearAvatarId) is > 0 and var appearance ? appearance : item.Core.ItemId
+        : item.Core.ItemId;
+
+    private static byte[] Colors(InventoryItemState item)
+    {
+        var bytes = new byte[ExpansionLength];
+        if (item.Core.ItemKind == 8 && item.AvatarDetail is { } avatar)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bytes, avatar.Color1);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(2), avatar.Color2);
+        }
+        return bytes;
+    }
 }

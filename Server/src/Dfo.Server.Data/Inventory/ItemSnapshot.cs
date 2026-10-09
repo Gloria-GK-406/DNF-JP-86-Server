@@ -7,7 +7,7 @@ public sealed record ItemSnapshot
     public bool IsMirror { get; init; }
     public ItemIdentity? MirrorSourceUid { get; init; }
     public int ItemId { get; init; }
-    /// <summary>Optional title appearance override, effective only while worn; never part of the item wire core.</summary>
+    /// <summary>Optional appearance override. Avatar zero means transparent; null means unbound. Never part of the item wire core.</summary>
     public int? AppearanceItemId { get; init; }
     public int DisplayItemId => AppearanceItemId ?? ItemId;
     public int Count { get; init; } = 1;

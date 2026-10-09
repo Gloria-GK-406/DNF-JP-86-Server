@@ -361,6 +361,7 @@ public sealed class ApplicationModule : IServerModule
         // rule service of its own.
         services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
         services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
+        services.TryAddSingleton<AvatarAppearanceRuleService>();
         services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
         services.TryAddSingleton<IItemMirrorDomainService, ItemMirrorDomainService>();

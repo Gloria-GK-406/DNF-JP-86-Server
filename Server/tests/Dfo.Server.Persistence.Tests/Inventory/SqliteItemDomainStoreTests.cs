@@ -55,6 +55,22 @@ public sealed class SqliteItemDomainStoreTests
     }
 
     [Fact]
+    public async Task Avatar_zero_appearance_survives_storage_but_equipment_zero_and_negative_are_refused()
+    {
+        await using var store = await NewStoreAsync();
+        var avatar = ItemSnapshot.FromCore(StackableItemCore.Create(8, 42609, 123), false,
+            avatar: new(0, 0, new byte[30], 0, 0, 0)) with { AppearanceItemId = 0 };
+        await InTransactionAsync(store.Value, async session =>
+            await session.PutAsync(Equipment, 3, await session.CreateAsync(avatar, default), default));
+        await InTransactionAsync(store.Value, async session =>
+            Assert.Equal(0, (await session.GetAsync(Equipment, 3, default))!.Snapshot.AppearanceItemId));
+        foreach (var invalid in new[] { avatar with { AppearanceItemId = -1 },
+            ItemSnapshot.FromCore(StackableItemCore.Create(1, 26596, 123), false) with { AppearanceItemId = 0 } })
+            await Assert.ThrowsAsync<InvalidDataException>(() => InTransactionAsync(store.Value, async session =>
+                await session.CreateAsync(invalid, default)));
+    }
+
+    [Fact]
     public async Task AccountContainersWithTheSameSlotKeepSeparateContents()
     {
         await using var store = await NewStoreAsync();

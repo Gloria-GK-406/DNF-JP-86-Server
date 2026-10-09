@@ -161,8 +161,9 @@ internal static partial class StateSynchronizationPayloadCodec
             : core.Value)));
         writer.Write(core.Attribute);
         writer.Write(core.Durability);
-        writer.Write(core.ItemKind == avatarKind && item.AvatarDetail!.ClearAvatarId != 0
-            ? unchecked((uint)item.AvatarDetail.ClearAvatarId)
+        var appearance = core.AppearanceItemId ?? item.AvatarDetail?.ClearAvatarId ?? 0;
+        writer.Write(core.ItemKind == avatarKind && appearance > 0 && appearance != core.ItemId
+            ? unchecked((uint)appearance)
             : core.SealFlag);
         writer.Write(core.EnchantCardId);
         writer.Write(core.EnchantUpgradeCount);
