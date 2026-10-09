@@ -47,6 +47,10 @@ internal static class EffectRequestTransport
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         switch (request)
         {
+            case Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundRequest x:
+                writer.Write(x.MaterialSlot); writer.Write(x.FirstSlot); writer.Write(x.FirstItemId);
+                writer.Write(x.SecondSlot); writer.Write(x.SecondItemId); writer.Write(x.TargetItemId);
+                writer.Write(x.Ability); writer.Write(x.RandomTarget); writer.Write(x.Category); break;
             case Dfo.Server.Protocol.Game.ResetRandomOption.ResetRandomOptionRequest x:
                 writer.Write(x.TargetSlot); writer.Write(x.MaterialSlot); writer.Write(x.OptionIndex); break;
             case Dfo.Server.Protocol.Game.ResetItemQuality.ResetItemQualityRequest x:

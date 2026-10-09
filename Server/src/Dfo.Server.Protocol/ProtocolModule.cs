@@ -72,6 +72,7 @@ using Dfo.Server.Protocol.Game.CompoundItem;
 using Dfo.Server.Protocol.Game.EpicCraft;
 using Dfo.Server.Protocol.Game.ResetItemQuality;
 using Dfo.Server.Protocol.Game.ResetRandomOption;
+using Dfo.Server.Protocol.Game.AvatarCompound;
 using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
@@ -259,6 +260,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<EpicCraftCompleted, EpicCraftCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentQualityCompleted, EquipmentQualityCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<MagicSealGradeCompleted, MagicSealGradeCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<AvatarCompoundCompleted, AvatarCompoundCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
@@ -515,6 +517,8 @@ public sealed class ProtocolModule : IServerModule
             MagicSealCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<AvatarCompoundCommand, AvatarCompoundResult, AvatarCompoundCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<ResetRandomOptionCommand, EquipmentQualityResult, ResetRandomOptionCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -781,6 +785,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
         services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
+        services.RegisterMessageHandler<AvatarCompoundHandler>(ClientMessageType.GameAvatarCompound);
         services.RegisterMessageHandler<EpicCraftHandler>(ClientMessageType.GameEpicCraft);
         services.RegisterMessageHandler<ResetItemQualityHandler>(ClientMessageType.GameResetItemQuality);
         services.RegisterMessageHandler<ResetRandomOptionHandler>(ClientMessageType.GameResetRandomOption);
@@ -1019,6 +1024,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<EpicCraftDecoder>(GameProtocol.EpicCraftType, ClientMessageType.GameEpicCraft);
         services.AddGameCmdMessageDecoder<ResetItemQualityDecoder>(0x0051, ClientMessageType.GameResetItemQuality);
         services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
+        services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
@@ -1131,6 +1137,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<EpicCraftResponse, EpicCraftEncoder>();
         services.AddGameCmdMessageEncoder<ResetItemQualityResponse, ResetItemQualityEncoder>();
         services.AddGameCmdMessageEncoder<ResetRandomOptionResponse, ResetRandomOptionEncoder>();
+        services.AddGameCmdMessageEncoder<AvatarCompoundResponse, AvatarCompoundEncoder>();
         services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
         services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();

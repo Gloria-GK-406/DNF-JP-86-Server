@@ -63,6 +63,10 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         state.Request.Validate();
         var needs = state.Request.Needs;
         var messages = ImmutableArray.CreateBuilder<IGameServerMessage>();
+        // Exact-connection replay: close an initialized compound UI without replaying deductions/rewards.
+        // Its temporary material restoration must precede the authoritative current inventory below.
+        if (needs.HasFlag(ReplayProjectionNeeds.AvatarCompound))
+            messages.Add(new Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundResponse(null, Recovery: true));
         if (needs.HasFlag(ReplayProjectionNeeds.ItemUsage))
         {
             messages.AddRange(ItemUsageCountMessage.FullSnapshot(state.ItemUsage));
