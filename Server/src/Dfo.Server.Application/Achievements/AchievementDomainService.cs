@@ -1,14 +1,19 @@
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Achievements;
 
 internal sealed class AchievementDomainService(IAchievementRuleService rules, IAchievementPersistence persistence,
     IEventService events, IAchievementCharacterFactsDomainService characterFacts,
-    ITitleBookPersistence titlePersistence, ITitleBookRuleService titleRules) : IAchievementDomainService, IDomainEventSubscriber<MonsterDefeated>,
+    ITitleBookPersistence titlePersistence, ITitleBookRuleService titleRules,
+    ICharacterTable? characters = null) : IAchievementDomainService, IDomainEventSubscriber<MonsterDefeated>,
     IDomainEventSubscriber<DungeonCompleted>, IDomainEventSubscriber<QuestCompleted>, IDomainEventSubscriber<ItemUsed>,
-    IDomainEventSubscriber<MaterialConsumed>, IDomainEventSubscriber<CharacterLevelChanged>
+    IDomainEventSubscriber<MaterialConsumed>, IDomainEventSubscriber<CharacterLevelChanged>,
+    IDomainEventSubscriber<InventoryContentsChanged>
 {
     public async ValueTask PrepareAsync(CharacterId character, int level, CancellationToken ct)
     {
@@ -36,12 +41,16 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
         var ids = rules.Catalog().Select(x => x.Id).ToHashSet();
         return (await persistence.ReadAsync(character, ct)).Where(x => ids.Contains(x.AchievementId)).ToArray();
     }
-    public async ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId character, CancellationToken ct)
+    public ValueTask<IReadOnlyList<int>> UnlockSatisfiedAchievementsAsync(CharacterId character, CancellationToken ct) =>
+        CheckSatisfiedAsync(character, static _ => true, ct);
+
+    private async ValueTask<IReadOnlyList<int>> CheckSatisfiedAsync(CharacterId character,
+        Func<AchievementDefinition, bool> relevant, CancellationToken ct)
     {
         var progress = (await CurrentProgressAsync(character, ct)).ToDictionary(x => x.AchievementId);
         var unlocked = titleRules.ActivatedAchievements((await titlePersistence.ReadUnlockedSlotsAsync(character, ct)).ToHashSet());
         var candidates = rules.Catalog().Where(x => !unlocked.Contains(x.Id)
-            && rules.CanCheckSnapshot(x) && (!progress.TryGetValue(x.Id, out var p) || p.P2 == 0 && p.P3 == 0)).ToArray();
+            && relevant(x) && rules.CanCheckSnapshot(x) && (!progress.TryGetValue(x.Id, out var p) || p.P2 == 0 && p.P3 == 0)).ToArray();
         // Completed non-dependency rules need no character snapshot.
         var needsCheck = candidates.Where(x => !progress.TryGetValue(x.Id, out var p) || !p.Completed
             || x.Condition.Type is "clear quest" or "clearquest").ToArray();
@@ -137,6 +146,8 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
                 foreach (var required in d.Condition.Values)
                     if (!Cleared(required)) { fulfilled = false; break; }
                 if (!fulfilled) continue;
+                if (!progress.Any(x => x.AchievementId == d.Id))
+                    await persistence.EnsureAsync(character, d.Id, rules.InitialRemaining(d), ct);
                 if (await CompleteAsync(character, d.Id, ushort.MaxValue, ct)) { completed.Add(d.Id); changed = true; }
             }
             if (!changed) break;
@@ -152,9 +163,44 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
             var count = rules.Contribution(d, fact);
             if (count > 0 && await EligibleAsync(fact.CharacterId, d, facts, ct)) await CompleteAsync(fact.CharacterId, d.Id, count, ct);
         }
-        await ReconcileAuthoritativeAsync(fact.CharacterId, facts, ct);
         if (fact.Kind == "level.changed") await UnlockSatisfiedAchievementsAsync(fact.CharacterId, ct);
+        if (fact.Kind == "quest.completed")
+            await CheckSatisfiedAsync(fact.CharacterId, static x => x.Condition.Type is "first grow" or "awakening", ct);
+        await ReconcileAuthoritativeAsync(fact.CharacterId, facts, ct);
     }
+    public async ValueTask HandleAsync(DomainEventEnvelope<InventoryContentsChanged> e, CancellationToken ct)
+    {
+        var container = e.Payload.Container;
+        if (container.TryGetCharacterOwner(out var character, out var type))
+            await CheckInventoryAsync(character, type, e.EventId, ct);
+        else if (container.TryGetAccountOwner(out var account, out type) && type == InventoryContainerType.SharedMaterial)
+        {
+            if (characters is null) throw new InvalidOperationException("Account inventory checks require the character directory.");
+            foreach (var row in await characters.ReadByAccountAsync(account, ct))
+                await CheckInventoryAsync(new CharacterId(row.CharacterId), type, e.EventId, ct);
+        }
+    }
+    private async ValueTask CheckInventoryAsync(CharacterId character, InventoryContainerType type, Guid eventId, CancellationToken ct)
+    {
+        if (type is not (InventoryContainerType.Main or InventoryContainerType.SharedMaterial
+            or InventoryContainerType.Avatar or InventoryContainerType.Pet or InventoryContainerType.Equipment)) return;
+        if (characters is not null && await characters.FindStandingAsync(character, ct) is null) return;
+        if (!await persistence.TryConsumeFactAsync(character, eventId, ct)) return;
+        var completed = await CheckSatisfiedAsync(character, d => MatchesInventory(d, type), ct);
+        if (completed.Count > 0)
+            await ReconcileAuthoritativeAsync(character, await characterFacts.ReadAsync(character, ct), ct);
+    }
+    private static bool MatchesInventory(AchievementDefinition d, InventoryContainerType type) => type switch
+    {
+        InventoryContainerType.Main or InventoryContainerType.SharedMaterial => d.Condition.Type == "seeking"
+            && d.Condition.Values.FirstOrDefault() > 0,
+        InventoryContainerType.Avatar => d.Condition.Type == "seeking"
+            && d.Condition.Values.FirstOrDefault() == -7 && d.Condition.SubType != 25,
+        InventoryContainerType.Pet => d.Condition.Type == "seeking" && d.Condition.SubType == 25,
+        InventoryContainerType.Equipment => d.Condition.Type == "equipped item"
+            || d.Condition.Type == "seeking" && d.Condition.Values.FirstOrDefault() == -7,
+        _ => false,
+    };
     public ValueTask HandleAsync(DomainEventEnvelope<MonsterDefeated> e, CancellationToken ct) => ApplyAsync(e.EventId,
         new(e.Payload.CharacterId, "monster.defeated", e.Payload.MonsterId, 1, e.Payload.DungeonId, e.Payload.Difficulty), ct);
     public ValueTask HandleAsync(DomainEventEnvelope<DungeonCompleted> e, CancellationToken ct) => ApplyAsync(e.EventId,

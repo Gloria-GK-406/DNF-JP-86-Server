@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="949abc68-b7e4-454f-9608-b86a0b6d2cff" name="Gloria@家庭台式机 2026-10-09 12:00:12" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-09T12:00:12.8645546+08:00" queuing="2026-10-09T12:00:12.8645547+08:00" start="2026-10-09T12:00:11.5423599+08:00" finish="2026-10-09T12:00:12.8681708+08:00" />
+  <TestSettings name="default" id="3e8ac04f-0572-4080-9714-5578996a2845">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-10-09_12_00_12" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="eaa27079-77cd-4413-ad89-53f5dbf95f0a" testId="c7bc9053-bee8-6d08-0a9d-f59043282075" testName="Dfo.Server.Application.Tests.Game.SelectCharacterLifecycleTests.ObserverQueuedBeforeRollbackClose_CompletesAfterGateRelease" computerName="家庭台式机" duration="00:00:00.0828240" startTime="2026-10-09T12:00:12.2320553+08:00" endTime="2026-10-09T12:00:12.3204956+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="eaa27079-77cd-4413-ad89-53f5dbf95f0a" />
+    <UnitTestResult executionId="7aa61c52-b789-4221-be95-9b65c444c310" testId="d5d043c6-0119-56c5-ef4e-ee515e0a728f" testName="Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Replay_delivery_cannot_overtake_a_later_enchant_on_the_same_connection" computerName="家庭台式机" duration="00:00:00.5496979" startTime="2026-10-09T12:00:12.2308997+08:00" endTime="2026-10-09T12:00:12.7847031+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7aa61c52-b789-4221-be95-9b65c444c310" />
+    <UnitTestResult executionId="36cb52f1-ad98-4111-92eb-deec37604440" testId="a1a6d06d-71d8-430e-4011-11c5d36df766" testName="Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts" computerName="家庭台式机" duration="00:00:00.0906142" startTime="2026-10-09T12:00:12.2320341+08:00" endTime="2026-10-09T12:00:12.3297625+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="36cb52f1-ad98-4111-92eb-deec37604440">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Contains() Failure: Sub-string not found&#xD;
+String:    "An error occurred while writing to logger"···&#xD;
+Not found: "'UnhandledProbe'"</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\achievement-state-events\Server\tests\Dfo.Server.Application.Tests\Notifications\NotificationRegistrationTests.cs:line 78&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\achievement-state-events\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="a1a6d06d-71d8-430e-4011-11c5d36df766">
+      <Execution id="36cb52f1-ad98-4111-92eb-deec37604440" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\achievement-state-events\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests" name="The_registry_is_asked_for_before_the_first_hosted_service_starts" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Game.SelectCharacterLifecycleTests.ObserverQueuedBeforeRollbackClose_CompletesAfterGateRelease" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\achievement-state-events\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="c7bc9053-bee8-6d08-0a9d-f59043282075">
+      <Execution id="eaa27079-77cd-4413-ad89-53f5dbf95f0a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\achievement-state-events\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Game.SelectCharacterLifecycleTests" name="ObserverQueuedBeforeRollbackClose_CompletesAfterGateRelease" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests.Replay_delivery_cannot_overtake_a_later_enchant_on_the_same_connection" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\achievement-state-events\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="d5d043c6-0119-56c5-ef4e-ee515e0a728f">
+      <Execution id="7aa61c52-b789-4221-be95-9b65c444c310" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\achievement-state-events\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.EquipmentEnchantHandlerTests" name="Replay_delivery_cannot_overtake_a_later_enchant_on_the_same_connection" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="c7bc9053-bee8-6d08-0a9d-f59043282075" executionId="eaa27079-77cd-4413-ad89-53f5dbf95f0a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d5d043c6-0119-56c5-ef4e-ee515e0a728f" executionId="7aa61c52-b789-4221-be95-9b65c444c310" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a1a6d06d-71d8-430e-4011-11c5d36df766" executionId="36cb52f1-ad98-4111-92eb-deec37604440" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="3" executed="3" passed="2" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.13]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.35]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.37]   Starting:    Dfo.Server.Application.Tests&#xD;
+fail: Microsoft.Extensions.Hosting.Internal.Host[11]&#xD;
+      Hosting failed to start&#xD;
+      System.InvalidOperationException: Notifications are declared with no registered handler: 'TestNotification' (from 'Dfo.Server.Application.Tests'), 'TownBellRang' (from 'Dfo.Server.Application.Tests'), 'UnhandledProbe' (from 'Dfo.Server.Application.Tests').&#xD;
+         at Dfo.Server.Application.Notifications.NotificationHandlerRegistry..ctor(IEnumerable`1 registrations, IEnumerable`1 catalogues) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\achievement-state-events\Server\src\Dfo.Server.Application\Notifications\NotificationHandlerRegistry.cs:line 67&#xD;
+         at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Constructor(Object obj, IntPtr* args)&#xD;
+         at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)&#xD;
+         at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+         at System.Reflection.RuntimeConstructorInfo.Invoke(BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitNoCache(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceLookup.DynamicServiceProviderEngine.&lt;&gt;c__DisplayClass2_0.&lt;RealizeService&gt;b__0(ServiceProviderEngineScope scope)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+         at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:00.49]       Assert.Contains() Failure: Sub-string not found&#xD;
+[xUnit.net 00:00:00.49]       String:    "An error occurred while writing to logger"···&#xD;
+[xUnit.net 00:00:00.49]       Not found: "'UnhandledProbe'"&#xD;
+[xUnit.net 00:00:00.49]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.49]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\achievement-state-events\Server\tests\Dfo.Server.Application.Tests\Notifications\NotificationRegistrationTests.cs(78,0): at Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts()&#xD;
+[xUnit.net 00:00:00.49]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.94]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-10-09T12:00:12.3317964+08:00">
+        <Text>[xUnit.net 00:00:00.49]     Dfo.Server.Application.Tests.Notifications.NotificationRegistrationTests.The_registry_is_asked_for_before_the_first_hosted_service_starts [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

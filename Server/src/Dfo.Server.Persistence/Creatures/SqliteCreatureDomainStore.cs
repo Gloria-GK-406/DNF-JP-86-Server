@@ -10,7 +10,8 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Creatures;
 
-internal sealed class SqliteCreatureDomainStore(string databasePath) : ICreatureDomainStore
+internal sealed class SqliteCreatureDomainStore(string databasePath,
+    IInventoryContentsEventDomainService? contentsEvents = null) : ICreatureDomainStore
 {
     private readonly string connectionString = new SqliteConnectionStringBuilder
         { DataSource = Path.GetFullPath(databasePath) }.ToString();
@@ -20,7 +21,7 @@ internal sealed class SqliteCreatureDomainStore(string databasePath) : ICreature
     {
         var scope = ItemLifecycleScope.In(transaction);
         var database = transaction.Enlist(StoreIdentity, () => new SqliteDatabaseParticipant(connectionString));
-        return SqliteCreatureDomainStoreSession.In(database, scope);
+        return SqliteCreatureDomainStoreSession.In(database, scope, contentsEvents);
     }
 }
 
@@ -31,10 +32,11 @@ internal sealed class SqliteCreatureDomainStoreSession(SqliteDatabaseParticipant
     private readonly Dictionary<(CharacterId Owner, int Uid), (int? AccountId, int Stomach,
         bool OnlyWhenAtMostZero)> conditions = [];
 
-    internal static SqliteCreatureDomainStoreSession In(SqliteDatabaseParticipant owner, ItemLifecycleScope scope)
+    internal static SqliteCreatureDomainStoreSession In(SqliteDatabaseParticipant owner, ItemLifecycleScope scope,
+        IInventoryContentsEventDomainService? contentsEvents = null)
     {
         // Acquire before prepare: a transaction may not enlist another participant during settlement.
-        var items = SqliteItemDomainStoreSession.In(owner, scope);
+        var items = SqliteItemDomainStoreSession.In(owner, scope, contentsEvents);
         return owner.Facet(typeof(SqliteCreatureDomainStoreSession), db => new SqliteCreatureDomainStoreSession(db, items, scope));
     }
     public bool HasStagedWork => conditions.Count > 0;

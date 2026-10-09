@@ -1,6 +1,10 @@
 # 根据现有状态补解锁成就
 
-`IAchievementDomainService.UnlockSatisfiedAchievementsAsync(characterId)` 是写入用例。登录准备阶段与等级变化事件调用；普通成就、称号簿查询不触发它。
+`IAchievementDomainService.UnlockSatisfiedAchievementsAsync(characterId)` 是全范围固定条件检查的写入用例，保留登录准备阶段和等级变化事件调用；普通成就、称号簿查询不触发它。
+
+任务完成事件还检查最终转职/觉醒状态。新增 `InventoryContentsChanged(ContainerId)` 只描述持久化容器的成员、数量或物品模板变化，由统一 Take/Put/Update 入口登记到同一事务；同事务同容器只登记一次，回滚一起撤销。普通物品/宠物存储共享同一事件入口，宠物孵化即使先打开 Creature facet 也不会遗漏。仓库和称号簿的变化不触发持有检查。
+
+成就订阅者按变化筛选未完成条件：Main/账号 SharedMaterial 检查普通持有，Avatar 检查装扮，Pet 检查已孵化宠物，Equipment 检查装备、穿戴装扮与宠物。共享材料变化检查所属账号全部未删除角色，离线解锁持久化后在登录同步。先跳过永久激活和已完成的条件，不读取其角色快照。补检使用消费时的权威当前状态，不还原短暂历史状态；过程累计仍使用既有独立事实增量。产生的新完成继续通过 AchievementCompleted 交给称号簿，不由业务直接授予或通知。
 
 先读取完成记录和称号永久解锁记录，排除已经完成、已经激活的规则，也排除旧记录中尚有未知 P2/P3 条件的规则。没有候选时不读取角色快照。其余检查按候选需要读取等级、模式、职业、完成任务、持有物品和穿戴状态，规则服务只接收事实，不自行查询角色。
 

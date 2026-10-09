@@ -183,12 +183,14 @@ public sealed class PersistenceModule : IServerModule
         // The one store whose commit can still fail, and so the one a use case may hold. It is
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.
-        services.TryAddSingleton(_ => new SqliteItemDomainStore(databasePath));
+        services.TryAddSingleton(provider => new SqliteItemDomainStore(databasePath,
+            provider.GetService<IInventoryContentsEventDomainService>()));
         services.TryAddSingleton<ITransientItemDomainStoreFactory, Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory>();
         // The character's own rows, kept in the same database and therefore settled by the same
         // participant as the items it owns.
         services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));
-        services.TryAddSingleton<ICreatureDomainStore>(_ => new SqliteCreatureDomainStore(databasePath));
+        services.TryAddSingleton<ICreatureDomainStore>(provider => new SqliteCreatureDomainStore(databasePath,
+            provider.GetService<IInventoryContentsEventDomainService>()));
         services.TryAddSingleton<IItemDomainStore>(
             provider => provider.GetRequiredService<SqliteItemDomainStore>());
         // The character's quests, kept in the same database and therefore settled by the same

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Abstractions.Inventory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -19,6 +20,7 @@ internal static class AchievementRegistration
         services.AddDomainEvent<MonsterDefeated>("character.monster-defeated", 1);
         services.AddDomainEvent<DungeonCompleted>("character.dungeon-completed", 1);
         services.AddDomainEvent<QuestCompleted>("character.quest-completed", 1);
+        services.AddDomainEvent<InventoryContentsChanged>("inventory.contents-changed", 1);
         services.AddDomainEvent<ItemUsed>("character.item-used", 1);
         services.AddDomainEvent<MaterialConsumed>("character.material-consumed", 1);
         services.AddDomainEvent<CharacterLevelChanged>("character.level-changed", 1);
@@ -31,6 +33,7 @@ internal static class AchievementRegistration
         services.AddDomainSubscriber<MonsterDefeated, AchievementDomainService>("achievement.monster", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<DungeonCompleted, AchievementDomainService>("achievement.dungeon", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<QuestCompleted, AchievementDomainService>("achievement.quest", DomainEventDeliveryPolicy.Reliable);
+        services.AddDomainSubscriber<InventoryContentsChanged, AchievementDomainService>("achievement.inventory", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<ItemUsed, AchievementDomainService>("achievement.item", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<MaterialConsumed, AchievementDomainService>("achievement.material", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<CharacterLevelChanged, AchievementDomainService>("achievement.level", DomainEventDeliveryPolicy.Reliable);
