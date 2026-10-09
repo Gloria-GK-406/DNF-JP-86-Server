@@ -237,6 +237,18 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         if (facts.Intent.DirectedDungeonId != definition.DungeonId)
             return null;
 
+        if (facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
+        {
+            if (facts.Intent.CycleQuestId is not { } questId || facts.Intent.CycleDifficulty != facts.Difficulty
+                || !facts.ActiveQuestIds.Contains(questId)) return null;
+            var candidates = connected.Where(candidate => candidate.Connection!.QuestId == questId
+                && candidate.Connection.State == DungeonQuestConnectionState.Active
+                && IsEligible(candidate.Connection, facts)).ToArray();
+            if (candidates.Length == 0) return null;
+            var cycle = candidates[(int)(Mix(seed, salt: 0) % (uint)candidates.Length)];
+            return (cycle.Maze, new DungeonRunPurpose(DungeonRunPurposeKind.Cycle, questId, cycle.Connection!.State));
+        }
+
         if (connected.Length == 0)
             return ChooseMaze(definition.Mazes, seed, DungeonRunPurpose.Ordinary);
 

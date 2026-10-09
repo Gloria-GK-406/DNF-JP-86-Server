@@ -7,12 +7,15 @@ public enum DungeonEntryIntentKind : byte
 {
     Interactive = 0,
     Directed = 1,
+    Cycle = 2,
 }
 
 /// <summary>The client-side selection path that immediately precedes dungeon entry.</summary>
 public readonly record struct DungeonEntryIntent(
     DungeonEntryIntentKind Kind,
-    int? DirectedDungeonId)
+    int? DirectedDungeonId,
+    int? CycleQuestId = null,
+    DungeonDifficulty? CycleDifficulty = null)
 {
     public static DungeonEntryIntent Interactive { get; } =
         new(DungeonEntryIntentKind.Interactive, null);
@@ -21,12 +24,18 @@ public readonly record struct DungeonEntryIntent(
         dungeonId > 0
             ? new DungeonEntryIntent(DungeonEntryIntentKind.Directed, dungeonId)
             : throw new ArgumentOutOfRangeException(nameof(dungeonId));
+
+    public static DungeonEntryIntent Cycle(int dungeonId, int questId, DungeonDifficulty difficulty) =>
+        dungeonId > 0 && questId > 0 && Enum.IsDefined(difficulty)
+            ? new(DungeonEntryIntentKind.Cycle, dungeonId, questId, difficulty)
+            : throw new ArgumentOutOfRangeException(nameof(dungeonId));
 }
 
 public enum DungeonRunPurposeKind : byte
 {
     Ordinary = 0,
     QuestLinked = 1,
+    Cycle = 2,
 }
 
 /// <summary>The reason this particular run selected its maze, frozen at entry.</summary>
@@ -45,7 +54,7 @@ public readonly record struct DungeonRunPurpose(
             ? new DungeonRunPurpose(DungeonRunPurposeKind.QuestLinked, questId, state)
             : throw new ArgumentOutOfRangeException(nameof(questId));
 
-    public bool IsQuestLinked => Kind == DungeonRunPurposeKind.QuestLinked;
+    public bool IsQuestLinked => Kind is DungeonRunPurposeKind.QuestLinked or DungeonRunPurposeKind.Cycle;
 }
 
 /// <summary>

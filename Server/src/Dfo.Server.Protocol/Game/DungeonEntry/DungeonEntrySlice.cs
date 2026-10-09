@@ -471,7 +471,7 @@ public sealed class SelectDungeonHandler(
 
         var intent = entryIntents.Consume(session);
         if (intent is null
-            || (intent.Value.Kind == DungeonEntryIntentKind.Directed
+            || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle
                 && intent.Value.DirectedDungeonId != message.DungeonId))
         {
             if (intent is { } refusedIntent && selectedSessions.FindByCharacter(session.CharacterId) == session)

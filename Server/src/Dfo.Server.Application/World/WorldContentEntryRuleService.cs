@@ -54,21 +54,8 @@ internal sealed class WorldContentEntryRuleService(
         {
             if (quest.QuestId is <= 0 or > 29_999 || !seenQuestIds.Add(quest.QuestId))
                 continue;
-            if (quest.IsExposedByNpc == false || quest.IsEventOnly == true)
-                continue;
-            if (quest.ExpertJobRequirement is not null)
-                continue;
-            if (!MatchesTargetCharacter(quest.TargetCharacterRestriction, requirement))
-                continue;
-            if (!MatchesTrainingAvailability(quest, subject.Level, trainingAvailability))
-                continue;
-            if (!await MatchesCreatureRestrictionAsync(
-                    quest,
-                    subject,
-                    equippedCreature,
-                    cancellationToken).ConfigureAwait(false))
-                continue;
-            if (!MatchesQuestProgress(quest, subject.ClearedQuestFlags))
+            if (!await MeetsRequirementsAsync(quest, subject, requirement, trainingAvailability,
+                    equippedCreature, cancellationToken).ConfigureAwait(false))
                 continue;
             // Being carried is not being offerable. The reference server's own list builder is not
             // given the carried set at all and so cannot make this distinction; its list names a
@@ -84,15 +71,6 @@ internal sealed class WorldContentEntryRuleService(
             // after their first completion.
             if (!IsRepeatable(quest.Grade) && subject.ClearedQuestFlags.ContainsKey(quest.QuestId))
                 continue;
-            if (quest.RequiredLevel is { } requiredLevel && !requiredLevel.Includes(subject.Level))
-                continue;
-            if (quest.JobRestriction is { } jobRestriction
-                && (!jobRestriction.IsValid
-                    || !jobRestriction.IsExactAll
-                    && !jobRestriction.JobFamilies.Contains(requirement)))
-                continue;
-            if (!MatchesGrowType(quest, subject.GrowType))
-                continue;
 
             offerable.Add(new OfferableQuestState(
                 quest.QuestId,
@@ -102,6 +80,29 @@ internal sealed class WorldContentEntryRuleService(
 
         return new AvailableQuestEntryState(offerable);
     }
+
+    public async ValueTask<bool> MeetsQuestRequirementsAsync(QuestDefinition quest,
+        WorldContentSubject subject, CancellationToken cancellationToken)
+    {
+        var training = await quests.TrainingAvailabilityAsync(cancellationToken).ConfigureAwait(false);
+        var creature = subject.EquippedCreatureItemId > 0
+            ? await creatures.FindByEquipmentAsync(subject.EquippedCreatureItemId, cancellationToken).ConfigureAwait(false) : null;
+        return await MeetsRequirementsAsync(quest, subject, CharacterJobFamilies.Resolve(subject.Job), training,
+            creature, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<bool> MeetsRequirementsAsync(QuestDefinition quest, WorldContentSubject subject,
+        QuestJobRequirement job, IReadOnlyList<TrainingQuestAvailability> training, CreatureDefinition? creature,
+        CancellationToken cancellationToken) => quest.IsExposedByNpc != false && quest.IsEventOnly != true
+        && quest.ExpertJobRequirement is null
+        && MatchesTargetCharacter(quest.TargetCharacterRestriction, job)
+        && MatchesTrainingAvailability(quest, subject.Level, training)
+        && MatchesQuestProgress(quest, subject.ClearedQuestFlags)
+        && (quest.RequiredLevel is not { } level || level.Includes(subject.Level))
+        && (quest.JobRestriction is not { } restriction || restriction.IsValid
+            && (restriction.IsExactAll || restriction.JobFamilies.Contains(job)))
+        && MatchesGrowType(quest, subject.GrowType)
+        && await MatchesCreatureRestrictionAsync(quest, subject, creature, cancellationToken).ConfigureAwait(false);
 
     private static bool MatchesTargetCharacter(
         QuestTargetCharacterRestriction? restriction,
@@ -240,6 +241,7 @@ internal sealed class WorldContentEntryRuleService(
     private static bool IsRepeatable(QuestGrade? grade) => grade is
         QuestGrade.Daily
         or QuestGrade.NormallyRepeat
+        or QuestGrade.Circle
         or QuestGrade.SpecialDaily;
 
     private async ValueTask<DailyChallengeEntryState> ResolveDailyChallengeAsync(

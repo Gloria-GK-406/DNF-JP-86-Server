@@ -1,4 +1,5 @@
 using Dfo.Server.Protocol.Game.Achievements;
+using Dfo.Server.Protocol.Game.CycleDungeonEntry;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -675,6 +676,11 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
+        services.RegisterMessageHandler<PrepareCycleDungeonEntryHandler>(ClientMessageType.GamePrepareCycleDungeonEntry);
+        services.AddCommandHandler<PrepareCycleDungeonEntryCommand, CycleDungeonPreparation, PrepareCycleDungeonEntryCommandHandler>(
+            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
+        services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
         services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
             CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);

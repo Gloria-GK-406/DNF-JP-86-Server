@@ -90,6 +90,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             ["[daily random]"] = QuestGrade.DailyRandom,
             ["[special daily]"] = QuestGrade.SpecialDaily,
             ["[normaly repeat]"] = QuestGrade.NormallyRepeat,
+            ["[circle]"] = QuestGrade.Circle,
             ["[sub]"] = QuestGrade.Sub,
             ["[system]"] = QuestGrade.System,
             ["[schedule]"] = QuestGrade.Schedule,
@@ -113,6 +114,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             ["[hell challenge]"] = QuestRewardKind.HellChallenge,
             ["[slot expansion]"] = QuestRewardKind.SlotExpansion,
             ["[crack of dimension]"] = QuestRewardKind.CrackOfDimension,
+            ["[circle dungeon]"] = QuestRewardKind.CircleDungeon,
         };
 
     private readonly PvfArchiveProvider _provider;

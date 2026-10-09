@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -86,7 +87,8 @@ public sealed class AcceptQuestCommandHandler(
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
-    IItemGrantDomainService itemGrants)
+    IItemGrantDomainService itemGrants,
+    ICycleDungeonEntryDomainService? cycles = null)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(
@@ -113,6 +115,16 @@ public sealed class AcceptQuestCommandHandler(
             return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
 
         var log = logs.LogOf(command.AccountId, command.CharacterId);
+        if (definition.Grade == QuestGrade.Circle)
+        {
+            if (cycles is null || !await cycles.CanAcceptAsync(command.AccountId, command.CharacterId,
+                    command.QuestId, cancellationToken).ConfigureAwait(false))
+                return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+            var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+            if (carried.Any(x => x.QuestId == command.QuestId))
+                return new(true, command.QuestId, definition.InitialTrigger, [],
+                    QuestProgress: new QuestProgressSnapshot(carried));
+        }
         var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
         if (!taken.Accepted)
             return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));

@@ -167,6 +167,8 @@ public sealed class ApplicationModule : IServerModule
         });
         services.TryAddSingleton<IHellDungeonEntryDomainService, HellDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
+        services.TryAddSingleton<ICycleDungeonRuleService, CycleDungeonRuleService>();
+        services.TryAddSingleton<ICycleDungeonEntryDomainService, CycleDungeonEntryDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
         services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();
         // What the server declares about its channels, and what a tutorial step hands over.

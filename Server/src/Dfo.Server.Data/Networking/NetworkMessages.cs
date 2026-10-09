@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GamePrepareCycleDungeonEntry = 0x0001_0308,
     GameResetItemQuality = 0x0001_0051,
     GameResetRandomOption = 0x0001_01C8,
     GameEpicCraft = 0x0001_0313,
@@ -52,7 +53,8 @@ public enum ClientMessageType
     // Synthetic catalogue identity for GET_USERINFO mode 3. The wire key remains CMD 0x0008;
     // keeping the semantic query distinct prevents its target from entering the account-roster
     // handler merely because both share one client opcode.
-    GameGetOtherCharacterDetail = 0x0001_0308,
+    // Synthetic mode identities use a separate namespace: 0308 is a real cycle-entry CMD.
+    GameGetOtherCharacterDetail = 0x0103_0008,
     GameSelectCharacter = 0x0001_0004,
     ChannelScriptVersion = 0x05,
     ChannelScript = 0x09,
@@ -206,6 +208,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GamePrepareCycleDungeonEntry = 0x0001_0308,
     GameResetItemQuality = 0x0001_0051,
     GameResetRandomOption = 0x0001_01C8,
     GameEpicCraft = 0x0001_0313,

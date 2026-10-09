@@ -122,6 +122,14 @@ internal sealed class DungeonVisitDomainService(
             }
             var maximum = await difficulties.GetMaximumAsync(member.CharacterId, dungeonId, cancellationToken)
                 .ConfigureAwait(false);
+            if (facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
+            {
+                // The cycle domain has checked the PVF region and accepted quest. This mode's
+                // fixed difficulty is not an ordinary clear-to-unlock difficulty selection.
+                if (facts.Intent.DirectedDungeonId != dungeonId || facts.Intent.CycleDifficulty != difficulty)
+                    return new(null, DungeonEntryFailure.DifficultyNotUnlocked, member.Slot);
+                continue;
+            }
             bool allowed;
             try
             {

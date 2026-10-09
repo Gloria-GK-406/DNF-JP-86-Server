@@ -178,6 +178,7 @@ public sealed class FinishQuestHandler(
         var mirror = await characters.Get(session.CharacterId)
             .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         var frames = new List<IGameServerMessage>();
+        frames.AddRange(GameInventoryDelivery.Notifications(outcome.ConsumedItemUpdates));
         if (outcome.AccountMaterials is { Count: > 0 } accountMaterials)
         {
             frames.Add(GameInventoryDelivery.VirtualResourceNotification(

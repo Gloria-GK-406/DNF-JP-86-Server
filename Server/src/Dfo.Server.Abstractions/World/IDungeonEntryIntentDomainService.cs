@@ -9,6 +9,10 @@ public interface IDungeonEntryIntentDomainService
 {
     void Record(SelectedSessionIdentity session, DungeonEntryIntent intent);
 
+    DungeonEntryIntent? Find(SelectedSessionIdentity session) => null;
+
+    bool TryReplaceExact(SelectedSessionIdentity session, DungeonEntryIntent expected, DungeonEntryIntent replacement) => false;
+
     DungeonEntryIntent? Consume(SelectedSessionIdentity session);
 
     /// <summary>Returns a refused attempt to selection without overwriting a newer intent.</summary>

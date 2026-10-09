@@ -9,6 +9,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Game;
 
 namespace Dfo.Server.Protocol.Game.QuestCompletion;
 
@@ -41,6 +42,7 @@ public sealed record QuestFinishOutcome(
     byte? GrowType = null)
 {
     public uint NotificationExperience { get; init; } = NewExperience;
+    public IReadOnlyList<CommittedInventoryUpdateState> ConsumedItemUpdates { get; init; } = [];
 
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>
@@ -109,9 +111,13 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
             var slots = new InventorySlotMappingRuleService();
             var items = new List<FinishedQuestItem>();
             var account = new List<InventoryRuntimeValueState>();
+            var consumed = new HashSet<BusinessSlot>();
             foreach (var applied in result.Applied!.Applied)
                 switch (applied.Change)
                 {
+                    case ContainerConsumptionChange change:
+                        consumed.Add(change.Slot);
+                        break;
                     case Dfo.Server.Abstractions.Effects.BasicCharacterItemChange basic:
                         items.AddRange(basic.Additions.Select(x => new FinishedQuestItem(checked((ushort)slots.ToGameSlot(x.Slot).Index),
                             (uint)((Dfo.Server.Abstractions.Effects.GrantBasicCharacterItemEffect)applied.Effect).ItemId, checked((uint)x.Count))));
@@ -127,8 +133,18 @@ public sealed class FinishQuestCommandHandler(Dfo.Server.Abstractions.Effects.IQ
                         items.Add(new(0, 0, checked((uint)(gold.After - gold.Before))));
                         break;
                 }
+            var updates = new List<CommittedInventoryUpdateState>();
+            foreach (var slot in consumed)
+            {
+                var bound = inventorySlots.Find(command.CharacterId, slot) ?? throw new InvalidDataException("Consumed quest slot vanished.");
+                var item = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
+                var wire = slots.ToGameSlot(slot);
+                updates.Add(new(wire.Space, [new(item?.ItemUid, wire.Index,
+                    item?.Snapshot.ToCore() ?? StackableItemCore.Create(0, -1, 0))], DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime)));
+            }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
-                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType) { NotificationExperience = result.Award.NotificationTotal };
+                result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType)
+            { NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {

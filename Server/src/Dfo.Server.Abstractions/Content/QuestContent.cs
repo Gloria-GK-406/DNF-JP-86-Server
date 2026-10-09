@@ -62,6 +62,7 @@ public enum QuestGrade
     Urgent,
     Wedding,
     VillageAttackRevenge,
+    Circle,
 }
 
 /// <summary>A declared quest job restriction after archive spelling is removed.</summary>
@@ -92,6 +93,7 @@ public enum QuestRewardKind
     HellChallenge,
     SlotExpansion,
     CrackOfDimension,
+    CircleDungeon,
 }
 
 /// <summary>One reward the quest grants, with the content's own operands.</summary>
@@ -272,7 +274,7 @@ public sealed record QuestDefinition(
     /// reads it: the three repeating grades are the daily pair and the plainly named repeat.
     /// </remarks>
     public bool IsRepeatable => Grade
-        is QuestGrade.Daily or QuestGrade.SpecialDaily or QuestGrade.NormallyRepeat;
+        is QuestGrade.Daily or QuestGrade.SpecialDaily or QuestGrade.NormallyRepeat or QuestGrade.Circle;
 }
 
 /// <summary>One item a quest hands over at the moment it is accepted.</summary>
