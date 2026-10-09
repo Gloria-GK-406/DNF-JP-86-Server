@@ -15,8 +15,8 @@ public enum ReplayProjectionNeeds
 {
     None = 0, Inventory = 1, Pets = 2, Skills = 4, Quests = 8, Experience = 16,
     Fatigue = 32, ItemUsage = 64, Premium = 128, CharacterAppearance = 256,
-    TownLocation = 512, Joust = 1024,
-    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation | Joust,
+    TownLocation = 512, Joust = 1024, EpicBook = 2048,
+    All = Inventory | Pets | Skills | Quests | Experience | Fatigue | ItemUsage | Premium | CharacterAppearance | TownLocation | Joust | EpicBook,
 }
 
 /// <summary>Only projection categories and physical addresses, never old receipts or reward increments.</summary>
@@ -132,7 +132,10 @@ public sealed record ReplayStateSnapshot(SelectedSessionIdentity Session, Replay
     CharacterSkillProtocolMirrorState? Points, CharacterFatigueBalance? Fatigue,
     ImmutableArray<ItemUsageState> ItemUsage, ImmutableArray<AccountPremiumEntryState> Premiums,
     ImmutableArray<CharacterPremiumUsageSlotState> PremiumUsage, ReplayCharacterState? Appearance)
-{ public Dfo.Server.Data.Events.JoustState? Joust { get; init; } }
+{
+    public Dfo.Server.Data.Events.JoustState? Joust { get; init; }
+    public ImmutableArray<EpicPieceBalance> EpicPieces { get; init; }
+}
 
 public interface IReplayStateDomainService
 {

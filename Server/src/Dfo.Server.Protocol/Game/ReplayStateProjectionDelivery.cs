@@ -143,6 +143,8 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         }
         if (needs.HasFlag(ReplayProjectionNeeds.Joust))
             messages.AddRange(Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(state.Joust ?? throw Missing("Joust")));
+        if (needs.HasFlag(ReplayProjectionNeeds.EpicBook))
+            messages.Add(new EpicBookStateMessage(0, state.EpicPieces.IsDefault ? throw Missing("Epic book") : state.EpicPieces));
         return messages.ToImmutable();
     }
     private static InvalidDataException Missing(string name) => new($"Required replay projection '{name}' is unavailable.");
