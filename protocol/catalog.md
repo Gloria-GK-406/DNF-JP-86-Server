@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-09 装备品级调级箱（CurrentImplementation，实机待测）
+
+[CMD0051请求](game/client-to-server/0x0051.md)按70Reference的目标槽/模板ID/材料槽接入。A21 ClientStatic确认[成功响应](game/server-to-client/CMD-0x0051.md)为成功信封、材料槽u16、剩余数量u32、操作类型u16=2，共9字节；之后以NOTI000E更新目标装备。扣一个箱子与重抽种子同事务，已有属性及身份保持，重复请求不重扣。普通装备生成的随机种子生产器统一并排除五个固定属性种子；不改旧装备、不改已公布的地面掉落种子。请求未采到A21实帧，UI与文案待用户验证；封蜡未实现。
+
 ## 2026-10-09 史诗图鉴制作（服务端已实现，实机待测）
 
 [CMD0313 EPIC_BOOK_MAKE_ITEM](game/client-to-server/0x0313.md)：1123 点击“普拉塔尼的黄金石”制作，服务端入口 seq41 / body D4DD0600，对应 u32 小端装备 ID450004。请求字段为 WireCaptured / Confirmed；已接入领域事务：真实PVF配方、账号碎片与携带/共享材料扣除、独立装备生成；成功CMD0313 body01后，EventService按0465余额、000E物品及空槽投影。回包结构为ClientStatic，服务端为CurrentImplementation；成功闭环仍待ClientVerified。NOTI0313 属于另一协议族，不作为本 CMD 的响应。

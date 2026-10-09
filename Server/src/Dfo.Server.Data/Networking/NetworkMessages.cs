@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameResetItemQuality = 0x0001_0051,
     GameEpicCraft = 0x0001_0313,
     GameIllusionTowerStage = 0x0001_009F,
     GameCreateAccountCargo = 0x0001_0131,
@@ -203,6 +204,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameResetItemQuality = 0x0001_0051,
     GameEpicCraft = 0x0001_0313,
     GameIllusionTowerInfo = 0x0000_008E,
     GameIllusionTowerMap = 0x0000_008F,

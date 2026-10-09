@@ -63,7 +63,7 @@ internal sealed class GrantPreparedItemEffectHandler(IBusinessInventorySlotDomai
         ItemArrival.OntoExistingPile pile => (pile.Slot, pile.Added, held[pile.Slot]! with { Count = pile.Total }),
         ItemArrival.IntoEmptySlot empty => (empty.Slot, empty.Count, Baseline(grant) with
         { Count = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? empty.Count : 1,
-            InstanceValue = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? 0 : applying ? Random.Shared.Next(1, int.MaxValue) : 1 }),
+            InstanceValue = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? 0 : applying ? Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom() : 1 }),
         _ => throw new InventoryEffectException(InventoryEffectRejection.NoRoom),
     };
     public override async ValueTask PreviewAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, IInventoryEffectPreviewState state, CancellationToken ct)

@@ -129,6 +129,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
         services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
         services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
+        services.TryAddSingleton<IEquipmentQualityDefinitionSource, PvfEquipmentQualityDefinitionSource>();
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
         services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();

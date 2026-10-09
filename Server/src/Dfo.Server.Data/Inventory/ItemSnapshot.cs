@@ -15,6 +15,7 @@ public sealed record ItemSnapshot
     public bool IsPile { get; init; }
     public ItemIdentity? ItemUid { get; init; }
     public byte LegacyKind { get; init; }
+    /// <summary>Client attribute seed for equipment; distinct from server ItemUid and not a quality percentage.</summary>
     public int InstanceValue { get; init; }
     public byte Attribute { get; init; }
     public ushort Durability { get; init; }
